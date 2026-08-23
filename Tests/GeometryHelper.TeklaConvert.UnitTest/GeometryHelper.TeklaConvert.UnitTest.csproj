@@ -23,13 +23,14 @@
     <!-- The geometry types of the Tekla API are plain data and need no running Tekla, so the conversions
          over them can be tested here. Reading a Tekla Solid does need one, and is covered by the model
          test program instead. Private is true here, unlike in the library, because the test host has no
-         Tekla installation to load them from. -->
+         Tekla installation to load them from.
+
+         Only Tekla.Structures is referenced: it carries both Tekla.Structures.Geometry3d and
+         Tekla.Structures.Solid, which is all the tests touch. A test that reaches into
+         RectangleBoundingBoxConvert would also need Tekla.Structures.Drawing added here, because the
+         library keeps that one Private=False and so does not copy it out. -->
     <Reference Include="Tekla.Structures">
       <HintPath>..\..\Libraries\GeometryHelper.TeklaConvert\Lib2020\Tekla.Structures.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Tekla.Structures.Model">
-      <HintPath>..\..\Libraries\GeometryHelper.TeklaConvert\Lib2020\Tekla.Structures.Model.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>

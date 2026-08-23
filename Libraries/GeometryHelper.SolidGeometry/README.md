@@ -1,11 +1,16 @@
 # GeometryHelper.SolidGeometry
 
+[![NuGet Version](https://img.shields.io/nuget/v/GeometryHelper.SolidGeometry.svg?style=flat-square)](https://www.nuget.org/packages/GeometryHelper.SolidGeometry/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://github.com/nguyenthanguth/GeometryHelper/blob/main/LICENSE)
+
 A 3D geometry library for engineering models, written in C# and targeting `netstandard2.0`.
 
-It is the 3D counterpart of [ArrangeAlgorithms](https://github.com/nguyenthanguth/ArrangeAlgorithms) and
-follows the same shape: immutable geometry types, operations living in static classes under `Core`, and
-every operation mirrored as an instance method on the type it applies to. The two libraries are
-independent — SolidGeometry does not reference ArrangeAlgorithms.
+It is the 3D counterpart of
+[GeometryHelper.PlaneGeometry](https://www.nuget.org/packages/GeometryHelper.PlaneGeometry/) and follows
+the same shape: immutable geometry types, operations living in static classes under `Core`, and every
+operation mirrored as an instance method on the type it applies to. The two are independent — neither
+references the other, and what they share arrives through
+[GeometryHelper.CommonGeometry](https://www.nuget.org/packages/GeometryHelper.CommonGeometry/).
 
 ## Installation
 
@@ -20,6 +25,7 @@ dotnet add package GeometryHelper.SolidGeometry
 | `GeometryHelper.SolidGeometry.Geometry` | `GeoPoint3`, `GeoVector3`, `GeoLine3`, `GeoRay3`, `GeoPlane3`, `GeoTriangle3`, `GeoPolyline3`, `GeoPolygon3`, `GeoCircle3`, `GeoFace3`, `GeoAabb3`, `GeoObb3`, `GeoSolid3`, `GeoCoordinateSystem3`, `GeoTransform3` |
 | `GeometryHelper.SolidGeometry.Core` | `Boolean3`, `Collision3`, `Containment3`, `Distance3`, `Intersection3`, `Merge3`, `Parallel3`, `Parametrization3`, `Projection3`, `Splition3` |
 | `GeometryHelper.SolidGeometry.Spatial` | `GeoBvh3` |
+| `GeometryHelper.SolidGeometry.Extension` | `EnumerableExtension` |
 | `GeometryHelper.CommonGeometry` | `Tolerance` |
 | `GeometryHelper.CommonGeometry.Datatype` | `Angle` |
 | `GeometryHelper.CommonGeometry.Enums` | `PointLocation`, `PlaneSide` |
@@ -423,6 +429,39 @@ One caveat, shared with any triangle mesh: a ray running exactly along an edge i
 triangles that share it. Anything counting crossings to tell inside from outside must keep clear of edges,
 which is why `Containment3` throws its ray again in another direction when a hit lands near one.
 
+## Point chains
+
+`GeometryHelper.SolidGeometry.Extension` covers the step before a polyline exists: a raw list of points,
+usually read out of a model and carrying more of them than the geometry needs.
+
+```csharp
+using GeometryHelper.SolidGeometry.Extension;
+
+var traced = new List<GeoPoint3>
+{
+    new GeoPoint3(0, 0, 0), new GeoPoint3(0.0001, 0, 0), new GeoPoint3(5, 0, 0), new GeoPoint3(5, 0, 5),
+};
+
+// The second point is a hair away from the first and goes.
+List<GeoPoint3> thinned = traced.RemoveConsecutiveNearPoints(new Tolerance(0.001, 0.001)); // 3 points
+
+// One segment per consecutive pair.
+List<GeoLine3> segments = thinned.ToGeoLine3s();                                           // 2 segments
+```
+
+`RemoveConsecutiveNearPoints` compares each point against the last one *kept*, not against its original
+neighbour, which is what guarantees no two points of the result are coincident within the tolerance. A
+huddle collapses onto its first point, and collapsing stops as soon as one point escapes the tolerance
+around that anchor, so a long run thins rather than vanishes. Distance is measured in all three
+dimensions, so two points that share X and Y but differ in Z are not fused.
+
+The first point always survives; the last one is not privileged. A final point lying within the tolerance
+of the one kept before it is dropped like any other, so re-append it yourself when the endpoint matters.
+
+`ToGeoLine3s` leaves the chain open — nothing joins the last point back to the first, so a ring has to
+repeat its first point at the end. It does not filter coincident neighbours either, so run
+`RemoveConsecutiveNearPoints` first if zero length segments would be a problem.
+
 ## Tolerance
 
 Nothing in this library compares coordinates with `==`. Every comparison that floating point error can
@@ -480,12 +519,12 @@ motion.Inverse().Transform(motion.Transform(GeoPoint3.Origin)); // back to the o
 
 ## Tekla Structures
 
-`GeometryHelper.Tekla` converts geometry between Tekla Structures and this library: points, vectors,
+`GeometryHelper.TeklaConvert` converts geometry between Tekla Structures and this library: points, vectors,
 segments, planes, coordinate systems, bounding boxes, transformation matrices, and the faces and loops of
 a Tekla solid. It is a separate project, so the core library carries no dependency on Tekla.
 
 ```csharp
-using GeometryHelper.Tekla;
+using GeometryHelper.TeklaConvert;
 
 teklaSolid.TryToGeoSolid3(out GeoSolid3 body, tolerance);
 
@@ -506,10 +545,10 @@ pass a `Tolerance` suited to the model rather than relying on the default.
 
 ## Build and Test
 
-```
-dotnet build
-dotnet test Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj
-dotnet test GeometryHelper.Tekla.UnitTest
+```bash
+dotnet build Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj
+dotnet test  Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj
+dotnet test  Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj
 ```
 
 Every snippet in this README is covered by a unit test in `ReadmeExamplesTests`.

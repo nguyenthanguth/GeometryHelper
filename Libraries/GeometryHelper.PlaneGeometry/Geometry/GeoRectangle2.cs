@@ -33,6 +33,11 @@ namespace GeometryHelper.PlaneGeometry.Geometry
         public double AngleRad { get; }
 
         /// <summary>
+        /// Gets the rotation angle in degrees (counter-clockwise).
+        /// </summary>
+        public double AngleDeg => Angle.ToDegrees(AngleRad);
+
+        /// <summary>
         /// Gets a value indicating whether the rectangle is rotated, that is whether its rotation angle
         /// differs from zero by more than the angular tolerance once full turns are removed.
         /// </summary>

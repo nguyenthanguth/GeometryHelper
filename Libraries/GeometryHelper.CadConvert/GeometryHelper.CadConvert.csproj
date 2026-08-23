@@ -4,7 +4,10 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- The assembly attributes are generated from the package metadata below rather than written by
+         hand, so the version lives in one place. The four geometry libraries still carry a hand-written
+         Properties/AssemblyInfo.cs; this project has none, and generating is what keeps its identity
+         from falling back to 0.0.0.0. -->
     <PlatformTarget>x64</PlatformTarget>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 

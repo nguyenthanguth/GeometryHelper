@@ -1,11 +1,23 @@
 # GeometryHelper.CommonGeometry
 
-The types that [PlaneGeometry](https://github.com/nguyenthanguth/ArrangeAlgorithms) and
-[SolidGeometry](https://github.com/nguyenthanguth/ArrangeAlgorithms) both need. It exists so that a
+[![NuGet Version](https://img.shields.io/nuget/v/GeometryHelper.CommonGeometry.svg?style=flat-square)](https://www.nuget.org/packages/GeometryHelper.CommonGeometry/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://github.com/nguyenthanguth/GeometryHelper/blob/main/LICENSE)
+
+The types that [GeometryHelper.PlaneGeometry](https://www.nuget.org/packages/GeometryHelper.PlaneGeometry/) and
+[GeometryHelper.SolidGeometry](https://www.nuget.org/packages/GeometryHelper.SolidGeometry/) both need. It exists so that a
 program using the two libraries together sees one `Tolerance` and one `Angle` rather than two of
 each, which is what happens when a shared type is copied into both.
 
 It depends on nothing and knows nothing about either library.
+
+## Installation
+
+```bash
+dotnet add package GeometryHelper.CommonGeometry
+```
+
+Both geometry libraries pull it in on their own, so install it directly only when you want `Tolerance`
+or `Angle` without either of them.
 
 ## Tolerance
 
@@ -23,7 +35,7 @@ compares coordinates with `==`.
 `EqualPlanar` is separate from `EqualPoint` because coplanarity is measured far from the reference
 point. A face twelve metres long that is tilted by a hundredth of a degree deviates by about two
 millimetres at its far end — far more than `EqualPoint` allows, yet still flat enough to work with.
-Only SolidGeometry uses it.
+Only GeometryHelper.SolidGeometry uses it.
 
 ```csharp
 // One setting for both libraries.

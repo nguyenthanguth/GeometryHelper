@@ -2,19 +2,15 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/GeometryHelper.ArrangeAlgorithms.svg?style=flat-square)](https://www.nuget.org/packages/GeometryHelper.ArrangeAlgorithms/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/GeometryHelper.ArrangeAlgorithms.svg?style=flat-square)](https://www.nuget.org/packages/GeometryHelper.ArrangeAlgorithms/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://github.com/nguyenthanguth/ArrangeAlgorithms/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://github.com/nguyenthanguth/GeometryHelper/blob/main/LICENSE)
 
 2D label placement for engineering drawings: given a set of labels, each associated with a guide
 segment and surrounding blocked regions, the library calculates translation vectors that keep labels
 from overlapping each other and from encroaching on the blocked regions.
 
 It depends on AutoCAD and Tekla for nothing. The geometry it works in comes from
-[GeometryHelper.PlaneGeometry](https://www.nuget.org/packages/GeometryHelper.PlaneGeometry/), which used to ship inside this package
-and became one of its own in 3.0.0.
-
-> **Moving from 2.x?** The geometric types moved to the `GeometryHelper.PlaneGeometry` package and gained a `2`
-> suffix, and `Tolerance` moved to `GeometryHelper.CommonGeometry`. See
-> [What changed in 3.0.0](https://github.com/nguyenthanguth/ArrangeAlgorithms#what-changed-in-300).
+[GeometryHelper.PlaneGeometry](https://www.nuget.org/packages/GeometryHelper.PlaneGeometry/), which
+comes with this package as a dependency.
 
 ## Installation
 
@@ -31,18 +27,18 @@ Here are some examples of labels arranged inside AutoCAD to avoid overlaps and b
 
 | Greedy | Force Directed |
 |:---:|:---:|
-| ![Greedy](https://raw.githubusercontent.com/nguyenthanguth/ArrangeAlgorithms/main/ArrangeAlgorithms.CadTest/img/ex-result-cad1.png) | ![Force Directed](https://raw.githubusercontent.com/nguyenthanguth/ArrangeAlgorithms/main/ArrangeAlgorithms.CadTest/img/ex-result-cad2.png) |
+| ![Greedy](https://raw.githubusercontent.com/nguyenthanguth/GeometryHelper/main/Samples/GeometryHelper.ArrangeAlgorithms.CadTest/img/ex-result-cad1.png) | ![Force Directed](https://raw.githubusercontent.com/nguyenthanguth/GeometryHelper/main/Samples/GeometryHelper.ArrangeAlgorithms.CadTest/img/ex-result-cad2.png) |
 
 ### Tekla Structures Integration
 Here is an example of reinforcement marks before and after arrangement:
 
 | Before Arrangement | After Arrangement |
 |:---:|:---:|
-| ![Before Arrangement](https://raw.githubusercontent.com/nguyenthanguth/ArrangeAlgorithms/main/ArrangeAlgorithms.TeklaTest/img/ex-from.png) | ![After Arrangement](https://raw.githubusercontent.com/nguyenthanguth/ArrangeAlgorithms/main/ArrangeAlgorithms.TeklaTest/img/ex-result.png) |
+| ![Before Arrangement](https://raw.githubusercontent.com/nguyenthanguth/GeometryHelper/main/Samples/GeometryHelper.ArrangeAlgorithms.TeklaTest/img/ex-from.png) | ![After Arrangement](https://raw.githubusercontent.com/nguyenthanguth/GeometryHelper/main/Samples/GeometryHelper.ArrangeAlgorithms.TeklaTest/img/ex-result.png) |
 
 | Arranged Marks Avoiding Dimension Obstacles |
 |:---:|
-| ![Tekla Result Detail](https://raw.githubusercontent.com/nguyenthanguth/ArrangeAlgorithms/main/ArrangeAlgorithms.TeklaTest/img/ex-result-2.png) |
+| ![Tekla Result Detail](https://raw.githubusercontent.com/nguyenthanguth/GeometryHelper/main/Samples/GeometryHelper.ArrangeAlgorithms.TeklaTest/img/ex-result-2.png) |
 
 ## Quick Start
 
@@ -177,7 +173,7 @@ dotnet build Samples/GeometryHelper.ArrangeAlgorithms.CadTest/GeometryHelper.Arr
 
 The output is located at `Samples/GeometryHelper.ArrangeAlgorithms.CadTest/bin/Debug/net48/GeometryHelper.ArrangeAlgorithms.CadTest.dll`. Load this file into AutoCAD using the `NETLOAD` command, then run one of the following commands: `T1_Greedy`, `T1_BoundedBacktracking`, `T1_SimulatedAnnealing`, `T1_ForceDirected`, `T1_ConstraintSatisfaction`. Select LINE or LWPOLYLINE objects, and the plugin will draw the label box before and after arrangement, along with statistics.
 
-The project references three DLLs: `accoremgd`, `acdbmgd`, `acmgd` via the `AutoCadPath` declared in the `.csproj` file. If those DLLs are located elsewhere on your machine, edit the `AutoCadPath` line.
+The project compiles against three AutoCAD assemblies — `accoremgd`, `acdbmgd`, `acmgd` — committed under `Libraries/GeometryHelper.CadConvert/Lib` and referenced from there by relative path, so no AutoCAD installation is needed to build. Loading the result still needs AutoCAD, which supplies those assemblies at run time.
 
 ## Running inside Tekla Structures
 

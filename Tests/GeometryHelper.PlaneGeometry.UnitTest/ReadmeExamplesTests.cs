@@ -4,6 +4,7 @@ using System.Linq;
 using GeometryHelper.CommonGeometry;
 using GeometryHelper.CommonGeometry.Enums;
 using GeometryHelper.PlaneGeometry.Core;
+using GeometryHelper.PlaneGeometry.Extension;
 using GeometryHelper.PlaneGeometry.Geometry;
 using Xunit;
 
@@ -279,6 +280,32 @@ namespace GeometryHelper.PlaneGeometry.UnitTest
             Assert.Empty(grazeIn);
             Assert.Single(grazeOut);
             Assert.Equal(graze.Length, grazeOut[0].Length, 9);
+        }
+        [Fact]
+        public void PointChains_ThinThenChain()
+        {
+            var traced = new List<GeoPoint2>
+            {
+                new GeoPoint2(0, 0), new GeoPoint2(0.0001, 0), new GeoPoint2(5, 0), new GeoPoint2(5, 5),
+            };
+
+            // "The second point is a hair away from the first and goes." - 3 points.
+            List<GeoPoint2> thinned = traced.RemoveConsecutiveNearPoints(new Tolerance(0.001, 0.001));
+            Assert.Equal(3, thinned.Count);
+
+            // "One segment per consecutive pair." - 2 segments.
+            List<GeoLine2> segments = thinned.ToGeoLine2s();
+            Assert.Equal(2, segments.Count);
+
+            // "no two points of the result are coincident within the tolerance"
+            var tolerance = new Tolerance(0.001, 0.001);
+            for (int i = 1; i < thinned.Count; i++)
+            {
+                Assert.False(thinned[i - 1].IsEqualTo(thinned[i], tolerance));
+            }
+
+            // "leaves the chain open - nothing joins the last point back to the first"
+            Assert.Equal(thinned.Count - 1, segments.Count);
         }
     }
 }

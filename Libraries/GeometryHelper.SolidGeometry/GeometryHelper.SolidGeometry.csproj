@@ -16,8 +16,8 @@
     <Authors>Nguyen Thang</Authors>
     <Company>Nguyen Thang</Company>
     <Description>A 3D geometry library for engineering models. Provides points, vectors, lines, rays, planes, triangles, polylines, polygons, circles, faces, solids, axis-aligned and oriented boxes, local coordinate systems and 4x4 transformations, together with the operations over them: distance, projection, containment, intersection, collision, parallelism, parametrization, merging and splitting. Every comparison is tolerance-aware.</Description>
-    <PackageProjectUrl>https://github.com/nguyenthanguth/ArrangeAlgorithms</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/nguyenthanguth/ArrangeAlgorithms</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/nguyenthanguth/GeometryHelper</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nguyenthanguth/GeometryHelper</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -25,13 +25,14 @@
     <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
     <PackageTags>geometry 3d solid polygon polyhedron cad tekla bim vector plane transform obb aabb</PackageTags>
     <PackageReleaseNotes>
-      First release. Versioned at 3.0.0 rather than 1.0.0 because the four packages in this repository
-      are released as one set, and ArrangeAlgorithms had to reach 3.0.0 for its own reasons.
+      3D geometry for engineering models, built to the same design as GeometryHelper.PlaneGeometry.
+      The four packages in this repository are versioned and released as one set.
 
       SHARED TYPES
-      - Tolerance, Angle, PointLocation and PlaneSide come from the CommonGeometry package, which
-        PlaneGeometry shares. A program working in both dimensions sees one Tolerance and one Angle
-        rather than two of each, and Tolerance.Global is one setting for both.
+      - Tolerance, Angle, PointLocation and PlaneSide come from the GeometryHelper.CommonGeometry
+        package, which GeometryHelper.PlaneGeometry shares. A program working in both dimensions sees
+        one Tolerance and one Angle rather than two of each, and Tolerance.Global is one setting for
+        both.
 
       GEOMETRY
       - Fifteen immutable types across three families. A curve (GeoLine3, GeoRay3, GeoPolyline3)

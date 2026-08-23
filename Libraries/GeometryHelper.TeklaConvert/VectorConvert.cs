@@ -31,7 +31,16 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="vector">The Tekla vector to convert.</param>
         /// <returns>The converted <see cref="GeoVector2"/>.</returns>
-        public static GeoVector2 ToGeoVector2(this TSG.Vector vector) => new GeoVector2(vector.X, vector.Y);
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="vector"/> is null.</exception>
+        public static GeoVector2 ToGeoVector2(this TSG.Vector vector)
+        {
+            if (vector == null)
+            {
+                throw new ArgumentNullException(nameof(vector));
+            }
+
+            return new GeoVector2(vector.X, vector.Y);
+        }
 
         /// <summary>
         /// Converts a sequence of Tekla vectors to a list of SolidGeometry 2D vectors (discarding their Z coordinates).
@@ -45,7 +54,16 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="vector">The Tekla vector to convert.</param>
         /// <returns>The converted <see cref="GeoVector3"/>.</returns>
-        public static GeoVector3 ToGeoVector3(this TSG.Vector vector) => new GeoVector3(vector.X, vector.Y, vector.Z);
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="vector"/> is null.</exception>
+        public static GeoVector3 ToGeoVector3(this TSG.Vector vector)
+        {
+            if (vector == null)
+            {
+                throw new ArgumentNullException(nameof(vector));
+            }
+
+            return new GeoVector3(vector.X, vector.Y, vector.Z);
+        }
 
         /// <summary>
         /// Converts a sequence of Tekla vectors to a list of SolidGeometry vectors.

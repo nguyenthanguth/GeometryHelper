@@ -4,6 +4,7 @@ using GeometryHelper.CommonGeometry;
 using GeometryHelper.CommonGeometry.Enums;
 using GeometryHelper.SolidGeometry;
 using GeometryHelper.SolidGeometry.Core;
+using GeometryHelper.SolidGeometry.Extension;
 using GeometryHelper.SolidGeometry.Geometry;
 using Xunit;
 
@@ -413,6 +414,30 @@ namespace GeometryHelper.SolidGeometry.UnitTest
 
             Assert.True(motion.Transform(GeoPoint3.Origin).IsEqualTo(new GeoPoint3(10, 0, 0)));
             Assert.True(motion.Inverse().Transform(motion.Transform(GeoPoint3.Origin)).IsEqualTo(GeoPoint3.Origin));
+        }
+        [Fact]
+        public void PointChains_ThinThenChain()
+        {
+            var traced = new List<GeoPoint3>
+            {
+                new GeoPoint3(0, 0, 0), new GeoPoint3(0.0001, 0, 0), new GeoPoint3(5, 0, 0), new GeoPoint3(5, 0, 5),
+            };
+
+            // "The second point is a hair away from the first and goes." - 3 points.
+            List<GeoPoint3> thinned = traced.RemoveConsecutiveNearPoints(new Tolerance(0.001, 0.001));
+            Assert.Equal(3, thinned.Count);
+
+            // "One segment per consecutive pair." - 2 segments.
+            List<GeoLine3> segments = thinned.ToGeoLine3s();
+            Assert.Equal(2, segments.Count);
+
+            // "Distance is measured in all three dimensions, so two points that share X and Y but
+            // differ in Z are not fused."
+            var stacked = new List<GeoPoint3> { new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 5) };
+            Assert.Equal(2, stacked.RemoveConsecutiveNearPoints(new Tolerance(0.001, 0.001)).Count);
+
+            // "leaves the chain open - nothing joins the last point back to the first"
+            Assert.Equal(thinned.Count - 1, segments.Count);
         }
     }
 }

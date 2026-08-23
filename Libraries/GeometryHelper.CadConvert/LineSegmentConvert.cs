@@ -4,8 +4,6 @@ using System.Linq;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using GeometryHelper.PlaneGeometry.Geometry;
-using GeometryHelper.CommonGeometry;
-using GeometryHelper.CommonGeometry.Extension;
 
 namespace GeometryHelper.CadConvert
 {
@@ -82,51 +80,5 @@ namespace GeometryHelper.CadConvert
         /// <param name="lines">The sequence of SolidGeometry 2D lines to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Line"/>.</returns>
         public static List<Line> ToAcadLine(this IEnumerable<GeoLine2> lines) => lines.Select(ToAcadLine).ToList();
-
-        /// <summary>
-        /// Helpers to construct AutoCAD 2D line segments sequentially from a list of points.
-        /// </summary>
-        public static List<LineSegment2d> ToLineSegments2d(this List<Point2d> points)
-        {
-            var segments = new List<LineSegment2d>();
-
-            for (int i = 0; i < points.Count - 1; i++)
-            {
-                segments.Add(new LineSegment2d(points[i], points[i + 1]));
-            }
-
-            return segments;
-        }
-
-        /// <summary>
-        /// Helpers to construct AutoCAD 3D line segments sequentially from a list of points.
-        /// </summary>
-        public static List<LineSegment3d> ToLineSegments3d(this List<Point3d> points)
-        {
-            var segments = new List<LineSegment3d>();
-
-            for (int i = 0; i < points.Count - 1; i++)
-            {
-                segments.Add(new LineSegment3d(points[i], points[i + 1]));
-            }
-
-            return segments;
-        }
-
-        /// <summary>
-        /// Returns the longest 2D line segment in a list.
-        /// </summary>
-        public static LineSegment2d GetLongestLength(this List<LineSegment2d> segments)
-        {
-            return segments.MaxBy(mb => mb.StartPoint.GetDistanceTo(mb.EndPoint));
-        }
-
-        /// <summary>
-        /// Returns the longest 3D line segment in a list.
-        /// </summary>
-        public static LineSegment3d GetLongestLength(this List<LineSegment3d> segments)
-        {
-            return segments.MaxBy(mb => mb.StartPoint.DistanceTo(mb.EndPoint));
-        }
     }
 }

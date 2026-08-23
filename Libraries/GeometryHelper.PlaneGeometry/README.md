@@ -1,14 +1,11 @@
 # GeometryHelper.PlaneGeometry
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://github.com/nguyenthanguth/ArrangeAlgorithms/blob/main/LICENSE)
+[![NuGet Version](https://img.shields.io/nuget/v/GeometryHelper.PlaneGeometry.svg?style=flat-square)](https://www.nuget.org/packages/GeometryHelper.PlaneGeometry/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://github.com/nguyenthanguth/GeometryHelper/blob/main/LICENSE)
 
 2D geometry for engineering drawings: points, vectors, lines, polylines, polygons, circles and
 oriented rectangles, with distance, projection, containment, intersection, collision, parallelism,
 parametrization, merging and splitting over them. Every comparison is tolerance-aware.
-
-This code shipped inside [GeometryHelper.ArrangeAlgorithms](https://www.nuget.org/packages/GeometryHelper.ArrangeAlgorithms/) up to
-version 2.0.0. It became a package of its own in 3.0.0 because it is geometry, not label placement,
-and nothing in it depends on the placement algorithms.
 
 [GeometryHelper.SolidGeometry](https://www.nuget.org/packages/GeometryHelper.SolidGeometry/) is the 3D counterpart, built to the
 same design and sharing `Tolerance`, `Angle` and `PointLocation` through
@@ -26,11 +23,12 @@ dotnet add package GeometryHelper.PlaneGeometry
 |---|---|
 | `GeometryHelper.PlaneGeometry.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoPolyline2`, `GeoPolygon2`, `GeoCircle2`, `GeoRectangle2` |
 | `GeometryHelper.PlaneGeometry.Core` | `Collision2`, `Containment2`, `Distance2`, `Intersection2`, `Merge2`, `Parallel2`, `Parametrization2`, `Projection2`, `Splition2` |
+| `GeometryHelper.PlaneGeometry.Extension` | `EnumerableExtension` |
 | `GeometryHelper.CommonGeometry` | `Tolerance` |
 | `GeometryHelper.CommonGeometry.Datatype` | `Angle` |
 | `GeometryHelper.CommonGeometry.Enums` | `PointLocation` |
 
-Every type carries a `2`, matching the `3` in SolidGeometry, so a program working in both dimensions
+Every type carries a `2`, matching the `3` in GeometryHelper.SolidGeometry, so a program working in both dimensions
 can import both without aliasing anything.
 
 ## Geometric Types
@@ -130,19 +128,50 @@ The instance methods live on the shape being cut, not on the cutter: `polygon.Sp
 
 **Against a polygon.** A part running along the boundary counts as inside, matching `Contains`. A path that merely touches the boundary and turns back has not crossed it, so it comes back whole instead of split in two at the touch.
 
+## Point chains
+
+`GeometryHelper.PlaneGeometry.Extension` covers the step before a polyline exists: a raw list of points,
+usually read out of a drawing and carrying more of them than the geometry needs.
+
+```csharp
+using GeometryHelper.PlaneGeometry.Extension;
+
+var traced = new List<GeoPoint2>
+{
+    new GeoPoint2(0, 0), new GeoPoint2(0.0001, 0), new GeoPoint2(5, 0), new GeoPoint2(5, 5),
+};
+
+// The second point is a hair away from the first and goes.
+List<GeoPoint2> thinned = traced.RemoveConsecutiveNearPoints(new Tolerance(0.001, 0.001)); // 3 points
+
+// One segment per consecutive pair.
+List<GeoLine2> segments = thinned.ToGeoLine2s();                                           // 2 segments
+```
+
+`RemoveConsecutiveNearPoints` compares each point against the last one *kept*, not against its original
+neighbour, which is what guarantees no two points of the result are coincident within the tolerance. A
+huddle collapses onto its first point, and collapsing stops as soon as one point escapes the tolerance
+around that anchor, so a long run thins rather than vanishes.
+
+The first point always survives; the last one is not privileged. A final point lying within the tolerance
+of the one kept before it is dropped like any other, so re-append it yourself when the endpoint matters.
+
+`ToGeoLine2s` leaves the chain open — nothing joins the last point back to the first, so a ring has to
+repeat its first point at the end. It does not filter coincident neighbours either, so run
+`RemoveConsecutiveNearPoints` first if zero length segments would be a problem.
+
 ## Tolerance
 
-`Tolerance` and `Tolerance.Global` come from the `GeometryHelper.CommonGeometry` package, which SolidGeometry shares,
-so a program using both libraries sets one tolerance rather than two. See
-[its README](https://github.com/nguyenthanguth/ArrangeAlgorithms/blob/main/CommonGeometry/README.md).
+`Tolerance` and `Tolerance.Global` come from the `GeometryHelper.CommonGeometry` package, which
+GeometryHelper.SolidGeometry shares, so a program using both libraries sets one tolerance rather than
+two. See [its README](https://github.com/nguyenthanguth/GeometryHelper/blob/main/Libraries/GeometryHelper.CommonGeometry/README.md).
 
 `Tolerance.Global` has a static setter, deliberately mirroring
 `Autodesk.AutoCAD.Geometry.Tolerance.Global`. Changing it affects the whole application, so set it
 once at startup.
 
-> If your own code sits in a namespace under `ArrangeAlgorithms` and also imports
-> `Autodesk.AutoCAD.Geometry`, the two `Tolerance` types now tie where they did not before, because
-> ours arrives through a `using` rather than through the enclosing namespace. Name the one you mean:
+> Importing `Autodesk.AutoCAD.Geometry` alongside this library brings a second `Tolerance` into scope
+> and the two tie, giving **CS0104**. Name the one you mean:
 > `using Tolerance = GeometryHelper.CommonGeometry.Tolerance;`.
 
 ## Build and Test

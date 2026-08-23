@@ -15,9 +15,9 @@
     <Version>3.0.0</Version>
     <Authors>Nguyen Thang</Authors>
     <Company>Nguyen Thang</Company>
-    <Description>A 2D geometry library for engineering drawings. Provides points, vectors, lines, polylines, polygons, circles and oriented rectangles, together with the operations over them: distance, projection, containment, intersection, collision, parallelism, parametrization, merging and splitting. Every comparison is tolerance-aware. This is the geometry that used to ship inside ArrangeAlgorithms.</Description>
-    <PackageProjectUrl>https://github.com/nguyenthanguth/ArrangeAlgorithms</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/nguyenthanguth/ArrangeAlgorithms</RepositoryUrl>
+    <Description>A 2D geometry library for engineering drawings. Provides points, vectors, lines, polylines, polygons, circles and oriented rectangles, together with the operations over them: distance, projection, containment, intersection, collision, parallelism, parametrization, merging and splitting. Every comparison is tolerance-aware. It is the 2D counterpart of GeometryHelper.SolidGeometry and shares Tolerance and Angle with it through GeometryHelper.CommonGeometry.</Description>
+    <PackageProjectUrl>https://github.com/nguyenthanguth/GeometryHelper</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nguyenthanguth/GeometryHelper</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -25,20 +25,29 @@
     <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
     <PackageTags>geometry 2d polygon polyline circle rectangle cad autocad tekla drawing</PackageTags>
     <PackageReleaseNotes>
-      First release as a package of its own. This code shipped as part of ArrangeAlgorithms up to
-      version 2.0.0 and was separated out because it is geometry, not label placement, and because
-      nothing in it depends on the placement algorithms.
 
-      MOVING FROM ArrangeAlgorithms 2.x
-      - ArrangeAlgorithms.Geometry becomes PlaneGeometry.Geometry.
-      - ArrangeAlgorithms.Core becomes PlaneGeometry.Core.
-      - Every type carries a 2 suffix, matching the 3 suffix in SolidGeometry: GeoPoint2, GeoVector2,
-        GeoLine2, GeoPolyline2, GeoPolygon2, GeoCircle2, GeoRectangle2, and the operation classes
-        Collision2, Containment2, Distance2, Intersection2, Merge2, Parallel2, Parametrization2,
-        Projection2, Splition2.
-      - Tolerance, Angle and PointLocation now come from the CommonGeometry package, which
-        SolidGeometry shares. A program using both libraries sees one of each rather than two.
-      - Parallel2 no longer collides with System.Threading.Tasks.Parallel, which the old name did.
+      2D geometry for engineering drawings, built to the same design as GeometryHelper.SolidGeometry
+      and sharing Tolerance, Angle and PointLocation with it through GeometryHelper.CommonGeometry.
+
+      GEOMETRY
+      - Seven immutable types in two families. A curve (GeoLine2, GeoPolyline2) encloses nothing; a
+        region (GeoCircle2, GeoRectangle2, GeoPolygon2) encloses an area. Only regions offer Contains,
+        and GeoRectangle2 is an oriented rectangle that carries its own angle.
+      - GeoPolyline2 is always an open chain and never joins its last vertex back to its first.
+        Geometry meant to enclose something is a GeoPolygon2, and polyline.ToPolygon() converts.
+
+      OPERATIONS
+      - Nine Core classes: Collision2, Containment2, Distance2, Intersection2, Merge2, Parallel2,
+        Parametrization2, Projection2, Splition2. Every one is mirrored as instance methods on the
+        types it applies to, and splitting sits on the subject being cut rather than on the cutter.
+      - Splition2 cuts at a position along the subject, by another shape, or against a polygon, which
+        sorts the pieces by the side of the boundary they fall on and keeps each run whole.
+      - Every comparison that floating point error can affect takes a Tolerance, and every such method
+        has an overload without one that reads Tolerance.Global. Nothing compares coordinates with ==.
+
+      EXTENSIONS
+      - GeometryHelper.PlaneGeometry.Extension turns a list of points into the segments running
+        through it, and thins a list that carries more points than the geometry needs.
     </PackageReleaseNotes>
 
     <!-- 3. Embed source code and Debug symbols into DLL to support F12 original code viewing -->

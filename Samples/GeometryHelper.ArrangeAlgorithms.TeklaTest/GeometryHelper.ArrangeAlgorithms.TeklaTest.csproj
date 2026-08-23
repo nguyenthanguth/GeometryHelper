@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Libraries\GeometryHelper.ArrangeAlgorithms\GeometryHelper.ArrangeAlgorithms.csproj" />
     <ProjectReference Include="..\..\Libraries\GeometryHelper.PlaneGeometry\GeometryHelper.PlaneGeometry.csproj" />
+    <ProjectReference Include="..\..\Libraries\GeometryHelper.TeklaConvert\GeometryHelper.TeklaConvert.csproj" />
   </ItemGroup>
 
   <ItemGroup>

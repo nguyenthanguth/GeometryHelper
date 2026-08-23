@@ -2,8 +2,14 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
-Geometry for engineering drawings and models, in two dimensions and in three, plus the label
-placement library the 2D half grew out of. Four packages, versioned and released together.
+Geometry for engineering drawings and models, in two dimensions and in three, plus the label placement
+library that runs on the 2D half and bridges that carry shapes in and out of Tekla Structures and
+AutoCAD. Every comparison is tolerance-aware, because coordinates that come out of a BIM model are
+never exact.
+
+## Packages
+
+Four packages, versioned and released together.
 
 | Package | What it is | NuGet |
 |---|---|---|
@@ -12,87 +18,59 @@ placement library the 2D half grew out of. Four packages, versioned and released
 | [GeometryHelper.SolidGeometry](Libraries/GeometryHelper.SolidGeometry/README.md) | 3D: points to solids, plus boolean operations and a BVH for large meshes | [![v](https://img.shields.io/nuget/v/GeometryHelper.SolidGeometry.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.SolidGeometry/) |
 | [GeometryHelper.ArrangeAlgorithms](Libraries/GeometryHelper.ArrangeAlgorithms/README.md) | 2D label placement: five algorithms that keep labels off each other and off blocked regions | [![v](https://img.shields.io/nuget/v/GeometryHelper.ArrangeAlgorithms.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.ArrangeAlgorithms/) |
 
+Two more projects live in the repository but are not published, because the CAD assemblies they compile
+against are not ours to redistribute. Build them from source and reference the output.
+
+| Project | What it is |
+|---|---|
+| `GeometryHelper.TeklaConvert` | Points, vectors, segments, planes, coordinate systems, bounding boxes, matrices, and the faces and loops of a Tekla solid, converted both ways |
+| `GeometryHelper.CadConvert` | Points, vectors, lines, polylines, polygons, circles and extents, converted both ways with AutoCAD |
+
+## How they fit together
+
 ```
 GeometryHelper.CommonGeometry
    ├── GeometryHelper.PlaneGeometry ── GeometryHelper.ArrangeAlgorithms
    └── GeometryHelper.SolidGeometry
 
-GeometryHelper.TeklaConvert
-GeometryHelper.CadConvert
+GeometryHelper.TeklaConvert ── Tekla Structures
+GeometryHelper.CadConvert   ── AutoCAD
 ```
 
-One direction, no cycles. `GeometryHelper.PlaneGeometry` and `GeometryHelper.SolidGeometry` do not
-know about each other; what they share, they share through `GeometryHelper.CommonGeometry`, so a
-program using both sees one `Tolerance` and one `Angle` rather than two of each.
+One direction, no cycles. `GeometryHelper.PlaneGeometry` and `GeometryHelper.SolidGeometry` do not know
+about each other; what they share, they share through `GeometryHelper.CommonGeometry`, so a program using
+both sees one `Tolerance` and one `Angle` rather than two of each.
 
 ## Which one do you need
 
-- Arranging labels or rebar marks in a drawing → **GeometryHelper.ArrangeAlgorithms**, which brings the rest with it.
+- Arranging labels or rebar marks in a drawing → **GeometryHelper.ArrangeAlgorithms**, which brings the geometry with it.
 - Geometry in the plane and nothing else → **GeometryHelper.PlaneGeometry**.
 - Geometry in space → **GeometryHelper.SolidGeometry**.
+- Only `Tolerance` and `Angle`, to sit between your own libraries → **GeometryHelper.CommonGeometry**.
 - Reading solids and drawing coordinates out of a Tekla model → **GeometryHelper.TeklaConvert**.
-- Interacting with AutoCAD drawing geometry → **GeometryHelper.CadConvert**.
-- Both bridge projects are not published, because the assemblies they need from Tekla and AutoCAD are not ours to redistribute.
-
-## What changed in 3.0.0
-
-Version 2.0.0 of `ArrangeAlgorithms` was one package holding both the label placement algorithms and
-the 2D geometry they run on. The geometry was 83% of the code and depended on none of the placement
-work, so it became a package of its own.
-
-**Namespaces to update:**
-
-| 2.x | 3.0 |
-|---|---|
-| `ArrangeAlgorithms` (for `Tolerance`) | `GeometryHelper.CommonGeometry` |
-| `ArrangeAlgorithms.Datatype` | `GeometryHelper.CommonGeometry.Datatype` |
-| `ArrangeAlgorithms.Enums` | `GeometryHelper.CommonGeometry.Enums` |
-| `ArrangeAlgorithms.Core` | `GeometryHelper.PlaneGeometry.Core` |
-| `ArrangeAlgorithms.Geometry` | `GeometryHelper.PlaneGeometry.Geometry` |
-| `ArrangeAlgorithms.Extension` | removed |
-| `ArrangeAlgorithms`, `ArrangeAlgorithms.Algorithms` | `GeometryHelper.ArrangeAlgorithms`, `GeometryHelper.ArrangeAlgorithms.Algorithms` |
-
-**Types to rename.** Every 2D type gained a `2`, matching the `3` that GeometryHelper.SolidGeometry already used:
-
-| | |
-|---|---|
-| Geometry | `GeoPoint2` `GeoVector2` `GeoLine2` `GeoPolyline2` `GeoPolygon2` `GeoCircle2` `GeoRectangle2` |
-| Core | `Collision2` `Containment2` `Distance2` `Intersection2` `Merge2` `Parallel2` `Parametrization2` `Projection2` `Splition2` |
-
-`Parallel2` no longer collides with `System.Threading.Tasks.Parallel`, which the old name did.
-
-**Two things that bite quietly:**
-
-- `Tolerance.Global` is now one setting shared by both geometry libraries rather than one each.
-  Setting it for a drawing in the plane sets it for a model in space too.
-- If your code sits in a namespace under `ArrangeAlgorithms` and also imports a library with its own
-  `Tolerance` — `Autodesk.AutoCAD.Geometry` does — the two now tie where they did not before, because
-  ours arrives through a `using` rather than through the enclosing namespace. You will see **CS0104**.
-  Name the one you mean: `using Tolerance = GeometryHelper.CommonGeometry.Tolerance;`.
-
-`EnumerableExtension` was removed. Nothing in the repository called it, and its `MaxBy`/`MinBy`
-collide with `System.Linq` on .NET 6 and later.
-
-`[TypeForwardedTo]` cannot soften any of this: it only works when a type keeps its full name, and
-these changed namespace.
+- Reading and writing AutoCAD drawing geometry → **GeometryHelper.CadConvert**.
 
 ## Repository layout
 
 | Project | Role | Target |
 |---|---|---|
-| `GeometryHelper.CommonGeometry` | Shared tolerance, angle and enumerations | netstandard2.0 |
-| `GeometryHelper.PlaneGeometry` | 2D geometry | netstandard2.0 |
-| `GeometryHelper.SolidGeometry` | 3D geometry | netstandard2.0 |
-| `GeometryHelper.ArrangeAlgorithms` | Label placement algorithms | netstandard2.0 |
-| `GeometryHelper.TeklaConvert` | Converts geometry between Tekla Structures and GeometryHelper | netstandard2.0 |
-| `GeometryHelper.CadConvert` | Converts geometry between AutoCAD and GeometryHelper | netstandard2.0 |
-| `GeometryHelper.CommonGeometry.UnitTest` | xUnit | net48 |
-| `GeometryHelper.PlaneGeometry.UnitTest` | xUnit | net48 |
-| `GeometryHelper.SolidGeometry.UnitTest` | xUnit | net48 |
-| `GeometryHelper.TeklaConvert.UnitTest` | xUnit | net48 |
-| `GeometryHelper.ArrangeAlgorithms.UnitTest` | xUnit | net48 |
-| `GeometryHelper.ArrangeAlgorithms.CadTest` | AutoCAD 2021 plugin for visual testing | net48 |
-| `GeometryHelper.ArrangeAlgorithms.TeklaTest` | Tekla Structures program for rebar mark arrangement | net48 |
+| `Libraries/GeometryHelper.CommonGeometry` | Shared tolerance, angle and enumerations | netstandard2.0 |
+| `Libraries/GeometryHelper.PlaneGeometry` | 2D geometry | netstandard2.0 |
+| `Libraries/GeometryHelper.SolidGeometry` | 3D geometry | netstandard2.0 |
+| `Libraries/GeometryHelper.ArrangeAlgorithms` | Label placement algorithms | netstandard2.0 |
+| `Libraries/GeometryHelper.TeklaConvert` | Tekla Structures bridge | netstandard2.0 |
+| `Libraries/GeometryHelper.CadConvert` | AutoCAD bridge | netstandard2.0 |
+| `Tests/GeometryHelper.CommonGeometry.UnitTest` | xUnit | net48 |
+| `Tests/GeometryHelper.PlaneGeometry.UnitTest` | xUnit | net48 |
+| `Tests/GeometryHelper.SolidGeometry.UnitTest` | xUnit | net48 |
+| `Tests/GeometryHelper.TeklaConvert.UnitTest` | xUnit | net48 |
+| `Tests/GeometryHelper.ArrangeAlgorithms.UnitTest` | xUnit | net48 |
+| `Samples/GeometryHelper.ArrangeAlgorithms.CadTest` | AutoCAD 2021 plugin for visual testing | net48 |
+| `Samples/GeometryHelper.ArrangeAlgorithms.TeklaTest` | Tekla Structures program for rebar mark arrangement | net48 |
+
+The libraries target `netstandard2.0` so that they load into both the .NET Framework hosts that Tekla and
+AutoCAD provide and into modern .NET. The test and sample projects target `net48` because that is what
+those hosts run.
 
 ## Build and Test
 
@@ -105,10 +83,16 @@ dotnet test  Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConv
 dotnet test  Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj
 ```
 
-The two sample projects are excluded from CI: `GeometryHelper.ArrangeAlgorithms.CadTest` needs AutoCAD
-assemblies and `GeometryHelper.ArrangeAlgorithms.TeklaTest` needs a Tekla installation, neither of which a hosted runner has. The
-Tekla *bridge* is different — the assemblies it needs are committed under
-`Libraries/GeometryHelper.TeklaConvert/Lib2020`, so it builds and tests in CI like anything else.
+Warnings are errors in CI, and every public member is documented, so a missing XML comment or a stale
+`cref` fails the build rather than landing quietly.
+
+**What CI leaves out, and why.** The two sample applications need AutoCAD and a Tekla installation
+respectively, which a hosted runner does not have. `GeometryHelper.CadConvert` compiles against the
+AutoCAD assemblies vendored under its `Lib/` folder, but those are mixed-mode and cannot be loaded
+outside `acad.exe` — not even to construct a point — so the project has no unit tests. The Tekla bridge
+is the exception: the two assemblies it needs are committed under
+`Libraries/GeometryHelper.TeklaConvert/Lib2020`, and the Tekla geometry types are plain data, so it
+builds and tests in CI like anything else.
 
 ## Licence
 

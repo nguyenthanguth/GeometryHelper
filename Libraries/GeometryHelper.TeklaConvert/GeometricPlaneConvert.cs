@@ -35,6 +35,5 @@ namespace GeometryHelper.TeklaConvert
         {
             return new TSG.GeometricPlane(plane.Origin.ToTeklaPoint(), plane.Normal.ToTeklaVector());
         }
-
     }
 }

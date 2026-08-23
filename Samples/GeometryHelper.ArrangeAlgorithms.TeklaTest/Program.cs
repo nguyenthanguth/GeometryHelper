@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.PlaneGeometry.Geometry;
+using GeometryHelper.TeklaConvert;
 using TSD = Tekla.Structures.Drawing;
 using TSG = Tekla.Structures.Geometry3d;
 using TSM = Tekla.Structures.Model;
-using Tekla.Structures.Datatype;
 using Tekla.Structures.Drawing;
 using Tekla.Structures.Geometry3d;
 
@@ -89,7 +89,7 @@ namespace GeometryHelper.ArrangeAlgorithms.TeklaTest
                 foreach (LineSegment segment in segments)
                 {
                     // Add each segment as a block line to prevent other marks from crossing over this rebar
-                    blockLines.Add(new GeoLine2(segment.StartPoint.ToGeoPoint(), segment.EndPoint.ToGeoPoint()));
+                    blockLines.Add(segment.ToGeoLine2());
                 }
 
                 // Group the mark and rebar data together for positioning calculations
@@ -131,13 +131,9 @@ namespace GeometryHelper.ArrangeAlgorithms.TeklaTest
                 arranges.Add(new Arrange
                 {
                     // Define the mark's boundary rectangle (center point, width, height, and angle)
-                    GeoRectangle2 = new GeoRectangle2(
-                        markBox.GetCenterPoint().ToGeoPoint(),
-                        markBox.Width,
-                        markBox.Height,
-                        Angle.FromDegrees(markBox.AngleToAxis).Radians),
+                    GeoRectangle2 = markBox.ToGeoRectangle2(),
                     // Define the target centerline for the mark
-                    GeoLine2 = new GeoLine2(markGroup.MiddleLineRebar.StartPoint.ToGeoPoint(), markGroup.MiddleLineRebar.EndPoint.ToGeoPoint()),
+                    GeoLine2 = markGroup.MiddleLineRebar.ToGeoLine2(),
                     // Preferred offset distance of the mark from the rebar centerline
                     BaseOffsetFromLine = 50.0,
                     // Keep track of obstacles (dimensions and other rebar lines) to avoid overlaps

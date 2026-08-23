@@ -31,7 +31,16 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="point">The Tekla point to convert.</param>
         /// <returns>The converted <see cref="GeoPoint2"/>.</returns>
-        public static GeoPoint2 ToGeoPoint2(this TSG.Point point) => new GeoPoint2(point.X, point.Y);
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="point"/> is null.</exception>
+        public static GeoPoint2 ToGeoPoint2(this TSG.Point point)
+        {
+            if (point == null)
+            {
+                throw new ArgumentNullException(nameof(point));
+            }
+
+            return new GeoPoint2(point.X, point.Y);
+        }
 
         /// <summary>
         /// Converts a sequence of Tekla points to a list of SolidGeometry 2D points (discarding their Z coordinates).
@@ -45,7 +54,16 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="point">The Tekla point to convert.</param>
         /// <returns>The converted <see cref="GeoPoint3"/>.</returns>
-        public static GeoPoint3 ToGeoPoint3(this TSG.Point point) => new GeoPoint3(point.X, point.Y, point.Z);
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="point"/> is null.</exception>
+        public static GeoPoint3 ToGeoPoint3(this TSG.Point point)
+        {
+            if (point == null)
+            {
+                throw new ArgumentNullException(nameof(point));
+            }
+
+            return new GeoPoint3(point.X, point.Y, point.Z);
+        }
 
         /// <summary>
         /// Converts a sequence of Tekla points to a list of SolidGeometry points.
