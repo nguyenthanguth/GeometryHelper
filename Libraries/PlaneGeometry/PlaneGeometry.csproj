@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+    <!-- 1. Configure NuGet Package generation and XML Documentation -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- 2. NuGet Package Metadata Info -->
+    <PackageId>PlaneGeometry</PackageId>
+    <Version>3.0.0</Version>
+    <Authors>Nguyen Thang</Authors>
+    <Company>Nguyen Thang</Company>
+    <Description>A 2D geometry library for engineering drawings. Provides points, vectors, lines, polylines, polygons, circles and oriented rectangles, together with the operations over them: distance, projection, containment, intersection, collision, parallelism, parametrization, merging and splitting. Every comparison is tolerance-aware. This is the geometry that used to ship inside ArrangeAlgorithms.</Description>
+    <PackageProjectUrl>https://github.com/nguyenthanguth/ArrangeAlgorithms</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nguyenthanguth/ArrangeAlgorithms</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
+    <PackageTags>geometry 2d polygon polyline circle rectangle cad autocad tekla drawing</PackageTags>
+    <PackageReleaseNotes>
+      First release as a package of its own. This code shipped as part of ArrangeAlgorithms up to
+      version 2.0.0 and was separated out because it is geometry, not label placement, and because
+      nothing in it depends on the placement algorithms.
+
+      MOVING FROM ArrangeAlgorithms 2.x
+      - ArrangeAlgorithms.Geometry becomes PlaneGeometry.Geometry.
+      - ArrangeAlgorithms.Core becomes PlaneGeometry.Core.
+      - Every type carries a 2 suffix, matching the 3 suffix in SolidGeometry: GeoPoint2, GeoVector2,
+        GeoLine2, GeoPolyline2, GeoPolygon2, GeoCircle2, GeoRectangle2, and the operation classes
+        Collision2, Containment2, Distance2, Intersection2, Merge2, Parallel2, Parametrization2,
+        Projection2, Splition2.
+      - Tolerance, Angle and PointLocation now come from the CommonGeometry package, which
+        SolidGeometry shares. A program using both libraries sees one of each rather than two.
+      - Parallel2 no longer collides with System.Threading.Tasks.Parallel, which the old name did.
+    </PackageReleaseNotes>
+
+    <!-- 3. Embed source code and Debug symbols into DLL to support F12 original code viewing -->
+    <DebugType>embedded</DebugType>
+    <EmbedAllSources>true</EmbedAllSources>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CommonGeometry\CommonGeometry.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

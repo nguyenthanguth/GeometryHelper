@@ -1,0 +1,65 @@
+name: GeometryHelper
+
+# Everything except the two sample applications is built here. ArrangeAlgorithms.CadTest references AutoCAD
+# assemblies that are installed on a workstation rather than vendored, and ArrangeAlgorithms.TeklaTest
+# references a Tekla installation the same way, so a hosted runner cannot restore either and building the
+# whole solution would fail for a reason that has nothing to do with the change under test. The Tekla
+# bridge is different: the two assemblies it needs are committed under SolidGeometry.Tekla/Lib2020, so it
+# builds and tests here like anything else.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # The test projects target net48, which needs the .NET Framework reference assemblies and test host.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: |
+          dotnet restore Tests/CommonGeometry.UnitTest/CommonGeometry.UnitTest.csproj
+          dotnet restore Tests/PlaneGeometry.UnitTest/PlaneGeometry.UnitTest.csproj
+          dotnet restore Tests/SolidGeometry.UnitTest/SolidGeometry.UnitTest.csproj
+          dotnet restore Tests/SolidGeometry.Tekla.UnitTest/SolidGeometry.Tekla.UnitTest.csproj
+          dotnet restore Tests/ArrangeAlgorithms.UnitTest/ArrangeAlgorithms.UnitTest.csproj
+
+      - name: Build
+        # Warnings are treated as errors so that a missing XML comment or a stale cref cannot land quietly:
+        # the libraries document every public member and that is worth keeping enforced.
+        run: |
+          dotnet build Tests/CommonGeometry.UnitTest/CommonGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/PlaneGeometry.UnitTest/PlaneGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/SolidGeometry.UnitTest/SolidGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/SolidGeometry.Tekla.UnitTest/SolidGeometry.Tekla.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/ArrangeAlgorithms.UnitTest/ArrangeAlgorithms.UnitTest.csproj -c Release --no-restore -warnaserror
+
+      - name: Test
+        run: |
+          dotnet test Tests/CommonGeometry.UnitTest/CommonGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/PlaneGeometry.UnitTest/PlaneGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/SolidGeometry.UnitTest/SolidGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/SolidGeometry.Tekla.UnitTest/SolidGeometry.Tekla.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/ArrangeAlgorithms.UnitTest/ArrangeAlgorithms.UnitTest.csproj -c Release --no-build --verbosity normal
+
+      - name: Pack
+        # The four packages are versioned in lockstep, so they are always published as one set.
+        run: |
+          dotnet pack Libraries/CommonGeometry/CommonGeometry.csproj -c Release -o artifacts
+          dotnet pack Libraries/PlaneGeometry/PlaneGeometry.csproj -c Release -o artifacts
+          dotnet pack Libraries/SolidGeometry/SolidGeometry.csproj -c Release -o artifacts
+          dotnet pack Libraries/ArrangeAlgorithms/ArrangeAlgorithms.csproj -c Release -o artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/*.nupkg

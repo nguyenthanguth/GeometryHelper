@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <RootNamespace>ArrangeAlgorithms.TeklaTest</RootNamespace>
+    <AssemblyName>ArrangeAlgorithms.TeklaTest</AssemblyName>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Lib2020\Tekla.Structures.Datatype.dll" />
+    <Content Include="Lib2020\Tekla.Structures.Dialog.dll" />
+    <Content Include="Lib2020\Tekla.Structures.dll" />
+    <Content Include="Lib2020\Tekla.Structures.Drawing.dll" />
+    <Content Include="Lib2020\Tekla.Structures.Geometry3d.Compatibility.dll" />
+    <Content Include="Lib2020\Tekla.Structures.Model.dll" />
+    <Content Include="Lib2020\Tekla.Structures.Plugins.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\ArrangeAlgorithms\ArrangeAlgorithms.csproj" />
+    <ProjectReference Include="..\..\Libraries\PlaneGeometry\PlaneGeometry.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Tekla.Structures">
+      <HintPath>Lib2020\Tekla.Structures.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Tekla.Structures.Datatype">
+      <HintPath>Lib2020\Tekla.Structures.Datatype.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Tekla.Structures.Dialog">
+      <HintPath>Lib2020\Tekla.Structures.Dialog.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Tekla.Structures.Drawing">
+      <HintPath>Lib2020\Tekla.Structures.Drawing.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Tekla.Structures.Geometry3d.Compatibility">
+      <HintPath>Lib2020\Tekla.Structures.Geometry3d.Compatibility.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Tekla.Structures.Model">
+      <HintPath>Lib2020\Tekla.Structures.Model.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Tekla.Structures.Plugins">
+      <HintPath>Lib2020\Tekla.Structures.Plugins.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

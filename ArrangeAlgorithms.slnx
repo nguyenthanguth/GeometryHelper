@@ -1,7 +1,0 @@
-<Solution>
-  <Project Path="ArrangeAlgorithms.CadTest/ArrangeAlgorithms.CadTest.csproj" />
-  <Project Path="ArrangeAlgorithms.TeklaTest/ArrangeAlgorithms.TeklaTest.csproj" Id="39dca74c-af65-4caa-96c6-716e221631ca" />
-  <Project Path="ArrangeAlgorithms.UnitTest/ArrangeAlgorithms.UnitTest.csproj" />
-  <Project Path="ArrangeAlgorithms/ArrangeAlgorithms.csproj" />
-
-</Solution>
