@@ -52,12 +52,16 @@ jobs:
           dotnet test Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj -c Release --no-build --verbosity normal
 
       - name: Pack
-        # The four packages are versioned in lockstep, so they are always published as one set.
+        # The six packages are versioned in lockstep, so they are always published as one set. The two
+        # bridges redistribute no vendor assembly: Private=False keeps the Tekla and AutoCAD DLLs out of
+        # the build output, so they cannot reach the package.
         run: |
           dotnet pack Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj -c Release -o artifacts
           dotnet pack Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj -c Release -o artifacts
           dotnet pack Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj -c Release -o artifacts
           dotnet pack Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj -c Release -o artifacts
+          dotnet pack Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release -o artifacts
+          dotnet pack Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj -c Release -o artifacts
 
       - uses: actions/upload-artifact@v4
         with:

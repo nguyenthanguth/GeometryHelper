@@ -22,9 +22,35 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
     <PackageTags>tekla bim geometry 3d solid interop conversion</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReleaseNotes>
+      Converts geometry between Tekla Structures and GeometryHelper, both ways: points, vectors, line
+      segments, geometric planes, coordinate systems, bounding boxes, transformation matrices, and the
+      faces and loops of a Tekla solid.
 
-    <!-- The Tekla assemblies are not ours to redistribute, so this is not packed by default. -->
-    <IsPackable>false</IsPackable>
+      REQUIRES TWO ASSEMBLIES YOU MUST SUPPLY
+      - Tekla.Structures.dll and Tekla.Structures.Drawing.dll are not redistributed here, because they
+        are Trimble's to ship rather than ours. Reference them yourself, either from the bin folder of
+        your Tekla Structures installation or from Trimble's own Tekla.Structures and
+        Tekla.Structures.Drawing packages on nuget.org. Without them the compiler reports CS0012.
+      - This package is built against the 2020 API. The types it touches - Point, Vector, LineSegment,
+        Matrix, GeometricPlane, CoordinateSystem, AABB, Solid, Face and Loop - are unchanged through
+        2026, so a rebuild against a newer Tekla needs no source changes.
+
+      READING A SOLID
+      - Faces are turned to agree with the normal Tekla gives them, and the body is turned inside out
+        if its signed volume says the whole surface arrived reversed. A coordinate system whose Y axis
+        is not quite square to its X axis is squared up rather than trusted.
+      - A face that cannot be made sense of is skipped rather than thrown on, which leaves the body no
+        longer closed, so ask IsClosed() before trusting a volume.
+      - Tekla models in millimetres with coordinates running to hundreds of thousands, where the
+        default EqualPlanar is often too tight. Pass a Tolerance suited to the model.
+    </PackageReleaseNotes>
+
+    <!-- The Tekla assemblies are referenced but never packed: Private=False keeps them out of the
+         build output, so nothing of Trimble's ends up inside the package. See README.md. -->
+    <IsPackable>true</IsPackable>
 
     <DebugType>embedded</DebugType>
     <EmbedAllSources>true</EmbedAllSources>
@@ -48,6 +74,11 @@
       <HintPath>Lib2020\Tekla.Structures.Drawing.dll</HintPath>
       <Private>False</Private>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

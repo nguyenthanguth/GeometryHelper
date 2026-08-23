@@ -9,7 +9,7 @@ never exact.
 
 ## Packages
 
-Four packages, versioned and released together.
+Six packages, versioned and released together.
 
 | Package | What it is | NuGet |
 |---|---|---|
@@ -18,13 +18,14 @@ Four packages, versioned and released together.
 | [GeometryHelper.SolidGeometry](Libraries/GeometryHelper.SolidGeometry/README.md) | 3D: points to solids, plus boolean operations and a BVH for large meshes | [![v](https://img.shields.io/nuget/v/GeometryHelper.SolidGeometry.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.SolidGeometry/) |
 | [GeometryHelper.ArrangeAlgorithms](Libraries/GeometryHelper.ArrangeAlgorithms/README.md) | 2D label placement: five algorithms that keep labels off each other and off blocked regions | [![v](https://img.shields.io/nuget/v/GeometryHelper.ArrangeAlgorithms.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.ArrangeAlgorithms/) |
 
-Two more projects live in the repository but are not published, because the CAD assemblies they compile
-against are not ours to redistribute. Build them from source and reference the output.
+Two bridges are published as well. Neither redistributes a vendor assembly — you reference the Tekla or
+AutoCAD DLLs yourself, from your own installation or from the vendor's package on nuget.org — so each one
+needs that extra step after `dotnet add package`. Their READMEs say exactly which.
 
-| Project | What it is |
-|---|---|
-| `GeometryHelper.TeklaConvert` | Points, vectors, segments, planes, coordinate systems, bounding boxes, matrices, and the faces and loops of a Tekla solid, converted both ways |
-| `GeometryHelper.CadConvert` | Points, vectors, lines, polylines, polygons, circles and extents, converted both ways with AutoCAD |
+| Package | What it is | You supply | NuGet |
+|---|---|---|---|
+| [GeometryHelper.TeklaConvert](Libraries/GeometryHelper.TeklaConvert/README.md) | Points, vectors, segments, planes, coordinate systems, bounding boxes, matrices, and the faces and loops of a Tekla solid | `Tekla.Structures.dll`, `Tekla.Structures.Drawing.dll` | [![v](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert/) |
+| [GeometryHelper.CadConvert](Libraries/GeometryHelper.CadConvert/README.md) | Points, vectors, lines, polylines, polygons, circles and extents, converted both ways with AutoCAD | `acdbmgd.dll` (plugins usually also want `acmgd.dll`, `accoremgd.dll`) | [![v](https://img.shields.io/nuget/v/GeometryHelper.CadConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.CadConvert/) |
 
 ## How they fit together
 
@@ -47,8 +48,8 @@ both sees one `Tolerance` and one `Angle` rather than two of each.
 - Geometry in the plane and nothing else → **GeometryHelper.PlaneGeometry**.
 - Geometry in space → **GeometryHelper.SolidGeometry**.
 - Only `Tolerance` and `Angle`, to sit between your own libraries → **GeometryHelper.CommonGeometry**.
-- Reading solids and drawing coordinates out of a Tekla model → **GeometryHelper.TeklaConvert**.
-- Reading and writing AutoCAD drawing geometry → **GeometryHelper.CadConvert**.
+- Reading solids and drawing coordinates out of a Tekla model → **GeometryHelper.TeklaConvert**, plus the two Tekla assemblies you reference yourself.
+- Reading and writing AutoCAD drawing geometry → **GeometryHelper.CadConvert**, plus the AutoCAD assemblies you reference yourself.
 
 ## Repository layout
 

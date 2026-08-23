@@ -22,8 +22,32 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
     <PackageTags>autocad bim geometry 2d 3d interop conversion</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReleaseNotes>
+      Converts geometry between AutoCAD and GeometryHelper, both ways: points, vectors, line segments
+      and Line entities, polylines, polygons, circles, and Extents2d/Extents3d as rectangles.
 
-    <IsPackable>false</IsPackable>
+      REQUIRES AUTOCAD ASSEMBLIES YOU MUST SUPPLY
+      - No AutoCAD assembly is redistributed here, because they are Autodesk's to ship rather than
+        ours. Reference them yourself, either from your AutoCAD installation folder or from Autodesk's
+        own AutoCAD.NET package on nuget.org. Without them the compiler reports CS0012.
+      - This library resolves against acdbmgd.dll alone; a plugin normally also wants acmgd.dll and
+        accoremgd.dll for the editor and application APIs.
+      - Reference them with Copy Local set to false. AutoCAD supplies them at run time from its own
+        installation, and a copy sitting next to your plugin risks loading a build that does not match
+        the running AutoCAD.
+      - This package is built against the AutoCAD 2024 API (assembly version 24.0.0.0).
+
+      EXTENSIONS
+      - GeometryHelper.CadConvert also carries EnumerableExtension: chaining a list of Point2d or
+        Point3d into segments, thinning a chain of points by a tolerance, and picking the longest
+        segment out of a list.
+    </PackageReleaseNotes>
+
+    <!-- The AutoCAD assemblies are referenced but never packed: Private=false keeps them out of the
+         build output, so nothing of Autodesk's ends up inside the package. See README.md. -->
+    <IsPackable>true</IsPackable>
 
     <DebugType>embedded</DebugType>
     <EmbedAllSources>true</EmbedAllSources>
@@ -47,6 +71,11 @@
       <HintPath>Lib\acmgd.dll</HintPath>
       <Private>false</Private>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
