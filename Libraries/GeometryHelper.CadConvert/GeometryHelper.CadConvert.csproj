@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <PlatformTarget>x64</PlatformTarget>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <PackageId>GeometryHelper.CadConvert</PackageId>
+    <Version>3.0.0</Version>
+    <Authors>Nguyen Thang</Authors>
+    <Company>Nguyen Thang</Company>
+    <Description>Converts geometry between AutoCAD and GeometryHelper (GeometryHelper.CommonGeometry, GeometryHelper.PlaneGeometry, and GeometryHelper.SolidGeometry): points, vectors, lines, polylines, polygons, circles, and bounding boxes.</Description>
+    <PackageProjectUrl>https://github.com/nguyenthanguth/GeometryHelper</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nguyenthanguth/GeometryHelper</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
+    <PackageTags>autocad bim geometry 2d 3d interop conversion</PackageTags>
+
+    <IsPackable>false</IsPackable>
+
+    <DebugType>embedded</DebugType>
+    <EmbedAllSources>true</EmbedAllSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GeometryHelper.PlaneGeometry\GeometryHelper.PlaneGeometry.csproj" />
+    <ProjectReference Include="..\GeometryHelper.SolidGeometry\GeometryHelper.SolidGeometry.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="accoremgd">
+      <HintPath>Lib\accoremgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acdbmgd">
+      <HintPath>Lib\acdbmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acmgd">
+      <HintPath>Lib\acmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

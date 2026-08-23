@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+    <!-- 1. Configure NuGet Package generation and XML Documentation -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- 2. NuGet Package Metadata Info -->
+    <PackageId>GeometryHelper.CommonGeometry</PackageId>
+    <Version>3.0.0</Version>
+    <Authors>Nguyen Thang</Authors>
+    <Company>Nguyen Thang</Company>
+    <Description>Types shared by the GeometryHelper.PlaneGeometry and GeometryHelper.SolidGeometry libraries: a Tolerance carrying the thresholds every geometric comparison is measured against, an Angle that names its own unit, and the enumerations describing where a point sits relative to a shape or a plane. Referenced by both libraries so that a program using them together sees one Tolerance and one Angle rather than two of each.</Description>
+    <PackageProjectUrl>https://github.com/nguyenthanguth/ArrangeAlgorithms</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nguyenthanguth/ArrangeAlgorithms</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
+    <PackageTags>geometry tolerance angle cad bim shared</PackageTags>
+    <PackageReleaseNotes>
+      First release. Extracted from ArrangeAlgorithms 2.0.0 and SolidGeometry, which each carried their
+      own copy of these types.
+
+      - Tolerance carries four thresholds: EqualPoint, EqualVector, EqualAngleRad and EqualPlanar. The
+        last is separate because coplanarity is measured far from the reference point, where a
+        hundredth of a degree of tilt becomes a deviation the point threshold would not tolerate. The
+        plane library leaves it unused.
+      - Tolerance.Global is now one setting shared by both geometry libraries rather than one each.
+      - Angle stores radians and has no public constructor taking a bare double, because a number on
+        its own does not say which unit it is in: use FromRadians or FromDegrees.
+      - PointLocation and PlaneSide say where a point sits relative to a shape and relative to an
+        oriented plane.
+    </PackageReleaseNotes>
+
+    <!-- 3. Embed source code and Debug symbols into DLL to support F12 original code viewing -->
+    <DebugType>embedded</DebugType>
+    <EmbedAllSources>true</EmbedAllSources>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Extension\" />
+  </ItemGroup>
+
+</Project>

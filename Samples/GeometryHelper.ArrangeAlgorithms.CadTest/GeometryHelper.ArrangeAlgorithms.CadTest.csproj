@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <RootNamespace>GeometryHelper.ArrangeAlgorithms.CadTest</RootNamespace>
+    <AssemblyName>GeometryHelper.ArrangeAlgorithms.CadTest</AssemblyName>
+
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Private=false is mandatory: these DLLs must NOT be copied to the output directory.
+         AutoCAD already loads its own version; copying another version will cause the plugin to load
+         two assemblies with the same name but different paths, throwing hard-to-debug type casting errors. -->
+    <Reference Include="accoremgd">
+      <HintPath>..\..\Libraries\GeometryHelper.CadConvert\Lib\accoremgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acdbmgd">
+      <HintPath>..\..\Libraries\GeometryHelper.CadConvert\Lib\acdbmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acmgd">
+      <HintPath>..\..\Libraries\GeometryHelper.CadConvert\Lib\acmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\GeometryHelper.ArrangeAlgorithms\GeometryHelper.ArrangeAlgorithms.csproj" />
+    <ProjectReference Include="..\..\Libraries\GeometryHelper.PlaneGeometry\GeometryHelper.PlaneGeometry.csproj" />
+    <ProjectReference Include="..\..\Libraries\GeometryHelper.CadConvert\GeometryHelper.CadConvert.csproj" />
+  </ItemGroup>
+
+</Project>

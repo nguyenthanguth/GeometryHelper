@@ -1,20 +1,21 @@
 <Solution>
   <Folder Name="/Libraries/">
-    <Project Path="Libraries/CommonGeometry/CommonGeometry.csproj" />
-    <Project Path="Libraries/PlaneGeometry/PlaneGeometry.csproj" />
-    <Project Path="Libraries/SolidGeometry/SolidGeometry.csproj" />
-    <Project Path="Libraries/ArrangeAlgorithms/ArrangeAlgorithms.csproj" />
-    <Project Path="Libraries/SolidGeometry.Tekla/SolidGeometry.Tekla.csproj" />
+    <Project Path="Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj" />
+    <Project Path="Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj" />
+    <Project Path="Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj" />
+    <Project Path="Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj" />
+    <Project Path="Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj" />
+    <Project Path="Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj" />
   </Folder>
   <Folder Name="/Tests/">
-    <Project Path="Tests/CommonGeometry.UnitTest/CommonGeometry.UnitTest.csproj" />
-    <Project Path="Tests/PlaneGeometry.UnitTest/PlaneGeometry.UnitTest.csproj" />
-    <Project Path="Tests/SolidGeometry.UnitTest/SolidGeometry.UnitTest.csproj" />
-    <Project Path="Tests/SolidGeometry.Tekla.UnitTest/SolidGeometry.Tekla.UnitTest.csproj" />
-    <Project Path="Tests/ArrangeAlgorithms.UnitTest/ArrangeAlgorithms.UnitTest.csproj" />
+    <Project Path="Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj" />
+    <Project Path="Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj" />
+    <Project Path="Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj" />
+    <Project Path="Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj" />
+    <Project Path="Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj" />
   </Folder>
   <Folder Name="/Samples/">
-    <Project Path="Samples/ArrangeAlgorithms.CadTest/ArrangeAlgorithms.CadTest.csproj" />
-    <Project Path="Samples/ArrangeAlgorithms.TeklaTest/ArrangeAlgorithms.TeklaTest.csproj" Id="39dca74c-af65-4caa-96c6-716e221631ca" />
+    <Project Path="Samples/GeometryHelper.ArrangeAlgorithms.CadTest/GeometryHelper.ArrangeAlgorithms.CadTest.csproj" />
+    <Project Path="Samples/GeometryHelper.ArrangeAlgorithms.TeklaTest/GeometryHelper.ArrangeAlgorithms.TeklaTest.csproj" Id="39dca74c-af65-4caa-96c6-716e221631ca" />
   </Folder>
 </Solution>

@@ -1,10 +1,10 @@
 name: GeometryHelper
 
-# Everything except the two sample applications is built here. ArrangeAlgorithms.CadTest references AutoCAD
-# assemblies that are installed on a workstation rather than vendored, and ArrangeAlgorithms.TeklaTest
+# Everything except the two sample applications is built here. GeometryHelper.ArrangeAlgorithms.CadTest references AutoCAD
+# assemblies that are installed on a workstation rather than vendored, and GeometryHelper.ArrangeAlgorithms.TeklaTest
 # references a Tekla installation the same way, so a hosted runner cannot restore either and building the
 # whole solution would fail for a reason that has nothing to do with the change under test. The Tekla
-# bridge is different: the two assemblies it needs are committed under SolidGeometry.Tekla/Lib2020, so it
+# bridge is different: the two assemblies it needs are committed under Libraries/GeometryHelper.TeklaConvert/Lib2020, so it
 # builds and tests here like anything else.
 
 on:
@@ -27,37 +27,37 @@ jobs:
 
       - name: Restore
         run: |
-          dotnet restore Tests/CommonGeometry.UnitTest/CommonGeometry.UnitTest.csproj
-          dotnet restore Tests/PlaneGeometry.UnitTest/PlaneGeometry.UnitTest.csproj
-          dotnet restore Tests/SolidGeometry.UnitTest/SolidGeometry.UnitTest.csproj
-          dotnet restore Tests/SolidGeometry.Tekla.UnitTest/SolidGeometry.Tekla.UnitTest.csproj
-          dotnet restore Tests/ArrangeAlgorithms.UnitTest/ArrangeAlgorithms.UnitTest.csproj
+          dotnet restore Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj
+          dotnet restore Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj
+          dotnet restore Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj
+          dotnet restore Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj
+          dotnet restore Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj
 
       - name: Build
         # Warnings are treated as errors so that a missing XML comment or a stale cref cannot land quietly:
         # the libraries document every public member and that is worth keeping enforced.
         run: |
-          dotnet build Tests/CommonGeometry.UnitTest/CommonGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
-          dotnet build Tests/PlaneGeometry.UnitTest/PlaneGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
-          dotnet build Tests/SolidGeometry.UnitTest/SolidGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
-          dotnet build Tests/SolidGeometry.Tekla.UnitTest/SolidGeometry.Tekla.UnitTest.csproj -c Release --no-restore -warnaserror
-          dotnet build Tests/ArrangeAlgorithms.UnitTest/ArrangeAlgorithms.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj -c Release --no-restore -warnaserror
 
       - name: Test
         run: |
-          dotnet test Tests/CommonGeometry.UnitTest/CommonGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
-          dotnet test Tests/PlaneGeometry.UnitTest/PlaneGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
-          dotnet test Tests/SolidGeometry.UnitTest/SolidGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
-          dotnet test Tests/SolidGeometry.Tekla.UnitTest/SolidGeometry.Tekla.UnitTest.csproj -c Release --no-build --verbosity normal
-          dotnet test Tests/ArrangeAlgorithms.UnitTest/ArrangeAlgorithms.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj -c Release --no-build --verbosity normal
 
       - name: Pack
         # The four packages are versioned in lockstep, so they are always published as one set.
         run: |
-          dotnet pack Libraries/CommonGeometry/CommonGeometry.csproj -c Release -o artifacts
-          dotnet pack Libraries/PlaneGeometry/PlaneGeometry.csproj -c Release -o artifacts
-          dotnet pack Libraries/SolidGeometry/SolidGeometry.csproj -c Release -o artifacts
-          dotnet pack Libraries/ArrangeAlgorithms/ArrangeAlgorithms.csproj -c Release -o artifacts
+          dotnet pack Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj -c Release -o artifacts
+          dotnet pack Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj -c Release -o artifacts
+          dotnet pack Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj -c Release -o artifacts
+          dotnet pack Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj -c Release -o artifacts
 
       - uses: actions/upload-artifact@v4
         with:
