@@ -1,0 +1,87 @@
+name: Publish to NuGet
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      id-token: write  # Required for NuGet Trusted Publishing (OIDC)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: |
+          dotnet restore Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj
+          dotnet restore Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj
+          dotnet restore Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj
+          dotnet restore Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj
+          dotnet restore Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj
+
+      - name: Build tests
+        run: |
+          dotnet build Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj -c Release --no-restore -warnaserror
+
+      - name: Run tests
+        run: |
+          dotnet test Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj -c Release --no-build --verbosity normal
+
+      - name: Build libraries
+        run: |
+          dotnet build Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj -c Release -warnaserror
+          dotnet build Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj -c Release -warnaserror
+          dotnet build Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj -c Release -warnaserror
+          dotnet build Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj -c Release -warnaserror
+          dotnet build Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release -warnaserror
+          dotnet build Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj -c Release -warnaserror
+
+      - name: Pack packages
+        run: |
+          dotnet pack Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj -c Release --no-build -o artifacts
+          dotnet pack Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj -c Release --no-build -o artifacts
+          dotnet pack Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj -c Release --no-build -o artifacts
+          dotnet pack Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj -c Release --no-build -o artifacts
+          dotnet pack Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release --no-build -o artifacts
+          dotnet pack Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj -c Release --no-build -o artifacts
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/*.nupkg
+
+      - name: Attach packages to GitHub Release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ github.event.release.tag_name }} (Get-Item artifacts/*.nupkg) --clobber
+
+      - name: Authenticate with NuGet (Trusted Publishing)
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: nguyenthanguth
+
+      - name: Push packages to NuGet.org
+        run: |
+          dotnet nuget push artifacts/*.nupkg -k "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" -s https://api.nuget.org/v3/index.json --skip-duplicate
