@@ -743,6 +743,6 @@ namespace GeometryHelper.PlaneGeometry.Geometry
         /// Returns the string representation of the rectangle.
         /// </summary>
         /// <returns>A string representation detailing center, width, height, and angle.</returns>
-        public override string ToString() => $"GeoRectangle2[Center:{Center}, Width:{Width:0.000}, Height:{Height:0.000}, AngleRad:{AngleRad:0.000}]";
+        public override string ToString() => $"GeoRectangle2[Center:{Center}, Width:{Width:0.###}, Height:{Height:0.###}, AngleRad:{AngleRad:0.###}]";
     }
 }

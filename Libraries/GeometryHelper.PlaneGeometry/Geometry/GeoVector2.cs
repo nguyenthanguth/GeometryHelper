@@ -335,6 +335,6 @@ namespace GeometryHelper.PlaneGeometry.Geometry
         /// Returns the string representation of the vector.
         /// </summary>
         /// <returns>A string representation formatted as (X, Y).</returns>
-        public override string ToString() => $"({X:0.000}, {Y:0.000})";
+        public override string ToString() => $"({X:0.###}, {Y:0.###})";
     }
 }

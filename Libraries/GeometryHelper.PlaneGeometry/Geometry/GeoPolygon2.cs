@@ -641,6 +641,6 @@ namespace GeometryHelper.PlaneGeometry.Geometry
         /// Returns the string representation of the polygon.
         /// </summary>
         /// <returns>A string representation of vertex count and area.</returns>
-        public override string ToString() => $"GeoPolygon2[{VertexCount} vertices, Area:{GetArea():0.000}]";
+        public override string ToString() => $"GeoPolygon2[{VertexCount} vertices, Area:{GetArea():0.###}]";
     }
 }

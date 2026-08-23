@@ -755,7 +755,7 @@ namespace GeometryHelper.PlaneGeometry.Geometry
         /// <summary>
         /// Returns the string representation of the polyline.
         /// </summary>
-        public override string ToString() => $"GeoPolyline2[{VertexCount} vertices, Length:{Length:0.000}]";
+        public override string ToString() => $"GeoPolyline2[{VertexCount} vertices, Length:{Length:0.###}]";
 
     }
 }

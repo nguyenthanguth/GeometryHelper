@@ -457,7 +457,7 @@ namespace GeometryHelper.PlaneGeometry.Geometry
         /// <summary>
         /// Returns the string representation of the circle.
         /// </summary>
-        public override string ToString() => $"GeoCircle2[Center:{Center}, Radius:{Radius:0.000}]";
+        public override string ToString() => $"GeoCircle2[Center:{Center}, Radius:{Radius:0.###}]";
 
     }
 }
