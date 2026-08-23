@@ -15,7 +15,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <PackageId>GeometryHelper.TeklaConvert</PackageId>
-    <Version>3.0.0</Version>
+    <Version>3.0.2</Version>
     <Authors>Nguyen Thang</Authors>
     <Company>Nguyen Thang</Company>
     <Description>Converts geometry between Tekla Structures and GeometryHelper (GeometryHelper.CommonGeometry, GeometryHelper.PlaneGeometry, and GeometryHelper.SolidGeometry): points, vectors, segments, planes, coordinate systems, bounding boxes, transformation matrices, and the faces and loops of a Tekla solid.</Description>

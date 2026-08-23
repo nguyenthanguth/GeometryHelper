@@ -12,7 +12,7 @@
 
     <!-- 2. NuGet Package Metadata Info -->
     <PackageId>GeometryHelper.SolidGeometry</PackageId>
-    <Version>3.0.0</Version>
+    <Version>3.0.2</Version>
     <Authors>Nguyen Thang</Authors>
     <Company>Nguyen Thang</Company>
     <Description>A 3D geometry library for engineering models. Provides points, vectors, lines, rays, planes, triangles, polylines, polygons, circles, faces, solids, axis-aligned and oriented boxes, local coordinate systems and 4x4 transformations, together with the operations over them: distance, projection, containment, intersection, collision, parallelism, parametrization, merging and splitting. Every comparison is tolerance-aware.</Description>

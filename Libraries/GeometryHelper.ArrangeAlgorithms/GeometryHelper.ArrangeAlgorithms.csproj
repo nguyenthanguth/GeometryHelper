@@ -12,7 +12,7 @@
         
     <!-- 2. NuGet Package Metadata Info -->
     <PackageId>GeometryHelper.ArrangeAlgorithms</PackageId>
-    <Version>3.0.0</Version>
+    <Version>3.0.2</Version>
     <Authors>Nguyen Thang</Authors>
     <Company>Nguyen Thang</Company>
     <Description>A 2D label placement library for engineering drawings that automatically arranges labels to prevent overlaps with each other and blocked regions. Features 5 layout algorithms: Greedy, Bounded Backtracking, Simulated Annealing, Force-Directed, and Constraint Satisfaction. The geometry it works in comes from the GeometryHelper.PlaneGeometry package, which arrives as a dependency.</Description>

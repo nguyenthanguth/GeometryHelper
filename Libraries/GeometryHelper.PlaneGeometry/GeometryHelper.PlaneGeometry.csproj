@@ -12,7 +12,7 @@
 
     <!-- 2. NuGet Package Metadata Info -->
     <PackageId>GeometryHelper.PlaneGeometry</PackageId>
-    <Version>3.0.0</Version>
+    <Version>3.0.2</Version>
     <Authors>Nguyen Thang</Authors>
     <Company>Nguyen Thang</Company>
     <Description>A 2D geometry library for engineering drawings. Provides points, vectors, lines, polylines, polygons, circles and oriented rectangles, together with the operations over them: distance, projection, containment, intersection, collision, parallelism, parametrization, merging and splitting. Every comparison is tolerance-aware. It is the 2D counterpart of GeometryHelper.SolidGeometry and shares Tolerance and Angle with it through GeometryHelper.CommonGeometry.</Description>
