@@ -9,6 +9,9 @@
          Properties/AssemblyInfo.cs; this project has none, and generating is what keeps its identity
          from falling back to 0.0.0.0. -->
     <PlatformTarget>x64</PlatformTarget>
+
+    <!-- 1. Configure NuGet Package generation and XML Documentation -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <PackageId>GeometryHelper.CadConvert</PackageId>
