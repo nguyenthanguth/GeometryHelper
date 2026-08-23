@@ -4,7 +4,6 @@ using System.Linq;
 using GeometryHelper.CommonGeometry;
 using GeometryHelper.SolidGeometry.Geometry;
 using TSG = Tekla.Structures.Geometry3d;
-using TSM = Tekla.Structures.Model;
 using TSS = Tekla.Structures.Solid;
 
 namespace GeometryHelper.TeklaConvert

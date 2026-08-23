@@ -41,10 +41,6 @@
       <HintPath>Lib2020\Tekla.Structures.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Tekla.Structures.Model">
-      <HintPath>Lib2020\Tekla.Structures.Model.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
 
 </Project>

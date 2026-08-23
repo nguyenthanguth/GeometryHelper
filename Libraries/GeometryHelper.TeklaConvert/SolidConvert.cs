@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using GeometryHelper.CommonGeometry;
 using GeometryHelper.SolidGeometry.Geometry;
 using TSG = Tekla.Structures.Geometry3d;
-using TSM = Tekla.Structures.Model;
 using TSS = Tekla.Structures.Solid;
 
 namespace GeometryHelper.TeklaConvert
@@ -31,7 +30,7 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="solid">The Tekla solid to read.</param>
         /// <returns>The bounding box as <see cref="GeoAabb3"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="solid"/> is null.</exception>
-        public static GeoAabb3 ToGeoAabb3(this TSM.Solid solid)
+        public static GeoAabb3 ToGeoAabb3(this TSS.ISolid solid)
         {
             if (solid == null)
             {
@@ -47,7 +46,7 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="solid">The Tekla solid to convert.</param>
         /// <param name="result">The converted body when the method returns true.</param>
         /// <returns>true if the solid was successfully converted; false otherwise.</returns>
-        public static bool TryToGeoSolid3(this TSM.Solid solid, out GeoSolid3 result)
+        public static bool TryToGeoSolid3(this TSS.ISolid solid, out GeoSolid3 result)
         {
             return TryToGeoSolid3(solid, out result, Tolerance.Global);
         }
@@ -68,7 +67,7 @@ namespace GeometryHelper.TeklaConvert
         /// large model should not cost the whole conversion. The result is then no longer closed, which is
         /// what <see cref="GeoSolid3.IsClosed()"/> is for: ask it before trusting a volume.
         /// </remarks>
-        public static bool TryToGeoSolid3(this TSM.Solid solid, out GeoSolid3 result, Tolerance tolerance)
+        public static bool TryToGeoSolid3(this TSS.ISolid solid, out GeoSolid3 result, Tolerance tolerance)
         {
             if (solid == null)
             {
@@ -133,7 +132,7 @@ namespace GeometryHelper.TeklaConvert
         /// A model is walked one part at a time and a single unreadable part should not stop the walk, so
         /// what comes back is what could be read rather than all or nothing.
         /// </remarks>
-        public static GeoSolid3[] ToGeoSolids(this IEnumerable<TSM.Solid> solids, Tolerance tolerance)
+        public static GeoSolid3[] ToGeoSolids(this IEnumerable<TSS.ISolid> solids, Tolerance tolerance)
         {
             if (solids == null)
             {
@@ -142,7 +141,7 @@ namespace GeometryHelper.TeklaConvert
 
             List<GeoSolid3> converted = new List<GeoSolid3>();
 
-            foreach (TSM.Solid solid in solids)
+            foreach (TSS.ISolid solid in solids)
             {
                 if (solid != null && solid.TryToGeoSolid3(out GeoSolid3 body, tolerance))
                 {
