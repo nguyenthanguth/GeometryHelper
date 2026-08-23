@@ -114,14 +114,24 @@ namespace GeometryHelper.TeklaConvert
                 throw new ArgumentNullException(nameof(points));
             }
 
-            List<GeoPoint3> vertices = new List<GeoPoint3>();
+            return new GeoPolyline3(points.ToGeoPoint3());
+        }
 
-            foreach (TSG.Point point in points)
+        /// <summary>
+        /// Converts a run of Tekla points into a 2D chain (discarding Z coordinates).
+        /// </summary>
+        /// <param name="points">The run of Tekla points to convert.</param>
+        /// <returns>The converted <see cref="GeoPolyline2"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="points"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when fewer than two distinct points remain.</exception>
+        public static GeoPolyline2 ToGeoPolyline2(this IEnumerable<TSG.Point> points)
+        {
+            if (points == null)
             {
-                vertices.Add(point.ToGeoPoint3());
+                throw new ArgumentNullException(nameof(points));
             }
 
-            return new GeoPolyline3(vertices);
+            return new GeoPolyline2(points.ToGeoPoint2());
         }
 
         /// <summary>
@@ -130,6 +140,7 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="points">The run of Tekla points to convert.</param>
         /// <returns>The converted <see cref="GeoPolygon3"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="points"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when fewer than three distinct vertices remain, when they are collinear, or when they do not lie on a common plane.</exception>
         public static GeoPolygon3 ToGeoPolygon3(this IEnumerable<TSG.Point> points)
         {
             if (points == null)
@@ -137,14 +148,42 @@ namespace GeometryHelper.TeklaConvert
                 throw new ArgumentNullException(nameof(points));
             }
 
-            List<GeoPoint3> vertices = new List<GeoPoint3>();
+            return new GeoPolygon3(points.ToGeoPoint3());
+        }
 
-            foreach (TSG.Point point in points)
+        /// <summary>
+        /// Converts a run of Tekla points into a polygon, within a tolerance.
+        /// </summary>
+        /// <param name="points">The run of Tekla points to convert.</param>
+        /// <param name="tolerance">The tolerance deciding duplicate vertices and flatness.</param>
+        /// <returns>The converted <see cref="GeoPolygon3"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="points"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when fewer than three distinct vertices remain, when they are collinear, or when they do not lie on a common plane.</exception>
+        public static GeoPolygon3 ToGeoPolygon3(this IEnumerable<TSG.Point> points, Tolerance tolerance)
+        {
+            if (points == null)
             {
-                vertices.Add(point.ToGeoPoint3());
+                throw new ArgumentNullException(nameof(points));
             }
 
-            return new GeoPolygon3(vertices);
+            return new GeoPolygon3(points.ToGeoPoint3(), tolerance);
+        }
+
+        /// <summary>
+        /// Converts a run of Tekla points into a 2D polygon (discarding Z coordinates).
+        /// </summary>
+        /// <param name="points">The run of Tekla points to convert.</param>
+        /// <returns>The converted <see cref="GeoPolygon2"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="points"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when fewer than three distinct vertices remain.</exception>
+        public static GeoPolygon2 ToGeoPolygon2(this IEnumerable<TSG.Point> points)
+        {
+            if (points == null)
+            {
+                throw new ArgumentNullException(nameof(points));
+            }
+
+            return new GeoPolygon2(points.ToGeoPoint2());
         }
     }
 }

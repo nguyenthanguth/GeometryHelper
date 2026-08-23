@@ -141,6 +141,56 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             Assert.Equal(7.0, chain.Length, 12);
         }
 
+        [Fact]
+        public void ARunOfPointsBecomesA2DChain()
+        {
+            List<TSG.Point> points = new List<TSG.Point>
+            {
+                new TSG.Point(0, 0, 10),
+                new TSG.Point(3, 0, 20),
+                new TSG.Point(3, 4, 30)
+            };
+
+            GeoPolyline2 chain = points.ToGeoPolyline2();
+
+            Assert.Equal(3, chain.VertexCount);
+            Assert.Equal(7.0, chain.Length, 12);
+        }
+
+        [Fact]
+        public void ARunOfPointsBecomesAPolygon()
+        {
+            List<TSG.Point> points = new List<TSG.Point>
+            {
+                new TSG.Point(0, 0, 0),
+                new TSG.Point(4, 0, 0),
+                new TSG.Point(4, 3, 0),
+                new TSG.Point(0, 3, 0)
+            };
+
+            GeoPolygon3 polygon = points.ToGeoPolygon3();
+
+            Assert.Equal(4, polygon.VertexCount);
+            Assert.Equal(12.0, polygon.Area, 12);
+        }
+
+        [Fact]
+        public void ARunOfPointsBecomesA2DPolygon()
+        {
+            List<TSG.Point> points = new List<TSG.Point>
+            {
+                new TSG.Point(0, 0, 10),
+                new TSG.Point(4, 0, 20),
+                new TSG.Point(4, 3, 30),
+                new TSG.Point(0, 3, 40)
+            };
+
+            GeoPolygon2 polygon = points.ToGeoPolygon2();
+
+            Assert.Equal(4, polygon.VertexCount);
+            Assert.Equal(12.0, polygon.GetArea(), 12);
+        }
+
         #region Matrix
 
         /// <summary>

@@ -51,17 +51,31 @@ jobs:
           dotnet test Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -c Release --no-build --verbosity normal
           dotnet test Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj -c Release --no-build --verbosity normal
 
+      - name: Build libraries
+        # Every packable library carries GeneratePackageOnBuild, and that switch makes `dotnet pack`
+        # skip building: it expects the output to be there already. Four of the six arrive built as
+        # dependencies of the test projects, but GeometryHelper.CadConvert has no test project of its
+        # own, so nothing else builds it and packing it alone fails with NU5026. Building all six here
+        # keeps that from depending on which library happens to be under test.
+        run: |
+          dotnet build Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj -c Release -warnaserror
+          dotnet build Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj -c Release -warnaserror
+          dotnet build Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj -c Release -warnaserror
+          dotnet build Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj -c Release -warnaserror
+          dotnet build Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release -warnaserror
+          dotnet build Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj -c Release -warnaserror
+
       - name: Pack
         # The six packages are versioned in lockstep, so they are always published as one set. The two
         # bridges redistribute no vendor assembly: Private=False keeps the Tekla and AutoCAD DLLs out of
         # the build output, so they cannot reach the package.
         run: |
-          dotnet pack Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj -c Release -o artifacts
-          dotnet pack Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj -c Release -o artifacts
-          dotnet pack Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj -c Release -o artifacts
-          dotnet pack Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj -c Release -o artifacts
-          dotnet pack Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release -o artifacts
-          dotnet pack Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj -c Release -o artifacts
+          dotnet pack Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj -c Release --no-build -o artifacts
+          dotnet pack Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj -c Release --no-build -o artifacts
+          dotnet pack Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj -c Release --no-build -o artifacts
+          dotnet pack Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj -c Release --no-build -o artifacts
+          dotnet pack Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release --no-build -o artifacts
+          dotnet pack Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj -c Release --no-build -o artifacts
 
       - uses: actions/upload-artifact@v4
         with:
