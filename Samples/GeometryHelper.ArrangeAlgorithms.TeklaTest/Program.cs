@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeometryHelper.CommonGeometry.Extension;
+using GeometryHelper.PlaneGeometry.Extension;
 using GeometryHelper.PlaneGeometry.Geometry;
 using GeometryHelper.TeklaConvert;
 using TSD = Tekla.Structures.Drawing;
@@ -85,11 +87,11 @@ namespace GeometryHelper.ArrangeAlgorithms.TeklaTest
                 var middlePoints = GetMiddlePointOfRebar(geometries);
 
                 // Convert the calculated centerline points into individual line segments
-                List<LineSegment> segments = middlePoints.ToLineSegments();
-                foreach (LineSegment segment in segments)
+                var segments = middlePoints.ToGeoPoint2().ToGeoLine2s();
+                foreach (var segment in segments)
                 {
                     // Add each segment as a block line to prevent other marks from crossing over this rebar
-                    blockLines.Add(segment.ToGeoLine2());
+                    blockLines.Add(segment);
                 }
 
                 // Group the mark and rebar data together for positioning calculations
@@ -100,7 +102,7 @@ namespace GeometryHelper.ArrangeAlgorithms.TeklaTest
                     DrawingRebar = drawingRebar,
                     ModelRebar = modelRebar,
                     // Use the longest segment of the centerline as the primary guide line for the mark
-                    MiddleLineRebar = segments.GetLongestLength()
+                    MiddleLineRebar = segments.MaxBy(mb => mb.Length).ToTeklaLineSegment()
                 });
             }
 
