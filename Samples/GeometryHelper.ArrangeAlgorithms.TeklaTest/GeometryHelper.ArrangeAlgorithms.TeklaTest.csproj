@@ -5,6 +5,7 @@
     <TargetFramework>net48</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
+    <IsPackable>false</IsPackable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <RootNamespace>GeometryHelper.ArrangeAlgorithms.TeklaTest</RootNamespace>
     <AssemblyName>GeometryHelper.ArrangeAlgorithms.TeklaTest</AssemblyName>

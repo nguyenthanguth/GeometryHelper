@@ -23,7 +23,10 @@
         last is separate because coplanarity is measured far from the reference point, where a
         hundredth of a degree of tilt becomes a deviation the point threshold would not tolerate. The
         plane library leaves it unused.
-      - Tolerance.Global is one setting shared by both geometry libraries rather than one each.
+      - Tolerance.Global is one setting shared by both geometry libraries rather than one each. It is
+        unsynchronized process-wide state: set it once while starting up and read it thereafter, and
+        pass a Tolerance explicitly where it has to vary per drawing, per model or per thread. New in
+        3.1.0 is that this is written down; the behaviour is unchanged.
       - Angle stores radians and has no public constructor taking a bare double, because a number on
         its own does not say which unit it is in: use FromRadians or FromDegrees.
       - PointLocation and PlaneSide say where a point sits relative to a shape and relative to an
