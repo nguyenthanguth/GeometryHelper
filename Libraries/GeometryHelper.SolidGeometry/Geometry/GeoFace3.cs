@@ -157,8 +157,43 @@ namespace GeometryHelper.SolidGeometry.Geometry
         /// The holes are left out because a fan triangulation cannot express them. What this is good for
         /// is the signed sums — area, centroid, volume — where the holes are accounted for separately by
         /// triangulating each of them and subtracting.
+        /// <para>
+        /// The triangles a fan produces do not all lie inside a concave face, so this is not a surface
+        /// mesh. Use <see cref="TriangulateSurface()"/> for anything that reads the triangles as material.
+        /// </para>
         /// </remarks>
         public GeoTriangle3[] Triangulate() => Boundary.Triangulate();
+
+        /// <summary>
+        /// Breaks the face into triangles that each lie within its material, holes included, using the
+        /// default tolerance.
+        /// </summary>
+        public GeoTriangle3[] TriangulateSurface() => TriangulateSurface(Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the face into triangles that each lie within its material, holes included, within a
+        /// tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance deciding what counts as a degenerate triangle.</param>
+        /// <returns>The triangles covering the face, wound to share its normal.</returns>
+        /// <remarks>
+        /// This is the triangulation to use wherever the mesh stands for the surface itself — ray casting,
+        /// clash detection, distance to a body. Unlike <see cref="Triangulate()"/> every triangle lies
+        /// inside the face, a hole is left empty rather than covered over, and a concave boundary is
+        /// followed rather than spanned.
+        /// <para>
+        /// A face whose boundary crosses itself, or whose holes reach outside it, has no such
+        /// triangulation. Rather than refusing, the fan is returned so that the caller still gets the
+        /// triangles the signed sums are built on; such a face is outside what this type promises to
+        /// handle in the first place.
+        /// </para>
+        /// </remarks>
+        public GeoTriangle3[] TriangulateSurface(Tolerance tolerance)
+        {
+            return EarClipping.TryTriangulate(this, tolerance, out GeoTriangle3[] triangles)
+                ? triangles
+                : Boundary.Triangulate();
+        }
 
         /// <summary>
         /// Applies a transformation to the boundary and every hole.

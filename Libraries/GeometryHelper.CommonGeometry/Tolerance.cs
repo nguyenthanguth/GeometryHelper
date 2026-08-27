@@ -40,6 +40,17 @@ namespace GeometryHelper.CommonGeometry
         /// <summary>
         /// Tolerance applied for overloads without explicit tolerance.
         /// </summary>
+        /// <remarks>
+        /// This is process-wide mutable state, and it is not synchronized. Set it once while starting up,
+        /// before any geometry is built, and read it thereafter. Changing it while other threads are
+        /// working means they may read the old value, the new one, or a mix across the several comparisons
+        /// of one operation — and it changes the answers in the plane and in space alike, since both
+        /// libraries read this one setting.
+        /// <para>
+        /// Where a tolerance has to vary — per drawing, per model, per thread — pass it explicitly. Every
+        /// affected method takes one, and that overload touches nothing shared.
+        /// </para>
+        /// </remarks>
         public static Tolerance Global { get; set; } =
             new Tolerance(DefaultEqualPoint, DefaultEqualVector, DefaultEqualAngleRad, DefaultEqualPlanar);
 

@@ -422,6 +422,14 @@ Building the tree costs a sort of the triangles, so it pays for itself over repe
 on the first one. Build it once and keep it: every geometry type here is immutable, so a mesh never goes
 stale under its index.
 
+The mesh it indexes comes from `GeoSolid3.Triangulate`, which follows the material of every face: a
+concave face is traced rather than spanned, and a hole in a face is left open. So a ray fired through the
+notch of an L-shaped body, or through a bolt hole in a plate, passes clean through, and the nearest point
+on the surface is a point that is really on it. That is what separates it from `GeoFace3.Triangulate`,
+which fans the boundary from one vertex and is meant only for the signed sums — area, centroid, volume —
+where the part of a fan reaching outside the face cancels against the part overlapping it. Use
+`GeoFace3.TriangulateSurface` wherever the triangles stand for material.
+
 `Collision3.CollidesWith(solid, solid)` builds one internally once the meshes are large enough to be worth
 it, and falls back to comparing every pair below that — below the threshold, the plain scan wins.
 

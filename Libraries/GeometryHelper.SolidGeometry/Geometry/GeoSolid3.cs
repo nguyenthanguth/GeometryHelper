@@ -175,8 +175,19 @@ namespace GeometryHelper.SolidGeometry.Geometry
         public double Volume => Math.Abs(GetSignedVolume());
 
         /// <summary>
-        /// Gets the volume left after subtracting every opening.
+        /// Gets the volume left after subtracting every opening, reading each opening whole.
         /// </summary>
+        /// <remarks>
+        /// This is a sum, not a subtraction of shapes: the volume of every opening is taken off in full,
+        /// whether or not all of it lies in the body. That makes it cheap and exact for an opening that
+        /// sits inside the body, and an overestimate of what has been removed for one that pokes out —
+        /// which is how a through-hole is usually drawn, deliberately overshooting so that it clears the
+        /// far face. Two openings that overlap each other are counted twice for the same reason.
+        /// <para>
+        /// Use <see cref="GetNetVolume()"/> where either of those can happen. It cuts the openings out of
+        /// the body properly and measures what is left, at the cost of doing the cutting.
+        /// </para>
+        /// </remarks>
         public double NetVolume
         {
             get
@@ -190,6 +201,59 @@ namespace GeometryHelper.SolidGeometry.Geometry
 
                 return Math.Max(0.0, volume);
             }
+        }
+
+        /// <summary>
+        /// Gets the volume of the material actually left once every opening is cut out, using the default
+        /// tolerance.
+        /// </summary>
+        public double GetNetVolume() => GetNetVolume(Tolerance.Global);
+
+        /// <summary>
+        /// Gets the volume of the material actually left once every opening is cut out, within a
+        /// tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance the cutting is carried out with.</param>
+        /// <returns>The volume of the body with its openings removed, or zero when nothing is left.</returns>
+        /// <remarks>
+        /// Unlike <see cref="NetVolume"/> this removes the openings as shapes rather than as numbers, so
+        /// the part of an opening reaching outside the body costs nothing and two openings overlapping
+        /// each other are not counted twice. The openings are taken out one after another, so each is
+        /// measured against what the ones before it left.
+        /// <para>
+        /// The cutting is a full boolean subtraction per opening, which is why this is a method and
+        /// <see cref="NetVolume"/> is a property. An opening that cannot be cut out is taken whole, which
+        /// falls back to what <see cref="NetVolume"/> would have said for it rather than abandoning the
+        /// measurement.
+        /// </para>
+        /// </remarks>
+        public double GetNetVolume(Tolerance tolerance)
+        {
+            if (_openings.Length == 0)
+            {
+                return Volume;
+            }
+
+            // The gross body: the openings are what is being cut out, so they must not also be carried
+            // along as openings of the thing being cut.
+            GeoSolid3 remaining = new GeoSolid3(_faces);
+            double deducted = 0.0;
+
+            foreach (GeoSolid3 opening in _openings)
+            {
+                if (Boolean3.TrySubtract(remaining, opening, out GeoSolid3 cut, tolerance))
+                {
+                    remaining = cut;
+                    continue;
+                }
+
+                // The subtraction gave nothing back: either the opening swallowed what was left of the
+                // body, or the cut could not be resolved. Taking the opening off whole covers both, since
+                // a body swallowed by its own opening lands on zero once the clamp below is applied.
+                deducted += opening.Volume;
+            }
+
+            return Math.Max(0.0, remaining.Volume - deducted);
         }
 
         /// <summary>
@@ -272,7 +336,14 @@ namespace GeometryHelper.SolidGeometry.Geometry
                     }
                 }
 
-                if (Math.Abs(totalVolume) <= double.Epsilon)
+                // The total is a volume, so it is judged against a length tolerance cubed. Against
+                // double.Epsilon only an exactly zero total would fall back, and a shell that nearly
+                // closes on itself can leave one small enough to overflow the division yet far above
+                // that.
+                double point = Tolerance.Global.EqualPoint;
+                double volumeEpsilon = point * point * point;
+
+                if (Math.Abs(totalVolume) <= volumeEpsilon)
                 {
                     return GetVertexAverage();
                 }
@@ -321,15 +392,33 @@ namespace GeometryHelper.SolidGeometry.Geometry
         }
 
         /// <summary>
-        /// Breaks every face into triangles, giving the surface of the solid as a triangle mesh.
+        /// Breaks every face into triangles, giving the surface of the solid as a triangle mesh, using
+        /// the default tolerance.
         /// </summary>
-        public GeoTriangle3[] Triangulate()
+        public GeoTriangle3[] Triangulate() => Triangulate(Tolerance.Global);
+
+        /// <summary>
+        /// Breaks every face into triangles, giving the surface of the solid as a triangle mesh, within a
+        /// tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance deciding what counts as a degenerate triangle.</param>
+        /// <remarks>
+        /// Every triangle lies within the material of the face it came from, so the mesh describes the
+        /// surface and nothing more: a concave face is followed rather than spanned, and a hole is left
+        /// open. That is what lets clash detection, ray casting and body-to-body distance read this mesh
+        /// as the boundary of the solid.
+        /// <para>
+        /// The openings are not meshed. They are whole bodies subtracted from this one rather than part
+        /// of its surface, and each carries its own faces to mesh if that is what is wanted.
+        /// </para>
+        /// </remarks>
+        public GeoTriangle3[] Triangulate(Tolerance tolerance)
         {
             List<GeoTriangle3> triangles = new List<GeoTriangle3>();
 
             foreach (GeoFace3 face in _faces)
             {
-                triangles.AddRange(face.Triangulate());
+                triangles.AddRange(face.TriangulateSurface(tolerance));
             }
 
             return triangles.ToArray();
@@ -467,13 +556,21 @@ namespace GeometryHelper.SolidGeometry.Geometry
         }
 
         /// <summary>
-        /// Splits this solid by a plane, using the default tolerance. The solid must be convex.
+        /// Splits this solid by a plane, using the default tolerance.
         /// </summary>
+        /// <remarks>
+        /// The body may be concave and its faces may carry holes. Openings are carried into whichever
+        /// half they fall in, and one straddling the plane is cut along with the body.
+        /// </remarks>
         public bool TrySplitBy(GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below) => Splition3.TrySplitBy(this, cutter, out above, out below);
 
         /// <summary>
-        /// Splits this solid by a plane, within a tolerance. The solid must be convex.
+        /// Splits this solid by a plane, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// The body may be concave and its faces may carry holes. Openings are carried into whichever
+        /// half they fall in, and one straddling the plane is cut along with the body.
+        /// </remarks>
         public bool TrySplitBy(GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out above, out below, tolerance);
 
         /// <summary>

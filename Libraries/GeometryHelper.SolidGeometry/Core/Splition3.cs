@@ -923,9 +923,50 @@ namespace GeometryHelper.SolidGeometry.Core
                 return false;
             }
 
-            above = new GeoSolid3(upperFaces);
-            below = new GeoSolid3(lowerFaces);
+            SplitOpenings(solid, cutter, tolerance, out List<GeoSolid3> upperOpenings, out List<GeoSolid3> lowerOpenings);
+
+            above = new GeoSolid3(upperFaces, upperOpenings);
+            below = new GeoSolid3(lowerFaces, lowerOpenings);
             return true;
+        }
+
+        /// <summary>
+        /// Sorts the openings of a solid into the two halves the cut leaves.
+        /// </summary>
+        /// <remarks>
+        /// An opening is a body in its own right, so one straddling the plane is cut by the same method
+        /// and each half keeps its piece. One the plane misses belongs whole to the side it sits on, which
+        /// its centroid settles: the plane does not pass through it, so every point of it is on one side
+        /// and the centroid is as good as any.
+        /// <para>
+        /// Without this the openings would be dropped and each half would come back as solid material
+        /// where the body had a duct or a recess — a loss with nothing to report it, since the halves are
+        /// closed and measure correctly in every other respect.
+        /// </para>
+        /// </remarks>
+        private static void SplitOpenings(GeoSolid3 solid, GeoPlane3 cutter, Tolerance tolerance, out List<GeoSolid3> upper, out List<GeoSolid3> lower)
+        {
+            upper = new List<GeoSolid3>();
+            lower = new List<GeoSolid3>();
+
+            foreach (GeoSolid3 opening in solid.Openings)
+            {
+                if (TrySplitBy(opening, cutter, out GeoSolid3 openingAbove, out GeoSolid3 openingBelow, tolerance))
+                {
+                    upper.Add(openingAbove);
+                    lower.Add(openingBelow);
+                    continue;
+                }
+
+                if (cutter.SignedDistanceTo(opening.Centroid) >= 0.0)
+                {
+                    upper.Add(opening);
+                }
+                else
+                {
+                    lower.Add(opening);
+                }
+            }
         }
 
         /// <summary>

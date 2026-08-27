@@ -394,8 +394,24 @@ namespace GeometryHelper.SolidGeometry.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // A point beyond the bounding box is beyond every face and every opening, and the ray casting
+            // below cannot say otherwise. Settling it here turns the common case — a point nowhere near the
+            // body — from a pass over every face plus up to five rays into one pass over the corners.
+            if (solid.GetAabb().DistanceTo(point) > tolerance.EqualPoint)
+            {
+                return PointLocation.OutSide;
+            }
+
             foreach (GeoFace3 face in solid.Faces)
             {
+                // The box of a face is a handful of comparisons; projecting a point onto the face itself is
+                // not. Most faces of a body are nowhere near any given point, so the cheap test is what
+                // decides for them.
+                if (face.GetAabb().DistanceTo(point) > tolerance.EqualPoint)
+                {
+                    continue;
+                }
+
                 if (Distance3.DistanceTo(face, point, tolerance) <= tolerance.EqualPoint)
                 {
                     return PointLocation.OnSide;
@@ -429,6 +445,12 @@ namespace GeometryHelper.SolidGeometry.Core
         /// resolve those cases the ray is simply thrown again in another direction, since the chance of
         /// several unrelated directions all landing on an edge is negligible. The directions are fixed
         /// rather than random so that the same question always gets the same answer.
+        /// <para>
+        /// Should every direction come back ambiguous, the point is reported as outside. That is a choice
+        /// rather than an answer — nothing was established — and it is made this way so that a body whose
+        /// boundary cannot be read does not claim to hold points. A surface degenerate enough to graze all
+        /// five directions is one <see cref="GeoSolid3.IsClosed()"/> should have been asked about first.
+        /// </para>
         /// </remarks>
         private static bool IsInsideByRayCast(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
         {

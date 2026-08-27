@@ -111,6 +111,11 @@ namespace GeometryHelper.SolidGeometry.Geometry
             GeoPoint3[] loop = kept.ToArray();
             GeoVector3 areaVector = Newell.GetAreaVector(loop);
 
+            // The length of this vector is the area of the loop, so the threshold it clears is
+            // EqualVector read as an area rather than as a length. That is deliberate but worth knowing:
+            // a loop enclosing less than that is refused however long its edges are, so a sliver a metre
+            // long and a thousandth of a millimetre wide is rejected as collinear, and a genuinely tiny
+            // polygon is rejected along with it. Pass a tighter tolerance where such a polygon is real.
             if (!areaVector.TryGetNormal(out GeoVector3 normal, tolerance))
             {
                 throw new ArgumentException("A polygon must enclose an area; these vertices are collinear.", nameof(vertices));
@@ -321,7 +326,13 @@ namespace GeometryHelper.SolidGeometry.Geometry
                     z += center.Z * weight;
                 }
 
-                if (Math.Abs(totalWeight) <= double.Epsilon)
+                // The weight is an area, so the threshold it is judged against has to be one too: a
+                // length tolerance squared. Comparing against double.Epsilon instead would only catch a
+                // weight of exactly zero, and a loop that doubles back on itself can leave one around
+                // 1e-300 � small enough that dividing by it overflows, large enough to pass the test.
+                double areaEpsilon = Tolerance.Global.EqualPoint * Tolerance.Global.EqualPoint;
+
+                if (Math.Abs(totalWeight) <= areaEpsilon)
                 {
                     return _vertices[0];
                 }

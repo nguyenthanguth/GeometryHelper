@@ -308,7 +308,9 @@ namespace GeometryHelper.SolidGeometry.Geometry
         /// <remarks>
         /// The determinant is the factor by which the transformation multiplies volume. It is negative
         /// for a transformation that reverses handedness, and zero for one that flattens space, which is
-        /// exactly the case <see cref="TryGetInverse"/> cannot undo.
+        /// exactly the case <see cref="TryGetInverse(out GeoTransform3)"/> cannot undo. That method judges
+        /// this value against the size of the transformation rather than against zero, so a transformation
+        /// it refuses need not have a determinant of exactly zero.
         /// </remarks>
         public double GetDeterminant()
         {
@@ -324,12 +326,19 @@ namespace GeometryHelper.SolidGeometry.Geometry
         }
 
         /// <summary>
-        /// Gets the transformation that undoes this one.
+        /// Gets the transformation that undoes this one, using the default tolerance.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the transformation is not invertible.</exception>
-        public GeoTransform3 Inverse()
+        public GeoTransform3 Inverse() => Inverse(Tolerance.Global);
+
+        /// <summary>
+        /// Gets the transformation that undoes this one, within a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance deciding when the transformation has collapsed.</param>
+        /// <exception cref="InvalidOperationException">Thrown when the transformation is not invertible.</exception>
+        public GeoTransform3 Inverse(Tolerance tolerance)
         {
-            if (!TryGetInverse(out GeoTransform3 inverse))
+            if (!TryGetInverse(out GeoTransform3 inverse, tolerance))
             {
                 throw new InvalidOperationException("This transformation collapses space and cannot be inverted.");
             }
@@ -338,11 +347,52 @@ namespace GeometryHelper.SolidGeometry.Geometry
         }
 
         /// <summary>
-        /// Tries to get the transformation that undoes this one, without throwing.
+        /// Gets the product of the lengths of the three transformed axes, which is the size a determinant
+        /// of this transformation is measured against.
+        /// </summary>
+        /// <remarks>
+        /// For a transformation that keeps its axes square this is exactly the determinant, so the test it
+        /// feeds asks how far the three axes have been flattened towards a common plane rather than how
+        /// large they are.
+        /// </remarks>
+        private double GetAxisScale()
+        {
+            double scale = 1.0;
+
+            // The columns are where the basis vectors land, as FromCoordinateSystem lays them out. Reading
+            // rows here would measure something else entirely and would not answer the question.
+            for (int c = 0; c < 3; c++)
+            {
+                scale *= Math.Sqrt(_m[0, c] * _m[0, c] + _m[1, c] * _m[1, c] + _m[2, c] * _m[2, c]);
+            }
+
+            return scale;
+        }
+
+        /// <summary>
+        /// Tries to get the transformation that undoes this one, without throwing, using the default
+        /// tolerance.
         /// </summary>
         /// <param name="inverse">The inverse when the method returns true; otherwise the identity.</param>
-        /// <returns>false when the transformation has a zero determinant and cannot be undone.</returns>
-        public bool TryGetInverse(out GeoTransform3 inverse)
+        /// <returns>false when the transformation collapses space and cannot be undone.</returns>
+        public bool TryGetInverse(out GeoTransform3 inverse) => TryGetInverse(out inverse, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to get the transformation that undoes this one, without throwing, within a tolerance.
+        /// </summary>
+        /// <param name="inverse">The inverse when the method returns true; otherwise the identity.</param>
+        /// <param name="tolerance">The tolerance deciding when the transformation has collapsed.</param>
+        /// <returns>false when the transformation collapses space and cannot be undone.</returns>
+        /// <remarks>
+        /// The determinant is judged against the size of the transformation rather than against zero. A
+        /// determinant of exactly zero is the only case a bare <c>==</c> catches, and it is not the case
+        /// that hurts: three axes that are very nearly coplanar give a determinant around 1e-16 while each
+        /// axis is still of unit length, and dividing the cofactors by that yields a matrix of enormous
+        /// numbers reported as a valid inverse. Scaling the threshold by the product of the axis lengths
+        /// is what makes the test mean "collapsed" rather than "small", so a model in millimetres and the
+        /// same model in metres are judged alike.
+        /// </remarks>
+        public bool TryGetInverse(out GeoTransform3 inverse, Tolerance tolerance)
         {
             BuildCofactors(out double[,] cofactors);
 
@@ -352,7 +402,7 @@ namespace GeometryHelper.SolidGeometry.Geometry
                 determinant += _m[0, c] * cofactors[0, c];
             }
 
-            if (determinant == 0.0)
+            if (Math.Abs(determinant) <= tolerance.EqualVector * GetAxisScale())
             {
                 inverse = Identity;
                 return false;

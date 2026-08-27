@@ -429,7 +429,7 @@ namespace GeometryHelper.SolidGeometry.Core
 
             double best = double.MaxValue;
 
-            foreach (GeoTriangle3 triangle in solid.Triangulate())
+            foreach (GeoTriangle3 triangle in solid.Triangulate(tolerance))
             {
                 best = Math.Min(best, DistanceTo(line, triangle, tolerance));
 
@@ -473,7 +473,7 @@ namespace GeometryHelper.SolidGeometry.Core
                 return 0.0;
             }
 
-            return new Spatial.GeoBvh3(solid1.Triangulate()).DistanceTo(new Spatial.GeoBvh3(solid2.Triangulate()), tolerance);
+            return new Spatial.GeoBvh3(solid1.Triangulate(tolerance)).DistanceTo(new Spatial.GeoBvh3(solid2.Triangulate(tolerance)), tolerance);
         }
 
         /// <summary>

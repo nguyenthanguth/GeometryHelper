@@ -275,8 +275,8 @@ namespace GeometryHelper.SolidGeometry.Core
                 return false;
             }
 
-            GeoTriangle3[] mesh1 = solid1.Triangulate();
-            GeoTriangle3[] mesh2 = solid2.Triangulate();
+            GeoTriangle3[] mesh1 = solid1.Triangulate(tolerance);
+            GeoTriangle3[] mesh2 = solid2.Triangulate(tolerance);
 
             if (SurfacesTouch(mesh1, mesh2, tolerance))
             {
@@ -475,8 +475,8 @@ namespace GeometryHelper.SolidGeometry.Core
                 return false;
             }
 
-            GeoTriangle3[] region = polygon.Triangulate();
-            GeoTriangle3[] body = solid.Triangulate();
+            GeoTriangle3[] region = new GeoFace3(polygon).TriangulateSurface(tolerance);
+            GeoTriangle3[] body = solid.Triangulate(tolerance);
 
             if (SurfacesTouch(region, body, tolerance))
             {
@@ -537,7 +537,7 @@ namespace GeometryHelper.SolidGeometry.Core
 
             // The body reaches the outer boundary somewhere. It only counts if it reaches material rather
             // than a hole, so the crossing points of the body edges against the face are checked.
-            foreach (GeoTriangle3 triangle in solid.Triangulate())
+            foreach (GeoTriangle3 triangle in solid.Triangulate(tolerance))
             {
                 for (int i = 0; i < 3; i++)
                 {

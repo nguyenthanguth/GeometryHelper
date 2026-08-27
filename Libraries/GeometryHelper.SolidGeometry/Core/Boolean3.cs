@@ -35,6 +35,13 @@ namespace GeometryHelper.SolidGeometry.Core
     /// an outcome rather than a failure, which is why it comes back as <c>false</c> with no result rather
     /// than as an exception or an empty body.
     /// </para>
+    /// <para>
+    /// An opening on either body is honoured. Its face planes join the knives, so no cell straddles its
+    /// wall, and the cells filling it are dropped as not being material. The result carries the cavity as
+    /// real geometry rather than as an opening of its own: the wall between a cell that was kept and one
+    /// that was dropped is traversed once, so it survives the gluing. Two bodies too far apart to meet are
+    /// the exception — nothing is cut there, and each keeps the openings it came with.
+    /// </para>
     /// </summary>
     public static class Boolean3
     {
@@ -66,11 +73,15 @@ namespace GeometryHelper.SolidGeometry.Core
 
             if (!first.GetAabb().CollidesWith(second.GetAabb(), tolerance))
             {
-                // Nothing to resolve: the two shells simply sit side by side.
+                // Nothing to resolve: the two shells simply sit side by side. Neither body reaches the
+                // other, so whatever each has carved out of itself is still carved out of the pair.
                 List<GeoFace3> apart = new List<GeoFace3>(first.Faces);
                 apart.AddRange(second.Faces);
 
-                result = new GeoSolid3(apart);
+                List<GeoSolid3> carved = new List<GeoSolid3>(first.Openings);
+                carved.AddRange(second.Openings);
+
+                result = new GeoSolid3(apart, carved);
                 return true;
             }
 
@@ -80,12 +91,9 @@ namespace GeometryHelper.SolidGeometry.Core
 
             // All of the first body, and only the part of the second that reaches beyond it: the shared
             // region belongs to the union once, and it is already carried by the first.
-            foreach (GeoSolid3 cell in SplitIntoCells(first, planes, tolerance))
-            {
-                kept.AddRange(cell.Faces);
-            }
+            kept.AddRange(FacesOfCells(SplitIntoCells(first, planes, tolerance), first, tolerance));
 
-            kept.AddRange(FacesOfCells(SplitIntoCells(second, planes, tolerance), first, false, tolerance));
+            kept.AddRange(FacesOfCells(SplitIntoCells(second, planes, tolerance), second, first, false, tolerance));
 
             return TryGlue(kept, tolerance, out result);
         }
@@ -115,7 +123,7 @@ namespace GeometryHelper.SolidGeometry.Core
 
             List<GeoPlane3> planes = SharedPlanes(first, second, tolerance);
 
-            List<GeoFace3> kept = FacesOfCells(SplitIntoCells(first, planes, tolerance), second, true, tolerance);
+            List<GeoFace3> kept = FacesOfCells(SplitIntoCells(first, planes, tolerance), first, second, true, tolerance);
 
             return TryGlue(kept, tolerance, out result);
         }
@@ -156,7 +164,7 @@ namespace GeometryHelper.SolidGeometry.Core
 
             List<GeoPlane3> planes = SharedPlanes(subject, tool, tolerance);
 
-            List<GeoFace3> kept = FacesOfCells(SplitIntoCells(subject, planes, tolerance), tool, false, tolerance);
+            List<GeoFace3> kept = FacesOfCells(SplitIntoCells(subject, planes, tolerance), subject, tool, false, tolerance);
 
             return TryGlue(kept, tolerance, out result);
         }
@@ -223,7 +231,10 @@ namespace GeometryHelper.SolidGeometry.Core
         /// </remarks>
         private static List<GeoSolid3> SplitIntoCells(GeoSolid3 subject, List<GeoPlane3> planes, Tolerance tolerance)
         {
-            List<GeoSolid3> cells = new List<GeoSolid3> { subject };
+            // The gross boundary, with whatever the body has carved out of it left behind. An opening is
+            // a region to be classified, not a property the pieces should inherit; the planes bounding it
+            // are among the knives, so the cells it covers come out separately and are dropped later.
+            List<GeoSolid3> cells = new List<GeoSolid3> { new GeoSolid3(subject.Faces) };
 
             foreach (GeoPlane3 plane in planes)
             {
@@ -249,19 +260,42 @@ namespace GeometryHelper.SolidGeometry.Core
         }
 
         /// <summary>
-        /// Collects the faces of the cells that lie on the wanted side of another body.
+        /// Collects the faces of every cell that is material of the body it came from.
         /// </summary>
         /// <param name="cells">The cells to sort.</param>
-        /// <param name="against">The body deciding inside from outside.</param>
-        /// <param name="wantInside">true to keep the cells within that body, false to keep those beyond it.</param>
+        /// <param name="owner">The body the cells were cut from.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 against, bool wantInside, Tolerance tolerance)
+        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, Tolerance tolerance)
         {
             List<GeoFace3> faces = new List<GeoFace3>();
 
             foreach (GeoSolid3 cell in cells)
             {
-                if (!TryGetInteriorPoint(cell, tolerance, out GeoPoint3 sample))
+                if (IsMaterial(cell, owner, tolerance, out _))
+                {
+                    faces.AddRange(cell.Faces);
+                }
+            }
+
+            return faces;
+        }
+
+        /// <summary>
+        /// Collects the faces of the cells that are material of their own body and lie on the wanted side
+        /// of another one.
+        /// </summary>
+        /// <param name="cells">The cells to sort.</param>
+        /// <param name="owner">The body the cells were cut from.</param>
+        /// <param name="against">The body deciding inside from outside.</param>
+        /// <param name="wantInside">true to keep the cells within that body, false to keep those beyond it.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance)
+        {
+            List<GeoFace3> faces = new List<GeoFace3>();
+
+            foreach (GeoSolid3 cell in cells)
+            {
+                if (!IsMaterial(cell, owner, tolerance, out GeoPoint3 sample))
                 {
                     continue;
                 }
@@ -275,6 +309,36 @@ namespace GeometryHelper.SolidGeometry.Core
             }
 
             return faces;
+        }
+
+        /// <summary>
+        /// Checks whether a cell holds material of the body it was cut from, and finds a point inside it.
+        /// </summary>
+        /// <remarks>
+        /// The cells come from the gross boundary, so one of them can be filling an opening. Every plane
+        /// bounding an opening is among the knives, so no cell straddles the wall of one and a single
+        /// sample settles the whole cell.
+        /// <para>
+        /// Dropping such a cell is what carves the opening into the result. The face between a cell that
+        /// is kept and one that is dropped is traversed once rather than twice, so it survives the gluing
+        /// and becomes the wall of the cavity — which is why the result needs no openings of its own.
+        /// </para>
+        /// </remarks>
+        private static bool IsMaterial(GeoSolid3 cell, GeoSolid3 owner, Tolerance tolerance, out GeoPoint3 sample)
+        {
+            if (!TryGetInteriorPoint(cell, tolerance, out sample))
+            {
+                return false;
+            }
+
+            // Every cell was cut from the body, so with nothing carved out of it there is no way for one
+            // to be anything but material, and the test is skipped rather than paid for.
+            if (owner.Openings.Count == 0)
+            {
+                return true;
+            }
+
+            return Containment3.Locate(owner, sample, tolerance) == PointLocation.Inside;
         }
 
         /// <summary>
@@ -305,7 +369,7 @@ namespace GeometryHelper.SolidGeometry.Core
                 return false;
             }
 
-            GeoTriangle3[] mesh = solid.Triangulate();
+            GeoTriangle3[] mesh = solid.Triangulate(tolerance);
 
             for (double fraction = 1E-2; fraction >= 1E-5; fraction *= 0.1)
             {

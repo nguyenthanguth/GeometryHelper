@@ -85,16 +85,35 @@ namespace GeometryHelper.SolidGeometry.Spatial
         }
 
         /// <summary>
-        /// Builds a hierarchy over the surface of a solid.
+        /// Builds a hierarchy over the surface of a solid, using the default tolerance.
         /// </summary>
-        public static GeoBvh3 FromSolid(GeoSolid3 solid)
+        public static GeoBvh3 FromSolid(GeoSolid3 solid) => FromSolid(solid, Tolerance.Global);
+
+        /// <summary>
+        /// Builds a hierarchy over the surface of a solid, within a tolerance.
+        /// </summary>
+        /// <param name="solid">The body whose surface is indexed.</param>
+        /// <param name="tolerance">The tolerance the surface is meshed with.</param>
+        /// <remarks>
+        /// The index is built over <see cref="GeoSolid3.Triangulate(Tolerance)"/>, so it follows the
+        /// material of every face: a ray fired through the notch of a concave body or through a hole in a
+        /// plate passes clean through, and the nearest point on the surface is a point that is really on
+        /// it.
+        /// <para>
+        /// A tree is worth building once and keeping. Nothing about it depends on what is asked of it, so
+        /// a body that is queried repeatedly — clash detection over a model — should be indexed once
+        /// rather than through the convenience paths in <c>Collision3</c> and <c>Distance3</c>, which
+        /// build a tree per call.
+        /// </para>
+        /// </remarks>
+        public static GeoBvh3 FromSolid(GeoSolid3 solid, Tolerance tolerance)
         {
             if (solid == null)
             {
                 throw new ArgumentNullException(nameof(solid));
             }
 
-            return new GeoBvh3(solid.Triangulate());
+            return new GeoBvh3(solid.Triangulate(tolerance));
         }
 
         /// <summary>
