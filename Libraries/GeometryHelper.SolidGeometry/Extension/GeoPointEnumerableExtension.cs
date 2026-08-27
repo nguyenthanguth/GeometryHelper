@@ -8,7 +8,7 @@ namespace GeometryHelper.SolidGeometry.Extension
     /// <summary>
     /// Provides extension methods over collections of 3D points.
     /// </summary>
-    public static class EnumerableExtension
+    public static class GeoPointEnumerableExtension
     {
         /// <summary>
         /// Builds the open chain of line segments running through the points, one segment per consecutive pair.
