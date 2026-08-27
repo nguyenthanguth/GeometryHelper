@@ -2,9 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Deterministic>true</Deterministic>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 
     <!-- 1. Configure NuGet Package generation and XML Documentation -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -12,17 +9,9 @@
         
     <!-- 2. NuGet Package Metadata Info -->
     <PackageId>GeometryHelper.ArrangeAlgorithms</PackageId>
-    <Version>3.0.2</Version>
-    <Authors>Nguyen Thang</Authors>
-    <Company>Nguyen Thang</Company>
     <Description>A 2D label placement library for engineering drawings that automatically arranges labels to prevent overlaps with each other and blocked regions. Features 5 layout algorithms: Greedy, Bounded Backtracking, Simulated Annealing, Force-Directed, and Constraint Satisfaction. The geometry it works in comes from the GeometryHelper.PlaneGeometry package, which arrives as a dependency.</Description>
-    <PackageProjectUrl>https://github.com/nguyenthanguth/GeometryHelper</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/nguyenthanguth/GeometryHelper</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
-    <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
     <PackageTags>label-placement geometry cad autocad tekla algorithm greedy backtracking simulated-annealing force-directed csp</PackageTags>
     <PackageReleaseNotes>
 

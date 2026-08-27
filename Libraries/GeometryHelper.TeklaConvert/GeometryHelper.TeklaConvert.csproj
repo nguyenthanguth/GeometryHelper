@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Deterministic>true</Deterministic>
     <!-- The assembly attributes are generated from the package metadata below rather than written by
          hand, so the version lives in one place. The four geometry libraries still carry a hand-written
          Properties/AssemblyInfo.cs; this project has none, and generating is what keeps its identity
@@ -15,15 +13,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <PackageId>GeometryHelper.TeklaConvert</PackageId>
-    <Version>3.0.2</Version>
-    <Authors>Nguyen Thang</Authors>
-    <Company>Nguyen Thang</Company>
     <Description>Converts geometry between Tekla Structures and GeometryHelper (GeometryHelper.CommonGeometry, GeometryHelper.PlaneGeometry, and GeometryHelper.SolidGeometry): points, vectors, segments, planes, coordinate systems, bounding boxes, transformation matrices, and the faces and loops of a Tekla solid.</Description>
-    <PackageProjectUrl>https://github.com/nguyenthanguth/GeometryHelper</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/nguyenthanguth/GeometryHelper</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
     <PackageTags>tekla bim geometry 3d solid interop conversion</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>

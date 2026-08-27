@@ -1,18 +1,12 @@
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-// General Information about an assembly is controlled through the following
-// set of attributes. Change these attribute values to modify the information
-// associated with an assembly.
-[assembly: AssemblyTitle("GeometryHelper.CommonGeometry")]
-[assembly: AssemblyDescription("Types shared by GeometryHelper.PlaneGeometry and GeometryHelper.SolidGeometry: tolerance, angle, and the enumerations that describe where a point sits.")]
-[assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Nguyen Thang")]
-[assembly: AssemblyProduct("GeometryHelper.CommonGeometry")]
-[assembly: AssemblyCopyright("Copyright © Nguyen Thang 2026")]
-[assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]
+// The SDK generates the assembly identity attributes — title, description, company, product, copyright
+// and the three version attributes — from the MSBuild properties in the project file and in
+// Directory.Build.props at the root of the repository. Declaring them here as well would be a second
+// copy to keep in step, and the compiler would reject the duplicates outright.
+//
+// What is left is what the SDK does not generate.
 
 // Setting ComVisible to false makes the types in this assembly not visible
 // to COM components.  If you need to access a type in this assembly from
@@ -22,21 +16,11 @@ using System.Runtime.InteropServices;
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("6b1d9e04-9f8a-4c1e-93d5-2f7a0c58b311")]
 
-// Tolerance.EqualAngleSin is the sine of EqualAngleRad, precomputed once so that parallelism and
-// intersection tests can compare against it without calling Math.Sin on every comparison. It is
-// derived data rather than a threshold the caller sets, so it stays internal instead of becoming
-// public API that has to be kept compatible forever. The two geometry libraries built on this one
-// need to read it, which is what these declarations grant.
+// Tolerance caches the sine of its angular threshold so that the parallelism and intersection tests can
+// compare against it without calling Math.Sin on every comparison. It is derived data rather than a
+// threshold the caller sets, so it stays internal instead of becoming public API that has to be kept
+// compatible forever. The two geometry libraries built on this one need to read it, which is what these
+// declarations grant.
 [assembly: InternalsVisibleTo("GeometryHelper.PlaneGeometry")]
 [assembly: InternalsVisibleTo("GeometryHelper.SolidGeometry")]
 [assembly: InternalsVisibleTo("GeometryHelper.CommonGeometry.UnitTest")]
-
-// Version information for an assembly consists of the following four values:
-//
-//      Major Version
-//      Minor Version
-//      Build Number
-//      Revision
-//
-[assembly: AssemblyVersion("3.0.2.0")]
-[assembly: AssemblyFileVersion("3.0.2.0")]

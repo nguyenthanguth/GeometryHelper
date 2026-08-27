@@ -1,0 +1,41 @@
+<Project>
+
+  <!--
+    One place for the things every project in this repository agrees on.
+
+    The four published packages are released as one set, so the version belongs here rather than in each
+    project file. It used to be written in three places per project — <Version> in the .csproj and
+    AssemblyVersion / AssemblyFileVersion in Properties/AssemblyInfo.cs — which meant sixteen literals to
+    keep in step by hand and no way for the build to notice when one of them drifted.
+
+    The assembly attributes are generated from these properties now, so AssemblyInfo.cs carries only what
+    the SDK does not generate: the COM visibility flag and the type library GUID.
+  -->
+
+  <PropertyGroup>
+    <GeometryHelperVersion>3.0.2</GeometryHelperVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Version>$(GeometryHelperVersion)</Version>
+    <AssemblyVersion>$(GeometryHelperVersion).0</AssemblyVersion>
+    <FileVersion>$(GeometryHelperVersion).0</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <!-- Shared package identity. Anything specific to one package stays in its own project file. -->
+  <PropertyGroup>
+    <Authors>Nguyen Thang</Authors>
+    <Company>Nguyen Thang</Company>
+    <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
+    <PackageProjectUrl>https://github.com/nguyenthanguth/GeometryHelper</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nguyenthanguth/GeometryHelper</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+</Project>

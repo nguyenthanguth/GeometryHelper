@@ -2,9 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Deterministic>true</Deterministic>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 
     <!-- 1. Configure NuGet Package generation and XML Documentation -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -12,17 +9,9 @@
 
     <!-- 2. NuGet Package Metadata Info -->
     <PackageId>GeometryHelper.CommonGeometry</PackageId>
-    <Version>3.0.2</Version>
-    <Authors>Nguyen Thang</Authors>
-    <Company>Nguyen Thang</Company>
     <Description>Types shared by the GeometryHelper.PlaneGeometry and GeometryHelper.SolidGeometry libraries: a Tolerance carrying the thresholds every geometric comparison is measured against, an Angle that names its own unit, and the enumerations describing where a point sits relative to a shape or a plane. Referenced by both libraries so that a program using them together sees one Tolerance and one Angle rather than two of each.</Description>
-    <PackageProjectUrl>https://github.com/nguyenthanguth/GeometryHelper</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/nguyenthanguth/GeometryHelper</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
-    <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
     <PackageTags>geometry tolerance angle cad bim shared</PackageTags>
     <PackageReleaseNotes>
 
