@@ -15,6 +15,16 @@ namespace GeometryHelper.CommonGeometry.Extension
         /// </summary>
         public static TSource MaxBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> selector, IComparer<TKey> comparer = null)
         {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (selector == null)
+            {
+                throw new ArgumentNullException(nameof(selector));
+            }
+
             comparer = comparer ?? Comparer<TKey>.Default;
             using IEnumerator<TSource> enumerator = source.GetEnumerator();
             if (!enumerator.MoveNext())
@@ -43,6 +53,16 @@ namespace GeometryHelper.CommonGeometry.Extension
         /// </summary>
         public static TSource MinBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> selector, IComparer<TKey> comparer = null)
         {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (selector == null)
+            {
+                throw new ArgumentNullException(nameof(selector));
+            }
+
             comparer = comparer ?? Comparer<TKey>.Default;
             using IEnumerator<TSource> enumerator = source.GetEnumerator();
             if (!enumerator.MoveNext())

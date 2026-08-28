@@ -262,17 +262,18 @@ namespace GeometryHelper.SolidGeometry.Geometry
         /// </summary>
         public double GetSignedVolume()
         {
+            GeoPoint3 apex = GetReferencePoint();
             double total = 0.0;
 
             foreach (GeoFace3 face in _faces)
             {
-                total += SumTetrahedra(face.Triangulate());
+                total += SumTetrahedra(face.Triangulate(), apex);
 
                 // A hole in a face is material that is not there, so its contribution is removed. The
                 // holes are wound the same way as the boundary, so subtracting is what reverses them.
                 foreach (GeoPolygon3 hole in face.Holes)
                 {
-                    total -= SumTetrahedra(hole.Triangulate());
+                    total -= SumTetrahedra(hole.Triangulate(), apex);
                 }
             }
 
@@ -280,17 +281,30 @@ namespace GeometryHelper.SolidGeometry.Geometry
         }
 
         /// <summary>
-        /// Sums the signed volumes of the tetrahedra spanning the world origin and each triangle.
+        /// Gets a point on the body for the tetrahedra to be measured from.
         /// </summary>
-        private static double SumTetrahedra(GeoTriangle3[] triangles)
+        /// <remarks>
+        /// The sum works out the same wherever the apex is put, because the parts of each tetrahedron
+        /// reaching outside the body cancel. That is true of the arithmetic, not of the floating point:
+        /// a body a kilometre from the origin measured against the origin builds tetrahedra of about
+        /// 1e18 that have to cancel down to a volume of about 100, and around three per cent of the
+        /// answer is lost in the cancelling. Measuring from a corner of the body instead keeps every
+        /// tetrahedron the size of the body itself, and there is nothing left to cancel away.
+        /// </remarks>
+        private GeoPoint3 GetReferencePoint() => _faces[0].Boundary[0];
+
+        /// <summary>
+        /// Sums the signed volumes of the tetrahedra spanning a given apex and each triangle.
+        /// </summary>
+        private static double SumTetrahedra(GeoTriangle3[] triangles, GeoPoint3 apex)
         {
             double total = 0.0;
 
             foreach (GeoTriangle3 triangle in triangles)
             {
-                GeoVector3 a = triangle.A.ToVector();
-                GeoVector3 b = triangle.B.ToVector();
-                GeoVector3 c = triangle.C.ToVector();
+                GeoVector3 a = apex.GetVectorTo(triangle.A);
+                GeoVector3 b = apex.GetVectorTo(triangle.B);
+                GeoVector3 c = apex.GetVectorTo(triangle.C);
 
                 total += a.TripleProduct(b, c) / 6.0;
             }
@@ -312,6 +326,11 @@ namespace GeometryHelper.SolidGeometry.Geometry
         {
             get
             {
+                // Measured from a corner of the body rather than from the world origin, for the reason
+                // GetReferencePoint gives: far from the origin the sum otherwise cancels away its own
+                // accuracy. The offset is added back at the end.
+                GeoPoint3 apex = GetReferencePoint();
+
                 double totalVolume = 0.0;
                 double x = 0.0;
                 double y = 0.0;
@@ -321,14 +340,15 @@ namespace GeometryHelper.SolidGeometry.Geometry
                 {
                     foreach (GeoTriangle3 triangle in face.Triangulate())
                     {
-                        GeoVector3 a = triangle.A.ToVector();
-                        GeoVector3 b = triangle.B.ToVector();
-                        GeoVector3 c = triangle.C.ToVector();
+                        GeoVector3 a = apex.GetVectorTo(triangle.A);
+                        GeoVector3 b = apex.GetVectorTo(triangle.B);
+                        GeoVector3 c = apex.GetVectorTo(triangle.C);
 
                         double volume = a.TripleProduct(b, c) / 6.0;
 
-                        // The fourth vertex of each tetrahedron is the world origin, so it adds nothing to
-                        // the sum and the centroid is a quarter of the way along the other three.
+                        // The fourth vertex of each tetrahedron is the apex, which sits at the origin of
+                        // these vectors, so it adds nothing and the centroid is a quarter of the way
+                        // along the other three.
                         totalVolume += volume;
                         x += volume * (a.X + b.X + c.X) * 0.25;
                         y += volume * (a.Y + b.Y + c.Y) * 0.25;
@@ -348,7 +368,7 @@ namespace GeometryHelper.SolidGeometry.Geometry
                     return GetVertexAverage();
                 }
 
-                return new GeoPoint3(x / totalVolume, y / totalVolume, z / totalVolume);
+                return apex.Add(new GeoVector3(x / totalVolume, y / totalVolume, z / totalVolume));
             }
         }
 
