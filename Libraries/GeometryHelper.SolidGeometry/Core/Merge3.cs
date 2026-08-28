@@ -294,6 +294,14 @@ namespace GeometryHelper.SolidGeometry.Core
         /// <summary>
         /// Keeps attaching unused pieces to the end of a chain for as long as any of them fits.
         /// </summary>
+        /// <remarks>
+        /// A chain that has come back to where it started is finished, and growing it further is not
+        /// merely unnecessary but wrong. Several pieces can meet at one point — two outlines touching at
+        /// a corner, a vertex where four edges arrive — and carrying on there welds the next loop onto
+        /// this one. The result is a single figure-of-eight whose two lobes run opposite ways, so its
+        /// area is their difference rather than their sum, and a surface merged from it reports a size it
+        /// does not have.
+        /// </remarks>
         private static void ExtendForwards(List<GeoPolyline3> pieces, bool[] used, List<GeoPoint3> chain, Tolerance tolerance)
         {
             bool grew = true;
@@ -302,6 +310,13 @@ namespace GeometryHelper.SolidGeometry.Core
             {
                 grew = false;
                 GeoPoint3 tail = chain[chain.Count - 1];
+
+                // Two points cannot enclose anything, so a chain that short meeting its own start is a
+                // piece doubling back rather than a loop that has closed.
+                if (chain.Count > 2 && tail.IsEqualTo(chain[0], tolerance))
+                {
+                    return;
+                }
 
                 for (int i = 0; i < pieces.Count; i++)
                 {
@@ -476,7 +491,7 @@ namespace GeometryHelper.SolidGeometry.Core
                 return group;
             }
 
-            if (!LoopAssembly.TryChainLoops(edges, tolerance, out List<List<GeoPoint3>> loops))
+            if (!LoopAssembly.TryChainLoops(edges, plane.Normal, tolerance, out List<List<GeoPoint3>> loops))
             {
                 return group;
             }

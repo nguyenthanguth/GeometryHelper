@@ -512,8 +512,10 @@ namespace GeometryHelper.SolidGeometry.Core
             {
                 // A face lying entirely in the cutting plane belongs to neither side; hand it back on both
                 // so the caller still has it, and so a solid split can tell that case apart.
-                above = anyAbove || (!anyAbove && !anyBelow) ? whole : none;
-                below = anyBelow || (!anyAbove && !anyBelow) ? whole : none;
+                // Reaching here means at least one side is empty, so "on this side or on neither" is just
+                // "not only on the other side".
+                above = !anyBelow ? whole : none;
+                below = !anyAbove ? whole : none;
                 return false;
             }
 
@@ -591,6 +593,7 @@ namespace GeometryHelper.SolidGeometry.Core
             foreach (IReadOnlyList<GeoPoint3> source in LoopAssembly.EnumerateMaterialRings(face))
             {
                 BuildCutRing(source, cutter, tolerance, out List<GeoPoint3> points, out List<int> sides);
+                ResolveTouches(sides, wantedSide);
                 ringPoints.Add(points);
                 ringSides.Add(sides);
             }
@@ -680,7 +683,11 @@ namespace GeometryHelper.SolidGeometry.Core
 
             HashSet<long> consumed = new HashSet<long>();
 
-            foreach (long seed in runs.Keys)
+            // The crossings are already in order along the cut line, and walking the runs in that order
+            // rather than in whatever order the dictionary hands them back keeps the pieces reproducible.
+            // A dictionary makes no promise about the order it enumerates in, and the shape of the answer
+            // should not rest on one.
+            foreach (long seed in crossings)
             {
                 if (consumed.Contains(seed))
                 {
@@ -715,7 +722,11 @@ namespace GeometryHelper.SolidGeometry.Core
                     cursor = next;
                 }
 
-                if (closed || loop.Count >= 3)
+                // Only a loop that came back to where it started bounds a piece. A walk that ran out of
+                // chain describes nothing, and taking it anyway would hand back a piece whose outline is
+                // open — which reads as plausible geometry and is not. Dropping it costs the caller a
+                // false from the split, which hands the subject back whole.
+                if (closed)
                 {
                     loops.Add(loop);
                 }
@@ -804,6 +815,123 @@ namespace GeometryHelper.SolidGeometry.Core
                     points.Add(hit);
                     sides.Add(0);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Tells apart the vertices on the cutting plane that the ring really crosses at from those it
+        /// only touches, and reclassifies the ones that are not crossings.
+        /// </summary>
+        /// <remarks>
+        /// A vertex sitting on the plane does not by itself mean the boundary passes through to the other
+        /// side. It may only have come down to the plane and gone back the way it came — the tip of a
+        /// notch resting exactly on the cut, a corner grazing it. Reading such a vertex as a crossing
+        /// costs more than an extra entry in the list: the crossings are paired off in order along the cut
+        /// line on the understanding that they alternate entering and leaving the material, so one touch
+        /// makes the count odd and leaves the last crossing without a partner, and two of them pair a
+        /// touch with a real crossing. Either way the walk that follows runs off the end of a chain, and
+        /// the pieces come back overlapping — a body cut that way gains volume out of nothing while both
+        /// halves still report themselves closed.
+        /// <para>
+        /// What settles it is the side the ring is on before reaching the plane against the side it is on
+        /// after leaving: the same side means a touch, opposite sides mean a crossing. A run of vertices
+        /// on the plane — an edge lying along the cut rather than a single corner — is judged as one unit
+        /// for the same reason, since the whole run is one visit to the plane.
+        /// </para>
+        /// <para>
+        /// Which end of such a run is the crossing depends on which side is being built, which is why this
+        /// is done once per side rather than once per face. Where a boundary edge lies along the cut, the
+        /// two halves meet the plane over different stretches of it: cutting an L along the plane of its
+        /// own notch, the piece on one side reaches the far end of that edge while the piece on the other
+        /// stops at the near end. Picking one end for both would leave the other half with a spur of zero
+        /// width running out to a vertex that is not on it.
+        /// </para>
+        /// </remarks>
+        /// <param name="sides">The side of each ring entry; anything that is not a crossing is rewritten in place.</param>
+        /// <param name="wantedSide">The side the piece being built lies on.</param>
+        private static void ResolveTouches(List<int> sides, int wantedSide)
+        {
+            int count = sides.Count;
+            int start = -1;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (sides[i] != 0)
+                {
+                    start = i;
+                    break;
+                }
+            }
+
+            // A ring lying wholly in the cutting plane has no side to be on, so there is no touch to tell
+            // from a crossing and nothing here can improve on leaving it alone.
+            if (start < 0)
+            {
+                return;
+            }
+
+            int offset = 0;
+
+            while (offset < count)
+            {
+                if (sides[(start + offset) % count] != 0)
+                {
+                    offset++;
+                    continue;
+                }
+
+                // The run of entries on the plane that begins here. It cannot swallow the whole ring,
+                // because the walk started from an entry that is not on the plane.
+                int length = 0;
+                while (sides[(start + offset + length) % count] == 0)
+                {
+                    length++;
+                }
+
+                int before = sides[(start + offset - 1 + count) % count];
+                int after = sides[(start + offset + length) % count];
+
+                if (before == after && wantedSide == before && length > 1)
+                {
+                    // The ring came to the plane, ran along it, and went back the way it came. The stretch
+                    // it ran is a piece of boundary lying on the cut, so for the side it belongs to both
+                    // of its ends bound the piece and the vertices between them are ordinary corners.
+                    // This is the rim of a hole meeting the cut, and an outer edge lying along it.
+                    for (int k = 1; k < length - 1; k++)
+                    {
+                        sides[(start + offset + k) % count] = before;
+                    }
+                }
+                else if (before == after)
+                {
+                    // Either a touch at a single vertex, which separates nothing, or a stretch belonging
+                    // to the other side. Neither bounds the piece being built, so no crossing is recorded
+                    // and every entry takes the side the ring was on throughout.
+                    for (int k = 0; k < length; k++)
+                    {
+                        sides[(start + offset + k) % count] = before;
+                    }
+                }
+                else if (wantedSide == after)
+                {
+                    // A crossing, and the piece being built lies beyond the run. It therefore begins where
+                    // the run ends, and the rest of the run is boundary belonging to the other side.
+                    for (int k = 0; k < length - 1; k++)
+                    {
+                        sides[(start + offset + k) % count] = before;
+                    }
+                }
+                else
+                {
+                    // A crossing, and the piece being built lies before the run. It therefore ends where
+                    // the run begins.
+                    for (int k = 1; k < length; k++)
+                    {
+                        sides[(start + offset + k) % count] = after;
+                    }
+                }
+
+                offset += length;
             }
         }
 
@@ -1013,21 +1141,11 @@ namespace GeometryHelper.SolidGeometry.Core
                 return false;
             }
 
-            List<List<GeoPoint3>> loops = new List<List<GeoPoint3>>();
-
-            foreach (GeoPolyline3 chain in Merge3.Join(edges, tolerance))
+            // The cap is traced in the cutting plane, and it must be traced the way the finished cap will
+            // face, or a vertex where several rim edges meet would send the walk onto the wrong outline.
+            if (!LoopAssembly.TryChainLoops(edges, outward, tolerance, out List<List<GeoPoint3>> loops))
             {
-                if (!chain.StartPoint.IsEqualTo(chain.EndPoint, tolerance))
-                {
-                    // An open chain means the surface did not close, so the section cannot be trusted.
-                    return false;
-                }
-
-                loops.Add(new List<GeoPoint3>(chain.Vertices));
-            }
-
-            if (loops.Count == 0)
-            {
+                // An open chain means the surface did not close, so the section cannot be trusted.
                 return false;
             }
 
@@ -1110,6 +1228,129 @@ namespace GeometryHelper.SolidGeometry.Core
             List<double> cuts = CollectSurfaceCrossings(subject, cutter, 0.0, tolerance);
 
             return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => Containment3.Contains(cutter, point, tolerance), out inside, out outside);
+        }
+
+        /// <summary>
+        /// Splits a polyline by several solids at once, using the default tolerance.
+        /// </summary>
+        public static bool TrySplitBy(GeoPolyline3 subject, GeoSolid3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+        {
+            return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Splits a polyline by several solids at once, within a tolerance.
+        /// </summary>
+        /// <param name="subject">The chain to cut.</param>
+        /// <param name="cutters">The bodies to cut it by; null entries are skipped.</param>
+        /// <param name="inside">The pieces lying within at least one of the bodies.</param>
+        /// <param name="outside">The pieces lying beyond all of them.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>false when the chain crosses no surface, so there was nothing to cut.</returns>
+        /// <remarks>
+        /// The bodies act as their union: a stretch counts as inside when any one of them holds it. That
+        /// is what separates this from cutting by each in turn, where the pieces of the first cut would
+        /// have to be sorted again against the second and the runs joined back up by hand.
+        /// <para>
+        /// Because the union is what is being asked about, two bodies that overlap do not each claim their
+        /// own piece of the answer, and two that meet face to face do not leave a cut between them: the
+        /// stretch running through both comes back as one piece, since a cut that separates nothing is not
+        /// a cut. An empty array is the degenerate case of the same rule — nothing holds anything, so the
+        /// whole chain is outside.
+        /// </para>
+        /// <para>
+        /// Every body is assumed closed, as <c>Containment3.Locate</c> assumes it. That is not checked
+        /// here, because checking costs a pass over every edge of every body on every call; ask
+        /// <see cref="GeoSolid3.IsClosed()"/> once instead.
+        /// </para>
+        /// </remarks>
+        public static bool TrySplitBy(GeoPolyline3 subject, GeoSolid3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance)
+        {
+            if (subject == null)
+            {
+                throw new ArgumentNullException(nameof(subject));
+            }
+
+            if (cutters == null)
+            {
+                throw new ArgumentNullException(nameof(cutters));
+            }
+
+            // The crossings of every body go into one list. Sorting them and dropping those too close
+            // together is what SplitAtDistances already does, so nothing here has to care that they
+            // arrive out of order or that two bodies meeting on a face cross the chain at the same place.
+            List<double> cuts = new List<double>();
+
+            foreach (GeoSolid3 cutter in cutters)
+            {
+                if (cutter != null)
+                {
+                    cuts.AddRange(CollectSurfaceCrossings(subject, cutter, tolerance));
+                }
+            }
+
+            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => IsInsideAny(cutters, point, tolerance), out inside, out outside);
+        }
+
+        /// <summary>
+        /// Splits a line segment by several solids at once, using the default tolerance.
+        /// </summary>
+        public static bool TrySplitBy(GeoLine3 subject, GeoSolid3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside)
+        {
+            return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Splits a line segment by several solids at once, within a tolerance.
+        /// </summary>
+        /// <param name="subject">The segment to cut.</param>
+        /// <param name="cutters">The bodies to cut it by; null entries are skipped.</param>
+        /// <param name="inside">The pieces lying within at least one of the bodies.</param>
+        /// <param name="outside">The pieces lying beyond all of them.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>false when the segment crosses no surface, so there was nothing to cut.</returns>
+        /// <remarks>
+        /// The bodies act as their union, exactly as in the polyline overload above.
+        /// </remarks>
+        public static bool TrySplitBy(GeoLine3 subject, GeoSolid3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance)
+        {
+            if (cutters == null)
+            {
+                throw new ArgumentNullException(nameof(cutters));
+            }
+
+            List<double> cuts = new List<double>();
+
+            foreach (GeoSolid3 cutter in cutters)
+            {
+                if (cutter != null)
+                {
+                    cuts.AddRange(CollectSurfaceCrossings(subject, cutter, 0.0, tolerance));
+                }
+            }
+
+            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => IsInsideAny(cutters, point, tolerance), out inside, out outside);
+        }
+
+        /// <summary>
+        /// Checks whether any of the bodies holds a point.
+        /// </summary>
+        /// <remarks>
+        /// Several cutters together behave as their union, which is why the search stops at the first body
+        /// that holds the point. Null entries are skipped rather than refused, so a caller can pass a
+        /// sparse array without filtering it first.
+        /// </remarks>
+        private static bool IsInsideAny(GeoSolid3[] cutters, GeoPoint3 point, Tolerance tolerance)
+        {
+            foreach (GeoSolid3 cutter in cutters)
+            {
+                if (cutter != null && Containment3.Contains(cutter, point, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -1237,6 +1478,222 @@ namespace GeometryHelper.SolidGeometry.Core
             }
 
             return TrySplitBy(subject, cutter.ToObb(), out inside, out outside, tolerance);
+        }
+
+        /// <summary>
+        /// Splits a polyline by several oriented boxes at once, using the default tolerance.
+        /// </summary>
+        public static bool TrySplitBy(GeoPolyline3 subject, GeoObb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+        {
+            return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Splits a polyline by several oriented boxes at once, within a tolerance.
+        /// </summary>
+        /// <param name="subject">The chain to cut.</param>
+        /// <param name="cutters">The boxes to cut it by; null entries are skipped.</param>
+        /// <param name="inside">The pieces lying within at least one of the boxes.</param>
+        /// <param name="outside">The pieces lying beyond all of them.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>false when the chain crosses no box, so there was nothing to cut.</returns>
+        /// <remarks>
+        /// The boxes act as their union, exactly as several solids do, and for the same reason: cutting by
+        /// each in turn would leave the caller to sort the pieces of the first cut against the second and
+        /// to join the runs back up by hand.
+        /// <para>
+        /// A box is far cheaper to cross-check than a solid, because the crossings come from the slab test
+        /// rather than from walking a surface, so no mesh is built or traversed here.
+        /// </para>
+        /// </remarks>
+        public static bool TrySplitBy(GeoPolyline3 subject, GeoObb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance)
+        {
+            if (subject == null)
+            {
+                throw new ArgumentNullException(nameof(subject));
+            }
+
+            if (cutters == null)
+            {
+                throw new ArgumentNullException(nameof(cutters));
+            }
+
+            List<double> cuts = new List<double>();
+            double travelled = 0.0;
+
+            // The distance along the chain is what the cuts are expressed in, so the walk over the edges
+            // stays outermost and every box is asked about the edge the walk is currently on.
+            for (int i = 0; i < subject.EdgeCount; i++)
+            {
+                GeoLine3 edge = subject.GetEdgeAt(i);
+
+                foreach (GeoObb3 cutter in cutters)
+                {
+                    if (cutter == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (GeoPoint3 hit in Intersection3.GetIntersections(edge, cutter, tolerance))
+                    {
+                        cuts.Add(travelled + Parametrization3.GetDistanceAtPoint(edge, hit));
+                    }
+                }
+
+                travelled += edge.Length;
+            }
+
+            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => IsInsideAny(cutters, point, tolerance), out inside, out outside);
+        }
+
+        /// <summary>
+        /// Splits a line segment by several oriented boxes at once, using the default tolerance.
+        /// </summary>
+        public static bool TrySplitBy(GeoLine3 subject, GeoObb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside)
+        {
+            return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Splits a line segment by several oriented boxes at once, within a tolerance.
+        /// </summary>
+        /// <param name="subject">The segment to cut.</param>
+        /// <param name="cutters">The boxes to cut it by; null entries are skipped.</param>
+        /// <param name="inside">The pieces lying within at least one of the boxes.</param>
+        /// <param name="outside">The pieces lying beyond all of them.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>false when the segment crosses no box, so there was nothing to cut.</returns>
+        /// <remarks>
+        /// The boxes act as their union, exactly as in the polyline overload above.
+        /// </remarks>
+        public static bool TrySplitBy(GeoLine3 subject, GeoObb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance)
+        {
+            if (cutters == null)
+            {
+                throw new ArgumentNullException(nameof(cutters));
+            }
+
+            List<double> cuts = new List<double>();
+
+            foreach (GeoObb3 cutter in cutters)
+            {
+                if (cutter == null)
+                {
+                    continue;
+                }
+
+                foreach (GeoPoint3 hit in Intersection3.GetIntersections(subject, cutter, tolerance))
+                {
+                    cuts.Add(Parametrization3.GetDistanceAtPoint(subject, hit));
+                }
+            }
+
+            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => IsInsideAny(cutters, point, tolerance), out inside, out outside);
+        }
+
+        /// <summary>
+        /// Splits a polyline by several axis-aligned boxes at once, using the default tolerance.
+        /// </summary>
+        public static bool TrySplitBy(GeoPolyline3 subject, GeoAabb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+        {
+            return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Splits a polyline by several axis-aligned boxes at once, within a tolerance.
+        /// </summary>
+        /// <param name="subject">The chain to cut.</param>
+        /// <param name="cutters">The boxes to cut it by; empty boxes are skipped.</param>
+        /// <param name="inside">The pieces lying within at least one of the boxes.</param>
+        /// <param name="outside">The pieces lying beyond all of them.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>false when the chain crosses no box, so there was nothing to cut.</returns>
+        /// <remarks>
+        /// The boxes act as their union, exactly as several solids do. An axis-aligned box is a value
+        /// rather than a reference, so there are no null entries to skip here; what takes their place is
+        /// the empty box, which holds nothing and so can be left out before the work starts.
+        /// </remarks>
+        public static bool TrySplitBy(GeoPolyline3 subject, GeoAabb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance)
+        {
+            if (subject == null)
+            {
+                throw new ArgumentNullException(nameof(subject));
+            }
+
+            return TrySplitBy(subject, ToBoxes(cutters), out inside, out outside, tolerance);
+        }
+
+        /// <summary>
+        /// Splits a line segment by several axis-aligned boxes at once, using the default tolerance.
+        /// </summary>
+        public static bool TrySplitBy(GeoLine3 subject, GeoAabb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside)
+        {
+            return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Splits a line segment by several axis-aligned boxes at once, within a tolerance.
+        /// </summary>
+        /// <param name="subject">The segment to cut.</param>
+        /// <param name="cutters">The boxes to cut it by; empty boxes are skipped.</param>
+        /// <param name="inside">The pieces lying within at least one of the boxes.</param>
+        /// <param name="outside">The pieces lying beyond all of them.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>false when the segment crosses no box, so there was nothing to cut.</returns>
+        /// <remarks>
+        /// The boxes act as their union, exactly as in the polyline overload above.
+        /// </remarks>
+        public static bool TrySplitBy(GeoLine3 subject, GeoAabb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance)
+        {
+            return TrySplitBy(subject, ToBoxes(cutters), out inside, out outside, tolerance);
+        }
+
+        /// <summary>
+        /// Turns a list of axis-aligned boxes into oriented ones, dropping those that hold nothing.
+        /// </summary>
+        /// <remarks>
+        /// An empty box has no corners to orient, so it cannot be carried over; leaving it out is the same
+        /// answer as carrying it, since it could never hold a point or be crossed.
+        /// </remarks>
+        private static GeoObb3[] ToBoxes(GeoAabb3[] cutters)
+        {
+            if (cutters == null)
+            {
+                throw new ArgumentNullException(nameof(cutters));
+            }
+
+            List<GeoObb3> boxes = new List<GeoObb3>(cutters.Length);
+
+            foreach (GeoAabb3 cutter in cutters)
+            {
+                if (!cutter.IsEmpty)
+                {
+                    boxes.Add(cutter.ToObb());
+                }
+            }
+
+            return boxes.ToArray();
+        }
+
+        /// <summary>
+        /// Checks whether any of the boxes holds a point.
+        /// </summary>
+        /// <remarks>
+        /// Several cutters together behave as their union, which is why the search stops at the first box
+        /// that holds the point. Null entries are skipped rather than refused, so a caller can pass a
+        /// sparse array without filtering it first.
+        /// </remarks>
+        private static bool IsInsideAny(GeoObb3[] cutters, GeoPoint3 point, Tolerance tolerance)
+        {
+            foreach (GeoObb3 cutter in cutters)
+            {
+                if (cutter != null && Containment3.Contains(cutter, point, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

@@ -282,6 +282,25 @@ back up, so what comes out is the longest run on each side rather than a chain c
 separate nothing — a chain running down the shaft of an opening meets the caps at each end without ever
 entering material, and that is not a cut.
 
+Several bodies can be given at once, and they behave as their **union**: a stretch is inside when any one
+of them holds it. Cutting by each in turn would not do the same thing, because the pieces of the first cut
+would have to be sorted again against the second and the runs joined back up by hand.
+
+```csharp
+var route = new GeoPolyline3(new GeoPoint3(-10, 5, 5), new GeoPoint3(60, 5, 5));
+
+route.TrySplitBy(new[] { beam, slab }, out GeoPolyline3[] embedded, out GeoPolyline3[] clear);
+// embedded holds the stretches buried in either body, clear the stretches in the open
+```
+
+Because it is the union being asked about, two bodies that overlap do not each claim their own piece of
+the answer, and two meeting face to face leave no cut between them — the run through both comes back
+whole. An empty array is the same rule at its limit: nothing holds anything, so the whole chain is clear.
+
+An array of `GeoObb3` or of `GeoAabb3` works the same way and is the cheaper form where the cutters really
+are boxes. A `GeoObb3` is a reference, so a null entry is skipped; a `GeoAabb3` is a value with no null to
+pass, and the entry left out there is the empty box, which could hold nothing anyway.
+
 Cutting by a **bounded region** cuts only where the subject really goes through it, which is what is wanted
 when the cutter stands for a physical plate rather than an endless surface:
 

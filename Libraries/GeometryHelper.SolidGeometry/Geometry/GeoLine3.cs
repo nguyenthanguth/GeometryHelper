@@ -353,6 +353,17 @@ namespace GeometryHelper.SolidGeometry.Geometry
         public bool TrySplitBy(GeoSolid3 cutter, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
 
         /// <summary>
+        /// Splits this segment by several solids taken together as their union, using the default
+        /// tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoSolid3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside) => Splition3.TrySplitBy(this, cutters, out inside, out outside);
+
+        /// <summary>
+        /// Splits this segment by several solids taken together as their union, within a tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoSolid3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
+
+        /// <summary>
         /// Splits this segment by an oriented box, using the default tolerance.
         /// </summary>
         public bool TrySplitBy(GeoObb3 cutter, out GeoLine3[] inside, out GeoLine3[] outside) => Splition3.TrySplitBy(this, cutter, out inside, out outside);
@@ -371,6 +382,30 @@ namespace GeometryHelper.SolidGeometry.Geometry
         /// Splits this segment by an axis-aligned box, within a tolerance.
         /// </summary>
         public bool TrySplitBy(GeoAabb3 cutter, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
+
+        /// <summary>
+        /// Splits this segment by several oriented boxes taken together as their union, using the default
+        /// tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoObb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside) => Splition3.TrySplitBy(this, cutters, out inside, out outside);
+
+        /// <summary>
+        /// Splits this segment by several oriented boxes taken together as their union, within a
+        /// tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoObb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
+
+        /// <summary>
+        /// Splits this segment by several axis-aligned boxes taken together as their union, using the
+        /// default tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoAabb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside) => Splition3.TrySplitBy(this, cutters, out inside, out outside);
+
+        /// <summary>
+        /// Splits this segment by several axis-aligned boxes taken together as their union, within a
+        /// tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoAabb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
 
         /// <summary>
         /// Splits this segment by a plane and sorts the pieces by side, using the default tolerance.

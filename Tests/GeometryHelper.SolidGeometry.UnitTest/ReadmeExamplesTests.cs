@@ -254,6 +254,39 @@ namespace GeometryHelper.SolidGeometry.UnitTest
         }
 
         [Fact]
+        public void CuttingACurveBySeveralBodiesAtOnce()
+        {
+            GeoSolid3 beam = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(10, 10, 10)).ToObb().ToSolid();
+            GeoSolid3 slab = new GeoAabb3(new GeoPoint3(20, 0, 0), new GeoPoint3(30, 10, 10)).ToObb().ToSolid();
+
+            var route = new GeoPolyline3(new GeoPoint3(-10, 5, 5), new GeoPoint3(60, 5, 5));
+
+            Assert.True(route.TrySplitBy(new[] { beam, slab }, out GeoPolyline3[] embedded, out GeoPolyline3[] clear));
+
+            Assert.Equal(2, embedded.Length);
+            Assert.Equal(3, clear.Length);
+
+            // The two bodies swallow ten units of the route each; the route itself is seventy long.
+            double buried = 0.0;
+            foreach (GeoPolyline3 piece in embedded) { buried += piece.Length; }
+            Assert.Equal(20.0, buried, 9);
+
+            // Two bodies meeting face to face leave no cut between them.
+            GeoSolid3 abutting = new GeoAabb3(new GeoPoint3(10, 0, 0), new GeoPoint3(25, 10, 10)).ToObb().ToSolid();
+
+            Assert.True(route.TrySplitBy(new[] { beam, abutting }, out GeoPolyline3[] joined, out _));
+
+            Assert.Single(joined);
+            Assert.Equal(25.0, joined[0].Length, 9);
+
+            // An empty array leaves the whole route clear.
+            Assert.False(route.TrySplitBy(new GeoSolid3[0], out GeoPolyline3[] none, out GeoPolyline3[] whole));
+
+            Assert.Empty(none);
+            Assert.Single(whole);
+        }
+
+        [Fact]
         public void ABoundedRegionCutsOnlyWhereItIsPiercedThrough()
         {
             var plate = new GeoPolygon3(

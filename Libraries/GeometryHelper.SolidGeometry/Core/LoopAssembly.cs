@@ -47,6 +47,7 @@ namespace GeometryHelper.SolidGeometry.Core
         /// Chains a set of directed edges into closed loops.
         /// </summary>
         /// <param name="edges">The edges; each is used once and each must have a neighbour at both ends.</param>
+        /// <param name="normal">The normal of the plane the edges lie in, which fixes what a left turn is.</param>
         /// <param name="tolerance">The tolerance deciding whether two endpoints are the same point.</param>
         /// <param name="loops">The closed loops the edges form.</param>
         /// <returns>false when any chain came back open, meaning the edges do not close.</returns>
@@ -54,22 +55,165 @@ namespace GeometryHelper.SolidGeometry.Core
         /// An open chain is a failure rather than a partial answer: a rim that does not close cannot be
         /// capped and a set of outlines that does not close is not a face, so guessing at either would
         /// produce geometry that looks right and is not.
+        /// <para>
+        /// More than two edges can meet at one point — two outlines touching at a corner, a vertex four
+        /// edges arrive at — and there the walk has a choice to make. Taking whichever edge comes first
+        /// welds the two outlines into a single figure of eight whose lobes run opposite ways, so its area
+        /// is their difference rather than their sum and the surface built from it reports a size it does
+        /// not have. The choice is settled by turning: of the edges leaving the vertex, the walk takes the
+        /// one reached first by rotating from the direction it arrived on, counter-clockwise about the
+        /// plane normal. Since every edge is directed so that the material lies to its left, that keeps
+        /// the walk on the outline it is already following and leaves the other to be traced on its own.
+        /// </para>
         /// </remarks>
-        internal static bool TryChainLoops(List<GeoLine3> edges, Tolerance tolerance, out List<List<GeoPoint3>> loops)
+        internal static bool TryChainLoops(List<GeoLine3> edges, GeoVector3 normal, Tolerance tolerance, out List<List<GeoPoint3>> loops)
         {
             loops = new List<List<GeoPoint3>>();
 
-            foreach (GeoPolyline3 chain in Merge3.Join(edges, tolerance))
+            int count = edges.Count;
+
+            if (count == 0)
             {
-                if (!chain.StartPoint.IsEqualTo(chain.EndPoint, tolerance))
+                return false;
+            }
+
+            // Endpoints are matched through a welder so that two edges meeting at a corner agree on which
+            // vertex it is, rather than being compared pair by pair.
+            VertexWelder welder = new VertexWelder(tolerance);
+            int[] from = new int[count];
+            int[] to = new int[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                from[i] = welder.GetIndex(edges[i].StartPoint);
+                to[i] = welder.GetIndex(edges[i].EndPoint);
+            }
+
+            Dictionary<int, List<int>> leaving = new Dictionary<int, List<int>>();
+
+            for (int i = 0; i < count; i++)
+            {
+                if (!leaving.TryGetValue(from[i], out List<int> list))
                 {
-                    return false;
+                    list = new List<int>();
+                    leaving[from[i]] = list;
                 }
 
-                loops.Add(new List<GeoPoint3>(chain.Vertices));
+                list.Add(i);
+            }
+
+            bool[] used = new bool[count];
+
+            for (int seed = 0; seed < count; seed++)
+            {
+                if (used[seed])
+                {
+                    continue;
+                }
+
+                List<GeoPoint3> loop = new List<GeoPoint3>();
+                int current = seed;
+                int start = from[seed];
+                used[seed] = true;
+
+                while (true)
+                {
+                    loop.Add(edges[current].StartPoint);
+
+                    int arrived = to[current];
+
+                    if (arrived == start)
+                    {
+                        break;
+                    }
+
+                    int next = PickNextEdge(edges, leaving, used, current, arrived, normal);
+
+                    if (next < 0)
+                    {
+                        // The walk ran out of edges before coming back, so these edges do not close.
+                        return false;
+                    }
+
+                    used[next] = true;
+                    current = next;
+                }
+
+                if (loop.Count >= 3)
+                {
+                    loops.Add(loop);
+                }
             }
 
             return loops.Count > 0;
+        }
+
+        /// <summary>
+        /// Chooses which edge the walk leaves a vertex on.
+        /// </summary>
+        /// <remarks>
+        /// Of the edges still unused that leave the vertex, the one taken is the first met when rotating
+        /// counter-clockwise about the plane normal from the direction the walk arrived on. An edge
+        /// carrying straight on is therefore preferred to any turn, and a turn back the way the walk came
+        /// is taken only when there is nothing else.
+        /// </remarks>
+        private static int PickNextEdge(List<GeoLine3> edges, Dictionary<int, List<int>> leaving, bool[] used, int current, int vertex, GeoVector3 normal)
+        {
+            if (!leaving.TryGetValue(vertex, out List<int> candidates))
+            {
+                return -1;
+            }
+
+            GeoVector3 arriving = edges[current].StartPoint.GetVectorTo(edges[current].EndPoint);
+
+            int best = -1;
+            double bestTurn = double.MaxValue;
+
+            foreach (int candidate in candidates)
+            {
+                if (used[candidate])
+                {
+                    continue;
+                }
+
+                GeoVector3 departing = edges[candidate].StartPoint.GetVectorTo(edges[candidate].EndPoint);
+                double turn = TurnAngle(arriving, departing, normal);
+
+                if (turn < bestTurn)
+                {
+                    bestTurn = turn;
+                    best = candidate;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Gets the angle turned counter-clockwise about a normal to get from one direction to another,
+        /// in the range [0, 2*PI).
+        /// </summary>
+        /// <remarks>
+        /// Atan2 of the cross and dot products is used rather than Acos, for the reason it is used
+        /// everywhere else here: it is stable where the two directions are nearly equal or nearly
+        /// opposite, which is exactly where the choice between two edges is decided. Neither argument
+        /// needs normalizing, since both scale together with the lengths.
+        /// </remarks>
+        private static double TurnAngle(GeoVector3 arriving, GeoVector3 departing, GeoVector3 normal)
+        {
+            double cross = arriving.CrossProduct(departing).DotProduct(normal);
+            double dot = arriving.DotProduct(departing);
+
+            double turn = Math.Atan2(cross, dot);
+
+            // Carrying straight on must read as no turn at all rather than as a full circle, and rounding
+            // can put it a hair on either side of zero.
+            if (turn < -1E-9)
+            {
+                return turn + 2.0 * Math.PI;
+            }
+
+            return turn < 0.0 ? 0.0 : turn;
         }
 
         /// <summary>
@@ -189,6 +333,56 @@ namespace GeometryHelper.SolidGeometry.Core
         }
 
         /// <summary>
+        /// Splits every edge wherever another edge ends partway along it, so that two faces meeting along
+        /// a stretch describe it with the same edges.
+        /// </summary>
+        /// <remarks>
+        /// Faces that share a stretch of boundary need not divide it the same way. One face may have been
+        /// cut in two along the way while its neighbour was left whole, and then one long edge faces two
+        /// short ones across the same line — a T-junction. Cancelling looks for a pair running the same
+        /// stretch in opposite directions and finds none, so all three survive and are read as boundary.
+        /// <para>
+        /// Cutting every edge at the ends of the others first removes the mismatch: after it, an interior
+        /// stretch is described identically from both sides and cancels as it should. Without it the
+        /// surviving edges chain into loops that look plausible and enclose the wrong area, which is how a
+        /// merged body ends up reporting a volume it does not have.
+        /// </para>
+        /// </remarks>
+        private static void SplitAtEdgeEnds(List<GeoLine3> edges, Tolerance tolerance)
+        {
+            List<GeoPoint3> ends = new List<GeoPoint3>(edges.Count * 2);
+
+            foreach (GeoLine3 edge in edges)
+            {
+                ends.Add(edge.StartPoint);
+                ends.Add(edge.EndPoint);
+            }
+
+            List<GeoLine3> resolved = new List<GeoLine3>(edges.Count);
+            List<double> cuts = new List<double>();
+
+            foreach (GeoLine3 edge in edges)
+            {
+                cuts.Clear();
+
+                foreach (GeoPoint3 end in ends)
+                {
+                    if (Containment3.IsPointOn(edge, end, tolerance))
+                    {
+                        cuts.Add(Parametrization3.GetDistanceAtPoint(edge, end));
+                    }
+                }
+
+                // The split drops positions at or beyond either end and merges those closer together than
+                // the tolerance, so an edge nothing lands inside comes back as itself.
+                resolved.AddRange(Splition3.SplitAtDistances(edge, cuts, tolerance));
+            }
+
+            edges.Clear();
+            edges.AddRange(resolved);
+        }
+
+        /// <summary>
         /// Removes pairs of edges that run the same stretch in opposite directions.
         /// </summary>
         /// <remarks>
@@ -196,9 +390,15 @@ namespace GeometryHelper.SolidGeometry.Core
         /// two faces that both stayed on this side share it, so each traverses it once and the two
         /// contributions cancel. Leaving them in would send the chaining off along an edge that is not part
         /// of the section.
+        /// <para>
+        /// The edges are first cut at one another's ends, so that a stretch two faces divided differently
+        /// still cancels. See <see cref="SplitAtEdgeEnds"/>.
+        /// </para>
         /// </remarks>
         internal static void CancelOpposedEdges(List<GeoLine3> edges, Tolerance tolerance)
         {
+            SplitAtEdgeEnds(edges, tolerance);
+
             bool[] dropped = new bool[edges.Count];
 
             for (int i = 0; i < edges.Count; i++)

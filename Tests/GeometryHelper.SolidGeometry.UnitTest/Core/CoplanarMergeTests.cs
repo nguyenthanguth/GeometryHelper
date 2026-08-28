@@ -119,12 +119,12 @@ namespace GeometryHelper.SolidGeometry.UnitTest.Core
         }
 
         [Fact]
-        public void ATJunctionOnlyStopsTheFacesItAffects()
+        public void ATJunctionDoesNotStopTheJoin()
         {
-            // One long strip against two short ones. The two short ones share a whole edge and join; the
-            // long edge below them matches neither of their bottom edges, so nothing cancels there and that
-            // last join does not happen. Merging under-joins rather than guessing, which keeps the area
-            // right and the geometry honest.
+            // One long strip against two short ones. The long edge below them matches neither of their
+            // bottom edges on its own — a T-junction — so cancelling opposed edges finds no partner for
+            // any of the three. Cutting every edge at the ends of the others first turns the long edge
+            // into two that do match, and the three faces join into the square they tile.
             GeoFace3 wide = new GeoFace3(new GeoPolygon3(
                 new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
                 new GeoPoint3(10, 5, 0), new GeoPoint3(0, 5, 0)));
@@ -139,6 +139,28 @@ namespace GeometryHelper.SolidGeometry.UnitTest.Core
 
             GeoFace3[] merged = Merge3.CoplanarFaces(new[] { wide, leftAbove, rightAbove });
 
+            Assert.Single(merged);
+            Assert.Empty(merged[0].Holes);
+            Assert.Equal(100.0, merged[0].Area, 6);
+        }
+
+        [Fact]
+        public void FacesTouchingAtOneCornerAreNotWeldedIntoOne()
+        {
+            // Two squares meeting at a single point. Four edges arrive at that corner, so the walk round
+            // the outlines has a choice to make there, and taking the wrong one would join the two into a
+            // single figure of eight whose lobes run opposite ways — an outline enclosing the difference
+            // of the two areas rather than the sum.
+            GeoFace3 lower = new GeoFace3(new GeoPolygon3(
+                new GeoPoint3(0, 0, 0), new GeoPoint3(2, 0, 0),
+                new GeoPoint3(2, 2, 0), new GeoPoint3(0, 2, 0)));
+
+            GeoFace3 upper = new GeoFace3(new GeoPolygon3(
+                new GeoPoint3(2, 2, 0), new GeoPoint3(4, 2, 0),
+                new GeoPoint3(4, 4, 0), new GeoPoint3(2, 4, 0)));
+
+            GeoFace3[] merged = Merge3.CoplanarFaces(new[] { lower, upper });
+
             Assert.Equal(2, merged.Length);
 
             double total = 0.0;
@@ -147,7 +169,7 @@ namespace GeometryHelper.SolidGeometry.UnitTest.Core
                 total += face.Area;
             }
 
-            Assert.Equal(100.0, total, 6);
+            Assert.Equal(8.0, total, 6);
         }
 
         [Fact]
