@@ -1,5 +1,6 @@
 # GeometryHelper.IfcConvert
 
+[![NuGet Version](https://img.shields.io/nuget/v/GeometryHelper.IfcConvert.svg?style=flat-square)](https://www.nuget.org/packages/GeometryHelper.IfcConvert/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](../../LICENSE)
 
 Converts geometry between IFC models (via xBIM) and GeometryHelper (`GeometryHelper.CommonGeometry`
@@ -16,6 +17,14 @@ computational geometry structures in `GeometryHelper`:
 - Automatically tessellates curved and non-planar faces into planar triangles, maintaining strict coplanarity compliance for `SolidGeometry`.
 - Preserves hierarchical coordinate placements across nested mapped items and product placements.
 - Provides thread-safe IFC store caching (`IfcStoreCache`) with GlobalId indexing.
+
+## Installation
+
+```bash
+dotnet add package GeometryHelper.IfcConvert
+```
+
+The package is **self-contained**: it bundles all required customized xBIM managed assemblies and the 64-bit native geometry engine (`Xbim.Geometry.Engine64.dll`). Targets Windows x64.
 
 ## How Winding and Orientations are Handled
 

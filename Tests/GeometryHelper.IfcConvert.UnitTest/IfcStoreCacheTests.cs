@@ -18,7 +18,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 ApplicationDevelopersName = "GeometryHelper",
                 ApplicationFullName = "GeometryHelper.UnitTest",
                 ApplicationIdentifier = "GH",
-                ApplicationVersion = "3.1.0",
+                ApplicationVersion = "3.2.0",
                 EditorsFamilyName = "Unit",
                 EditorsGivenName = "Test",
                 EditorsOrganisationName = "GeometryHelper"

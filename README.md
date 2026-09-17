@@ -3,13 +3,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
 Geometry for engineering drawings and models, in two dimensions and in three, plus the label placement
-library that runs on the 2D half and bridges that carry shapes in and out of Tekla Structures and
-AutoCAD. Every comparison is tolerance-aware, because coordinates that come out of a BIM model are
+library that runs on the 2D half and bridges that carry shapes in and out of Tekla Structures, AutoCAD,
+and IFC models (via xBIM). Every comparison is tolerance-aware, because coordinates that come out of a BIM model are
 never exact.
 
 ## Packages
 
-Six packages, versioned and released together.
+Seven packages, versioned and released together.
 
 | Package | What it is | NuGet |
 |---|---|---|
@@ -18,15 +18,15 @@ Six packages, versioned and released together.
 | [GeometryHelper.SolidGeometry](Libraries/GeometryHelper.SolidGeometry/README.md) | 3D: points to solids, plus boolean operations and a BVH for large meshes | [![v](https://img.shields.io/nuget/v/GeometryHelper.SolidGeometry.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.SolidGeometry/) |
 | [GeometryHelper.ArrangeAlgorithms](Libraries/GeometryHelper.ArrangeAlgorithms/README.md) | 2D label placement: five algorithms that keep labels off each other and off blocked regions | [![v](https://img.shields.io/nuget/v/GeometryHelper.ArrangeAlgorithms.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.ArrangeAlgorithms/) |
 
-Two bridges are published as well. Neither redistributes a vendor assembly — you reference the Tekla or
-AutoCAD DLLs yourself, from your own installation or from the vendor's package on nuget.org — so each one
-needs that extra step after `dotnet add package`. Their READMEs say exactly which.
+Three bridges are published as well. The Tekla and AutoCAD bridges do not redistribute vendor assemblies —
+you reference the Tekla or AutoCAD DLLs yourself from your installation or NuGet. The IFC bridge is self-contained
+and bundles customized xBIM assemblies and native x64 engines directly in the package.
 
 | Package | What it is | You supply | NuGet |
 |---|---|---|---|
 | [GeometryHelper.TeklaConvert](Libraries/GeometryHelper.TeklaConvert/README.md) | Points, vectors, segments, planes, coordinate systems, bounding boxes, matrices, and the faces and loops of a Tekla solid | `Tekla.Structures.dll`, `Tekla.Structures.Drawing.dll` | [![v](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert/) |
 | [GeometryHelper.CadConvert](Libraries/GeometryHelper.CadConvert/README.md) | Points, vectors, lines, polylines, polygons, circles and extents, converted both ways with AutoCAD | `acdbmgd.dll` (plugins usually also want `acmgd.dll`, `accoremgd.dll`) | [![v](https://img.shields.io/nuget/v/GeometryHelper.CadConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.CadConvert/) |
-| [GeometryHelper.IfcConvert](Libraries/GeometryHelper.IfcConvert/README.md) | Points, vectors, matrices, faces, and 3D solids, converted from IFC models via xBIM | xBIM assemblies | [![v](https://img.shields.io/nuget/v/GeometryHelper.IfcConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.IfcConvert/) |
+| [GeometryHelper.IfcConvert](Libraries/GeometryHelper.IfcConvert/README.md) | Points, vectors, matrices, faces, and 3D solids, converted from IFC models via xBIM | Bundled (Self-contained) | [![v](https://img.shields.io/nuget/v/GeometryHelper.IfcConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.IfcConvert/) |
 
 ## How they fit together
 
@@ -52,7 +52,7 @@ both sees one `Tolerance` and one `Angle` rather than two of each.
 - Only `Tolerance` and `Angle`, to sit between your own libraries → **GeometryHelper.CommonGeometry**.
 - Reading solids and drawing coordinates out of a Tekla model → **GeometryHelper.TeklaConvert**, plus the two Tekla assemblies you reference yourself.
 - Reading and writing AutoCAD drawing geometry → **GeometryHelper.CadConvert**, plus the AutoCAD assemblies you reference yourself.
-- Reading solids, faces, and geometry from an IFC model → **GeometryHelper.IfcConvert**, plus the xBIM assemblies.
+- Reading solids, faces, and geometry from an IFC model → **GeometryHelper.IfcConvert** (bundles all required xBIM assemblies and native x64 engine).
 
 ## Repository layout
 
@@ -70,6 +70,7 @@ both sees one `Tolerance` and one `Angle` rather than two of each.
 | `Tests/GeometryHelper.SolidGeometry.UnitTest` | xUnit | net48 |
 | `Tests/GeometryHelper.TeklaConvert.UnitTest` | xUnit | net48 |
 | `Tests/GeometryHelper.ArrangeAlgorithms.UnitTest` | xUnit | net48 |
+| `Tests/GeometryHelper.IfcConvert.UnitTest` | xUnit | net48 |
 | `Samples/GeometryHelper.ArrangeAlgorithms.CadTest` | AutoCAD 2021 plugin for visual testing | net48 |
 | `Samples/GeometryHelper.ArrangeAlgorithms.TeklaTest` | Tekla Structures program for rebar mark arrangement | net48 |
 
@@ -86,6 +87,7 @@ dotnet test  Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeo
 dotnet test  Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj
 dotnet test  Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj
 dotnet test  Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj
+dotnet test  Tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj
 ```
 
 Warnings are errors in CI, and every public member is documented, so a missing XML comment or a stale

@@ -32,6 +32,7 @@ jobs:
           dotnet restore Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj
           dotnet restore Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj
           dotnet restore Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj
+          dotnet restore Tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj
 
       - name: Build
         # Warnings are treated as errors so that a missing XML comment or a stale cref cannot land quietly:
@@ -42,6 +43,7 @@ jobs:
           dotnet build Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
           dotnet build Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -c Release --no-restore -warnaserror
           dotnet build Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj -c Release --no-restore -warnaserror
+          dotnet build Tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj -c Release --no-restore -warnaserror
 
       - name: Test
         run: |
@@ -50,6 +52,7 @@ jobs:
           dotnet test Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
           dotnet test Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -c Release --no-build --verbosity normal
           dotnet test Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj -c Release --no-build --verbosity normal
+          dotnet test Tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj -c Release --no-build --verbosity normal
 
       - name: Build libraries
         # Every packable library carries GeneratePackageOnBuild, and that switch makes `dotnet pack`
