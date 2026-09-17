@@ -6,6 +6,7 @@
     <Project Path="Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj" />
     <Project Path="Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj" />
     <Project Path="Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj" />
+    <Project Path="Libraries/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj" />

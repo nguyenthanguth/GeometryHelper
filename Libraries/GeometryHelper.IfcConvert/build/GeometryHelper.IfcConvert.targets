@@ -1,0 +1,22 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- Ensure native xBIM C++ OpenCascade engine DLLs are copied to consumer output directory -->
+  <ItemGroup Condition="'$(PlatformTarget)' == 'x64' Or '$(Platform)' == 'x64' Or ('$(PlatformTarget)' != 'x86' And '$(Platform)' != 'x86')">
+    <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\Xbim.Geometry.Engine64.dll">
+      <Link>Xbim.Geometry.Engine64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+      <Pack>false</Pack>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(PlatformTarget)' == 'x86' Or '$(Platform)' == 'x86'">
+    <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x86\native\Xbim.Geometry.Engine32.dll">
+      <Link>Xbim.Geometry.Engine32.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+      <Pack>false</Pack>
+    </None>
+  </ItemGroup>
+
+</Project>

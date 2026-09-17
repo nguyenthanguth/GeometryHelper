@@ -53,10 +53,10 @@ jobs:
 
       - name: Build libraries
         # Every packable library carries GeneratePackageOnBuild, and that switch makes `dotnet pack`
-        # skip building: it expects the output to be there already. Four of the six arrive built as
-        # dependencies of the test projects, but GeometryHelper.CadConvert has no test project of its
-        # own, so nothing else builds it and packing it alone fails with NU5026. Building all six here
-        # keeps that from depending on which library happens to be under test.
+        # skip building: it expects the output to be there already. Four of the seven arrive built as
+        # dependencies of the test projects, but GeometryHelper.CadConvert and GeometryHelper.IfcConvert
+        # have no test project of their own, so nothing else builds them and packing them alone fails with NU5026.
+        # Building all seven here keeps that from depending on which library happens to be under test.
         run: |
           dotnet build Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj -c Release -warnaserror
           dotnet build Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj -c Release -warnaserror
@@ -64,11 +64,12 @@ jobs:
           dotnet build Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj -c Release -warnaserror
           dotnet build Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release -warnaserror
           dotnet build Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj -c Release -warnaserror
+          dotnet build Libraries/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj -c Release -warnaserror
 
       - name: Pack
-        # The six packages are versioned in lockstep, so they are always published as one set. The two
-        # bridges redistribute no vendor assembly: Private=False keeps the Tekla and AutoCAD DLLs out of
-        # the build output, so they cannot reach the package.
+        # The seven packages are versioned in lockstep, so they are always published as one set. The
+        # bridges redistribute no vendor assembly: Private=False keeps the vendor DLLs out of the
+        # build output, so they cannot reach the package.
         run: |
           dotnet pack Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj -c Release --no-build -o artifacts
           dotnet pack Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj -c Release --no-build -o artifacts
@@ -76,6 +77,7 @@ jobs:
           dotnet pack Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj -c Release --no-build -o artifacts
           dotnet pack Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release --no-build -o artifacts
           dotnet pack Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj -c Release --no-build -o artifacts
+          dotnet pack Libraries/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj -c Release --no-build -o artifacts
 
       - uses: actions/upload-artifact@v4
         with:

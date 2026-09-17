@@ -1,0 +1,112 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+
+    <!-- 1. Configure NuGet Package generation and XML Documentation -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <PackageId>GeometryHelper.IfcConvert</PackageId>
+    <Description>Converts geometry between IFC (via xBIM) and GeometryHelper (GeometryHelper.CommonGeometry and GeometryHelper.SolidGeometry): points, vectors, matrices, faces, and solids.</Description>
+    <PackageTags>ifc bim geometry 3d solid xbim interop conversion</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReleaseNotes>
+      Converts geometry between IFC (via xBIM) and GeometryHelper:
+      - Points, vectors, transformation matrices, faces, and 3D solids.
+      - Handles both planar faces (with outer and inner loop boundaries/holes) and non-planar curved faces via triangulation/tessellation.
+      - Supports hierarchical placement matrices and nested mapped items (IIfcMappedItem).
+      - Provides thread-safe IFC store caching with GUID lookup and memory management.
+    </PackageReleaseNotes>
+
+    <IsPackable>true</IsPackable>
+    <DebugType>embedded</DebugType>
+    <EmbedAllSources>true</EmbedAllSources>
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GeometryHelper.CommonGeometry\GeometryHelper.CommonGeometry.csproj" />
+    <ProjectReference Include="..\GeometryHelper.SolidGeometry\GeometryHelper.SolidGeometry.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Xbim.Common">
+      <HintPath>Lib\Xbim.Common.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Ifc">
+      <HintPath>Lib\Xbim.Ifc.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Ifc4">
+      <HintPath>Lib\Xbim.Ifc4.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Ifc2x3">
+      <HintPath>Lib\Xbim.Ifc2x3.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Ifc4x3">
+      <HintPath>Lib\Xbim.Ifc4x3.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Geometry.Engine.Interop">
+      <HintPath>Lib\Xbim.Geometry.Engine.Interop.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.IO.MemoryModel">
+      <HintPath>Lib\Xbim.IO.MemoryModel.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.IO.Esent">
+      <HintPath>Lib\Xbim.IO.Esent.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Tessellator">
+      <HintPath>Lib\Xbim.Tessellator.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.ModelGeometry.Scene">
+      <HintPath>Lib\Xbim.ModelGeometry.Scene.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Esent.Interop">
+      <HintPath>Lib\Esent.Interop.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions">
+      <HintPath>Lib\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Lib\Xbim.Geometry.Engine64.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Lib\Xbim.Geometry.Engine32.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- Pack custom vendor DLLs and native binaries directly into NuGet package -->
+  <ItemGroup>
+    <None Include="Lib\*.dll" Exclude="Lib\Xbim.Geometry.Engine32.dll;Lib\Xbim.Geometry.Engine64.dll" Pack="true" PackagePath="lib\netstandard2.0" />
+    <None Include="Lib\Xbim.Geometry.Engine64.dll" Pack="true" PackagePath="runtimes\win-x64\native" />
+    <None Include="Lib\Xbim.Geometry.Engine32.dll" Pack="true" PackagePath="runtimes\win-x86\native" />
+    <None Include="build\GeometryHelper.IfcConvert.targets" Pack="true" PackagePath="build\netstandard2.0;build\net48;build\net8.0;buildTransitive\netstandard2.0;buildTransitive\net48;buildTransitive\net8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

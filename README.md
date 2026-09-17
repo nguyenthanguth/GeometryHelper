@@ -26,6 +26,7 @@ needs that extra step after `dotnet add package`. Their READMEs say exactly whic
 |---|---|---|---|
 | [GeometryHelper.TeklaConvert](Libraries/GeometryHelper.TeklaConvert/README.md) | Points, vectors, segments, planes, coordinate systems, bounding boxes, matrices, and the faces and loops of a Tekla solid | `Tekla.Structures.dll`, `Tekla.Structures.Drawing.dll` | [![v](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert/) |
 | [GeometryHelper.CadConvert](Libraries/GeometryHelper.CadConvert/README.md) | Points, vectors, lines, polylines, polygons, circles and extents, converted both ways with AutoCAD | `acdbmgd.dll` (plugins usually also want `acmgd.dll`, `accoremgd.dll`) | [![v](https://img.shields.io/nuget/v/GeometryHelper.CadConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.CadConvert/) |
+| [GeometryHelper.IfcConvert](Libraries/GeometryHelper.IfcConvert/README.md) | Points, vectors, matrices, faces, and 3D solids, converted from IFC models via xBIM | xBIM assemblies | [![v](https://img.shields.io/nuget/v/GeometryHelper.IfcConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.IfcConvert/) |
 
 ## How they fit together
 
@@ -36,6 +37,7 @@ GeometryHelper.CommonGeometry
 
 GeometryHelper.TeklaConvert ── Tekla Structures
 GeometryHelper.CadConvert   ── AutoCAD
+GeometryHelper.IfcConvert   ── IFC (xBIM)
 ```
 
 One direction, no cycles. `GeometryHelper.PlaneGeometry` and `GeometryHelper.SolidGeometry` do not know
@@ -50,6 +52,7 @@ both sees one `Tolerance` and one `Angle` rather than two of each.
 - Only `Tolerance` and `Angle`, to sit between your own libraries → **GeometryHelper.CommonGeometry**.
 - Reading solids and drawing coordinates out of a Tekla model → **GeometryHelper.TeklaConvert**, plus the two Tekla assemblies you reference yourself.
 - Reading and writing AutoCAD drawing geometry → **GeometryHelper.CadConvert**, plus the AutoCAD assemblies you reference yourself.
+- Reading solids, faces, and geometry from an IFC model → **GeometryHelper.IfcConvert**, plus the xBIM assemblies.
 
 ## Repository layout
 
@@ -61,6 +64,7 @@ both sees one `Tolerance` and one `Angle` rather than two of each.
 | `Libraries/GeometryHelper.ArrangeAlgorithms` | Label placement algorithms | netstandard2.0 |
 | `Libraries/GeometryHelper.TeklaConvert` | Tekla Structures bridge | netstandard2.0 |
 | `Libraries/GeometryHelper.CadConvert` | AutoCAD bridge | netstandard2.0 |
+| `Libraries/GeometryHelper.IfcConvert` | IFC (xBIM) bridge | netstandard2.0 |
 | `Tests/GeometryHelper.CommonGeometry.UnitTest` | xUnit | net48 |
 | `Tests/GeometryHelper.PlaneGeometry.UnitTest` | xUnit | net48 |
 | `Tests/GeometryHelper.SolidGeometry.UnitTest` | xUnit | net48 |
