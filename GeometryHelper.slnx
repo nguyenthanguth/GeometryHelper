@@ -14,6 +14,7 @@
     <Project Path="Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj" />
     <Project Path="Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj" />
     <Project Path="Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj" />
+    <Project Path="Tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj" />
   </Folder>
   <Folder Name="/Samples/">
     <Project Path="Samples/GeometryHelper.ArrangeAlgorithms.CadTest/GeometryHelper.ArrangeAlgorithms.CadTest.csproj" />

@@ -30,8 +30,9 @@ namespace GeometryHelper.IfcConvert.Core
         /// <summary>
         /// Gets or sets deflection/tolerance used when tessellating curved geometry.
         /// Smaller values yield smoother curved surfaces at the cost of more triangles.
+        /// Defaults to 0.5.
         /// </summary>
-        public double DeflectionTolerance { get; set; } = 1.0;
+        public double DeflectionTolerance { get; set; } = 0.5;
 
         /// <summary>
         /// Gets or sets whether to subtract voids and openings (IfcRelVoidsElement / IfcOpeningElement) from the host element.

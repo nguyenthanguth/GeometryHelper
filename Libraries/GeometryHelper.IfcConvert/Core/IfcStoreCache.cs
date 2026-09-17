@@ -60,6 +60,22 @@ namespace GeometryHelper.IfcConvert.Core
         }
 
         /// <summary>
+        /// Initializes a new cache wrapping an existing <see cref="IfcStore"/>.
+        /// </summary>
+        /// <param name="store">The opened or in-memory IFC store.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="store"/> is null.</exception>
+        public IfcStoreCache(IfcStore store)
+        {
+            Store = store ?? throw new ArgumentNullException(nameof(store));
+
+            ProductsByGuid = Store.Instances
+                .OfType<IIfcProduct>()
+                .Where(x => !string.IsNullOrWhiteSpace(x.GlobalId))
+                .GroupBy(x => x.GlobalId.ToString())
+                .ToDictionary(g => g.Key, g => g.First());
+        }
+
+        /// <summary>
         /// Gets an existing cached store for the given file path, or creates and caches a new one.
         /// </summary>
         /// <param name="filePath">The path to the IFC file.</param>

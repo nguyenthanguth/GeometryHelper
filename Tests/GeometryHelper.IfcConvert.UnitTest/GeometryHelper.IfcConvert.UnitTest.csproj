@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <IsPackable>false</IsPackable>
+    <PlatformTarget>x64</PlatformTarget>
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\GeometryHelper.CommonGeometry\GeometryHelper.CommonGeometry.csproj" />
+    <ProjectReference Include="..\..\Libraries\GeometryHelper.SolidGeometry\GeometryHelper.SolidGeometry.csproj" />
+    <ProjectReference Include="..\..\Libraries\GeometryHelper.IfcConvert\GeometryHelper.IfcConvert.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Xbim.Common">
+      <HintPath>..\..\Libraries\GeometryHelper.IfcConvert\Lib\Xbim.Common.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Xbim.Ifc">
+      <HintPath>..\..\Libraries\GeometryHelper.IfcConvert\Lib\Xbim.Ifc.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Xbim.Ifc4">
+      <HintPath>..\..\Libraries\GeometryHelper.IfcConvert\Lib\Xbim.Ifc4.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Xbim.Ifc2x3">
+      <HintPath>..\..\Libraries\GeometryHelper.IfcConvert\Lib\Xbim.Ifc2x3.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Xbim.Geometry.Engine.Interop">
+      <HintPath>..\..\Libraries\GeometryHelper.IfcConvert\Lib\Xbim.Geometry.Engine.Interop.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Xbim.IO.MemoryModel">
+      <HintPath>..\..\Libraries\GeometryHelper.IfcConvert\Lib\Xbim.IO.MemoryModel.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Xbim.IO.Esent">
+      <HintPath>..\..\Libraries\GeometryHelper.IfcConvert\Lib\Xbim.IO.Esent.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Xbim.Tessellator">
+      <HintPath>..\..\Libraries\GeometryHelper.IfcConvert\Lib\Xbim.Tessellator.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\Libraries\GeometryHelper.IfcConvert\Lib\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>%(FileName)%(Extension)</Link>
+      <Visible>false</Visible>
+    </None>
+  </ItemGroup>
+
+</Project>
