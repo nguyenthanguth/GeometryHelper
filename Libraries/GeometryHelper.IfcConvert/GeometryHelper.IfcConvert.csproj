@@ -1,9 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- .NET Framework only: the bundled xBIM Geometry Engine 5.1 is C++/CLI built for .NET Framework
-         and cannot load on .NET Core / .NET 5+. -->
-    <TargetFramework>net48</TargetFramework>
+    <!-- netstandard2.0 on purpose: netstandard2.0 libraries (e.g. GeometryHelper.TeklaConvert) can reference it,
+         and it needs no change once xBIM ships a geometry engine that runs on .NET Core / .NET 5+.
+         At run time it still needs .NET Framework 4.8, x64: the bundled Xbim.Geometry.Engine64 and
+         Xbim.Geometry.Engine.Interop target .NET Framework 4.7.2 (the engine is C++/CLI), so a .NET Core /
+         .NET 5+ application builds against this library but every geometry conversion fails when the engine loads. -->
+    <TargetFramework>netstandard2.0</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
 
     <!-- 1. Configure NuGet Package generation and XML Documentation -->

@@ -1,4 +1,4 @@
-# GeometryHelper.IfcConvert
+﻿# GeometryHelper.IfcConvert
 
 [![NuGet Version](https://img.shields.io/nuget/v/GeometryHelper.IfcConvert.svg?style=flat-square)](https://www.nuget.org/packages/GeometryHelper.IfcConvert/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](../../LICENSE)
@@ -24,7 +24,9 @@ computational geometry structures in `GeometryHelper`:
 dotnet add package GeometryHelper.IfcConvert
 ```
 
-The package is **self-contained**: it bundles all required customized xBIM managed assemblies and the 64-bit native geometry engine (`Xbim.Geometry.Engine64.dll`). Targets **.NET Framework 4.8, Windows x64** only: the xBIM geometry engine is C++/CLI for .NET Framework, so .NET Core / .NET 5+ projects are stopped at build time.
+The package is **self-contained**: it bundles all required customized xBIM managed assemblies and the 64-bit native geometry engine (`Xbim.Geometry.Engine64.dll`).
+
+The library targets `netstandard2.0`, but it runs only in a **.NET Framework 4.8, Windows x64** process: the bundled xBIM geometry engine is C++/CLI built for .NET Framework 4.7.2. A .NET Core / .NET 5+ project can install the package, build against it and open a model, but every geometry conversion fails when the engine loads. Nothing is thrown: the product comes back without solids, and its `Warnings` read `Conversion failed: FileLoadException: Failed to load Xbim.Geometry.Engine64.dll`.
 
 > [!IMPORTANT]
 > **Platform Target Requirement (`x64`):**
@@ -193,6 +195,200 @@ Measured on a 115 MB Tekla IFC (25 000 products):
 - The cache does not watch the file. After the file changes on disk, call `ClearGlobalCache(path)` to reload it.
 - Opening happens under the cache lock, so threads opening different files wait for each other.
 - `IfcStoreCache.GetGlobalCacheInfo()` lists the cached paths and their product counts.
+
+## Using with Tekla Structures
+
+Converting the selected objects of IFC reference models, possibly from several IFC files, into solids in
+Tekla global coordinates (millimetres). `ToGeoCoordinateSystem3` and `ToTeklaPoint` come from the
+`GeometryHelper.TeklaConvert` package.
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Windows.Forms;
+using GeometryHelper.IfcConvert.Core;
+using GeometryHelper.IfcConvert.Models;
+using GeometryHelper.SolidGeometry.Geometry;
+using GeometryHelper.TeklaConvert;
+using Tekla.Structures.Geometry3d;
+using Tekla.Structures.Model;
+using Tekla.Structures.Model.Operations;
+using Tekla.Structures.Model.UI;
+
+public static class IfcReferenceSample
+{
+    /// <summary>
+    /// Converts every selected IFC reference object into solids in Tekla global coordinates (mm).
+    /// Objects that cannot be converted are skipped and described in <paramref name="problems"/>.
+    /// </summary>
+    public static List<GeoSolid3> GetSelectedReferenceSolids(Model model, List<string> problems)
+    {
+        var solids = new List<GeoSolid3>();
+        WorkPlaneHandler workPlaneHandler = model.GetWorkPlaneHandler();
+        TransformationPlane currentPlane = workPlaneHandler.GetCurrentTransformationPlane();
+
+        try
+        {
+            // Reference model frames are returned in the current work plane: read them in global coordinates.
+            workPlaneHandler.SetCurrentTransformationPlane(new TransformationPlane());
+
+            // The reference objects selected in the model view, with the reference model each belongs to
+            // (Tekla.Structures.Model has a ModelObjectSelector too, hence the full name).
+            var selected = new List<(ReferenceModelObject Object, ReferenceModel Model)>();
+            ModelObjectEnumerator selection = new Tekla.Structures.Model.UI.ModelObjectSelector().GetSelectedObjects();
+            while (selection.MoveNext())
+            {
+                if (selection.Current is ReferenceModelObject referenceObject)
+                {
+                    ReferenceModel owner = referenceObject.GetReferenceModel();
+                    if (owner == null)
+                    {
+                        problems.Add($"Reference object {referenceObject.Identifier.ID} has no reference model.");
+                        continue;
+                    }
+
+                    selected.Add((referenceObject, owner));
+                }
+            }
+
+            // Group by reference model, not by file: one IFC file inserted twice has two positions and scales,
+            // while both share the file's cached model.
+            foreach (var group in selected.GroupBy(s => s.Model.Identifier.ID))
+            {
+                ReferenceModel referenceModel = group.First().Model;
+                string ifcFile = Path.GetFullPath(Path.Combine(model.GetInfo().ModelPath, referenceModel.ActiveFilePath));
+
+                try
+                {
+                    // Parsed once per file for the life of the process (plugin / extension), then served from cache.
+                    IfcStoreCache ifcCache = IfcStoreCache.GetOrCreate(ifcFile);
+
+                    var options = new IfcConvertOptions
+                    {
+                        TargetUnit = LengthUnit.Millimeters,   // Tekla works in mm: a metre IFC would come out 1000 times too small
+                        ScaleFactor = referenceModel.Scale,    // multiplied with the unit conversion
+                        ApplyVoids = true,                     // cut IfcOpeningElement voids (bolt holes, cuts, copes)
+                        IncludeAggregatedParts = true,         // a selected assembly returns the geometry of its parts
+                    };
+
+                    // IFC coordinates -> Tekla global: where this reference model is placed (position, rotation).
+                    GeoTransform3 ifcToGlobal = GeoTransform3.FromCoordinateSystem(referenceModel.GetCoordinateSystem().ToGeoCoordinateSystem3());
+
+                    var done = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (ReferenceModelObject referenceObject in group.Select(s => s.Object))
+                    {
+                        // The IFC GlobalId of the object.
+                        string guid = string.Empty;
+                        if (!referenceObject.GetReportProperty("EXTERNAL.GUID", ref guid) || string.IsNullOrEmpty(guid))
+                        {
+                            problems.Add($"Reference object {referenceObject.Identifier.ID} has no IFC GUID.");
+                            continue;
+                        }
+
+                        if (!done.Add(guid))
+                        {
+                            continue;
+                        }
+
+                        IfcProductGeometry geometry = ifcCache.GetGeometry(guid, options);
+                        if (geometry == null)
+                        {
+                            problems.Add($"{guid} is not in {Path.GetFileName(ifcFile)}.");
+                            continue;
+                        }
+
+                        problems.AddRange(geometry.Warnings.Select(w => $"{guid} ({geometry.IfcType}): {w}"));
+
+                        foreach (GeoSolid3 ifcSolid in geometry.Solids)
+                        {
+                            solids.Add(ifcSolid.TransformBy(ifcToGlobal));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // A reference model that is not IFC (DWG, SKP...) or cannot be read does not stop the others.
+                    problems.Add($"{Path.GetFileName(ifcFile)}: {ex.Message}");
+                }
+            }
+        }
+        finally
+        {
+            workPlaneHandler.SetCurrentTransformationPlane(currentPlane);
+        }
+
+        return solids;
+    }
+
+    /// <summary>
+    /// Example: draws the outline of every face of the selected reference objects as red control polycurves.
+    /// </summary>
+    public static void DrawSelectedReferenceObjects()
+    {
+        Model model = new Model();
+        var problems = new List<string>();
+        List<GeoSolid3> solids = GetSelectedReferenceSolids(model, problems);
+
+        WorkPlaneHandler workPlaneHandler = model.GetWorkPlaneHandler();
+        TransformationPlane currentPlane = workPlaneHandler.GetCurrentTransformationPlane();
+        try
+        {
+            // The solids are in global coordinates.
+            workPlaneHandler.SetCurrentTransformationPlane(new TransformationPlane());
+
+            foreach (GeoSolid3 solid in solids)
+            {
+                foreach (GeoFace3 face in solid.Faces)
+                {
+                    // The outer boundary and every hole of the face.
+                    foreach (GeoPolygon3 ring in new[] { face.Boundary }.Concat(face.Holes))
+                    {
+                        // A PolyLine is open: repeat the first vertex, or the closing edge is not drawn.
+                        List<Point> outline = ring.Vertices.ToTeklaPoint();
+                        outline.Add(outline[0]);
+
+                        new ControlPolycurve(new Polycurve(new PolyLine(outline)))
+                        {
+                            Color = ControlObjectColorEnum.RED,
+                            LineType = ControlObjectLineType.SolidLine
+                        }.Insert();
+                    }
+                }
+            }
+        }
+        finally
+        {
+            workPlaneHandler.SetCurrentTransformationPlane(currentPlane);
+            model.CommitChanges();
+        }
+
+        Operation.DisplayPrompt($"{solids.Count} solid(s) converted, {problems.Count} problem(s).");
+        if (problems.Count > 0)
+        {
+            MessageBox.Show(string.Join(Environment.NewLine, problems.Take(30)));
+        }
+    }
+}
+```
+
+Notes:
+- **GUIDs**: the `EXTERNAL.GUID` report property of a reference object is its IFC GlobalId, the key of every
+  `IfcStoreCache` query. `ReferenceModel.GetReferenceModelObjectByExternalGuid(guid)` goes the other way.
+- **Several reference models**: objects are grouped by reference model, so each gets its own position,
+  rotation and scale. The same IFC file inserted twice is parsed once and placed twice.
+- **Assemblies**: in assembly selection mode Tekla selects the `IfcElementAssembly`, which has no body of its
+  own; `IncludeAggregatedParts` returns the solids of its parts. Selecting an assembly *and* its parts returns
+  those parts twice.
+- **Cache lifetime**: a plugin or extension runs inside the Tekla process, so each IFC file is parsed once and
+  every later run is served from the cache. A standalone `.exe` is a new process each time, so it parses the
+  files on every run whichever method is used.
+- **Updated reference models**: a new revision usually changes `ActiveFilePath`, which becomes a new cache
+  entry; release the old one with `IfcStoreCache.ClearGlobalCache(oldPath)`. If the file is overwritten
+  at the same path, call `ClearGlobalCache(ifcFile)` or the old geometry keeps being returned.
+- **Curved parts** are triangulated, so a round tube draws hundreds of polycurves. Fine for a visual
+  check; for anything else, work with the `GeoSolid3` itself.
 
 ## Matrix Transformations
 
