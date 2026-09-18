@@ -84,9 +84,9 @@ jobs:
 
       - name: Push packages to GitHub Packages
         run: |
-          dotnet nuget add source --username ${{ github.repository_owner }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
           Get-ChildItem artifacts -Filter *.nupkg | ForEach-Object {
-            dotnet nuget push $_.FullName --source "github" --skip-duplicate
+            dotnet nuget push $_.FullName --source "github" --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate
           }
 
       - name: Authenticate with NuGet (Trusted Publishing)

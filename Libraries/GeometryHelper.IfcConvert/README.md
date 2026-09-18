@@ -1,4 +1,4 @@
-﻿# GeometryHelper.IfcConvert
+# GeometryHelper.IfcConvert
 
 [![NuGet Version](https://img.shields.io/nuget/v/GeometryHelper.IfcConvert.svg?style=flat-square)](https://www.nuget.org/packages/GeometryHelper.IfcConvert/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](../../LICENSE)
@@ -25,6 +25,24 @@ dotnet add package GeometryHelper.IfcConvert
 ```
 
 The package is **self-contained**: it bundles all required customized xBIM managed assemblies and the 64-bit native geometry engine (`Xbim.Geometry.Engine64.dll`). Targets **.NET Framework 4.8, Windows x64** only: the xBIM geometry engine is C++/CLI for .NET Framework, so .NET Core / .NET 5+ projects are stopped at build time.
+
+> [!IMPORTANT]
+> **Platform Target Requirement (`x64`):**
+> Because the underlying geometry engine is a 64-bit native C++/CLI binary, any consuming application **must run as an x64 process**.
+> 
+> Running under `AnyCPU` with the default "Prefer 32-bit" setting enabled will result in a `BadImageFormatException`:
+> ```
+> System.BadImageFormatException: Could not load file or assembly 'GeometryHelper.IfcConvert' or one of its dependencies.
+> An attempt was made to load a program with an incorrect format.
+> ```
+> 
+> Ensure your consuming project's `.csproj` specifies `<PlatformTarget>x64</PlatformTarget>`:
+> ```xml
+> <PropertyGroup>
+>   <PlatformTarget>x64</PlatformTarget>
+> </PropertyGroup>
+> ```
+> *(Or if you must use `AnyCPU`, set `<Prefer32Bit>false</Prefer32Bit>` to ensure Windows executes it as a 64-bit process).*
 
 ## How Winding and Orientations are Handled
 
