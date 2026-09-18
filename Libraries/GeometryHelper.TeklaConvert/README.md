@@ -1,6 +1,8 @@
 # GeometryHelper.TeklaConvert
 
-[![NuGet Version](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.svg?style=flat-square)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert/)
+[![Tekla 2020](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2020.svg?style=flat-square&label=Tekla%202020)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2020/)
+[![Tekla 2025](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2025.svg?style=flat-square&label=Tekla%202025)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2025/)
+[![Tekla 2026](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2026.svg?style=flat-square&label=Tekla%202026)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2026/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://github.com/nguyenthanguth/GeometryHelper/blob/main/LICENSE)
 
 Converts geometry between Tekla Structures and
@@ -10,9 +12,17 @@ and loops of a Tekla solid.
 
 ## Installation
 
+Install the package whose year matches the Tekla Structures you build for:
+
 ```bash
-dotnet add package GeometryHelper.TeklaConvert
+dotnet add package GeometryHelper.TeklaConvert.2020   # Tekla Structures 2020
+dotnet add package GeometryHelper.TeklaConvert.2025   # Tekla Structures 2025
+dotnet add package GeometryHelper.TeklaConvert.2026   # Tekla Structures 2026
 ```
+
+All three carry the same code, namespaces and `GeometryHelper.TeklaConvert.dll`; they differ only in the Tekla
+Open API they are compiled against (see [Which Tekla version](#which-tekla-version)). They replace the former
+`GeometryHelper.TeklaConvert` package, which was built against 2020 only: switching needs no code change.
 
 ### You must add two Tekla assemblies yourself
 
@@ -49,17 +59,41 @@ and a copy sitting next to your plugin risks loading a build that does not match
 
 ## Which Tekla version
 
-The package is built against the 2020 API, so its assembly references carry
-`Tekla.Structures, Version=2020.0.0.0`.
+Tekla's Open API assemblies are strong-named per release, so each package is compiled against one
+Tekla version and its references carry that version:
 
-- **A console application or any process you own** resolves that through a binding redirect, which
-  `AutoGenerateBindingRedirects` writes for you, so a newer Tekla works without a rebuild.
-- **A plugin loaded inside `TeklaStructures.exe`** cannot: you do not own that process's config. Build
-  this project from source against the Tekla version you target.
+| Package | Package version | DLL version | References |
+|---|---|---|---|
+| `GeometryHelper.TeklaConvert.2020` | `x.y.z` | `x.y.z.2020` | `Tekla.Structures, Version=2020.0.0.0` |
+| `GeometryHelper.TeklaConvert.2025` | `x.y.z` | `x.y.z.2025` | `Tekla.Structures, Version=2025.0.0.0` |
+| `GeometryHelper.TeklaConvert.2026` | `x.y.z` | `x.y.z.2026` | `Tekla.Structures, Version=2026.0.0.0` |
+
+- **A plugin loaded inside `TeklaStructures.exe`** cannot redirect one Tekla version to another (you do
+  not own that process's config), so install the package for the Tekla it runs in.
+- **A console application or any process you own** can also run against a newer Tekla than its package
+  through a binding redirect, which `AutoGenerateBindingRedirects` writes for you.
+
+The Tekla year is part of the package id rather than the version, so a package update never moves you to
+a build for another Tekla, and both packages carry the version the rest of GeometryHelper is released under
+(`GeometryHelper.TeklaConvert.2026` 4.0.0 depends on `GeometryHelper.SolidGeometry` 4.0.0). The assembly
+and file version of `GeometryHelper.TeklaConvert.dll` add the year (`4.0.0.2026`), so the DLL itself tells
+which Tekla it was built for.
 
 The API surface it uses — `Point`, `Vector`, `LineSegment`, `Matrix`, `GeometricPlane`,
-`CoordinateSystem`, `AABB`, `Solid`, `Face`, `Loop` — is unchanged from 2020 through 2026, so a rebuild
-against a newer Tekla needs no source changes.
+`CoordinateSystem`, `AABB`, `Solid`, `Face`, `Loop` — is unchanged from 2020 through 2026.
+
+### Building from source
+
+The project builds for one Tekla version at a time, chosen by the `TeklaVersion` property (2020 when
+omitted), against the assemblies committed under `Lib2020`, `Lib2025` or `Lib2026`:
+
+```bash
+dotnet build Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -p:TeklaVersion=2026
+dotnet test  Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -p:TeklaVersion=2026
+```
+
+Each version builds into its own `bin/Tekla{year}` and `obj/Tekla{year}` folders. Supporting another Tekla
+version means adding its `Lib{year}` folder and its year to `TEKLA_VERSIONS` in the two GitHub workflows.
 
 ## Usage
 

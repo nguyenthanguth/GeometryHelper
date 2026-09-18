@@ -12,9 +12,16 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <PackageId>GeometryHelper.TeklaConvert</PackageId>
-    <Description>Converts geometry between Tekla Structures and GeometryHelper (GeometryHelper.CommonGeometry, GeometryHelper.PlaneGeometry, and GeometryHelper.SolidGeometry): points, vectors, segments, planes, coordinate systems, bounding boxes, transformation matrices, and the faces and loops of a Tekla solid.</Description>
-    <PackageTags>tekla bim geometry 3d solid interop conversion</PackageTags>
+    <!-- One package per Tekla Structures version (see TeklaVersion in Directory.Build.props). The Tekla year
+         ends the package id, so an update never crosses from one Tekla build to another, and the package
+         version is the one every GeometryHelper package shares: GeometryHelper.TeklaConvert.2026 4.0.0.
+         The assembly and file version add the year (4.0.0.2026), so the DLL itself tells which Tekla it was
+         built for. -->
+    <PackageId>GeometryHelper.TeklaConvert.$(TeklaVersion)</PackageId>
+    <AssemblyVersion>$(GeometryHelperVersion).$(TeklaVersion)</AssemblyVersion>
+    <FileVersion>$(GeometryHelperVersion).$(TeklaVersion)</FileVersion>
+    <Description>Converts geometry between Tekla Structures $(TeklaVersion) and GeometryHelper (GeometryHelper.CommonGeometry, GeometryHelper.PlaneGeometry, and GeometryHelper.SolidGeometry): points, vectors, segments, planes, coordinate systems, bounding boxes, transformation matrices, and the faces and loops of a Tekla solid. Built for Tekla Structures $(TeklaVersion); install the package whose year matches your Tekla.</Description>
+    <PackageTags>tekla tekla$(TeklaVersion) bim geometry 3d solid interop conversion</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
@@ -22,14 +29,18 @@
       segments, geometric planes, coordinate systems, bounding boxes, transformation matrices, and the
       faces and loops of a Tekla solid.
 
+      BUILT FOR TEKLA STRUCTURES $(TeklaVersion)
+      - This package references the Tekla Structures $(TeklaVersion) Open API. Tekla's assemblies are
+        strong-named per release and a plugin cannot redirect between them, so install the package whose
+        year matches your Tekla: GeometryHelper.TeklaConvert.2020, GeometryHelper.TeklaConvert.2025 or
+        GeometryHelper.TeklaConvert.2026. It replaces the former GeometryHelper.TeklaConvert package, which
+        was built against 2020 only.
+
       REQUIRES TWO ASSEMBLIES YOU MUST SUPPLY
       - Tekla.Structures.dll and Tekla.Structures.Drawing.dll are not redistributed here, because they
         are Trimble's to ship rather than ours. Reference them yourself, either from the bin folder of
         your Tekla Structures installation or from Trimble's own Tekla.Structures and
         Tekla.Structures.Drawing packages on nuget.org. Without them the compiler reports CS0012.
-      - This package is built against the 2020 API. The types it touches - Point, Vector, LineSegment,
-        Matrix, GeometricPlane, CoordinateSystem, AABB, Solid, Face and Loop - are unchanged through
-        2026, so a rebuild against a newer Tekla needs no source changes.
 
       READING A SOLID
       - Faces are turned to agree with the normal Tekla gives them, and the body is turned inside out
@@ -55,19 +66,33 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Vendored rather than referenced from the Tekla test project, so this project stands on
-         its own if it is ever lifted out of the repository. Private is false because Tekla supplies these
-         at run time from its own installation; copying them next to the output would risk loading a build
-         that does not match the running Tekla. -->
+    <!-- Vendored per Tekla version (Lib2020, Lib2025, Lib2026) rather than referenced from the Tekla test
+         project, so this project stands on its own if it is ever lifted out of the repository. Private is
+         false because Tekla supplies these at run time from its own installation; copying them next to the
+         output would risk loading a build that does not match the running Tekla. -->
     <Reference Include="Tekla.Structures">
-      <HintPath>Lib2020\Tekla.Structures.dll</HintPath>
+      <HintPath>Lib$(TeklaVersion)\Tekla.Structures.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Tekla.Structures.Drawing">
-      <HintPath>Lib2020\Tekla.Structures.Drawing.dll</HintPath>
+      <HintPath>Lib$(TeklaVersion)\Tekla.Structures.Drawing.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
+
+  <!-- The SDK makes every file under the project a None item, and ResolveAssemblyReference searches None and
+       Content items (CandidateAssemblyFiles) before HintPath. Left in, Lib2020\Tekla.Structures.dll wins
+       alphabetically and a 2026 build silently compiles against the 2020 API. -->
+  <ItemGroup>
+    <None Remove="Lib*\**" />
+  </ItemGroup>
+
+  <!-- A TeklaVersion without its Lib folder would otherwise surface as a pile of CS0246 errors about
+       Tekla types, or worse, resolve some other copy of Tekla.Structures from the GAC. -->
+  <Target Name="CheckTeklaVersion" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)\Lib$(TeklaVersion)\Tekla.Structures.dll')"
+           Text="TeklaVersion=$(TeklaVersion) is not supported: $(MSBuildProjectDirectory)\Lib$(TeklaVersion)\Tekla.Structures.dll does not exist. Build with a Tekla version that has a Lib folder next to this project, e.g. -p:TeklaVersion=2020, 2025 or 2026." />
+  </Target>
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />

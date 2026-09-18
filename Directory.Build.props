@@ -27,6 +27,35 @@
     <Deterministic>true</Deterministic>
   </PropertyGroup>
 
+  <!--
+    The Tekla Structures version the Tekla bridge is built against.
+
+    Tekla's Open API assemblies are strong-named per release (Tekla.Structures, Version=2020.0.0.0 against
+    2026.0.0.0), and a plugin loaded inside TeklaStructures.exe cannot redirect one to the other. So
+    GeometryHelper.TeklaConvert is built once per supported Tekla version, each build referencing
+    Lib{TeklaVersion} and producing its own package, GeometryHelper.TeklaConvert.{TeklaVersion}:
+
+      dotnet build Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -p:TeklaVersion=2026
+
+    Without the property (Visual Studio, a plain dotnet build) it is 2020.
+  -->
+  <PropertyGroup>
+    <TeklaVersion Condition="'$(TeklaVersion)' == ''">2020</TeklaVersion>
+  </PropertyGroup>
+
+  <!--
+    The Tekla projects keep one bin and one obj per Tekla version, so building 2026 cannot overwrite the 2020
+    assemblies that a later `dotnet pack` with no build would pick up. The paths have to be set here, before
+    the SDK is imported, for restore to use them too. bin/ and obj/ as a whole are excluded from the default
+    compile items, because the SDK only excludes the current version's folders, and a file generated into
+    another version's obj (or into obj/ by an older build) would otherwise be compiled a second time.
+  -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'GeometryHelper.TeklaConvert' Or '$(MSBuildProjectName)' == 'GeometryHelper.TeklaConvert.UnitTest'">
+    <BaseOutputPath>$(MSBuildProjectDirectory)\bin\Tekla$(TeklaVersion)\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)\obj\Tekla$(TeklaVersion)\</BaseIntermediateOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**</DefaultItemExcludes>
+  </PropertyGroup>
+
   <!-- Shared package identity. Anything specific to one package stays in its own project file. -->
   <PropertyGroup>
     <Authors>Nguyen Thang</Authors>

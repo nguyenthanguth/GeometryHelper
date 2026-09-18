@@ -4,8 +4,8 @@ name: GeometryHelper
 # assemblies that are installed on a workstation rather than vendored, and GeometryHelper.ArrangeAlgorithms.TeklaTest
 # references a Tekla installation the same way, so a hosted runner cannot restore either and building the
 # whole solution would fail for a reason that has nothing to do with the change under test. The Tekla
-# bridge is different: the two assemblies it needs are committed under Libraries/GeometryHelper.TeklaConvert/Lib2020, so it
-# builds and tests here like anything else.
+# bridge is different: the assemblies it needs are committed under Libraries/GeometryHelper.TeklaConvert/Lib2020,
+# Lib2025 and Lib2026, so it builds and tests here like anything else, once for each Tekla version it ships for.
 
 on:
   push:
@@ -17,6 +17,20 @@ jobs:
   build:
     # The test projects target net48, which needs the .NET Framework reference assemblies and test host.
     runs-on: windows-latest
+    # GeometryHelper.TeklaConvert is built, tested and packed once per Tekla Structures version listed here
+    # (see TeklaVersion in Directory.Build.props); each needs its Lib{year} folder next to the project.
+    # Supporting another Tekla version means adding its Lib folder and its year to this list.
+    env:
+      TEKLA_VERSIONS: '2020 2025 2026'
+    # A step that runs several commands in one pwsh script would otherwise report only the exit code of its
+    # last command, because pwsh carries on past a command that fails: a test project that fails, followed by
+    # one that passes, would leave the run green. Such scripts therefore begin with
+    # $PSNativeCommandUseErrorActionPreference = $true (PowerShell 7.4 and later), which makes a failing command
+    # an error, and the $ErrorActionPreference = 'stop' that GitHub puts in front of every pwsh script ends the
+    # step on it. The shell is named here because the setting means nothing to any other shell.
+    defaults:
+      run:
+        shell: pwsh
 
     steps:
       - uses: actions/checkout@v4
@@ -27,10 +41,13 @@ jobs:
 
       - name: Restore
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           dotnet restore Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj
           dotnet restore Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj
           dotnet restore Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj
-          dotnet restore Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj
+          foreach ($v in $env:TEKLA_VERSIONS -split ' ') {
+            dotnet restore Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -p:TeklaVersion=$v
+          }
           dotnet restore Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj
           dotnet restore Tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj
 
@@ -38,19 +55,25 @@ jobs:
         # Warnings are treated as errors so that a missing XML comment or a stale cref cannot land quietly:
         # the libraries document every public member and that is worth keeping enforced.
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           dotnet build Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
           dotnet build Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
           dotnet build Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj -c Release --no-restore -warnaserror
-          dotnet build Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -c Release --no-restore -warnaserror
+          foreach ($v in $env:TEKLA_VERSIONS -split ' ') {
+            dotnet build Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -c Release --no-restore -warnaserror -p:TeklaVersion=$v
+          }
           dotnet build Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj -c Release --no-restore -warnaserror
           dotnet build Tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj -c Release --no-restore -warnaserror
 
       - name: Test
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           dotnet test Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
           dotnet test Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
           dotnet test Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj -c Release --no-build --verbosity normal
-          dotnet test Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -c Release --no-build --verbosity normal
+          foreach ($v in $env:TEKLA_VERSIONS -split ' ') {
+            dotnet test Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -c Release --no-build --verbosity normal -p:TeklaVersion=$v
+          }
           dotnet test Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj -c Release --no-build --verbosity normal
           dotnet test Tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj -c Release --no-build --verbosity normal
 
@@ -61,24 +84,31 @@ jobs:
         # have no test project of their own, so nothing else builds them and packing them alone fails with NU5026.
         # Building all seven here keeps that from depending on which library happens to be under test.
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           dotnet build Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj -c Release -warnaserror
           dotnet build Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj -c Release -warnaserror
           dotnet build Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj -c Release -warnaserror
           dotnet build Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj -c Release -warnaserror
-          dotnet build Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release -warnaserror
+          foreach ($v in $env:TEKLA_VERSIONS -split ' ') {
+            dotnet build Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release -warnaserror -p:TeklaVersion=$v
+          }
           dotnet build Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj -c Release -warnaserror
           dotnet build Libraries/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj -c Release -warnaserror
 
       - name: Pack
-        # The seven packages are versioned in lockstep, so they are always published as one set. The
-        # bridges redistribute no vendor assembly: Private=False keeps the vendor DLLs out of the
+        # The packages are versioned in lockstep, so they are always published as one set: one per library,
+        # and one per Tekla version for GeometryHelper.TeklaConvert (GeometryHelper.TeklaConvert.2020, .2025,
+        # .2026). The bridges redistribute no vendor assembly: Private=False keeps the vendor DLLs out of the
         # build output, so they cannot reach the package.
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           dotnet pack Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj -c Release --no-build -o artifacts
           dotnet pack Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj -c Release --no-build -o artifacts
           dotnet pack Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj -c Release --no-build -o artifacts
           dotnet pack Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj -c Release --no-build -o artifacts
-          dotnet pack Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release --no-build -o artifacts
+          foreach ($v in $env:TEKLA_VERSIONS -split ' ') {
+            dotnet pack Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -c Release --no-build -o artifacts -p:TeklaVersion=$v
+          }
           dotnet pack Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj -c Release --no-build -o artifacts
           dotnet pack Libraries/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj -c Release --no-build -o artifacts
 

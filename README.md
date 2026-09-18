@@ -9,7 +9,8 @@ never exact.
 
 ## Packages
 
-Seven packages, versioned and released together.
+Seven libraries, versioned and released together as nine packages: the Tekla bridge is published once per
+Tekla version.
 
 | Package | What it is | NuGet |
 |---|---|---|
@@ -24,7 +25,7 @@ and bundles customized xBIM assemblies and native x64 engines directly in the pa
 
 | Package | What it is | You supply | NuGet |
 |---|---|---|---|
-| [GeometryHelper.TeklaConvert](Libraries/GeometryHelper.TeklaConvert/README.md) | Points, vectors, segments, planes, coordinate systems, bounding boxes, matrices, and the faces and loops of a Tekla solid | `Tekla.Structures.dll`, `Tekla.Structures.Drawing.dll` | [![v](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert/) |
+| [GeometryHelper.TeklaConvert](Libraries/GeometryHelper.TeklaConvert/README.md) | Points, vectors, segments, planes, coordinate systems, bounding boxes, matrices, and the faces and loops of a Tekla solid; one package per Tekla Structures version, `GeometryHelper.TeklaConvert.2020`, `GeometryHelper.TeklaConvert.2025` and `GeometryHelper.TeklaConvert.2026` | `Tekla.Structures.dll`, `Tekla.Structures.Drawing.dll` of that version | [![2020](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2020.svg?style=flat-square&label=2020)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2020/) [![2025](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2025.svg?style=flat-square&label=2025)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2025/) [![2026](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2026.svg?style=flat-square&label=2026)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2026/) |
 | [GeometryHelper.CadConvert](Libraries/GeometryHelper.CadConvert/README.md) | Points, vectors, lines, polylines, polygons, circles and extents, converted both ways with AutoCAD | `acdbmgd.dll` (plugins usually also want `acmgd.dll`, `accoremgd.dll`) | [![v](https://img.shields.io/nuget/v/GeometryHelper.CadConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.CadConvert/) |
 | [GeometryHelper.IfcConvert](Libraries/GeometryHelper.IfcConvert/README.md) | Points, vectors, matrices, faces, and 3D solids, converted from IFC models via xBIM | Bundled (Self-contained) | [![v](https://img.shields.io/nuget/v/GeometryHelper.IfcConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.IfcConvert/) |
 
@@ -50,7 +51,7 @@ both sees one `Tolerance` and one `Angle` rather than two of each.
 - Geometry in the plane and nothing else → **GeometryHelper.PlaneGeometry**.
 - Geometry in space → **GeometryHelper.SolidGeometry**.
 - Only `Tolerance` and `Angle`, to sit between your own libraries → **GeometryHelper.CommonGeometry**.
-- Reading solids and drawing coordinates out of a Tekla model → **GeometryHelper.TeklaConvert**, plus the two Tekla assemblies you reference yourself.
+- Reading solids and drawing coordinates out of a Tekla model → **GeometryHelper.TeklaConvert.2020**, **GeometryHelper.TeklaConvert.2025** or **GeometryHelper.TeklaConvert.2026**, whichever matches your Tekla, plus the two Tekla assemblies you reference yourself.
 - Reading and writing AutoCAD drawing geometry → **GeometryHelper.CadConvert**, plus the AutoCAD assemblies you reference yourself.
 - Reading solids, faces, and geometry from an IFC model → **GeometryHelper.IfcConvert** (bundles all required xBIM assemblies and native x64 engine).
 
@@ -62,9 +63,9 @@ both sees one `Tolerance` and one `Angle` rather than two of each.
 | `Libraries/GeometryHelper.PlaneGeometry` | 2D geometry | netstandard2.0 |
 | `Libraries/GeometryHelper.SolidGeometry` | 3D geometry | netstandard2.0 |
 | `Libraries/GeometryHelper.ArrangeAlgorithms` | Label placement algorithms | netstandard2.0 |
-| `Libraries/GeometryHelper.TeklaConvert` | Tekla Structures bridge | netstandard2.0 |
+| `Libraries/GeometryHelper.TeklaConvert` | Tekla Structures bridge, built once per Tekla version (`-p:TeklaVersion=2020`, `2025` or `2026`) | netstandard2.0 |
 | `Libraries/GeometryHelper.CadConvert` | AutoCAD bridge | netstandard2.0 |
-| `Libraries/GeometryHelper.IfcConvert` | IFC (xBIM) bridge | net48 |
+| `Libraries/GeometryHelper.IfcConvert` | IFC (xBIM) bridge; runs on .NET Framework 4.8 x64 | netstandard2.0 |
 | `Tests/GeometryHelper.CommonGeometry.UnitTest` | xUnit | net48 |
 | `Tests/GeometryHelper.PlaneGeometry.UnitTest` | xUnit | net48 |
 | `Tests/GeometryHelper.SolidGeometry.UnitTest` | xUnit | net48 |
@@ -85,7 +86,9 @@ dotnet build GeometryHelper.slnx -c Release
 dotnet test  Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj
 dotnet test  Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj
 dotnet test  Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj
-dotnet test  Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj
+dotnet test  Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj                        # Tekla 2020
+dotnet test  Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -p:TeklaVersion=2025   # Tekla 2025
+dotnet test  Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj -p:TeklaVersion=2026   # Tekla 2026
 dotnet test  Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj
 dotnet test  Tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj
 ```
@@ -97,9 +100,9 @@ Warnings are errors in CI, and every public member is documented, so a missing X
 respectively, which a hosted runner does not have. `GeometryHelper.CadConvert` compiles against the
 AutoCAD assemblies vendored under its `Lib/` folder, but those are mixed-mode and cannot be loaded
 outside `acad.exe` — not even to construct a point — so the project has no unit tests. The Tekla bridge
-is the exception: the two assemblies it needs are committed under
-`Libraries/GeometryHelper.TeklaConvert/Lib2020`, and the Tekla geometry types are plain data, so it
-builds and tests in CI like anything else.
+is the exception: the assemblies it needs are committed under
+`Libraries/GeometryHelper.TeklaConvert/Lib2020`, `Lib2025` and `Lib2026`, and the Tekla geometry types are
+plain data, so it builds and tests in CI like anything else, once for each Tekla version it ships for.
 
 ## Licence
 

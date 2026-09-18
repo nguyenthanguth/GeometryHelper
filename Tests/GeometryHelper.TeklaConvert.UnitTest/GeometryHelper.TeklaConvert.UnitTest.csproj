@@ -25,12 +25,20 @@
          test program instead. Private is true here, unlike in the library, because the test host has no
          Tekla installation to load them from.
 
-         Only Tekla.Structures is referenced: it carries both Tekla.Structures.Geometry3d and
-         Tekla.Structures.Solid, which is all the tests touch. A test that reaches into
-         RectangleBoundingBoxConvert would also need Tekla.Structures.Drawing added here, because the
-         library keeps that one Private=False and so does not copy it out. -->
+         Tekla.Structures carries Tekla.Structures.Geometry3d and Tekla.Structures.Solid, which is all the
+         tests touch. Tekla.Structures.Datatype is needed at run time only: in 2025 and 2026, unlike 2020,
+         Matrix loads it. A test that reaches into RectangleBoundingBoxConvert would also need
+         Tekla.Structures.Drawing added here, because the library keeps that one Private=False and so does
+         not copy it out.
+
+         The assemblies come from the Lib folder of the Tekla version under test (TeklaVersion in
+         Directory.Build.props), the same one the library is built against. -->
     <Reference Include="Tekla.Structures">
-      <HintPath>..\..\Libraries\GeometryHelper.TeklaConvert\Lib2020\Tekla.Structures.dll</HintPath>
+      <HintPath>..\..\Libraries\GeometryHelper.TeklaConvert\Lib$(TeklaVersion)\Tekla.Structures.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Tekla.Structures.Datatype">
+      <HintPath>..\..\Libraries\GeometryHelper.TeklaConvert\Lib$(TeklaVersion)\Tekla.Structures.Datatype.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>
