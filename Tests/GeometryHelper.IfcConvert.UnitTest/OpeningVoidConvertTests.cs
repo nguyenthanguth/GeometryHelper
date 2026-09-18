@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
-using GeometryHelper.IfcConvert.Converters;
+using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.IfcConvert.Core;
+using GeometryHelper.IfcConvert.Core.Internal;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
 using Xunit;

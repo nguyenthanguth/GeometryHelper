@@ -1,0 +1,34 @@
+<Weavers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="FodyWeavers.xsd">
+  <Costura IncludeDebugSymbols="false">
+    <IncludeAssemblies>
+      Esent.Interop
+      Microsoft.Bcl.AsyncInterfaces
+      Microsoft.Extensions.Configuration
+      Microsoft.Extensions.Configuration.Abstractions
+      Microsoft.Extensions.Configuration.Binder
+      Microsoft.Extensions.DependencyInjection
+      Microsoft.Extensions.DependencyInjection.Abstractions
+      Microsoft.Extensions.Logging
+      Microsoft.Extensions.Logging.Abstractions
+      Microsoft.Extensions.Options
+      Microsoft.Extensions.Primitives
+      System.Buffers
+      System.Diagnostics.DiagnosticSource
+      System.Memory
+      System.Numerics.Vectors
+      System.Runtime.CompilerServices.Unsafe
+      System.Threading.Tasks.Extensions
+      System.ValueTuple
+      Xbim.Common
+      Xbim.Geometry.Engine.Interop
+      Xbim.Ifc
+      Xbim.Ifc2x3
+      Xbim.Ifc4
+      Xbim.Ifc4x3
+      Xbim.IO.Esent
+      Xbim.IO.MemoryModel
+      Xbim.ModelGeometry.Scene
+      Xbim.Tessellator
+    </IncludeAssemblies>
+  </Costura>
+</Weavers>

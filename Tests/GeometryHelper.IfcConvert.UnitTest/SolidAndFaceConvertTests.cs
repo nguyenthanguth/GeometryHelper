@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using GeometryHelper.CommonGeometry;
-using GeometryHelper.IfcConvert.Converters;
+using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.IfcConvert.Core;
+using GeometryHelper.IfcConvert.Core.Internal;
 using GeometryHelper.IfcConvert.Models;
 using GeometryHelper.SolidGeometry.Geometry;
 using Xbim.Ifc;
@@ -48,7 +49,7 @@ END-ISO-10303-21;
             IfcProductGeometry geom = product.ToProductGeometry();
 
             Assert.NotNull(geom);
-            Assert.Null(geom.Product);
+            Assert.True(geom.IsEmpty);
             Assert.Empty(geom.Solids);
             Assert.Empty(geom.OpenSurfaces);
         }
@@ -60,9 +61,11 @@ END-ISO-10303-21;
 
             Assert.Equal(Tolerance.Global, options.Tolerance);
             Assert.Equal(1.0, options.ScaleFactor);
+            Assert.Equal(CoordinateSpace.Global, options.CoordinateSpace);
+            Assert.Equal(LengthUnit.Original, options.TargetUnit);
             Assert.False(options.ApplyVoids);
             Assert.True(options.TessellateNonPlanarFaces);
-            Assert.Equal(0.5, options.DeflectionTolerance);
+            Assert.Equal(0.0, options.DeflectionTolerance); // automatic: model deflection from xBIM ModelFactors
             Assert.NotNull(options.SkipNames);
             Assert.Empty(options.SkipNames);
         }
@@ -100,6 +103,69 @@ END-ISO-10303-21;
                     Assert.Equal(0.0, solid.Centroid.X, 1);
                     Assert.Equal(0.0, solid.Centroid.Y, 1);
                     Assert.Equal(1.0, solid.Centroid.Z, 1);
+                }
+            }
+            finally
+            {
+                if (File.Exists(tempFile))
+                {
+                    try { File.Delete(tempFile); } catch { }
+                }
+            }
+        }
+
+        [Fact]
+        public void IfcStoreCache_HighLevelApis_DirectlyReturnSolidsAndGeometry()
+        {
+            string tempFile = Path.Combine(Path.GetTempPath(), $"test_highlevel_{Guid.NewGuid():N}.ifc");
+            File.WriteAllText(tempFile, MinimalIfcBoxStep);
+
+            try
+            {
+                using (var model = IfcStoreCache.Open(tempFile))
+                {
+                    string wallGuid = "0000000000000000000002";
+
+                    // 1. GetSolid directly returns GeoSolid3 without touching xBIM
+                    GeoSolid3 solid = model.GetSolid(wallGuid);
+                    Assert.NotNull(solid);
+                    Assert.Equal(6, solid.Faces.Count);
+                    Assert.Equal(1.0, solid.Volume, 2);
+
+                    // 2. GetSolids returns collection
+                    var solids = model.GetSolids(wallGuid);
+                    Assert.Single(solids);
+
+                    // 3. GetGeometry returns IfcProductGeometry with clean properties
+                    IfcProductGeometry geom = model.GetGeometry(wallGuid);
+                    Assert.NotNull(geom);
+                    Assert.Equal(wallGuid, geom.GlobalId);
+                    Assert.Equal("TestWall", geom.Name);
+                    Assert.Equal("IfcWall", geom.IfcType);
+                    Assert.True(geom.HasSolids);
+                    Assert.False(geom.IsEmpty);
+                    Assert.Single(geom.Solids);
+
+                    // 4. GetSolidsByType works with and without 'Ifc' prefix
+                    var byType1 = model.GetSolidsByType("IfcWall");
+                    Assert.Single(byType1);
+
+                    var byType2 = model.GetSolidsByType("Wall");
+                    Assert.Single(byType2);
+
+                    // 5. GetAllSolids
+                    var allSolids = model.GetAllSolids();
+                    Assert.Single(allSolids);
+
+                    // 6. EnumerateGeometries & EnumerateSolids
+                    Assert.Single(model.EnumerateGeometries());
+                    Assert.Single(model.EnumerateSolids());
+
+                    // 7. Product Catalog
+                    var catalog = model.GetProductCatalog();
+                    Assert.Single(catalog);
+                    Assert.Equal("IfcWall", catalog[0].IfcType);
+                    Assert.Equal("TestWall", catalog[0].Name);
                 }
             }
             finally

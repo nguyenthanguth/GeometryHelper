@@ -57,6 +57,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="TestFiles\**\*.ifc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\..\Libraries\GeometryHelper.IfcConvert\Lib\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>%(FileName)%(Extension)</Link>

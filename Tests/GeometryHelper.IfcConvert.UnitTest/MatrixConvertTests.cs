@@ -1,5 +1,5 @@
-using System;
-using GeometryHelper.IfcConvert.Converters;
+﻿using System;
+using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.SolidGeometry.Geometry;
 using Xbim.Common.Geometry;
 using Xunit;

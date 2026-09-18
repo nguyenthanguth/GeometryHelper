@@ -1,4 +1,11 @@
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- NuGet lets .NET Core / .NET 5+ projects install this net48 package (AssetTargetFallback, warning NU1701),
+       but the native xBIM engine would then fail at run time. Stop the build with a clear message instead. -->
+  <Target Name="GeometryHelperIfcConvertCheckFramework" BeforeTargets="ResolveAssemblyReferences"
+          Condition="'$(TargetFrameworkIdentifier)' != '' And '$(TargetFrameworkIdentifier)' != '.NETFramework'">
+    <Error Text="GeometryHelper.IfcConvert requires .NET Framework 4.8 (x64). Its xBIM geometry engine is C++/CLI for .NET Framework and cannot run on $(TargetFrameworkIdentifier) $(TargetFrameworkVersion)." />
+  </Target>
 
   <!-- Ensure native xBIM C++ OpenCascade engine DLLs are copied to consumer output directory -->
   <ItemGroup Condition="'$(PlatformTarget)' == 'x64' Or '$(Platform)' == 'x64' Or ('$(PlatformTarget)' != 'x86' And '$(Platform)' != 'x86')">

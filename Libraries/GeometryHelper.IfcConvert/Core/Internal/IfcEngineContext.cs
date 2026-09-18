@@ -1,15 +1,15 @@
-using System;
+﻿using System;
 using Xbim.Common.Geometry;
 using Xbim.Geometry.Engine.Interop;
 using Xbim.Ifc4.Interfaces;
 
-namespace GeometryHelper.IfcConvert.Core
+namespace GeometryHelper.IfcConvert.Core.Internal
 {
     /// <summary>
     /// Manages the lifecycle of xBIM geometry engines.
     /// Uses thread-local instances to ensure thread-safety when converting geometry concurrently.
     /// </summary>
-    public static class IfcEngineContext
+    internal static class IfcEngineContext
     {
         [ThreadStatic]
         private static IXbimGeometryEngine _threadEngine;
@@ -17,7 +17,7 @@ namespace GeometryHelper.IfcConvert.Core
         /// <summary>
         /// Gets an <see cref="IXbimGeometryEngine"/> instance dedicated to the calling thread.
         /// </summary>
-        public static IXbimGeometryEngine CurrentEngine
+        internal static IXbimGeometryEngine CurrentEngine
         {
             get
             {

@@ -17,6 +17,7 @@
     <Project Path="Tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj" />
   </Folder>
   <Folder Name="/Samples/">
+    <Project Path="Samples/GeometryConsoleTest/GeometryConsoleTest.csproj" Id="ce90d08f-2fb4-4504-985a-dfbda2ec6d49" />
     <Project Path="Samples/GeometryHelper.ArrangeAlgorithms.CadTest/GeometryHelper.ArrangeAlgorithms.CadTest.csproj" />
     <Project Path="Samples/GeometryHelper.ArrangeAlgorithms.TeklaTest/GeometryHelper.ArrangeAlgorithms.TeklaTest.csproj" Id="39dca74c-af65-4caa-96c6-716e221631ca" />
   </Folder>

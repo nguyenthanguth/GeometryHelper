@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using GeometryHelper.SolidGeometry.Geometry;
 using Xbim.Common.Geometry;
 using Xbim.Ifc.Extensions;
 using Xbim.Ifc4.Interfaces;
 
-namespace GeometryHelper.IfcConvert.Converters
+namespace GeometryHelper.IfcConvert.Converters.Internal
 {
     /// <summary>
     /// Converts transformation matrices between xBIM and GeometryHelper.SolidGeometry.
@@ -15,7 +15,7 @@ namespace GeometryHelper.IfcConvert.Converters
     /// coordinates match exactly.
     /// </para>
     /// </summary>
-    public static class MatrixConvert
+    internal static class MatrixConvert
     {
         /// <summary>
         /// Converts an <see cref="XbimMatrix3D"/> to a <see cref="GeoTransform3"/>, with an optional coordinate scale factor.

@@ -1,15 +1,15 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.SolidGeometry.Geometry;
 using Xbim.Common.Geometry;
 
-namespace GeometryHelper.IfcConvert.Converters
+namespace GeometryHelper.IfcConvert.Converters.Internal
 {
     /// <summary>
     /// Converts points and vectors between xBIM and GeometryHelper.SolidGeometry.
     /// </summary>
-    public static class PointConvert
+    internal static class PointConvert
     {
         /// <summary>
         /// Converts an xBIM 3D point to a <see cref="GeoPoint3"/>, with an optional coordinate scale factor.

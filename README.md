@@ -64,7 +64,7 @@ both sees one `Tolerance` and one `Angle` rather than two of each.
 | `Libraries/GeometryHelper.ArrangeAlgorithms` | Label placement algorithms | netstandard2.0 |
 | `Libraries/GeometryHelper.TeklaConvert` | Tekla Structures bridge | netstandard2.0 |
 | `Libraries/GeometryHelper.CadConvert` | AutoCAD bridge | netstandard2.0 |
-| `Libraries/GeometryHelper.IfcConvert` | IFC (xBIM) bridge | netstandard2.0 |
+| `Libraries/GeometryHelper.IfcConvert` | IFC (xBIM) bridge | net48 |
 | `Tests/GeometryHelper.CommonGeometry.UnitTest` | xUnit | net48 |
 | `Tests/GeometryHelper.PlaneGeometry.UnitTest` | xUnit | net48 |
 | `Tests/GeometryHelper.SolidGeometry.UnitTest` | xUnit | net48 |
