@@ -101,6 +101,20 @@ namespace GeometryHelper.IfcConvert.UnitTest
         }
 
         [Fact]
+        public void OpeningFallback_WithOnlyNamesOfTheHost_StillCutsTheOpening()
+        {
+            IfcTestFile.Run(WallWithMappedOpening, model =>
+            {
+                // The fallback converts the opening as a product of its own; the host's list must not leave it out.
+                var options = new IfcConvertOptions { ApplyVoids = true, OnlyNames = { "Wall" } };
+                var geom = model.GetGeometry(Guid, options);
+                Assert.Contains(geom.Warnings, w => w.Contains("fallback"));
+                Assert.DoesNotContain(geom.Warnings, w => w.Contains("no solid to cut with"));
+                Assert.Equal(1.0 - 0.4 * 0.5 * 1.0, geom.TotalVolume, 3);
+            });
+        }
+
+        [Fact]
         public void OpeningFallback_IsReported_AndCutStillApplied()
         {
             IfcTestFile.Run(WallWithMappedOpening, model =>

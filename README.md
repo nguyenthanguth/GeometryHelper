@@ -14,7 +14,7 @@ Tekla version.
 
 | Package | What it is | NuGet |
 |---|---|---|
-| [GeometryHelper.CommonGeometry](Libraries/GeometryHelper.CommonGeometry/README.md) | `Tolerance`, `Angle`, `PointLocation`, `PlaneSide` — the types both geometry libraries need | [![v](https://img.shields.io/nuget/v/GeometryHelper.CommonGeometry.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.CommonGeometry/) |
+| [GeometryHelper.CommonGeometry](Libraries/GeometryHelper.CommonGeometry/README.md) | `Tolerance`, `Angle`, `PointLocation`, `PlaneSide` — the types both geometry libraries need — and `GeometryHelperLog`, where the libraries report what they skipped | [![v](https://img.shields.io/nuget/v/GeometryHelper.CommonGeometry.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.CommonGeometry/) |
 | [GeometryHelper.PlaneGeometry](Libraries/GeometryHelper.PlaneGeometry/README.md) | 2D: points to polygons, with distance, containment, intersection, splitting | [![v](https://img.shields.io/nuget/v/GeometryHelper.PlaneGeometry.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.PlaneGeometry/) |
 | [GeometryHelper.SolidGeometry](Libraries/GeometryHelper.SolidGeometry/README.md) | 3D: points to solids, plus boolean operations and a BVH for large meshes | [![v](https://img.shields.io/nuget/v/GeometryHelper.SolidGeometry.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.SolidGeometry/) |
 | [GeometryHelper.ArrangeAlgorithms](Libraries/GeometryHelper.ArrangeAlgorithms/README.md) | 2D label placement: five algorithms that keep labels off each other and off blocked regions | [![v](https://img.shields.io/nuget/v/GeometryHelper.ArrangeAlgorithms.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.ArrangeAlgorithms/) |
@@ -25,7 +25,7 @@ and bundles customized xBIM assemblies and native x64 engines directly in the pa
 
 | Package | What it is | You supply | NuGet |
 |---|---|---|---|
-| [GeometryHelper.TeklaConvert](Libraries/GeometryHelper.TeklaConvert/README.md) | Points, vectors, segments, planes, coordinate systems, bounding boxes, matrices, and the faces and loops of a Tekla solid; one package per Tekla Structures version, `GeometryHelper.TeklaConvert.2020`, `GeometryHelper.TeklaConvert.2025` and `GeometryHelper.TeklaConvert.2026` | `Tekla.Structures.dll`, `Tekla.Structures.Drawing.dll` of that version | [![2020](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2020.svg?style=flat-square&label=2020)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2020/) [![2025](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2025.svg?style=flat-square&label=2025)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2025/) [![2026](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2026.svg?style=flat-square&label=2026)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2026/) |
+| [GeometryHelper.TeklaConvert](Libraries/GeometryHelper.TeklaConvert/README.md) | Points, vectors, segments, planes, coordinate systems, bounding boxes, matrices, and the faces and loops of a Tekla solid, plus the objects of IFC reference models (through GeometryHelper.IfcConvert); one package per Tekla Structures version, `GeometryHelper.TeklaConvert.2020`, `GeometryHelper.TeklaConvert.2025` and `GeometryHelper.TeklaConvert.2026` | `Tekla.Structures.dll`, `Tekla.Structures.Drawing.dll`, `Tekla.Structures.Model.dll` of that version | [![2020](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2020.svg?style=flat-square&label=2020)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2020/) [![2025](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2025.svg?style=flat-square&label=2025)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2025/) [![2026](https://img.shields.io/nuget/v/GeometryHelper.TeklaConvert.2026.svg?style=flat-square&label=2026)](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2026/) |
 | [GeometryHelper.CadConvert](Libraries/GeometryHelper.CadConvert/README.md) | Points, vectors, lines, polylines, polygons, circles and extents, converted both ways with AutoCAD | `acdbmgd.dll` (plugins usually also want `acmgd.dll`, `accoremgd.dll`) | [![v](https://img.shields.io/nuget/v/GeometryHelper.CadConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.CadConvert/) |
 | [GeometryHelper.IfcConvert](Libraries/GeometryHelper.IfcConvert/README.md) | Points, vectors, matrices, faces, and 3D solids, converted from IFC models via xBIM | Bundled (Self-contained) | [![v](https://img.shields.io/nuget/v/GeometryHelper.IfcConvert.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper.IfcConvert/) |
 
@@ -36,9 +36,9 @@ GeometryHelper.CommonGeometry
    ├── GeometryHelper.PlaneGeometry ── GeometryHelper.ArrangeAlgorithms
    └── GeometryHelper.SolidGeometry
 
-GeometryHelper.TeklaConvert ── Tekla Structures
-GeometryHelper.CadConvert   ── AutoCAD
 GeometryHelper.IfcConvert   ── IFC (xBIM)
+   └── GeometryHelper.TeklaConvert ── Tekla Structures
+GeometryHelper.CadConvert   ── AutoCAD
 ```
 
 One direction, no cycles. `GeometryHelper.PlaneGeometry` and `GeometryHelper.SolidGeometry` do not know
@@ -51,7 +51,7 @@ both sees one `Tolerance` and one `Angle` rather than two of each.
 - Geometry in the plane and nothing else → **GeometryHelper.PlaneGeometry**.
 - Geometry in space → **GeometryHelper.SolidGeometry**.
 - Only `Tolerance` and `Angle`, to sit between your own libraries → **GeometryHelper.CommonGeometry**.
-- Reading solids and drawing coordinates out of a Tekla model → **GeometryHelper.TeklaConvert.2020**, **GeometryHelper.TeklaConvert.2025** or **GeometryHelper.TeklaConvert.2026**, whichever matches your Tekla, plus the two Tekla assemblies you reference yourself.
+- Reading solids and drawing coordinates out of a Tekla model, the objects of its IFC reference models included → **GeometryHelper.TeklaConvert.2020**, **GeometryHelper.TeklaConvert.2025** or **GeometryHelper.TeklaConvert.2026**, whichever matches your Tekla, plus the three Tekla assemblies you reference yourself.
 - Reading and writing AutoCAD drawing geometry → **GeometryHelper.CadConvert**, plus the AutoCAD assemblies you reference yourself.
 - Reading solids, faces, and geometry from an IFC model → **GeometryHelper.IfcConvert** (bundles all required xBIM assemblies and native x64 engine).
 

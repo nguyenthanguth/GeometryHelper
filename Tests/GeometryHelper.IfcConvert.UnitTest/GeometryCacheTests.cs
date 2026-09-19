@@ -154,15 +154,16 @@ END-ISO-10303-21;
         public void GetCacheKey_DifferentOptions_ProducesDifferentKeys()
         {
             var defaults = new IfcConvertOptions();
-            var withVoids = new IfcConvertOptions { ApplyVoids = true };
+            // Whichever way ApplyVoids defaults, the other setting must be told apart from it.
+            var otherVoids = new IfcConvertOptions { ApplyVoids = !defaults.ApplyVoids };
             var scaled = new IfcConvertOptions { ScaleFactor = 1000.0 };
             var local = new IfcConvertOptions { CoordinateSpace = CoordinateSpace.Local };
 
             // All must be distinct
-            Assert.NotEqual(defaults.GetCacheKey(), withVoids.GetCacheKey());
+            Assert.NotEqual(defaults.GetCacheKey(), otherVoids.GetCacheKey());
             Assert.NotEqual(defaults.GetCacheKey(), scaled.GetCacheKey());
             Assert.NotEqual(defaults.GetCacheKey(), local.GetCacheKey());
-            Assert.NotEqual(withVoids.GetCacheKey(), scaled.GetCacheKey());
+            Assert.NotEqual(otherVoids.GetCacheKey(), scaled.GetCacheKey());
         }
 
         [Fact]
@@ -181,6 +182,28 @@ END-ISO-10303-21;
 
             // Must be the same regardless of insertion order (sorted internally)
             Assert.Equal(opts1.GetCacheKey(), opts2.GetCacheKey());
+        }
+
+        [Fact]
+        [Trait("Category", "Options")]
+        public void GetCacheKey_OnlyNames_OrderAndCaseInsensitive()
+        {
+            var opts1 = new IfcConvertOptions { OnlyNames = { "PLATE", "beam", "Column*" } };
+            var opts2 = new IfcConvertOptions { OnlyNames = { "column*", "Plate", "BEAM" } };
+
+            // Matching ignores order and case, so these read the same products and may share cached geometry.
+            Assert.Equal(opts1.GetCacheKey(), opts2.GetCacheKey());
+            Assert.NotEqual(new IfcConvertOptions().GetCacheKey(), opts1.GetCacheKey());
+        }
+
+        [Fact]
+        [Trait("Category", "Options")]
+        public void GetCacheKey_SkipNamesAndOnlyNames_AreKeptApart()
+        {
+            // Skipping "A" and keeping only "A" give opposite results; so do lists that differ only in how they split.
+            Assert.NotEqual(new IfcConvertOptions { SkipNames = { "A" } }.GetCacheKey(), new IfcConvertOptions { OnlyNames = { "A" } }.GetCacheKey());
+            Assert.NotEqual(new IfcConvertOptions { OnlyNames = { "A,B" } }.GetCacheKey(), new IfcConvertOptions { OnlyNames = { "A", "B" } }.GetCacheKey());
+            Assert.NotEqual(new IfcConvertOptions { SkipNames = { "A,B" } }.GetCacheKey(), new IfcConvertOptions { SkipNames = { "A", "B" } }.GetCacheKey());
         }
 
         [Fact]

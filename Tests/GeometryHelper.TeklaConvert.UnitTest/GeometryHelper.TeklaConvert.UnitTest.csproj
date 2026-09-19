@@ -31,6 +31,12 @@
          Tekla.Structures.Drawing added here, because the library keeps that one Private=False and so does
          not copy it out.
 
+         Tekla.Structures.Model is here for its types alone, such as the colours of GeometryDraw. None of its
+         objects can be used without a running Tekla: not a reference model, not a control polycurve, and not
+         even a TransformationPlane, whose constructor already goes through Tekla's remoting proxy. So the
+         reference model conversions and the drawing are tested through their internal parts, which take plain
+         Tekla geometry.
+
          The assemblies come from the Lib folder of the Tekla version under test (TeklaVersion in
          Directory.Build.props), the same one the library is built against. -->
     <Reference Include="Tekla.Structures">
@@ -39,6 +45,10 @@
     </Reference>
     <Reference Include="Tekla.Structures.Datatype">
       <HintPath>..\..\Libraries\GeometryHelper.TeklaConvert\Lib$(TeklaVersion)\Tekla.Structures.Datatype.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Tekla.Structures.Model">
+      <HintPath>..\..\Libraries\GeometryHelper.TeklaConvert\Lib$(TeklaVersion)\Tekla.Structures.Model.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper.CommonGeometry;
 
 namespace GeometryHelper.IfcConvert.Core
@@ -48,8 +49,11 @@ namespace GeometryHelper.IfcConvert.Core
         public double DeflectionTolerance { get; set; } = 0.0;
 
         /// <summary>
-        /// Gets or sets whether to subtract voids and openings (IfcRelVoidsElement / IfcOpeningElement) from the host element.
-        /// Defaults to <c>false</c>.
+        /// Gets or sets whether to subtract voids and openings (IfcRelVoidsElement / IfcOpeningElement) from the host element,
+        /// so that a wall comes back with its window openings and a plate with its bolt holes and cuts, as a viewer shows them.
+        /// Defaults to <c>false</c>, for speed: every opening costs a boolean operation (on a Tekla steel model, 500 beams took
+        /// 29 s with openings cut and 1.5 s without), and cut bodies can come back not closed. Set it to <c>true</c> when the
+        /// openings matter.
         /// </summary>
         public bool ApplyVoids { get; set; } = false;
 
@@ -74,47 +78,112 @@ namespace GeometryHelper.IfcConvert.Core
         /// <summary>
         /// Gets the set of product names or wildcard patterns to skip during conversion.
         /// Case-insensitive. Supports '*' wildcard (e.g. "W*" matches "W1", "W2").
+        /// See <see cref="OnlyNames"/> for the opposite: converting only the products named.
+        /// <see cref="AddSkipNames(string[])"/> adds names trimmed and without blanks.
         /// </summary>
         public HashSet<string> SkipNames { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// Creates a default conversion options instance.
+        /// Gets the set of product names or wildcard patterns to convert exclusively. When it holds a pattern, a product
+        /// whose name matches none of them comes back empty, as a skipped one does. Empty, the default, converts every
+        /// product. <see cref="AddOnlyNames(string[])"/> adds names trimmed and without blanks.
+        /// <para>
+        /// Matching works as for <see cref="SkipNames"/>: case-insensitive, with the '*' wildcard ("B*" matches "BEAM"
+        /// and "Bolt assembly"). A product with no name matches only "*". <see cref="SkipNames"/> still applies, so a
+        /// name matching both is skipped.
+        /// </para>
+        /// <para>
+        /// The name is checked before any geometry is built, so products left out cost next to nothing. Reading every
+        /// product of a 115 MB Tekla steel model took about 17 minutes, 96 % of it on 5,512 bolts; keeping only the
+        /// main members ("BEAM", "GIRDER", "PRD_COLUMN", "COLUMN") took 3.5 s.
+        /// </para>
+        /// <para>
+        /// Like <see cref="SkipNames"/>, it also applies to the parts an assembly aggregates
+        /// (<see cref="IncludeAggregatedParts"/>): list the names of the parts wanted as well as the assembly's. It never
+        /// applies to the openings that cut a product (<see cref="ApplyVoids"/>).
+        /// </para>
+        /// </summary>
+        public HashSet<string> OnlyNames { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Creates a default conversion options instance. Set the other options through their properties, and add
+        /// names with <see cref="AddSkipNames(string[])"/> and <see cref="AddOnlyNames(string[])"/>.
         /// </summary>
         public IfcConvertOptions()
         {
         }
 
         /// <summary>
-        /// Creates conversion options with specified skip patterns and tolerance.
+        /// Adds product names or wildcard patterns to <see cref="SkipNames"/>. Blank entries are ignored and the others
+        /// trimmed, so names read from a settings file or a text box can be passed as they are.
         /// </summary>
-        /// <param name="skipNames">Sequence of product names or patterns to skip.</param>
-        /// <param name="tolerance">Geometric tolerance (optional).</param>
-        public IfcConvertOptions(IEnumerable<string> skipNames, Tolerance? tolerance = null)
+        /// <param name="names">The names or patterns; null adds none.</param>
+        /// <returns>These options, so that calls can be chained.</returns>
+        public IfcConvertOptions AddSkipNames(params string[] names)
         {
-            if (skipNames != null)
+            return AddSkipNames((IEnumerable<string>)names);
+        }
+
+        /// <summary>
+        /// Adds product names or wildcard patterns to <see cref="SkipNames"/>. Blank entries are ignored and the others
+        /// trimmed, so names read from a settings file or a text box can be passed as they are.
+        /// </summary>
+        /// <param name="names">The names or patterns; null adds none.</param>
+        /// <returns>These options, so that calls can be chained.</returns>
+        public IfcConvertOptions AddSkipNames(IEnumerable<string> names)
+        {
+            AddNames(SkipNames, names);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds product names or wildcard patterns to <see cref="OnlyNames"/>. Blank entries are ignored and the others
+        /// trimmed, so names read from a settings file or a text box can be passed as they are.
+        /// </summary>
+        /// <param name="names">The names or patterns; null adds none.</param>
+        /// <returns>These options, so that calls can be chained.</returns>
+        public IfcConvertOptions AddOnlyNames(params string[] names)
+        {
+            return AddOnlyNames((IEnumerable<string>)names);
+        }
+
+        /// <summary>
+        /// Adds product names or wildcard patterns to <see cref="OnlyNames"/>. Blank entries are ignored and the others
+        /// trimmed, so names read from a settings file or a text box can be passed as they are.
+        /// </summary>
+        /// <param name="names">The names or patterns; null adds none.</param>
+        /// <returns>These options, so that calls can be chained.</returns>
+        public IfcConvertOptions AddOnlyNames(IEnumerable<string> names)
+        {
+            AddNames(OnlyNames, names);
+            return this;
+        }
+
+        private static void AddNames(HashSet<string> target, IEnumerable<string> names)
+        {
+            if (names == null)
             {
-                foreach (string name in skipNames)
-                {
-                    if (!string.IsNullOrWhiteSpace(name))
-                    {
-                        SkipNames.Add(name.Trim());
-                    }
-                }
+                return;
             }
 
-            if (tolerance.HasValue)
+            foreach (string name in names)
             {
-                Tolerance = tolerance.Value;
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    target.Add(name.Trim());
+                }
             }
         }
 
         /// <summary>
-        /// Creates a copy of these options, including the <see cref="SkipNames"/> patterns.
+        /// Creates a copy of these options, including the <see cref="SkipNames"/> and <see cref="OnlyNames"/> patterns.
         /// </summary>
-        internal IfcConvertOptions Clone()
+        /// <returns>A new instance that can be changed without affecting this one.</returns>
+        public IfcConvertOptions Clone()
         {
-            IfcConvertOptions copy = new IfcConvertOptions(SkipNames, Tolerance)
+            IfcConvertOptions copy = new IfcConvertOptions
             {
+                Tolerance = Tolerance,
                 ScaleFactor = ScaleFactor,
                 CoordinateSpace = CoordinateSpace,
                 TargetUnit = TargetUnit,
@@ -125,6 +194,10 @@ namespace GeometryHelper.IfcConvert.Core
                 IncludeAggregatedParts = IncludeAggregatedParts
             };
 
+            // Copied as they are rather than through AddSkipNames / AddOnlyNames, which trim: the copy must match what
+            // this matches.
+            copy.SkipNames.UnionWith(SkipNames);
+            copy.OnlyNames.UnionWith(OnlyNames);
             return copy;
         }
 
@@ -134,12 +207,15 @@ namespace GeometryHelper.IfcConvert.Core
         /// </summary>
         internal string GetCacheKey()
         {
-            // Encode all fields that can change the shape/position of converted geometry
-            string skipKey = SkipNames.Count > 0
-                ? string.Join(",", System.Linq.Enumerable.OrderBy(SkipNames, s => s))
-                : string.Empty;
+            // Encode all fields that can change the shape/position of converted geometry. The name lists are kept apart
+            // by a character no name holds, so that skipping "A" and keeping only "A" never share cached geometry.
+            return $"{ScaleFactor:R}|{(int)CoordinateSpace}|{(int)TargetUnit}|{ApplyVoids}|{TessellateNonPlanarFaces}|{DeflectionTolerance:R}|{Tolerance.EqualPoint:R}|{Tolerance.EqualVector:R}|{Tolerance.EqualAngleRad:R}|{Tolerance.EqualPlanar:R}|{IncludeAggregatedParts}|{NamesKey(SkipNames)}\u001E{NamesKey(OnlyNames)}";
+        }
 
-            return $"{ScaleFactor:R}|{(int)CoordinateSpace}|{(int)TargetUnit}|{ApplyVoids}|{TessellateNonPlanarFaces}|{DeflectionTolerance:R}|{Tolerance.EqualPoint:R}|{Tolerance.EqualVector:R}|{Tolerance.EqualAngleRad:R}|{Tolerance.EqualPlanar:R}|{IncludeAggregatedParts}|{skipKey}";
+        // Sorted and in one case, since matching ignores both order and case; joined by a character names do not hold.
+        private static string NamesKey(HashSet<string> names)
+        {
+            return string.Join("\u001F", names.Select(n => n.ToUpperInvariant()).OrderBy(n => n, StringComparer.Ordinal));
         }
     }
 }

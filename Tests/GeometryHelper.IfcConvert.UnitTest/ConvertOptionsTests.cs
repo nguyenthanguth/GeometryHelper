@@ -109,6 +109,112 @@ END-ISO-10303-21;
         }
 
         [Fact]
+        [Trait("Category", "OnlyNames")]
+        public void OnlyNames_NameNotListed_ReturnsEmptyGeometry()
+        {
+            RunTwoWalls(cache =>
+            {
+                var options = new IfcConvertOptions();
+                options.OnlyNames.Add("Wall_B");
+
+                Assert.True(cache.GetGeometry(WallAGuid, options).IsEmpty, "A product not named should produce empty geometry");
+                Assert.NotEmpty(cache.GetGeometry(WallBGuid, options).Solids);
+            });
+        }
+
+        [Fact]
+        [Trait("Category", "OnlyNames")]
+        public void OnlyNames_WildcardIgnoringCase_KeepsTheProductsItMatches()
+        {
+            RunTwoWalls(cache =>
+            {
+                var options = new IfcConvertOptions { OnlyNames = { "wall_*" } };
+
+                Assert.NotEmpty(cache.GetGeometry(WallAGuid, options).Solids);
+                Assert.NotEmpty(cache.GetGeometry(WallBGuid, options).Solids);
+            });
+        }
+
+        [Fact]
+        [Trait("Category", "OnlyNames")]
+        public void OnlyNames_ThroughAddOnlyNames_KeepsTheProductsNamed()
+        {
+            RunTwoWalls(cache =>
+            {
+                // As read from a settings file: spaces around the name.
+                var options = new IfcConvertOptions().AddOnlyNames(" Wall_B ");
+
+                Assert.True(cache.GetGeometry(WallAGuid, options).IsEmpty);
+                Assert.NotEmpty(cache.GetGeometry(WallBGuid, options).Solids);
+            });
+        }
+
+        [Fact]
+        [Trait("Category", "OnlyNames")]
+        public void OnlyNames_AndSkipNames_SkipWins()
+        {
+            RunTwoWalls(cache =>
+            {
+                var options = new IfcConvertOptions { OnlyNames = { "Wall_*" }, SkipNames = { "Wall_A" } };
+
+                Assert.True(cache.GetGeometry(WallAGuid, options).IsEmpty);
+                Assert.NotEmpty(cache.GetGeometry(WallBGuid, options).Solids);
+            });
+        }
+
+        [Fact]
+        [Trait("Category", "OnlyNames")]
+        public void OnlyNames_ModelWideAndCached_EachListGetsItsOwnGeometry()
+        {
+            RunTwoWalls(cache =>
+            {
+                // The same product read with two lists: the cache must not hand one list's result to the other.
+                Assert.True(cache.GetGeometry(WallAGuid, new IfcConvertOptions { OnlyNames = { "Wall_B" } }).IsEmpty);
+                Assert.NotEmpty(cache.GetGeometry(WallAGuid, new IfcConvertOptions { OnlyNames = { "Wall_A" } }).Solids);
+                Assert.True(cache.GetGeometry(WallAGuid, new IfcConvertOptions { SkipNames = { "Wall_A" } }).IsEmpty);
+
+                // Model-wide, every product is still visited, and those not named come back empty.
+                var byGuid = cache.EnumerateGeometries(new IfcConvertOptions { OnlyNames = { "Wall_B" } }).ToDictionary(g => g.GlobalId);
+                Assert.True(byGuid[WallAGuid].IsEmpty);
+                Assert.NotEmpty(byGuid[WallBGuid].Solids);
+            });
+        }
+
+        [Theory]
+        [Trait("Category", "OnlyNames")]
+        [InlineData("Bolt assembly", new string[0], true)]
+        [InlineData("Bolt assembly", null, true)]
+        [InlineData("Bolt assembly", new[] { "BEAM", "PLATE" }, false)]
+        [InlineData("PLATE", new[] { "BEAM", "PLATE" }, true)]
+        [InlineData("plate", new[] { "BEAM", "PLATE" }, true)]
+        [InlineData("GWPPLATE", new[] { "*PLATE" }, true)]
+        [InlineData("GWPPLATE", new[] { "PLATE" }, false)]
+        [InlineData(null, new[] { "BEAM" }, false)]
+        [InlineData("", new[] { "BEAM" }, false)]
+        [InlineData(null, new[] { "*" }, true)]
+        [InlineData("", new[] { "*" }, true)]
+        public void IsNameIncluded_MatchesLikeSkipNames(string name, string[] onlyNames, bool expected)
+        {
+            Assert.Equal(expected, ProductConvert.IsNameIncluded(name, onlyNames));
+        }
+
+        private static void RunTwoWalls(Action<IfcStoreCache> test)
+        {
+            string tempFile = Path.Combine(Path.GetTempPath(), $"only_{Guid.NewGuid():N}.ifc");
+            File.WriteAllText(tempFile, TwoWallsStep);
+
+            try
+            {
+                using (var store = IfcStore.Open(tempFile))
+                using (var cache = new IfcStoreCache(store))
+                {
+                    test(cache);
+                }
+            }
+            finally { TryDelete(tempFile); }
+        }
+
+        [Fact]
         [Trait("Category", "CoordinateSpace")]
         public void CoordinateSpace_Global_AppliesPlacementTranslation()
         {

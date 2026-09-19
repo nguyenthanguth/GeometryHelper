@@ -84,8 +84,33 @@ namespace GeometryHelper.IfcConvert.UnitTest
         {
             IfcTestFile.Run(WallWithRelativeOpening, model =>
             {
-                var options = new IfcConvertOptions(new[] { "Wall" }) { TargetUnit = LengthUnit.Millimeters };
+                var options = new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters }.AddSkipNames("Wall");
                 Assert.True(model.GetGeometry("0000000000000000000002", options).IsEmpty);
+            });
+        }
+
+        [Fact]
+        public void TargetUnit_KeepsOnlyNames()
+        {
+            IfcTestFile.Run(WallWithRelativeOpening, model =>
+            {
+                // Resolving the unit copies the options; the copy must keep the list.
+                var others = new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters, OnlyNames = { "Column*" } };
+                Assert.True(model.GetGeometry("0000000000000000000002", others).IsEmpty);
+
+                var walls = new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters, OnlyNames = { "Wall" } };
+                Assert.Equal(1e9, model.GetGeometry("0000000000000000000002", walls).TotalVolume, 0);
+            });
+        }
+
+        [Fact]
+        public void ApplyVoids_OnlyNamesOfTheHost_StillCutsItsOpening()
+        {
+            IfcTestFile.Run(WallWithRelativeOpening, model =>
+            {
+                // The opening is named "Opening"; the list names products to read, not the openings cutting them.
+                var options = new IfcConvertOptions { ApplyVoids = true, OnlyNames = { "Wall" } };
+                Assert.Equal(0.85, model.GetGeometry("0000000000000000000002", options).TotalVolume, 3);
             });
         }
     }

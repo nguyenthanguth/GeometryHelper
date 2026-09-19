@@ -20,8 +20,8 @@
     <PackageId>GeometryHelper.TeklaConvert.$(TeklaVersion)</PackageId>
     <AssemblyVersion>$(GeometryHelperVersion).$(TeklaVersion)</AssemblyVersion>
     <FileVersion>$(GeometryHelperVersion).$(TeklaVersion)</FileVersion>
-    <Description>Converts geometry between Tekla Structures $(TeklaVersion) and GeometryHelper (GeometryHelper.CommonGeometry, GeometryHelper.PlaneGeometry, and GeometryHelper.SolidGeometry): points, vectors, segments, planes, coordinate systems, bounding boxes, transformation matrices, and the faces and loops of a Tekla solid. Built for Tekla Structures $(TeklaVersion); install the package whose year matches your Tekla.</Description>
-    <PackageTags>tekla tekla$(TeklaVersion) bim geometry 3d solid interop conversion</PackageTags>
+    <Description>Converts geometry between Tekla Structures $(TeklaVersion) and GeometryHelper (GeometryHelper.CommonGeometry, GeometryHelper.PlaneGeometry, and GeometryHelper.SolidGeometry): points, vectors, segments, planes, coordinate systems, bounding boxes, transformation matrices, and the faces and loops of a Tekla solid. Also reads the objects of IFC reference models into solids placed where Tekla shows them, through GeometryHelper.IfcConvert. Built for Tekla Structures $(TeklaVersion); install the package whose year matches your Tekla.</Description>
+    <PackageTags>tekla tekla$(TeklaVersion) bim ifc geometry 3d solid interop conversion</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
@@ -36,11 +36,35 @@
         GeometryHelper.TeklaConvert.2026. It replaces the former GeometryHelper.TeklaConvert package, which
         was built against 2020 only.
 
-      REQUIRES TWO ASSEMBLIES YOU MUST SUPPLY
-      - Tekla.Structures.dll and Tekla.Structures.Drawing.dll are not redistributed here, because they
-        are Trimble's to ship rather than ours. Reference them yourself, either from the bin folder of
-        your Tekla Structures installation or from Trimble's own Tekla.Structures and
-        Tekla.Structures.Drawing packages on nuget.org. Without them the compiler reports CS0012.
+      REQUIRES THREE ASSEMBLIES YOU MUST SUPPLY
+      - Tekla.Structures.dll, Tekla.Structures.Drawing.dll and Tekla.Structures.Model.dll are not
+        redistributed here, because they are Trimble's to ship rather than ours. Reference them yourself,
+        either from the bin folder of your Tekla Structures installation or from Trimble's own
+        Tekla.Structures, Tekla.Structures.Drawing and Tekla.Structures.Model packages on nuget.org.
+        Without them the compiler reports CS0012.
+
+      IFC REFERENCE MODELS
+      - ReferenceModelObjectConvert.ToGeoSolids / ToIfcGeometries read the selected objects of IFC
+        reference models, and ReferenceModelConvert.ToGeoSolids / ToIfcGeometries every physical product
+        of a reference model, in the current work plane: the IFC file is read in millimetres at the
+        reference model's scale and placed where the reference model was inserted.
+      - ToIfcGeometries returns each IFC product whole (IfcProductGeometry): bodies, open surfaces,
+        placement, GlobalId, name, type and conversion warnings.
+      - Bolts make a whole Tekla model slow to read. IfcConvertOptions.SkipNames and OnlyNames choose the
+        products by name before any geometry is built: a 115 MB steel model read in 35 s without its bolts
+        and in 3.5 s for its main members, against about 17 minutes for every product.
+      - Reference models that are not IFC, files that cannot be read and objects that cannot be converted
+        are left out rather than thrown on, and written to GeometryHelperLog (GeometryHelper.CommonGeometry).
+        Each IFC file is parsed once per process and then cached.
+      - These read IFC through GeometryHelper.IfcConvert, which this package depends on. They run on
+        .NET Framework 4.8 x64, and Xbim.Geometry.Engine64.dll, which the build copies next to your
+        plugin, has to ship with it.
+
+      DRAWING IN THE MODEL VIEW
+      - GeometryDraw.DrawToTekla draws polylines, polygons, faces and solids (and DrawPolyline points) as
+        control polycurves in the current work plane. Faces are drawn with their outer boundary in red and
+        their holes in white unless other colours are passed. The polycurves are returned so that Delete()
+        can take them away again. Call Model.CommitChanges() afterwards; the methods do not commit.
 
       READING A SOLID
       - Faces are turned to agree with the normal Tekla gives them, and the body is turned inside out
@@ -63,6 +87,15 @@
   <ItemGroup>
     <ProjectReference Include="..\GeometryHelper.SolidGeometry\GeometryHelper.SolidGeometry.csproj" />
     <ProjectReference Include="..\GeometryHelper.PlaneGeometry\GeometryHelper.PlaneGeometry.csproj" />
+    <!-- IFC reference models (ReferenceModelConvert, ReferenceModelObjectConvert) are read through IfcConvert, so
+         every GeometryHelper.TeklaConvert.{year} package depends on GeometryHelper.IfcConvert. -->
+    <ProjectReference Include="..\GeometryHelper.IfcConvert\GeometryHelper.IfcConvert.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>GeometryHelper.TeklaConvert.UnitTest</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>
@@ -76,6 +109,10 @@
     </Reference>
     <Reference Include="Tekla.Structures.Drawing">
       <HintPath>Lib$(TeklaVersion)\Tekla.Structures.Drawing.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Tekla.Structures.Model">
+      <HintPath>Lib$(TeklaVersion)\Tekla.Structures.Model.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

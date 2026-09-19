@@ -68,6 +68,8 @@ END-ISO-10303-21;
             Assert.Equal(0.0, options.DeflectionTolerance); // automatic: model deflection from xBIM ModelFactors
             Assert.NotNull(options.SkipNames);
             Assert.Empty(options.SkipNames);
+            Assert.NotNull(options.OnlyNames);
+            Assert.Empty(options.OnlyNames);
         }
 
         [Fact]

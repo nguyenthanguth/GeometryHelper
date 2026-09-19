@@ -119,7 +119,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
             WithModel("slab-openings.ifc", model =>
             {
-                double whole = model.GetSolidsByType("IfcSlab").Sum(s => s.Volume);
+                double whole = model.GetSolidsByType("IfcSlab", new IfcConvertOptions { ApplyVoids = false }).Sum(s => s.Volume);
                 var cutGeometry = model.GetGeometriesByType("IfcSlab", new IfcConvertOptions { ApplyVoids = true }).Single();
 
                 Assert.Empty(cutGeometry.Warnings);

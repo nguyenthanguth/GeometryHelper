@@ -83,6 +83,38 @@ Which side of an oriented plane a point lies on: `Above`, `Below`, or `On`. The 
 the plane normal rather than after world up, because a plane carries its own orientation and may
 point anywhere.
 
+## GeometryHelperLog
+
+Where the GeometryHelper libraries report what they left out or could not do. Conversions that walk many
+objects skip what they cannot read rather than throw, so that one bad object does not cost the rest;
+`GeometryHelperLog` says what was skipped and why, which is how an empty or short result gets explained.
+
+```csharp
+using System;
+using System.IO;
+using GeometryHelper.CommonGeometry;
+
+// Messages go to System.Diagnostics.Trace, category "GeometryHelper", unless a writer is set: the Output
+// window of Visual Studio shows them while debugging, and DebugView shows them from a plugin.
+GeometryHelperLog.Writer = (level, message, exception) =>
+    File.AppendAllText(@"C:\Temp\geometryhelper.log",
+                       GeometryHelperLog.Format(level, message, exception) + Environment.NewLine);
+
+GeometryHelperLog.Enable = false;   // nothing is written; true by default
+```
+
+| Method | Level | Used for |
+|---|---|---|
+| `GeometryHelperLog.Debug` | `Debug` | Something skipped for an expected reason: a reference model that is not IFC, a GlobalId the file does not hold |
+| `GeometryHelperLog.Info` | `Info` | The outcome of a call, such as how many products were converted |
+| `GeometryHelperLog.Warn` | `Warn` | Something left out because it failed: a file that cannot be read, a body that cannot be rebuilt |
+| `GeometryHelperLog.Err` | `Err` | A failure the caller should know about |
+
+- Each method takes the message and, optionally, the exception behind it. `GeometryHelperLog.Format` gives the text the
+  default writer uses, for example `WARN The IFC file cannot be read. [IOException: The file is in use.]`.
+- Writing never throws: a writer that fails is ignored, so logging cannot break the work it reports on.
+- `Enable` and `Writer` are shared by the whole process, like `Tolerance.Global`: set them once at start-up.
+
 ## Licence
 
 MIT.

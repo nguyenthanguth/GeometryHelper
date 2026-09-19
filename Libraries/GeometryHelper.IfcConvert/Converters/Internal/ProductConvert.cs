@@ -64,7 +64,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             return result;
         }
 
-        private static bool TryTransformFace(GeoFace3 face, GeoTransform3 transform, Tolerance tolerance, out GeoFace3 result)
+        /// <summary>
+        /// Transforms a face with <paramref name="tolerance"/>, which is already the construction tolerance
+        /// (<see cref="ToleranceExtensions.ForConstruction"/>). False when its boundary degenerates; a hole that
+        /// degenerates is dropped from the face.
+        /// </summary>
+        internal static bool TryTransformFace(GeoFace3 face, GeoTransform3 transform, Tolerance tolerance, out GeoFace3 result)
         {
             result = null;
 
@@ -153,7 +158,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             options = options ?? new IfcConvertOptions();
 
-            if (IsNameSkipped(product.Name?.ToString(), options.SkipNames))
+            // Before any geometry is built, so that the products left out cost nothing.
+            string name = product.Name?.ToString();
+            if (IsNameSkipped(name, options.SkipNames) || !IsNameIncluded(name, options.OnlyNames))
             {
                 return CreateProductGeometry(product, Enumerable.Empty<GeoSolid3>());
             }
@@ -449,11 +456,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             // Openings have their own placement (usually relative to the host), so they are always converted
             // in global coordinates and, for local output, brought back into the host's local frame.
-            // Skip patterns target products the caller asked for, not the openings that cut them.
+            // Name patterns target products the caller asked for, not the openings that cut them.
             IfcConvertOptions openingOptions = options.Clone();
             openingOptions.CoordinateSpace = CoordinateSpace.Global;
             openingOptions.ApplyVoids = false;
             openingOptions.SkipNames.Clear();
+            openingOptions.OnlyNames.Clear();
 
             GeoTransform3 globalToHost = null;
             if (options.CoordinateSpace == CoordinateSpace.Local && !hostPlacement.TryGetInverse(out globalToHost, options.Tolerance))
@@ -582,6 +590,29 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             foreach (string pattern in skipNames)
             {
                 if (MatchesWildcard(productName, pattern))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks whether a product name passes the only-names collection: always when the collection is empty,
+        /// otherwise when the name matches one of its patterns. A product with no name matches only "*".
+        /// </summary>
+        public static bool IsNameIncluded(string productName, ICollection<string> onlyNames)
+        {
+            if (onlyNames == null || onlyNames.Count == 0)
+            {
+                return true;
+            }
+
+            string name = productName ?? string.Empty;
+            foreach (string pattern in onlyNames)
+            {
+                if (MatchesWildcard(name, pattern))
                 {
                     return true;
                 }

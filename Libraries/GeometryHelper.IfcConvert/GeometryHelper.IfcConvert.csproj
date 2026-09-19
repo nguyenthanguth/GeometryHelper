@@ -24,6 +24,9 @@
       - Enhanced IfcStoreCache: thread-safe global caching, path canonicalization, and duplicate GlobalId detection.
       - Added lightweight metadata and property/quantity extraction without full 3D conversion cost.
       - Added IfcConvertOptions filters for non-physical products and aggregated assembly parts.
+      - Added IfcConvertOptions.OnlyNames, the opposite of SkipNames: only products whose names match are converted, and the rest come back empty before any geometry is built. A 115 MB Tekla steel model read in 3.5 s for its main members, against about 17 minutes for every product. AddSkipNames and AddOnlyNames add names, trimmed and without blanks, and can be chained.
+      - Breaking: IfcConvertOptions has a single, parameterless constructor. The constructor taking skip names and a tolerance was removed; use new IfcConvertOptions { Tolerance = ... }.AddSkipNames(...) instead.
+      - Added IfcProductGeometry.TransformBy, which moves converted geometry without losing bodies: it rebuilds faces with the tolerance of the conversion, where GeoSolid3.TransformBy would throw on thin sliver faces.
     </PackageReleaseNotes>
 
     <IsPackable>true</IsPackable>

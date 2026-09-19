@@ -31,6 +31,9 @@
         its own does not say which unit it is in: use FromRadians or FromDegrees.
       - PointLocation and PlaneSide say where a point sits relative to a shape and relative to an
         oriented plane.
+      - GeometryHelperLog (Debug, Info, Warn, Err) is where the GeometryHelper libraries report what they left
+        out or could not do. It writes to System.Diagnostics.Trace unless a Writer is set, can be turned
+        off with Enable, and never throws.
       - This package depends on nothing and knows nothing about either geometry library.
     </PackageReleaseNotes>
 

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using GeometryHelper.CommonGeometry;
+using GeometryHelper.CommonGeometry.Enums;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Models;
 using GeometryHelper.SolidGeometry.Geometry;

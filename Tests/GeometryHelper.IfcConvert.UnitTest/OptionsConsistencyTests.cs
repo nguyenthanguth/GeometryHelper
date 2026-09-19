@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using GeometryHelper.CommonGeometry;
@@ -13,7 +14,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
         // Clone() or GetCacheKey() makes these tests fail.
         private static IfcConvertOptions NonDefaultOptions()
         {
-            var options = new IfcConvertOptions(new[] { "Skip*" });
+            var options = new IfcConvertOptions().AddSkipNames("Skip*").AddOnlyNames("Only*");
             foreach (PropertyInfo property in typeof(IfcConvertOptions).GetProperties().Where(p => p.CanWrite))
             {
                 property.SetValue(options, NonDefaultValue(property.PropertyType, property.GetValue(options)));
@@ -44,6 +45,89 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
             Assert.Equal(original.SkipNames.OrderBy(s => s), copy.SkipNames.OrderBy(s => s));
             Assert.NotSame(original.SkipNames, copy.SkipNames);
+            Assert.Equal(original.OnlyNames.OrderBy(s => s), copy.OnlyNames.OrderBy(s => s));
+            Assert.NotSame(original.OnlyNames, copy.OnlyNames);
+
+            // The copies keep matching without regard to case, as the originals do.
+            Assert.Contains("ONLY*", copy.OnlyNames);
+            Assert.Contains("skip*", copy.SkipNames);
+        }
+
+        [Fact]
+        public void Clone_KeepsTheNamesExactlyAsTheyAre()
+        {
+            // Names added to the sets directly are not trimmed; the copy must match what the original matches.
+            var original = new IfcConvertOptions();
+            original.SkipNames.Add("Bolt assembly ");
+            original.OnlyNames.Add(" BEAM");
+
+            IfcConvertOptions copy = original.Clone();
+
+            Assert.Equal(new[] { "Bolt assembly " }, copy.SkipNames);
+            Assert.Equal(new[] { " BEAM" }, copy.OnlyNames);
+            Assert.Equal(original.GetCacheKey(), copy.GetCacheKey());
+        }
+
+        [Fact]
+        public void OnlyTheParameterlessConstructor_IsPublic()
+        {
+            // Names are added through AddSkipNames / AddOnlyNames and the rest through properties, so that no
+            // constructor argument can be read as the wrong list.
+            ConstructorInfo constructor = Assert.Single(typeof(IfcConvertOptions).GetConstructors());
+            Assert.Empty(constructor.GetParameters());
+        }
+
+        [Fact]
+        public void AddSkipNamesAndAddOnlyNames_TrimIgnoreBlanksAndChain()
+        {
+            var options = new IfcConvertOptions();
+
+            IfcConvertOptions returned = options
+                .AddSkipNames(" Bolt*", "", null)
+                .AddOnlyNames(new List<string> { "BEAM ", "  ", "PLATE" })
+                .AddOnlyNames("GIRDER");
+
+            Assert.Same(options, returned);
+            Assert.Equal(new[] { "Bolt*" }, options.SkipNames);
+            Assert.Equal(new[] { "BEAM", "GIRDER", "PLATE" }, options.OnlyNames.OrderBy(n => n));
+
+            // The sets still match without regard to case.
+            Assert.Contains("bolt*", options.SkipNames);
+            Assert.Contains("beam", options.OnlyNames);
+        }
+
+        [Fact]
+        public void AddNames_WithNothing_AddsNothing()
+        {
+            var options = new IfcConvertOptions()
+                .AddSkipNames((string[])null)
+                .AddSkipNames((IEnumerable<string>)null)
+                .AddOnlyNames()
+                .AddOnlyNames(new List<string>());
+
+            Assert.Empty(options.SkipNames);
+            Assert.Empty(options.OnlyNames);
+            Assert.Equal(new IfcConvertOptions().GetCacheKey(), options.GetCacheKey());
+        }
+
+        [Fact]
+        public void CacheKey_ChangesWithTheNameLists()
+        {
+            string defaultKey = new IfcConvertOptions().GetCacheKey();
+
+            Assert.NotEqual(defaultKey, new IfcConvertOptions { SkipNames = { "Bolt assembly" } }.GetCacheKey());
+            Assert.NotEqual(defaultKey, new IfcConvertOptions { OnlyNames = { "Bolt assembly" } }.GetCacheKey());
+        }
+
+        [Fact]
+        public void Clone_IsPublic()
+        {
+            // GeometryHelper.TeklaConvert copies a caller's options before setting the unit and scale of each
+            // reference model, so the copy has to be reachable from outside this assembly.
+            MethodInfo clone = typeof(IfcConvertOptions).GetMethod(nameof(IfcConvertOptions.Clone), Type.EmptyTypes);
+
+            Assert.NotNull(clone);
+            Assert.True(clone.IsPublic);
         }
 
         [Fact]

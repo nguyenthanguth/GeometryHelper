@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeometryHelper.CommonGeometry;
+using GeometryHelper.IfcConvert.Converters.Internal;
+using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.SolidGeometry.Geometry;
 
 namespace GeometryHelper.IfcConvert.Models
@@ -128,6 +131,75 @@ namespace GeometryHelper.IfcConvert.Models
             }
 
             BoundingBox = box;
+        }
+
+        /// <summary>
+        /// Returns a copy of this geometry carried by a transformation: bodies, open surfaces and placement, with
+        /// the same GlobalId, name, type, tag and warnings. This instance and its bodies are left unchanged.
+        /// <para>
+        /// Use it rather than <see cref="GeoSolid3.TransformBy"/> on each body. Conversion builds faces with a finer
+        /// area threshold than <see cref="Tolerance.Global"/> (EqualPoint squared rather than EqualVector), so the
+        /// thin sliver faces a triangulated or cut body can carry are valid here, while
+        /// <see cref="GeoSolid3.TransformBy"/>, which checks every face against <see cref="Tolerance.Global"/> again,
+        /// throws on the whole body. This method rebuilds the faces with the tolerance of the conversion, and leaves
+        /// out only what the transformation itself collapses, saying so in <see cref="Warnings"/>.
+        /// </para>
+        /// </summary>
+        /// <param name="transform">The transformation, applied after <see cref="Placement"/>.</param>
+        /// <param name="tolerance">
+        /// The tolerance the geometry was converted with, <see cref="IfcConvertOptions.Tolerance"/>. Defaults to
+        /// <see cref="Tolerance.Global"/>, the default of the options.
+        /// </param>
+        /// <returns>The transformed copy.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="transform"/> is null.</exception>
+        public IfcProductGeometry TransformBy(GeoTransform3 transform, Tolerance? tolerance = null)
+        {
+            if (transform == null)
+            {
+                throw new ArgumentNullException(nameof(transform));
+            }
+
+            Tolerance tol = tolerance ?? Tolerance.Global;
+            List<string> warnings = new List<string>(_warnings);
+
+            List<GeoSolid3> solids = new List<GeoSolid3>(_solids.Length);
+            int lostFaces = 0;
+            for (int i = 0; i < _solids.Length; i++)
+            {
+                try
+                {
+                    GeoSolid3 moved = ProductConvert.Transform(_solids[i], transform, tol);
+                    lostFaces += _solids[i].Faces.Count - moved.Faces.Count;
+                    solids.Add(moved);
+                }
+                catch (ArgumentException ex)
+                {
+                    // Fewer than four faces were left to enclose a volume.
+                    warnings.Add($"Solid {i + 1} of {_solids.Length} collapsed under the transformation and was left out: {ex.Message}");
+                }
+            }
+
+            if (lostFaces > 0)
+            {
+                warnings.Add($"{lostFaces} face(s) degenerated under the transformation and were left out.");
+            }
+
+            Tolerance construction = tol.ForConstruction();
+            List<GeoFace3> surfaces = new List<GeoFace3>(_openSurfaces.Length);
+            foreach (GeoFace3 surface in _openSurfaces)
+            {
+                if (ProductConvert.TryTransformFace(surface, transform, construction, out GeoFace3 moved))
+                {
+                    surfaces.Add(moved);
+                }
+            }
+
+            if (surfaces.Count < _openSurfaces.Length)
+            {
+                warnings.Add($"{_openSurfaces.Length - surfaces.Count} open surface(s) degenerated under the transformation and were left out.");
+            }
+
+            return new IfcProductGeometry(GlobalId, Name, IfcType, solids, surfaces, transform * Placement, Tag, warnings);
         }
 
         /// <summary>

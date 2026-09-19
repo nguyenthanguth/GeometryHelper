@@ -8,7 +8,8 @@
 Converts geometry between Tekla Structures and
 [GeometryHelper](https://github.com/nguyenthanguth/GeometryHelper), both ways: points, vectors, line
 segments, geometric planes, coordinate systems, bounding boxes, transformation matrices, and the faces
-and loops of a Tekla solid.
+and loops of a Tekla solid. It also reads the objects of IFC reference models into solids placed where
+Tekla shows them (see [IFC reference models](#ifc-reference-models)).
 
 ## Installation
 
@@ -24,12 +25,15 @@ All three carry the same code, namespaces and `GeometryHelper.TeklaConvert.dll`;
 Open API they are compiled against (see [Which Tekla version](#which-tekla-version)). They replace the former
 `GeometryHelper.TeklaConvert` package, which was built against 2020 only: switching needs no code change.
 
-### You must add two Tekla assemblies yourself
+Each also brings [GeometryHelper.IfcConvert](https://www.nuget.org/packages/GeometryHelper.IfcConvert/) (xBIM,
+about 16 MB), which reads the IFC reference models.
 
-This package does **not** contain `Tekla.Structures.dll` or `Tekla.Structures.Drawing.dll`. They are
-Trimble's to distribute rather than ours, so the package ships only its own code and leaves those two
-references to you. Until you add them, code that touches this library fails to compile with **CS0012:
-the type is defined in an assembly that is not referenced**.
+### You must add three Tekla assemblies yourself
+
+This package does **not** contain `Tekla.Structures.dll`, `Tekla.Structures.Drawing.dll` or
+`Tekla.Structures.Model.dll`. They are Trimble's to distribute rather than ours, so the package ships only
+its own code and leaves those three references to you. Until you add them, code that touches this library
+fails to compile with **CS0012: the type is defined in an assembly that is not referenced**.
 
 Take them from either source:
 
@@ -45,6 +49,10 @@ the same version you run:
   <HintPath>C:\Program Files\Tekla Structures\2026.0\bin\Tekla.Structures.Drawing.dll</HintPath>
   <Private>False</Private>
 </Reference>
+<Reference Include="Tekla.Structures.Model">
+  <HintPath>C:\Program Files\Tekla Structures\2026.0\bin\Tekla.Structures.Model.dll</HintPath>
+  <Private>False</Private>
+</Reference>
 ```
 
 **Or from Trimble's own packages on nuget.org** (published from 2024 onward):
@@ -52,6 +60,7 @@ the same version you run:
 ```bash
 dotnet add package Tekla.Structures
 dotnet add package Tekla.Structures.Drawing
+dotnet add package Tekla.Structures.Model
 ```
 
 Keep `Private`/Copy Local **false**. Tekla loads those assemblies from its own installation at run time,
@@ -119,6 +128,120 @@ if (teklaSolid.TryToGeoSolid3(out GeoSolid3 body, tolerance))
 TSG.Point back = point.ToTeklaPoint();
 TSG.Matrix matrix = transform.ToTeklaMatrix();
 ```
+
+## IFC reference models
+
+`ReferenceModelObjectConvert` and `ReferenceModelConvert` read the objects of IFC reference models into
+`GeoSolid3` bodies, in the **current work plane**, like every other coordinate the Tekla API returns
+(`Part.GetSolid()` included). The IFC file is read through
+[GeometryHelper.IfcConvert](https://www.nuget.org/packages/GeometryHelper.IfcConvert/) in millimetres at the
+reference model's `Scale`, and placed where the reference model was inserted.
+
+```csharp
+using System.Collections.Generic;
+using System.Linq;
+using GeometryHelper.IfcConvert.Models;
+using GeometryHelper.SolidGeometry.Geometry;
+using GeometryHelper.TeklaConvert;
+using Tekla.Structures.Model;
+
+// The IFC objects selected in the model view (Tekla.Structures.Model has a ModelObjectSelector too, hence the full name).
+var selected = new List<ReferenceModelObject>();
+ModelObjectEnumerator selection = new Tekla.Structures.Model.UI.ModelObjectSelector().GetSelectedObjects();
+while (selection.MoveNext())
+{
+    if (selection.Current is ReferenceModelObject referenceObject)
+    {
+        selected.Add(referenceObject);
+    }
+}
+
+// The bodies of the selected objects, from any number of reference models and IFC files ...
+GeoSolid3[] solids = selected.ToGeoSolids();
+
+// ... or each IFC product whole: GlobalId, name, type, bodies, open surfaces and conversion warnings.
+IReadOnlyList<IfcProductGeometry> products = selected.ToIfcGeometries();
+
+// Every physical product of the reference models those objects belong to (each reference model once) ...
+GeoSolid3[] everything = selected.Select(o => o.GetReferenceModel()).ToGeoSolids();
+
+// ... or each of them whole.
+IReadOnlyList<IfcProductGeometry> everyProduct = selected.Select(o => o.GetReferenceModel()).ToIfcGeometries();
+
+// To see them in the model view: face boundaries red, holes white (see Drawing in the model view).
+solids.DrawToTekla();
+new Model().CommitChanges();
+```
+
+| Method | Returns |
+|---|---|
+| `ToGeoSolids()` on a `ReferenceModelObject` or a sequence of them | The bodies of the objects' IFC products |
+| `ToIfcGeometries()` on a sequence of `ReferenceModelObject` | One `IfcProductGeometry` per product, in the order given |
+| `ToGeoSolids()` on a `ReferenceModel` or a sequence of them | Every physical product of the IFC file |
+| `ToIfcGeometries()` on a `ReferenceModel` or a sequence of them | One `IfcProductGeometry` per physical product of the IFC file |
+| `ReferenceModelObject.GetIfcGuid()` | The IFC GlobalId (`EXTERNAL.GUID`), or null |
+| `ReferenceModel.GetIfcFilePath()` | The full path of the IFC file of the active revision, or null |
+| `ReferenceModel.GetIfcToGlobal()`, `GetIfcToWorkPlane()` | The placement, for geometry you read yourself |
+| `ReferenceModel.CreateIfcConvertOptions(options)` | The options to read with: millimetres and the reference model's scale |
+
+Worth knowing:
+
+- **Nothing is thrown for a bad file.** A reference model that is not IFC (DWG, SKP...), a file that cannot be
+  read and an object that cannot be converted are left out; an empty result means nothing could be read. What
+  was left out, and why, is written to `GeometryHelperLog` (GeometryHelper.CommonGeometry), along with one line per call
+  saying how many products were converted.
+- **Options.** Without options, a selected assembly returns its parts (`IncludeAggregatedParts`), as Tekla
+  selects them, and openings are left uncut (`ApplyVoids`) for speed. Pass
+  `new IfcConvertOptions { ApplyVoids = true, IncludeAggregatedParts = true }` to cut bolt holes and other
+  openings as Tekla shows them. That is much slower on steel (500 beams took 29 s instead of 1.5 s), and
+  cut bodies can come back not closed. The unit, the scale and the coordinate space always follow the
+  reference model. `ReferenceModel.ToGeoSolids()` never adds aggregated parts: it visits the parts
+  themselves, which would otherwise be counted twice.
+- **Speed: choose products by name.** Bolts are what makes a whole Tekla model slow to read: every product of
+  a 115 MB steel model took about 17 minutes, 96 % of it on its 5,512 bolts. Leave them out with
+  `SkipNames = { "Bolt assembly" }` (35 s), or keep only what you need with `OnlyNames`, for example
+  `{ "BEAM", "GIRDER", "PRD_COLUMN", "COLUMN" }` (3.5 s). The names are those the model gives its parts; both
+  lists ignore case and take `*` as a wildcard, and apply to an assembly's parts too. See
+  [Choosing Products by Name](https://github.com/nguyenthanguth/GeometryHelper/tree/main/Libraries/GeometryHelper.IfcConvert#choosing-products-by-name).
+- **Several reference models.** Objects are grouped by reference model, so each is placed with its own
+  position, rotation and scale. The same IFC file inserted twice is parsed once and placed twice.
+- **Assemblies.** Selecting an assembly *and* its parts returns those parts twice.
+- **The work plane** is the one current when you call. It is switched to global for a moment to read where
+  each reference model sits, and restored before any IFC file is read, so do not call from several threads
+  at once.
+- **Cache.** Each IFC file is parsed once per process; a plugin keeps it for the whole Tekla session. A new
+  revision of a reference model usually has a new `ActiveFilePath` and is parsed afresh. If a file is
+  overwritten in place, call `IfcStoreCache.ClearGlobalCache(path)`, or the old geometry keeps being returned.
+- **Run time.** These methods need .NET Framework 4.8 x64, which every Tekla plugin runs on, and
+  `Xbim.Geometry.Engine64.dll`, which the build copies next to your plugin: ship it with the extension
+  (`.tsep`). The rest of this package never loads xBIM.
+- **A broken IFC file can take Tekla down.** The xBIM geometry engine is native code, and an access violation
+  inside it cannot be caught by .NET Framework: it ends the process. Save the model before converting files
+  you do not know.
+
+## Drawing in the model view
+
+`GeometryDraw` draws GeometryHelper geometry as control polycurves, the temporary lines of the model view, to
+check where a result lies. Like everything the Tekla API is given, they are placed in the current work plane,
+so what `Part.GetSolid()` or `ToGeoSolids()` returned is drawn where it came from.
+
+| Method | Draws |
+|---|---|
+| `DrawPolyline(closed)` on a sequence of Tekla `Point` or `GeoPoint3` | A polyline through the points, closed back to the first one if asked |
+| `DrawToTekla()` on a `GeoPolyline3` | The polyline |
+| `DrawToTekla()` on a `GeoPolygon3` | The closed polygon |
+| `DrawToTekla()` on a `GeoFace3` | Its outer boundary in red and every hole in white |
+| `DrawToTekla()` on a `GeoSolid3` or a sequence of them | Every face: boundaries in red, holes in white |
+
+- Colours (`ControlObjectColorEnum`) and the line type (`ControlObjectLineType`, solid when left out) can be
+  passed. A polyline or polygon takes one colour, red when left out. A face or solid takes two, one for outer
+  boundaries and one for holes, red and white when left out:
+  `face.DrawToTekla(ControlObjectColorEnum.BLUE, ControlObjectColorEnum.YELLOW, ControlObjectLineType.DashedLine)`.
+- The view shows them after `Model.CommitChanges()`. The methods do not commit, so drawing a thousand faces
+  costs one commit rather than a thousand.
+- Each returns the polycurves it inserted; `Delete()` on them takes them away again.
+- A polyline with fewer than two distinct points, or one Tekla will not insert, is skipped; one Tekla refuses is
+  written to `GeometryHelperLog`.
 
 ## What is checked rather than trusted
 
