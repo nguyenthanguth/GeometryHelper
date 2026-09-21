@@ -14,6 +14,24 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
+      NEW IN 5.1.0
+
+      Rounding a corner no longer means rounding every corner by the same radius.
+
+      - Fillet takes a list of radii, one per vertex, read the way the bulges are read: the entry at an
+        index belongs to the vertex at that index. A zero leaves that corner alone, and a list shorter
+        than the shape leaves the rest of it alone. A plate wanting forty at one corner, ten at the next
+        and a square corner after that is now one call.
+      - TryFilletAt rounds one named corner and reports whether it had room, as TryChamferAt cuts one.
+      - Where two neighbouring corners together ask for more of the edge between them than it is long,
+        the one taking more of it gives way. That rule was always there; with a radius per corner it
+        earns its keep, because a corner asking for 250 of a 300 edge yields to one asking for 20 rather
+        than winning by being reached first.
+      - Everything rounding already knew still holds: a corner against a curve is rounded against it, and
+        an arc cut back keeps the circle it was cut from rather than being straightened.
+
+      Nothing was removed or changed, so 5.0.0 code builds against this unaltered.
+
       NEW IN 5.0.0
 
       One package instead of four. GeometryHelper.CommonGeometry, GeometryHelper.PlaneGeometry,
