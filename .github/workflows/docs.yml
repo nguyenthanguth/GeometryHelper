@@ -42,6 +42,15 @@ jobs:
       - name: Install DocFX
         run: dotnet tool install -g docfx --version 2.80.1
 
+      - name: Restore TeklaConvert for the version being documented
+        # TeklaConvert keeps a separate obj folder per Tekla version, because it is built once for each
+        # of them (see BaseIntermediateOutputPath in Directory.Build.props). DocFX passes TeklaVersion to
+        # the compilation but not to the restore it runs first, so without this the restore writes its
+        # assets under the default version's folder and the compilation looks under 2026's, finds no
+        # assets at all, and fails with every type in the framework undefined. Restoring it here with the
+        # property puts the assets where the compilation will look.
+        run: dotnet restore src/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -p:TeklaVersion=2026
+
       - name: Build the site
         # docfx reads docfx.json at the root: it extracts the API metadata into docfx/api and writes the
         # site into _site. Warnings are failures here for the same reason they are in the build: a link
