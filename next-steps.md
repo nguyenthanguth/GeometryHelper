@@ -2,14 +2,15 @@
 
 What is outstanding as of 21 September 2026, with `main` at `a26a040` and the version at 5.1.0.
 
-## 1. `GetClosestOnBoundary` on the curved chains is misnamed
+## 1. The `GetClosestOnBoundary` family is misnamed
 
-Everywhere else in the library, `GetClosestOnBoundary` returns the **shortest segment connecting** two
-shapes. `Projection2.GetClosestSegment` says so in as many words: *the shortest line segment connecting a
-point on the boundary of poly to a point on line*.
+Everywhere in the library, `GetClosestOnBoundary` returns the **shortest segment connecting** two shapes.
+`Projection2.GetClosestSegment` says so in as many words: *the shortest line segment connecting a point on
+the boundary of poly to a point on line*.
 
-`GeoPolygonArc2` and `GeoPolylineArc2` took that name for something else — the **edge of the shape**
-nearest the other thing. Against the same square and the same far-off segment:
+The name does not say that. It reads as *the closest thing on my boundary*, which is a different idea and
+an easy one to act on: `GeoPolygonArc2` and `GeoPolylineArc2` took the name for exactly that, and return
+the **edge of the shape** nearest the other thing. Against the same square and the same far-off segment:
 
 | Call | Returns | What it means |
 |---|---|---|
@@ -19,19 +20,47 @@ nearest the other thing. Against the same square and the same far-off segment:
 
 The lengths give it away: 200 and 240 are distances between the shapes, 100 is the side of the square.
 
-**The fix**: rename the two curved ones to `GetClosestEdge`, which is what they do. Because the return
-type differs — `GeoEdge2` against `GeoLine2` — anything calling them stops compiling rather than quietly
-changing behaviour, which is the failure worth having.
+It misleads all the more for sitting beside `GetClosestPointOnBoundary(point)`, which really does return a
+point on the shape. Dropping `Point` looks like a change of return type rather than a change of meaning.
 
-**Not part of this fix**: giving the curved chains a real `GetClosestOnBoundary` that returns the
-connecting `GeoLine2`. The library knows the **distance** from an arc to a segment, an arc and a circle
-(`Core.Arc2.DistanceTo`), but not the **pair of points** that distance is measured between, and the
-connecting segment cannot be drawn without them. That is its own piece of work; better to leave the name
-unused than to put it on something approximate.
+### The names, decided
 
-**Decision needed first.** These methods shipped in 5.0.0, so renaming breaks a published API. Either fix
-it inside 5.1.0, which is not released yet — the recommendation, since 5.0.0 is a day old — or hold it
-for 6.0.0 and carry the wrong name until then.
+| Method | Returns | Now called |
+|---|---|---|
+| `GetClosestPointOnBoundary(point)` | a point **on** this shape | unchanged, it is already right |
+| `GetClosestOnBoundary(other)` | the segment **joining** the two | **`GetShortestLineTo(other)`** |
+| `GetClosestOnBoundary(other)` on the curved chains | an **edge** of this shape | **`GetClosestEdge(other)`** |
+
+`Shortest` is what removes the ambiguity: no existing edge can be picked by being "shortest to X", so the
+word can only describe a segment built to be as short as possible. `GetClosestLineTo` was considered and
+keeps the trap — *the closest line* still reads as *the closest line of mine*.
+
+### Scope
+
+- 58 public `GetClosestOnBoundary` methods across `GeoLine2`, `GeoCircle2`, `GeoRectangle2`,
+  `GeoPolygon2`, `GeoPolyline2`, `GeoLine3`, `GeoPolygonArc2` and `GeoPolylineArc2`
+- the 54 `Projection2.GetClosestSegment` statics they call, which carry the same ambiguity
+- the two on the curved chains, which change meaning rather than just name, and whose different return
+  type — `GeoEdge2` against `GeoLine2` — means a caller stops compiling instead of quietly changing
+  behaviour
+
+### Not part of this
+
+Giving the curved chains a real `GetShortestLineTo` returning the connecting `GeoLine2`. The library knows
+the **distance** from an arc to a segment, an arc and a circle (`Core.Arc2.DistanceTo`), but not the
+**pair of points** that distance is measured between, and the connecting segment cannot be drawn without
+them. That is its own piece of work; better to leave the name unused on those two types than to put it on
+something approximate.
+
+### Still open: which version
+
+Renaming 58 public methods breaks a published API — these shipped in 5.0.0. The recommendation is to make
+both renames together, since they are one mistake, and release the result as **6.0.0** rather than 5.1.0.
+Odd-looking a day after 5.0.0, but it is the honest number, and 5.1.0 is not out yet.
+
+The alternative, keeping the 58 old names as `[Obsolete]` forwarders for one release, is not recommended:
+it doubles the surface of the library to serve a release that is a day old and has almost certainly not
+been taken up.
 
 ## 2. A test that passes without testing anything
 
@@ -48,10 +77,17 @@ always nought and the assertion reads `0 <= anything`. It is green and it checks
 above it is wrong for the same reason. Worth fixing alongside the rename, since both come from the same
 misreading.
 
-## 3. Releasing 5.1.0
+## 3. Releasing
 
-The repository is at 5.1.0 and nuget.org is at 5.0.0. To release, **create a GitHub Release tagged
-`v5.1.0`**: `.github/workflows/release.yml` fires on `release: published` and publishes all six packages.
+The repository is at 5.1.0 and nuget.org is at 5.0.0, so there is a release to make either way. Which
+number it carries depends on the question left open above: 5.1.0 as things stand, or 6.0.0 if the renames
+go in first, which is what is recommended.
+
+Set `GeometryHelperVersion` in `Directory.Build.props` to match before tagging — it is the one literal
+every package reads, including the Tekla ones through `$(GeometryHelperVersion).$(TeklaVersion)`.
+
+To release, **create a GitHub Release tagged with that version**:
+`.github/workflows/release.yml` fires on `release: published` and publishes all six packages.
 
 Do not use *Run workflow* on that workflow to try it out. It has no dry run, and the two push steps are
 not guarded by the event type, so a manual run publishes to nuget.org and GitHub Packages for real.
