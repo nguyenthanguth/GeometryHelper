@@ -123,5 +123,62 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(run.VertexCount > chain.VertexCount);
             Assert.True(Math.Abs(run.Length - chain.Length) / chain.Length < Flattening);
         }
+        [Fact]
+        public void EveryFormOfEveryBooleanIsReachableAndAgrees()
+        {
+            GeoPolygonArc2 slot = Slot();
+            GeoPolygon2 opening = Opening();
+            var curved = new GeoPolygonArc2(opening);
+            Tolerance global = Tolerance.Global;
+
+            // Four operations, and for each: curved with curved, curved with straight, straight with
+            // curved, and every one of those with a tolerance, a chord tolerance, or both.
+            Assert.Equal(slot.Union(curved).Length, Boolean2.Union(slot, curved, global).Length);
+            Assert.Equal(slot.Union(curved).Length, Boolean2.Union(slot, curved, 0.0).Length);
+            Assert.Equal(slot.Union(opening).Length, Boolean2.Union(slot, opening, global).Length);
+            Assert.Equal(slot.Union(opening).Length, Boolean2.Union(slot, opening, 0.0).Length);
+            Assert.Equal(slot.Union(opening).Length, Boolean2.Union(opening, slot).Length);
+            Assert.Equal(slot.Union(opening).Length, Boolean2.Union(opening, slot, global).Length);
+            Assert.Equal(slot.Union(opening).Length, Boolean2.Union(opening, slot, 0.0).Length);
+            Assert.Equal(slot.Union(opening).Length, Boolean2.Union(opening, slot, 0.0, global).Length);
+
+            Assert.Equal(slot.Intersect(curved).Length, Boolean2.Intersect(slot, curved, global).Length);
+            Assert.Equal(slot.Intersect(curved).Length, Boolean2.Intersect(slot, curved, 0.0).Length);
+            Assert.Equal(slot.Intersect(opening).Length, Boolean2.Intersect(slot, opening, global).Length);
+            Assert.Equal(slot.Intersect(opening).Length, Boolean2.Intersect(slot, opening, 0.0).Length);
+            Assert.Equal(slot.Intersect(opening).Length, Boolean2.Intersect(opening, slot).Length);
+            Assert.Equal(slot.Intersect(opening).Length, Boolean2.Intersect(opening, slot, global).Length);
+            Assert.Equal(slot.Intersect(opening).Length, Boolean2.Intersect(opening, slot, 0.0).Length);
+            Assert.Equal(slot.Intersect(opening).Length, Boolean2.Intersect(opening, slot, 0.0, global).Length);
+
+            Assert.Equal(slot.Subtract(curved).Length, Boolean2.Subtract(slot, curved, global).Length);
+            Assert.Equal(slot.Subtract(curved).Length, Boolean2.Subtract(slot, curved, 0.0).Length);
+            Assert.Equal(slot.Subtract(opening).Length, Boolean2.Subtract(slot, opening, global).Length);
+            Assert.Equal(slot.Subtract(opening).Length, Boolean2.Subtract(slot, opening, 0.0).Length);
+            // Subtract is the one that does not reverse: the opening comes out of the slot and leaves a
+            // slot with a hole, but the slot taken out of the opening leaves nothing. So the reversed
+            // forms are held against each other rather than against the forward ones.
+            Assert.Equal(Boolean2.Subtract(opening, slot).Length, Boolean2.Subtract(opening, slot, global).Length);
+            Assert.Equal(Boolean2.Subtract(opening, slot).Length, Boolean2.Subtract(opening, slot, 0.0).Length);
+            Assert.Equal(Boolean2.Subtract(opening, slot).Length, Boolean2.Subtract(opening, slot, 0.0, global).Length);
+
+            Assert.Equal(slot.Xor(curved).Length, Boolean2.Xor(slot, curved, global).Length);
+            Assert.Equal(slot.Xor(curved).Length, Boolean2.Xor(slot, curved, 0.0).Length);
+            Assert.Equal(slot.Xor(opening).Length, Boolean2.Xor(slot, opening, global).Length);
+            Assert.Equal(slot.Xor(opening).Length, Boolean2.Xor(slot, opening, 0.0).Length);
+            Assert.Equal(slot.Xor(opening).Length, Boolean2.Xor(opening, slot).Length);
+            Assert.Equal(slot.Xor(opening).Length, Boolean2.Xor(opening, slot, global).Length);
+            Assert.Equal(slot.Xor(opening).Length, Boolean2.Xor(opening, slot, 0.0).Length);
+            Assert.Equal(slot.Xor(opening).Length, Boolean2.Xor(opening, slot, 0.0, global).Length);
+
+            // Taking the opening out of the slot is not the same as taking the slot out of the opening:
+            // one leaves a slot with a hole, the other leaves nothing at all.
+            Assert.Single(Boolean2.Subtract(slot, opening));
+            Assert.Empty(Boolean2.Subtract(opening, slot));
+
+            // The two that reverse leave the same shape whichever way round they are asked.
+            Assert.Equal(Boolean2.Union(slot, opening)[0].Area, Boolean2.Union(opening, slot)[0].Area, 6);
+            Assert.Equal(Boolean2.Xor(slot, opening)[0].Area, Boolean2.Xor(opening, slot)[0].Area, 6);
+        }
     }
 }

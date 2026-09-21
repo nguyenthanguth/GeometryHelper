@@ -148,7 +148,7 @@
         the nearest point, the distance to a point or to another index, where a segment crosses, and
         whether two sets of edges meet. It measures to the edges rather than to the region they enclose.
       - Coverage can be measured on demand with coverlet; see the README for the command. It stands at
-        about 89 % of lines and 84 % of branches.
+        about 90 % of lines and 85 % of branches.
       - Flatten() turns a curved chain into the straight one the region operations read, cutting each arc
         within 0.2 % of its radius, and Flatten(chordTolerance) within a distance you name. The chords
         lie inside the arc, so a shape bulging outward encloses a little less once flattened and one

@@ -9,6 +9,9 @@ name: Docs
 on:
   push:
     branches: [main]
+  # Built on a pull request too, so that a link which no longer resolves is found before the change is
+  # merged rather than after. Only a push to main goes on to publish.
+  pull_request:
   workflow_dispatch:
 
 # GitHub Pages needs these to accept what the job uploads.
@@ -50,11 +53,14 @@ jobs:
         run: find _site -name '*.map' -delete
 
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
         with:
           path: _site
 
   deploy:
     needs: build
+    # A pull request is checked, never published: the site follows main.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
