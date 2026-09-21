@@ -969,5 +969,38 @@ namespace GeometryHelper.Geometry
         /// <returns>The chain in space, straight throughout.</returns>
         public GeoPolyline3 ToPolyline3(GeoCoordinateSystem3 frame, double chordTolerance) => Flatten(chordTolerance).ToPolyline3(frame);
 
+        /// <summary>
+        /// Rounds the corners of the chain, each by its own radius.
+        /// </summary>
+        /// <param name="radii">One radius per vertex, read the way <see cref="GetBulgeAt"/> is read; zero leaves that corner alone; the two ends have no corner to round.</param>
+        /// <returns>The filleted chain.</returns>
+        /// <remarks>
+        /// Where two neighbouring corners together ask for more than the edge between them is long, the
+        /// one taking more of it gives way, so a corner asking for a large radius yields to a small one
+        /// rather than the other way round. A list shorter than the chain leaves the rest alone.
+        /// </remarks>
+        public GeoPolylineArc2 Fillet(IReadOnlyList<double> radii) => Corner2.Fillet(this, radii);
+
+        /// <summary>
+        /// Rounds the corners of the chain, each by its own radius, within a tolerance.
+        /// </summary>
+        public GeoPolylineArc2 Fillet(IReadOnlyList<double> radii, Tolerance tolerance) => Corner2.Fillet(this, radii, tolerance);
+
+        /// <summary>
+        /// Rounds one corner of the chain, using the default tolerance.
+        /// </summary>
+        /// <param name="index">Which vertex to round; the two ends have no corner to round.</param>
+        /// <param name="radius">The radius of the arc to put there.</param>
+        /// <param name="result">The filleted chain, or the chain unchanged when the method returns false.</param>
+        /// <returns>true if the corner had room for the arc; otherwise, false.</returns>
+        public bool TryFilletAt(int index, double radius, out GeoPolylineArc2 result)
+            => Corner2.TryFilletAt(this, index, radius, out result);
+
+        /// <summary>
+        /// Rounds one corner of the chain, within a tolerance.
+        /// </summary>
+        public bool TryFilletAt(int index, double radius, out GeoPolylineArc2 result, Tolerance tolerance)
+            => Corner2.TryFilletAt(this, index, radius, out result, tolerance);
+
     }
 }

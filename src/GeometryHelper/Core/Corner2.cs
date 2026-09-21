@@ -511,7 +511,7 @@ namespace GeometryHelper.Core
 
             RequirePositive(radius, nameof(radius));
 
-            return Reshape(polyline, radius, 0.0, 0.0, tolerance);
+            return Reshape(polyline, Everywhere(radius, polyline.EdgeCount), 0.0, 0.0, tolerance);
         }
 
         /// <summary>
@@ -527,10 +527,10 @@ namespace GeometryHelper.Core
 
             RequirePositive(radius, nameof(radius));
 
-            return Reshape(polygon, radius, 0.0, 0.0, tolerance);
+            return Reshape(polygon, Everywhere(radius, polygon.EdgeCount), 0.0, 0.0, tolerance);
         }
 
-        private static GeoPolylineArc2 Reshape(GeoPolylineArc2 polyline, double? radius, double distance1, double distance2, Tolerance tolerance)
+        private static GeoPolylineArc2 Reshape(GeoPolylineArc2 polyline, double?[] radiusAtCorner, double distance1, double distance2, Tolerance tolerance)
         {
             var edges = new List<GeoEdge2>(polyline.EdgeCount);
 
@@ -539,10 +539,10 @@ namespace GeometryHelper.Core
                 edges.Add(polyline.GetEdgeAt(i));
             }
 
-            return new GeoPolylineArc2(ReshapeCorners(edges, false, radius, distance1, distance2, tolerance));
+            return new GeoPolylineArc2(ReshapeCorners(edges, false, radiusAtCorner, distance1, distance2, tolerance));
         }
 
-        private static GeoPolygonArc2 Reshape(GeoPolygonArc2 polygon, double? radius, double distance1, double distance2, Tolerance tolerance)
+        private static GeoPolygonArc2 Reshape(GeoPolygonArc2 polygon, double?[] radiusAtCorner, double distance1, double distance2, Tolerance tolerance)
         {
             var edges = new List<GeoEdge2>(polygon.EdgeCount);
 
@@ -551,7 +551,7 @@ namespace GeometryHelper.Core
                 edges.Add(polygon.GetEdgeAt(i));
             }
 
-            List<GeoEdge2> reshaped = ReshapeCorners(edges, true, radius, distance1, distance2, tolerance);
+            List<GeoEdge2> reshaped = ReshapeCorners(edges, true, radiusAtCorner, distance1, distance2, tolerance);
 
             var vertices = new List<GeoPoint2>(reshaped.Count);
             var bulges = new List<double>(reshaped.Count);
@@ -579,7 +579,7 @@ namespace GeometryHelper.Core
         private static List<GeoEdge2> ReshapeCorners(
             List<GeoEdge2> edges,
             bool closed,
-            double? radius,
+            double?[] radiusAtCorner,
             double distance1,
             double distance2,
             Tolerance tolerance)
@@ -616,6 +616,8 @@ namespace GeometryHelper.Core
 
                 GeoEdge2 incoming = edges[before];
                 GeoEdge2 outgoing = edges[after];
+
+                double? radius = radiusAtCorner == null ? null : radiusAtCorner[c];
 
                 if (radius.HasValue)
                 {
@@ -710,7 +712,7 @@ namespace GeometryHelper.Core
             if (curved > 0 || straightRun > 0 || tooShort > 0)
             {
                 GeometryHelperLog.Debug(
-                    $"{(radius.HasValue ? "Fillet" : "Chamfer")} left {curved + straightRun + tooShort} corner(s) alone: " +
+                    $"{(radiusAtCorner == null ? "Chamfer" : "Fillet")} left {curved + straightRun + tooShort} corner(s) alone: " +
                     $"{tooShort} had too little edge, {straightRun} were straight, {curved} met an arc.");
             }
 
@@ -747,6 +749,280 @@ namespace GeometryHelper.Core
             result.RemoveAll(edge => edge.StartPoint.IsEqualTo(edge.EndPoint, tolerance) && !edge.IsArc);
 
             return result;
+        }
+
+        /// <summary>
+        /// Gets one radius for every corner of a run of edges.
+        /// </summary>
+        private static double?[] Everywhere(double radius, int edgeCount)
+        {
+            var radii = new double?[edgeCount];
+
+            for (int i = 0; i < edgeCount; i++)
+            {
+                radii[i] = radius;
+            }
+
+            return radii;
+        }
+
+        /// <summary>
+        /// Turns radii given one per vertex into radii one per corner.
+        /// </summary>
+        /// <remarks>
+        /// A corner sits between two edges and is named here by the vertex the two share, which is how
+        /// <see cref="TryChamferAt(GeoPolygonArc2, int, double, double, out GeoPolygonArc2)"/> names it
+        /// too. Inside, corners are walked by the edge that runs into them, so corner c is the one at
+        /// vertex c + 1. A radius of zero leaves that corner alone.
+        /// </remarks>
+        private static double?[] ByCorner(IReadOnlyList<double> radii, int edgeCount, bool closed, int vertexCount)
+        {
+            var byCorner = new double?[edgeCount];
+
+            for (int c = 0; c < edgeCount; c++)
+            {
+                int vertex = closed ? (c + 1) % vertexCount : c + 1;
+
+                double radius = vertex < radii.Count ? radii[vertex] : 0.0;
+
+                byCorner[c] = radius > 0.0 ? (double?)radius : null;
+            }
+
+            return byCorner;
+        }
+
+        /// <summary>
+        /// Refuses a list of radii that holds something no corner could be rounded by.
+        /// </summary>
+        private static void RequireRadii(IReadOnlyList<double> radii)
+        {
+            if (radii == null)
+            {
+                throw new ArgumentNullException(nameof(radii));
+            }
+
+            foreach (double radius in radii)
+            {
+                if (double.IsNaN(radius) || double.IsInfinity(radius) || radius < 0.0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(radii), "A radius must be a number, and never negative; zero leaves a corner alone.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Rounds the corners of a chain, each by its own radius, using the default tolerance.
+        /// </summary>
+        public static GeoPolylineArc2 Fillet(GeoPolylineArc2 polyline, IReadOnlyList<double> radii) => Fillet(polyline, radii, Tolerance.Global);
+
+        /// <summary>
+        /// Rounds the corners of a chain, each by its own radius, within a tolerance.
+        /// </summary>
+        /// <param name="polyline">The chain.</param>
+        /// <param name="radii">One radius per vertex, in the order the chain holds them; zero leaves that corner alone, and the two ends have no corner to round.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>The filleted chain.</returns>
+        /// <remarks>
+        /// The radii are read the way <see cref="GeoPolylineArc2.GetBulgeAt"/> is read: the entry at an
+        /// index belongs to the vertex at that index. A list shorter than the chain leaves the rest of the
+        /// corners alone. The rules for a corner that will not fit are the ones a single radius follows,
+        /// and they matter more here: where two neighbours together ask for more than the edge between
+        /// them is long, the one taking more of it is dropped, so a corner asking for fifty gives way to
+        /// one asking for five rather than the other way round.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain or the radii are null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a radius is negative or not a number.</exception>
+        public static GeoPolylineArc2 Fillet(GeoPolylineArc2 polyline, IReadOnlyList<double> radii, Tolerance tolerance)
+        {
+            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+
+            RequireRadii(radii);
+
+            return Reshape(polyline, ByCorner(radii, polyline.EdgeCount, false, polyline.VertexCount), 0.0, 0.0, tolerance);
+        }
+
+        /// <summary>
+        /// Rounds the corners of a loop, each by its own radius, using the default tolerance.
+        /// </summary>
+        public static GeoPolygonArc2 Fillet(GeoPolygonArc2 polygon, IReadOnlyList<double> radii) => Fillet(polygon, radii, Tolerance.Global);
+
+        /// <summary>
+        /// Rounds the corners of a loop, each by its own radius, within a tolerance.
+        /// </summary>
+        /// <param name="polygon">The loop.</param>
+        /// <param name="radii">One radius per vertex, in the order the loop holds them; zero leaves that corner alone.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>The filleted loop.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the loop or the radii are null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a radius is negative or not a number.</exception>
+        public static GeoPolygonArc2 Fillet(GeoPolygonArc2 polygon, IReadOnlyList<double> radii, Tolerance tolerance)
+        {
+            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+
+            RequireRadii(radii);
+
+            return Reshape(polygon, ByCorner(radii, polygon.EdgeCount, true, polygon.VertexCount), 0.0, 0.0, tolerance);
+        }
+
+        /// <summary>
+        /// Rounds one corner of a chain, using the default tolerance.
+        /// </summary>
+        public static bool TryFilletAt(GeoPolylineArc2 polyline, int index, double radius, out GeoPolylineArc2 result)
+        {
+            return TryFilletAt(polyline, index, radius, out result, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Rounds one corner of a chain, within a tolerance.
+        /// </summary>
+        /// <param name="polyline">The chain.</param>
+        /// <param name="index">Which vertex to round; the two ends have no corner and are refused.</param>
+        /// <param name="radius">The radius of the arc to put there.</param>
+        /// <param name="result">The filleted chain, or the chain unchanged when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true if the corner had room for the arc; otherwise, false.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the chain or the radius is not a positive number.</exception>
+        public static bool TryFilletAt(GeoPolylineArc2 polyline, int index, double radius, out GeoPolylineArc2 result, Tolerance tolerance)
+        {
+            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+
+            if (index < 0 || index >= polyline.VertexCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            RequirePositive(radius, nameof(radius));
+
+            result = polyline;
+
+            // The ends of a chain are not corners: nothing turns there.
+            if (index == 0 || index == polyline.VertexCount - 1)
+            {
+                return false;
+            }
+
+            List<GeoEdge2> edges = RoundOneCorner(polyline.GetEdgeAt(index - 1), polyline.GetEdgeAt(index), radius, tolerance);
+
+            if (edges == null)
+            {
+                return false;
+            }
+
+            var rebuilt = new List<GeoEdge2>(polyline.EdgeCount + 1);
+
+            for (int i = 0; i < polyline.EdgeCount; i++)
+            {
+                if (i == index - 1)
+                {
+                    rebuilt.AddRange(edges);
+                }
+                else if (i != index)
+                {
+                    rebuilt.Add(polyline.GetEdgeAt(i));
+                }
+            }
+
+            result = new GeoPolylineArc2(rebuilt);
+            return true;
+        }
+
+        /// <summary>
+        /// Rounds one corner of a loop, using the default tolerance.
+        /// </summary>
+        public static bool TryFilletAt(GeoPolygonArc2 polygon, int index, double radius, out GeoPolygonArc2 result)
+        {
+            return TryFilletAt(polygon, index, radius, out result, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Rounds one corner of a loop, within a tolerance.
+        /// </summary>
+        /// <param name="polygon">The loop.</param>
+        /// <param name="index">Which vertex to round.</param>
+        /// <param name="radius">The radius of the arc to put there.</param>
+        /// <param name="result">The filleted loop, or the loop unchanged when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true if the corner had room for the arc; otherwise, false.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the loop or the radius is not a positive number.</exception>
+        public static bool TryFilletAt(GeoPolygonArc2 polygon, int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance)
+        {
+            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+
+            if (index < 0 || index >= polygon.VertexCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            RequirePositive(radius, nameof(radius));
+
+            result = polygon;
+
+            int before = (index - 1 + polygon.EdgeCount) % polygon.EdgeCount;
+
+            List<GeoEdge2> edges = RoundOneCorner(polygon.GetEdgeAt(before), polygon.GetEdgeAt(index), radius, tolerance);
+
+            if (edges == null)
+            {
+                return false;
+            }
+
+            var rebuilt = new List<GeoEdge2>(polygon.EdgeCount + 1);
+
+            for (int i = 0; i < polygon.EdgeCount; i++)
+            {
+                if (i == before)
+                {
+                    rebuilt.AddRange(edges);
+                }
+                else if (i != index)
+                {
+                    rebuilt.Add(polygon.GetEdgeAt(i));
+                }
+            }
+
+            var vertices = new List<GeoPoint2>(rebuilt.Count);
+            var bulges = new List<double>(rebuilt.Count);
+
+            foreach (GeoEdge2 edge in rebuilt)
+            {
+                vertices.Add(edge.StartPoint);
+                bulges.Add(edge.Bulge);
+            }
+
+            result = new GeoPolygonArc2(vertices, bulges);
+            return true;
+        }
+
+        /// <summary>
+        /// Rounds the corner between two edges, and gives back the edges that replace them.
+        /// </summary>
+        /// <returns>The shortened first edge, the arc, and the shortened second edge, with any piece left
+        /// with no length dropped; null when the corner had no room for that radius.</returns>
+        private static List<GeoEdge2> RoundOneCorner(GeoEdge2 incoming, GeoEdge2 outgoing, double radius, Tolerance tolerance)
+        {
+            if (!ArcFillet2.TryFillet(incoming, outgoing, radius, out GeoArc2 arc, out GeoEdge2 shorter1, out GeoEdge2 shorter2, tolerance))
+            {
+                return null;
+            }
+
+            var edges = new List<GeoEdge2>(3);
+
+            // A corner that eats the whole of an edge leaves a piece of no length, which is not geometry.
+            if (!shorter1.StartPoint.IsEqualTo(shorter1.EndPoint, tolerance) || shorter1.IsArc)
+            {
+                edges.Add(shorter1);
+            }
+
+            edges.Add(new GeoEdge2(arc));
+
+            if (!shorter2.StartPoint.IsEqualTo(shorter2.EndPoint, tolerance) || shorter2.IsArc)
+            {
+                edges.Add(shorter2);
+            }
+
+            return edges;
         }
 
         /// <summary>

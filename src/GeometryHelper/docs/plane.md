@@ -423,6 +423,19 @@ rounded.Flatten();                                                 // back to a 
 A filleted corner becomes an arc between two shortened edges, so a rectangle filleted at every corner
 comes back eight edges: four sides and four quarter turns.
 
+**One radius per corner.** `Fillet` also takes a list, read the way `GetBulgeAt` is read: the entry at an
+index belongs to the vertex at that index, and a zero leaves that corner alone.
+
+```csharp
+plate.Fillet(new[] { 40.0, 10.0, 0.0, 25.0 });   // the third corner stays square
+plate.TryFilletAt(1, 30.0, out GeoPolygonArc2 one);   // or one named corner, on its own
+```
+
+A list shorter than the shape leaves the rest of the corners alone, and the two ends of a chain have no
+corner to round. Where two neighbours together ask for more than the edge between them is long, the one
+taking more of it gives way — so a corner asking for 250 yields to one asking for 20, not the other way
+round.
+
 `Lengthen2.TryFilletCorner` does the single corner between two segments, and hands back the arc and both
 trimmed segments. It finds the corner by extending the two segments, so they need not already meet, and
 the order you pass them in does not change the answer.

@@ -870,5 +870,23 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.NotEqual(square.IsClockwise, square.Reverse().IsClockwise);
         }
+        [Fact]
+        public void OneRadiusPerCorner_EverySampleHolds()
+        {
+            var plate = new GeoPolygonArc2(new GeoPolygon2(
+                new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 200), new GeoPoint2(0, 200)));
+
+            GeoPolygonArc2 mixed = plate.Fillet(new[] { 40.0, 10.0, 0.0, 25.0 });
+
+            Assert.Equal(3, mixed.GetEdges().Count(edge => edge.IsArc));
+            Assert.Contains(mixed.Vertices, v => v.IsEqualTo(new GeoPoint2(300, 200)));
+
+            Assert.True(plate.TryFilletAt(1, 30.0, out GeoPolygonArc2 one));
+            Assert.Equal(1, one.GetEdges().Count(edge => edge.IsArc));
+
+            // A shorter list leaves the rest alone; the greedy corner gives way to its neighbour.
+            Assert.Equal(1, plate.Fillet(new[] { 20.0 }).GetEdges().Count(edge => edge.IsArc));
+            Assert.Equal(1, plate.Fillet(new[] { 250.0, 20.0, 0.0, 0.0 }).GetEdges().Count(edge => edge.IsArc));
+        }
     }
 }

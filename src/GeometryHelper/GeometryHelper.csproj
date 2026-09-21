@@ -162,6 +162,11 @@
         Rounding creates curvature, so unlike Chamfer it cannot give back the kind of shape that went in:
         it works on GeoPolylineArc2 and GeoPolygonArc2, and a rectangle filleted at every corner comes
         back eight edges. A chain keeps both of its end points where they were.
+      - Fillet also takes one radius per corner, as a list read the way the bulges are: the entry at an
+        index belongs to the vertex at that index, and a zero leaves that corner alone. TryFilletAt
+        rounds one named corner on its own, as TryChamferAt cuts one. Where two neighbours together ask
+        for more than the edge between them is long, the one taking more of it gives way, so a corner
+        asking for a large radius yields to a small one rather than the other way round.
       - Lengthen2.TryFilletCorner does the single corner between two segments and hands back the arc and
         both trimmed segments. It finds the corner by extending the two, so they need not already meet,
         and the order they are passed in does not change the answer.
