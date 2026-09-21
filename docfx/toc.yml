@@ -1,4 +1,12 @@
 - name: Guides
   href: ../src/GeometryHelper/docs/toc.yml
+- name: Bridges
+  items:
+    - name: AutoCAD
+      href: ../src/GeometryHelper.CadConvert/README.md
+    - name: Tekla Structures
+      href: ../src/GeometryHelper.TeklaConvert/README.md
+    - name: IFC
+      href: ../src/GeometryHelper.IfcConvert/README.md
 - name: API Reference
   href: api/

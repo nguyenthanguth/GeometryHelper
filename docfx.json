@@ -3,36 +3,79 @@
     {
       "src": [
         {
-          "files": [ "src/GeometryHelper/GeometryHelper.csproj" ]
+          "files": [
+            "src/GeometryHelper/GeometryHelper.csproj",
+            "src/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj",
+            "src/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj",
+            "src/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj"
+          ]
         }
       ],
       "dest": "docfx/api",
       "namespaceLayout": "nested",
       "memberLayout": "separatePages",
-      "enumSortOrder": "declaringOrder"
+      "enumSortOrder": "declaringOrder",
+      "properties": {
+        "TeklaVersion": "2026"
+      }
     }
   ],
   "build": {
     "content": [
       {
         "src": "docfx/api",
-        "files": [ "**.yml", "index.md" ],
+        "files": [
+          "**.yml",
+          "index.md"
+        ],
         "dest": "api"
       },
       {
         "src": "docfx",
-        "files": [ "index.md", "toc.yml" ],
+        "files": [
+          "index.md",
+          "toc.yml"
+        ],
         "dest": "."
       },
       {
         "src": "src/GeometryHelper/docs",
-        "files": [ "**.md", "toc.yml" ],
+        "files": [
+          "**.md",
+          "toc.yml"
+        ],
         "dest": "guides"
+      },
+      {
+        "src": "src/GeometryHelper.CadConvert",
+        "files": [
+          "README.md"
+        ],
+        "dest": "bridges/autocad"
+      },
+      {
+        "src": "src/GeometryHelper.IfcConvert",
+        "files": [
+          "README.md"
+        ],
+        "dest": "bridges/ifc"
+      },
+      {
+        "src": "src/GeometryHelper.TeklaConvert",
+        "files": [
+          "README.md"
+        ],
+        "dest": "bridges/tekla"
       }
     ],
     "output": "_site",
-    "template": [ "default", "modern" ],
-    "postProcessors": [ "ExtractSearchIndex" ],
+    "template": [
+      "default",
+      "modern"
+    ],
+    "postProcessors": [
+      "ExtractSearchIndex"
+    ],
     "globalMetadata": {
       "_appName": "GeometryHelper",
       "_appTitle": "GeometryHelper",

@@ -17,7 +17,10 @@ dotnet add package GeometryHelper
 | [Geometry in the plane](../src/GeometryHelper/docs/plane.md) | points to polygons and faces; arcs, offsetting, combining regions |
 | [Geometry in space](../src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |
 | [Label placement](../src/GeometryHelper/docs/arrange.md) | five algorithms behind one entry point |
-| [API Reference](xref:GeometryHelper.Geometry) | every type and member, from the XML documentation |
+| [AutoCAD](../src/GeometryHelper.CadConvert/README.md) | both ways with AutoCAD, arcs and bulges included |
+| [Tekla Structures](../src/GeometryHelper.TeklaConvert/README.md) | both ways with Tekla, and IFC reference models |
+| [IFC](../src/GeometryHelper.IfcConvert/README.md) | IFC models into solids, through xBIM |
+| [API Reference](xref:GeometryHelper.Geometry) | every type and member of all four, from the XML documentation |
 
 ## A first look
 

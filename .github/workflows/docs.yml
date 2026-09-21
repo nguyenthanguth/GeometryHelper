@@ -1,10 +1,11 @@
 name: Docs
 
-# The documentation site: the four guides under src/GeometryHelper/docs and an API reference
-# generated from the XML comments of GeometryHelper itself. DocFX needs to build the project to read
-# those comments, so this job compiles the library like any other. Only GeometryHelper is documented:
-# the three bridges need vendor assemblies and, for Tekla, one build per version, and none of that
-# belongs in a documentation run. Their READMEs cover them.
+# The documentation site: the guides under src/GeometryHelper/docs, the README of each bridge, and an
+# API reference generated from the XML comments of all four projects. DocFX has to build a project to
+# read its comments, so this job compiles them the way the build workflow does. The vendor assemblies
+# the bridges need are committed under Lib and Lib{year}, so nothing has to be installed. Tekla ships
+# one package per version from the same source, and 2026 stands for all three: they differ in the
+# assemblies they bind to, not in the API.
 
 on:
   push:
@@ -28,8 +29,9 @@ concurrency:
 
 jobs:
   build:
-    # The library targets netstandard2.0 and builds anywhere; ubuntu is the cheaper runner.
-    runs-on: ubuntu-latest
+    # Windows, like the build workflow: the geometry alone would build anywhere, but the bridges are
+    # compiled here too and Windows is where they are known to compile.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -50,7 +52,8 @@ jobs:
         # The template ships source maps for its own JavaScript, which come to more than a third of the
         # site and are read by nothing but a browser's debugger. Nobody debugs the template, so they are
         # weight on every deployment for nothing.
-        run: find _site -name '*.map' -delete
+        shell: pwsh
+        run: Get-ChildItem _site -Recurse -Filter *.map | Remove-Item -Force
 
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
