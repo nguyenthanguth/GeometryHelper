@@ -1,0 +1,4 @@
+- name: Guides
+  href: ../src/GeometryHelper/docs/toc.yml
+- name: API Reference
+  href: api/

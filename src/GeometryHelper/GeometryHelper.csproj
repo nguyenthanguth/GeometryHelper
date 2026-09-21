@@ -1,0 +1,243 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+
+    <!-- 1. Configure NuGet Package generation and XML Documentation -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- 2. NuGet Package Metadata Info -->
+    <PackageId>GeometryHelper</PackageId>
+    <Description>A geometry library for engineering drawings and models, in two dimensions and in three. Points, vectors, lines, polylines, polygons, faces with holes, circles and oriented rectangles in the plane; points, planes, triangles, polygons, faces, solids, boxes, coordinate systems and transformations in space. Over both: distance, projection, containment, intersection, collision, parallelism, parametrization, merging, splitting, extending and trimming, offsetting, and boolean operations. It also carries the label placement algorithms that arrange drawing labels clear of each other and of blocked regions. Every comparison is tolerance-aware, because coordinates that come out of a BIM model are never exact.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement cad autocad tekla bim drawing</PackageTags>
+    <PackageReleaseNotes>
+      NEW IN 5.0.0
+
+      One package instead of four. GeometryHelper.CommonGeometry, GeometryHelper.PlaneGeometry,
+      GeometryHelper.SolidGeometry and GeometryHelper.ArrangeAlgorithms are now GeometryHelper, one
+      assembly. Keeping the two dimensions apart cost a machinery of shared source files and internal
+      copies, and it stopped a shape in space from being handed to the plane algorithms at all.
+
+      WHAT TO CHANGE
+      - Replace the four PackageReference entries with one on GeometryHelper.
+      - The namespaces are shorter, and every type kept its name:
+          GeometryHelper.CommonGeometry, .Datatype          -&gt; GeometryHelper
+          GeometryHelper.CommonGeometry.Enums               -&gt; GeometryHelper.Enums
+          GeometryHelper.PlaneGeometry.Geometry, .Solid...  -&gt; GeometryHelper.Geometry
+          GeometryHelper.PlaneGeometry.Core, .Solid...Core  -&gt; GeometryHelper.Core
+          GeometryHelper.SolidGeometry.Spatial              -&gt; GeometryHelper.Spatial
+          the three .Extension namespaces                   -&gt; GeometryHelper.Extension
+          GeometryHelper.ArrangeAlgorithms                  -&gt; GeometryHelper.Arranging
+        A program that worked in both dimensions imported two namespaces for shapes and two for
+        operations; it now imports one of each, and nothing collides, because every type already
+        carried a 2 or a 3.
+
+      WHAT IS THE SAME
+      - Every type, every member, every overload and every tolerance rule. The merge moved code; it
+        did not change an answer: the 1,836 tests the four suites carried before it pass unchanged.
+        The four suites were merged as well, into one GeometryHelper.UnitTest holding a folder per
+        area, so one run covers the package.
+      - Tolerance.Global is still one process-wide setting, and it now genuinely cannot be two.
+      - The plane half still resolves regions with Clipper2 (Boost Software License), which remains
+        this package's only dependency; the solid half still uses its own winding-number solver, and
+        the suites still check the two against each other.
+
+      CUTTING CORNERS, AND CIRCLES AS POLYGONS
+
+      - Corner2 chamfers a corner: one straight cut across it, measured back along each of the two edges
+        that meet there, as AutoCAD's CHAMFER does. Chamfer on a polygon gives a polygon and on a chain
+        gives a chain, because cutting a corner square adds no curvature, so the result goes straight on
+        into the region operations with nothing to convert. A chain keeps both of its end points.
+        TryChamferAt cuts one named corner and reports whether it had room.
+      - A corner is left alone when its cut is longer than an edge beside it, when two neighbours
+        together ask for more than the edge between them is long (the one taking more of that edge is
+        dropped, which may leave room for the rest), or when the corner is straighter than
+        Tolerance.EqualAngleRad. What was skipped is written to GeometryHelperLog. Every cut is measured
+        on the shape as it came in, so the answer does not depend on which vertex the walk began at.
+      - GeoCircle2, GeoCircle3, GeoArc2 and GeoArc3 cut themselves into straight pieces three ways: ToPolygon() takes the
+        automatic tolerance of 0.2 % of the radius, about fifty edges; ToPolygonByChordTolerance keeps
+        every edge within a distance of the circle; ToPolygonBySpacing puts no two vertices further apart
+        than asked along the circumference, spread evenly with no short edge left at the end; and
+        ToPolygon(count) gives exactly that many. ToPolyline does the same as an open chain with its
+        first point repeated at the end, and an arc gives a chain rather than a loop because it does not
+        close. The vertices lie on the circle, so the polygon is inscribed and encloses about 0.26 %
+        less at the automatic tolerance. GeoCircle2 had none of this; GeoCircle3 had only the count.
+      - GeometryHelper.CadConvert now says so when an AutoCAD polyline carrying arcs is read as points:
+        the bulges were always dropped silently, which straightens the shape rather than rounding it.
+
+      ARCS
+
+      The plane had no arc. A drawing is full of them, and everything that read one had to straighten it
+      first, so a slot came back a rectangle and a rounded plate came back square.
+
+      - GeoArc2 is a piece of a circle: a centre, a radius, the angle it starts at and the angle it
+        sweeps. The sweep is signed, so the arc knows which way round it goes and a half turn is told
+        from the rest of the circle left behind. FromThreePoints builds one through three points and
+        FromBulge from the number AutoCAD stores, and Bulge reads that number back, so a round trip
+        through a drawing is exact.
+      - Core.Arc2 holds the operations, mirroring the ones for a segment: ProjectToArc, DistanceTo to a
+        point, a segment or another arc, IsPointOn, Locate, TryIntersectWith and GetIntersections,
+        TrySplitAt by parameter or by point. Translate, RotateBy and TransformBy move one; a
+        transformation that would make it an ellipse is refused rather than averaged, as elsewhere.
+      - GeoArc3 is the same arc in its own plane, carrying a Normal. Its GetAabb is the box round the
+        arc itself rather than round the whole circle, and ProjectToArc2 brings it into the plane.
+      - GeoArc2, GeoArc3, GeoCircle2 and GeoCircle3 all cut themselves into straight pieces the same
+        four ways, described below.
+
+      CHAINS THAT CURVE
+
+      A GeoPolyline2 is straight by definition, and widening it would have made every shape in the
+      library pay for arcs it does not have. The chains that may curve are their own types instead.
+
+      - GeoEdge2 is one piece of a chain: two ends and a bulge, a straight segment until the bulge is
+        not zero. It measures along its arc, gives its chord either way, and refuses ToLine when it
+        curves and ToArc when it does not.
+      - GeoPolylineArc2 is the open chain and GeoPolygonArc2 the closed loop, laid out the way a drawing
+        holds them: vertices, with the bulge of the edge leaving each one. Both build from a straight
+        GeoPolyline2 or GeoPolygon2 without losing anything, reverse with every bulge changing sign, and
+        compare two ways - Equals exactly and from the same starting vertex, IsEqualTo within a
+        tolerance and, for a loop, whatever vertex it starts at.
+      - GeoEdge2, GeoPolylineArc2 and GeoPolygonArc2 carry Translate, RotateBy and TransformBy like every
+        other shape of the plane. A bulge measures an arc against its own chord, so moving, turning and
+        scaling evenly leave it alone; mirroring changes its sign, and an uneven scaling is refused
+        because the arc would be part of an ellipse.
+      - GeoPolygonArc2 gives Area, SignedArea and IsClockwise exactly, counting the piece each arc adds
+        beyond its chord. It answers nothing else about what lies inside it: flatten it first.
+      - A chain that may curve answers everything a straight one does, and answers it on the arcs:
+        DistanceTo, Locate, Contains, IsPointOn, GetClosestPointOnBoundary, GetIntersections,
+        CollidesWith, TrySplitBy, TrySplitAtDistance, SplitAtDistances, TryChamferAt, the whole
+        GetPointAtParameter family, and for a loop Centroid and IsSimple. They live in the Core classes
+        beside their straight counterparts - Distance2, Containment2, Intersection2, Collision2,
+        Projection2, Parametrization2, Splition2 - and are mirrored on the types themselves.
+      - Locate on a curved loop is exact with no arc cut up anywhere in it: the straight loop through the
+        vertices, turned inside out once for every piece an arc cuts off its own chord that the point
+        lies in. That covers an arc bulging out, one bulging in, and one sweeping more than half a turn.
+      - A cut inside an arc leaves two arcs of the same radius rather than two chords, so the pieces put
+        back end to end draw what went in. Cutting a loop gives open chains, and the run after the last
+        cut carries on through the vertex the loop happened to be held from.
+      - Offset keeps the arcs, and is the one region operation that does not go through Clipper. It can
+        be done piece by piece - a segment moves sideways, an arc keeps its centre and changes its radius
+        by the same amount - so a fillet of R40 offset by 10 comes back R50 exactly. A corner that closes
+        up is trimmed to where the moved pieces cross; one that opens is bridged as OffsetJoin says, and
+        Round bridges it with a true arc. What tells the folded parts from the real ones is the one thing
+        an offset cannot break: every point of a valid offset stands exactly the offset distance from the
+        shape it came from, and anything nearer has been folded over. The suite checks it against the
+        straight offset through Clipper, which agrees to a part in a hundred thousand.
+      - The four boolean operations do need flattening, because a boolean cannot be done piece by piece.
+        They take an optional chord tolerance and hand back GeoFace2, which says plainly that the arcs
+        are gone.
+      - Miter, the default join, runs both pieces on until they meet, an arc reaching further round its
+        own circle rather than being cut across, which is what AutoCAD's OFFSET does at a corner. Where
+        the two would never meet, or meet further away than OffsetOptions.MiterLimit allows, it cuts
+        straight across instead.
+      - GeoCoordinateSystem2 is the local coordinate system of the plane, the counterpart of
+        GeoCoordinateSystem3 in space: an origin and two orthonormal axes, with ToLocal and ToGlobal for
+        points and vectors and ToTransform to hand it over as a GeoTransform2. A transformation could
+        already say the same thing, but it may also scale, mirror or shear, and reading one backwards
+        means inverting a matrix; a frame is rigid by construction and reads backwards by turning the
+        axes round. GeoRectangle2, the rotated rectangle, now carries one and can be built from one, as
+        GeoObb3 already did in space.
+      - GeoPolygon2 and GeoPolygon3 gained Reverse, which the chains already had. Which way a loop runs
+        is what tells its inside from its outside to anything reading winding, and it decides which way
+        round a pair of chamfer distances goes.
+      - GeoBvh2 is the counterpart of GeoBvh3 in the plane: a bounding volume hierarchy over GeoEdge2, so
+        one index serves a straight chain and a curved one alike, with the arcs held as arcs. It answers
+        the nearest point, the distance to a point or to another index, where a segment crosses, and
+        whether two sets of edges meet. It measures to the edges rather than to the region they enclose.
+      - Coverage can be measured on demand with coverlet; see the README for the command. It stands at
+        about 89 % of lines and 84 % of branches.
+      - Flatten() turns a curved chain into the straight one the region operations read, cutting each arc
+        within 0.2 % of its radius, and Flatten(chordTolerance) within a distance you name. The chords
+        lie inside the arc, so a shape bulging outward encloses a little less once flattened and one
+        bulging inward a little more. Clipper, which resolves the booleans and the region offsets, knows
+        only straight edges, so this is the door arcs stop at - and it is a conversion you make, not one
+        the library makes quietly behind you.
+
+      ROUNDING CORNERS
+
+      - Corner2.Fillet replaces a corner with an arc tangent to both edges, as AutoCAD's FILLET does.
+        Rounding creates curvature, so unlike Chamfer it cannot give back the kind of shape that went in:
+        it works on GeoPolylineArc2 and GeoPolygonArc2, and a rectangle filleted at every corner comes
+        back eight edges. A chain keeps both of its end points where they were.
+      - Lengthen2.TryFilletCorner does the single corner between two segments and hands back the arc and
+        both trimmed segments. It finds the corner by extending the two, so they need not already meet,
+        and the order they are passed in does not change the answer.
+      - Exactly enough is enough: a square of side one hundred filleted at fifty loses every straight
+        edge and comes back four quarter turns, which is a circle, and chamfered at fifty it comes back
+        the diamond through the four midpoints. Both used to lose a corner to the dust left by measuring
+        an edge, and a fillet that consumed a whole edge used to lose the next arc its bulge.
+      - A corner is left alone for the reasons a chamfer is, and for one more: when either edge is
+        already an arc. A circle tangent to two curves has several answers and picking one is not this
+        method's business. What was skipped, and why, is written to GeometryHelperLog.
+
+      GEOTRANSFORM2
+
+      The plane had no transformation at all: shapes could be translated and rotated and nothing else.
+      GeoTransform2 is the 3x3 homogeneous matrix that fills the hole, built and read exactly as
+      GeoTransform3 is, and applied on the left so that a.Multiply(b) means "apply b, then a".
+
+      - Translation, Rotation about the origin or a point, Scaling uniform, per axis or about a point,
+        Mirror across the line a segment carries, and FromFrame, which places geometry built about the
+        origin and whose inverse reads a placed drawing back into local coordinates.
+      - Multiply and the * operator combine them; GetDeterminant is the factor areas are multiplied by,
+        negative when the transformation reverses winding; Inverse and TryGetInverse undo one, judging
+        the determinant against the size of the transformation rather than against zero, so a drawing
+        scaled down by a thousandth still inverts cleanly.
+      - Every shape of the plane carries TransformBy: points, vectors, segments, chains, polygons, faces
+        with their holes, circles and rectangles. A circle under a scaling that differs between the axes
+        would be an ellipse and a rectangle would be a parallelogram; both are refused rather than
+        answered with an averaged shape, as GeoTransform3 already refuses the same of a circle.
+
+      THE PLANE HALF CATCHES UP WITH THE SOLID ONE
+      - GeoPolygon2 reports its measurements as properties, as every other shape in the library does:
+        GetArea(), GetSignedArea(), IsClockwise() and GetCentroid() are now Area, SignedArea,
+        IsClockwise and Centroid. GeoCircle2.Circumference is now Length, the name every other curve
+        uses. Both are renames; nothing about the answers changed.
+      - GeoRectangle2 gained Area, which it had no way to report at all, and GeoPoint2 gained Origin.
+        GeoFace2 and GeoFace3 gained Centroid, the boundary's with the holes taken out.
+      - Containment2.GetSide says which side of a segment a point lies on, through the new LineSide
+        (Left, Right, On) — the counterpart in the plane of PlaneSide in space — and is mirrored by
+        GeoPoint2.GetSideOf. Parallel2.IsCodirectional tells the two ways along a line apart, mirrored
+        by GeoVector2.IsCodirectionalTo. Projection2.ProjectToInfiniteLine is ProjectToLine without the
+        clamp to the segment.
+      - GeoPolygon2, GeoPolyline2 and GeoFace2 gained IsEqualTo, the tolerance-aware comparison their
+        solid counterparts already had. A polygon is matched whatever vertex it starts at, a chain from
+        its start because a chain has ends, and a face hole for hole in whatever order they are held.
+      - Merge2.JoinBackup is internal now. It was always the plain reading of joining kept to hold the
+        fast one against, never meant for drawings, and it no longer sits in the public surface.
+
+      WHAT THIS OPENS
+      - PlanarMap carries flat geometry between the dimensions: a plate, a face or a chain lying in a
+        plane in space is laid out in two dimensions through a GeoCoordinateSystem3, worked on with the
+        whole 2D half of the library - offsetting, the booleans, splitting, containment with holes -
+        and put back where it came from. GetFrame on a polygon or a face gives a frame that turns with
+        the shape, so its plan view is the same drawing wherever it sits in the model. Flattening drops
+        the local Z, so ProjectTo... projects a point that is off the plane and TryToPoint2 refuses it.
+      - Internally the same merge retired the plane-and-vector struct the offset engine used to carry,
+        which existed only because the two halves could not see each other's types. The engine now
+        works in GeoPoint2 and GeoVector2 like everything else.
+    </PackageReleaseNotes>
+
+    <!-- 3. Embed source code and Debug symbols into DLL to support F12 original code viewing -->
+    <DebugType>embedded</DebugType>
+    <EmbedAllSources>true</EmbedAllSources>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+
+  </PropertyGroup>
+
+  <!-- Clipper2 (Angus Johnson, Boost Software License) resolves regions in the plane: the booleans of
+       Boolean2 and the raw loops an offset builds. It works on integers, so its answers do not depend on
+       rounding luck. The solid half keeps its own winding-number solver, under Internal\Planar. -->
+  <ItemGroup>
+    <PackageReference Include="Clipper2" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

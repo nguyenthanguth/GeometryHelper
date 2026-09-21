@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <!-- Coverage, on demand rather than on every run. Passing the collector "XPlat Code Coverage" to
+       dotnet test writes a Cobertura file under TestResults; see the README for the command. The library
+       is the only thing worth measuring, so nothing else is counted. -->
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2" PrivateAssets="all" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <Include>[GeometryHelper]*</Include>
+    <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+  </PropertyGroup>
+
+  <!-- Clipper2 is what the library resolves regions in the plane with; the tests also call it directly, as
+       an independent second opinion: shapes it inflates and measures are what the library's own answers,
+       and the solid half's winding-number solver, are compared against. -->
+  <ItemGroup>
+    <PackageReference Include="Clipper2" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+  </ItemGroup>
+
+</Project>

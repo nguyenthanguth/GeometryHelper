@@ -1,25 +1,19 @@
 <Solution>
-  <Folder Name="/Libraries/">
-    <Project Path="Libraries/GeometryHelper.CommonGeometry/GeometryHelper.CommonGeometry.csproj" />
-    <Project Path="Libraries/GeometryHelper.PlaneGeometry/GeometryHelper.PlaneGeometry.csproj" />
-    <Project Path="Libraries/GeometryHelper.SolidGeometry/GeometryHelper.SolidGeometry.csproj" />
-    <Project Path="Libraries/GeometryHelper.ArrangeAlgorithms/GeometryHelper.ArrangeAlgorithms.csproj" />
-    <Project Path="Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj" />
-    <Project Path="Libraries/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj" />
-    <Project Path="Libraries/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/GeometryHelper/GeometryHelper.csproj" />
+    <Project Path="src/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj" />
+    <Project Path="src/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj" />
+    <Project Path="src/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj" />
   </Folder>
-  <Folder Name="/Tests/">
-    <Project Path="Tests/GeometryHelper.CommonGeometry.UnitTest/GeometryHelper.CommonGeometry.UnitTest.csproj" />
-    <Project Path="Tests/GeometryHelper.PlaneGeometry.UnitTest/GeometryHelper.PlaneGeometry.UnitTest.csproj" />
-    <Project Path="Tests/GeometryHelper.SolidGeometry.UnitTest/GeometryHelper.SolidGeometry.UnitTest.csproj" />
-    <Project Path="Tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj" />
-    <Project Path="Tests/GeometryHelper.ArrangeAlgorithms.UnitTest/GeometryHelper.ArrangeAlgorithms.UnitTest.csproj" />
-    <Project Path="Tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/GeometryHelper.UnitTest/GeometryHelper.UnitTest.csproj" />
+    <Project Path="tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj" />
+    <Project Path="tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj" />
   </Folder>
-  <Folder Name="/Samples/">
-    <Project Path="Samples/GeometryConsoleTest/GeometryConsoleTest.csproj" Id="ce90d08f-2fb4-4504-985a-dfbda2ec6d49" />
-    <Project Path="Samples/GeometryHelper.ArrangeAlgorithms.CadTest/GeometryHelper.ArrangeAlgorithms.CadTest.csproj" />
-    <Project Path="Samples/GeometryHelper.ArrangeAlgorithms.TeklaTest/GeometryHelper.ArrangeAlgorithms.TeklaTest.csproj" Id="39dca74c-af65-4caa-96c6-716e221631ca" />
-    <Project Path="Samples/Tekla2025Test/Tekla2025Test.csproj" Id="1067b19d-8718-4212-99fb-afcd6e796d6f" />
+  <Folder Name="/examples/">
+    <Project Path="examples/GeometryConsoleTest/GeometryConsoleTest.csproj" Id="ce90d08f-2fb4-4504-985a-dfbda2ec6d49" />
+    <Project Path="examples/GeometryHelper.ArrangeAlgorithms.CadTest/GeometryHelper.ArrangeAlgorithms.CadTest.csproj" />
+    <Project Path="examples/GeometryHelper.ArrangeAlgorithms.TeklaTest/GeometryHelper.ArrangeAlgorithms.TeklaTest.csproj" Id="39dca74c-af65-4caa-96c6-716e221631ca" />
+    <Project Path="examples/Tekla2025Test/Tekla2025Test.csproj" Id="1067b19d-8718-4212-99fb-afcd6e796d6f" />
   </Folder>
 </Solution>

@@ -99,3 +99,11 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
+
+# ---------------------------------------------------------------------------
+# Tài liệu do DocFX sinh ra
+# Nguồn là docfx.json, docfx/index.md, docfx/toc.yml và Libraries/GeometryHelper/docs/*.md.
+# Hai thư mục dưới đây được sinh lại từ nguồn mỗi lần build, như bin/ và obj/.
+# ---------------------------------------------------------------------------
+_site/
+docfx/api/

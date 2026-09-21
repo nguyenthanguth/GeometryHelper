@@ -1,0 +1,95 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- The assembly attributes are generated from the package metadata below rather than written by
+         hand, so the version lives in one place. The four geometry libraries still carry a hand-written
+         Properties/AssemblyInfo.cs; this project has none, and generating is what keeps its identity
+         from falling back to 0.0.0.0. -->
+    <PlatformTarget>x64</PlatformTarget>
+
+    <!-- 1. Configure NuGet Package generation and XML Documentation -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <PackageId>GeometryHelper.CadConvert</PackageId>
+    <Description>Converts geometry between AutoCAD and GeometryHelper: points, vectors, lines, polylines, polygons, circles, and bounding boxes.</Description>
+    <PackageTags>autocad bim geometry 2d 3d interop conversion</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReleaseNotes>
+      Converts geometry between AutoCAD and GeometryHelper, both ways: points, vectors, line segments
+      and Line entities, polylines and polygons with the arcs their bulges draw, arcs, circles, and
+      Extents2d/Extents3d as rectangles.
+
+      ARCS AND BULGES
+      - An AutoCAD polyline carries a bulge against each vertex, and a vertex with a bulge is joined to
+        the next one by an arc. Reading such a polyline as points alone straightened it silently, so a
+        slot came back a rectangle. It no longer does.
+      - ToGeoPolylineArc2 and ToGeoPolygonArc2 read one bulge for bulge into the chains GeometryHelper
+        5.0 added, losing nothing, and ToAcadPolyline writes either of them back the same way, so the
+        round trip is exact.
+      - ToGeoPolyline2 and ToGeoPolygon2 still return the straight types they always did, so nothing
+        that used them has to change; they now trace each arc with straight pieces within 0.2 % of its
+        radius instead of cutting across it, and say in GeometryHelperLog how many they cut. An overload
+        takes the chord tolerance when that is not fine enough, and TryToGeoPolyline2 and
+        TryToGeoPolygon2 report false rather than approximate anything.
+      - ToAcadPolyline on a GeoPolygon2 writes a closed polyline; it had no way to say so before.
+      - The Arc and Circle entities convert on their own: ToGeoArc2 reads an arc in plan and refuses one
+        tilted out of XY, TryToGeoArc2 reports false instead, ToGeoArc3 reads any arc in its own plane,
+        and ToGeoCircle3 keeps the plane a circle lies in. ToAcadArc and ToAcadCircle write them back.
+        An AutoCAD arc always sweeps counter-clockwise about its normal and has nowhere to put a
+        direction of its own, so a clockwise arc is written with its two angles exchanged: the same
+        curve, read back counter-clockwise.
+      - These need GeometryHelper 5.0 or later.
+
+      REQUIRES AUTOCAD ASSEMBLIES YOU MUST SUPPLY
+      - No AutoCAD assembly is redistributed here, because they are Autodesk's to ship rather than
+        ours. Reference them yourself, either from your AutoCAD installation folder or from Autodesk's
+        own AutoCAD.NET package on nuget.org. Without them the compiler reports CS0012.
+      - This library resolves against acdbmgd.dll alone; a plugin normally also wants acmgd.dll and
+        accoremgd.dll for the editor and application APIs.
+      - Reference them with Copy Local set to false. AutoCAD supplies them at run time from its own
+        installation, and a copy sitting next to your plugin risks loading a build that does not match
+        the running AutoCAD.
+      - This package is built against the AutoCAD 2024 API (assembly version 24.0.0.0).
+
+      EXTENSIONS
+      - GeometryHelper.CadConvert also carries EnumerableExtension: chaining a list of Point2d or
+        Point3d into segments, thinning a chain of points by a tolerance, and picking the longest
+        segment out of a list.
+    </PackageReleaseNotes>
+
+    <!-- The AutoCAD assemblies are referenced but never packed: Private=false keeps them out of the
+         build output, so nothing of Autodesk's ends up inside the package. See README.md. -->
+    <IsPackable>true</IsPackable>
+
+    <DebugType>embedded</DebugType>
+    <EmbedAllSources>true</EmbedAllSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="accoremgd">
+      <HintPath>Lib\accoremgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acdbmgd">
+      <HintPath>Lib\acdbmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acmgd">
+      <HintPath>Lib\acmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

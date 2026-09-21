@@ -1,0 +1,64 @@
+name: Docs
+
+# The documentation site: the four guides under src/GeometryHelper/docs and an API reference
+# generated from the XML comments of GeometryHelper itself. DocFX needs to build the project to read
+# those comments, so this job compiles the library like any other. Only GeometryHelper is documented:
+# the three bridges need vendor assemblies and, for Tekla, one build per version, and none of that
+# belongs in a documentation run. Their READMEs cover them.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# GitHub Pages needs these to accept what the job uploads.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and a newer push waits rather than cancelling the one in flight, so the
+# site is never left half published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # The library targets netstandard2.0 and builds anywhere; ubuntu is the cheaper runner.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install DocFX
+        run: dotnet tool install -g docfx --version 2.80.1
+
+      - name: Build the site
+        # docfx reads docfx.json at the root: it extracts the API metadata into docfx/api and writes the
+        # site into _site. Warnings are failures here for the same reason they are in the build: a link
+        # that does not resolve is a page a reader will land on and find nothing.
+        run: docfx docfx.json --warningsAsErrors
+
+      - name: Drop the source maps
+        # The template ships source maps for its own JavaScript, which come to more than a third of the
+        # site and are read by nothing but a browser's debugger. Nobody debugs the template, so they are
+        # weight on every deployment for nothing.
+        run: find _site -name '*.map' -delete
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

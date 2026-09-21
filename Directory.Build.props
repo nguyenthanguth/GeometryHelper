@@ -13,7 +13,7 @@
   -->
 
   <PropertyGroup>
-    <GeometryHelperVersion>4.0.0</GeometryHelperVersion>
+    <GeometryHelperVersion>5.0.0</GeometryHelperVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -35,7 +35,7 @@
     GeometryHelper.TeklaConvert is built once per supported Tekla version, each build referencing
     Lib{TeklaVersion} and producing its own package, GeometryHelper.TeklaConvert.{TeklaVersion}:
 
-      dotnet build Libraries/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -p:TeklaVersion=2026
+      dotnet build src/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -p:TeklaVersion=2026
 
     Without the property (Visual Studio, a plain dotnet build) it is 2020.
   -->
@@ -61,7 +61,7 @@
     <Authors>Nguyen Thang</Authors>
     <Company>Nguyen Thang</Company>
     <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
-    <PackageProjectUrl>https://github.com/nguyenthanguth/GeometryHelper</PackageProjectUrl>
+    <PackageProjectUrl>https://nguyenthanguth.github.io/GeometryHelper/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/nguyenthanguth/GeometryHelper</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

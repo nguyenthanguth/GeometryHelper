@@ -1,0 +1,47 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": [ "src/GeometryHelper/GeometryHelper.csproj" ]
+        }
+      ],
+      "dest": "docfx/api",
+      "namespaceLayout": "nested",
+      "memberLayout": "separatePages",
+      "enumSortOrder": "declaringOrder"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "src": "docfx/api",
+        "files": [ "**.yml", "index.md" ],
+        "dest": "api"
+      },
+      {
+        "src": "docfx",
+        "files": [ "index.md", "toc.yml" ],
+        "dest": "."
+      },
+      {
+        "src": "src/GeometryHelper/docs",
+        "files": [ "**.md", "toc.yml" ],
+        "dest": "guides"
+      }
+    ],
+    "output": "_site",
+    "template": [ "default", "modern" ],
+    "postProcessors": [ "ExtractSearchIndex" ],
+    "globalMetadata": {
+      "_appName": "GeometryHelper",
+      "_appTitle": "GeometryHelper",
+      "_appFooter": "GeometryHelper &mdash; geometry for engineering drawings and models. MIT.",
+      "_enableSearch": true,
+      "_gitContribute": {
+        "repo": "https://github.com/nguyenthanguth/GeometryHelper",
+        "branch": "main"
+      }
+    }
+  }
+}

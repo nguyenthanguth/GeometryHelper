@@ -1,0 +1,199 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- netstandard2.0 on purpose: netstandard2.0 libraries (e.g. GeometryHelper.TeklaConvert) can reference it,
+         and it needs no change once xBIM ships a geometry engine that runs on .NET Core / .NET 5+.
+         At run time it still needs .NET Framework 4.8, x64: the bundled Xbim.Geometry.Engine64 and
+         Xbim.Geometry.Engine.Interop target .NET Framework 4.7.2 (the engine is C++/CLI), so a .NET Core /
+         .NET 5+ application builds against this library but every geometry conversion fails when the engine loads. -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+
+    <!-- 1. Configure NuGet Package generation and XML Documentation -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <PackageId>GeometryHelper.IfcConvert</PackageId>
+    <Description>Converts geometry between IFC (via xBIM) and GeometryHelper: points, vectors, matrices, faces, and solids.</Description>
+    <PackageTags>ifc bim geometry 3d solid xbim interop conversion</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReleaseNotes>
+      Version 4.0.0:
+      - Modular architecture: separate models (IfcPropertySet, IfcPropertyValue, IfcProductMetadata), options, and internal converters.
+      - Enhanced IfcStoreCache: thread-safe global caching, path canonicalization, and duplicate GlobalId detection.
+      - Added lightweight metadata and property/quantity extraction without full 3D conversion cost.
+      - Added IfcConvertOptions filters for non-physical products and aggregated assembly parts.
+      - Added IfcConvertOptions.OnlyNames, the opposite of SkipNames: only products whose names match are converted, and the rest come back empty before any geometry is built. A 115 MB Tekla steel model read in 3.5 s for its main members, against about 17 minutes for every product. AddSkipNames and AddOnlyNames add names, trimmed and without blanks, and can be chained.
+      - Breaking: IfcConvertOptions has a single, parameterless constructor. The constructor taking skip names and a tolerance was removed; use new IfcConvertOptions { Tolerance = ... }.AddSkipNames(...) instead.
+      - Added IfcProductGeometry.TransformBy, which moves converted geometry without losing bodies: it rebuilds faces with the tolerance of the conversion, where GeoSolid3.TransformBy would throw on thin sliver faces.
+    </PackageReleaseNotes>
+
+    <IsPackable>true</IsPackable>
+    <DebugType>embedded</DebugType>
+    <EmbedAllSources>true</EmbedAllSources>
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Costura.Fody" Version="6.2.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Xbim.Common">
+      <HintPath>Lib\Xbim.Common.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Ifc">
+      <HintPath>Lib\Xbim.Ifc.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Ifc4">
+      <HintPath>Lib\Xbim.Ifc4.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Ifc2x3">
+      <HintPath>Lib\Xbim.Ifc2x3.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Ifc4x3">
+      <HintPath>Lib\Xbim.Ifc4x3.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Geometry.Engine.Interop">
+      <HintPath>Lib\Xbim.Geometry.Engine.Interop.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.IO.MemoryModel">
+      <HintPath>Lib\Xbim.IO.MemoryModel.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.IO.Esent">
+      <HintPath>Lib\Xbim.IO.Esent.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.Tessellator">
+      <HintPath>Lib\Xbim.Tessellator.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Xbim.ModelGeometry.Scene">
+      <HintPath>Lib\Xbim.ModelGeometry.Scene.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Esent.Interop">
+      <HintPath>Lib\Esent.Interop.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions">
+      <HintPath>Lib\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging">
+      <HintPath>Lib\Microsoft.Extensions.Logging.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection">
+      <HintPath>Lib\Microsoft.Extensions.DependencyInjection.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
+      <HintPath>Lib\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Options">
+      <HintPath>Lib\Microsoft.Extensions.Options.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Primitives">
+      <HintPath>Lib\Microsoft.Extensions.Primitives.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration">
+      <HintPath>Lib\Microsoft.Extensions.Configuration.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration.Abstractions">
+      <HintPath>Lib\Microsoft.Extensions.Configuration.Abstractions.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration.Binder">
+      <HintPath>Lib\Microsoft.Extensions.Configuration.Binder.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces">
+      <HintPath>Lib\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.Buffers">
+      <HintPath>Lib\System.Buffers.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.Diagnostics.DiagnosticSource">
+      <HintPath>Lib\System.Diagnostics.DiagnosticSource.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.Memory">
+      <HintPath>Lib\System.Memory.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.Numerics.Vectors">
+      <HintPath>Lib\System.Numerics.Vectors.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe">
+      <HintPath>Lib\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions">
+      <HintPath>Lib\System.Threading.Tasks.Extensions.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.ValueTuple">
+      <HintPath>Lib\System.ValueTuple.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>GeometryHelper.IfcConvert.UnitTest</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!-- The xBIM geometry engine (C++/CLI around native OpenCascade) cannot be embedded by Costura: xBIM loads it
+       from the application folder. One item per file both copies it to the output (and on to projects that
+       reference this one) and packs it where build\GeometryHelper.IfcConvert.targets copies it from.
+       Do not declare these files a second time: a duplicate item with Pack=false keeps them out of the package. -->
+  <ItemGroup>
+    <Content Include="Lib\Xbim.Geometry.Engine64.dll">
+      <Link>%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+      <Pack>true</Pack>
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+    </Content>
+    <Content Include="Lib\Xbim.Geometry.Engine32.dll">
+      <Link>%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+      <Pack>true</Pack>
+      <PackagePath>runtimes\win-x86\native</PackagePath>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build\GeometryHelper.IfcConvert.targets" Pack="true" PackagePath="build\net48;buildTransitive\net48" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
