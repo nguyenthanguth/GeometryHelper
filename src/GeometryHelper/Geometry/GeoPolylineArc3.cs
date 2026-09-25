@@ -18,7 +18,7 @@ namespace GeometryHelper.Geometry
     /// <para>
     /// Coplanarity is <b>not</b> required, exactly as <see cref="GeoPolyline3"/> requires none. A chain
     /// that does happen to be flat says so through <see cref="IsPlanar()"/>, and a closed loop of arcs that
-    /// is flat belongs in <c>GeoPolygonArc3</c> instead, which enforces it and can therefore answer
+    /// is flat belongs in <see cref="GeoPolygonArc3"/> instead, which enforces it and can therefore answer
     /// about area and about what is inside.
     /// </para>
     /// <para>

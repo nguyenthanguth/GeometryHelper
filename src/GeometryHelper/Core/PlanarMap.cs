@@ -64,7 +64,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the frame of a run of points that share a plane, with the origin at the first of them.
         /// </summary>
-        private static GeoCoordinateSystem3 FrameOf(IReadOnlyList<GeoPoint3> points, GeoVector3 normal)
+        internal static GeoCoordinateSystem3 FrameOf(IReadOnlyList<GeoPoint3> points, GeoVector3 normal)
         {
             GeoPoint3 origin = points[0];
 
