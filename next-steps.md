@@ -156,14 +156,38 @@ chain of straight runs with a tangent arc at every bend, and nothing in the libr
   are not coplanar; `ToPolyline3(chordTolerance)` puts the accuracy in the call, and a sampled chain lies
   inside the arcs it stands for, so a clearance errs on the safe side.
 
-### Step 7 needs trying on a machine with Tekla
+### The Tekla side, split one file per extended type
 
-`RebarConvert` compiles against 2020, 2025 and 2026, and everything that turns points and radii into a bar is
-covered by tests that run without Tekla. What **cannot** be checked here is the plumbing: that
-`RebarGeometry.Shape`, `RebarGeometry.BendingRadiuses`, `SingleRebar.Polygon` and `RadiusValues` hold what
-they are taken to hold, and above all **that Tekla gives one radius per bend rather than one per point**.
-`ByVertex` reads a short list as one per bend and a full-length list as one per vertex, and the tests pin
-both readings, but only the modeller can say which one Tekla actually hands over.
+`RebarConvert` began as one class holding extensions on five different types, which is not how this project
+is laid out. It is now split the way the rest of it is — one file per type extended:
+
+| Extends | File |
+|---|---|
+| `IEnumerable<TSG.Point>` | `PointConvert` |
+| `TSG.PolyLine` | `PolyLineConvert` |
+| `TSM.Polygon` | `PolygonConvert` |
+| `TSM.RebarGeometry` | `RebarGeometryConvert` |
+| the `Reinforcement` family | `ReinforcementConvert` |
+
+`ReinforcementConvert` covers `SingleRebar`, `RebarGroup`, `CurvedRebarGroup`, `CircleRebarGroup`,
+`RebarMesh`, `RebarStrand` and `RebarSet`.
+
+**The two readings are named apart**, and that is load-bearing. `ToGeoPolylineArc3s` asks Tekla for the
+geometries it worked out; `ToSetOutPolylineArc3(s)` reads the points that were typed in. Had they shared a
+name, a call on a variable typed `RebarGroup` would have taken the more specific overload and silently read
+the set-out, while the same call on one typed `Reinforcement` read the model.
+
+### What still needs a machine with Tekla
+
+Less than was thought. The set-out types — `Polygon`, `SingleRebar`, `RebarGroup`, `CurvedRebarGroup`,
+`CircleRebarGroup`, `RebarMesh`, `RebarStrand` — turn out to be plain holders that can be built without a
+running Tekla, so all of that is covered by tests here. `RebarGeometry` cannot be built, and
+`GetRebarGeometries` needs the modeller.
+
+So what is left to try on site is: that `RebarGeometry.Shape` and `BendingRadiuses` hold what they are taken
+to hold, and above all **whether Tekla gives one radius per bend or one per point**. `ByVertex` reads a short
+list as one per bend and a full-length list as one per vertex, and tests pin both readings, but only the
+modeller can say which one arrives.
 
 ## Optional, and not urgent
 

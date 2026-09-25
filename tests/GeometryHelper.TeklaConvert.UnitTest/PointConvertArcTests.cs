@@ -21,7 +21,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
     /// exercised without the modeller and are not pretended to be.
     /// </para>
     /// </summary>
-    public class RebarConvertTests
+    public class PointConvertArcTests
     {
         private static readonly Tolerance Loose = new Tolerance(1E-6, 1E-6);
 
@@ -45,7 +45,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [Fact]
         public void ABarIsItsSetOutPointsWithATangentArcAtEveryBend()
         {
-            GeoPolylineArc3 bar = RebarConvert.ToGeoPolylineArc3(Elbow(), new[] { 50.0 });
+            GeoPolylineArc3 bar = PointConvert.ToGeoPolylineArc3(Elbow(), new[] { 50.0 });
 
             // A straight run, a quarter turn of the bending radius, a straight run.
             Assert.Equal(3, bar.EdgeCount);
@@ -67,7 +67,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             // Tekla gives one radius per bend, and a bar of four points has two. The first belongs to the
             // second point, because nothing turns at the start of a bar.
-            GeoPolylineArc3 bar = RebarConvert.ToGeoPolylineArc3(Stirrup(), new[] { 40.0, 0.0 });
+            GeoPolylineArc3 bar = PointConvert.ToGeoPolylineArc3(Stirrup(), new[] { 40.0, 0.0 });
 
             Assert.Equal(1, bar.GetEdges().Count(edge => edge.IsArc));
             Assert.Equal(40.0, bar.GetEdges().Single(edge => edge.IsArc).ToArc().Radius, 6);
@@ -77,7 +77,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             Assert.True(bar.IsPointOn(new GeoPoint3(300, 300, 0), Loose));
 
             // And the other way round.
-            GeoPolylineArc3 second = RebarConvert.ToGeoPolylineArc3(Stirrup(), new[] { 0.0, 40.0 });
+            GeoPolylineArc3 second = PointConvert.ToGeoPolylineArc3(Stirrup(), new[] { 0.0, 40.0 });
 
             Assert.True(second.IsPointOn(new GeoPoint3(300, 0, 0), Loose));
             Assert.False(second.IsPointOn(new GeoPoint3(300, 300, 0)));
@@ -88,7 +88,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             // A caller who has already built the list the way GeometryHelper reads it should not have it
             // shifted underneath them: the entries for the two ends are simply ignored.
-            GeoPolylineArc3 bar = RebarConvert.ToGeoPolylineArc3(Stirrup(), new[] { 99.0, 40.0, 0.0, 99.0 });
+            GeoPolylineArc3 bar = PointConvert.ToGeoPolylineArc3(Stirrup(), new[] { 99.0, 40.0, 0.0, 99.0 });
 
             Assert.Equal(1, bar.GetEdges().Count(edge => edge.IsArc));
             Assert.Equal(40.0, bar.GetEdges().Single(edge => edge.IsArc).ToArc().Radius, 6);
@@ -100,7 +100,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             // The two bends of this bar turn about different axes, which is the whole reason a bar cannot be
             // held as a flat chain.
-            GeoPolylineArc3 bar = RebarConvert.ToGeoPolylineArc3(Stirrup(), new[] { 50.0, 50.0 });
+            GeoPolylineArc3 bar = PointConvert.ToGeoPolylineArc3(Stirrup(), new[] { 50.0, 50.0 });
 
             GeoEdge3[] arcs = bar.GetEdges().Where(edge => edge.IsArc).ToArray();
 
@@ -114,20 +114,20 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         public void ABendWithNoRoomOrNoRadiusIsLeftSquare()
         {
             // No radii at all is a bar of straight runs, and every point is still on it.
-            GeoPolylineArc3 sharp = RebarConvert.ToGeoPolylineArc3(Stirrup(), null);
+            GeoPolylineArc3 sharp = PointConvert.ToGeoPolylineArc3(Stirrup(), null);
 
             Assert.Equal(0, sharp.GetEdges().Count(edge => edge.IsArc));
             Assert.True(sharp.IsPointOn(new GeoPoint3(300, 0, 0), Loose));
             Assert.Equal(900.0, sharp.Length, 6);
 
             // A radius of nought leaves that bend square.
-            Assert.Equal(0, RebarConvert.ToGeoPolylineArc3(Stirrup(), new[] { 0.0, 0.0 }).GetEdges().Count(edge => edge.IsArc));
+            Assert.Equal(0, PointConvert.ToGeoPolylineArc3(Stirrup(), new[] { 0.0, 0.0 }).GetEdges().Count(edge => edge.IsArc));
 
             // A radius with nowhere to fit is left square rather than forced.
-            Assert.Equal(0, RebarConvert.ToGeoPolylineArc3(Elbow(), new[] { 5000.0 }).GetEdges().Count(edge => edge.IsArc));
+            Assert.Equal(0, PointConvert.ToGeoPolylineArc3(Elbow(), new[] { 5000.0 }).GetEdges().Count(edge => edge.IsArc));
 
             // Two bends wanting more of the leg between them than it is long: the greedy one gives way.
-            GeoPolylineArc3 crowded = RebarConvert.ToGeoPolylineArc3(Stirrup(), new[] { 280.0, 40.0 });
+            GeoPolylineArc3 crowded = PointConvert.ToGeoPolylineArc3(Stirrup(), new[] { 280.0, 40.0 });
 
             Assert.Equal(1, crowded.GetEdges().Count(edge => edge.IsArc));
             Assert.Equal(40.0, crowded.GetEdges().Single(edge => edge.IsArc).ToArc().Radius, 6);
@@ -138,14 +138,14 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             var shape = new TSG.PolyLine(new ArrayList(Elbow()));
 
-            GeoPolylineArc3 fromShape = RebarConvert.ToGeoPolylineArc3(shape, new[] { 50.0 });
-            GeoPolylineArc3 fromPoints = RebarConvert.ToGeoPolylineArc3(Elbow(), new[] { 50.0 });
+            GeoPolylineArc3 fromShape = PolyLineConvert.ToGeoPolylineArc3(shape, new[] { 50.0 });
+            GeoPolylineArc3 fromPoints = PointConvert.ToGeoPolylineArc3(Elbow(), new[] { 50.0 });
 
             Assert.True(fromShape.IsEqualTo(fromPoints, Loose));
             Assert.Equal(fromShape.Length, fromPoints.Length, 6);
 
             // The tolerance forms answer the same, which matters because Tekla coordinates run large.
-            Assert.True(RebarConvert.ToGeoPolylineArc3(shape, new[] { 50.0 }, Tolerance.Global).IsEqualTo(fromShape, Loose));
+            Assert.True(PolyLineConvert.ToGeoPolylineArc3(shape, new[] { 50.0 }, Tolerance.Global).IsEqualTo(fromShape, Loose));
         }
 
         [Fact]
@@ -160,7 +160,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                 new TSG.Point(452600, -118400, 39500)
             };
 
-            GeoPolylineArc3 bar = RebarConvert.ToGeoPolylineArc3(far, new[] { 50.0 });
+            GeoPolylineArc3 bar = PointConvert.ToGeoPolylineArc3(far, new[] { 50.0 });
 
             Assert.Equal(1, bar.GetEdges().Count(edge => edge.IsArc));
             Assert.Equal(50.0, bar.GetEdges().Single(edge => edge.IsArc).ToArc().Radius, 4);
@@ -170,16 +170,16 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [Fact]
         public void NothingIsAskedOfNothing()
         {
-            Assert.Throws<ArgumentNullException>(() => RebarConvert.ToGeoPolylineArc3((IList<TSG.Point>)null, new[] { 50.0 }));
-            Assert.Throws<ArgumentNullException>(() => RebarConvert.ToGeoPolylineArc3((TSG.PolyLine)null, new[] { 50.0 }));
+            Assert.Throws<ArgumentNullException>(() => PointConvert.ToGeoPolylineArc3((IEnumerable<TSG.Point>)null, new[] { 50.0 }));
+            Assert.Throws<ArgumentNullException>(() => PolyLineConvert.ToGeoPolylineArc3((TSG.PolyLine)null, new[] { 50.0 }));
 
             // A point that is not there cannot be set out through.
             var holed = new List<TSG.Point> { new TSG.Point(0, 0, 0), null, new TSG.Point(300, 300, 0) };
 
-            Assert.Throws<ArgumentException>(() => RebarConvert.ToGeoPolylineArc3(holed, new[] { 50.0 }));
+            Assert.Throws<ArgumentException>(() => PointConvert.ToGeoPolylineArc3(holed, new[] { 50.0 }));
 
             // One point is no bar.
-            Assert.Throws<ArgumentException>(() => RebarConvert.ToGeoPolylineArc3(
+            Assert.Throws<ArgumentException>(() => PointConvert.ToGeoPolylineArc3(
                 new List<TSG.Point> { new TSG.Point(0, 0, 0) }, new[] { 50.0 }));
         }
 
@@ -201,7 +201,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             Assert.True(fromShape.IsEqualTo(shape.ToGeoPolylineArc3(radii, Tolerance.Global), Loose));
 
             // And the static form still reads, because an extension method is one.
-            Assert.True(RebarConvert.ToGeoPolylineArc3(points, radii).IsEqualTo(fromPoints, Loose));
+            Assert.True(PointConvert.ToGeoPolylineArc3(points, radii).IsEqualTo(fromPoints, Loose));
         }
     }
 }
