@@ -11,7 +11,7 @@ instance method on the type it applies to. Both are measured with the same [shar
 
 | Namespace | Contents |
 |---|---|
-| `GeometryHelper.Geometry` | `GeoPoint3`, `GeoVector3`, `GeoLine3`, `GeoRay3`, `GeoPlane3`, `GeoTriangle3`, `GeoPolyline3`, `GeoPolygon3`, `GeoCircle3`, `GeoFace3`, `GeoAabb3`, `GeoObb3`, `GeoSolid3`, `GeoCoordinateSystem3`, `GeoTransform3` |
+| `GeometryHelper.Geometry` | `GeoPoint3`, `GeoVector3`, `GeoLine3`, `GeoRay3`, `GeoPlane3`, `GeoTriangle3`, `GeoPolyline3`, `GeoPolygon3`, `GeoCircle3`, `GeoFace3`, `GeoAabb3`, `GeoObb3`, `GeoSolid3`, `GeoEdge3`, `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoCoordinateSystem3`, `GeoTransform3` |
 | `GeometryHelper.Core` | `Boolean3`, `Collision3`, `Containment3`, `Distance3`, `Intersection3`, `Lengthen3`, `Merge3`, `Offset3`, `Parallel3`, `Parametrization3`, `Projection3`, `Splition3`, `PlanarMap` |
 | `GeometryHelper.Spatial` | `GeoBvh3` |
 | `GeometryHelper.Extension` | `EnumerableExtension` |
@@ -600,6 +600,120 @@ Faces are grouped by the oriented plane they lie on, so a face and one facing th
 merged — they are different surfaces that happen to be flat in the same place. Merging a ring of faces
 keeps the hole in the middle as a hole. Two faces count as touching only where they share a whole edge, so
 a T-junction stops that one join rather than the whole group; merging under-joins rather than guessing.
+
+## Arcs in space
+
+A `GeoPolyline3` is straight by definition, so a chain that curves is its own type, exactly as it is in the
+plane. `GeoEdge3` is one piece of it, and it carries the one thing space needs that the plane does not:
+
+| | Stored per piece |
+|---|---|
+| `GeoEdge2` | `StartPoint`, `EndPoint`, `Bulge` |
+| `GeoEdge3` | `StartPoint`, `EndPoint`, `Bulge`, **`Normal`** |
+
+The bulge keeps its meaning — the tangent of a quarter of the swept angle — and the normal says which plane
+it bulges in. A chord and a bulge alone are satisfied by an arc in any of the planes through that chord, so
+without the normal there is no one arc to mean. A positive bulge sweeps counter-clockwise about the normal.
+
+```csharp
+var straight = new GeoEdge3(new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0));
+var bulged = new GeoEdge3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), 1.0, new GeoVector3(0, 0, 1));
+
+bulged.IsArc;       // true
+bulged.ToArc();     // the GeoArc3 it draws, radius 50
+bulged.GetChord();  // the segment across it
+bulged.GetPlane();  // the plane it bulges in
+```
+
+### A bar is a chain with a bend at every corner
+
+This is what the types are for. A reinforcing bar is set out the way a schedule sets it out — the points it
+turns at, and a bending radius — and the bar itself is that polyline with a tangent arc at every bend:
+
+```csharp
+GeoPolylineArc3 bar = new GeoPolyline3(
+    new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0),
+    new GeoPoint3(300, 300, 0), new GeoPoint3(300, 300, 300)).Fillet(50.0);
+
+bar.Length;                        // 857.1, walked along the arcs, not 900
+bar.IsPlanar();                    // false: the second bend leaves the plane of the first
+bar.GetClosestPointOnBoundary(p);
+bar.DistanceTo(p);
+```
+
+Each bend is rounded in the plane of its own two legs, so the bends need not share a plane, and each arc
+carries that plane away with it. A bar is shorter than its set-out by `2r - πr/2` at every bend, which is
+the number a bar schedule has to carry.
+
+A radius per corner works too, read the way the bulges are read: the entry at an index belongs to the vertex
+at that index, and nought leaves that corner square. `TryFilletAt` rounds one named corner. A bend with too
+little straight run either side to fit its radius is left square rather than forced, and where two bends want
+more of the run between them than it is long, the one taking more of it gives way.
+
+Only a corner between two **straight** legs is rounded. A leg that already curves lies in a plane of its own,
+which need not be the plane of the corner, so there is no one plane to do the arithmetic in.
+
+### Closed loops have to lie flat
+
+`GeoPolylineArc3` requires no plane, as `GeoPolyline3` requires none. `GeoPolygonArc3` does require one, and
+enforces it at construction exactly as `GeoPolygon3` does: a loop that is not flat encloses nothing and has no
+inside. A bar bent out of one plane whose ends happen to meet is a `GeoPolylineArc3`, not a loop.
+
+That one rule is what makes everything else exact. Area, centroid, what is inside, offsetting and rounding
+are all answered by laying the loop out in its own plane as a `GeoPolygonArc2`, working there, and lifting
+the answer back:
+
+```csharp
+GeoPolygonArc3 tie = new GeoPolygonArc3(new GeoPolygon3(
+    new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0),
+    new GeoPoint3(300, 200, 0), new GeoPoint3(0, 200, 0))).Fillet(40.0);
+
+tie.Area;                  // counting each arc against its own chord
+tie.Centroid;
+tie.Contains(point);       // a point off the plane of the tie is outside it
+tie.Offset(25.0);          // moved in the plane of the tie, arcs kept as arcs
+tie.ToPolygonArc2();       // laid out in its own frame
+```
+
+A loop in space cannot report its winding through `IsClockwise`, because it is laid out in a frame that turns
+with it. What reversing turns over is the plane the loop names.
+
+### Between the plane and space
+
+`PlanarMap` carries arcs both ways now, so the round trip closes on a curved edge instead of flattening it:
+
+```csharp
+GeoCoordinateSystem3 frame = plate.GetFrame();
+
+PlanarMap.TryToPolylineArc2(frame, edgeInModel, out GeoPolylineArc2 laidOut);
+GeoPolylineArc2 moved = laidOut.Offset(10.0)[0];
+GeoPolylineArc3 backInModel = PlanarMap.ToPolylineArc3(frame, moved);
+```
+
+`ToArc3`, `ToEdge3` and `ToPolylineArc3` lift; `TryToArc2`, `TryToEdge2` and `TryToPolylineArc2` lay out
+again and **refuse** what does not lie in the frame rather than flattening it quietly. An arc whose normal
+runs against the frame is the same arc seen from behind, so its bulge changes sign coming down; that is what
+keeps the trip exact whichever way the frame was built.
+
+### What is exact, and what is sampled
+
+Everything worked out on the curve itself is exact, because a `GeoArc3` answers the point nearest another
+point in closed form: length, walking, the nearest point, the box, moving, reversing, planarity, flattening,
+filleting, and **everything** on `GeoPolygonArc3`, because it projects.
+
+Measuring a curved chain against another shape in space is not offered, and deliberately. The distance from
+an arc to anything but a point has no closed form once the two are not in one plane — it wants a polynomial
+root solve — and a sampled answer under an exact name is worse than no answer. Say how closely the bar should
+be followed and ask the ordinary question instead:
+
+```csharp
+bar.ToPolyline3(0.1).DistanceTo(slab);
+bar.ToPolyline3(0.1).CollidesWith(slab);
+```
+
+A sampled chain lies inside the arcs it stands for, so it is never nearer to anything outside the bar than
+the bar is: a clearance worked out this way errs on the safe side. The same bargain `GeoCircle3` offers
+through `ToPolylineByChordTolerance`.
 
 ## Working with large meshes
 

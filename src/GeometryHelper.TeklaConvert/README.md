@@ -244,6 +244,46 @@ so what `Part.GetSolid()` or `ToGeoSolids()` returned is drawn where it came fro
 - A polyline with fewer than two distinct points, or one Tekla will not insert, is skipped; one Tekla refuses is
   written to `GeometryHelperLog`.
 
+## Reinforcement
+
+Tekla sets a bar out the way a schedule does: the points it turns at, and a bending radius for each turn.
+The bar is **not** that polyline. It is that polyline with a tangent arc at every bend, so it is shorter
+than its set-out and it does not pass through its own corners. `GeoPolylineArc3` holds exactly that.
+
+```csharp
+GeoPolylineArc3 bar = RebarConvert.ToGeoPolylineArc3(rebar);
+
+bar.Length;                      // the length a bar schedule carries, walked along the arcs
+bar.GetEdges();                  // straight runs and bends, each bend knowing its own plane
+bar.IsPlanar();                  // false for a bar bent about two axes
+bar.DistanceTo(point);           // exact
+```
+
+Prefer the geometry Tekla works out over the points the bar was set out by, because the hooks, the offsets
+and the lapping are settled by the time a geometry is handed back and not before:
+
+```csharp
+foreach (GeoPolylineArc3 bar in RebarConvert.ToGeoPolylineArc3s(reinforcement))
+{
+    total += bar.Length;
+}
+```
+
+`ToGeoPolylineArc3s` takes any `Reinforcement` — a single bar, a group, a mesh or a circle group — and gives
+one bar for each geometry it holds. A geometry that cannot be read is passed over rather than stopping the
+rest, and the number passed over is reported through `GeometryHelperLog`.
+
+Tekla gives one radius per **bend**, so a bar of four points has two, and the first belongs to the second
+point because nothing turns at the start of a bar. A list already as long as the points is taken as it is,
+which is the layout `GeometryHelper` itself uses. A bend with too little straight run either side to fit its
+radius is left square rather than forced, and where two bends want more of the run between them than it is
+long, the one taking more of it gives way.
+
+Everything that turns points and radii into a bar works on `Tekla.Structures.Geometry3d` types and is
+covered by the tests, which run without Tekla installed. Only the overloads taking a `Reinforcement`, a
+`SingleRebar` or a `RebarGeometry` reach into `Tekla.Structures.Model`, and those cannot be exercised
+without the modeller.
+
 ## What is checked rather than trusted
 
 Tekla hands back what its modeller happens to hold; `GeometryHelper` asks for flatness, a

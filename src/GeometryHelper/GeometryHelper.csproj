@@ -97,6 +97,36 @@
 
       A GeoFace2 also gained the plain DistanceTo to a point, which it had never had at all.
 
+      ALSO NEW. Arcs in space, and with them a reinforcing bar.
+
+      A Tekla rebar carries a bending radius, so a bar is a chain of straight runs with a tangent arc at
+      every bend. Nothing in the library could hold that, because a bulge is a flat idea: a chord and a
+      bulge are satisfied by an arc in any of the planes through that chord.
+
+      - GeoEdge3 is the twin of GeoEdge2 with the one thing space needs, a Normal saying which plane the
+        bulge is read in. A positive bulge sweeps counter-clockwise about it.
+      - GeoPolylineArc3 is the open chain, and requires no plane, exactly as GeoPolyline3 requires none.
+        This is the type a bar is.
+      - GeoPolygonArc3 is the closed loop and does enforce coplanarity, as GeoPolygon3 enforces it. That is
+        what keeps its area, its centroid, what is inside it, its offsets and its rounding exact: each is
+        answered by laying the loop out in its own plane as a GeoPolygonArc2 and lifting the answer back.
+      - Corner3.Fillet rounds the corners of a chain in space, one radius or a radius per corner, and each
+        corner is rounded in the plane of its own two legs, so the bends need not share a plane. A bar is
+        shorter than its set-out by 2r - pi r / 2 at every bend, which is the number a bar schedule carries.
+      - PlanarMap carries arcs both ways at last, so the round trip closes on a curved plate edge instead of
+        flattening it. An arc whose normal runs against the frame changes the sign of its bulge coming down.
+      - GeoPolyline3 can now be measured against a segment, another chain, a triangle, a polygon, a plane,
+        either kind of box and a solid, which is what gives ToPolyline3 somewhere to lead.
+
+      Measuring a curved chain against another shape in space is deliberately not offered. The distance from
+      an arc to anything but a point has no closed form once the two are not coplanar, so say how closely the
+      bar should be followed and ask the ordinary question: bar.ToPolyline3(0.1).DistanceTo(slab). A sampled
+      chain lies inside the arcs it stands for, so a clearance worked out that way errs on the safe side.
+
+      In GeometryHelper.TeklaConvert, RebarConvert turns a Reinforcement, a SingleRebar or a RebarGeometry
+      into bars. Prefer the geometries Tekla works out, because the hooks, the offsets and the lapping are
+      settled by then and the set-out points do not show it.
+
       NEW IN 5.1.0
 
       Rounding a corner no longer means rounding every corner by the same radius.

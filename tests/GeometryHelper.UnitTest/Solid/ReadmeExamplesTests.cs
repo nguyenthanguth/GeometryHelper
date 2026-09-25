@@ -751,5 +751,84 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(-30.0, cube.SignedDistanceTo(new GeoPoint3(30, 50, 50)), 9);
             Assert.Equal(10.0, pierced.SignedDistanceTo(new GeoPoint3(50, 50, 50)), 9);
         }
+
+        [Fact]
+        public void ArcsInSpace_EverySampleHolds()
+        {
+            var straight = new GeoEdge3(new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0));
+            var bulged = new GeoEdge3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), 1.0, new GeoVector3(0, 0, 1));
+
+            Assert.False(straight.IsArc);
+            Assert.True(bulged.IsArc);
+            Assert.Equal(50.0, bulged.ToArc().Radius, 7);
+            Assert.Equal(100.0, bulged.GetChord().Length, 9);
+            Assert.True(bulged.GetPlane().Normal.IsParallelTo(new GeoVector3(0, 0, 1)));
+
+            GeoPolylineArc3 bar = new GeoPolyline3(
+                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 300, 0), new GeoPoint3(300, 300, 300)).Fillet(50.0);
+
+            Assert.Equal(857.1, bar.Length, 1);
+            Assert.False(bar.IsPlanar());
+
+            // Shorter than the set-out by 2r - pi r / 2 at each of the two bends.
+            Assert.Equal(900.0 - 2.0 * (2.0 * 50.0 - Math.PI * 50.0 / 2.0), bar.Length, 6);
+
+            GeoPolygonArc3 tie = new GeoPolygonArc3(new GeoPolygon3(
+                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 200, 0), new GeoPoint3(0, 200, 0))).Fillet(40.0);
+
+            Assert.True(tie.Area > 0.0);
+            Assert.True(tie.Contains(new GeoPoint3(150, 100, 0)));
+            Assert.False(tie.Contains(new GeoPoint3(150, 100, 25)));
+            Assert.Single(tie.Offset(25.0));
+            Assert.Equal(tie.Area, tie.ToPolygonArc2().Area, 5);
+        }
+
+        [Fact]
+        public void BetweenThePlaneAndSpaceWithArcs_EverySampleHolds()
+        {
+            var plate = new GeoPolygon3(
+                new GeoPoint3(0, 0, 10), new GeoPoint3(100, 0, 10),
+                new GeoPoint3(100, 100, 10), new GeoPoint3(0, 100, 10));
+
+            GeoCoordinateSystem3 frame = plate.GetFrame();
+
+            GeoPolylineArc3 edgeInModel = PlanarMap.ToPolylineArc3(frame, new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) },
+                new[] { 0.0, -1.0, 0.0 }));
+
+            Assert.True(PlanarMap.TryToPolylineArc2(frame, edgeInModel, out GeoPolylineArc2 laidOut));
+
+            GeoPolylineArc2 moved = laidOut.Offset(10.0)[0];
+            GeoPolylineArc3 backInModel = PlanarMap.ToPolylineArc3(frame, moved);
+
+            Assert.True(backInModel.IsPlanar());
+            Assert.Equal(moved.Length, backInModel.Length, 6);
+
+            // The curve survives the round trip, which flattening would have thrown away.
+            Assert.True(backInModel.GetEdges().Any(edge => edge.IsArc));
+            Assert.True(edgeInModel.Flatten().Length < edgeInModel.Length);
+        }
+
+        [Fact]
+        public void SamplingABentBar_EverySampleHolds()
+        {
+            GeoPolylineArc3 bar = new GeoPolyline3(
+                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 300, 0), new GeoPoint3(300, 300, 300)).Fillet(50.0);
+
+            GeoSolid3 slab = new GeoAabb3(
+                new GeoPoint3(500, -500, -500), new GeoPoint3(600, 500, 500)).ToObb().ToSolid();
+
+            Assert.Equal(200.0, bar.ToPolyline3(0.1).DistanceTo(slab), 6);
+            Assert.False(bar.ToPolyline3(0.1).CollidesWith(slab));
+
+            // A sampled chain lies inside the arcs it stands for, so it never claims the bar is nearer.
+            foreach (GeoPoint3 vertex in bar.ToPolyline3(0.1).Vertices)
+            {
+                Assert.True(bar.DistanceTo(vertex) <= 1E-6);
+            }
+        }
     }
 }
