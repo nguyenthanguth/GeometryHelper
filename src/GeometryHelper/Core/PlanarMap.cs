@@ -19,7 +19,7 @@ namespace GeometryHelper.Core
     /// forms project it onto the plane and say so in their name.
     /// </para>
     /// </summary>
-    public static class PlanarMap
+    public static partial class PlanarMap
     {
         #region Frames
 
