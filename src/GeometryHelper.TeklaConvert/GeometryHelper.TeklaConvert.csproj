@@ -18,6 +18,10 @@
          The assembly and file version add the year (4.0.0.2026), so the DLL itself tells which Tekla it was
          built for. -->
     <PackageId>GeometryHelper.TeklaConvert.$(TeklaVersion)</PackageId>
+    <!-- The year as a compilation symbol: TeklaVersion2020, TeklaVersion2025, TeklaVersion2026. Used only
+         where a Tekla build of one year needs handling the others do not, so that the workaround lives in
+         that year's DLL alone and costs the other years nothing. -->
+    <DefineConstants>$(DefineConstants);TeklaVersion$(TeklaVersion)</DefineConstants>
     <AssemblyVersion>$(GeometryHelperVersion).$(TeklaVersion)</AssemblyVersion>
     <FileVersion>$(GeometryHelperVersion).$(TeklaVersion)</FileVersion>
     <Description>Converts geometry between Tekla Structures $(TeklaVersion) and GeometryHelper: points, vectors, segments, planes, coordinate systems, bounding boxes, transformation matrices, and the faces and loops of a Tekla solid. Also reads the objects of IFC reference models into solids placed where Tekla shows them, through GeometryHelper.IfcConvert. Built for Tekla Structures $(TeklaVersion); install the package whose year matches your Tekla.</Description>

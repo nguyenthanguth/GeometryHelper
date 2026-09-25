@@ -250,10 +250,6 @@ Tekla sets a bar out the way a schedule does: the points it turns at, and a bend
 The bar is **not** that polyline. It is that polyline with a tangent arc at every bend, so it is shorter
 than its set-out and it does not pass through its own corners. `GeoPolylineArc3` holds exactly that.
 
-There are two readings, and they answer different questions.
-
-### As it ends up in the model
-
 ```csharp
 foreach (GeoPolylineArc3 bar in reinforcement.ToGeoPolylineArc3s())
 {
@@ -261,29 +257,38 @@ foreach (GeoPolylineArc3 bar in reinforcement.ToGeoPolylineArc3s())
 }
 ```
 
-This asks Tekla for the geometries it worked out, so the hooks, the offsets and the lapping are all settled,
-and a group gives one bar for **every** bar in it. It reads on any reinforcement at all: a single bar, a
-group, a curved or circle group, a mesh or a strand. A `RebarSet` is not a `Reinforcement` but holds them,
-so it answers the same call. **Prefer this** unless there is a reason not to.
+A bar is always read **as Tekla works it out**, never as it was typed in, because asking Tekla for its
+geometries means the hooks, the offsets and the lapping are all settled. It reads on any reinforcement at
+all: a single bar, a group, a curved or circle group, a mesh or a strand. A `RebarSet` is not a
+`Reinforcement` but holds them, so it answers the same call.
 
 A geometry that cannot be read is passed over rather than stopping the rest, and the number passed over is
 reported through `GeometryHelperLog`.
 
-### As it was set out
+### Many at once
 
 ```csharp
-GeoPolylineArc3 bar = singleRebar.ToSetOutPolylineArc3();
-GeoPolylineArc3[] shapes = rebarGroup.ToSetOutPolylineArc3s();   // one per set-out polygon, not per bar
-GeoLine3 strandLine = rebarStrand.ToSetOutLine3();
-GeoPolygon3 sheet = rebarMesh.ToSetOutPolygon3();                // the outline, which is not a bar
+Reinforcement[] bars = model.GetModelObjectSelector()
+    .GetAllObjectsWithType(ModelObject.ModelObjectEnum.REBAR_GROUP)
+    .ToArray<Reinforcement>();
+
+GeoPolylineArc3[] all = bars.ToGeoPolylineArc3s();
 ```
 
-These read the points that were typed in. They are named apart on purpose: had they shared the name above,
-a call on a variable typed `RebarGroup` would have silently taken the set-out while the same call on one
-typed `Reinforcement` took the model, which is the sort of difference no one should have to know about.
+Worth using over a loop of single calls rather than only shorter to write: where a Tekla build needs the
+work plane turned to global first, this turns it once for the whole lot and puts it back once, instead of
+once per reinforcement. A null in the sequence is passed over.
 
-A group is set out by one or two polygons — the shape at each end of the run — so `ToSetOutPolylineArc3s`
-gives those, not the forty bars Tekla spreads between them.
+### Tekla Structures 2020
+
+Tekla 2020 hands back the geometry of a **lapped** bar in the wrong place unless the current work plane is
+the global one. The 2020 package therefore turns the work plane to global before reading and puts it back
+afterwards, whether the read finished or threw. The 2025 and 2026 packages do not need it, and there the
+whole thing compiles away to nothing: the workaround lives in that one year's DLL, through a
+`TeklaVersion2020` compilation symbol the build defines from the year.
+
+The work plane is model-wide state, so the restore matters more than the change; it happens in a `finally`,
+by way of `IDisposable`.
 
 ### The pieces underneath
 
@@ -291,9 +296,9 @@ gives those, not the forty bars Tekla spreads between them.
 |---|---|---|
 | `IEnumerable<TSG.Point>` | `PointConvert` | points and a radius per bend into a bent chain |
 | `TSG.PolyLine` | `PolyLineConvert` | the same, from a Tekla polyline, both ways |
-| `TSM.Polygon` | `PolygonConvert` | the shape every kind of reinforcement is set out by |
+| `TSM.Polygon` | `PolygonConvert` | the run of points Tekla lays shapes out with, both ways |
 | `TSM.RebarGeometry` | `RebarGeometryConvert` | one bar as Tekla worked it out |
-| the `Reinforcement` family | `ReinforcementConvert` | both readings above |
+| the `Reinforcement` family | `ReinforcementConvert` | the reads above |
 
 Tekla gives one radius per **bend**, so a bar of four points has two, and the first belongs to the second
 point because nothing turns at the start of a bar. A list already as long as the points is taken as it is,
@@ -301,9 +306,8 @@ which is the layout `GeometryHelper` itself uses. A bend with too little straigh
 radius is left square rather than forced, and where two bends want more of the run between them than it is
 long, the one taking more of it gives way.
 
-Everything above works on plain data holders, so all of it runs in the tests without Tekla installed — the
-set-out types turn out to be constructible on their own. Only `GetRebarGeometries`, which is what
-`ToGeoPolylineArc3s` calls, needs the modeller.
+Everything but the read itself works on plain data holders, so it runs in the tests without Tekla installed.
+`GetRebarGeometries`, and the work plane the 2020 package turns, need the modeller.
 
 ## What is checked rather than trusted
 

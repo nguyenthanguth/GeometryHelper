@@ -172,10 +172,16 @@ is laid out. It is now split the way the rest of it is — one file per type ext
 `ReinforcementConvert` covers `SingleRebar`, `RebarGroup`, `CurvedRebarGroup`, `CircleRebarGroup`,
 `RebarMesh`, `RebarStrand` and `RebarSet`.
 
-**The two readings are named apart**, and that is load-bearing. `ToGeoPolylineArc3s` asks Tekla for the
-geometries it worked out; `ToSetOutPolylineArc3(s)` reads the points that were typed in. Had they shared a
-name, a call on a variable typed `RebarGroup` would have taken the more specific overload and silently read
-the set-out, while the same call on one typed `Reinforcement` read the model.
+**A bar is only ever read as Tekla works it out.** The set-out readings were written and then dropped at the
+user's word: the points a rebar is typed in by are hardly used, and reading them gave a second answer that
+differed from the model in ways nobody wanted to have to know about. `ToGeoPolylineArc3s` is the only way in,
+and it reads on one reinforcement, on any sequence of them, or on a `RebarSet`.
+
+**Tekla Structures 2020 needs the work plane turned to global first**, or a lapped bar comes back in the wrong
+place. The 2020 package does that and puts the plane back afterwards, whether the read finished or threw; the
+other years compile the whole thing away through a `TeklaVersion2020` symbol the build defines from the year.
+The sequence overload turns the plane once for the batch rather than once per bar, and does not turn it at all
+when there is nothing to read — model-wide state and a live connection are too much to ask of an empty list.
 
 ### What still needs a machine with Tekla
 
@@ -185,9 +191,9 @@ running Tekla, so all of that is covered by tests here. `RebarGeometry` cannot b
 `GetRebarGeometries` needs the modeller.
 
 So what is left to try on site is: that `RebarGeometry.Shape` and `BendingRadiuses` hold what they are taken
-to hold, and above all **whether Tekla gives one radius per bend or one per point**. `ByVertex` reads a short
-list as one per bend and a full-length list as one per vertex, and tests pin both readings, but only the
-modeller can say which one arrives.
+to hold, **whether Tekla gives one radius per bend or one per point** (`ByVertex` reads a short list as one per
+bend and a full-length list as one per vertex, and tests pin both readings, but only the modeller can say which
+arrives), and **that turning the work plane to global really does settle the 2020 lapping offset**.
 
 ## Optional, and not urgent
 
