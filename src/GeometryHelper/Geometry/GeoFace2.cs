@@ -307,6 +307,256 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point, Tolerance tolerance) => Projection2.ProjectToFace(this, point, tolerance);
 
+        /// <summary>
+        /// Gets every point where a segment crosses the boundary of this face.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoLine2 line) => Face2.GetIntersections(this, line);
+
+        /// <summary>
+        /// Gets every point where a segment crosses the boundary of this face, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoLine2 line, Tolerance tolerance) => Face2.GetIntersections(this, line, tolerance);
+
+        /// <summary>
+        /// Gets every point where a arc crosses the boundary of this face.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoArc2 arc) => Face2.GetIntersections(this, arc);
+
+        /// <summary>
+        /// Gets every point where a arc crosses the boundary of this face, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoArc2 arc, Tolerance tolerance) => Face2.GetIntersections(this, arc, tolerance);
+
+        /// <summary>
+        /// Gets every point where a circle crosses the boundary of this face.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoCircle2 circle) => Face2.GetIntersections(this, circle);
+
+        /// <summary>
+        /// Gets every point where a circle crosses the boundary of this face, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoCircle2 circle, Tolerance tolerance) => Face2.GetIntersections(this, circle, tolerance);
+
+        /// <summary>
+        /// Gets every point where a rectangle crosses the boundary of this face.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRectangle2 rect) => Face2.GetIntersections(this, rect);
+
+        /// <summary>
+        /// Gets every point where a rectangle crosses the boundary of this face, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRectangle2 rect, Tolerance tolerance) => Face2.GetIntersections(this, rect, tolerance);
+
+        /// <summary>
+        /// Gets every point where a polyline crosses the boundary of this face.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolyline2 polyline) => Face2.GetIntersections(this, polyline);
+
+        /// <summary>
+        /// Gets every point where a polyline crosses the boundary of this face, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolyline2 polyline, Tolerance tolerance) => Face2.GetIntersections(this, polyline, tolerance);
+
+        /// <summary>
+        /// Gets every point where a polygon crosses the boundary of this face.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygon2 polygon) => Face2.GetIntersections(this, polygon);
+
+        /// <summary>
+        /// Gets every point where a polygon crosses the boundary of this face, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygon2 polygon, Tolerance tolerance) => Face2.GetIntersections(this, polygon, tolerance);
+
+        /// <summary>
+        /// Gets every point where a curved loop crosses the boundary of this face.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygonArc2 loop) => Face2.GetIntersections(this, loop);
+
+        /// <summary>
+        /// Gets every point where a curved loop crosses the boundary of this face, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, Tolerance tolerance) => Face2.GetIntersections(this, loop, tolerance);
+
+        /// <summary>
+        /// Gets every point where a curved chain crosses the boundary of this face.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolylineArc2 chain) => Face2.GetIntersections(this, chain);
+
+        /// <summary>
+        /// Gets every point where a curved chain crosses the boundary of this face, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, Tolerance tolerance) => Face2.GetIntersections(this, chain, tolerance);
+
+        /// <summary>
+        /// Checks whether a segment reaches the material of this face.
+        /// </summary>
+        public bool CollidesWith(GeoLine2 line) => Face2.CollidesWith(this, line);
+
+        /// <summary>
+        /// Checks whether a segment reaches the material of this face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine2 line, Tolerance tolerance) => Face2.CollidesWith(this, line, tolerance);
+
+        /// <summary>
+        /// Checks whether a arc reaches the material of this face.
+        /// </summary>
+        public bool CollidesWith(GeoArc2 arc) => Face2.CollidesWith(this, arc);
+
+        /// <summary>
+        /// Checks whether a arc reaches the material of this face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoArc2 arc, Tolerance tolerance) => Face2.CollidesWith(this, arc, tolerance);
+
+        /// <summary>
+        /// Checks whether a circle reaches the material of this face.
+        /// </summary>
+        public bool CollidesWith(GeoCircle2 circle) => Face2.CollidesWith(this, circle);
+
+        /// <summary>
+        /// Checks whether a circle reaches the material of this face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) => Face2.CollidesWith(this, circle, tolerance);
+
+        /// <summary>
+        /// Checks whether a rectangle reaches the material of this face.
+        /// </summary>
+        public bool CollidesWith(GeoRectangle2 rect) => Face2.CollidesWith(this, rect);
+
+        /// <summary>
+        /// Checks whether a rectangle reaches the material of this face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) => Face2.CollidesWith(this, rect, tolerance);
+
+        /// <summary>
+        /// Checks whether a polyline reaches the material of this face.
+        /// </summary>
+        public bool CollidesWith(GeoPolyline2 polyline) => Face2.CollidesWith(this, polyline);
+
+        /// <summary>
+        /// Checks whether a polyline reaches the material of this face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) => Face2.CollidesWith(this, polyline, tolerance);
+
+        /// <summary>
+        /// Checks whether a polygon reaches the material of this face.
+        /// </summary>
+        public bool CollidesWith(GeoPolygon2 polygon) => Face2.CollidesWith(this, polygon);
+
+        /// <summary>
+        /// Checks whether a polygon reaches the material of this face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygon2 polygon, Tolerance tolerance) => Face2.CollidesWith(this, polygon, tolerance);
+
+        /// <summary>
+        /// Checks whether a curved loop reaches the material of this face.
+        /// </summary>
+        public bool CollidesWith(GeoPolygonArc2 loop) => Face2.CollidesWith(this, loop);
+
+        /// <summary>
+        /// Checks whether a curved loop reaches the material of this face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) => Face2.CollidesWith(this, loop, tolerance);
+
+        /// <summary>
+        /// Checks whether a curved chain reaches the material of this face.
+        /// </summary>
+        public bool CollidesWith(GeoPolylineArc2 chain) => Face2.CollidesWith(this, chain);
+
+        /// <summary>
+        /// Checks whether a curved chain reaches the material of this face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) => Face2.CollidesWith(this, chain, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a point.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Face2.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a point, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Face2.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a segment.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoLine2 line) => Face2.GetShortestLineTo(this, line);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a segment, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoLine2 line, Tolerance tolerance) => Face2.GetShortestLineTo(this, line, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a arc.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoArc2 arc) => Face2.GetShortestLineTo(this, arc);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a arc, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoArc2 arc, Tolerance tolerance) => Face2.GetShortestLineTo(this, arc, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a circle.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle) => Face2.GetShortestLineTo(this, circle);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a circle, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance) => Face2.GetShortestLineTo(this, circle, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a rectangle.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect) => Face2.GetShortestLineTo(this, rect);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a rectangle, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance) => Face2.GetShortestLineTo(this, rect, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a polyline.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline) => Face2.GetShortestLineTo(this, polyline);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a polyline, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance) => Face2.GetShortestLineTo(this, polyline, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a polygon.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 polygon) => Face2.GetShortestLineTo(this, polygon);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a polygon, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 polygon, Tolerance tolerance) => Face2.GetShortestLineTo(this, polygon, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a curved loop.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop) => Face2.GetShortestLineTo(this, loop);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a curved loop, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance) => Face2.GetShortestLineTo(this, loop, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a curved chain.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain) => Face2.GetShortestLineTo(this, chain);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a curved chain, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance) => Face2.GetShortestLineTo(this, chain, tolerance);
+
         #region Equality
 
         /// <summary>

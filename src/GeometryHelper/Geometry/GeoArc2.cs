@@ -718,14 +718,29 @@ namespace GeometryHelper.Geometry
         public GeoPoint2[] GetIntersections(GeoLine2 line) => Arc2.GetIntersections(this, line);
 
         /// <summary>
+        /// Gets every point where this arc crosses a segment, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoLine2 line, Tolerance tolerance) => Arc2.GetIntersections(this, line, tolerance);
+
+        /// <summary>
         /// Gets where this arc meets a circle.
         /// </summary>
         public GeoPoint2[] GetIntersections(GeoCircle2 circle) => Arc2.GetIntersections(this, circle);
 
         /// <summary>
+        /// Gets every point where this arc crosses a circle, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoCircle2 circle, Tolerance tolerance) => Arc2.GetIntersections(this, circle, tolerance);
+
+        /// <summary>
         /// Gets where this arc meets another.
         /// </summary>
         public GeoPoint2[] GetIntersections(GeoArc2 other) => Arc2.GetIntersections(this, other);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a arc, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoArc2 other, Tolerance tolerance) => Arc2.GetIntersections(this, other, tolerance);
 
         /// <summary>
         /// Splits this arc at a normalized parameter.
@@ -746,6 +761,286 @@ namespace GeometryHelper.Geometry
         /// Splits this arc at the point of it nearest a point, within a tolerance.
         /// </summary>
         public bool TrySplitAt(GeoPoint2 point, out GeoArc2[] pieces, Tolerance tolerance) => Arc2.TrySplitAt(this, point, out pieces, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this arc to a circle, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoCircle2 circle) => Arc2.DistanceTo(this, circle);
+
+        /// <summary>
+        /// Gets the distance from this arc to a circle, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoCircle2 circle, Tolerance tolerance) => Arc2.DistanceTo(this, circle, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this arc to a polygon, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolygon2 poly) => Distance2.DistanceTo(poly, this);
+
+        /// <summary>
+        /// Gets the distance from this arc to a polygon, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolygon2 poly, Tolerance tolerance) => Distance2.DistanceTo(poly, this, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this arc to a curved loop, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolygonArc2 loop) => Distance2.DistanceTo(loop, this);
+
+        /// <summary>
+        /// Gets the distance from this arc to a curved loop, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(loop, this, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this arc to a polyline, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolyline2 polyline) => Distance2.DistanceTo(polyline, this);
+
+        /// <summary>
+        /// Gets the distance from this arc to a polyline, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolyline2 polyline, Tolerance tolerance) => Distance2.DistanceTo(polyline, this, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this arc to a curved chain, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolylineArc2 chain) => Distance2.DistanceTo(chain, this);
+
+        /// <summary>
+        /// Gets the distance from this arc to a curved chain, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Distance2.DistanceTo(chain, this, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this arc to a rectangle, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRectangle2 rect) => Distance2.DistanceTo(rect, this);
+
+        /// <summary>
+        /// Gets the distance from this arc to a rectangle, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRectangle2 rect, Tolerance tolerance) => Distance2.DistanceTo(rect, this, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a point, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Arc2.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a point, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Arc2.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a segment, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoLine2 line) => Arc2.GetShortestLineTo(this, line);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a segment, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoLine2 line, Tolerance tolerance) => Arc2.GetShortestLineTo(this, line, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a arc, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoArc2 other) => Arc2.GetShortestLineTo(this, other);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a arc, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoArc2 other, Tolerance tolerance) => Arc2.GetShortestLineTo(this, other, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a circle, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle) => Arc2.GetShortestLineTo(this, circle);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a circle, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance) => Arc2.GetShortestLineTo(this, circle, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a polygon, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly) => Projection2.GetShortestLineTo(poly, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a polygon, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly, Tolerance tolerance) => Projection2.GetShortestLineTo(poly, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a curved loop, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop) => Projection2.GetShortestLineTo(loop, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a curved loop, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance) => Projection2.GetShortestLineTo(loop, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a polyline, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline) => Projection2.GetShortestLineTo(polyline, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a polyline, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance) => Projection2.GetShortestLineTo(polyline, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a curved chain, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain) => Projection2.GetShortestLineTo(chain, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a curved chain, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance) => Projection2.GetShortestLineTo(chain, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a rectangle, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect) => Projection2.GetShortestLineTo(rect, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a rectangle, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance) => Projection2.GetShortestLineTo(rect, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Checks whether this arc touches a segment, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine2 line) => Collision2.CollidesWith(line, this);
+
+        /// <summary>
+        /// Checks whether this arc touches a segment, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine2 line, Tolerance tolerance) => Collision2.CollidesWith(line, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this arc touches another arc, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoArc2 other) => Collision2.CollidesWith(this, other);
+
+        /// <summary>
+        /// Checks whether this arc touches another arc, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoArc2 other, Tolerance tolerance) => Collision2.CollidesWith(this, other, tolerance);
+
+        /// <summary>
+        /// Checks whether this arc touches a circle, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoCircle2 circle) => Collision2.CollidesWith(circle, this);
+
+        /// <summary>
+        /// Checks whether this arc touches a circle, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) => Collision2.CollidesWith(circle, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this arc touches a polygon, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygon2 poly) => Collision2.CollidesWith(poly, this);
+
+        /// <summary>
+        /// Checks whether this arc touches a polygon, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygon2 poly, Tolerance tolerance) => Collision2.CollidesWith(poly, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this arc touches a curved loop, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygonArc2 loop) => Collision2.CollidesWith(loop, this);
+
+        /// <summary>
+        /// Checks whether this arc touches a curved loop, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) => Collision2.CollidesWith(loop, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this arc touches a polyline, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolyline2 polyline) => Collision2.CollidesWith(polyline, this);
+
+        /// <summary>
+        /// Checks whether this arc touches a polyline, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) => Collision2.CollidesWith(polyline, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this arc touches a curved chain, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolylineArc2 chain) => Collision2.CollidesWith(chain, this);
+
+        /// <summary>
+        /// Checks whether this arc touches a curved chain, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) => Collision2.CollidesWith(chain, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this arc touches a rectangle, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRectangle2 rect) => Collision2.CollidesWith(rect, this);
+
+        /// <summary>
+        /// Checks whether this arc touches a rectangle, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) => Collision2.CollidesWith(rect, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a polygon, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygon2 poly) => Intersection2.GetIntersections(poly, this);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a polygon, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygon2 poly, Tolerance tolerance) => Intersection2.GetIntersections(poly, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a curved loop, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygonArc2 loop) => Intersection2.GetIntersections(loop, this);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a curved loop, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, Tolerance tolerance) => Intersection2.GetIntersections(loop, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a polyline, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolyline2 polyline) => Intersection2.GetIntersections(polyline, this);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a polyline, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolyline2 polyline, Tolerance tolerance) => Intersection2.GetIntersections(polyline, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a curved chain, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolylineArc2 chain) => Intersection2.GetIntersections(chain, this);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a curved chain, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, Tolerance tolerance) => Intersection2.GetIntersections(chain, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a rectangle, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRectangle2 rect) => Intersection2.GetIntersections(rect, this);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a rectangle, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRectangle2 rect, Tolerance tolerance) => Intersection2.GetIntersections(rect, this, tolerance);
 
         #endregion
     }

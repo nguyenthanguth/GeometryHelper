@@ -225,6 +225,60 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         public GeoLine3 GetShortestLineTo(GeoLine3 other, LineExtension extension, Tolerance tolerance) => Projection3.GetShortestLineTo(this, other, extension, tolerance);
 
+        /// <summary>
+        /// Gets the shortest segment joining this one to a triangle, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this segment and lands on the triangle, so its length is the clearance
+        /// between them and nought where they touch.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoTriangle3 triangle) => Projection3.GetShortestLineTo(this, triangle);
+
+        /// <summary>
+        /// Gets the shortest segment joining this one to a triangle, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this segment and lands on the triangle, so its length is the clearance
+        /// between them and nought where they touch.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoTriangle3 triangle, Tolerance tolerance) => Projection3.GetShortestLineTo(this, triangle, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this one to a ray, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this segment and lands on the ray, so its length is the clearance
+        /// between them and nought where they touch.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoRay3 ray) => Projection3.GetShortestLineTo(ray, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this one to a ray, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this segment and lands on the ray, so its length is the clearance
+        /// between them and nought where they touch.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoRay3 ray, Tolerance tolerance) => Projection3.GetShortestLineTo(ray, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this one to a solid, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this segment and lands on the solid, so its length is the clearance
+        /// between them and nought where they touch.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoSolid3 solid) => Projection3.GetShortestLineTo(solid, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this one to a solid, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this segment and lands on the solid, so its length is the clearance
+        /// between them and nought where they touch.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoSolid3 solid, Tolerance tolerance) => Projection3.GetShortestLineTo(solid, this, tolerance).Reverse();
+
         #endregion
 
         #region Predicates and intersection

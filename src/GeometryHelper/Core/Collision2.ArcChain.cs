@@ -31,6 +31,34 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Determines whether an arc touches another arc.
+        /// </summary>
+        public static bool CollidesWith(GeoArc2 first, GeoArc2 second) => CollidesWith(first, second, Tolerance.Global);
+
+        /// <summary>
+        /// Determines whether an arc touches another arc, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// Neither has an inside, so they collide only where they cross. Two arcs of the same circle are the
+        /// exception: they cross nowhere, because two circles lying on each other meet along their whole
+        /// length rather than at points, so those are settled by asking whether either holds an end of the
+        /// other, which is where an overlap of two arcs of one circle always begins and ends.
+        /// </remarks>
+        public static bool CollidesWith(GeoArc2 first, GeoArc2 second, Tolerance tolerance)
+        {
+            if (first.Center.IsEqualTo(second.Center, tolerance)
+                && Math.Abs(first.Radius - second.Radius) <= tolerance.EqualPoint)
+            {
+                return first.IsPointOn(second.StartPoint, tolerance)
+                    || first.IsPointOn(second.EndPoint, tolerance)
+                    || second.IsPointOn(first.StartPoint, tolerance)
+                    || second.IsPointOn(first.EndPoint, tolerance);
+            }
+
+            return Arc2.TryIntersectWith(first, second, out _, tolerance);
+        }
+
+        /// <summary>
         /// Determines whether a circle touches or overlaps an arc.
         /// </summary>
         public static bool CollidesWith(GeoCircle2 circle, GeoArc2 arc) => CollidesWith(circle, arc, Tolerance.Global);

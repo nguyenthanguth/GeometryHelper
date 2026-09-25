@@ -183,6 +183,24 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public double DistanceTo(GeoSolid3 solid) => Distance3.DistanceTo(solid, this);
 
+        /// <summary>
+        /// Gets the shortest segment joining this point to a solid, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this point and lands on the solid, so its length is the clearance
+        /// between them and nought where they touch.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoSolid3 solid) => Projection3.GetShortestLineTo(solid, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this point to a solid, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this point and lands on the solid, so its length is the clearance
+        /// between them and nought where they touch.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoSolid3 solid, Tolerance tolerance) => Projection3.GetShortestLineTo(solid, this, tolerance).Reverse();
+
         #endregion
 
         #region Projection
