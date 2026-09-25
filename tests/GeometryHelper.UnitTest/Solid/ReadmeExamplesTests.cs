@@ -807,7 +807,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(moved.Length, backInModel.Length, 6);
 
             // The curve survives the round trip, which flattening would have thrown away.
-            Assert.True(backInModel.GetEdges().Any(edge => edge.IsArc));
+            Assert.Contains(backInModel.GetEdges(), edge => edge.IsArc);
             Assert.True(edgeInModel.Flatten().Length < edgeInModel.Length);
         }
 
