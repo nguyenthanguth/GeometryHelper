@@ -251,7 +251,7 @@ The bar is **not** that polyline. It is that polyline with a tangent arc at ever
 than its set-out and it does not pass through its own corners. `GeoPolylineArc3` holds exactly that.
 
 ```csharp
-GeoPolylineArc3 bar = RebarConvert.ToGeoPolylineArc3(rebar);
+GeoPolylineArc3 bar = rebar.ToGeoPolylineArc3();
 
 bar.Length;                      // the length a bar schedule carries, walked along the arcs
 bar.GetEdges();                  // straight runs and bends, each bend knowing its own plane
@@ -263,13 +263,13 @@ Prefer the geometry Tekla works out over the points the bar was set out by, beca
 and the lapping are settled by the time a geometry is handed back and not before:
 
 ```csharp
-foreach (GeoPolylineArc3 bar in RebarConvert.ToGeoPolylineArc3s(reinforcement))
+foreach (GeoPolylineArc3 bar in reinforcement.ToGeoPolylineArc3s())
 {
     total += bar.Length;
 }
 ```
 
-`ToGeoPolylineArc3s` takes any `Reinforcement` — a single bar, a group, a mesh or a circle group — and gives
+`ToGeoPolylineArc3s` reads on any `Reinforcement` — a single bar, a group, a mesh or a circle group — and gives
 one bar for each geometry it holds. A geometry that cannot be read is passed over rather than stopping the
 rest, and the number passed over is reported through `GeometryHelperLog`.
 

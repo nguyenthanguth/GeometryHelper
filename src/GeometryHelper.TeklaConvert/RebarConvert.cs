@@ -33,7 +33,7 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Builds a bar from the points it turns at and the radius of each turn.
         /// </summary>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(IList<TSG.Point> points, IList<double> bendingRadii)
+        public static GeoPolylineArc3 ToGeoPolylineArc3(this IList<TSG.Point> points, IList<double> bendingRadii)
             => ToGeoPolylineArc3(points, bendingRadii, Tolerance.Global);
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace GeometryHelper.TeklaConvert
         /// than forced, and where two bends want more of the run between them than it is long, the one
         /// taking more of it gives way. Both are reported through <c>GeometryHelperLog</c> at debug level.
         /// </remarks>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(IList<TSG.Point> points, IList<double> bendingRadii, Tolerance tolerance)
+        public static GeoPolylineArc3 ToGeoPolylineArc3(this IList<TSG.Point> points, IList<double> bendingRadii, Tolerance tolerance)
         {
             if (points == null) throw new ArgumentNullException(nameof(points));
 
@@ -83,14 +83,14 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Builds a bar from the shape Tekla worked out for it and the radius of each turn.
         /// </summary>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(TSG.PolyLine shape, IList<double> bendingRadii)
+        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSG.PolyLine shape, IList<double> bendingRadii)
             => ToGeoPolylineArc3(shape, bendingRadii, Tolerance.Global);
 
         /// <summary>
         /// Builds a bar from the shape Tekla worked out for it and the radius of each turn, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the shape is null.</exception>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(TSG.PolyLine shape, IList<double> bendingRadii, Tolerance tolerance)
+        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSG.PolyLine shape, IList<double> bendingRadii, Tolerance tolerance)
         {
             if (shape == null) throw new ArgumentNullException(nameof(shape));
 
@@ -100,7 +100,7 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Builds a bar from one of the geometries Tekla works out for a reinforcement.
         /// </summary>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(TSM.RebarGeometry geometry) => ToGeoPolylineArc3(geometry, Tolerance.Global);
+        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSM.RebarGeometry geometry) => ToGeoPolylineArc3(geometry, Tolerance.Global);
 
         /// <summary>
         /// Builds a bar from one of the geometries Tekla works out for a reinforcement, within a tolerance.
@@ -114,7 +114,7 @@ namespace GeometryHelper.TeklaConvert
         /// hooks, the offsets and the lapping by the time it hands a geometry back, where the set-out points
         /// on the reinforcement itself have not.
         /// </remarks>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(TSM.RebarGeometry geometry, Tolerance tolerance)
+        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSM.RebarGeometry geometry, Tolerance tolerance)
         {
             if (geometry == null) throw new ArgumentNullException(nameof(geometry));
 
@@ -124,7 +124,7 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Builds a bar from a single reinforcing bar as it is set out.
         /// </summary>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(TSM.SingleRebar rebar) => ToGeoPolylineArc3(rebar, Tolerance.Global);
+        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSM.SingleRebar rebar) => ToGeoPolylineArc3(rebar, Tolerance.Global);
 
         /// <summary>
         /// Builds a bar from a single reinforcing bar as it is set out, within a tolerance.
@@ -135,7 +135,7 @@ namespace GeometryHelper.TeklaConvert
         /// offsets are settled later. <see cref="ToGeoPolylineArc3(TSM.RebarGeometry)"/> is the one to use
         /// where the answer has to match the model.
         /// </remarks>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(TSM.SingleRebar rebar, Tolerance tolerance)
+        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSM.SingleRebar rebar, Tolerance tolerance)
         {
             if (rebar == null) throw new ArgumentNullException(nameof(rebar));
 
@@ -150,7 +150,7 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Builds every bar of a reinforcement, as Tekla works them out.
         /// </summary>
-        public static GeoPolylineArc3[] ToGeoPolylineArc3s(TSM.Reinforcement reinforcement) => ToGeoPolylineArc3s(reinforcement, Tolerance.Global);
+        public static GeoPolylineArc3[] ToGeoPolylineArc3s(this TSM.Reinforcement reinforcement) => ToGeoPolylineArc3s(reinforcement, Tolerance.Global);
 
         /// <summary>
         /// Builds every bar of a reinforcement, as Tekla works them out, within a tolerance.
@@ -164,7 +164,7 @@ namespace GeometryHelper.TeklaConvert
         /// number passed over is reported through <c>GeometryHelperLog</c>, because a group of forty bars
         /// with one bad geometry is more useful than an exception.
         /// </remarks>
-        public static GeoPolylineArc3[] ToGeoPolylineArc3s(TSM.Reinforcement reinforcement, Tolerance tolerance)
+        public static GeoPolylineArc3[] ToGeoPolylineArc3s(this TSM.Reinforcement reinforcement, Tolerance tolerance)
         {
             if (reinforcement == null) throw new ArgumentNullException(nameof(reinforcement));
 

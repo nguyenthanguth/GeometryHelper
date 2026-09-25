@@ -182,5 +182,26 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             Assert.Throws<ArgumentException>(() => RebarConvert.ToGeoPolylineArc3(
                 new List<TSG.Point> { new TSG.Point(0, 0, 0) }, new[] { 50.0 }));
         }
+
+        [Fact]
+        public void EveryConversionReadsAsAnExtensionLikeTheRestOfTheLibrary()
+        {
+            // Every other converter here is an extension method and the README is written that way, so
+            // these are too. Written as extensions on purpose: the call stops compiling if the "this"
+            // ever comes off a signature.
+            List<TSG.Point> points = Elbow();
+            var shape = new TSG.PolyLine(new ArrayList(points));
+            var radii = new[] { 50.0 };
+
+            GeoPolylineArc3 fromPoints = points.ToGeoPolylineArc3(radii);
+            GeoPolylineArc3 fromShape = shape.ToGeoPolylineArc3(radii);
+
+            Assert.True(fromPoints.IsEqualTo(fromShape, Loose));
+            Assert.True(fromPoints.IsEqualTo(points.ToGeoPolylineArc3(radii, Tolerance.Global), Loose));
+            Assert.True(fromShape.IsEqualTo(shape.ToGeoPolylineArc3(radii, Tolerance.Global), Loose));
+
+            // And the static form still reads, because an extension method is one.
+            Assert.True(RebarConvert.ToGeoPolylineArc3(points, radii).IsEqualTo(fromPoints, Loose));
+        }
     }
 }
