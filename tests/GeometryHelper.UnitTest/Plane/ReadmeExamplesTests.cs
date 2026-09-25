@@ -938,5 +938,39 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(2, rect.GetIntersections(arc).Length);
             Assert.False(slot.GetClosestEdge(circle).IsArc);
         }
+
+        [Fact]
+        public void HowDeepInsideNotJustWhether_EverySampleHolds()
+        {
+            var plate = new GeoRectangle2(0, 0, 100, 100);
+
+            Assert.Equal(0.0, plate.DistanceTo(new GeoPoint2(50, 50)), 12);
+            Assert.Equal(-50.0, plate.SignedDistanceTo(new GeoPoint2(50, 50)), 9);
+            Assert.Equal(-10.0, plate.SignedDistanceTo(new GeoPoint2(10, 50)), 9);
+            Assert.Equal(20.0, plate.SignedDistanceTo(new GeoPoint2(-20, 50)), 9);
+            Assert.Equal(0.0, plate.SignedDistanceTo(new GeoPoint2(0, 50)), 9);
+
+            var slot = new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+                new[] { 0.0, 1.0, 0.0, 0.0 });
+
+            Assert.Equal(-20.0, slot.SignedDistanceTo(new GeoPoint2(130, 50)), 9);
+
+            var hole = new GeoPolygon2(
+                new GeoPoint2(40, 40), new GeoPoint2(60, 40), new GeoPoint2(60, 60), new GeoPoint2(40, 60));
+            var pierced = new GeoFace2(plate.ToPolygon(), new[] { hole });
+
+            Assert.Equal(10.0, pierced.SignedDistanceTo(new GeoPoint2(50, 50)), 9);
+            Assert.Equal(-15.0, pierced.SignedDistanceTo(new GeoPoint2(25, 50)), 9);
+
+            // Edge distance in one call: inside the plate, and at least forty from any side.
+            var bolt = new GeoPoint2(45, 50);
+
+            Assert.True(Math.Abs(plate.SignedDistanceTo(bolt)) >= 40.0 && plate.SignedDistanceTo(bolt) < 0.0);
+
+            var tooNear = new GeoPoint2(20, 50);
+
+            Assert.False(Math.Abs(plate.SignedDistanceTo(tooNear)) >= 40.0 && plate.SignedDistanceTo(tooNear) < 0.0);
+        }
     }
 }

@@ -69,6 +69,34 @@
       A GeoCircle3 is deliberately not on that list. The distance from a circle in space to a flat face
       has no closed form, so turn it into a chain first and say in the call how close an answer you want.
 
+      ALSO NEW. How deep inside a closed shape a point sits.
+
+      DistanceTo reads a closed shape as a filled region, so a point anywhere inside one is nought away and
+      the depth cannot be got back out of the answer. SignedDistanceTo keeps it: the magnitude is the
+      distance to the boundary whichever side of it the point is on, and the sign says which side.
+
+      - Its whole definition is tied to Locate: negative where Locate answers Inside, nought where it
+        answers OnSide, positive where it answers OutSide. So Math.Abs of it is always the distance out to
+        the outline. Within the tolerance band around the boundary the sign is not worth reading, because
+        the answer there is nought either way.
+      - Offered by every shape that encloses an area or a volume: GeoCircle2, GeoRectangle2, GeoPolygon2,
+        GeoFace2, GeoPolygonArc2, GeoSolid3, GeoObb3 and GeoAabb3. A curved loop is measured on its arcs.
+      - The boundary of a GeoFace2 is its outline and the rim of every hole, so a point in a hole is off the
+        material and is measured to the rim it sits in. The surface of a pierced body is its faces and the
+        walls of every opening, and a duct running out past a face bounds nothing out there, so each
+        candidate is held against the body and kept only where the body agrees it is on the boundary.
+      - Not offered for GeoTriangle3, GeoPolygon3 or GeoCircle3. They are flat regions standing in space and
+        enclose no volume, so a point is inside one only when it is also on its plane: a sign for them would
+        be negative on a set of no thickness and would read as though it meant more.
+        GeoPlane3.SignedDistanceTo already answers the question that does make sense for something flat.
+
+      DistanceTo is untouched. Turning its sign over instead would have been a change no compiler could
+      catch, and DistanceTo is also asked of two shapes, where a sign would have to mean penetration depth
+      and does not. The naming follows SignedArea beside Area, and GeoPlane3.SignedDistanceTo, which the
+      library has carried all along.
+
+      A GeoFace2 also gained the plain DistanceTo to a point, which it had never had at all.
+
       NEW IN 5.1.0
 
       Rounding a corner no longer means rounding every corner by the same radius.

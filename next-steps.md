@@ -100,6 +100,34 @@ deliberately:
 The four hand-written guides and the package release notes are up to date with all of it. Every snippet in
 `plane.md` and `solid.md` runs as a test in `ReadmeExamplesTests`, which is why they can be trusted.
 
+## 5. Signed distance, added after the rest
+
+`DistanceTo` reads a closed shape as a filled region and answers nothing at all for a point inside one, so
+how far in it sat could not be got back out. `SignedDistanceTo` keeps it: the magnitude is the distance to
+the boundary whichever side of it the point is on, and the sign says which side.
+
+The question asked was whether `DistanceTo` itself should turn negative inside. It should not, and the
+reasons are worth keeping:
+
+- A sign flip is a change **no compiler can catch**. Every `if (d < tolerance)`, `d == 0` and `d <= 0`
+  changes meaning in silence. The rename above was deliberately shaped so callers stop compiling instead.
+- `DistanceTo` is also asked of two shapes and answers nought when they overlap. A sign there would have to
+  mean penetration depth, which is a different and harder quantity, so `DistanceTo` would be signed in one
+  overload and unsigned in thirty.
+- The library already had the pattern: `Area` beside `SignedArea`, `Volume` beside `GetSignedVolume`, and for
+  a plane `DistanceTo(plane, point)` is literally `Math.Abs(plane.SignedDistanceTo(point))`.
+
+The definition is tied to `Locate` — negative for `Inside`, nought for `OnSide`, positive for `OutSide` — and
+that is what makes the two safe to lean on together. It is tested over a grid rather than at chosen points.
+
+Two things fell out of building it, both fixed:
+
+- `GeoFace2` had **no** `DistanceTo` to a point at all. It has one now.
+- `GetClosestPointOnBoundary` on `GeoAabb3` and `GeoObb3` **clamps a point into the box**, so it hands an
+  interior point straight back rather than a point on the surface. The name says otherwise, and the signed
+  distance uses `Projection3.ProjectToObbSurface` instead. Worth renaming one day; not done here, because it
+  is another silent break and this release already carries two.
+
 ## Optional, and not urgent
 
 The five retired packages — `CommonGeometry`, `PlaneGeometry`, `SolidGeometry`, `ArrangeAlgorithms` and

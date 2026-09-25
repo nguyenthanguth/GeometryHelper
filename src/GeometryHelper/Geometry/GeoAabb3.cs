@@ -434,6 +434,22 @@ namespace GeometryHelper.Geometry
 
         #endregion
 
+        /// <summary>
+        /// Calculates the distance from this box to a point, negative for a point within it.
+        /// </summary>
+        /// <remarks>
+        /// The magnitude is the distance to the surface, whichever side of it the point is on, and the sign
+        /// says which side: negative inside, nought on it, positive outside. <see cref="DistanceTo(GeoPoint3)"/>
+        /// reads this box as filled and so answers nothing at all for a point inside, which is the one
+        /// place the two part company.
+        /// </remarks>
+        public double SignedDistanceTo(GeoPoint3 point) => Core.Distance3.SignedDistanceTo(this, point);
+
+        /// <summary>
+        /// Calculates the distance from this box to a point, negative for a point within it, within a tolerance.
+        /// </summary>
+        public double SignedDistanceTo(GeoPoint3 point, Tolerance tolerance) => Core.Distance3.SignedDistanceTo(this, point, tolerance);
+
         #region Equality
 
         /// <summary>

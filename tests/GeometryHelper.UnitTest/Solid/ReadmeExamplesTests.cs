@@ -731,5 +731,25 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(180.0, slab.DistanceTo(circle.ToPolylineByChordTolerance(0.1)), 1);
         }
+
+        [Fact]
+        public void HowDeepInsideNotJustWhether_EverySampleHolds()
+        {
+            GeoAabb3 box = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100));
+            GeoSolid3 cube = box.ToObb().ToSolid();
+
+            Assert.Equal(0.0, cube.DistanceTo(new GeoPoint3(50, 50, 50)), 12);
+            Assert.Equal(-50.0, cube.SignedDistanceTo(new GeoPoint3(50, 50, 50)), 9);
+            Assert.Equal(-10.0, cube.SignedDistanceTo(new GeoPoint3(50, 50, 10)), 9);
+            Assert.Equal(20.0, cube.SignedDistanceTo(new GeoPoint3(50, 50, -20)), 9);
+            Assert.Equal(-50.0, box.SignedDistanceTo(new GeoPoint3(50, 50, 50)), 9);
+
+            GeoSolid3 duct = new GeoAabb3(new GeoPoint3(40, 40, -10), new GeoPoint3(60, 60, 110)).ToObb().ToSolid();
+            GeoSolid3 pierced = cube.WithOpenings(new[] { duct });
+
+            Assert.Equal(-10.0, pierced.SignedDistanceTo(new GeoPoint3(30, 50, 50)), 9);
+            Assert.Equal(-30.0, cube.SignedDistanceTo(new GeoPoint3(30, 50, 50)), 9);
+            Assert.Equal(10.0, pierced.SignedDistanceTo(new GeoPoint3(50, 50, 50)), 9);
+        }
     }
 }

@@ -117,6 +117,65 @@ promises, so it is not offered.
 Every edge is weighed on its own, so a probe inside a closed shape still names the edge nearest it rather
 than reporting nothing, and where two edges are equally near the earlier one in the shape's own order wins.
 
+### How deep inside, not just whether
+
+`DistanceTo` reads a closed shape as a filled region, so a point anywhere inside one is nought away and how
+far in it sits cannot be got back out of the answer. `SignedDistanceTo` keeps it:
+
+```csharp
+var plate = new GeoRectangle2(0, 0, 100, 100);
+
+plate.DistanceTo(new GeoPoint2(50, 50));         // 0.0    — inside, and that is all it says
+plate.SignedDistanceTo(new GeoPoint2(50, 50));   // -50.0  — fifty in from the nearest side
+plate.SignedDistanceTo(new GeoPoint2(10, 50));   // -10.0
+plate.SignedDistanceTo(new GeoPoint2(-20, 50));  //  20.0  — outside
+plate.SignedDistanceTo(new GeoPoint2(0, 50));    //   0.0  — on the edge
+```
+
+The whole definition is tied to `Locate`, which is what makes it safe to lean on:
+
+| `Locate` answers | `SignedDistanceTo` |
+|---|---|
+| `Inside` | negative |
+| `OnSide` | nought |
+| `OutSide` | positive |
+
+So `Math.Abs(shape.SignedDistanceTo(point))` is always the distance out to the outline, and the sign carries
+the rest. Inside the tolerance band around the boundary the sign is not worth reading, because the answer
+there is nought either way and which side of nought it lands on turns on rounding.
+
+Offered by every shape that encloses an area — `GeoCircle2`, `GeoRectangle2`, `GeoPolygon2`, `GeoFace2` and
+`GeoPolygonArc2`. A curved loop is measured on its arcs, and an arc counts only where it actually reaches:
+
+```csharp
+var slot = new GeoPolygonArc2(
+    new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+    new[] { 0.0, 1.0, 0.0, 0.0 });          // the right-hand side bulges out to x = 150
+
+slot.SignedDistanceTo(new GeoPoint2(130, 50));   // -20.0 — inside the bulge
+```
+
+The boundary of a `GeoFace2` is its outline **and** the rim of every hole, so a point in a hole is off the
+material and is measured to the rim it sits in rather than out to the outline:
+
+```csharp
+var hole = new GeoPolygon2(
+    new GeoPoint2(40, 40), new GeoPoint2(60, 40), new GeoPoint2(60, 60), new GeoPoint2(40, 60));
+var pierced = new GeoFace2(plate.ToPolygon(), new[] { hole });
+
+pierced.SignedDistanceTo(new GeoPoint2(50, 50));   //  10.0 — in the hole, ten from its rim
+pierced.SignedDistanceTo(new GeoPoint2(25, 50));   // -15.0 — on the material
+```
+
+This is what edge distance is, so it is one call rather than three:
+
+```csharp
+Math.Abs(plate.SignedDistanceTo(bolt)) >= 40.0 && plate.SignedDistanceTo(bolt) < 0.0;
+```
+
+The library names it the way it names `SignedArea` beside `Area`, and `GeoPlane3.SignedDistanceTo` has
+carried the same idea for a flat surface all along.
+
 ### Splitting
 
 `Splition2` cuts a `GeoLine2` or a `GeoPolyline2` — at a position along it, or wherever a cutter meets it. Pieces come back in order along the subject, so the first piece always holds its start point and the last holds its end point.

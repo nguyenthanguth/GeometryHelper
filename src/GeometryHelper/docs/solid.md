@@ -283,6 +283,48 @@ are asking for.
 slab.DistanceTo(circle.ToPolylineByChordTolerance(0.1));
 ```
 
+### How deep inside, not just whether
+
+`DistanceTo` reads a body as solid through, so a point anywhere inside one is nought away and how far in it
+sits cannot be got back out of the answer. `SignedDistanceTo` keeps it, for the three shapes that enclose a
+volume: `GeoSolid3`, `GeoObb3` and `GeoAabb3`.
+
+```csharp
+GeoAabb3 box = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100));
+GeoSolid3 cube = box.ToObb().ToSolid();
+
+cube.DistanceTo(new GeoPoint3(50, 50, 50));         // 0.0    — inside, and that is all it says
+cube.SignedDistanceTo(new GeoPoint3(50, 50, 50));   // -50.0  — fifty in from the nearest face
+cube.SignedDistanceTo(new GeoPoint3(50, 50, 10));   // -10.0
+cube.SignedDistanceTo(new GeoPoint3(50, 50, -20));  //  20.0  — outside
+box.SignedDistanceTo(new GeoPoint3(50, 50, 50));    // -50.0  — either kind of box answers too
+```
+
+The definition is tied to `Locate`: negative where it answers `Inside`, nought where it answers `OnSide`,
+positive where it answers `OutSide`. So `Math.Abs(body.SignedDistanceTo(point))` is the distance out to the
+surface and the sign carries the rest.
+
+The surface of a pierced body is its faces **and** the walls of every opening, openings of openings
+included, because that is what `Locate` calls the boundary. A point in the material beside a duct is measured
+to the wall of the duct rather than out to the far skin:
+
+```csharp
+GeoSolid3 duct = new GeoAabb3(new GeoPoint3(40, 40, -10), new GeoPoint3(60, 60, 110)).ToObb().ToSolid();
+GeoSolid3 pierced = cube.WithOpenings(new[] { duct });
+
+pierced.SignedDistanceTo(new GeoPoint3(30, 50, 50));   // -10.0 — to the wall of the duct at x = 40
+cube.SignedDistanceTo(new GeoPoint3(30, 50, 50));      // -30.0 — the same point in an unpierced body
+pierced.SignedDistanceTo(new GeoPoint3(50, 50, 50));   //  10.0 — in the duct, so off the material
+```
+
+A duct bored right through runs out past both faces, and the part of its wall out there bounds nothing, so
+each candidate is held against the body and kept only where the body agrees it is on the boundary.
+
+The flat shapes in space are not offered one. A `GeoTriangle3`, a `GeoPolygon3` and a `GeoCircle3` enclose no
+volume, so a point is inside one only when it is also on its plane: a sign for them would be negative on a
+set of no thickness and would read as though it meant more. `GeoPlane3.SignedDistanceTo` answers the question
+that does make sense for something flat, which is which side of it a point lies on.
+
 ### Parametrization
 
 A **parameter** is normalized: 0 is the start of a curve and 1 its end. A **distance** is a true arc length

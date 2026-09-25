@@ -581,6 +581,22 @@ namespace GeometryHelper.Geometry
         public double DistanceTo(GeoPoint2 point) => Distance2.DistanceTo(this, point);
 
         /// <summary>
+        /// Calculates the distance from this loop to a point, negative for a point within it.
+        /// </summary>
+        /// <remarks>
+        /// The magnitude is the distance to the outline, whichever side of it the point is on, and the sign
+        /// says which side: negative inside, nought on it, positive outside. <see cref="DistanceTo(GeoPoint2)"/>
+        /// reads this loop as filled and so answers nothing at all for a point inside, which is the one
+        /// place the two part company.
+        /// </remarks>
+        public double SignedDistanceTo(GeoPoint2 point) => Distance2.SignedDistanceTo(this, point);
+
+        /// <summary>
+        /// Calculates the distance from this loop to a point, negative for a point within it, within a tolerance.
+        /// </summary>
+        public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) => Distance2.SignedDistanceTo(this, point, tolerance);
+
+        /// <summary>
         /// Gets the distance from the loop to a point, within a tolerance.
         /// </summary>
         public double DistanceTo(GeoPoint2 point, Tolerance tolerance) => Distance2.DistanceTo(this, point, tolerance);
