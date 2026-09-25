@@ -20,42 +20,27 @@ guarded by the event type, so a manual run publishes to nuget.org and GitHub Pac
 
 The notes are already written under **NEW IN 6.0.0**. Copy that text into the release body.
 
-## 2. The types expose less than the core can do
+## 2. What `Core` still cannot work out
 
-An audit of `src/GeometryHelper/Geometry` on 26 September 2026 found roughly **55 to 60 directions** that
-`Core` already computes and no type offers. Almost none of it needs new arithmetic; it is wiring, and it is
-the same gap closed twice already in the plane.
+The audit of 26 September 2026 found roughly fifty-five directions `Core` computed and no type offered.
+Those are all wired now, in three commits — `Translate` and the nearest point, then meeting, then joining —
+so a shape can be asked about another shape whichever of the two is in hand. What is left in this corner is
+no longer wiring: `Core` has no answer to give.
 
-The plane is nearly complete. What is left there:
-
-| Type | Missing |
-|---|---|
-| `GeoArc2` | `GetShortestLineTo`, `CollidesWith` |
-| `GeoEdge2` | `CollidesWith` |
-| `GeoFace2` | `GetShortestLineTo`, `CollidesWith`, `GetIntersections`, `GetClosestPointOnBoundary` |
-
-Space is where the gap is:
-
-| Operation | In `Core` | Directions no type offers |
+| Pair | Missing | What it would take |
 |---|---|---|
-| `GetShortestLineTo` | 9 pairs in `Projection3` | **11** — only `GeoLine3` and `GeoSolid3` have it |
-| `CollidesWith` | 13 pairs in `Collision3` | **13**, a triangle against another triangle included |
-| `GetIntersections` | 5 pairs returning many points | **10** |
-| `TryIntersectWith` | | **6** |
-| `Translate` | trivial | **13 of the 14** types in space |
-| `GetClosestPointOnBoundary` | | `GeoFace2`, `GeoFace3`, `GeoPlane3` |
+| `GeoAabb3`–`GeoSolid3` | `CollidesWith` | one line through `ToObb()`, but it is a `Core` pair that does not exist |
+| segment or ray against `GeoTriangle3`, `GeoFace3`, `GeoPolygon3` | `CollidesWith` | the crossing test is there; a collision is `TryIntersectWith` with the answer thrown away |
+| ray against `GeoAabb3` or `GeoObb3` | `CollidesWith` | likewise, `GetIntersections(...).Length > 0` |
+| `GeoArc3` | `CollidesWith`, `GetIntersections` | real arithmetic, and see the arc entry under *Settled* |
+| `GeoFace2` | `DistanceTo` against a shape | needs the reading settled first: nought where they touch, or the reach to the nearest edge of the material? `GetShortestLineTo` answers the second |
 
-Two stand out: **`GeoFace3` has no `DistanceTo` at all**, though `Distance3.DistanceTo(GeoFace3, GeoPoint3)`
-exists; and **`GeoArc3` is the barest type in the library** — no `CollidesWith`, no `GetIntersections`, no
-`Translate`.
+None of these is holding anything up. The first three are each a few lines in `Core` plus the wiring, and
+would be worth doing together rather than one at a time.
 
-### Three steps, each leaving something usable
-
-1. **The cheap asymmetries.** `Translate` on the 13 types in space; `GetClosestPointOnBoundary` on
-   `GeoFace2`, `GeoFace3` and `GeoPlane3`; `GeoFace3.DistanceTo`.
-2. **Meeting.** `CollidesWith` and `GetIntersections`/`TryIntersectWith` both ways round in space — 29
-   directions, wiring throughout.
-3. **Joining.** `GetShortestLineTo` in space — 11 directions — and the three left in the plane above.
+**`GeoArc3` is still the barest type in the library**: it now moves, and that is all. It cannot be asked what
+it touches or where it crosses anything, because an arc in space is not measured against anything but a point
+— see *Settled* below.
 
 ## 3. What needs a machine with Tekla
 
@@ -86,6 +71,17 @@ be checked here:
 - **An arc in space is not measured against anything but a point**, and neither is a circle in space against
   a solid. No closed form; `ToPolyline3(chordTolerance)` puts the accuracy in the call, and a sampled chain
   lies inside its arcs, so a clearance errs on the safe side.
+- **A joining segment leaves the shape it was asked of and lands on the other.** `Core` computes each pair
+  one way round only, so half the directions on the types turn the answer over. Handing it back as it comes
+  gives a segment of the right length pointing backwards, which no length assertion catches.
+- **A face's boundary is its outline together with the rim of every hole**, and a probe reaches its material
+  when it reaches the outline and no hole holds it whole. A probe crossing no rim is inside that hole,
+  outside it, or wrapped around it; the three are told apart by where one point of the probe falls and, for
+  a probe with an inside, whether the rim falls within the probe. A ring drawn around a hole looks exactly
+  like a speck lying in one until that last question is asked.
+- **Two arcs of one circle collide when either holds an end of the other**, not where they cross: two
+  circles lying on each other meet along their length rather than at points, so the crossing code answers no
+  for two arcs sharing an end.
 - **`GetClosestEdge` takes a primitive probe only** — a point, a segment, a circle or an arc. The nearest
   edge of one many-edged shape to another is a *pair* of edges, which is a different answer.
 - **A rebar is only ever read as Tekla works it out.** Set-out readings were written and dropped: those

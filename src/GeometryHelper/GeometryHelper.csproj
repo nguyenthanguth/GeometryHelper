@@ -123,9 +123,38 @@
       bar should be followed and ask the ordinary question: bar.ToPolyline3(0.1).DistanceTo(slab). A sampled
       chain lies inside the arcs it stands for, so a clearance worked out that way errs on the safe side.
 
-      In GeometryHelper.TeklaConvert, RebarConvert turns a Reinforcement, a SingleRebar or a RebarGeometry
-      into bars. Prefer the geometries Tekla works out, because the hooks, the offsets and the lapping are
-      settled by then and the set-out points do not show it.
+      In GeometryHelper.TeklaConvert, ReinforcementConvert turns a Reinforcement, any sequence of them or a
+      RebarSet into bars, and RebarGeometryConvert turns one geometry. A bar is only ever read as Tekla works
+      it out, because the hooks, the offsets and the lapping are settled by then and the set-out points do not
+      show it. A sequence keeps its grouping: one entry per reinforcement, holding that one's bars.
+
+      ALSO NEW. Whichever of two shapes is in hand can be asked about the other.
+
+      Core could work out roughly fifty-five things no type would answer. Some of it was a plain gap, and
+      some of it ran one way only: a solid could be asked about a segment and a segment could not be asked
+      about a solid. All of it is now on the types, and none of it changed an answer.
+
+      - Translate on all fourteen types in space, which only GeoPoint3 had.
+      - GetClosestPointOnBoundary on GeoFace2, GeoFace3 and GeoPlane3, and DistanceTo on GeoFace3, which had
+        none at all. The plane and space differ here and each follows its own side: in the plane the answer
+        is a point of the boundary even for a point on the material, as GeoPolygon2 does; in space it is a
+        point of the region, as GeoPolygon3 does.
+      - CollidesWith, GetIntersections and TryIntersectWith in space, both ways round: thirty-one directions
+        across GeoAabb3, GeoObb3, GeoLine3, GeoRay3, GeoPlane3, GeoPolygon3, GeoTriangle3 and GeoFace3.
+        GeoLine3 also gained GetIntersection, the nullable answer beside TryIntersectWith that GeoLine2 has
+        always had.
+      - GetShortestLineTo in space on GeoPoint3, GeoLine3, GeoRay3 and GeoTriangle3. The segment leaves the
+        shape it was asked of and lands on the other, so opposite directions are each other reversed.
+      - GeoArc2 can be measured against, joined to, tested against and crossed with every shape in the plane,
+        where before it knew only a point, a segment and another arc. Two arcs of one circle collide when
+        either holds an end of the other: circles lying on each other meet along their length, not at points.
+      - GeoEdge2 can be asked whether it touches a shape, not only how far off it is.
+      - GeoFace2 answers about shapes and not only about points, through the new Core.Face2. The boundary of
+        a face is its outline together with the rim of every hole, so crossings are the union over that and
+        the reach is the shortest over it. Touching means reaching the material: a probe must reach the
+        outline and no hole may hold it whole. A ring drawn around a hole has its centre in the hole and
+        crosses no rim, exactly like a speck lying in one, and is told apart by whether the rim falls within
+        the probe.
 
       NEW IN 5.1.0
 
