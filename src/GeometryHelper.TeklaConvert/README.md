@@ -272,12 +272,20 @@ Reinforcement[] bars = model.GetModelObjectSelector()
     .GetAllObjectsWithType(ModelObject.ModelObjectEnum.REBAR_GROUP)
     .ToArray<Reinforcement>();
 
-GeoPolylineArc3[] all = bars.ToGeoPolylineArc3s();
+List<GeoPolylineArc3[]> byGroup = bars.ToGeoPolylineArc3s();
+
+double[] totalPerGroup = byGroup.Select(g => g.Sum(bar => bar.Length)).ToArray();
+GeoPolylineArc3[] everyBar = byGroup.SelectMany(g => g).ToArray();
 ```
+
+One entry per reinforcement asked about, in the same order, holding that one's bars. The grouping is kept
+rather than run together because it cannot be got back: which bar came from which reinforcement is gone the
+moment they are all in one list, and running them together is a `SelectMany` away. A null in the sequence
+gives an empty entry, so the answer always lines up with the question.
 
 Worth using over a loop of single calls rather than only shorter to write: where a Tekla build needs the
 work plane turned to global first, this turns it once for the whole lot and puts it back once, instead of
-once per reinforcement. A null in the sequence is passed over.
+once per reinforcement.
 
 ### Tekla Structures 2020
 

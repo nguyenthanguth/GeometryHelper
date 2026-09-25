@@ -57,75 +57,81 @@ namespace GeometryHelper.TeklaConvert
         }
 
         /// <summary>
-        /// Converts every bar of every reinforcement given, as Tekla works them out.
+        /// Converts the bars of each reinforcement given, as Tekla works them out.
         /// </summary>
-        public static GeoPolylineArc3[] ToGeoPolylineArc3s(this IEnumerable<TSM.Reinforcement> reinforcements)
+        public static List<GeoPolylineArc3[]> ToGeoPolylineArc3s(this IEnumerable<TSM.Reinforcement> reinforcements)
             => reinforcements.ToGeoPolylineArc3s(Tolerance.Global);
 
         /// <summary>
-        /// Converts every bar of every reinforcement given, as Tekla works them out, within a tolerance.
+        /// Converts the bars of each reinforcement given, as Tekla works them out, within a tolerance.
         /// </summary>
         /// <param name="reinforcements">The reinforcements, in any sequence; an array of them reads here too.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>Every bar of every one of them, in the order they were given.</returns>
+        /// <returns>
+        /// One entry for each reinforcement given, in the same order, holding that one's bars. A null in the
+        /// sequence gives an empty entry, so an answer always lines up with what was asked about.
+        /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the sequence is null.</exception>
         /// <remarks>
+        /// <para>
+        /// The grouping is kept rather than run together, because it cannot be got back: which bar came from
+        /// which reinforcement is gone the moment they are all in one list. Running them together is a
+        /// <c>SelectMany</c> away for anyone who wants that.
+        /// </para>
+        /// <para>
         /// Worth using over a loop of single calls rather than only shorter to write: where a Tekla build needs
         /// the work plane turned to global first, this turns it once for the whole lot and puts it back once,
-        /// instead of once per reinforcement. A null in the sequence is passed over.
+        /// instead of once per reinforcement.
+        /// </para>
         /// </remarks>
-        public static GeoPolylineArc3[] ToGeoPolylineArc3s(this IEnumerable<TSM.Reinforcement> reinforcements, Tolerance tolerance)
+        public static List<GeoPolylineArc3[]> ToGeoPolylineArc3s(this IEnumerable<TSM.Reinforcement> reinforcements, Tolerance tolerance)
         {
             if (reinforcements == null) throw new ArgumentNullException(nameof(reinforcements));
 
-            var wanted = new List<TSM.Reinforcement>();
-
-            foreach (TSM.Reinforcement reinforcement in reinforcements)
-            {
-                if (reinforcement != null)
-                {
-                    wanted.Add(reinforcement);
-                }
-            }
+            var given = new List<TSM.Reinforcement>(reinforcements);
+            var read = new List<GeoPolylineArc3[]>(given.Count);
 
             // Nothing to read is nothing to do. Worth the check rather than falling through: the work plane
-            // is model-wide state and turning it needs a running Tekla, neither of which an empty sequence
-            // has any business asking for.
-            if (wanted.Count == 0)
+            // is model-wide state and turning it needs a running Tekla, neither of which a sequence with
+            // nothing in it has any business asking for.
+            if (!given.Exists(reinforcement => reinforcement != null))
             {
-                return new GeoPolylineArc3[0];
-            }
+                foreach (TSM.Reinforcement reinforcement in given)
+                {
+                    read.Add(new GeoPolylineArc3[0]);
+                }
 
-            var bars = new List<GeoPolylineArc3>();
+                return read;
+            }
 
             using (new GlobalWorkPlane())
             {
-                foreach (TSM.Reinforcement reinforcement in wanted)
+                foreach (TSM.Reinforcement reinforcement in given)
                 {
-                    bars.AddRange(Read(reinforcement, tolerance));
+                    read.Add(reinforcement == null ? new GeoPolylineArc3[0] : Read(reinforcement, tolerance));
                 }
             }
 
-            return bars.ToArray();
+            return read;
         }
 
         /// <summary>
         /// Converts every bar of every reinforcement of a rebar set, as Tekla works them out.
         /// </summary>
-        public static GeoPolylineArc3[] ToGeoPolylineArc3s(this TSM.RebarSet set) => set.ToGeoPolylineArc3s(Tolerance.Global);
+        public static List<GeoPolylineArc3[]> ToGeoPolylineArc3s(this TSM.RebarSet set) => set.ToGeoPolylineArc3s(Tolerance.Global);
 
         /// <summary>
         /// Converts every bar of every reinforcement of a rebar set, as Tekla works them out, within a tolerance.
         /// </summary>
         /// <param name="set">The rebar set.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>Every bar the set holds, in the order its reinforcements come back.</returns>
+        /// <returns>One entry for each reinforcement the set made, in the order they come back, holding that one's bars.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="set"/> is null.</exception>
         /// <remarks>
         /// A <c>RebarSet</c> is not a <c>Reinforcement</c> — it holds them, along with its modifiers and its leg
         /// faces — so it is asked for the reinforcements it made and each of those is read as usual.
         /// </remarks>
-        public static GeoPolylineArc3[] ToGeoPolylineArc3s(this TSM.RebarSet set, Tolerance tolerance)
+        public static List<GeoPolylineArc3[]> ToGeoPolylineArc3s(this TSM.RebarSet set, Tolerance tolerance)
         {
             if (set == null) throw new ArgumentNullException(nameof(set));
 

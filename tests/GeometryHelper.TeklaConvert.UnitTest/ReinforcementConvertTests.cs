@@ -114,18 +114,26 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         }
 
         [Fact]
-        public void ManyReinforcementsReadInOneGoAndNothingIsNothing()
+        public void ManyReinforcementsReadInOneGoAndTheAnswerLinesUpWithTheQuestion()
         {
             // The sequence form takes an array, a list, or anything else that walks, and an empty one gives
             // an empty answer rather than reaching for a model that is not there.
             Assert.Empty(new TSM.Reinforcement[0].ToGeoPolylineArc3s());
             Assert.Empty(new List<TSM.Reinforcement>().ToGeoPolylineArc3s(Tolerance.Global));
 
-            // A null in the sequence is passed over, not tripped over, and a sequence that holds nothing
-            // else reads as an empty one: no model is asked for and, on the Tekla build that needs it, the
-            // work plane is left alone. Nothing further can be shown here, because past this point the read
-            // asks Tekla for the geometries it worked out and that needs the modeller.
-            Assert.Empty(new TSM.Reinforcement[] { null, null }.ToGeoPolylineArc3s());
+            // One entry per reinforcement asked about, in the same order, so the answer can be read back
+            // against the question. A null gives an empty entry rather than shortening the list, which would
+            // put every index after it against the wrong reinforcement.
+            List<GeoPolylineArc3[]> read = new TSM.Reinforcement[] { null, null, null }.ToGeoPolylineArc3s();
+
+            Assert.Equal(3, read.Count);
+            Assert.All(read, bars => Assert.Empty(bars));
+
+            // The grouping is the point of the shape: running the bars together is a SelectMany away, and
+            // no way back. Nothing further can be shown here, because past this point the read asks Tekla
+            // for the geometries it worked out and that needs the modeller.
+            Assert.Empty(read.SelectMany(bars => bars));
+
             Assert.Empty(new TSM.RebarSet().ToGeoPolylineArc3s());
         }
     }
