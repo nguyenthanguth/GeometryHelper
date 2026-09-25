@@ -929,6 +929,16 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance) => Boolean3.TrySubtract(this, tool, out result, tolerance);
 
+        /// <summary>
+        /// Checks whether this solid touches an axis-aligned box, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoAabb3 box) => Collision3.CollidesWith(box, this);
+
+        /// <summary>
+        /// Checks whether this solid touches an axis-aligned box, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoAabb3 box, Tolerance tolerance) => Collision3.CollidesWith(box, this, tolerance);
+
         #endregion
 
         #region Equality

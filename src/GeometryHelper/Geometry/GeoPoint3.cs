@@ -184,6 +184,36 @@ namespace GeometryHelper.Geometry
         public double DistanceTo(GeoSolid3 solid) => Distance3.DistanceTo(solid, this);
 
         /// <summary>
+        /// Gets the signed distance from this point to the surface of a axis-aligned box, negative inside it, using the default tolerance.
+        /// </summary>
+        public double SignedDistanceTo(GeoAabb3 box) => Distance3.SignedDistanceTo(box, this);
+
+        /// <summary>
+        /// Gets the signed distance from this point to the surface of a axis-aligned box, negative inside it, within a tolerance.
+        /// </summary>
+        public double SignedDistanceTo(GeoAabb3 box, Tolerance tolerance) => Distance3.SignedDistanceTo(box, this, tolerance);
+
+        /// <summary>
+        /// Gets the signed distance from this point to the surface of a oriented box, negative inside it, using the default tolerance.
+        /// </summary>
+        public double SignedDistanceTo(GeoObb3 box) => Distance3.SignedDistanceTo(box, this);
+
+        /// <summary>
+        /// Gets the signed distance from this point to the surface of a oriented box, negative inside it, within a tolerance.
+        /// </summary>
+        public double SignedDistanceTo(GeoObb3 box, Tolerance tolerance) => Distance3.SignedDistanceTo(box, this, tolerance);
+
+        /// <summary>
+        /// Gets the signed distance from this point to the surface of a solid, negative inside it, using the default tolerance.
+        /// </summary>
+        public double SignedDistanceTo(GeoSolid3 solid) => Distance3.SignedDistanceTo(solid, this);
+
+        /// <summary>
+        /// Gets the signed distance from this point to the surface of a solid, negative inside it, within a tolerance.
+        /// </summary>
+        public double SignedDistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.SignedDistanceTo(solid, this, tolerance);
+
+        /// <summary>
         /// Gets the shortest segment joining this point to a solid, using the default tolerance.
         /// </summary>
         /// <remarks>

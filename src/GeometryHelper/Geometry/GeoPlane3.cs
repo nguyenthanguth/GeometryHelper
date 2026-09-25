@@ -334,6 +334,36 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(ray, this, out intersection, tolerance);
 
+        /// <summary>
+        /// Gets the distance from this plane to a polyline, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolyline3 polyline) => Distance3.DistanceTo(polyline, this);
+
+        /// <summary>
+        /// Gets the distance from this plane to a polyline, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this plane to a solid, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoSolid3 solid) => Distance3.DistanceTo(solid, this);
+
+        /// <summary>
+        /// Gets the distance from this plane to a solid, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.DistanceTo(solid, this, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this plane to a plane, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPlane3 other) => Distance3.DistanceTo(this, other);
+
+        /// <summary>
+        /// Gets the distance from this plane to a plane, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPlane3 other, Tolerance tolerance) => Distance3.DistanceTo(this, other, tolerance);
+
         #endregion
 
         #region Equality

@@ -544,6 +544,56 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
 
+        /// <summary>
+        /// Gets the distance from this polygon to a segment, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoLine3 line) => Distance3.DistanceTo(line, this);
+
+        /// <summary>
+        /// Gets the distance from this polygon to a segment, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoLine3 line, Tolerance tolerance) => Distance3.DistanceTo(line, this, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this polygon to a polyline, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolyline3 polyline) => Distance3.DistanceTo(polyline, this);
+
+        /// <summary>
+        /// Gets the distance from this polygon to a polyline, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this polygon to a solid, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoSolid3 solid) => Distance3.DistanceTo(solid, this);
+
+        /// <summary>
+        /// Gets the distance from this polygon to a solid, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.DistanceTo(solid, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this polygon touches a segment, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine3 line) => Collision3.CollidesWith(line, this);
+
+        /// <summary>
+        /// Checks whether this polygon touches a segment, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Collision3.CollidesWith(line, this, tolerance);
+
+        /// <summary>
+        /// Checks whether a ray runs into this polygon, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay3 ray) => Collision3.CollidesWith(ray, this);
+
+        /// <summary>
+        /// Checks whether a ray runs into this polygon, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Collision3.CollidesWith(ray, this, tolerance);
+
         #endregion
 
         #region Offsetting

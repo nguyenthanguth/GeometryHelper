@@ -479,6 +479,46 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Core.Intersection3.GetIntersections(ray, this, tolerance);
 
+        /// <summary>
+        /// Gets the distance from this box to a polyline, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolyline3 polyline) => Core.Distance3.DistanceTo(polyline, this);
+
+        /// <summary>
+        /// Gets the distance from this box to a polyline, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Core.Distance3.DistanceTo(polyline, this, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this box to a solid, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoSolid3 solid) => Core.Distance3.DistanceTo(solid, this);
+
+        /// <summary>
+        /// Gets the distance from this box to a solid, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Core.Distance3.DistanceTo(solid, this, tolerance);
+
+        /// <summary>
+        /// Checks whether a ray starts inside this box or runs into it, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay3 ray) => Core.Collision3.CollidesWith(ray, this);
+
+        /// <summary>
+        /// Checks whether a ray starts inside this box or runs into it, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Core.Collision3.CollidesWith(ray, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this box touches a solid, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid) => Core.Collision3.CollidesWith(this, solid);
+
+        /// <summary>
+        /// Checks whether this box touches a solid, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Core.Collision3.CollidesWith(this, solid, tolerance);
+
         #endregion
 
         /// <summary>

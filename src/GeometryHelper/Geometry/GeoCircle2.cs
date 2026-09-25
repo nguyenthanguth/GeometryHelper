@@ -518,6 +518,71 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) => Collision2.CollidesWith(this, polyline, tolerance);
 
         /// <summary>
+        /// Checks whether this circle reaches the material of a face, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoFace2 face) => Face2.CollidesWith(face, this);
+
+        /// <summary>
+        /// Checks whether this circle reaches the material of a face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoFace2 face, Tolerance tolerance) => Face2.CollidesWith(face, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where this circle crosses the boundary of a face, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoFace2 face) => Face2.GetIntersections(face, this);
+
+        /// <summary>
+        /// Gets every point where this circle crosses the boundary of a face, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoFace2 face, Tolerance tolerance) => Face2.GetIntersections(face, this, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this circle and landing on the boundary of a face, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoFace2 face) => Face2.GetShortestLineTo(face, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this circle and landing on the boundary of a face, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoFace2 face, Tolerance tolerance) => Face2.GetShortestLineTo(face, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the edge of a polygon nearest this circle, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetClosestEdge(GeoPolygon2 poly) => ClosestEdge2.GetClosestEdge(poly, this);
+
+        /// <summary>
+        /// Gets the edge of a polyline nearest this circle, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetClosestEdge(GeoPolyline2 polyline) => ClosestEdge2.GetClosestEdge(polyline, this);
+
+        /// <summary>
+        /// Gets the edge of a rectangle nearest this circle, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetClosestEdge(GeoRectangle2 rect) => ClosestEdge2.GetClosestEdge(rect, this);
+
+        /// <summary>
+        /// Gets the edge of a curved loop nearest this circle, using the default tolerance.
+        /// </summary>
+        public GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop) => ClosestEdge2.GetClosestEdge(loop, this);
+
+        /// <summary>
+        /// Gets the edge of a curved loop nearest this circle, within a tolerance.
+        /// </summary>
+        public GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, Tolerance tolerance) => ClosestEdge2.GetClosestEdge(loop, this, tolerance);
+
+        /// <summary>
+        /// Gets the edge of a curved chain nearest this circle, using the default tolerance.
+        /// </summary>
+        public GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain) => ClosestEdge2.GetClosestEdge(chain, this);
+
+        /// <summary>
+        /// Gets the edge of a curved chain nearest this circle, within a tolerance.
+        /// </summary>
+        public GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, Tolerance tolerance) => ClosestEdge2.GetClosestEdge(chain, this, tolerance);
+
+        /// <summary>
         /// Gets all intersection points with another circle using default tolerance.
         /// </summary>
         public GeoPoint2[] GetIntersections(GeoCircle2 other) => Intersection2.GetIntersections(this, other, Tolerance.Global);
@@ -566,6 +631,81 @@ namespace GeometryHelper.Geometry
         /// Gets all intersection points with a polyline within tolerance.
         /// </summary>
         public GeoPoint2[] GetIntersections(GeoPolyline2 polyline, Tolerance tolerance) => Intersection2.GetIntersections(polyline, this, tolerance);
+
+        /// <summary>
+        /// Tries to find where this circle crosses a arc, using the default tolerance.
+        /// </summary>
+        /// <param name="arc">The arc.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoArc2 arc, out GeoPoint2[] intersections) => Arc2.TryIntersectWith(arc, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this circle crosses a arc, within a tolerance.
+        /// </summary>
+        /// <param name="arc">The arc.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoArc2 arc, out GeoPoint2[] intersections, Tolerance tolerance) => Arc2.TryIntersectWith(arc, this, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this circle crosses a circle, using the default tolerance.
+        /// </summary>
+        /// <param name="c2">The circle.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoCircle2 c2, out GeoPoint2[] intersections) => Intersection2.TryIntersectWith(this, c2, out intersections);
+
+        /// <summary>
+        /// Tries to find where this circle crosses a circle, within a tolerance.
+        /// </summary>
+        /// <param name="c2">The circle.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoCircle2 c2, out GeoPoint2[] intersections, Tolerance tolerance) => Intersection2.TryIntersectWith(this, c2, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this circle crosses a segment, using the default tolerance.
+        /// </summary>
+        /// <param name="line">The segment.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoLine2 line, out GeoPoint2[] intersections) => Intersection2.TryIntersectWith(this, line, out intersections);
+
+        /// <summary>
+        /// Tries to find where this circle crosses a segment, within a tolerance.
+        /// </summary>
+        /// <param name="line">The segment.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance) => Intersection2.TryIntersectWith(this, line, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this circle crosses a curved loop, using the default tolerance.
+        /// </summary>
+        /// <param name="loop">The curved loop.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoPolygonArc2 loop, out GeoPoint2[] intersections) => Intersection2.TryIntersectWith(loop, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this circle crosses a curved loop, within a tolerance.
+        /// </summary>
+        /// <param name="loop">The curved loop.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoPolygonArc2 loop, out GeoPoint2[] intersections, Tolerance tolerance) => Intersection2.TryIntersectWith(loop, this, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this circle crosses a curved chain, using the default tolerance.
+        /// </summary>
+        /// <param name="chain">The curved chain.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections) => Intersection2.TryIntersectWith(chain, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this circle crosses a curved chain, within a tolerance.
+        /// </summary>
+        /// <param name="chain">The curved chain.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance) => Intersection2.TryIntersectWith(chain, this, out intersections, tolerance);
 
         /// <summary>
         /// Translates a circle by a vector.

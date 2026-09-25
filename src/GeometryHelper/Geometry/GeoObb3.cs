@@ -407,6 +407,46 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Intersection3.GetIntersections(ray, this, tolerance);
 
+        /// <summary>
+        /// Gets the distance from this box to a polyline, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolyline3 polyline) => Distance3.DistanceTo(polyline, this);
+
+        /// <summary>
+        /// Gets the distance from this box to a polyline, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this box to a solid, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoSolid3 solid) => Distance3.DistanceTo(solid, this);
+
+        /// <summary>
+        /// Gets the distance from this box to a solid, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.DistanceTo(solid, this, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this box to a box, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoObb3 other) => Distance3.DistanceTo(this, other);
+
+        /// <summary>
+        /// Gets the distance from this box to a box, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoObb3 other, Tolerance tolerance) => Distance3.DistanceTo(this, other, tolerance);
+
+        /// <summary>
+        /// Checks whether a ray starts inside this box or runs into it, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay3 ray) => Collision3.CollidesWith(ray, this);
+
+        /// <summary>
+        /// Checks whether a ray starts inside this box or runs into it, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Collision3.CollidesWith(ray, this, tolerance);
+
         #endregion
 
         /// <summary>

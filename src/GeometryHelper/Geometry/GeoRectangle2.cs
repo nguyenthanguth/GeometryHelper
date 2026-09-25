@@ -809,6 +809,36 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) => Collision2.CollidesWith(polyline, this, tolerance);
 
         /// <summary>
+        /// Checks whether this rectangle reaches the material of a face, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoFace2 face) => Face2.CollidesWith(face, this);
+
+        /// <summary>
+        /// Checks whether this rectangle reaches the material of a face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoFace2 face, Tolerance tolerance) => Face2.CollidesWith(face, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where this rectangle crosses the boundary of a face, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoFace2 face) => Face2.GetIntersections(face, this);
+
+        /// <summary>
+        /// Gets every point where this rectangle crosses the boundary of a face, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoFace2 face, Tolerance tolerance) => Face2.GetIntersections(face, this, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this rectangle and landing on the boundary of a face, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoFace2 face) => Face2.GetShortestLineTo(face, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this rectangle and landing on the boundary of a face, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoFace2 face, Tolerance tolerance) => Face2.GetShortestLineTo(face, this, tolerance).Reverse();
+
+        /// <summary>
         /// Gets all intersection points with a line segment using default tolerance.
         /// </summary>
         public GeoPoint2[] GetIntersections(GeoLine2 line) => Intersection2.GetIntersections(this, line, Tolerance.Global);
