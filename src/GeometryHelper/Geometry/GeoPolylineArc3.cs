@@ -487,6 +487,43 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Rounds every corner of this chain by the same radius.
+        /// </summary>
+        /// <remarks>
+        /// This is how a reinforcing bar is built: the points it turns at, and one bending radius. Each
+        /// corner is rounded in the plane of its own two legs, so the bends need not share a plane, and a
+        /// corner with too little edge to give, or none to turn, is left as it was.
+        /// </remarks>
+        public GeoPolylineArc3 Fillet(double radius) => Corner3.Fillet(this, radius);
+
+        /// <summary>
+        /// Rounds every corner of this chain by the same radius, within a tolerance.
+        /// </summary>
+        public GeoPolylineArc3 Fillet(double radius, Tolerance tolerance) => Corner3.Fillet(this, radius, tolerance);
+
+        /// <summary>
+        /// Rounds the corners of this chain, each by its own radius.
+        /// </summary>
+        /// <param name="radii">The radius wanted at each vertex, read the way the bulges are read. A radius of nought leaves that corner alone, and a short list leaves the rest of the chain alone.</param>
+        public GeoPolylineArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii) => Corner3.Fillet(this, radii);
+
+        /// <summary>
+        /// Rounds the corners of this chain, each by its own radius, within a tolerance.
+        /// </summary>
+        public GeoPolylineArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii, Tolerance tolerance) => Corner3.Fillet(this, radii, tolerance);
+
+        /// <summary>
+        /// Rounds one named corner of this chain.
+        /// </summary>
+        public bool TryFilletAt(int index, double radius, out GeoPolylineArc3 result) => Corner3.TryFilletAt(this, index, radius, out result);
+
+        /// <summary>
+        /// Rounds one named corner of this chain, within a tolerance.
+        /// </summary>
+        public bool TryFilletAt(int index, double radius, out GeoPolylineArc3 result, Tolerance tolerance)
+            => Corner3.TryFilletAt(this, index, radius, out result, tolerance);
+
+        /// <summary>
         /// Gets the chain walked the other way, drawing the same curve.
         /// </summary>
         public GeoPolylineArc3 Reverse()
