@@ -155,6 +155,20 @@
         outline and no hole may hold it whole. A ring drawn around a hole has its centre in the hole and
         crosses no rim, exactly like a speck lying in one, and is told apart by whether the rim falls within
         the probe.
+      - And every shape can be asked about a face in turn, which is the direction the first pass left out.
+      - DistanceTo in space now runs both ways: a triangle, a polygon, either box, a plane and a ray can be
+        asked how far off the other shapes are, where before several of them could be asked about a point and
+        nothing else. A box against a box, a plane against a plane and a triangle against a triangle could not
+        be asked at all.
+      - TryIntersectWith runs both ways in the plane, as GetIntersections already did, and a circle, a curved
+        loop and a curved chain can be asked about their own sort.
+      - Which edge of a many-edged shape is nearest can be asked from either side. The probe is still a single
+        primitive -- that rule is about the probe, not about which of the two makes the call.
+      - A point can be asked how deep inside a shape it sits, through SignedDistanceTo, and in the plane it
+        reaches the arcs, the curved chains and the face, which it could not before.
+
+      Core and the shape types now agree everywhere: there is no pair Core computes that some type will not
+      answer, whichever of the two is in hand.
 
       NEW IN 5.1.0
 

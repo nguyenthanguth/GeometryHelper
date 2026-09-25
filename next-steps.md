@@ -20,27 +20,31 @@ guarded by the event type, so a manual run publishes to nuget.org and GitHub Pac
 
 The notes are already written under **NEW IN 6.0.0**. Copy that text into the release body.
 
-## 2. What `Core` still cannot work out
+## 2. Nothing, and how to check that again
 
-The audit of 26 September 2026 found roughly fifty-five directions `Core` computed and no type offered.
-Those are all wired now, in three commits — `Translate` and the nearest point, then meeting, then joining —
-so a shape can be asked about another shape whichever of the two is in hand. What is left in this corner is
-no longer wiring: `Core` has no answer to give.
+**`Core` and `Geometry` agree everywhere.** There is no pair `Core` computes that some type will not answer,
+whichever of the two shapes is in hand. That took five passes: `Translate` and the nearest point, then
+meeting, then joining, then the matrix that showed what the audit table had missed, then the last of it.
 
-| Pair | Missing | What it would take |
+To check it again after any change, re-derive the matrix rather than trusting this paragraph. Read every
+`public` member of `src/GeometryHelper/Geometry/*.cs` and every `public static` of `src/GeometryHelper/Core`,
+take the first two `Geo…` arguments of each static as an unordered pair, and report every pair for which
+neither shape offers the operation. Two things that scan wrongly and must be allowed for:
+
+- a static whose result is an `out` parameter (`TryIntersectWith`) puts its shapes first, so take the
+  arguments in order and stop at two;
+- a shape against its own sort reads as one pair, and it is easy to skip. Box-to-box, plane-to-plane and
+  triangle-to-triangle distance were missing for exactly that reason.
+
+What remains open is a question of meaning, not of wiring:
+
+| Pair | Missing | Why it is not simply wired |
 |---|---|---|
-| `GeoAabb3`–`GeoSolid3` | `CollidesWith` | one line through `ToObb()`, but it is a `Core` pair that does not exist |
-| segment or ray against `GeoTriangle3`, `GeoFace3`, `GeoPolygon3` | `CollidesWith` | the crossing test is there; a collision is `TryIntersectWith` with the answer thrown away |
-| ray against `GeoAabb3` or `GeoObb3` | `CollidesWith` | likewise, `GetIntersections(...).Length > 0` |
-| `GeoArc3` | `CollidesWith`, `GetIntersections` | real arithmetic, and see the arc entry under *Settled* |
-| `GeoFace2` | `DistanceTo` against a shape | needs the reading settled first: nought where they touch, or the reach to the nearest edge of the material? `GetShortestLineTo` answers the second |
+| `GeoFace2` | `DistanceTo` against a shape | the reading is unsettled: nought where they touch, or the reach to the nearest edge of the material? `GetShortestLineTo` answers the second, and `DistanceTo` to a point answers the first |
+| `GeoArc3` and the curved chains in space | `CollidesWith`, `GetIntersections`, anything but a point | no closed form; see the arc entry under *Settled* |
 
-None of these is holding anything up. The first three are each a few lines in `Core` plus the wiring, and
-would be worth doing together rather than one at a time.
-
-**`GeoArc3` is still the barest type in the library**: it now moves, and that is all. It cannot be asked what
-it touches or where it crosses anything, because an arc in space is not measured against anything but a point
-— see *Settled* below.
+**`GeoArc3` is still the barest type in the library**: it moves, and it answers about a point. That is
+deliberate.
 
 ## 3. What needs a machine with Tekla
 
@@ -82,8 +86,15 @@ be checked here:
 - **Two arcs of one circle collide when either holds an end of the other**, not where they cross: two
   circles lying on each other meet along their length rather than at points, so the crossing code answers no
   for two arcs sharing an end.
-- **`GetClosestEdge` takes a primitive probe only** — a point, a segment, a circle or an arc. The nearest
-  edge of one many-edged shape to another is a *pair* of edges, which is a different answer.
+- **A shape may be asked about its own sort.** Box against box, plane against plane, triangle against
+  triangle: each was missing because a pair of one kind reads as one entry and is easy to pass over when
+  walking a list of pairs looking for the two directions.
+- **`GetClosestEdge` takes a primitive probe only** — a point, a segment, a circle or an arc — and that rule
+  is about the *probe*, not about which of the two makes the call. `point.GetClosestEdge(polygon)` is one edge
+  and no ambiguity, so it is offered; `polygon.GetClosestEdge(otherPolygon)` is a pair of edges, so it is not.
+  This was misfiled once as though the whole reverse direction were settled against.
+- **`GetClosestEdge` on the straight shapes takes no tolerance**, because `Core.ClosestEdge2` has no such
+  overload for them; only the curved ones do. Any wiring generated for both must follow that.
 - **A rebar is only ever read as Tekla works it out.** Set-out readings were written and dropped: those
   points are hardly used and gave a second answer that differed from the model.
 - **`GetClosestPointOnBoundary` on `GeoAabb3` and `GeoObb3` clamps into the box**, so an interior point comes
