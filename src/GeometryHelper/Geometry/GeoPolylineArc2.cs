@@ -1006,6 +1006,46 @@ namespace GeometryHelper.Geometry
         public GeoLine2 GetShortestLineTo(GeoPolylineArc2 other, Tolerance tolerance) => Projection2.GetShortestLineTo(this, other, tolerance);
 
         /// <summary>
+        /// Calculates the shortest distance from this curved chain to a rectangle.
+        /// </summary>
+        public double DistanceTo(GeoRectangle2 rect) => Distance2.DistanceTo(rect, this);
+
+        /// <summary>
+        /// Calculates the shortest distance from this curved chain to a rectangle, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRectangle2 rect, Tolerance tolerance) => Distance2.DistanceTo(rect, this, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this curved chain to a rectangle.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect) => Projection2.GetShortestLineTo(rect, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this curved chain to a rectangle, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance) => Projection2.GetShortestLineTo(rect, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Determines whether this curved chain touches or overlaps a rectangle.
+        /// </summary>
+        public bool CollidesWith(GeoRectangle2 rect) => Collision2.CollidesWith(rect, this);
+
+        /// <summary>
+        /// Determines whether this curved chain touches or overlaps a rectangle, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) => Collision2.CollidesWith(rect, this, tolerance);
+
+        /// <summary>
+        /// Gets the points where this curved chain meets a rectangle.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRectangle2 rect) => Intersection2.GetIntersections(rect, this);
+
+        /// <summary>
+        /// Gets the points where this curved chain meets a rectangle, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRectangle2 rect, Tolerance tolerance) => Intersection2.GetIntersections(rect, this, tolerance);
+
+        /// <summary>
         /// Offsets the chain, keeping its arcs as arcs.
         /// </summary>
         /// <param name="distance">How far to move it: to the left of the way it runs when positive.</param>

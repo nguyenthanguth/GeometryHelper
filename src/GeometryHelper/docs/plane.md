@@ -71,6 +71,52 @@ rect.CollidesWith(otherRect);   poly.CollidesWith(otherPoly);   line.CollidesWit
 GeoPoint2[] points = poly.GetIntersections(line);
 ```
 
+The straight shapes and the curved ones are pairs like any other, in either order and for measuring as
+well as meeting:
+
+```csharp
+poly.DistanceTo(slot);          slot.DistanceTo(poly);
+poly.GetShortestLineTo(arc);    rect.CollidesWith(slot);
+rect.GetIntersections(arc);     slot.GetClosestEdge(circle);
+```
+
+### The nearest thing, and the segment to it
+
+Three questions sound alike and are not. Each has its own name, and the return type tells them apart:
+
+| Asking | Answer | Method |
+|---|---|---|
+| where on me is nearest that point | a point **on this shape** | `GetClosestPointOnBoundary(point)` |
+| what joins me to that shape | the segment **between the two** | `GetShortestLineTo(other)` |
+| which piece of me faces that thing | an **edge of this shape** | `GetClosestEdge(probe)` |
+
+```csharp
+GeoPoint2 on = poly.GetClosestPointOnBoundary(point);   // on the polygon
+GeoLine2 across = poly.GetShortestLineTo(circle);       // one end on each shape
+GeoLine2 facing = poly.GetClosestEdge(circle);          // one of the polygon's own sides
+GeoEdge2 curved = slot.GetClosestEdge(circle);          // a GeoEdge2: the nearest piece may be an arc
+```
+
+`GetShortestLineTo` measures **boundary to boundary**, so a shape lying wholly inside a closed one still
+reports the gap out to the outline. `DistanceTo` reads a closed shape as a filled region and answers
+nothing at all for that same pair. The two disagree there on purpose; everywhere else the segment is
+exactly as long as the distance.
+
+```csharp
+var plate = new GeoRectangle2(0, 0, 100, 100);
+var hole = new GeoCircle2(new GeoPoint2(50, 50), 10.0);
+
+plate.DistanceTo(hole);                 // 0.0  — the circle is inside the plate
+plate.GetShortestLineTo(hole).Length;   // 40.0 — out to the nearest side
+```
+
+`GetClosestEdge` takes a point, a segment, a circle or an arc, and nothing else. The nearest edge of one
+many-edged shape to another is really a *pair* of edges, which is a different answer from the one the name
+promises, so it is not offered.
+
+Every edge is weighed on its own, so a probe inside a closed shape still names the edge nearest it rather
+than reporting nothing, and where two edges are equally near the earlier one in the shape's own order wins.
+
 ### Splitting
 
 `Splition2` cuts a `GeoLine2` or a `GeoPolyline2` — at a position along it, or wherever a cutter meets it. Pieces come back in order along the subject, so the first piece always holds its start point and the last holds its end point.
@@ -324,6 +370,7 @@ slot.GetPointAtDistance(260.0);    // walked along the arcs
 slot.GetParameterAtPoint(point);
 slot.GetClosestPointOnBoundary(point);
 slot.GetClosestEdge(line);         // a GeoEdge2, because the nearest piece may be an arc
+slot.GetShortestLineTo(line);      // a GeoLine2 joining the two, measured on the arcs
 
 slot.GetIntersections(knife);      // with a segment, arc, circle, chain or loop, straight or curved
 slot.CollidesWith(plate);

@@ -14,7 +14,7 @@ namespace GeometryHelper.Core
     /// <c>Distance3</c>.
     /// </para>
     /// </summary>
-    public static class Collision3
+    public static partial class Collision3
     {
         #region Bounding boxes
 

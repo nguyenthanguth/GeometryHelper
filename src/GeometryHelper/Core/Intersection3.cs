@@ -16,7 +16,7 @@ namespace GeometryHelper.Core
     /// or <c>Collision3</c> when the question is whether they touch at all.
     /// </para>
     /// </summary>
-    public static class Intersection3
+    public static partial class Intersection3
     {
         #region Line - Line
 

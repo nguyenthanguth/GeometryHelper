@@ -8,7 +8,7 @@ namespace GeometryHelper.Core
     /// <summary>
     /// Provides static calculation methods for checking spatial collisions and geometric overlaps.
     /// </summary>
-    public static class Collision2
+    public static partial class Collision2
     {
         #region Line - Line
 

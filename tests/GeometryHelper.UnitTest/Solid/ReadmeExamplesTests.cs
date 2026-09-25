@@ -649,5 +649,87 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(3, 4)).Length,
                          new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(3, 4)).ToLine3(frame).Length, 9);
         }
+
+        [Fact]
+        public void AskingABodyAboutWhatIsAroundIt_EverySampleHolds()
+        {
+            GeoSolid3 slab = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
+
+            var point = new GeoPoint3(300, 50, 50);
+            var line = new GeoLine3(new GeoPoint3(300, 50, 0), new GeoPoint3(300, 50, 100));
+            var ray = new GeoRay3(new GeoPoint3(300, 50, 50), new GeoVector3(1, 0, 0));
+            var triangle = new GeoTriangle3(
+                new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(300, 100, 0));
+            var polygon = new GeoPolygon3(
+                new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 100, 0), new GeoPoint3(300, 100, 0));
+            var polyline = new GeoPolyline3(new GeoPoint3(300, 0, 0), new GeoPoint3(300, 100, 0));
+            var plane = new GeoPlane3(new GeoPoint3(300, 0, 0), new GeoVector3(1, 0, 0));
+            var obb = new GeoAabb3(new GeoPoint3(300, 0, 0), new GeoPoint3(400, 100, 100)).ToObb();
+            var aabb = new GeoAabb3(new GeoPoint3(300, 0, 0), new GeoPoint3(400, 100, 100));
+            var face = new GeoFace3(polygon);
+            GeoSolid3 otherSolid = obb.ToSolid();
+
+            // Every one of them stands two hundred from the far face of the slab.
+            foreach (double reach in new[]
+            {
+                slab.DistanceTo(point), slab.DistanceTo(line), slab.DistanceTo(ray),
+                slab.DistanceTo(triangle), slab.DistanceTo(polygon), slab.DistanceTo(polyline),
+                slab.DistanceTo(plane), slab.DistanceTo(obb), slab.DistanceTo(aabb),
+                slab.DistanceTo(otherSolid)
+            })
+            {
+                Assert.Equal(200.0, reach, 9);
+            }
+
+            // None of them reaches the body, and the ones with an inside are not fooled by that.
+            Assert.False(slab.CollidesWith(line));
+            Assert.False(slab.CollidesWith(ray));
+            Assert.False(slab.CollidesWith(polyline));
+            Assert.False(slab.CollidesWith(polygon));
+            Assert.False(slab.CollidesWith(face));
+            Assert.False(slab.CollidesWith(obb));
+            Assert.False(slab.CollidesWith(otherSolid));
+
+            Assert.Empty(slab.GetIntersections(line));
+            Assert.Empty(slab.GetIntersections(ray));
+            Assert.Empty(slab.GetIntersections(plane));
+
+            // The shortest line is the distance, and it leaves the surface.
+            foreach (GeoLine3 joining in new[]
+            {
+                slab.GetShortestLineTo(point), slab.GetShortestLineTo(line), slab.GetShortestLineTo(ray),
+                slab.GetShortestLineTo(triangle), slab.GetShortestLineTo(otherSolid)
+            })
+            {
+                Assert.Equal(200.0, joining.Length, 9);
+                Assert.Equal(100.0, joining.StartPoint.X, 9);
+            }
+
+            // A point inside is nothing away, and still has a segment out to the skin.
+            var inside = new GeoPoint3(50, 50, 10);
+
+            Assert.True(slab.GetClosestPointOnBoundary(inside).IsEqualTo(new GeoPoint3(50, 50, 0)));
+            Assert.Equal(0.0, slab.DistanceTo(inside), 12);
+            Assert.Equal(10.0, slab.GetShortestLineTo(inside).Length, 9);
+        }
+
+        [Fact]
+        public void ARayAgainstABody_EverySampleHolds()
+        {
+            GeoSolid3 slab = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
+
+            var incoming = new GeoRay3(new GeoPoint3(-200, 50, 50), new GeoVector3(1, 0, 0));
+            var leaving = new GeoRay3(new GeoPoint3(-200, 50, 50), new GeoVector3(-1, 0, 0));
+
+            Assert.Equal(2, slab.GetIntersections(incoming).Length);
+            Assert.Equal(0.0, slab.DistanceTo(incoming), 12);
+            Assert.Equal(200.0, slab.DistanceTo(leaving), 9);
+
+            // A circle in space is turned into a chain first, which says how close an answer is wanted.
+            var circle = new GeoCircle3(new GeoPoint3(300, 50, 50), new GeoVector3(0, 0, 1), 20.0);
+
+            Assert.Equal(180.0, slab.DistanceTo(circle.ToPolylineByChordTolerance(0.1)), 1);
+        }
     }
 }

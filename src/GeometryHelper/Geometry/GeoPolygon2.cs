@@ -390,6 +390,66 @@ namespace GeometryHelper.Geometry
         public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance) => Projection2.GetShortestLineTo(this, chain, tolerance);
 
         /// <summary>
+        /// Determines whether this polygon touches or overlaps an arc.
+        /// </summary>
+        public bool CollidesWith(GeoArc2 arc) => Collision2.CollidesWith(this, arc);
+
+        /// <summary>
+        /// Determines whether this polygon touches or overlaps an arc, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoArc2 arc, Tolerance tolerance) => Collision2.CollidesWith(this, arc, tolerance);
+
+        /// <summary>
+        /// Gets the points where this polygon meets an arc.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoArc2 arc) => Intersection2.GetIntersections(this, arc);
+
+        /// <summary>
+        /// Gets the points where this polygon meets an arc, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoArc2 arc, Tolerance tolerance) => Intersection2.GetIntersections(this, arc, tolerance);
+
+        /// <summary>
+        /// Determines whether this polygon touches or overlaps a curved loop.
+        /// </summary>
+        public bool CollidesWith(GeoPolygonArc2 loop) => Collision2.CollidesWith(loop, this);
+
+        /// <summary>
+        /// Determines whether this polygon touches or overlaps a curved loop, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) => Collision2.CollidesWith(loop, this, tolerance);
+
+        /// <summary>
+        /// Gets the points where this polygon meets a curved loop.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygonArc2 loop) => Intersection2.GetIntersections(loop, this);
+
+        /// <summary>
+        /// Gets the points where this polygon meets a curved loop, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, Tolerance tolerance) => Intersection2.GetIntersections(loop, this, tolerance);
+
+        /// <summary>
+        /// Determines whether this polygon touches or overlaps a curved chain.
+        /// </summary>
+        public bool CollidesWith(GeoPolylineArc2 chain) => Collision2.CollidesWith(chain, this);
+
+        /// <summary>
+        /// Determines whether this polygon touches or overlaps a curved chain, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) => Collision2.CollidesWith(chain, this, tolerance);
+
+        /// <summary>
+        /// Gets the points where this polygon meets a curved chain.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolylineArc2 chain) => Intersection2.GetIntersections(chain, this);
+
+        /// <summary>
+        /// Gets the points where this polygon meets a curved chain, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, Tolerance tolerance) => Intersection2.GetIntersections(chain, this, tolerance);
+
+        /// <summary>
         /// Gets the edge of this polygon nearest a point.
         /// </summary>
         public GeoLine2 GetClosestEdge(GeoPoint2 point) => ClosestEdge2.GetClosestEdge(this, point);

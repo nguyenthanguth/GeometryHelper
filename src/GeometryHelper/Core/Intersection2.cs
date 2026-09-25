@@ -9,7 +9,7 @@ namespace GeometryHelper.Core
     /// <summary>
     /// Provides static calculation methods for geometric intersections and finding exact intersection points.
     /// </summary>
-    public static class Intersection2
+    public static partial class Intersection2
     {
         #region Line - Line
 

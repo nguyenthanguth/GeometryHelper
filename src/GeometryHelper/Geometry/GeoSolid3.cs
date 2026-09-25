@@ -790,6 +790,49 @@ namespace GeometryHelper.Geometry
         public GeoPoint3[] GetIntersections(GeoPlane3 plane, Tolerance tolerance) => Intersection3.GetIntersections(plane, this, tolerance);
 
         /// <summary>
+        /// Calculates the shortest distance from this solid to a ray.
+        /// </summary>
+        /// <remarks>
+        /// A ray starting inside the body, or running into it, is at distance zero.
+        /// </remarks>
+        public double DistanceTo(GeoRay3 ray) => Distance3.DistanceTo(ray, this);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to a ray, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRay3 ray, Tolerance tolerance) => Distance3.DistanceTo(ray, this, tolerance);
+
+        /// <summary>
+        /// Determines whether this solid is reached by a ray.
+        /// </summary>
+        public bool CollidesWith(GeoRay3 ray) => Collision3.CollidesWith(ray, this);
+
+        /// <summary>
+        /// Determines whether this solid is reached by a ray, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Collision3.CollidesWith(ray, this, tolerance);
+
+        /// <summary>
+        /// Gets the points where a ray passes through the surface of this solid.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoRay3 ray) => Intersection3.GetIntersections(ray, this);
+
+        /// <summary>
+        /// Gets the points where a ray passes through the surface of this solid, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Intersection3.GetIntersections(ray, this, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a ray.
+        /// </summary>
+        public GeoLine3 GetShortestLineTo(GeoRay3 ray) => Projection3.GetShortestLineTo(this, ray);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a ray, within a tolerance.
+        /// </summary>
+        public GeoLine3 GetShortestLineTo(GeoRay3 ray, Tolerance tolerance) => Projection3.GetShortestLineTo(this, ray, tolerance);
+
+        /// <summary>
         /// Applies a transformation to every face and opening.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

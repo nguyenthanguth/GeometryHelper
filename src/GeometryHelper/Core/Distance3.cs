@@ -13,7 +13,7 @@ namespace GeometryHelper.Core
     /// its endpoints, a triangle includes its interior, and a plane is infinite in every direction.
     /// </para>
     /// </summary>
-    public static class Distance3
+    public static partial class Distance3
     {
         #region Point - Point
 

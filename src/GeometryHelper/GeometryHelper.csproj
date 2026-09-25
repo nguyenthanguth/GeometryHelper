@@ -14,6 +14,61 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
+      NEW IN 6.0.0
+
+      Two breaking changes, and the reason for both is that a name and a tolerance were each saying
+      something they did not mean.
+
+      RENAMED. GetClosestOnBoundary returned the shortest segment joining two shapes. The name reads as
+      "the closest thing on my boundary", which is a different idea, and GeoPolygonArc2 and
+      GeoPolylineArc2 had taken it for exactly that and returned an edge of the shape instead. The
+      summaries said the right thing all along, so only the names moved:
+
+      - GetClosestOnBoundary(other) is now GetShortestLineTo(other), on GeoLine2, GeoCircle2,
+        GeoRectangle2, GeoPolygon2, GeoPolyline2 and GeoLine3.
+      - Projection2.GetClosestSegment and Projection3.GetClosestSegment are now GetShortestLineTo.
+      - On GeoPolygonArc2 and GeoPolylineArc2 the old method is GetClosestEdge, because a GeoEdge2 is
+        what it hands back. The return type differs, so a caller who takes the new name for the old
+        meaning stops compiling rather than quietly getting a different answer.
+      - GetClosestPointOnBoundary is unchanged: it was already right.
+
+      No [Obsolete] forwarders were left behind. Renaming is a one-line change at each call site, and
+      carrying both names would double the surface of the library for two releases days old.
+
+      MEASURED DIFFERENTLY. Whether an arc reached a point of its own circle was settled by comparing two
+      directions within Tolerance.EqualAngleRad, a whole degree by default. A degree of a large arc is a
+      long way: on a radius of a hundred it is nearly two of whatever the drawing is measured in. Two
+      things came of that, both wrong by more than rounding:
+
+      - Arc2.DistanceTo could weigh a point the arc does not reach and so report the arc nearer than any
+        of its own points allow.
+      - Arc2.GetIntersections could report a crossing lying clean off the end of an arc, and everything
+        built on it inherited that: booleans, splitting, offsetting, CollidesWith and Locate.
+
+      The question is now asked as a distance rather than as an angle, which is the unit the answer is in.
+      Arcs that only nearly touch are no longer reported as crossing. Nothing in the existing test suite
+      had to be amended for this.
+
+      NEW. Both halves of the nearest-thing pair now exist on both families of shape.
+
+      - GetClosestEdge on GeoPolygon2, GeoPolyline2 and GeoRectangle2, returning the edge of the shape
+        nearest a point, a segment, a circle or an arc. The probe is always a single primitive: the
+        nearest edge of one many-edged shape to another is really a pair of edges, which is a different
+        answer from the one the name promises.
+      - GetShortestLineTo on GeoPolygonArc2, GeoPolylineArc2, GeoEdge2 and Core.Arc2. The closest point
+        pair for an arc against a segment, an arc or a circle is exact, not sampled.
+      - A straight shape can be measured against a curved one, and asked whether it meets one, in either
+        order. GeoRectangle2 is offered to the curved types for the first time.
+      - GeoSolid3 could only be asked about a point. It now answers DistanceTo for a segment, a ray, a
+        triangle, a polygon, a polyline, a plane, either kind of box and another solid; CollidesWith for
+        a segment, a ray, a polyline, a polygon, a face, a box and another solid; GetIntersections for a
+        segment, a ray and a plane; GetClosestPointOnBoundary; and GetShortestLineTo, built on a new
+        triangle-to-triangle closest pair in Projection3.
+      - A ray is measured as a ray, not as a segment cut to some chosen length.
+
+      A GeoCircle3 is deliberately not on that list. The distance from a circle in space to a flat face
+      has no closed form, so turn it into a chain first and say in the call how close an answer you want.
+
       NEW IN 5.1.0
 
       Rounding a corner no longer means rounding every corner by the same radius.

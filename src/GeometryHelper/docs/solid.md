@@ -218,6 +218,71 @@ first.CollidesWith(beside); // true
 first.CollidesWith(apart);  // false
 ```
 
+### Asking a body about what is around it
+
+A `GeoSolid3` answers the same questions the flat shapes do, and against every shape in the library that a
+body can be measured against at all:
+
+```csharp
+GeoSolid3 slab = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
+
+slab.DistanceTo(point);      slab.DistanceTo(line);       slab.DistanceTo(ray);
+slab.DistanceTo(triangle);   slab.DistanceTo(polygon);    slab.DistanceTo(polyline);
+slab.DistanceTo(plane);      slab.DistanceTo(obb);        slab.DistanceTo(aabb);
+slab.DistanceTo(otherSolid);
+
+slab.CollidesWith(line);     slab.CollidesWith(ray);      slab.CollidesWith(polyline);
+slab.CollidesWith(polygon);  slab.CollidesWith(face);     slab.CollidesWith(obb);
+slab.CollidesWith(otherSolid);
+
+slab.GetIntersections(line);   // where it goes in and where it comes out
+slab.GetIntersections(ray);
+slab.GetIntersections(plane);  // where the plane cuts its edges
+
+slab.GetClosestPointOnBoundary(point);  // on the surface, even for a point inside
+slab.GetShortestLineTo(point);          // the segment out to it
+slab.GetShortestLineTo(line);   slab.GetShortestLineTo(ray);
+slab.GetShortestLineTo(triangle);
+slab.GetShortestLineTo(otherSolid);
+```
+
+`DistanceTo` reads a body as solid through: a point inside it, or a segment reaching into it, is nothing
+away, and so is a body sitting wholly inside another without their surfaces meeting. `GetShortestLineTo`
+runs **surface to surface**, so it has a length in all of those cases:
+
+```csharp
+var inside = new GeoPoint3(50, 50, 10);
+
+slab.DistanceTo(inside);                  // 0.0  — inside the body
+slab.GetShortestLineTo(inside).Length;    // 10.0 — out through the nearest face
+```
+
+Both ends of the segment lie on the shapes they came from, so it can be drawn as it is, and it is exactly
+as long as the distance wherever the two readings agree at all. The shortest line between two bodies is
+found by weighing face against face, skipping any pair whose boxes already stand farther apart than the
+best segment so far.
+
+A ray is a half-line, so it cannot be cut into a segment and measured that way without first choosing how
+far to cut. It is measured as a ray instead: every answer is one the ray really holds, and a ray starting
+inside a body crosses its surface once on the way out.
+
+```csharp
+var incoming = new GeoRay3(new GeoPoint3(-200, 50, 50), new GeoVector3(1, 0, 0));
+var leaving  = new GeoRay3(new GeoPoint3(-200, 50, 50), new GeoVector3(-1, 0, 0));
+
+slab.GetIntersections(incoming).Length;  // 2 — in one side, out the other
+slab.DistanceTo(incoming);               // 0.0
+slab.DistanceTo(leaving);                // 200.0 — its nearest point is its own origin
+```
+
+A `GeoCircle3` is not on the list. The distance from a circle in space to a flat face has no closed form,
+and the library does not guess: turn it into a chain first, which says in the call how close an answer you
+are asking for.
+
+```csharp
+slab.DistanceTo(circle.ToPolylineByChordTolerance(0.1));
+```
+
 ### Parametrization
 
 A **parameter** is normalized: 0 is the start of a curve and 1 its end. A **distance** is a true arc length

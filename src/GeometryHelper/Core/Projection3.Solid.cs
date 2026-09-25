@@ -252,6 +252,106 @@ namespace GeometryHelper.Core
 
         #endregion
 
+        #region Rays
+
+        /// <summary>
+        /// Gets the shortest segment joining a ray to a line segment.
+        /// </summary>
+        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoLine3 line) => GetShortestLineTo(ray, line, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining a ray to a line segment, within a tolerance.
+        /// </summary>
+        /// <param name="ray">The ray the answer leaves.</param>
+        /// <param name="line">The segment the answer lands on.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>A segment leaving <paramref name="ray"/> and landing on <paramref name="line"/>.</returns>
+        /// <remarks>
+        /// The nearest pair is either where the two run past each other, or at the origin of the ray, or
+        /// under an end of the segment. The first of those is found by reading the ray as the whole line
+        /// through it and then clamping what comes back onto the ray and onto the segment, so the pair is
+        /// one both shapes really hold whether or not the perpendicular falls where they live.
+        /// </remarks>
+        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoLine3 line, Tolerance tolerance)
+        {
+            var best = new GeoLine3(ProjectToRay(ray, line.StartPoint), line.StartPoint);
+
+            Consider(ref best, new GeoLine3(ProjectToRay(ray, line.EndPoint), line.EndPoint));
+            Consider(ref best, new GeoLine3(ray.Origin, ProjectToLine(line, ray.Origin)));
+
+            GeoLine3 across = GetShortestLineTo(ray.ToLine(1.0), line, Enums.LineExtension.First, tolerance);
+
+            Consider(ref best, new GeoLine3(
+                ProjectToRay(ray, across.StartPoint),
+                ProjectToLine(line, across.EndPoint)));
+
+            return best;
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining a ray to a triangle.
+        /// </summary>
+        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoTriangle3 triangle) => GetShortestLineTo(ray, triangle, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining a ray to a triangle, within a tolerance.
+        /// </summary>
+        /// <returns>A segment leaving <paramref name="ray"/> and landing on <paramref name="triangle"/>, of no length at all where the ray pierces the face.</returns>
+        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
+        {
+            if (Intersection3.TryIntersectWith(ray, triangle, out GeoPoint3 through, tolerance))
+            {
+                return new GeoLine3(through, through);
+            }
+
+            var best = new GeoLine3(ray.Origin, ProjectToTriangle(triangle, ray.Origin));
+
+            for (int i = 0; i < 3; i++)
+            {
+                Consider(ref best, GetShortestLineTo(ray, triangle.GetEdgeAt(i), tolerance));
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining a solid to a ray.
+        /// </summary>
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoRay3 ray) => GetShortestLineTo(solid, ray, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining a solid to a ray, within a tolerance.
+        /// </summary>
+        /// <returns>A segment leaving the surface of the solid and landing on <paramref name="ray"/>.</returns>
+        /// <remarks>
+        /// A ray starting inside a closed body has to come out through a face, so the answer there is of no
+        /// length rather than a measurement out to the skin.
+        /// </remarks>
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoRay3 ray, Tolerance tolerance)
+        {
+            if (solid == null)
+            {
+                throw new ArgumentNullException(nameof(solid));
+            }
+
+            GeoTriangle3[] faces = solid.Triangulate(tolerance);
+            GeoLine3 best = GetShortestLineTo(ray, faces[0], tolerance).Reverse();
+
+            foreach (GeoTriangle3 face in faces)
+            {
+                Consider(ref best, GetShortestLineTo(ray, face, tolerance).Reverse());
+
+                if (best.Length <= 0.0)
+                {
+                    return best;
+                }
+            }
+
+            return best;
+        }
+
+        #endregion
+
         /// <summary>
         /// Keeps the shorter of the segment in hand and the one offered.
         /// </summary>

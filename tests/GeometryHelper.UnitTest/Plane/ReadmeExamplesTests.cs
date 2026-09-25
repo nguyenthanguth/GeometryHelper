@@ -888,5 +888,55 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(1, plate.Fillet(new[] { 20.0 }).GetEdges().Count(edge => edge.IsArc));
             Assert.Equal(1, plate.Fillet(new[] { 250.0, 20.0, 0.0, 0.0 }).GetEdges().Count(edge => edge.IsArc));
         }
+
+        [Fact]
+        public void TheNearestThingAndTheSegmentToIt_EverySampleHolds()
+        {
+            var poly = new GeoPolygon2(
+                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+            var circle = new GeoCircle2(new GeoPoint2(300, 50), 20.0);
+            var point = new GeoPoint2(300, 50);
+            var slot = new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+                new[] { 0.0, 1.0, 0.0, 0.0 });
+
+            GeoPoint2 on = poly.GetClosestPointOnBoundary(point);
+            GeoLine2 across = poly.GetShortestLineTo(circle);
+            GeoLine2 facing = poly.GetClosestEdge(circle);
+            GeoEdge2 curved = slot.GetClosestEdge(circle);
+
+            // A point on the shape, a segment between the two, and an edge of the shape itself.
+            Assert.True(on.IsEqualTo(new GeoPoint2(100, 50)));
+            Assert.Equal(180.0, across.Length, 9);
+            Assert.True(across.StartPoint.IsEqualTo(new GeoPoint2(100, 50)));
+            Assert.True(across.EndPoint.IsEqualTo(new GeoPoint2(280, 50)));
+            Assert.Contains(poly.GetEdges(), edge => edge.IsEqualTo(facing));
+            Assert.True(curved.IsArc);
+
+            // Boundary to boundary against region: the circle is inside the plate.
+            var plate = new GeoRectangle2(0, 0, 100, 100);
+            var hole = new GeoCircle2(new GeoPoint2(50, 50), 10.0);
+
+            Assert.Equal(0.0, plate.DistanceTo(hole), 12);
+            Assert.Equal(40.0, plate.GetShortestLineTo(hole).Length, 9);
+        }
+
+        [Fact]
+        public void StraightAgainstCurvedBothWays_EverySampleHolds()
+        {
+            var poly = new GeoPolygon2(
+                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+            var rect = new GeoRectangle2(0, 0, 100, 100);
+            var circle = new GeoCircle2(new GeoPoint2(300, 50), 20.0);
+            var arc = new GeoArc2(new GeoPoint2(100, 50), 50.0, -Math.PI / 2, Math.PI / 2);
+            var slot = new GeoPolygonArc2(new GeoPolygon2(
+                new GeoPoint2(50, 25), new GeoPoint2(150, 25), new GeoPoint2(150, 75), new GeoPoint2(50, 75)));
+
+            Assert.Equal(poly.DistanceTo(slot), slot.DistanceTo(poly), 9);
+            Assert.Equal(poly.DistanceTo(arc), poly.GetShortestLineTo(arc).Length, 9);
+            Assert.True(rect.CollidesWith(slot));
+            Assert.Equal(2, rect.GetIntersections(arc).Length);
+            Assert.False(slot.GetClosestEdge(circle).IsArc);
+        }
     }
 }

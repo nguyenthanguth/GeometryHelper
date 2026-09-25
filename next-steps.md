@@ -1,6 +1,7 @@
 # Next steps
 
-What is outstanding as of 25 September 2026, with the version at 6.0.0 and 5.1.0 published to nuget.org.
+What is outstanding as of 25 September 2026, with the version at 6.0.0 and 5.1.0 published to
+nuget.org. The only thing left is the release itself: see section 3.
 
 ## 1. The `GetClosestOnBoundary` rename — done
 
@@ -74,21 +75,30 @@ To release, **create a GitHub Release tagged `v6.0.0`**: `.github/workflows/rele
 Do not use *Run workflow* on that workflow to try it out. It has no dry run, and the two push steps are
 not guarded by the event type, so a manual run publishes to nuget.org and GitHub Packages for real.
 
-Worth putting in the release notes, since it is the whole of the break: `GetClosestOnBoundary` →
-`GetShortestLineTo`, `GetClosestSegment` → `GetShortestLineTo`, and on the two curved chains →
-`GetClosestEdge`.
+The release notes are already written, in `PackageReleaseNotes` in `src/GeometryHelper/GeometryHelper.csproj`
+under **NEW IN 6.0.0**. They cover both breaking changes — the rename and the arc measurement — and the new
+surface. Copy that text into the GitHub Release body.
 
-## 4. Not done, and worth knowing
+## 4. Done since, and what it leaves
 
-- **Cross-family collisions and intersections.** A straight shape can now be measured against a curved one
-  with `DistanceTo` and `GetShortestLineTo`, but `CollidesWith` and `GetIntersections` still run one way
-  only: `loop.CollidesWith(polygon)` compiles, `polygon.CollidesWith(loop)` does not. The Core statics
-  exist for everything but `GeoRectangle2`, so this is mostly wiring.
-- **`GeoSolid3` against a ray or a circle in space.** `Distance3` has no solid-to-ray or solid-to-circle
-  pair, and both want a new primitive rather than a new arrangement of the ones already there.
-- **`GetClosestEdge` takes a primitive only**, a point, a segment, a circle or an arc. The nearest edge of
-  one many-edged shape to another is really a pair of edges, which is a different answer from the one the
-  name promises, so it is not offered.
+Everything on the list that was outstanding has been closed except one, and that one is closed
+deliberately:
+
+- **Cross-family collisions and intersections** now run both ways. `polygon.CollidesWith(loop)`,
+  `rect.GetIntersections(arc)` and the rest compile, and `GeoRectangle2` is offered to the curved types for
+  the first time, in all four of `DistanceTo`, `GetShortestLineTo`, `CollidesWith` and `GetIntersections`.
+- **`GeoSolid3` against a ray** is done, measured as a ray rather than as a segment cut to some chosen
+  length. `DistanceTo`, `CollidesWith`, `GetIntersections` and `GetShortestLineTo` all take one.
+- **`GeoSolid3` against a `GeoCircle3` is deliberately not offered.** The distance from a circle in space to
+  a flat face has no closed form: it needs a polynomial root solve, and a sampled answer under an exact
+  name is worse than no answer. `circle.ToPolylineByChordTolerance(0.1)` says in the call how close an
+  answer is being asked for, and the guide points at it.
+- **`GetClosestEdge` takes a primitive only** &#8212; a point, a segment, a circle or an arc. The nearest
+  edge of one many-edged shape to another is really a pair of edges, which is a different answer from the
+  one the name promises, so it is not offered.
+
+The four hand-written guides and the package release notes are up to date with all of it. Every snippet in
+`plane.md` and `solid.md` runs as a test in `ReadmeExamplesTests`, which is why they can be trusted.
 
 ## Optional, and not urgent
 
