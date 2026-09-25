@@ -313,6 +313,84 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Gets the shortest segment joining the edge to a straight segment.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoLine2 line) => GetShortestLineTo(line, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining the edge to a straight segment, within a tolerance.
+        /// </summary>
+        /// <returns>A segment leaving this edge and landing on <paramref name="line"/>, of no length at all where the two cross.</returns>
+        public GeoLine2 GetShortestLineTo(GeoLine2 line, Tolerance tolerance)
+        {
+            return IsArc
+                ? Core.Arc2.GetShortestLineTo(ToArc(), line, tolerance)
+                : Core.Projection2.GetShortestLineTo(ToLine(), line, tolerance);
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining the edge to another edge.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 other) => GetShortestLineTo(other, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining the edge to another edge, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// Four cases, as with the distance: segment to segment, segment to arc either way round, and arc
+        /// to arc. Where the arc is the second of the two the answer is turned round, so the segment always
+        /// leaves this edge.
+        /// </remarks>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 other, Tolerance tolerance)
+        {
+            if (IsArc)
+            {
+                return other.IsArc
+                    ? Core.Arc2.GetShortestLineTo(ToArc(), other.ToArc(), tolerance)
+                    : Core.Arc2.GetShortestLineTo(ToArc(), other.ToLine(), tolerance);
+            }
+
+            return other.IsArc
+                ? Core.Arc2.GetShortestLineTo(other.ToArc(), ToLine(), tolerance).Reverse()
+                : Core.Projection2.GetShortestLineTo(ToLine(), other.ToLine(), tolerance);
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining the edge to a circle.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle) => GetShortestLineTo(circle, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining the edge to a circle, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance)
+        {
+            // A circle is an arc sweeping a whole turn, so both cases go the same way.
+            return IsArc
+                ? Core.Arc2.GetShortestLineTo(ToArc(), circle, tolerance)
+                : Core.Arc2.GetShortestLineTo(Core.Arc2.AsArc(circle), ToLine(), tolerance).Reverse();
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining the edge to an arc.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoArc2 arc) => GetShortestLineTo(arc, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining the edge to an arc, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The arc is taken as it is rather than as an edge, so one sweeping a whole turn is joined to as
+        /// well.
+        /// </remarks>
+        public GeoLine2 GetShortestLineTo(GeoArc2 arc, Tolerance tolerance)
+        {
+            return IsArc
+                ? Core.Arc2.GetShortestLineTo(ToArc(), arc, tolerance)
+                : Core.Arc2.GetShortestLineTo(arc, ToLine(), tolerance).Reverse();
+        }
+
+        /// <summary>
         /// Gets the points where the edge meets an arc.
         /// </summary>
         public GeoPoint2[] GetIntersections(GeoArc2 arc) => GetIntersections(arc, Tolerance.Global);

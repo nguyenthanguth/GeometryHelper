@@ -178,8 +178,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoLine3 b = new GeoLine3(new GeoPoint3(3.0, 7.0, 2.0), new GeoPoint3(8.0, 9.0, -4.0));
 
             Assert.Equal(
-                Projection3.GetClosestSegment(a, b).Length,
-                Projection3.GetClosestSegment(b, a).Length,
+                Projection3.GetShortestLineTo(a, b).Length,
+                Projection3.GetShortestLineTo(b, a).Length,
                 9);
         }
 
@@ -189,7 +189,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoLine3 dot1 = new GeoLine3(GeoPoint3.Origin, GeoPoint3.Origin);
             GeoLine3 dot2 = new GeoLine3(new GeoPoint3(3.0, 4.0, 0.0), new GeoPoint3(3.0, 4.0, 0.0));
 
-            Assert.Equal(5.0, Projection3.GetClosestSegment(dot1, dot2).Length, 9);
+            Assert.Equal(5.0, Projection3.GetShortestLineTo(dot1, dot2).Length, 9);
         }
 
         #endregion

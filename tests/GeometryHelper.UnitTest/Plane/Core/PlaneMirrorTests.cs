@@ -61,22 +61,26 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void ACircleFindsTheSameNearestPieceWhicheverWayItIsAsked()
+        public void ACircleFindsTheSameShortestLineWhicheverWayItIsAsked()
         {
             GeoCircle2 circle = Circle();
 
-            Assert.True(circle.GetClosestOnBoundary(Line()).IsEqualTo(circle.GetClosestOnBoundary(Line(), Global)));
-            Assert.True(circle.GetClosestOnBoundary(Away()).IsEqualTo(circle.GetClosestOnBoundary(Away(), Global)));
-            Assert.True(circle.GetClosestOnBoundary(Rectangle()).IsEqualTo(circle.GetClosestOnBoundary(Rectangle(), Global)));
-            Assert.True(circle.GetClosestOnBoundary(Polyline()).IsEqualTo(circle.GetClosestOnBoundary(Polyline(), Global)));
-            Assert.True(circle.GetClosestOnBoundary(Polygon()).IsEqualTo(circle.GetClosestOnBoundary(Polygon(), Global)));
+            Assert.True(circle.GetShortestLineTo(Line()).IsEqualTo(circle.GetShortestLineTo(Line(), Global)));
+            Assert.True(circle.GetShortestLineTo(Away()).IsEqualTo(circle.GetShortestLineTo(Away(), Global)));
+            Assert.True(circle.GetShortestLineTo(Rectangle()).IsEqualTo(circle.GetShortestLineTo(Rectangle(), Global)));
+            Assert.True(circle.GetShortestLineTo(Polyline()).IsEqualTo(circle.GetShortestLineTo(Polyline(), Global)));
+            Assert.True(circle.GetShortestLineTo(Polygon()).IsEqualTo(circle.GetShortestLineTo(Polygon(), Global)));
 
-            // The nearest piece of a shape to a circle is a segment of that shape, and it really is nearest.
-            GeoLine2 nearest = circle.GetClosestOnBoundary(Polyline());
-            foreach (GeoLine2 edge in Polyline().GetEdges())
-            {
-                Assert.True(Distance2.DistanceTo(circle, nearest) <= Distance2.DistanceTo(circle, edge) + 1E-9);
-            }
+            // The segment joins the two shapes: it leaves the circle, lands on the polyline, and is as
+            // long as the gap between them. Measuring the circle against the segment itself would prove
+            // nothing, because one end of the segment sits on the circle and the answer is always nought.
+            GeoLine2 nearest = circle.GetShortestLineTo(Polyline());
+            double gap = Polyline().GetEdges().Min(edge => Distance2.DistanceTo(circle, edge));
+
+            Assert.Equal(25.0, gap, 9);
+            Assert.Equal(gap, nearest.Length, 9);
+            Assert.Equal(circle.Radius, circle.Center.DistanceTo(nearest.StartPoint), 9);
+            Assert.Equal(0.0, Polyline().DistanceTo(nearest.EndPoint), 9);
         }
 
         [Fact]
@@ -104,13 +108,13 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (GeoLine2 other in new[] { Crossing(), Line() })
             {
-                Assert.True(line.GetClosestOnBoundary(other, Global).Length >= 0.0);
+                Assert.True(line.GetShortestLineTo(other, Global).Length >= 0.0);
             }
 
-            Assert.True(line.GetClosestOnBoundary(Circle(), Global).Length >= 0.0);
-            Assert.True(line.GetClosestOnBoundary(Rectangle(), Global).Length >= 0.0);
-            Assert.True(line.GetClosestOnBoundary(Polyline(), Global).Length >= 0.0);
-            Assert.True(line.GetClosestOnBoundary(Polygon(), Global).Length >= 0.0);
+            Assert.True(line.GetShortestLineTo(Circle(), Global).Length >= 0.0);
+            Assert.True(line.GetShortestLineTo(Rectangle(), Global).Length >= 0.0);
+            Assert.True(line.GetShortestLineTo(Polyline(), Global).Length >= 0.0);
+            Assert.True(line.GetShortestLineTo(Polygon(), Global).Length >= 0.0);
         }
 
         [Fact]

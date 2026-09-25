@@ -103,7 +103,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoLine3 alongX = new GeoLine3(new GeoPoint3(-5.0, 0.0, 0.0), new GeoPoint3(5.0, 0.0, 0.0));
             GeoLine3 alongY = new GeoLine3(new GeoPoint3(0.0, -5.0, 4.0), new GeoPoint3(0.0, 5.0, 4.0));
 
-            GeoLine3 bridge = alongX.GetClosestOnBoundary(alongY);
+            GeoLine3 bridge = alongX.GetShortestLineTo(alongY);
 
             Assert.True(bridge.StartPoint.IsPointOn(alongX));
             Assert.True(bridge.EndPoint.IsPointOn(alongY));

@@ -7,7 +7,7 @@ namespace GeometryHelper.Core
     /// <summary>
     /// Provides static calculation methods for geometric distances, squared distances, and closest point projections.
     /// </summary>
-    public static class Distance2
+    public static partial class Distance2
     {
         #region Point - Point
 

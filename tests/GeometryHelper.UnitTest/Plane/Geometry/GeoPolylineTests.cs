@@ -138,20 +138,20 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void Polyline_GetClosestOnBoundary_WorksCorrectly()
+        public void Polyline_GetShortestLineTo_WorksCorrectly()
         {
             var polyline1 = new GeoPolyline2(new GeoPoint2(0.0, 0.0), new GeoPoint2(10.0, 0.0));
             var polyline2 = new GeoPolyline2(new GeoPoint2(0.0, 5.0), new GeoPoint2(10.0, 5.0));
 
             // Test 1: Polyline - Polyline
-            var segPolylines = polyline1.GetClosestOnBoundary(polyline2);
+            var segPolylines = polyline1.GetShortestLineTo(polyline2);
             Assert.Equal(5.0, segPolylines.Length, 9);
             Assert.Equal(0.0, segPolylines.StartPoint.Y, 9);
             Assert.Equal(5.0, segPolylines.EndPoint.Y, 9);
 
             // Test 2: Polyline - Circle
             var circle = new GeoCircle2(new GeoPoint2(5.0, 5.0), 2.0);
-            var segCircle = polyline1.GetClosestOnBoundary(circle);
+            var segCircle = polyline1.GetShortestLineTo(circle);
             Assert.Equal(3.0, segCircle.Length, 9);
             Assert.True(segCircle.StartPoint.IsEqualTo(new GeoPoint2(5.0, 0.0)));
             Assert.True(segCircle.EndPoint.IsEqualTo(new GeoPoint2(5.0, 3.0)));

@@ -149,7 +149,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoLine2 other) => Projection2.GetClosestSegment(this, other, Tolerance.Global);
+        public GeoLine2 GetShortestLineTo(GeoLine2 other) => Projection2.GetShortestLineTo(this, other, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on this line segment to a point on another line segment within tolerance.
@@ -163,7 +163,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoLine2 other, Tolerance tolerance) => Projection2.GetClosestSegment(this, other, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoLine2 other, Tolerance tolerance) => Projection2.GetShortestLineTo(this, other, tolerance);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on this line segment to a point on the circumference of a circle using default tolerance.
@@ -176,7 +176,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoCircle2 circle) => Projection2.GetClosestSegment(this, circle, Tolerance.Global);
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle) => Projection2.GetShortestLineTo(this, circle, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on this line segment to a point on the circumference of a circle within tolerance.
@@ -190,7 +190,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoCircle2 circle, Tolerance tolerance) => Projection2.GetClosestSegment(this, circle, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance) => Projection2.GetShortestLineTo(this, circle, tolerance);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on this line segment to a point on the boundary of a rectangle using default tolerance.
@@ -203,7 +203,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoRectangle2 rect) => Projection2.GetClosestSegment(this, rect, Tolerance.Global);
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect) => Projection2.GetShortestLineTo(this, rect, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on this line segment to a point on the boundary of a rectangle within tolerance.
@@ -217,7 +217,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoRectangle2 rect, Tolerance tolerance) => Projection2.GetClosestSegment(this, rect, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance) => Projection2.GetShortestLineTo(this, rect, tolerance);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on this line segment to a point on a polyline using default tolerance.
@@ -230,7 +230,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoPolyline2 polyline) => Projection2.GetClosestSegment(this, polyline, Tolerance.Global);
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline) => Projection2.GetShortestLineTo(this, polyline, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on this line segment to a point on a polyline within tolerance.
@@ -244,7 +244,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoPolyline2 polyline, Tolerance tolerance) => Projection2.GetClosestSegment(this, polyline, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance) => Projection2.GetShortestLineTo(this, polyline, tolerance);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on this line segment to a point on the boundary of a polygon using default tolerance.
@@ -257,7 +257,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoPolygon2 poly) => Projection2.GetClosestSegment(this, poly, Tolerance.Global);
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly) => Projection2.GetShortestLineTo(this, poly, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on this line segment to a point on the boundary of a polygon within tolerance.
@@ -271,12 +271,72 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoPolygon2 poly, Tolerance tolerance) => Projection2.GetClosestSegment(this, poly, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly, Tolerance tolerance) => Projection2.GetShortestLineTo(this, poly, tolerance);
 
         /// <summary>
         /// Calculates the distance from a point to the closest point on this line segment.
         /// </summary>
         public double DistanceTo(GeoPoint2 point) => Distance2.DistanceTo(this, point);
+
+        /// <summary>
+        /// Calculates the shortest distance from this segment to an arc.
+        /// </summary>
+        public double DistanceTo(GeoArc2 arc) => Arc2.DistanceTo(arc, this);
+
+        /// <summary>
+        /// Calculates the shortest distance from this segment to an arc, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoArc2 arc, Tolerance tolerance) => Arc2.DistanceTo(arc, this, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to an arc.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoArc2 arc) => Projection2.GetShortestLineTo(this, arc);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to an arc, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoArc2 arc, Tolerance tolerance) => Projection2.GetShortestLineTo(this, arc, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this segment to a curved loop.
+        /// </summary>
+        public double DistanceTo(GeoPolygonArc2 loop) => Distance2.DistanceTo(loop, this);
+
+        /// <summary>
+        /// Calculates the shortest distance from this segment to a curved loop, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(loop, this, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a curved loop.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop) => Projection2.GetShortestLineTo(this, loop);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a curved loop, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance) => Projection2.GetShortestLineTo(this, loop, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this segment to a curved chain.
+        /// </summary>
+        public double DistanceTo(GeoPolylineArc2 chain) => Distance2.DistanceTo(chain, this);
+
+        /// <summary>
+        /// Calculates the shortest distance from this segment to a curved chain, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Distance2.DistanceTo(chain, this, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a curved chain.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain) => Projection2.GetShortestLineTo(this, chain);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a curved chain, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance) => Projection2.GetShortestLineTo(this, chain, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this line segment to another line segment using default tolerance.

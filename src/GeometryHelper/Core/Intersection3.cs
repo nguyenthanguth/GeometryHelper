@@ -55,7 +55,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            GeoLine3 bridge = Projection3.GetClosestSegment(line1, line2, tolerance);
+            GeoLine3 bridge = Projection3.GetShortestLineTo(line1, line2, tolerance);
 
             if (bridge.Length > tolerance.EqualPoint)
             {
@@ -104,7 +104,7 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// As without an extension, the lines must actually meet: the gap at their closest approach must be
         /// within tolerance. Two axes that pass each other in space do not meet however far they are extended;
-        /// <see cref="Projection3.GetClosestSegment(GeoLine3, GeoLine3, LineExtension, Tolerance)"/> gives the
+        /// <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoLine3, LineExtension, Tolerance)"/> gives the
         /// segment bridging them. Parallel lines are refused.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the extension is not a defined value.</exception>
@@ -128,7 +128,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            GeoLine3 bridge = Projection3.GetClosestSegment(line1, line2, extension, tolerance);
+            GeoLine3 bridge = Projection3.GetShortestLineTo(line1, line2, extension, tolerance);
 
             if (bridge.Length > tolerance.EqualPoint)
             {
@@ -916,7 +916,7 @@ namespace GeometryHelper.Core
                             return false;
                         }
                     }
-                    else if (Projection3.GetClosestSegment(edges[i], edges[j], tolerance).Length <= tolerance.EqualPoint)
+                    else if (Projection3.GetShortestLineTo(edges[i], edges[j], tolerance).Length <= tolerance.EqualPoint)
                     {
                         return false;
                     }

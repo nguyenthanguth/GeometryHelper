@@ -550,6 +550,246 @@ namespace GeometryHelper.Geometry
         public double DistanceTo(GeoPoint3 point) => Distance3.DistanceTo(this, point);
 
         /// <summary>
+        /// Calculates the shortest distance from this solid to a point, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A point inside the body is at distance zero.
+        /// </remarks>
+        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => Distance3.DistanceTo(this, point, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to a line segment.
+        /// </summary>
+        public double DistanceTo(GeoLine3 line) => Distance3.DistanceTo(line, this);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to a line segment, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A segment reaching into the body is at distance zero.
+        /// </remarks>
+        public double DistanceTo(GeoLine3 line, Tolerance tolerance) => Distance3.DistanceTo(line, this, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to another solid.
+        /// </summary>
+        public double DistanceTo(GeoSolid3 other) => Distance3.DistanceTo(this, other);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to another solid, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// Bodies that touch or overlap are at distance zero, which includes one sitting wholly inside the
+        /// other without their surfaces meeting.
+        /// </remarks>
+        public double DistanceTo(GeoSolid3 other, Tolerance tolerance) => Distance3.DistanceTo(this, other, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to a triangle.
+        /// </summary>
+        public double DistanceTo(GeoTriangle3 triangle) => Distance3.DistanceTo(this, triangle);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to a triangle, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) => Distance3.DistanceTo(this, triangle, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to a polygon.
+        /// </summary>
+        public double DistanceTo(GeoPolygon3 polygon) => Distance3.DistanceTo(this, polygon);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to a polygon, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) => Distance3.DistanceTo(this, polygon, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to a polyline.
+        /// </summary>
+        public double DistanceTo(GeoPolyline3 polyline) => Distance3.DistanceTo(this, polyline);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to a polyline, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(this, polyline, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to a plane.
+        /// </summary>
+        /// <remarks>
+        /// A body reaching the plane or crossing it is at distance zero.
+        /// </remarks>
+        public double DistanceTo(GeoPlane3 plane) => Distance3.DistanceTo(this, plane);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to a plane, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPlane3 plane, Tolerance tolerance) => Distance3.DistanceTo(this, plane, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to an oriented box.
+        /// </summary>
+        public double DistanceTo(GeoObb3 box) => Distance3.DistanceTo(this, box);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to an oriented box, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoObb3 box, Tolerance tolerance) => Distance3.DistanceTo(this, box, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to an axis-aligned box.
+        /// </summary>
+        public double DistanceTo(GeoAabb3 box) => Distance3.DistanceTo(this, box);
+
+        /// <summary>
+        /// Calculates the shortest distance from this solid to an axis-aligned box, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoAabb3 box, Tolerance tolerance) => Distance3.DistanceTo(this, box, tolerance);
+
+        /// <summary>
+        /// Gets the point on the surface of this solid closest to a target point.
+        /// </summary>
+        /// <remarks>
+        /// The answer is always on the surface, including for a point inside the body, where
+        /// <see cref="DistanceTo(GeoPoint3)"/> reports nothing at all. The two deliberately disagree there,
+        /// the same way they do in the plane.
+        /// </remarks>
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToSolid(this, point);
+
+        /// <summary>
+        /// Gets the point on the surface of this solid closest to a target point, within a tolerance.
+        /// </summary>
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance) => Projection3.ProjectToSolid(this, point, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a point.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves the surface, so it has a length even for a point inside the body, where
+        /// <see cref="DistanceTo(GeoPoint3)"/> reports nothing at all.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point) => Projection3.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a point, within a tolerance.
+        /// </summary>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance) => Projection3.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a line segment.
+        /// </summary>
+        public GeoLine3 GetShortestLineTo(GeoLine3 line) => Projection3.GetShortestLineTo(this, line);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a line segment, within a tolerance.
+        /// </summary>
+        public GeoLine3 GetShortestLineTo(GeoLine3 line, Tolerance tolerance) => Projection3.GetShortestLineTo(this, line, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a triangle.
+        /// </summary>
+        public GeoLine3 GetShortestLineTo(GeoTriangle3 triangle) => Projection3.GetShortestLineTo(this, triangle);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a triangle, within a tolerance.
+        /// </summary>
+        public GeoLine3 GetShortestLineTo(GeoTriangle3 triangle, Tolerance tolerance) => Projection3.GetShortestLineTo(this, triangle, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to another solid.
+        /// </summary>
+        public GeoLine3 GetShortestLineTo(GeoSolid3 other) => Projection3.GetShortestLineTo(this, other);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to another solid, within a tolerance.
+        /// </summary>
+        public GeoLine3 GetShortestLineTo(GeoSolid3 other, Tolerance tolerance) => Projection3.GetShortestLineTo(this, other, tolerance);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps a line segment.
+        /// </summary>
+        public bool CollidesWith(GeoLine3 line) => Collision3.CollidesWith(line, this);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps a line segment, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Collision3.CollidesWith(line, this, tolerance);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps a polyline.
+        /// </summary>
+        public bool CollidesWith(GeoPolyline3 polyline) => Collision3.CollidesWith(polyline, this);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps a polyline, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance) => Collision3.CollidesWith(polyline, this, tolerance);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps a polygon.
+        /// </summary>
+        public bool CollidesWith(GeoPolygon3 polygon) => Collision3.CollidesWith(polygon, this);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps a polygon, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Collision3.CollidesWith(polygon, this, tolerance);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps a face.
+        /// </summary>
+        public bool CollidesWith(GeoFace3 face) => Collision3.CollidesWith(face, this);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps a face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoFace3 face, Tolerance tolerance) => Collision3.CollidesWith(face, this, tolerance);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps an oriented box.
+        /// </summary>
+        public bool CollidesWith(GeoObb3 box) => Collision3.CollidesWith(box, this);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps an oriented box, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoObb3 box, Tolerance tolerance) => Collision3.CollidesWith(box, this, tolerance);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps another solid.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 other) => Collision3.CollidesWith(this, other);
+
+        /// <summary>
+        /// Determines whether this solid touches or overlaps another solid, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// One body sitting wholly inside the other counts as touching, even where no two faces meet.
+        /// </remarks>
+        public bool CollidesWith(GeoSolid3 other, Tolerance tolerance) => Collision3.CollidesWith(this, other, tolerance);
+
+        /// <summary>
+        /// Gets the points where a line segment passes through the surface of this solid.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoLine3 line) => Intersection3.GetIntersections(line, this);
+
+        /// <summary>
+        /// Gets the points where a line segment passes through the surface of this solid, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => Intersection3.GetIntersections(line, this, tolerance);
+
+        /// <summary>
+        /// Gets the points where a plane cuts the edges of this solid.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoPlane3 plane) => Intersection3.GetIntersections(plane, this);
+
+        /// <summary>
+        /// Gets the points where a plane cuts the edges of this solid, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoPlane3 plane, Tolerance tolerance) => Intersection3.GetIntersections(plane, this, tolerance);
+
+        /// <summary>
         /// Applies a transformation to every face and opening.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

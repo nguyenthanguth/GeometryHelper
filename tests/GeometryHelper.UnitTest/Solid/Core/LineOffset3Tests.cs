@@ -204,34 +204,34 @@ namespace GeometryHelper.UnitTest.Solid
         #region Closest approach and intersection with extension
 
         [Fact]
-        public void ClosestSegment_ReachesPastTheNamedSegmentsOnly()
+        public void ShortestLine_ReachesPastTheNamedSegmentsOnly()
         {
             var shortLine = new GeoLine3(0, 0, 0, 1, 0, 0);
             var farCross = new GeoLine3(5, -1, 3, 5, 1, 3);
 
-            AssertLine(new GeoLine3(5, 0, 0, 5, 0, 3), shortLine.GetClosestOnBoundary(farCross, LineExtension.Both));
-            AssertLine(new GeoLine3(1, 0, 0, 5, 0, 3), shortLine.GetClosestOnBoundary(farCross, LineExtension.None));
-            AssertLine(new GeoLine3(1, 0, 0, 5, 0, 3), shortLine.GetClosestOnBoundary(farCross, LineExtension.Second));
+            AssertLine(new GeoLine3(5, 0, 0, 5, 0, 3), shortLine.GetShortestLineTo(farCross, LineExtension.Both));
+            AssertLine(new GeoLine3(1, 0, 0, 5, 0, 3), shortLine.GetShortestLineTo(farCross, LineExtension.None));
+            AssertLine(new GeoLine3(1, 0, 0, 5, 0, 3), shortLine.GetShortestLineTo(farCross, LineExtension.Second));
 
             // The second segment does not reach y = 0, so its start is the nearest it can offer.
             var raised = new GeoLine3(5, 2, 3, 5, 4, 3);
-            AssertLine(new GeoLine3(5, 0, 0, 5, 2, 3), shortLine.GetClosestOnBoundary(raised, LineExtension.First));
+            AssertLine(new GeoLine3(5, 0, 0, 5, 2, 3), shortLine.GetShortestLineTo(raised, LineExtension.First));
         }
 
         [Fact]
-        public void ClosestSegment_BetweenParallelLines_IsTheirGap()
+        public void ShortestLine_BetweenParallelLines_IsTheirGap()
         {
             var a = new GeoLine3(0, 0, 0, 1, 0, 0);
             var b = new GeoLine3(7, 2, 0, 9, 2, 0);
 
             foreach (LineExtension extension in new[] { LineExtension.First, LineExtension.Second, LineExtension.Both })
             {
-                Assert.Equal(2.0, a.GetClosestOnBoundary(b, extension).Length, 9);
+                Assert.Equal(2.0, a.GetShortestLineTo(b, extension).Length, 9);
             }
         }
 
         [Fact]
-        public void ClosestSegment_NoExtension_MatchesThePlainOverload()
+        public void ShortestLine_NoExtension_MatchesThePlainOverload()
         {
             var rng = new Random(8);
 
@@ -240,18 +240,18 @@ namespace GeometryHelper.UnitTest.Solid
                 var a = new GeoLine3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10));
                 var b = new GeoLine3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10));
 
-                Assert.Equal(Projection3.GetClosestSegment(a, b), Projection3.GetClosestSegment(a, b, LineExtension.None));
+                Assert.Equal(Projection3.GetShortestLineTo(a, b), Projection3.GetShortestLineTo(a, b, LineExtension.None));
 
                 // Allowing either line to reach further can only bring them closer.
-                double none = a.GetClosestOnBoundary(b, LineExtension.None).Length;
-                Assert.True(a.GetClosestOnBoundary(b, LineExtension.First).Length <= none + 1e-9);
-                Assert.True(a.GetClosestOnBoundary(b, LineExtension.Second).Length <= none + 1e-9);
-                Assert.True(a.GetClosestOnBoundary(b, LineExtension.Both).Length <= none + 1e-9);
+                double none = a.GetShortestLineTo(b, LineExtension.None).Length;
+                Assert.True(a.GetShortestLineTo(b, LineExtension.First).Length <= none + 1e-9);
+                Assert.True(a.GetShortestLineTo(b, LineExtension.Second).Length <= none + 1e-9);
+                Assert.True(a.GetShortestLineTo(b, LineExtension.Both).Length <= none + 1e-9);
             }
         }
 
         [Fact]
-        public void ClosestSegment_BothExtended_IsSquareToBothLines()
+        public void ShortestLine_BothExtended_IsSquareToBothLines()
         {
             var rng = new Random(9);
 
@@ -261,7 +261,7 @@ namespace GeometryHelper.UnitTest.Solid
                 var b = new GeoLine3(rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10);
                 if (a.Length < 0.5 || b.Length < 0.5 || a.IsParallelTo(b)) { continue; }
 
-                GeoLine3 bridge = a.GetClosestOnBoundary(b, LineExtension.Both);
+                GeoLine3 bridge = a.GetShortestLineTo(b, LineExtension.Both);
                 if (bridge.Length < 1e-6) { continue; }
 
                 Assert.Equal(0.0, bridge.Direction.DotProduct(a.Direction) / (bridge.Length * a.Length), 9);
@@ -286,7 +286,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.False(a.TryIntersectWith(lifted, LineExtension.Both, out _));
 
             Assert.Throws<ArgumentOutOfRangeException>(() => a.TryIntersectWith(b, (LineExtension)9, out _));
-            Assert.Throws<ArgumentOutOfRangeException>(() => a.GetClosestOnBoundary(b, (LineExtension)9));
+            Assert.Throws<ArgumentOutOfRangeException>(() => a.GetShortestLineTo(b, (LineExtension)9));
         }
 
         #endregion

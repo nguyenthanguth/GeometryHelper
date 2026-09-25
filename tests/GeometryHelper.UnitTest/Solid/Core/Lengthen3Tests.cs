@@ -142,7 +142,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.False(Beam.TryExtendTo(offsetColumn, LineEnd.End, out _));
 
             // Tekla's LineToLine: the common perpendicular, and the end brought level with the column.
-            GeoLine3 bridge = Beam.GetClosestOnBoundary(offsetColumn, LineExtension.Both);
+            GeoLine3 bridge = Beam.GetShortestLineTo(offsetColumn, LineExtension.Both);
             Assert.Equal(150.0, bridge.Length, 9);
             Assert.True(Beam.TryExtendTo(bridge.StartPoint, LineEnd.End, out GeoLine3 level));
             AssertLine(new GeoLine3(0, 0, 3000, 6000, 0, 3000), level);

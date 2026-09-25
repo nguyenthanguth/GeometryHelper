@@ -311,7 +311,7 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(0.01)]
         [InlineData(0.017)]
         [InlineData(0.05)]
-        public void GetClosestSegment_CrossingSegments_ReportZeroAtEveryAngle(double slope)
+        public void GetShortestLineTo_CrossingSegments_ReportZeroAtEveryAngle(double slope)
         {
             // The two segments meet at x = 50. An angular parallel test would file every slope under
             // EqualAngleRad as parallel and miss the crossing, reporting the gap between the endpoints
@@ -320,14 +320,14 @@ namespace GeometryHelper.UnitTest.Plane
             var horizontal = new GeoLine2(new GeoPoint2(0.0, 0.0), new GeoPoint2(100.0, 0.0));
             var crossing = new GeoLine2(new GeoPoint2(0.0, -50.0 * slope), new GeoPoint2(100.0, 50.0 * slope));
 
-            Assert.Equal(0.0, Projection2.GetClosestSegment(horizontal, crossing).Length, 9);
-            Assert.Equal(0.0, Projection2.GetClosestSegment(crossing, horizontal).Length, 9);
+            Assert.Equal(0.0, Projection2.GetShortestLineTo(horizontal, crossing).Length, 9);
+            Assert.Equal(0.0, Projection2.GetShortestLineTo(crossing, horizontal).Length, 9);
             Assert.Equal(0.0, Distance2.DistanceTo(horizontal, crossing), 9);
             Assert.Equal(0.0, Distance2.DistanceTo(crossing, horizontal), 9);
         }
 
         [Fact]
-        public void GetClosestSegment_LineCrossingSliverPolygon_AgreesWithCollisionAndDistance()
+        public void GetShortestLineTo_LineCrossingSliverPolygon_AgreesWithCollisionAndDistance()
         {
             // The bottom edge climbs 5 units over 1000, so it sits 0.2865 degrees off the line and is
             // genuinely crossed at (-100, 0).
@@ -344,45 +344,45 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.True(Collision2.CollidesWith(poly, line));
             Assert.Equal(0.0, Distance2.DistanceTo(poly, line), 9);
-            Assert.Equal(0.0, Projection2.GetClosestSegment(line, poly).Length, 9);
-            Assert.Equal(0.0, line.GetClosestOnBoundary(poly).Length, 9);
-            Assert.Equal(0.0, poly.GetClosestOnBoundary(line).Length, 9);
+            Assert.Equal(0.0, Projection2.GetShortestLineTo(line, poly).Length, 9);
+            Assert.Equal(0.0, line.GetShortestLineTo(poly).Length, 9);
+            Assert.Equal(0.0, poly.GetShortestLineTo(line).Length, 9);
         }
 
         [Fact]
-        public void GetClosestSegment_ParallelOverlap_AnchorsAtMiddleOfTheOverlap()
+        public void GetShortestLineTo_ParallelOverlap_AnchorsAtMiddleOfTheOverlap()
         {
             // Fully overlapping: every pair between the two is 4 apart, so the middle is taken.
             var a = new GeoLine2(0.0, 0.0, 10.0, 0.0);
             var b = new GeoLine2(0.0, 4.0, 10.0, 4.0);
-            var full = Projection2.GetClosestSegment(a, b);
+            var full = Projection2.GetShortestLineTo(a, b);
             Assert.Equal(4.0, full.Length, 9);
             Assert.True(full.StartPoint.IsEqualTo(new GeoPoint2(5.0, 0.0)));
             Assert.True(full.EndPoint.IsEqualTo(new GeoPoint2(5.0, 4.0)));
 
             // Partially overlapping: only the shared stretch counts, so the middle sits at x = 5.
             var shortOne = new GeoLine2(3.0, 4.0, 7.0, 4.0);
-            var partial = Projection2.GetClosestSegment(a, shortOne);
+            var partial = Projection2.GetShortestLineTo(a, shortOne);
             Assert.Equal(4.0, partial.Length, 9);
             Assert.True(partial.StartPoint.IsEqualTo(new GeoPoint2(5.0, 0.0)));
             Assert.True(partial.EndPoint.IsEqualTo(new GeoPoint2(5.0, 4.0)));
 
             // No overlap at all: the answer is the corner-to-corner pair, not a midpoint.
             var offset = new GeoLine2(20.0, 4.0, 30.0, 4.0);
-            var disjoint = Projection2.GetClosestSegment(a, offset);
+            var disjoint = Projection2.GetShortestLineTo(a, offset);
             Assert.True(disjoint.StartPoint.IsEqualTo(new GeoPoint2(10.0, 0.0)));
             Assert.True(disjoint.EndPoint.IsEqualTo(new GeoPoint2(20.0, 4.0)));
         }
 
         [Fact]
-        public void GetClosestSegment_TieAcrossEdges_PrefersTheFaceOverTheCorner()
+        public void GetShortestLineTo_TieAcrossEdges_PrefersTheFaceOverTheCorner()
         {
             // The line runs parallel to the top edge. The right edge of the rectangle is exactly as far
             // away, but it only touches at its corner, so the top edge is the one to anchor to.
             var rect = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 4.0, 2.0, 0.0);
             var line = new GeoLine2(0.0, 5.0, 10.0, 5.0);
 
-            var seg = line.GetClosestOnBoundary(rect);
+            var seg = line.GetShortestLineTo(rect);
             Assert.Equal(4.0, seg.Length, 9);
             Assert.True(seg.StartPoint.IsEqualTo(new GeoPoint2(5.0, 5.0)));
             Assert.True(seg.EndPoint.IsEqualTo(new GeoPoint2(5.0, 1.0)));
@@ -391,55 +391,55 @@ namespace GeometryHelper.UnitTest.Plane
             var r1 = new GeoRectangle2(new GeoPoint2(0.0, 0.0), 4.0, 2.0, 0.0);
             var r2 = new GeoRectangle2(new GeoPoint2(10.0, 0.0), 4.0, 2.0, 0.0);
 
-            var forward = r1.GetClosestOnBoundary(r2);
+            var forward = r1.GetShortestLineTo(r2);
             Assert.Equal(6.0, forward.Length, 9);
             Assert.True(forward.StartPoint.IsEqualTo(new GeoPoint2(2.0, 0.0)));
             Assert.True(forward.EndPoint.IsEqualTo(new GeoPoint2(8.0, 0.0)));
 
             // Swapping the roles mirrors the very same segment.
-            var backward = r2.GetClosestOnBoundary(r1);
+            var backward = r2.GetShortestLineTo(r1);
             Assert.True(backward.StartPoint.IsEqualTo(forward.EndPoint));
             Assert.True(backward.EndPoint.IsEqualTo(forward.StartPoint));
         }
 
         [Fact]
-        public void GetClosestSegment_NearParallelButNotTouching_KeepsTheExactMinimum()
+        public void GetShortestLineTo_NearParallelButNotTouching_KeepsTheExactMinimum()
         {
             // Guards the tie-break from over-reaching: these two never quite line up, so the true minimum
             // is at an endpoint and the middle of the overlap would be measurably worse.
             var a = new GeoLine2(0.0, 0.0, 100.0, 0.0);
             var b = new GeoLine2(0.0, 1.0, 100.0, 1.5);
 
-            var seg = Projection2.GetClosestSegment(a, b);
+            var seg = Projection2.GetShortestLineTo(a, b);
             Assert.Equal(1.0, seg.Length, 9);
             Assert.Equal(Distance2.DistanceTo(a, b), seg.Length, 9);
             Assert.True(seg.EndPoint.IsEqualTo(new GeoPoint2(0.0, 1.0)));
         }
 
         [Fact]
-        public void GetClosestSegment_DegenerateInputs_AreMeasuredNotRejected()
+        public void GetShortestLineTo_DegenerateInputs_AreMeasuredNotRejected()
         {
             var pointLike = new GeoLine2(new GeoPoint2(5.0, 5.0), new GeoPoint2(5.0, 5.0));
             var line = new GeoLine2(0.0, 0.0, 10.0, 0.0);
 
-            Assert.Equal(5.0, Projection2.GetClosestSegment(pointLike, line).Length, 9);
-            Assert.Equal(5.0, Projection2.GetClosestSegment(line, pointLike).Length, 9);
+            Assert.Equal(5.0, Projection2.GetShortestLineTo(pointLike, line).Length, 9);
+            Assert.Equal(5.0, Projection2.GetShortestLineTo(line, pointLike).Length, 9);
 
             var otherPointLike = new GeoLine2(new GeoPoint2(1.0, 1.0), new GeoPoint2(1.0, 1.0));
-            Assert.Equal(Math.Sqrt(32.0), Projection2.GetClosestSegment(pointLike, otherPointLike).Length, 9);
+            Assert.Equal(Math.Sqrt(32.0), Projection2.GetShortestLineTo(pointLike, otherPointLike).Length, 9);
 
             var circle = new GeoCircle2(new GeoPoint2(0.0, 0.0), 3.0);
-            Assert.Equal(Math.Sqrt(50.0) - 3.0, Projection2.GetClosestSegment(pointLike, circle).Length, 9);
+            Assert.Equal(Math.Sqrt(50.0) - 3.0, Projection2.GetShortestLineTo(pointLike, circle).Length, 9);
 
             var pointCircle = new GeoCircle2(new GeoPoint2(0.0, 0.0), 0.0);
-            Assert.Equal(4.0, Projection2.GetClosestSegment(pointCircle, new GeoLine2(4.0, 0.0, 4.0, 10.0)).Length, 9);
+            Assert.Equal(4.0, Projection2.GetShortestLineTo(pointCircle, new GeoLine2(4.0, 0.0, 4.0, 10.0)).Length, 9);
 
             var flatRect = new GeoRectangle2(new GeoPoint2(0.0, 0.0), 0.0, 0.0, 0.0);
-            Assert.Equal(4.0, Projection2.GetClosestSegment(flatRect, new GeoLine2(4.0, -5.0, 4.0, 5.0)).Length, 9);
+            Assert.Equal(4.0, Projection2.GetShortestLineTo(flatRect, new GeoLine2(4.0, -5.0, 4.0, 5.0)).Length, 9);
         }
 
         [Fact]
-        public void GetClosestSegment_LooseTolerance_DoesNotCutTheEdgeScanShort()
+        public void GetShortestLineTo_LooseTolerance_DoesNotCutTheEdgeScanShort()
         {
             // The first polyline edge sits 2.5 away and the last one 2.0 away. A scan that stopped as soon
             // as it was within EqualPoint would settle for the first and never reach the nearer edge.
@@ -453,12 +453,12 @@ namespace GeometryHelper.UnitTest.Plane
             var tight = new Tolerance(1E-9, 1E-9, 1E-9);
             var loose = new Tolerance(3.0, 3.0, Math.PI / 180.0);
 
-            Assert.Equal(2.0, Projection2.GetClosestSegment(rect, polyline, tight).Length, 9);
-            Assert.Equal(2.0, Projection2.GetClosestSegment(rect, polyline, loose).Length, 9);
+            Assert.Equal(2.0, Projection2.GetShortestLineTo(rect, polyline, tight).Length, 9);
+            Assert.Equal(2.0, Projection2.GetShortestLineTo(rect, polyline, loose).Length, 9);
         }
 
         [Fact]
-        public void GetClosestSegment_MatchesBruteForce_OverEveryShapePair()
+        public void GetShortestLineTo_MatchesBruteForce_OverEveryShapePair()
         {
             var rnd = new Random(20260821);
             Func<double, double, double> range = (lo, hi) => lo + rnd.NextDouble() * (hi - lo);
@@ -472,7 +472,7 @@ namespace GeometryHelper.UnitTest.Plane
                         object a = RandomShape(kindA, rnd, range);
                         object b = RandomShape(kindB, rnd, range);
 
-                        GeoLine2 seg = ClosestSegmentOf(a, b);
+                        GeoLine2 seg = ShortestLineOf(a, b);
                         double sampled = SampledMinimumDistance(a, b);
 
                         // Sampling can only ever overstate the true minimum, so the analytic answer must
@@ -481,15 +481,15 @@ namespace GeometryHelper.UnitTest.Plane
                             "kinds " + kindA + "/" + kindB + ": analytic " + seg.Length + " > sampled " + sampled);
 
                         // The start point belongs to the first shape and the end point to the second.
-                        Assert.True(seg.StartPoint.DistanceTo(ClosestOnBoundaryOf(a, seg.StartPoint)) < 1E-7);
-                        Assert.True(seg.EndPoint.DistanceTo(ClosestOnBoundaryOf(b, seg.EndPoint)) < 1E-7);
+                        Assert.True(seg.StartPoint.DistanceTo(ClosestPointOn(a, seg.StartPoint)) < 1E-7);
+                        Assert.True(seg.EndPoint.DistanceTo(ClosestPointOn(b, seg.EndPoint)) < 1E-7);
                     }
                 }
             }
         }
 
         [Fact]
-        public void GetClosestSegment_LineToLine_AgreesWithDistanceTo()
+        public void GetShortestLineTo_LineToLine_AgreesWithDistanceTo()
         {
             var rnd = new Random(4242);
             Func<double> coord = () => rnd.NextDouble() * 100.0 - 50.0;
@@ -499,12 +499,12 @@ namespace GeometryHelper.UnitTest.Plane
                 var a = new GeoLine2(new GeoPoint2(coord(), coord()), new GeoPoint2(coord(), coord()));
                 var b = new GeoLine2(new GeoPoint2(coord(), coord()), new GeoPoint2(coord(), coord()));
 
-                Assert.Equal(Distance2.DistanceTo(a, b), Projection2.GetClosestSegment(a, b).Length, 9);
+                Assert.Equal(Distance2.DistanceTo(a, b), Projection2.GetShortestLineTo(a, b).Length, 9);
             }
         }
 
         [Fact]
-        public void GetClosestSegment_SegmentsMeetingWithinTolerance_CountAsTouching()
+        public void GetShortestLineTo_SegmentsMeetingWithinTolerance_CountAsTouching()
         {
             // Neither pair strictly crosses, but each misses by less than EqualPoint, so both count as
             // meeting - the same endpoint slack Intersection2.TryIntersectWith applies. The slack is a
@@ -515,8 +515,8 @@ namespace GeometryHelper.UnitTest.Plane
             var stopsShort = new GeoLine2(0.0, 0.0, 5.0, 0.0);
             var justBeyond = new GeoLine2(5.0 + gap, -5.0, 5.0 + gap, 5.0);
 
-            var forward = Projection2.GetClosestSegment(stopsShort, justBeyond);
-            var backward = Projection2.GetClosestSegment(justBeyond, stopsShort);
+            var forward = Projection2.GetShortestLineTo(stopsShort, justBeyond);
+            var backward = Projection2.GetShortestLineTo(justBeyond, stopsShort);
             Assert.Equal(0.0, forward.Length, 9);
             Assert.Equal(0.0, backward.Length, 9);
 
@@ -528,16 +528,16 @@ namespace GeometryHelper.UnitTest.Plane
 
             var spanning = new GeoLine2(0.0, 0.0, 10.0, 0.0);
             var startsAbove = new GeoLine2(5.0, gap, 5.0, 5.0);
-            Assert.Equal(0.0, Projection2.GetClosestSegment(spanning, startsAbove).Length, 9);
-            Assert.Equal(0.0, Projection2.GetClosestSegment(startsAbove, spanning).Length, 9);
+            Assert.Equal(0.0, Projection2.GetShortestLineTo(spanning, startsAbove).Length, 9);
+            Assert.Equal(0.0, Projection2.GetShortestLineTo(startsAbove, spanning).Length, 9);
 
             // Widen the miss well past the tolerance and it is measured rather than absorbed.
             var clearlyAbove = new GeoLine2(5.0, 1.0, 5.0, 5.0);
-            Assert.Equal(1.0, Projection2.GetClosestSegment(spanning, clearlyAbove).Length, 9);
+            Assert.Equal(1.0, Projection2.GetShortestLineTo(spanning, clearlyAbove).Length, 9);
         }
 
         [Fact]
-        public void GetClosestSegment_EndpointSlack_IsScaleInvariant()
+        public void GetShortestLineTo_EndpointSlack_IsScaleInvariant()
         {
             // The slack is a distance, so on a 100000 unit segment it may only reach 1E-4 past the end,
             // not a proportion of the length. Applied unscaled it would swallow a gap of a whole unit and
@@ -545,8 +545,8 @@ namespace GeometryHelper.UnitTest.Plane
             var veryLong = new GeoLine2(0.0, 0.0, 100000.0, 0.0);
             var pastTheEnd = new GeoLine2(100001.0, -5.0, 100001.0, 5.0);
 
-            Assert.Equal(1.0, Projection2.GetClosestSegment(veryLong, pastTheEnd).Length, 9);
-            Assert.Equal(1.0, Projection2.GetClosestSegment(pastTheEnd, veryLong).Length, 9);
+            Assert.Equal(1.0, Projection2.GetShortestLineTo(veryLong, pastTheEnd).Length, 9);
+            Assert.Equal(1.0, Projection2.GetShortestLineTo(pastTheEnd, veryLong).Length, 9);
             Assert.Equal(1.0, Distance2.DistanceTo(veryLong, pastTheEnd), 9);
 
             // The same shape of configuration a thousand times smaller: the gap is still the same
@@ -554,14 +554,14 @@ namespace GeometryHelper.UnitTest.Plane
             var shorter = new GeoLine2(0.0, 0.0, 100.0, 0.0);
             var pastItsEnd = new GeoLine2(100.001, -5.0, 100.001, 5.0);
 
-            Assert.Equal(0.001, Projection2.GetClosestSegment(shorter, pastItsEnd).Length, 9);
+            Assert.Equal(0.001, Projection2.GetShortestLineTo(shorter, pastItsEnd).Length, 9);
             Assert.Equal(0.001, Distance2.DistanceTo(shorter, pastItsEnd), 9);
 
             // What does get absorbed is the same absolute gap at either scale, because that is what the
             // tolerance actually measures.
             double within = Tolerance.Global.EqualPoint * 0.5;
-            Assert.Equal(0.0, Projection2.GetClosestSegment(veryLong, new GeoLine2(100000.0 + within, -5.0, 100000.0 + within, 5.0)).Length, 9);
-            Assert.Equal(0.0, Projection2.GetClosestSegment(shorter, new GeoLine2(100.0 + within, -5.0, 100.0 + within, 5.0)).Length, 9);
+            Assert.Equal(0.0, Projection2.GetShortestLineTo(veryLong, new GeoLine2(100000.0 + within, -5.0, 100000.0 + within, 5.0)).Length, 9);
+            Assert.Equal(0.0, Projection2.GetShortestLineTo(shorter, new GeoLine2(100.0 + within, -5.0, 100.0 + within, 5.0)).Length, 9);
         }
 
         #region Closest Segment Helpers
@@ -635,7 +635,7 @@ namespace GeometryHelper.UnitTest.Plane
             return Parametrization2.GetPointAtParameter((GeoPolyline2)shape, parameter);
         }
 
-        private static GeoPoint2 ClosestOnBoundaryOf(object shape, GeoPoint2 point)
+        private static GeoPoint2 ClosestPointOn(object shape, GeoPoint2 point)
         {
             if (shape is GeoLine2 line) return Projection2.ProjectToLine(line, point);
             if (shape is GeoCircle2 circle) return Projection2.ProjectToCircle(circle, point);
@@ -654,59 +654,59 @@ namespace GeometryHelper.UnitTest.Plane
                 double t = (double)i / Samples;
 
                 GeoPoint2 onA = BoundaryPointAt(a, t);
-                best = Math.Min(best, onA.DistanceTo(ClosestOnBoundaryOf(b, onA)));
+                best = Math.Min(best, onA.DistanceTo(ClosestPointOn(b, onA)));
 
                 GeoPoint2 onB = BoundaryPointAt(b, t);
-                best = Math.Min(best, onB.DistanceTo(ClosestOnBoundaryOf(a, onB)));
+                best = Math.Min(best, onB.DistanceTo(ClosestPointOn(a, onB)));
             }
 
             return best;
         }
 
-        private static GeoLine2 ClosestSegmentOf(object a, object b)
+        private static GeoLine2 ShortestLineOf(object a, object b)
         {
             if (a is GeoLine2 la)
             {
-                if (b is GeoLine2 lb) return Projection2.GetClosestSegment(la, lb);
-                if (b is GeoCircle2 cb) return Projection2.GetClosestSegment(la, cb);
-                if (b is GeoRectangle2 rb) return Projection2.GetClosestSegment(la, rb);
-                if (b is GeoPolygon2 gb) return Projection2.GetClosestSegment(la, gb);
-                return Projection2.GetClosestSegment(la, (GeoPolyline2)b);
+                if (b is GeoLine2 lb) return Projection2.GetShortestLineTo(la, lb);
+                if (b is GeoCircle2 cb) return Projection2.GetShortestLineTo(la, cb);
+                if (b is GeoRectangle2 rb) return Projection2.GetShortestLineTo(la, rb);
+                if (b is GeoPolygon2 gb) return Projection2.GetShortestLineTo(la, gb);
+                return Projection2.GetShortestLineTo(la, (GeoPolyline2)b);
             }
 
             if (a is GeoCircle2 ca)
             {
-                if (b is GeoLine2 lb) return Projection2.GetClosestSegment(ca, lb);
-                if (b is GeoCircle2 cb) return Projection2.GetClosestSegment(ca, cb);
-                if (b is GeoRectangle2 rb) return Projection2.GetClosestSegment(ca, rb);
-                if (b is GeoPolygon2 gb) return Projection2.GetClosestSegment(ca, gb);
-                return Projection2.GetClosestSegment(ca, (GeoPolyline2)b);
+                if (b is GeoLine2 lb) return Projection2.GetShortestLineTo(ca, lb);
+                if (b is GeoCircle2 cb) return Projection2.GetShortestLineTo(ca, cb);
+                if (b is GeoRectangle2 rb) return Projection2.GetShortestLineTo(ca, rb);
+                if (b is GeoPolygon2 gb) return Projection2.GetShortestLineTo(ca, gb);
+                return Projection2.GetShortestLineTo(ca, (GeoPolyline2)b);
             }
 
             if (a is GeoRectangle2 ra)
             {
-                if (b is GeoLine2 lb) return Projection2.GetClosestSegment(ra, lb);
-                if (b is GeoCircle2 cb) return Projection2.GetClosestSegment(ra, cb);
-                if (b is GeoRectangle2 rb) return Projection2.GetClosestSegment(ra, rb);
-                if (b is GeoPolygon2 gb) return Projection2.GetClosestSegment(ra, gb);
-                return Projection2.GetClosestSegment(ra, (GeoPolyline2)b);
+                if (b is GeoLine2 lb) return Projection2.GetShortestLineTo(ra, lb);
+                if (b is GeoCircle2 cb) return Projection2.GetShortestLineTo(ra, cb);
+                if (b is GeoRectangle2 rb) return Projection2.GetShortestLineTo(ra, rb);
+                if (b is GeoPolygon2 gb) return Projection2.GetShortestLineTo(ra, gb);
+                return Projection2.GetShortestLineTo(ra, (GeoPolyline2)b);
             }
 
             if (a is GeoPolygon2 ga)
             {
-                if (b is GeoLine2 lb) return Projection2.GetClosestSegment(ga, lb);
-                if (b is GeoCircle2 cb) return Projection2.GetClosestSegment(ga, cb);
-                if (b is GeoRectangle2 rb) return Projection2.GetClosestSegment(ga, rb);
-                if (b is GeoPolygon2 gb) return Projection2.GetClosestSegment(ga, gb);
-                return Projection2.GetClosestSegment(ga, (GeoPolyline2)b);
+                if (b is GeoLine2 lb) return Projection2.GetShortestLineTo(ga, lb);
+                if (b is GeoCircle2 cb) return Projection2.GetShortestLineTo(ga, cb);
+                if (b is GeoRectangle2 rb) return Projection2.GetShortestLineTo(ga, rb);
+                if (b is GeoPolygon2 gb) return Projection2.GetShortestLineTo(ga, gb);
+                return Projection2.GetShortestLineTo(ga, (GeoPolyline2)b);
             }
 
             var pa = (GeoPolyline2)a;
-            if (b is GeoLine2 l2) return Projection2.GetClosestSegment(pa, l2);
-            if (b is GeoCircle2 c2) return Projection2.GetClosestSegment(pa, c2);
-            if (b is GeoRectangle2 r2) return Projection2.GetClosestSegment(pa, r2);
-            if (b is GeoPolygon2 g2) return Projection2.GetClosestSegment(pa, g2);
-            return Projection2.GetClosestSegment(pa, (GeoPolyline2)b);
+            if (b is GeoLine2 l2) return Projection2.GetShortestLineTo(pa, l2);
+            if (b is GeoCircle2 c2) return Projection2.GetShortestLineTo(pa, c2);
+            if (b is GeoRectangle2 r2) return Projection2.GetShortestLineTo(pa, r2);
+            if (b is GeoPolygon2 g2) return Projection2.GetShortestLineTo(pa, g2);
+            return Projection2.GetShortestLineTo(pa, (GeoPolyline2)b);
         }
 
         #endregion

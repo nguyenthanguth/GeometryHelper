@@ -99,7 +99,7 @@ namespace GeometryHelper.Core
         /// </summary>
         public static double DistanceTo(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
         {
-            return Projection3.GetClosestSegment(line1, line2, tolerance).Length;
+            return Projection3.GetShortestLineTo(line1, line2, tolerance).Length;
         }
 
         /// <summary>
@@ -440,6 +440,204 @@ namespace GeometryHelper.Core
             }
 
             return best;
+        }
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and a triangle.
+        /// </summary>
+        public static double DistanceTo(GeoSolid3 solid, GeoTriangle3 triangle) => DistanceTo(solid, triangle, Tolerance.Global);
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and a triangle, within a tolerance.
+        /// </summary>
+        /// <param name="solid">The solid.</param>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>Zero where the triangle reaches into the body, otherwise the gap between the two surfaces.</returns>
+        /// <remarks>
+        /// A triangle lying wholly inside the body meets none of its faces, so it is caught by asking where
+        /// its corners are before any face is measured. One that passes through is caught by the faces it
+        /// cuts, which are at no distance from it.
+        /// </remarks>
+        public static double DistanceTo(GeoSolid3 solid, GeoTriangle3 triangle, Tolerance tolerance)
+        {
+            if (solid == null)
+            {
+                throw new ArgumentNullException(nameof(solid));
+            }
+
+            if (Containment3.Contains(solid, triangle.A, tolerance) ||
+                Containment3.Contains(solid, triangle.B, tolerance) ||
+                Containment3.Contains(solid, triangle.C, tolerance))
+            {
+                return 0.0;
+            }
+
+            double best = double.MaxValue;
+
+            foreach (GeoTriangle3 face in solid.Triangulate(tolerance))
+            {
+                best = Math.Min(best, DistanceTo(face, triangle, tolerance));
+
+                if (best <= 0.0)
+                {
+                    return 0.0;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and a polygon.
+        /// </summary>
+        public static double DistanceTo(GeoSolid3 solid, GeoPolygon3 polygon) => DistanceTo(solid, polygon, Tolerance.Global);
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and a polygon, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The polygon is cut into triangles and each is measured against the body, so a polygon that is
+        /// not convex is handled like any other.
+        /// </remarks>
+        public static double DistanceTo(GeoSolid3 solid, GeoPolygon3 polygon, Tolerance tolerance)
+        {
+            if (solid == null)
+            {
+                throw new ArgumentNullException(nameof(solid));
+            }
+
+            if (polygon == null)
+            {
+                throw new ArgumentNullException(nameof(polygon));
+            }
+
+            double best = double.MaxValue;
+
+            foreach (GeoTriangle3 piece in polygon.Triangulate())
+            {
+                best = Math.Min(best, DistanceTo(solid, piece, tolerance));
+
+                if (best <= 0.0)
+                {
+                    return 0.0;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and a polyline.
+        /// </summary>
+        public static double DistanceTo(GeoSolid3 solid, GeoPolyline3 polyline) => DistanceTo(solid, polyline, Tolerance.Global);
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and a polyline, within a tolerance.
+        /// </summary>
+        public static double DistanceTo(GeoSolid3 solid, GeoPolyline3 polyline, Tolerance tolerance)
+        {
+            if (solid == null)
+            {
+                throw new ArgumentNullException(nameof(solid));
+            }
+
+            if (polyline == null)
+            {
+                throw new ArgumentNullException(nameof(polyline));
+            }
+
+            double best = double.MaxValue;
+
+            foreach (GeoLine3 edge in polyline.GetEdges())
+            {
+                best = Math.Min(best, DistanceTo(edge, solid, tolerance));
+
+                if (best <= 0.0)
+                {
+                    return 0.0;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and a plane.
+        /// </summary>
+        public static double DistanceTo(GeoSolid3 solid, GeoPlane3 plane) => DistanceTo(solid, plane, Tolerance.Global);
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and a plane, within a tolerance.
+        /// </summary>
+        /// <returns>Zero where the body reaches the plane or crosses it, otherwise the gap.</returns>
+        /// <remarks>
+        /// A plane is flat and endless, so nothing needs measuring but the corners of the body: the nearest
+        /// point of a solid to a plane is always one of them, and the body crosses the plane exactly when
+        /// two of them fall on opposite sides.
+        /// </remarks>
+        public static double DistanceTo(GeoSolid3 solid, GeoPlane3 plane, Tolerance tolerance)
+        {
+            if (solid == null)
+            {
+                throw new ArgumentNullException(nameof(solid));
+            }
+
+            double above = double.MinValue;
+            double below = double.MaxValue;
+
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                foreach (GeoPoint3 corner in face.Boundary.Vertices)
+                {
+                    double reach = plane.SignedDistanceTo(corner);
+
+                    above = Math.Max(above, reach);
+                    below = Math.Min(below, reach);
+                }
+            }
+
+            if (above == double.MinValue)
+            {
+                return 0.0;
+            }
+
+            // Straddling the plane, or touching it, leaves nothing between them.
+            if (above >= -tolerance.EqualPoint && below <= tolerance.EqualPoint)
+            {
+                return 0.0;
+            }
+
+            return below > 0.0 ? below : -above;
+        }
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and an oriented box.
+        /// </summary>
+        public static double DistanceTo(GeoSolid3 solid, GeoObb3 box) => DistanceTo(solid, box, Tolerance.Global);
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and an oriented box, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A box is a solid of six faces, so the two are measured against each other as two solids are.
+        /// </remarks>
+        public static double DistanceTo(GeoSolid3 solid, GeoObb3 box, Tolerance tolerance)
+        {
+            return DistanceTo(solid, box.ToSolid(), tolerance);
+        }
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and an axis-aligned box.
+        /// </summary>
+        public static double DistanceTo(GeoSolid3 solid, GeoAabb3 box) => DistanceTo(solid, box, Tolerance.Global);
+
+        /// <summary>
+        /// Calculates the shortest distance between a solid and an axis-aligned box, within a tolerance.
+        /// </summary>
+        public static double DistanceTo(GeoSolid3 solid, GeoAabb3 box, Tolerance tolerance)
+        {
+            return DistanceTo(solid, box.ToObb().ToSolid(), tolerance);
         }
 
         /// <summary>

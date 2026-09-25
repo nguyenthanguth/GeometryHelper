@@ -194,7 +194,7 @@ namespace GeometryHelper.UnitTest.Plane
                 var l2 = new GeoLine2(P(), P());
                 if (l2.Length >= 1e-6)
                 {
-                    GeoLine2 bridge = Projection2.GetClosestSegment(l, l2, Tol);
+                    GeoLine2 bridge = Projection2.GetShortestLineTo(l, l2, Tol);
                     if (Math.Abs(bridge.Length - Distance2.DistanceTo(l, l2, Tol)) > 1e-9) { segBad++; }
                 }
             }

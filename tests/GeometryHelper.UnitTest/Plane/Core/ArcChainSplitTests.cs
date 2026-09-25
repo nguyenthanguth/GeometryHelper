@@ -238,7 +238,7 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True((chain + step).IsEqualTo(chain.Translate(step)));
 
             // And the nearest piece of a curved loop may be an arc.
-            GeoEdge2 nearest = Slot().GetClosestOnBoundary(new GeoLine2(new GeoPoint2(300, 0), new GeoPoint2(300, 50)));
+            GeoEdge2 nearest = Slot().GetClosestEdge(new GeoLine2(new GeoPoint2(300, 0), new GeoPoint2(300, 50)));
             Assert.True(nearest.IsArc);
             Assert.Equal(25.0, nearest.ToArc().Radius, 8);
         }

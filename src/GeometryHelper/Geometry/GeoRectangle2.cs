@@ -437,7 +437,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoLine2 line) => Projection2.GetClosestSegment(this, line, Tolerance.Global);
+        public GeoLine2 GetShortestLineTo(GeoLine2 line) => Projection2.GetShortestLineTo(this, line, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of this rectangle to a point on a line segment within tolerance.
@@ -448,7 +448,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoLine2 line, Tolerance tolerance) => Projection2.GetClosestSegment(this, line, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoLine2 line, Tolerance tolerance) => Projection2.GetShortestLineTo(this, line, tolerance);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of this rectangle to a point on the circumference of a circle using default tolerance.
@@ -459,7 +459,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoCircle2 circle) => Projection2.GetClosestSegment(this, circle, Tolerance.Global);
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle) => Projection2.GetShortestLineTo(this, circle, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of this rectangle to a point on the circumference of a circle within tolerance.
@@ -470,7 +470,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoCircle2 circle, Tolerance tolerance) => Projection2.GetClosestSegment(this, circle, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance) => Projection2.GetShortestLineTo(this, circle, tolerance);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of this rectangle to a point on the boundary of another rectangle using default tolerance.
@@ -481,7 +481,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoRectangle2 other) => Projection2.GetClosestSegment(this, other, Tolerance.Global);
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 other) => Projection2.GetShortestLineTo(this, other, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of this rectangle to a point on the boundary of another rectangle within tolerance.
@@ -492,7 +492,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoRectangle2 other, Tolerance tolerance) => Projection2.GetClosestSegment(this, other, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 other, Tolerance tolerance) => Projection2.GetShortestLineTo(this, other, tolerance);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of this rectangle to a point on a polyline using default tolerance.
@@ -503,7 +503,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoPolyline2 polyline) => Projection2.GetClosestSegment(this, polyline, Tolerance.Global);
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline) => Projection2.GetShortestLineTo(this, polyline, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of this rectangle to a point on a polyline within tolerance.
@@ -514,7 +514,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoPolyline2 polyline, Tolerance tolerance) => Projection2.GetClosestSegment(this, polyline, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance) => Projection2.GetShortestLineTo(this, polyline, tolerance);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of this rectangle to a point on the boundary of a polygon using default tolerance.
@@ -525,7 +525,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoPolygon2 poly) => Projection2.GetClosestSegment(this, poly, Tolerance.Global);
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly) => Projection2.GetShortestLineTo(this, poly, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of this rectangle to a point on the boundary of a polygon within tolerance.
@@ -536,7 +536,7 @@ namespace GeometryHelper.Geometry
         /// takes the opposite view and treats a closed shape as a filled region, returning zero for that
         /// same pair.
         /// </remarks>
-        public GeoLine2 GetClosestOnBoundary(GeoPolygon2 poly, Tolerance tolerance) => Projection2.GetClosestSegment(this, poly, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly, Tolerance tolerance) => Projection2.GetShortestLineTo(this, poly, tolerance);
 
         /// <summary>
         /// Calculates the shortest Euclidean distance from this rectangle to a point.
@@ -567,6 +567,85 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest boundary distance from this rectangle to another rectangle.
         /// </summary>
         public double DistanceTo(GeoRectangle2 other) => Distance2.DistanceTo(this, other);
+
+        /// <summary>
+        /// Calculates the shortest distance from this rectangle to an arc.
+        /// </summary>
+        public double DistanceTo(GeoArc2 arc) => Distance2.DistanceTo(this, arc);
+
+        /// <summary>
+        /// Calculates the shortest distance from this rectangle to an arc, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoArc2 arc, Tolerance tolerance) => Distance2.DistanceTo(this, arc, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this rectangle to an arc.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoArc2 arc) => Projection2.GetShortestLineTo(this, arc);
+
+        /// <summary>
+        /// Gets the shortest segment joining this rectangle to an arc, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoArc2 arc, Tolerance tolerance) => Projection2.GetShortestLineTo(this, arc, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this rectangle to a curved loop.
+        /// </summary>
+        public double DistanceTo(GeoPolygonArc2 loop) => Distance2.DistanceTo(this, loop);
+
+        /// <summary>
+        /// Calculates the shortest distance from this rectangle to a curved loop, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(this, loop, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this rectangle to a curved loop.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop) => Projection2.GetShortestLineTo(this, loop);
+
+        /// <summary>
+        /// Gets the shortest segment joining this rectangle to a curved loop, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance) => Projection2.GetShortestLineTo(this, loop, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this rectangle to a curved chain.
+        /// </summary>
+        public double DistanceTo(GeoPolylineArc2 chain) => Distance2.DistanceTo(this, chain);
+
+        /// <summary>
+        /// Calculates the shortest distance from this rectangle to a curved chain, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Distance2.DistanceTo(this, chain, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this rectangle to a curved chain.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain) => Projection2.GetShortestLineTo(this, chain);
+
+        /// <summary>
+        /// Gets the shortest segment joining this rectangle to a curved chain, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance) => Projection2.GetShortestLineTo(this, chain, tolerance);
+
+        /// <summary>
+        /// Gets the edge of this rectangle nearest a point.
+        /// </summary>
+        public GeoLine2 GetClosestEdge(GeoPoint2 point) => ClosestEdge2.GetClosestEdge(this, point);
+
+        /// <summary>
+        /// Gets the edge of this rectangle nearest a segment.
+        /// </summary>
+        /// <remarks>
+        /// The answer is one of this rectangle's own edges, not a segment joining the two shapes.
+        /// For that, see <see cref="GetShortestLineTo(GeoLine2)"/>.
+        /// </remarks>
+        public GeoLine2 GetClosestEdge(GeoLine2 line) => ClosestEdge2.GetClosestEdge(this, line);
+
+        /// <summary>
+        /// Gets the edge of this rectangle nearest a circle.
+        /// </summary>
+        public GeoLine2 GetClosestEdge(GeoCircle2 circle) => ClosestEdge2.GetClosestEdge(this, circle);
 
         /// <summary>
         /// Checks whether the rectangle contains a point.

@@ -48,8 +48,8 @@ namespace GeometryHelper.UnitTest.Solid
             // The plane cuts it, so there is no distance to it.
             Assert.Equal(0.0, line.DistanceTo(Plane()), 9);
 
-            Assert.True(line.GetClosestOnBoundary(Skew(), Global).Length >= 0.0);
-            Assert.True(line.GetClosestOnBoundary(Skew(), LineExtension.Both, Global).Length >= 0.0);
+            Assert.True(line.GetShortestLineTo(Skew(), Global).Length >= 0.0);
+            Assert.True(line.GetShortestLineTo(Skew(), LineExtension.Both, Global).Length >= 0.0);
         }
 
         [Fact]

@@ -514,21 +514,21 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void Rectangle_GetClosestOnBoundary_WorksCorrectly()
+        public void Rectangle_GetShortestLineTo_WorksCorrectly()
         {
             var rect1 = new GeoRectangle2(new GeoPoint2(0.0, 0.0), 4.0, 2.0, 0.0); // X in [-2, 2], Y in [-1, 1]
             var rect2 = new GeoRectangle2(new GeoPoint2(10.0, 0.0), 4.0, 2.0, 0.0); // X in [8, 12], Y in [-1, 1]
 
             // Test 1: Rectangle - Rectangle
             // Closest is from (2, 0) on rect1 to (8, 0) on rect2, length = 6
-            var segRects = rect1.GetClosestOnBoundary(rect2);
+            var segRects = rect1.GetShortestLineTo(rect2);
             Assert.Equal(6.0, segRects.Length, 9);
             Assert.True(segRects.StartPoint.IsEqualTo(new GeoPoint2(2.0, 0.0)));
             Assert.True(segRects.EndPoint.IsEqualTo(new GeoPoint2(8.0, 0.0)));
 
             // Test 2: Rectangle - Circle
             var circle = new GeoCircle2(new GeoPoint2(0.0, 6.0), 2.0); // bottom of circle is (0, 4)
-            var segCircle = rect1.GetClosestOnBoundary(circle);
+            var segCircle = rect1.GetShortestLineTo(circle);
             // Closest is from top edge of rect1 (0, 1) to bottom of circle (0, 4), length = 3
             Assert.Equal(3.0, segCircle.Length, 9);
             Assert.True(segCircle.StartPoint.IsEqualTo(new GeoPoint2(0.0, 1.0)));

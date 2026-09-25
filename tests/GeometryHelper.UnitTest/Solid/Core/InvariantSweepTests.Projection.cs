@@ -49,7 +49,7 @@ namespace GeometryHelper.UnitTest.Solid
             var disc = new Tally("ProjectToDisc");
             var obb = new Tally("ProjectToObb");
             var solid = new Tally("ProjectToSolid");
-            var seg = new Tally("GetClosestSegment");
+            var seg = new Tally("GetShortestLineTo");
             int solidOutside = 0;
 
             for (int t = 0; t < 150; t++)
@@ -139,7 +139,7 @@ namespace GeometryHelper.UnitTest.Solid
                 var l2 = new GeoLine3(P(), P());
                 if (l2.Length >= 1E-6)
                 {
-                    GeoLine3 bridge = Projection3.GetClosestSegment(l, l2, Tol);
+                    GeoLine3 bridge = Projection3.GetShortestLineTo(l, l2, Tol);
                     seg.Nearness(bridge.Length, Distance3.DistanceTo(l, l2, Tol));
                     if (!Containment3.IsPointOn(l, bridge.StartPoint, Tol)) { seg.OnShape++; }
                     if (!Containment3.IsPointOn(l2, bridge.EndPoint, Tol)) { seg.OnShape++; }

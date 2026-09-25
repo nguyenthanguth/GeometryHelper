@@ -192,13 +192,13 @@ namespace GeometryHelper.Geometry
         /// Finds the shortest segment connecting a point on this segment to a point on another segment,
         /// using the default tolerance.
         /// </summary>
-        public GeoLine3 GetClosestOnBoundary(GeoLine3 other) => Projection3.GetClosestSegment(this, other);
+        public GeoLine3 GetShortestLineTo(GeoLine3 other) => Projection3.GetShortestLineTo(this, other);
 
         /// <summary>
         /// Finds the shortest segment connecting a point on this segment to a point on another segment,
         /// within a tolerance.
         /// </summary>
-        public GeoLine3 GetClosestOnBoundary(GeoLine3 other, Tolerance tolerance) => Projection3.GetClosestSegment(this, other, tolerance);
+        public GeoLine3 GetShortestLineTo(GeoLine3 other, Tolerance tolerance) => Projection3.GetShortestLineTo(this, other, tolerance);
 
         /// <summary>
         /// Finds the shortest segment connecting this segment and another, reading this one, the other or both
@@ -207,7 +207,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="other">The other segment.</param>
         /// <param name="extension">Which segment may be reached past its endpoints: First is this one, Second the other.</param>
-        public GeoLine3 GetClosestOnBoundary(GeoLine3 other, LineExtension extension) => Projection3.GetClosestSegment(this, other, extension, Tolerance.Global);
+        public GeoLine3 GetShortestLineTo(GeoLine3 other, LineExtension extension) => Projection3.GetShortestLineTo(this, other, extension, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest segment connecting this segment and another, reading this one, the other or both
@@ -216,7 +216,7 @@ namespace GeometryHelper.Geometry
         /// <param name="other">The other segment.</param>
         /// <param name="extension">Which segment may be reached past its endpoints: First is this one, Second the other.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public GeoLine3 GetClosestOnBoundary(GeoLine3 other, LineExtension extension, Tolerance tolerance) => Projection3.GetClosestSegment(this, other, extension, tolerance);
+        public GeoLine3 GetShortestLineTo(GeoLine3 other, LineExtension extension, Tolerance tolerance) => Projection3.GetShortestLineTo(this, other, extension, tolerance);
 
         #endregion
 

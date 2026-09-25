@@ -211,7 +211,7 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The extension must pass within the point tolerance of the boundary. To bring an end level with an
         /// axis it passes at a distance, as Tekla's <c>Intersection.LineToLine</c> is used for, take the
-        /// bridge from <see cref="Projection3.GetClosestSegment(GeoLine3, GeoLine3, LineExtension, Tolerance)"/>
+        /// bridge from <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoLine3, LineExtension, Tolerance)"/>
         /// with <see cref="LineExtension.Both"/> and extend to its start point.
         /// </remarks>
         public static bool TryExtendTo(GeoLine3 line, GeoLine3 boundary, LineEnd end, out GeoLine3 result, Tolerance tolerance)
@@ -530,7 +530,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            GeoLine3 bridge = Projection3.GetClosestSegment(line1, line2, LineExtension.Both, tolerance);
+            GeoLine3 bridge = Projection3.GetShortestLineTo(line1, line2, LineExtension.Both, tolerance);
 
             if (bridge.Length > tolerance.EqualPoint)
             {
@@ -670,7 +670,7 @@ namespace GeometryHelper.Core
             }
 
             GeoLine3 carrier = new GeoLine3(reach.Anchor, reach.Anchor.Add(reach.Unit));
-            GeoLine3 bridge = Projection3.GetClosestSegment(carrier, edge, LineExtension.First, tolerance);
+            GeoLine3 bridge = Projection3.GetShortestLineTo(carrier, edge, LineExtension.First, tolerance);
 
             if (bridge.Length <= tolerance.EqualPoint)
             {

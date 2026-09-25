@@ -14,7 +14,7 @@ namespace GeometryHelper.Core
     /// never returns a point outside its edges.
     /// </para>
     /// </summary>
-    public static class Projection3
+    public static partial class Projection3
     {
         #region Vector projections
 
@@ -220,7 +220,7 @@ namespace GeometryHelper.Core
         /// Finds the shortest segment connecting a point on one line segment to a point on another, using
         /// the default tolerance.
         /// </summary>
-        public static GeoLine3 GetClosestSegment(GeoLine3 line1, GeoLine3 line2) => GetClosestSegment(line1, line2, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoLine3 line1, GeoLine3 line2) => GetShortestLineTo(line1, line2, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest segment connecting a point on one line segment to a point on another, within
@@ -235,7 +235,7 @@ namespace GeometryHelper.Core
         /// its length is the distance between them. When they do cross, the result is a zero-length
         /// segment sitting at the crossing point.
         /// </remarks>
-        public static GeoLine3 GetClosestSegment(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
+        public static GeoLine3 GetShortestLineTo(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
         {
             GeoVector3 d1 = line1.Direction;
             GeoVector3 d2 = line2.Direction;
@@ -303,7 +303,7 @@ namespace GeometryHelper.Core
         /// Finds the shortest segment connecting two line segments, reading either or both as the infinite
         /// line carrying it, using the default tolerance.
         /// </summary>
-        public static GeoLine3 GetClosestSegment(GeoLine3 line1, GeoLine3 line2, LineExtension extension) => GetClosestSegment(line1, line2, extension, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoLine3 line1, GeoLine3 line2, LineExtension extension) => GetShortestLineTo(line1, line2, extension, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest segment connecting two line segments, reading either or both as the infinite
@@ -322,14 +322,14 @@ namespace GeometryHelper.Core
         /// the second.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the extension is not a defined value.</exception>
-        public static GeoLine3 GetClosestSegment(GeoLine3 line1, GeoLine3 line2, LineExtension extension, Tolerance tolerance)
+        public static GeoLine3 GetShortestLineTo(GeoLine3 line1, GeoLine3 line2, LineExtension extension, Tolerance tolerance)
         {
             bool extendFirst;
             bool extendSecond;
 
             switch (extension)
             {
-                case LineExtension.None: return GetClosestSegment(line1, line2, tolerance);
+                case LineExtension.None: return GetShortestLineTo(line1, line2, tolerance);
                 case LineExtension.First: extendFirst = true; extendSecond = false; break;
                 case LineExtension.Second: extendFirst = false; extendSecond = true; break;
                 case LineExtension.Both: extendFirst = true; extendSecond = true; break;

@@ -426,7 +426,7 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void Polygon_GetClosestOnBoundary_WorksCorrectly()
+        public void Polygon_GetShortestLineTo_WorksCorrectly()
         {
             var poly1 = new GeoPolygon2(
                 new GeoPoint2(0.0, 0.0),
@@ -445,14 +445,14 @@ namespace GeometryHelper.UnitTest.Plane
             // Test 1: Polygon - Polygon
             // The facing edges are parallel and overlap over their whole height, so every pair between
             // them is 6 apart; the segment is anchored at the middle of that overlap.
-            var segPolys = poly1.GetClosestOnBoundary(poly2);
+            var segPolys = poly1.GetShortestLineTo(poly2);
             Assert.Equal(6.0, segPolys.Length, 9);
             Assert.True(segPolys.StartPoint.IsEqualTo(new GeoPoint2(4.0, 2.0)));
             Assert.True(segPolys.EndPoint.IsEqualTo(new GeoPoint2(10.0, 2.0)));
 
             // Test 2: Polygon - Line
             var line = new GeoLine2(4.0, 8.0, 4.0, 12.0);
-            var segLine = poly1.GetClosestOnBoundary(line);
+            var segLine = poly1.GetShortestLineTo(line);
             Assert.Equal(4.0, segLine.Length, 9);
             Assert.True(segLine.StartPoint.IsEqualTo(new GeoPoint2(4.0, 4.0)));
             Assert.True(segLine.EndPoint.IsEqualTo(new GeoPoint2(4.0, 8.0)));

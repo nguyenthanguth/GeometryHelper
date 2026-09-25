@@ -223,27 +223,27 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void Line_GetClosestOnBoundary_Line_WorksCorrectly()
+        public void Line_GetShortestLineTo_Line_WorksCorrectly()
         {
             var l1 = new GeoLine2(0.0, 0.0, 10.0, 0.0);
 
             // Test 1: Intersecting lines -> length 0 at intersection point (5, 0)
             var lCrossing = new GeoLine2(5.0, -5.0, 5.0, 5.0);
-            var closestIntersecting = l1.GetClosestOnBoundary(lCrossing);
+            var closestIntersecting = l1.GetShortestLineTo(lCrossing);
             Assert.Equal(0.0, closestIntersecting.Length, 9);
             Assert.True(closestIntersecting.StartPoint.IsEqualTo(new GeoPoint2(5.0, 0.0)));
             Assert.True(closestIntersecting.EndPoint.IsEqualTo(new GeoPoint2(5.0, 0.0)));
 
             // Test 2: Parallel2 lines
             var lParallel = new GeoLine2(0.0, 4.0, 10.0, 4.0);
-            var closestParallel = l1.GetClosestOnBoundary(lParallel);
+            var closestParallel = l1.GetShortestLineTo(lParallel);
             Assert.Equal(4.0, closestParallel.Length, 9);
             Assert.Equal(0.0, closestParallel.StartPoint.Y, 9);
             Assert.Equal(4.0, closestParallel.EndPoint.Y, 9);
 
             // Test 3: Disjoint / offset lines
             var lDisjoint = new GeoLine2(14.0, 3.0, 20.0, 3.0);
-            var closestDisjoint = l1.GetClosestOnBoundary(lDisjoint);
+            var closestDisjoint = l1.GetShortestLineTo(lDisjoint);
             // Closest is between (10, 0) and (14, 3) -> distance is sqrt(4^2 + 3^2) = 5
             Assert.Equal(5.0, closestDisjoint.Length, 9);
             Assert.True(closestDisjoint.StartPoint.IsEqualTo(new GeoPoint2(10.0, 0.0)));
@@ -251,37 +251,37 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void Line_GetClosestOnBoundary_Circle_WorksCorrectly()
+        public void Line_GetShortestLineTo_Circle_WorksCorrectly()
         {
             var circle = new GeoCircle2(new GeoPoint2(5.0, 0.0), 2.0);
 
             // Test 1: Line strictly outside circle
             var lOutside = new GeoLine2(0.0, 5.0, 10.0, 5.0);
-            var closestOutside = lOutside.GetClosestOnBoundary(circle);
+            var closestOutside = lOutside.GetShortestLineTo(circle);
             Assert.Equal(3.0, closestOutside.Length, 9);
             Assert.True(closestOutside.StartPoint.IsEqualTo(new GeoPoint2(5.0, 5.0)));
             Assert.True(closestOutside.EndPoint.IsEqualTo(new GeoPoint2(5.0, 2.0)));
 
             // Test 2: Line intersecting circle -> length 0
             var lCrossing = new GeoLine2(0.0, 0.0, 10.0, 0.0);
-            var closestCrossing = lCrossing.GetClosestOnBoundary(circle);
+            var closestCrossing = lCrossing.GetShortestLineTo(circle);
             Assert.Equal(0.0, closestCrossing.Length, 9);
 
             // Test 3: Line strictly inside circle
             var lInside = new GeoLine2(4.5, 0.0, 5.5, 0.0);
-            var closestInside = lInside.GetClosestOnBoundary(circle);
+            var closestInside = lInside.GetShortestLineTo(circle);
             // Endpoints are at distance 0.5 from center -> distance to circumference = 2.0 - 0.5 = 1.5
             Assert.Equal(1.5, closestInside.Length, 9);
         }
 
         [Fact]
-        public void Line_GetClosestOnBoundary_Rectangle_WorksCorrectly()
+        public void Line_GetShortestLineTo_Rectangle_WorksCorrectly()
         {
             var rect = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 4.0, 2.0, 0.0); // X: [3, 7], Y: [-1, 1]
 
             // Test 1: Line outside rectangle
             var lOutside = new GeoLine2(0.0, 5.0, 10.0, 5.0);
-            var closestOutside = lOutside.GetClosestOnBoundary(rect);
+            var closestOutside = lOutside.GetShortestLineTo(rect);
             // Closest point on line is (5, 5), on rectangle top edge is (5, 1) -> length = 4
             Assert.Equal(4.0, closestOutside.Length, 9);
             Assert.True(closestOutside.StartPoint.IsEqualTo(new GeoPoint2(5.0, 5.0)));
@@ -289,18 +289,18 @@ namespace GeometryHelper.UnitTest.Plane
 
             // Test 2: Line intersecting rectangle
             var lIntersecting = new GeoLine2(0.0, 0.0, 10.0, 0.0);
-            var closestIntersecting = lIntersecting.GetClosestOnBoundary(rect);
+            var closestIntersecting = lIntersecting.GetShortestLineTo(rect);
             Assert.Equal(0.0, closestIntersecting.Length, 9);
 
             // Test 3: Line strictly inside rectangle
             var lInside = new GeoLine2(4.5, 0.0, 5.5, 0.0);
-            var closestInside = lInside.GetClosestOnBoundary(rect);
+            var closestInside = lInside.GetShortestLineTo(rect);
             // Distance2 from Y=0 to top/bottom edge Y=+/-1 is 1.0
             Assert.Equal(1.0, closestInside.Length, 9);
         }
 
         [Fact]
-        public void Line_GetClosestOnBoundary_Polyline_WorksCorrectly()
+        public void Line_GetShortestLineTo_Polyline_WorksCorrectly()
         {
             var polyline = new GeoPolyline2(
                 new GeoPoint2(0.0, 0.0),
@@ -309,7 +309,7 @@ namespace GeometryHelper.UnitTest.Plane
             );
 
             var line = new GeoLine2(0.0, 5.0, 10.0, 5.0);
-            var closest = line.GetClosestOnBoundary(polyline);
+            var closest = line.GetShortestLineTo(polyline);
 
             // Closest point on line is (5, 5), on polyline vertex is (5, 2) -> distance is 3
             Assert.Equal(3.0, closest.Length, 9);
@@ -318,7 +318,7 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void Line_GetClosestOnBoundary_Polygon_WorksCorrectly()
+        public void Line_GetShortestLineTo_Polygon_WorksCorrectly()
         {
             var poly = new GeoPolygon2(
                 new GeoPoint2(3.0, 0.0),
@@ -327,7 +327,7 @@ namespace GeometryHelper.UnitTest.Plane
             );
 
             var line = new GeoLine2(0.0, 5.0, 10.0, 5.0);
-            var closest = line.GetClosestOnBoundary(poly);
+            var closest = line.GetShortestLineTo(poly);
 
             // Closest point on line is (5, 5), on apex of triangle is (5, 2) -> distance is 3
             Assert.Equal(3.0, closest.Length, 9);

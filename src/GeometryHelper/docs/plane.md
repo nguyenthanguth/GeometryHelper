@@ -323,7 +323,7 @@ slot.IsSimple();                   // exact too: chords that cross but arcs that
 slot.GetPointAtDistance(260.0);    // walked along the arcs
 slot.GetParameterAtPoint(point);
 slot.GetClosestPointOnBoundary(point);
-slot.GetClosestOnBoundary(line);   // a GeoEdge2, because the nearest piece may be an arc
+slot.GetClosestEdge(line);         // a GeoEdge2, because the nearest piece may be an arc
 
 slot.GetIntersections(knife);      // with a segment, arc, circle, chain or loop, straight or curved
 slot.CollidesWith(plate);

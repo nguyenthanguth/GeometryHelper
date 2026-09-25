@@ -76,13 +76,14 @@ namespace GeometryHelper.Core
                 Math.Min(Distance2.DistanceTo(line, arc.StartPoint), Distance2.DistanceTo(line, arc.EndPoint)));
 
             // Where the segment runs straight at the centre, the nearest point of the circle lies on that
-            // line; it counts only if the arc reaches that far.
+            // line. Clamping it onto the arc keeps the candidate on the arc whether or not the arc reaches
+            // that far round: when it does the clamp changes nothing, and when it does not the candidate
+            // falls back to the end, which is where the nearest pair really is.
             GeoPoint2 nearestOnLine = Projection2.ProjectToLine(line, arc.Center);
-            GeoVector2 outward = arc.Center.GetVectorTo(nearestOnLine);
 
-            if (outward.Length > tolerance.EqualPoint && Covers(arc, nearestOnLine, tolerance))
+            if (arc.Center.GetVectorTo(nearestOnLine).Length > tolerance.EqualPoint)
             {
-                best = Math.Min(best, Math.Abs(outward.Length - arc.Radius));
+                best = Math.Min(best, ProjectToArc(arc, nearestOnLine, tolerance).DistanceTo(nearestOnLine));
             }
 
             return best;
@@ -123,16 +124,19 @@ namespace GeometryHelper.Core
                 GeoVector2 unit = betweenCenters.Multiply(1.0 / apart);
 
                 // The two points of the circles on the line joining the centres, facing each other and
-                // facing away, are where two whole circles are nearest and furthest.
+                // facing away, are where two whole circles are nearest and furthest. Each is clamped onto
+                // its own arc: an arc that does not reach that far round is nearest at an end instead, and
+                // every end is weighed above. Testing the direction against Tolerance.EqualAngleRad
+                // instead would admit a point a whole degree past the end, which on a radius of a hundred
+                // is nearly two of whatever the drawing is measured in.
                 foreach (int side in new[] { 1, -1 })
                 {
                     GeoPoint2 onFirst = first.Center.Add(unit.Multiply(side * first.Radius));
                     GeoPoint2 onSecond = second.Center.Add(unit.Multiply(-side * second.Radius));
 
-                    if (Covers(first, onFirst, tolerance) && Covers(second, onSecond, tolerance))
-                    {
-                        best = Math.Min(best, onFirst.DistanceTo(onSecond));
-                    }
+                    best = Math.Min(
+                        best,
+                        ProjectToArc(first, onFirst, tolerance).DistanceTo(ProjectToArc(second, onSecond, tolerance)));
                 }
             }
 
@@ -388,19 +392,161 @@ namespace GeometryHelper.Core
 
         #endregion
 
-        #region Helpers
+        #region Shortest line
 
         /// <summary>
-        /// Determines whether an arc reaches a point of the circle carrying it.
+        /// Gets the shortest segment joining an arc to a point, using the default tolerance.
         /// </summary>
-        private static bool Covers(GeoArc2 arc, GeoPoint2 pointOnCircle, Tolerance tolerance)
-        {
-            GeoPoint2 nearest = arc.GetPointAtParameter(arc.GetParameterAtPoint(pointOnCircle, tolerance));
+        public static GeoLine2 GetShortestLineTo(GeoArc2 arc, GeoPoint2 point) => GetShortestLineTo(arc, point, Tolerance.Global);
 
-            // The nearest point of the arc in that direction is the point itself when the arc reaches it.
-            return arc.Center.GetVectorTo(nearest).IsParallelTo(arc.Center.GetVectorTo(pointOnCircle), tolerance)
-                && arc.Center.GetVectorTo(nearest).DotProduct(arc.Center.GetVectorTo(pointOnCircle)) > 0.0;
+        /// <summary>
+        /// Gets the shortest segment joining an arc to a point, within a tolerance.
+        /// </summary>
+        /// <param name="arc">The arc.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>A segment leaving the arc and ending at <paramref name="point"/>.</returns>
+        public static GeoLine2 GetShortestLineTo(GeoArc2 arc, GeoPoint2 point, Tolerance tolerance)
+        {
+            return new GeoLine2(ProjectToArc(arc, point, tolerance), point);
         }
+
+        /// <summary>
+        /// Gets the shortest segment joining an arc to a straight segment, using the default tolerance.
+        /// </summary>
+        public static GeoLine2 GetShortestLineTo(GeoArc2 arc, GeoLine2 line) => GetShortestLineTo(arc, line, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining an arc to a straight segment, within a tolerance.
+        /// </summary>
+        /// <param name="arc">The arc.</param>
+        /// <param name="line">The segment.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>A segment leaving the arc and landing on <paramref name="line"/>, of no length at all where the two cross.</returns>
+        /// <remarks>
+        /// The candidates are the ones <see cref="DistanceTo(GeoArc2, GeoLine2, Tolerance)"/> already
+        /// weighs &#8212; an end of one against the other, and the place where the segment runs straight at
+        /// the centre &#8212; so this hands back the pair that measurement was of, and its length is that
+        /// same distance rather than anything sampled.
+        /// </remarks>
+        public static GeoLine2 GetShortestLineTo(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
+        {
+            if (TryIntersectWith(arc, line, out GeoPoint2[] meetings, tolerance) && meetings.Length > 0)
+            {
+                return new GeoLine2(meetings[0], meetings[0]);
+            }
+
+            var best = new GeoLine2(arc.StartPoint, Projection2.ProjectToLine(line, arc.StartPoint));
+
+            Consider(ref best, arc.EndPoint, Projection2.ProjectToLine(line, arc.EndPoint));
+            Consider(ref best, ProjectToArc(arc, line.StartPoint, tolerance), line.StartPoint);
+            Consider(ref best, ProjectToArc(arc, line.EndPoint, tolerance), line.EndPoint);
+
+            // Where the segment runs straight at the centre, the nearest point of the circle lies on that
+            // line, clamped onto the arc so that the pair is one the arc really holds.
+            GeoPoint2 nearestOnLine = Projection2.ProjectToLine(line, arc.Center);
+
+            if (arc.Center.GetVectorTo(nearestOnLine).Length > tolerance.EqualPoint)
+            {
+                Consider(ref best, ProjectToArc(arc, nearestOnLine, tolerance), nearestOnLine);
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining two arcs, using the default tolerance.
+        /// </summary>
+        public static GeoLine2 GetShortestLineTo(GeoArc2 first, GeoArc2 second) => GetShortestLineTo(first, second, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining two arcs, within a tolerance.
+        /// </summary>
+        /// <param name="first">The arc the segment leaves.</param>
+        /// <param name="second">The arc the segment lands on.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>A segment leaving <paramref name="first"/> and landing on <paramref name="second"/>, of no length at all where the two cross.</returns>
+        /// <remarks>
+        /// As with an arc and a segment, the pair is one of those
+        /// <see cref="DistanceTo(GeoArc2, GeoArc2, Tolerance)"/> already weighs: an end of one against the
+        /// other, or the two points facing each other along the line joining the centres.
+        /// </remarks>
+        public static GeoLine2 GetShortestLineTo(GeoArc2 first, GeoArc2 second, Tolerance tolerance)
+        {
+            if (TryIntersectWith(first, second, out GeoPoint2[] meetings, tolerance) && meetings.Length > 0)
+            {
+                return new GeoLine2(meetings[0], meetings[0]);
+            }
+
+            var best = new GeoLine2(ProjectToArc(first, second.StartPoint, tolerance), second.StartPoint);
+
+            Consider(ref best, ProjectToArc(first, second.EndPoint, tolerance), second.EndPoint);
+            Consider(ref best, first.StartPoint, ProjectToArc(second, first.StartPoint, tolerance));
+            Consider(ref best, first.EndPoint, ProjectToArc(second, first.EndPoint, tolerance));
+
+            GeoVector2 betweenCenters = first.Center.GetVectorTo(second.Center);
+            double apart = betweenCenters.Length;
+
+            if (apart > tolerance.EqualPoint)
+            {
+                GeoVector2 unit = betweenCenters.Multiply(1.0 / apart);
+
+                // The two points of the circles on the line joining the centres, facing each other and
+                // facing away, are where two whole circles are nearest and furthest. Each is clamped onto
+                // its own arc: an arc that does not reach that far round is nearest at an end instead, and
+                // every end is weighed above. Testing the direction against Tolerance.EqualAngleRad
+                // instead would admit a point a whole degree past the end, which on a radius of a hundred
+                // is nearly two of whatever the drawing is measured in.
+                foreach (int side in new[] { 1, -1 })
+                {
+                    GeoPoint2 onFirst = first.Center.Add(unit.Multiply(side * first.Radius));
+                    GeoPoint2 onSecond = second.Center.Add(unit.Multiply(-side * second.Radius));
+
+                    Consider(
+                        ref best,
+                        ProjectToArc(first, onFirst, tolerance),
+                        ProjectToArc(second, onSecond, tolerance));
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining an arc to a circle, using the default tolerance.
+        /// </summary>
+        public static GeoLine2 GetShortestLineTo(GeoArc2 arc, GeoCircle2 circle) => GetShortestLineTo(arc, circle, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining an arc to a circle, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A circle is an arc that sweeps a whole turn, so the two are joined the way two arcs are.
+        /// </remarks>
+        public static GeoLine2 GetShortestLineTo(GeoArc2 arc, GeoCircle2 circle, Tolerance tolerance)
+        {
+            return GetShortestLineTo(arc, AsArc(circle), tolerance);
+        }
+
+        /// <summary>
+        /// Keeps the shorter of the segment in hand and the pair offered.
+        /// </summary>
+        /// <remarks>
+        /// The comparison is strict, so the first pair of equal length is the one kept and the answer does
+        /// not turn on the order the candidates happen to be weighed in.
+        /// </remarks>
+        private static void Consider(ref GeoLine2 best, GeoPoint2 from, GeoPoint2 to)
+        {
+            if (from.DistanceTo(to) < best.Length)
+            {
+                best = new GeoLine2(from, to);
+            }
+        }
+
+        #endregion
+
+        #region Helpers
+
 
         private static bool KeepWhatTheArcsReach(
             GeoPoint2[] candidates,
@@ -419,12 +565,16 @@ namespace GeometryHelper.Core
 
             foreach (GeoPoint2 candidate in candidates)
             {
-                if (!Covers(first, candidate, tolerance))
+                // Every candidate already lies on the circle carrying each arc, so asking whether the arc
+                // holds the point is the whole of the question. It is asked as a distance: the angular
+                // tolerance is a whole degree by default, and a degree of a large arc is a long way, so a
+                // point that far past the end would be reported as a crossing of arcs that never touch.
+                if (!IsPointOn(first, candidate, tolerance))
                 {
                     continue;
                 }
 
-                if (second.HasValue && !Covers(second.Value, candidate, tolerance))
+                if (second.HasValue && !IsPointOn(second.Value, candidate, tolerance))
                 {
                     continue;
                 }
