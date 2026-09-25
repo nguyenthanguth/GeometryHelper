@@ -94,6 +94,13 @@ namespace GeometryHelper.Geometry
         public GeoVector3 ToVector() => new GeoVector3(X, Y, Z);
 
         /// <summary>
+        /// Moves the point by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The point in its new place.</returns>
+        public GeoPoint3 Translate(GeoVector3 vector) => new GeoPoint3(X + vector.X, Y + vector.Y, Z + vector.Z);
+
+        /// <summary>
         /// Applies a transformation to this point.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

@@ -257,6 +257,13 @@ namespace GeometryHelper.Geometry
         public GeoAabb3 GetAabb() => GeoAabb3.FromPoints(GetCorners());
 
         /// <summary>
+        /// Moves the box by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The box in its new place.</returns>
+        public GeoObb3 Translate(GeoVector3 vector) => TransformBy(GeoTransform3.Translation(vector));
+
+        /// <summary>
         /// Applies a transformation to the box.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

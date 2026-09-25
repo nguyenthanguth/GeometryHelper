@@ -81,6 +81,13 @@ namespace GeometryHelper.Geometry
         public GeoAabb3 GetAabb() => new GeoAabb3(StartPoint, EndPoint);
 
         /// <summary>
+        /// Moves the line segment by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The line segment in its new place.</returns>
+        public GeoLine3 Translate(GeoVector3 vector) => new GeoLine3(StartPoint.Add(vector), EndPoint.Add(vector));
+
+        /// <summary>
         /// Applies a transformation to this segment.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

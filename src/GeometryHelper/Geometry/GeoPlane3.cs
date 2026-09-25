@@ -119,6 +119,13 @@ namespace GeometryHelper.Geometry
         public GeoPlane3 Offset(double distance) => new GeoPlane3(Origin.Add(Normal.Multiply(distance)), Normal, true);
 
         /// <summary>
+        /// Moves the plane by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The plane in its new place.</returns>
+        public GeoPlane3 Translate(GeoVector3 vector) => new GeoPlane3(Origin.Add(vector), Normal);
+
+        /// <summary>
         /// Applies a transformation to this plane.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
@@ -188,6 +195,23 @@ namespace GeometryHelper.Geometry
         /// <param name="point">The target point.</param>
         /// <returns>Positive if the point is on the side the normal points towards, negative otherwise.</returns>
         public double SignedDistanceTo(GeoPoint3 point) => Origin.GetVectorTo(point).DotProduct(Normal);
+
+        /// <summary>
+        /// Gets the point of this plane nearest a target point.
+        /// </summary>
+        /// <remarks>
+        /// A plane is endless, so this is the foot of the perpendicular and never anything else. The sign of
+        /// which side the point was on is in <see cref="SignedDistanceTo(GeoPoint3)"/>.
+        /// </remarks>
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToPlane(this, point);
+
+        /// <summary>
+        /// Gets the point of this plane nearest a target point, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The tolerance changes nothing here; it is taken so that this reads like every other shape.
+        /// </remarks>
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance) => Projection3.ProjectToPlane(this, point);
 
         /// <summary>
         /// Determines which side of the plane a point lies on, using the default tolerance.

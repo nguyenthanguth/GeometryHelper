@@ -230,22 +230,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
-            GeoPoint3 flat = Projection3.ProjectToPlane(face.GetPlane(), point);
-
-            if (Containment3.Contains(face.Boundary, flat, tolerance))
-            {
-                foreach (GeoPolygon3 hole in face.Holes)
-                {
-                    if (Containment3.Locate(hole, flat, tolerance) == PointLocation.Inside)
-                    {
-                        return DistanceTo(Projection3.ProjectToPolygonBoundary(hole, point, tolerance), point);
-                    }
-                }
-
-                return DistanceTo(flat, point);
-            }
-
-            return DistanceTo(Projection3.ProjectToPolygonBoundary(face.Boundary, point, tolerance), point);
+            return DistanceTo(Projection3.ProjectToFace(face, point, tolerance), point);
         }
 
         /// <summary>

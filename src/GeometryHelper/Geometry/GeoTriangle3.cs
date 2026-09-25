@@ -145,6 +145,13 @@ namespace GeometryHelper.Geometry
         public GeoAabb3 GetAabb() => GeoAabb3.FromPoints(new[] { A, B, C });
 
         /// <summary>
+        /// Moves the triangle by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The triangle in its new place.</returns>
+        public GeoTriangle3 Translate(GeoVector3 vector) => new GeoTriangle3(A.Add(vector), B.Add(vector), C.Add(vector));
+
+        /// <summary>
         /// Applies a transformation to this triangle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

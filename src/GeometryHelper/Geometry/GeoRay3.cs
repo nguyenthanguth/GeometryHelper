@@ -78,6 +78,13 @@ namespace GeometryHelper.Geometry
         public GeoRay3 Reverse() => new GeoRay3(Origin, Direction.Negate(), true);
 
         /// <summary>
+        /// Moves the ray by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The ray in its new place.</returns>
+        public GeoRay3 Translate(GeoVector3 vector) => new GeoRay3(Origin.Add(vector), Direction);
+
+        /// <summary>
         /// Applies a transformation to this ray.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

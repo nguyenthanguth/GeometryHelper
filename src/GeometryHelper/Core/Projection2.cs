@@ -207,6 +207,47 @@ namespace GeometryHelper.Core
         #region Point on Polyline
 
         /// <summary>
+        /// Gets the point of the boundary of a face nearest another point.
+        /// </summary>
+        public static GeoPoint2 ProjectToFace(GeoFace2 face, GeoPoint2 point) => ProjectToFace(face, point, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the point of the boundary of a face nearest another point, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face.</param>
+        /// <param name="point">The point; it may lie on the material, in a hole, or off the face altogether.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>The nearest point of the outline or of a hole rim, whichever is nearer.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        /// <remarks>
+        /// The boundary of a face is its outline <b>and</b> the rim of every hole, so a point sitting in a
+        /// hole is answered with a point of that rim. As with a polygon, the answer is always on the boundary,
+        /// which is where this parts company with <see cref="Distance2"/>: that reads a face as filled and
+        /// calls a point on the material nought away.
+        /// </remarks>
+        public static GeoPoint2 ProjectToFace(GeoFace2 face, GeoPoint2 point, Tolerance tolerance)
+        {
+            if (face == null) throw new ArgumentNullException(nameof(face));
+
+            GeoPoint2 best = ProjectToPolygon(face.Boundary, point, tolerance);
+            double reach = point.DistanceTo(best);
+
+            foreach (GeoPolygon2 hole in face.Holes)
+            {
+                GeoPoint2 candidate = ProjectToPolygon(hole, point, tolerance);
+                double distance = point.DistanceTo(candidate);
+
+                if (distance < reach)
+                {
+                    reach = distance;
+                    best = candidate;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
         /// Projects a point orthogonally onto a polyline using default tolerance.
         /// </summary>
         /// <param name="polyline">The polyline.</param>

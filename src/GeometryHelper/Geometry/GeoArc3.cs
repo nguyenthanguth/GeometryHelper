@@ -429,6 +429,13 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Moves the arc by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The arc in its new place.</returns>
+        public GeoArc3 Translate(GeoVector3 vector) => new GeoArc3(Center.Add(vector), Normal, Radius, StartAngle, StartAngle + SweptAngle);
+
+        /// <summary>
         /// Applies a transformation to this arc.
         /// </summary>
         /// <param name="transform">The transformation to apply.</param>

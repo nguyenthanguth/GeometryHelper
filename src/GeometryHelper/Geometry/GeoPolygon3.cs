@@ -383,6 +383,13 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Moves the polygon by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The polygon in its new place.</returns>
+        public GeoPolygon3 Translate(GeoVector3 vector) => TransformBy(GeoTransform3.Translation(vector));
+
+        /// <summary>
         /// Applies a transformation to every vertex.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

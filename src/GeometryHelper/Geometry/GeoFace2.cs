@@ -292,6 +292,21 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) => Distance2.SignedDistanceTo(this, point, tolerance);
 
+        /// <summary>
+        /// Gets the point of the boundary of this face nearest a target point.
+        /// </summary>
+        /// <remarks>
+        /// The boundary of a face is its outline and the rim of every hole, so a point sitting in a hole is
+        /// answered with a point of that rim. The answer is always on the boundary, even for a point on the
+        /// material, where <see cref="DistanceTo(GeoPoint2)"/> reports nothing at all.
+        /// </remarks>
+        public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point) => Projection2.ProjectToFace(this, point);
+
+        /// <summary>
+        /// Gets the point of the boundary of this face nearest a target point, within a tolerance.
+        /// </summary>
+        public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point, Tolerance tolerance) => Projection2.ProjectToFace(this, point, tolerance);
+
         #region Equality
 
         /// <summary>

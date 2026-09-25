@@ -90,6 +90,13 @@ namespace GeometryHelper.Geometry
         public GeoCircle3 Clone() => new GeoCircle3(Center, Normal, Radius, true);
 
         /// <summary>
+        /// Moves the circle by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The circle in its new place.</returns>
+        public GeoCircle3 Translate(GeoVector3 vector) => new GeoCircle3(Center.Add(vector), Normal, Radius);
+
+        /// <summary>
         /// Applies a transformation to this circle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

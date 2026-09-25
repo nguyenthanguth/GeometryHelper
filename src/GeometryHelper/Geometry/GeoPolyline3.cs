@@ -247,6 +247,13 @@ namespace GeometryHelper.Geometry
         public GeoAabb3 GetAabb() => GeoAabb3.FromPoints(_vertices);
 
         /// <summary>
+        /// Moves the chain by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The chain in its new place.</returns>
+        public GeoPolyline3 Translate(GeoVector3 vector) => TransformBy(GeoTransform3.Translation(vector));
+
+        /// <summary>
         /// Applies a transformation to every vertex.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

@@ -103,6 +103,13 @@ namespace GeometryHelper.Geometry
         public GeoAabb3 Clone() => this;
 
         /// <summary>
+        /// Moves the box by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The box in its new place.</returns>
+        public GeoAabb3 Translate(GeoVector3 vector) => new GeoAabb3(Min.Add(vector), Max.Add(vector));
+
+        /// <summary>
         /// Applies a transformation to this box.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

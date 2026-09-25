@@ -196,6 +196,13 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Moves the face by a vector.
+        /// </summary>
+        /// <param name="vector">How far to move it, and which way.</param>
+        /// <returns>The face in its new place.</returns>
+        public GeoFace3 Translate(GeoVector3 vector) => TransformBy(GeoTransform3.Translation(vector));
+
+        /// <summary>
         /// Applies a transformation to the boundary and every hole.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
@@ -241,6 +248,36 @@ namespace GeometryHelper.Geometry
         /// Checks whether this face holds a point, within a tolerance.
         /// </summary>
         public bool Contains(GeoPoint3 point, Tolerance tolerance) => Containment3.Contains(this, point, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this face to a point.
+        /// </summary>
+        /// <remarks>
+        /// The face is read as material with holes in it, so a point over a hole is over nothing and is
+        /// measured to the rim of that hole rather than to the surface that is not there behind it.
+        /// </remarks>
+        public double DistanceTo(GeoPoint3 point) => Distance3.DistanceTo(this, point);
+
+        /// <summary>
+        /// Calculates the shortest distance from this face to a point, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => Distance3.DistanceTo(this, point, tolerance);
+
+        /// <summary>
+        /// Gets the point of this face nearest a target point.
+        /// </summary>
+        /// <remarks>
+        /// The foot of the perpendicular where that lands on the material, the rim of a hole where it lands
+        /// in one, and the outline where it lands off the face altogether. This reads the way
+        /// <see cref="GeoPolygon3.GetClosestPointOnBoundary(GeoPoint3)"/> reads, which answers with a point
+        /// of the region rather than of its outline.
+        /// </remarks>
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToFace(this, point);
+
+        /// <summary>
+        /// Gets the point of this face nearest a target point, within a tolerance.
+        /// </summary>
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance) => Projection3.ProjectToFace(this, point, tolerance);
 
         /// <summary>
         /// Tries to find the point where a line segment crosses this face, using the default tolerance.
