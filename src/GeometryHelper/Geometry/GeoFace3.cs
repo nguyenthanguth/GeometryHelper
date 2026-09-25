@@ -346,6 +346,16 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoFace3[] Offset(double distance, OffsetOptions options, Tolerance tolerance) => Offset3.Offset(this, distance, options, tolerance);
 
+        /// <summary>
+        /// Checks whether this face touches a solid, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid) => Collision3.CollidesWith(this, solid);
+
+        /// <summary>
+        /// Checks whether this face touches a solid, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
+
         #endregion
 
         #region Equality

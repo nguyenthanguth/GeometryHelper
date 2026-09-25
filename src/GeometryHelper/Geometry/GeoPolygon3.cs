@@ -524,6 +524,26 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool IsSimple(Tolerance tolerance) => Intersection3.IsSimple(this, tolerance);
 
+        /// <summary>
+        /// Checks whether this polygon touches an oriented box, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoObb3 box) => Collision3.CollidesWith(this, box);
+
+        /// <summary>
+        /// Checks whether this polygon touches an oriented box, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoObb3 box, Tolerance tolerance) => Collision3.CollidesWith(this, box, tolerance);
+
+        /// <summary>
+        /// Checks whether this polygon touches a solid, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid) => Collision3.CollidesWith(this, solid);
+
+        /// <summary>
+        /// Checks whether this polygon touches a solid, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
+
         #endregion
 
         #region Offsetting

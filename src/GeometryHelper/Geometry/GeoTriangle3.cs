@@ -293,6 +293,16 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(ray, this, out intersection, tolerance);
 
+        /// <summary>
+        /// Checks whether this triangle touches another triangle, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoTriangle3 other) => Collision3.CollidesWith(this, other);
+
+        /// <summary>
+        /// Checks whether this triangle touches another triangle, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoTriangle3 other, Tolerance tolerance) => Collision3.CollidesWith(this, other, tolerance);
+
         #endregion
 
         #region Equality

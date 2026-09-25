@@ -347,6 +347,66 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool CollidesWith(GeoObb3 other, Tolerance tolerance) => Collision3.CollidesWith(this, other, tolerance);
 
+        /// <summary>
+        /// Checks whether this box touches an axis-aligned box, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoAabb3 box) => Collision3.CollidesWith(this, box);
+
+        /// <summary>
+        /// Checks whether this box touches an axis-aligned box, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoAabb3 box, Tolerance tolerance) => Collision3.CollidesWith(this, box, tolerance);
+
+        /// <summary>
+        /// Checks whether this box touches a solid, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid) => Collision3.CollidesWith(this, solid);
+
+        /// <summary>
+        /// Checks whether this box touches a solid, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
+
+        /// <summary>
+        /// Checks whether this box touches a segment, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine3 line) => Collision3.CollidesWith(line, this);
+
+        /// <summary>
+        /// Checks whether this box touches a segment, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Collision3.CollidesWith(line, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this box touches a polygon, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygon3 polygon) => Collision3.CollidesWith(polygon, this);
+
+        /// <summary>
+        /// Checks whether this box touches a polygon, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Collision3.CollidesWith(polygon, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where a segment crosses the surface of this box, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoLine3 line) => Intersection3.GetIntersections(line, this);
+
+        /// <summary>
+        /// Gets every point where a segment crosses the surface of this box, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => Intersection3.GetIntersections(line, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where a ray crosses the surface of this box, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoRay3 ray) => Intersection3.GetIntersections(ray, this);
+
+        /// <summary>
+        /// Gets every point where a ray crosses the surface of this box, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Intersection3.GetIntersections(ray, this, tolerance);
+
         #endregion
 
         /// <summary>

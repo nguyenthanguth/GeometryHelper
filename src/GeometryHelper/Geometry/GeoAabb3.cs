@@ -439,6 +439,46 @@ namespace GeometryHelper.Geometry
             return new GeoObb3(Center, SizeX, SizeY, SizeZ);
         }
 
+        /// <summary>
+        /// Checks whether this box touches an oriented box, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoObb3 box) => Core.Collision3.CollidesWith(box, this);
+
+        /// <summary>
+        /// Checks whether this box touches an oriented box, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoObb3 box, Tolerance tolerance) => Core.Collision3.CollidesWith(box, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this box touches a segment, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine3 line) => Core.Collision3.CollidesWith(line, this);
+
+        /// <summary>
+        /// Checks whether this box touches a segment, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Core.Collision3.CollidesWith(line, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where a segment crosses the surface of this box, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoLine3 line) => Core.Intersection3.GetIntersections(line, this);
+
+        /// <summary>
+        /// Gets every point where a segment crosses the surface of this box, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => Core.Intersection3.GetIntersections(line, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where a ray crosses the surface of this box, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoRay3 ray) => Core.Intersection3.GetIntersections(ray, this);
+
+        /// <summary>
+        /// Gets every point where a ray crosses the surface of this box, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Core.Intersection3.GetIntersections(ray, this, tolerance);
+
         #endregion
 
         /// <summary>
