@@ -464,5 +464,24 @@ namespace GeometryHelper.Geometry
 
             return true;
         }
+        /// <summary>
+        /// Builds a spatial index over the boundary of this face, the rim of every hole included, for asking it many questions.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// An index is worth building when the <b>same</b> shape is asked <b>many</b> questions. Building it
+        /// costs a sort of the edges, so it pays for itself over repeated queries and never on the first
+        /// one; below a few dozen edges the plain walk wins outright. Every shape here is immutable, so a
+        /// tree stays valid for as long as the shape exists — build it once, keep it, throw it away with the
+        /// shape.
+        /// </para>
+        /// <para>
+        /// It is <c>Build</c> and not <c>Get</c> because it does work. Calling it inside a loop is slower than
+        /// not having it at all, which is exactly the mistake the name is there to prevent.
+        /// </para>
+        /// </remarks>
+        /// <returns>The hierarchy; it is a snapshot and holds no reference back to this shape.</returns>
+        public Spatial.GeoBvh2 BuildIndex() => Spatial.GeoBvh2.FromFace(this);
+
     }
 }

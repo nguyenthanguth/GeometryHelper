@@ -1090,5 +1090,31 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Single(rounded.GetEdges(), edge => edge.IsArc);
         }
 
+        [Fact]
+        public void AnIndexOverTheEdges()
+        {
+            var cog = new GeoPolygonArc2(new GeoPolygon2(
+                new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200)));
+            var point = new GeoPoint2(-50, 100);
+            var knife = new GeoLine2(new GeoPoint2(-50, 100), new GeoPoint2(250, 100));
+
+            GeoBvh2 index = cog.BuildIndex();
+            GeoBvh2 same = GeoBvh2.FromPolygonArc(cog);
+
+            Assert.Equal(same.EdgeCount, index.EdgeCount);
+            Assert.Equal(cog.DistanceTo(point), index.DistanceTo(point), 6);
+            Assert.True(index.GetClosestPoint(point).IsEqualTo(cog.GetClosestPointOnBoundary(point), new Tolerance(1E-7, 1E-7)));
+            Assert.Equal(2, index.GetIntersections(knife).Length);
+            Assert.True(index.CollidesWith(index));
+
+            // A face indexes the rim of every hole along with its outline.
+            var plate = new GeoPolygon2(
+                new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
+            var hole = new GeoPolygon2(
+                new GeoPoint2(80, 80), new GeoPoint2(120, 80), new GeoPoint2(120, 120), new GeoPoint2(80, 120));
+
+            Assert.Equal(8, new GeoFace2(plate, new[] { hole }).BuildIndex().EdgeCount);
+        }
+
     }
 }

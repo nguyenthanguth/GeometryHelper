@@ -868,5 +868,38 @@ namespace GeometryHelper.Geometry
         }
 
         #endregion
+        /// <summary>
+        /// Builds a spatial index over the surface of this body, for asking it many questions.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// An index is worth building when the <b>same</b> shape is asked <b>many</b> questions. Building it
+        /// costs a sort of the triangles, so it pays for itself over repeated queries and never on the first
+        /// one; below a few dozen triangles the plain walk wins outright. Every shape here is immutable, so a
+        /// tree stays valid for as long as the shape exists — build it once, keep it, throw it away with the
+        /// shape.
+        /// </para>
+        /// <para>
+        /// It is <c>Build</c> and not <c>Get</c> because it does work. Calling it inside a loop is slower than
+        /// not having it at all, which is exactly the mistake the name is there to prevent.
+        /// </para>
+        /// <para>
+        /// <b>The index is over triangles and the body is not.</b> <c>GetIntersections</c> on the tree reports
+        /// one hit per triangle, so a ray landing on the diagonal two triangles share is named twice, while the
+        /// body names each place once. Ask the body where you want places; ask the tree where you want speed
+        /// and can keep clear of the edges — which is what <c>Containment3</c> does by throwing its ray again
+        /// in another direction when a hit lands near one.
+        /// </para>
+        /// </remarks>
+        /// <returns>The hierarchy; it is a snapshot and holds no reference back to this shape.</returns>
+        public Spatial.GeoBvh3 BuildIndex() => BuildIndex(Tolerance.Global);
+
+        /// <summary>
+        /// Builds a spatial index over the surface of this body, within a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance the triangulation works to.</param>
+        /// <returns>The hierarchy; it is a snapshot and holds no reference back to this shape.</returns>
+        public Spatial.GeoBvh3 BuildIndex(Tolerance tolerance) => Spatial.GeoBvh3.FromSolid(this, tolerance);
+
     }
 }

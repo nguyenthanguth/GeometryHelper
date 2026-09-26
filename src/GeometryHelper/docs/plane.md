@@ -618,7 +618,8 @@ Boolean2.Subtract(slot, opening, 0.05);               // or name the chord toler
 index serves a straight chain and a curved one alike, with the arcs held as arcs.
 
 ```csharp
-GeoBvh2 index = GeoBvh2.FromPolygonArc(cog);          // or FromPolygon, FromPolyline, FromPolylineArc
+GeoBvh2 index = cog.BuildIndex();                     // and on GeoPolygon2, GeoPolyline2, GeoPolylineArc2, GeoFace2
+GeoBvh2 same = GeoBvh2.FromPolygonArc(cog);           // the same tree, named from the index's side
 
 index.GetClosestPoint(point);
 index.DistanceTo(point);                              // to the edges, not to the region they enclose
@@ -627,8 +628,18 @@ index.DistanceTo(other);
 index.CollidesWith(other);
 ```
 
-It is worth building when the same shape is asked many questions; for a handful, the plain methods on the
-shape are quicker, because they build nothing.
+**When it is worth building.** When the *same* shape is asked *many* questions. Building costs a sort of the
+edges, so it pays for itself over repeated queries and never on the first one; for a handful of questions, or
+a shape of a handful of edges, the plain methods on the shape are quicker because they build nothing. Every
+shape here is immutable, so a tree never goes stale under it: build it once, keep it as long as the shape
+lives, and let it go with the shape.
+
+It is called `BuildIndex` and not `GetIndex` because it does work. Calling it inside the loop it was meant to
+speed up is slower than not having it at all.
+
+**A face indexes the rim of every hole** along with its outline, because that is the boundary of the material
+— the reading the whole library keeps for a face. So a point sitting in a bolt hole is answered by the rim it
+sits in, not by the outline far away.
 
 ### Flattening
 

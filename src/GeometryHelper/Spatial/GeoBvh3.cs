@@ -645,5 +645,33 @@ namespace GeometryHelper.Spatial
         /// Returns a string that represents the current hierarchy.
         /// </summary>
         public override string ToString() => $"Bvh3(Triangles: {TriangleCount}, Nodes: {_rootCount})";
+        /// <summary>
+        /// Creates a hierarchy over the surface of a face.
+        /// </summary>
+        public static GeoBvh3 FromFace(GeoFace3 face) => FromFace(face, Tolerance.Global);
+
+        /// <summary>
+        /// Creates a hierarchy over the surface of a face, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face.</param>
+        /// <param name="tolerance">The tolerance the triangulation works to.</param>
+        /// <returns>The hierarchy over the triangles of the face's material.</returns>
+        /// <remarks>
+        /// The mesh comes from <see cref="GeoFace3.TriangulateSurface(Tolerance)"/> and never from
+        /// <c>Triangulate</c>: the latter fans the boundary from one vertex and is meant only for the signed
+        /// sums, where the part of a fan reaching outside the face cancels against the part overlapping it.
+        /// An index built on that would answer with points that are not on the face.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static GeoBvh3 FromFace(GeoFace3 face, Tolerance tolerance)
+        {
+            if (face == null)
+            {
+                throw new ArgumentNullException(nameof(face));
+            }
+
+            return new GeoBvh3(face.TriangulateSurface(tolerance));
+        }
+
     }
 }

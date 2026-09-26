@@ -601,5 +601,46 @@ namespace GeometryHelper.Spatial
                 Between(node, other, two.Right, tolerance, ref best);
             }
         }
+        /// <summary>
+        /// Creates a hierarchy over the boundary of a face: its outline together with the rim of every hole.
+        /// </summary>
+        /// <param name="face">The face.</param>
+        /// <returns>The hierarchy over every edge of the face's boundary.</returns>
+        /// <remarks>
+        /// The rim of a hole is part of the boundary of the material, which is the reading the whole library
+        /// keeps for a face, so the nearest point this finds is the nearest point of the material's edge —
+        /// a point sitting in a hole is answered by the rim it sits in, not by the outline far away.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static GeoBvh2 FromFace(GeoFace2 face)
+        {
+            if (face == null)
+            {
+                throw new ArgumentNullException(nameof(face));
+            }
+
+            var edges = new List<GeoEdge2>();
+
+            AddLoop(edges, face.Boundary);
+
+            foreach (GeoPolygon2 hole in face.Holes)
+            {
+                AddLoop(edges, hole);
+            }
+
+            return new GeoBvh2(edges);
+        }
+
+        /// <summary>
+        /// Adds the closed run of edges of one loop.
+        /// </summary>
+        private static void AddLoop(List<GeoEdge2> edges, GeoPolygon2 loop)
+        {
+            for (int i = 0; i < loop.VertexCount; i++)
+            {
+                edges.Add(new GeoEdge2(loop[i], loop[(i + 1) % loop.VertexCount]));
+            }
+        }
+
     }
 }

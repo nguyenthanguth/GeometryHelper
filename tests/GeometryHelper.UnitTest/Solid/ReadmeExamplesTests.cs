@@ -5,6 +5,7 @@ using GeometryHelper.Enums;
 using GeometryHelper.Core;
 using GeometryHelper.Extension;
 using GeometryHelper.Geometry;
+using GeometryHelper.Spatial;
 using Xunit;
 using System.Linq;
 
@@ -1055,6 +1056,28 @@ namespace GeometryHelper.UnitTest.Solid
             }
 
             Assert.Equal(6.0 * 100 * 100, area, 3);
+        }
+
+        [Fact]
+        public void WorkingWithLargeMeshes()
+        {
+            GeoSolid3 solid = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
+            var point = new GeoPoint3(-50, 40, 30);
+            var ray = new GeoRay3(point, GeoVector3.XAxis);
+
+            var tree = solid.BuildIndex();
+
+            Assert.Equal(GeoBvh3.FromSolid(solid).TriangleCount, tree.TriangleCount);
+            Assert.Equal(solid.DistanceTo(point), tree.DistanceTo(point), 6);
+            Assert.True(tree.GetClosestPoint(point).IsEqualTo(solid.GetClosestPointOnBoundary(point), new Tolerance(1E-7, 1E-7)));
+            Assert.Equal(2, tree.GetIntersections(ray).Length);
+            Assert.True(tree.CollidesWith(tree));
+
+            // The index is over triangles and the body is not: a ray on a shared diagonal is named twice.
+            var throughTheMiddle = new GeoRay3(new GeoPoint3(-50, 50, 50), GeoVector3.XAxis);
+
+            Assert.Equal(2, solid.GetIntersections(throughTheMiddle).Length);
+            Assert.Equal(4, tree.GetIntersections(throughTheMiddle).Length);
         }
 
     }

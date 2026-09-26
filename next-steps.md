@@ -143,8 +143,24 @@ dimension.** `…/scratchpad/matrix_all.py` does exactly that and prints both ta
 - **The open curves have no `Contains`.** They enclose nothing, so it would be `IsPointOn` under a name that
   promises an interior.
 
-`GeometryHelper.Spatial` — `GeoBvh2` and `GeoBvh3` — is a standalone index that no shape type points at.
-Whether it should stay that way is a decision nobody has taken, and it is the one open question left here.
+**`GeometryHelper.Spatial` is settled** (2026-09-26). `GeoBvh2` and `GeoBvh3` were reachable only by naming
+the index first, so a caller holding a shape had no way to learn a faster road existed. Seven shapes now carry
+`BuildIndex()` — `GeoPolygon2`, `GeoPolyline2`, `GeoPolygonArc2`, `GeoPolylineArc2`, `GeoFace2`, `GeoSolid3`,
+`GeoFace3` — and `GeoBvh2.FromFace` and `GeoBvh3.FromFace` are the two factories that were missing under them.
+
+**What was turned down, and why, so it is not re-argued:**
+
+- **A cached index inside the shape.** Every shape here is an immutable value; a lazily built tree makes it
+  stateful, raises thread-safety, and hides its memory. `BuildIndex` hands the tree over and the caller decides
+  how long to keep it.
+- **An index rebuilt per call behind a `Get` name.** That is slower than having no index at all, since the sort
+  is paid per query. The name is `Build` precisely to say it does work.
+- **Passing an index in as an accelerator** — `solid.DistanceTo(point, index)`. It doubles the measuring
+  surface, and an index built from a *different* solid still compiles, which is the worst kind of trap.
+
+Worth knowing: **the index is over triangles and the body is not.** `tree.GetIntersections(ray)` reports one
+hit per triangle, so a ray on a shared diagonal is named twice where the body names each place once. That is
+pinned by a test and documented on `BuildIndex` itself.
 
 ## 4. What needs a machine with Tekla
 
