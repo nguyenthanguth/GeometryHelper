@@ -693,6 +693,35 @@ namespace GeometryHelper.Geometry
         public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance) => Boolean3.TryIntersect(this, other, out result, tolerance);
 
         /// <summary>
+        /// Gets every separate region this body shares with another, one body each.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="TryIntersect(GeoSolid3, out GeoSolid3)"/> gives the shared region as one body; this gives one
+        /// per clash, which is what a report wants — a beam through two separate plates clashes twice. Empty when
+        /// the two share no volume, and two bodies that only touch share none.
+        /// </remarks>
+        public GeoSolid3[] Intersect(GeoSolid3 other) => Boolean3.Intersect(this, other);
+
+        /// <summary>
+        /// Gets every separate region this body shares with another, one body each, within a tolerance.
+        /// </summary>
+        public GeoSolid3[] Intersect(GeoSolid3 other, Tolerance tolerance) => Boolean3.Intersect(this, other, tolerance);
+
+        /// <summary>
+        /// Splits this body into the pieces of material that do not touch.
+        /// </summary>
+        /// <remarks>
+        /// Two blocks sharing only an edge or a corner share no volume, so they are two pieces. A cavity stays with
+        /// the piece around it, and each opening goes with every piece it reaches.
+        /// </remarks>
+        public GeoSolid3[] SplitShells() => Boolean3.SplitShells(this);
+
+        /// <summary>
+        /// Splits this body into the pieces of material that do not touch, within a tolerance.
+        /// </summary>
+        public GeoSolid3[] SplitShells(Tolerance tolerance) => Boolean3.SplitShells(this, tolerance);
+
+        /// <summary>
         /// Takes another solid out of this one, using the default tolerance.
         /// </summary>
         public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result) => Boolean3.TrySubtract(this, tool, out result);

@@ -87,15 +87,15 @@ parts over each opening removed, and the walls of each opening where they run th
 - **The test is the audit table above**, for every query and probe, both ways round, plus a fat pin that
   really does bite the plate still reported as a clash, plus every existing test untouched.
 
-**B. One region per clash.** `GeoSolid3.Intersect(GeoSolid3 other)` → `GeoSolid3[]`, one entry per separate
+**B. One region per clash.** — **Done.** `GeoSolid3.Intersect(GeoSolid3 other)` → `GeoSolid3[]`, one entry per separate
 region, empty when they share no volume — the same shape of answer `GeoPolygon3.Intersect` already gives in
 the plane. And `GeoSolid3.SplitShells()` → `GeoSolid3[]`, the separate pieces of any body.
 
-- **Pieces are found among the cells, not among the faces.** Two kept cells belong to one piece when they
-  share a face, which is the same exact test `TryGlue` already uses to drop interior walls — so no edge has
-  to be matched to a neighbour's, and a T-junction left by merging coplanar faces cannot split one piece in
-  two. Two pieces touching only along an edge or at a corner share no face, so they stay two: right, since
-  they share no volume.
+- **As built, the pieces are found among the faces after all**, by `Core.Shells3`, which the booleans needed
+  first anyway (see *Found on the way*). It matches an edge by overlap along a common line rather than by its
+  end points, so a T-junction left by merging coplanar faces does not split one piece in two, and where more
+  than two faces meet round one line it joins only across wedges of material. Two pieces touching only along
+  an edge or at a corner stay two: right, since they share no volume.
 - Not an overload of `TryIntersect`: an `out GeoSolid3[]` beside the `out GeoSolid3` one would make every
   existing call with `out _` ambiguous, which is the trap `GeoLine3.TryIntersectWith` walked into.
 
