@@ -19,27 +19,10 @@ the release body.
 Do not use *Run workflow* on that workflow to try it out. It has no dry run, and the two push steps are not
 guarded by the event type, so a manual run publishes to nuget.org and GitHub Packages for real.
 
-## 2. The guides do not describe what the library does
-
-`src/GeometryHelper/docs/` — `common.md`, `plane.md`, `solid.md`, `arrange.md` — was last touched before the
-six passes that filled in the measuring surface, and several hundred methods are nowhere in it. Two sentences
-are now wrong by omission rather than merely thin:
-
-- `plane.md`, under *How deep inside, not just whether*: signed distance is listed as offered by the shapes
-  that enclose an area. A `GeoPoint2` can be asked as well now.
-- `solid.md`, under *How deep inside, not just whether*: the same, "for the three shapes that enclose a
-  volume". A `GeoPoint3` can be asked too. And the `slab.CollidesWith(...)` list a few lines above it leaves
-  out `aabb`.
-
-**Every snippet printed in a guide is executed** by `tests/.../Plane/ReadmeExamplesTests.cs` and its Solid
-twin, which check the numbers the prose claims. A new section is not finished until it has a matching
-`[Fact]` there. That convention is why the guides can be trusted, and it is the reason writing them is work
-rather than typing.
-
-## 3. Space is far behind the plane
+## 2. Space is far behind the plane
 
 For **measuring** — distance, clearance, nearest point, touching, crossing — the plane is complete: every
-shape answers about every other, both ways round. That is the only family anyone has audited; section 4 is
+shape answers about every other, both ways round. That is the only family anyone has audited; section 3 is
 about the ones nobody has. Space is not complete even for measuring, and the gap is widest exactly where a
 reinforcing bar lives. `GeoArc3`, `GeoCircle3`, `GeoEdge3`, `GeoPolygonArc3` and
 `GeoPolylineArc3` have, between them, **no crossings, no collisions, no joining segment and no cutting at
@@ -50,7 +33,7 @@ Count directions rather than methods when reading what follows, and count them f
 from this page — the section below was first written from a listing cut short at forty entries, and claimed
 `GeoPolyline3` could not be cut when in fact it can be cut twelve ways.
 
-### 3.1 What can be lifted or dispatched, with no new arithmetic
+### 2.1 What can be lifted or dispatched, with no new arithmetic
 
 This is the same work done twice in the plane, and it should be done first because it is exact and cheap.
 
@@ -60,7 +43,7 @@ This is the same work done twice in the plane, and it should be done first becau
 | `GeoPolylineArc3` | the same, when `IsPlanar()` is true | `TryGetPlane` already decides it; off-plane must refuse rather than approximate |
 | `GeoEdge3` | everything `GeoArc3` and `GeoLine3` both answer | `IsArc ? ToArc().X(…) : ToLine().X(…)`, and the reverse on every other type — the pattern `GeoEdge2` now follows, including the rule that a direction is offered only where both answer with the **same shape of call** |
 
-### 3.2 Crossings in space have closed forms and are simply missing
+### 2.2 Crossings in space have closed forms and are simply missing
 
 `Core` holds **nothing** for an arc or a circle in space beyond `Distance3.DistanceTo(GeoCircle3, GeoPoint3)`.
 Crossings were never refused — they were never written, and each has an exact answer:
@@ -75,7 +58,7 @@ Crossings were never refused — they were never written, and each has an exact 
 - **`CollidesWith` follows from those** for the crossing cases, and from containment plus crossing for a box
   or a body.
 
-### 3.3 Cutting a curved chain, which is a Tekla question
+### 2.3 Cutting a curved chain, which is a Tekla question
 
 `GeoPolyline3` can be cut twelve ways — by a point, a distance, a plane, a polygon, a face, a box, a body,
 or a list of any of those. **A `GeoPolylineArc3` cannot be cut at all**, and neither can a `GeoArc3`, though
@@ -84,7 +67,7 @@ the answer has to keep the bends: cutting a chain of arcs gives chains of arcs, 
 
 `GeoPolylineArc3` has no `Offset` either, though `GeoPolygonArc3` has one.
 
-### 3.4 The straight types in space are short too
+### 2.4 The straight types in space are short too
 
 Counted as directions, not methods. `GeoPolyline3` is better served than it looks — it is the cutting and the
 measuring that are there, and the crossing and joining that are not.
@@ -99,16 +82,26 @@ measuring that are there, and the crossing and joining that are not.
 | `GeoPlane3` | `GetIntersections` against a segment, ray, face, polygon or chain |
 | `GeoSolid3` | `TryIntersectWith`; `GetIntersections` against a polygon, face or triangle |
 
-### 3.5 Where to start
+### 2.5 Where to start
 
-1. **`GeoEdge3` dispatch and the coplanar lift** (3.1). No new arithmetic, and it is what makes a reinforcing
-   bar answer the questions a bar is asked.
-2. **Cutting a curved chain** (3.3). The most asked-for of these in a Tekla setting, and it needs only the
-   crossing against a plane and a face to stand on.
-3. **Arc and circle crossings** (3.2), beginning with the plane case, because everything else leans on it.
-4. **The straight gaps** (3.4), which are ordinary wiring once the pairs exist in `Core`.
+The order matters here, because three of these stand on the first one. `GeoEdge3` dispatch reads
+`IsArc ? ToArc().X(…) : ToLine().X(…)`, and **there is nothing to dispatch to until `GeoArc3` can answer**.
 
-## 4. Whole families nobody has audited
+1. **Arc and circle crossings** (2.2), the plane case first. Nothing else in space can be built without it,
+   and it is exact.
+2. **`GeoEdge3` dispatch** (2.1). Free once step 1 exists, and it is what lets a reinforcing bar be asked
+   the questions a bar is asked.
+3. **Cutting a curved chain** (2.3). Every edge is a segment or an arc, so this needs step 1's arc against
+   a plane and against a face. It is the most asked-for of these in a Tekla setting.
+4. **The straight gaps** (2.4), ordinary wiring once the pairs exist in `Core`.
+
+**The coplanar lift for `GeoPolygonArc3`** (2.1) stands apart: it needs only `GeoPolygonArc2`, which is
+complete, so it can be done at any point. Settle one thing before starting it — what a probe that does
+**not** lie in the loop's plane should do. Refusing is honest, projecting it is convenient and quietly
+wrong, and falling back to `ToPolygon3(chordTolerance)` is neither. The library has no precedent for this
+choice.
+
+## 3. Whole families nobody has audited
 
 Every matrix drawn so far covered **measuring only**: `DistanceTo`, `SignedDistanceTo`, `GetShortestLineTo`,
 `GetClosestPointOnBoundary`, `GetClosestEdge`, `CollidesWith`, `GetIntersections`, `TryIntersectWith`. The
@@ -119,7 +112,7 @@ turns up more than the measuring audit did.
 |---|---|
 | **Merging** | `Core.Merge2` holds four methods and `Core.Merge3` seven, and **no type exposes either**. Joining a bag of segments into chains is bread-and-butter work and is reachable only through `Core`. `Merge2`'s methods also all demand an explicit `Tolerance` with no default-tolerance twin, unlike everything else in the library. |
 | **Splitting** | `GeoPolygon2` and `GeoFace2` **cannot be cut at all**, though `GeoPolygon3` and `GeoFace3` can. `Core.Splition2` has no pair for either. Here the plane is behind space, the reverse of everywhere else. |
-| **Booleans** | `GeoPolygon2`, `GeoFace2`, `GeoPolygonArc2`, `GeoSolid3` and `GeoAabb3` have them. `GeoObb3`, `GeoFace3` and `GeoPolygon3` do not — and the last two are a coplanar lift away, the same lift as 3.1. |
+| **Booleans** | `GeoPolygon2`, `GeoFace2`, `GeoPolygonArc2`, `GeoSolid3` and `GeoAabb3` have them. `GeoObb3`, `GeoFace3` and `GeoPolygon3` do not — and the last two are a coplanar lift away, the same lift as 2.1. |
 | **Extending and trimming** | Only `GeoLine2` and `GeoLine3`, which have thirty-two methods apiece. **No arc, no polyline, no chain can be extended or trimmed to meet anything.** It would not start from nothing: `Core.CurveMeet2`, internal, already works out where the endless line behind a segment and the whole circle behind an arc cross, which is the part of trimming that is not bookkeeping. |
 | **Filleting** | `GeoPolygon3` has none, though `GeoPolyline3` does and both are chains of straight legs. |
 | **Offsetting** | `GeoPolyline3`, `GeoPolylineArc3`, `GeoObb3` and `GeoAabb3` have none. Growing a box by a distance is a one-line answer. |
@@ -131,7 +124,7 @@ none of them were visible before.
 `GeometryHelper.Spatial` — `GeoBvh2` and `GeoBvh3` — is a standalone index that no shape type points at.
 Whether it should stay that way is a decision nobody has taken.
 
-## 5. What needs a machine with Tekla
+## 4. What needs a machine with Tekla
 
 `GeometryHelper.TeklaConvert` compiles against 2020, 2025 and 2026, and everything but the read itself is
 covered by tests that run without Tekla. What cannot be checked here:
@@ -148,7 +141,7 @@ covered by tests that run without Tekla. What cannot be checked here:
 These are kept because they govern the work above, not as a record of what was done.
 
 - **Distance from an arc or a circle in space to anything but a point or a plane has no closed form.** A line
-  wants a quartic, another circle a degree-eight polynomial. This is the one refusal in section 3, and it
+  wants a quartic, another circle a degree-eight polynomial. This is the one refusal in section 2, and it
   covers *distance only* — crossings are exact and are listed as work, not as refused.
   `ToPolyline3(chordTolerance)` is the gateway, and a sampled chain lies **inside** its arcs, so a clearance
   worked out that way errs on the safe side.
