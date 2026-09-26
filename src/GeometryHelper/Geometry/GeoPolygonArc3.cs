@@ -25,7 +25,7 @@ namespace GeometryHelper.Geometry
     /// call <see cref="Fillet(double)"/>.
     /// </para>
     /// </remarks>
-    public sealed class GeoPolygonArc3 : IEquatable<GeoPolygonArc3>
+    public sealed partial class GeoPolygonArc3 : IEquatable<GeoPolygonArc3>
     {
         private readonly GeoPoint3[] _vertices;
         private readonly double[] _bulges;
@@ -372,31 +372,6 @@ namespace GeometryHelper.Geometry
         /// Determines whether the loop holds a point, on its outline or inside it, within a tolerance.
         /// </summary>
         public bool Contains(GeoPoint3 point, Tolerance tolerance) => Locate(point, tolerance) != PointLocation.OutSide;
-
-        /// <summary>
-        /// Gets the point of the outline nearest another point.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => GetClosestPointOnBoundary(point, Tolerance.Global);
-
-        /// <summary>
-        /// Gets the point of the outline nearest another point, within a tolerance.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance)
-            => ArcChain3.ClosestPoint(Edges(), point, tolerance);
-
-        /// <summary>
-        /// Gets the distance from the outline of the loop to a point.
-        /// </summary>
-        /// <remarks>
-        /// Measured to the outline, so a point inside the loop is not nought away. That is what
-        /// <see cref="Contains(GeoPoint3)"/> is for.
-        /// </remarks>
-        public double DistanceTo(GeoPoint3 point) => DistanceTo(point, Tolerance.Global);
-
-        /// <summary>
-        /// Gets the distance from the outline of the loop to a point, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
 
         /// <summary>
         /// Determines whether a point lies on the outline of the loop.

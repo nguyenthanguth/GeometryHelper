@@ -14,7 +14,7 @@ namespace GeometryHelper.Geometry
     /// <see cref="GeoPlane3.GetAxes"/> returns.
     /// </para>
     /// </summary>
-    public readonly struct GeoArc3 : IEquatable<GeoArc3>
+    public readonly partial struct GeoArc3 : IEquatable<GeoArc3>
     {
         private const double FullTurn = Math.PI * 2.0;
 
@@ -287,26 +287,6 @@ namespace GeometryHelper.Geometry
         #region Operations
 
         /// <summary>
-        /// Gets the point of this arc closest to a point.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => GetPointAtParameter(GetParameterAtPoint(point));
-
-        /// <summary>
-        /// Gets the point of this arc closest to a point, within a tolerance.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance) => GetPointAtParameter(GetParameterAtPoint(point, tolerance));
-
-        /// <summary>
-        /// Gets the distance from this arc to a point.
-        /// </summary>
-        public double DistanceTo(GeoPoint3 point) => point.DistanceTo(GetClosestPointOnBoundary(point));
-
-        /// <summary>
-        /// Gets the distance from this arc to a point, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
-
-        /// <summary>
         /// Determines whether a point lies on this arc.
         /// </summary>
         public bool IsPointOn(GeoPoint3 point) => IsPointOn(point, Tolerance.Global);
@@ -325,7 +305,6 @@ namespace GeometryHelper.Geometry
         /// Says where a point sits relative to this arc, within a tolerance.
         /// </summary>
         public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) => IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
-
 
         /// <summary>
         /// Determines whether the arc reaches a given angle.

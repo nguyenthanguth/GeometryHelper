@@ -344,24 +344,6 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Gets the point of this box closest to a target point. A point inside the box is already on it
-        /// under that reading and comes back unchanged.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point)
-        {
-            if (IsEmpty)
-            {
-                throw new InvalidOperationException("An empty bounding box has no point to return.");
-            }
-
-            return new GeoPoint3(
-                Math.Max(Min.X, Math.Min(Max.X, point.X)),
-                Math.Max(Min.Y, Math.Min(Max.Y, point.Y)),
-                Math.Max(Min.Z, Math.Min(Max.Z, point.Z)));
-        }
-
-        /// <summary>
         /// Gets this box as an oriented box aligned with the world axes.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
@@ -374,26 +356,6 @@ namespace GeometryHelper.Geometry
 
             return new GeoObb3(Center, SizeX, SizeY, SizeZ);
         }
-
-        /// <summary>
-        /// Gets every point where a segment crosses the surface of this box, using the default tolerance.
-        /// </summary>
-        public GeoPoint3[] GetIntersections(GeoLine3 line) => Core.Intersection3.GetIntersections(line, this);
-
-        /// <summary>
-        /// Gets every point where a segment crosses the surface of this box, within a tolerance.
-        /// </summary>
-        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => Core.Intersection3.GetIntersections(line, this, tolerance);
-
-        /// <summary>
-        /// Gets every point where a ray crosses the surface of this box, using the default tolerance.
-        /// </summary>
-        public GeoPoint3[] GetIntersections(GeoRay3 ray) => Core.Intersection3.GetIntersections(ray, this);
-
-        /// <summary>
-        /// Gets every point where a ray crosses the surface of this box, within a tolerance.
-        /// </summary>
-        public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Core.Intersection3.GetIntersections(ray, this, tolerance);
 
         #endregion
 

@@ -25,7 +25,7 @@ namespace GeometryHelper.Geometry
     /// <see cref="IsArc"/> is worth asking before <see cref="ToArc"/>.
     /// </para>
     /// </remarks>
-    public readonly struct GeoEdge3 : IEquatable<GeoEdge3>
+    public readonly partial struct GeoEdge3 : IEquatable<GeoEdge3>
     {
         /// <summary>
         /// Gets the point the edge starts from.
@@ -238,31 +238,6 @@ namespace GeometryHelper.Geometry
 
             return reach < 0.0 ? 0.0 : reach > 1.0 ? 1.0 : reach;
         }
-
-        /// <summary>
-        /// Gets the point of the edge nearest another point.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => GetClosestPointOnBoundary(point, Tolerance.Global);
-
-        /// <summary>
-        /// Gets the point of the edge nearest another point, within a tolerance.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance)
-        {
-            return IsArc
-                ? ToArc().GetClosestPointOnBoundary(point, tolerance)
-                : GetPointAtParameter(GetParameterAtPoint(point, tolerance));
-        }
-
-        /// <summary>
-        /// Gets the distance from the edge to a point.
-        /// </summary>
-        public double DistanceTo(GeoPoint3 point) => DistanceTo(point, Tolerance.Global);
-
-        /// <summary>
-        /// Gets the distance from the edge to a point, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
 
         /// <summary>
         /// Says where a point sits relative to the edge; a curve never answers Inside.

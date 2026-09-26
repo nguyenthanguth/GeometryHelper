@@ -250,56 +250,6 @@ namespace GeometryHelper.Geometry
         public bool Contains(GeoPoint3 point, Tolerance tolerance) => Containment3.Contains(this, point, tolerance);
 
         /// <summary>
-        /// Calculates the shortest distance from this face to a point.
-        /// </summary>
-        /// <remarks>
-        /// The face is read as material with holes in it, so a point over a hole is over nothing and is
-        /// measured to the rim of that hole rather than to the surface that is not there behind it.
-        /// </remarks>
-        public double DistanceTo(GeoPoint3 point) => Distance3.DistanceTo(this, point);
-
-        /// <summary>
-        /// Calculates the shortest distance from this face to a point, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => Distance3.DistanceTo(this, point, tolerance);
-
-        /// <summary>
-        /// Gets the point of this face nearest a target point.
-        /// </summary>
-        /// <remarks>
-        /// The foot of the perpendicular where that lands on the material, the rim of a hole where it lands
-        /// in one, and the outline where it lands off the face altogether. This reads the way
-        /// <see cref="GeoPolygon3.GetClosestPointOnBoundary(GeoPoint3)"/> reads, which answers with a point
-        /// of the region rather than of its outline.
-        /// </remarks>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToFace(this, point);
-
-        /// <summary>
-        /// Gets the point of this face nearest a target point, within a tolerance.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance) => Projection3.ProjectToFace(this, point, tolerance);
-
-        /// <summary>
-        /// Tries to find the point where a line segment crosses this face, using the default tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(line, this, out intersection);
-
-        /// <summary>
-        /// Tries to find the point where a line segment crosses this face, within a tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(line, this, out intersection, tolerance);
-
-        /// <summary>
-        /// Tries to find the point where a ray crosses this face, using the default tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(ray, this, out intersection);
-
-        /// <summary>
-        /// Tries to find the point where a ray crosses this face, within a tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(ray, this, out intersection, tolerance);
-
-        /// <summary>
         /// Splits this face by a plane, using the default tolerance.
         /// </summary>
         public bool TrySplitBy(GeoPlane3 cutter, out GeoFace3[] above, out GeoFace3[] below) => Splition3.TrySplitBy(this, cutter, out above, out below);

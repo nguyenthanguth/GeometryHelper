@@ -41,12 +41,12 @@ namespace GeometryHelper.Geometry
         public double DistanceTo(GeoPolyline2 polyline) => Distance2.DistanceTo(polyline, this);
 
         /// <summary>
-        /// Gets the distance from this point to an arc, using the default tolerance.
+        /// Gets the distance from this point to a arc, using the default tolerance.
         /// </summary>
         public double DistanceTo(GeoArc2 arc) => Arc2.DistanceTo(arc, this);
 
         /// <summary>
-        /// Gets the distance from this point to an arc, within a tolerance.
+        /// Gets the distance from this point to a arc, within a tolerance.
         /// </summary>
         public double DistanceTo(GeoArc2 arc, Tolerance tolerance) => Arc2.DistanceTo(arc, this, tolerance);
 

@@ -263,26 +263,6 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool Contains(GeoPoint3 point, Tolerance tolerance) => Containment3.Contains(this, point, tolerance);
 
-        /// <summary>
-        /// Tries to find the point where a line segment crosses this triangle, using the default tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(line, this, out intersection);
-
-        /// <summary>
-        /// Tries to find the point where a line segment crosses this triangle, within a tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(line, this, out intersection, tolerance);
-
-        /// <summary>
-        /// Tries to find the point where a ray crosses this triangle, using the default tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(ray, this, out intersection);
-
-        /// <summary>
-        /// Tries to find the point where a ray crosses this triangle, within a tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(ray, this, out intersection, tolerance);
-
         #endregion
 
         #region Equality

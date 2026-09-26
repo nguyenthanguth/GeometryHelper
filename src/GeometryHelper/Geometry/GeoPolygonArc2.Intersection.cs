@@ -101,14 +101,14 @@ namespace GeometryHelper.Geometry
         public GeoPoint2[] GetIntersections(GeoRectangle2 rect, Tolerance tolerance) => Intersection2.GetIntersections(rect, this, tolerance);
 
         /// <summary>
-        /// Tries to find where this curved loop crosses an arc, using the default tolerance.
+        /// Tries to find where this curved loop crosses a arc, using the default tolerance.
         /// </summary>
         /// <param name="arc">The arc.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         public bool TryIntersectWith(GeoArc2 arc, out GeoPoint2[] intersections) => Intersection2.TryIntersectWith(this, arc, out intersections);
 
         /// <summary>
-        /// Tries to find where this curved loop crosses an arc, within a tolerance.
+        /// Tries to find where this curved loop crosses a arc, within a tolerance.
         /// </summary>
         /// <param name="arc">The arc.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>

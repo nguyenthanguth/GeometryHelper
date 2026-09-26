@@ -41,12 +41,12 @@ namespace GeometryHelper.Geometry
         public GeoLine2 GetShortestLineTo(GeoLine2 line, Tolerance tolerance) => Arc2.GetShortestLineTo(this, line, tolerance);
 
         /// <summary>
-        /// Gets the shortest segment leaving this arc and landing on an arc, using the default tolerance.
+        /// Gets the shortest segment leaving this arc and landing on a arc, using the default tolerance.
         /// </summary>
         public GeoLine2 GetShortestLineTo(GeoArc2 other) => Arc2.GetShortestLineTo(this, other);
 
         /// <summary>
-        /// Gets the shortest segment leaving this arc and landing on an arc, within a tolerance.
+        /// Gets the shortest segment leaving this arc and landing on a arc, within a tolerance.
         /// </summary>
         public GeoLine2 GetShortestLineTo(GeoArc2 other, Tolerance tolerance) => Arc2.GetShortestLineTo(this, other, tolerance);
 

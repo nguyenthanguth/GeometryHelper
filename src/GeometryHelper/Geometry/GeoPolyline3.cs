@@ -362,21 +362,6 @@ namespace GeometryHelper.Geometry
         public double GetParameterAtDistance(double distance) => Parametrization3.GetParameterAtDistance(this, distance);
 
         /// <summary>
-        /// Determines whether this chain touches or overlaps a solid.
-        /// </summary>
-        public bool CollidesWith(GeoSolid3 solid) => Collision3.CollidesWith(this, solid);
-
-        /// <summary>
-        /// Determines whether this chain touches or overlaps a solid, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
-
-        /// <summary>
-        /// Gets the point on this polyline closest to a target point.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToPolyline(this, point);
-
-        /// <summary>
         /// Checks whether a point lies on this polyline, using the default tolerance.
         /// </summary>
         public bool IsPointOn(GeoPoint3 point) => Containment3.IsPointOn(this, point);

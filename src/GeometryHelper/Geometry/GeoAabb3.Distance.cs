@@ -6,7 +6,7 @@ using GeometryHelper.Enums;
 namespace GeometryHelper.Geometry
 {
     /// <summary>
-    /// How far a box is from another shape, and how deep inside one it sits.
+    /// How far an axis-aligned box is from another shape, and how deep inside one it sits.
     /// </summary>
     public readonly partial struct GeoAabb3
     {

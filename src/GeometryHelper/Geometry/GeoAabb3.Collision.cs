@@ -6,7 +6,7 @@ using GeometryHelper.Enums;
 namespace GeometryHelper.Geometry
 {
     /// <summary>
-    /// Whether a box touches another shape.
+    /// Whether an axis-aligned box touches another shape.
     /// </summary>
     public readonly partial struct GeoAabb3
     {

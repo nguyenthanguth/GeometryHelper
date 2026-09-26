@@ -326,31 +326,6 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool Contains(GeoPoint3 point, Tolerance tolerance) => Containment3.Contains(this, point, tolerance);
 
-        /// <summary>
-        /// Gets the point of this box closest to a target point.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToObb(this, point);
-
-        /// <summary>
-        /// Gets every point where a segment crosses the surface of this box, using the default tolerance.
-        /// </summary>
-        public GeoPoint3[] GetIntersections(GeoLine3 line) => Intersection3.GetIntersections(line, this);
-
-        /// <summary>
-        /// Gets every point where a segment crosses the surface of this box, within a tolerance.
-        /// </summary>
-        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => Intersection3.GetIntersections(line, this, tolerance);
-
-        /// <summary>
-        /// Gets every point where a ray crosses the surface of this box, using the default tolerance.
-        /// </summary>
-        public GeoPoint3[] GetIntersections(GeoRay3 ray) => Intersection3.GetIntersections(ray, this);
-
-        /// <summary>
-        /// Gets every point where a ray crosses the surface of this box, within a tolerance.
-        /// </summary>
-        public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Intersection3.GetIntersections(ray, this, tolerance);
-
         #endregion
 
         #region Equality

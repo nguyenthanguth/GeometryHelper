@@ -37,12 +37,12 @@ namespace GeometryHelper.Geometry
         public GeoPoint2 GetClosestPointOnBoundary(GeoPolyline2 polyline) => Projection2.ProjectToPolyline(polyline, this);
 
         /// <summary>
-        /// Gets the point of an arc nearest this point, using the default tolerance.
+        /// Gets the point of a arc nearest this point, using the default tolerance.
         /// </summary>
         public GeoPoint2 GetClosestPointOnBoundary(GeoArc2 arc) => Arc2.ProjectToArc(arc, this);
 
         /// <summary>
-        /// Gets the point of an arc nearest this point, within a tolerance.
+        /// Gets the point of a arc nearest this point, within a tolerance.
         /// </summary>
         public GeoPoint2 GetClosestPointOnBoundary(GeoArc2 arc, Tolerance tolerance) => Arc2.ProjectToArc(arc, this, tolerance);
 

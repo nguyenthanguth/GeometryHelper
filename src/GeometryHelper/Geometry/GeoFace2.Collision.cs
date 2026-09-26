@@ -22,12 +22,12 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoLine2 line, Tolerance tolerance) => Face2.CollidesWith(this, line, tolerance);
 
         /// <summary>
-        /// Checks whether an arc reaches the material of this face.
+        /// Checks whether a arc reaches the material of this face.
         /// </summary>
         public bool CollidesWith(GeoArc2 arc) => Face2.CollidesWith(this, arc);
 
         /// <summary>
-        /// Checks whether an arc reaches the material of this face, within a tolerance.
+        /// Checks whether a arc reaches the material of this face, within a tolerance.
         /// </summary>
         public bool CollidesWith(GeoArc2 arc, Tolerance tolerance) => Face2.CollidesWith(this, arc, tolerance);
 

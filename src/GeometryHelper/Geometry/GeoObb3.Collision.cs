@@ -6,7 +6,7 @@ using GeometryHelper.Core;
 namespace GeometryHelper.Geometry
 {
     /// <summary>
-    /// Whether a box touches another shape.
+    /// Whether an oriented box touches another shape.
     /// </summary>
     public sealed partial class GeoObb3
     {

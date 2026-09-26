@@ -22,12 +22,12 @@ namespace GeometryHelper.Geometry
         public GeoPoint2[] GetIntersections(GeoLine2 line, Tolerance tolerance) => Face2.GetIntersections(this, line, tolerance);
 
         /// <summary>
-        /// Gets every point where an arc crosses the boundary of this face.
+        /// Gets every point where a arc crosses the boundary of this face.
         /// </summary>
         public GeoPoint2[] GetIntersections(GeoArc2 arc) => Face2.GetIntersections(this, arc);
 
         /// <summary>
-        /// Gets every point where an arc crosses the boundary of this face, within a tolerance.
+        /// Gets every point where a arc crosses the boundary of this face, within a tolerance.
         /// </summary>
         public GeoPoint2[] GetIntersections(GeoArc2 arc, Tolerance tolerance) => Face2.GetIntersections(this, arc, tolerance);
 

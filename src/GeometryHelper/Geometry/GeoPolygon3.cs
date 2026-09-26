@@ -449,31 +449,6 @@ namespace GeometryHelper.Geometry
         public bool IsPointOn(GeoPoint3 point, Tolerance tolerance) => Containment3.IsPointOn(this, point, tolerance);
 
         /// <summary>
-        /// Gets the point on this polygon closest to a target point.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToPolygon(this, point);
-
-        /// <summary>
-        /// Tries to find the point where a line segment crosses this polygon, using the default tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(line, this, out intersection);
-
-        /// <summary>
-        /// Tries to find the point where a line segment crosses this polygon, within a tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(line, this, out intersection, tolerance);
-
-        /// <summary>
-        /// Tries to find the point where a ray crosses this polygon, using the default tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(ray, this, out intersection);
-
-        /// <summary>
-        /// Tries to find the point where a ray crosses this polygon, within a tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(ray, this, out intersection, tolerance);
-
-        /// <summary>
         /// Splits this polygon by a plane, using the default tolerance.
         /// </summary>
         public bool TrySplitBy(GeoPlane3 cutter, out GeoPolygon3[] above, out GeoPolygon3[] below) => Splition3.TrySplitBy(this, cutter, out above, out below);

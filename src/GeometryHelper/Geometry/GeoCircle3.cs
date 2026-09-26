@@ -12,7 +12,7 @@ namespace GeometryHelper.Geometry
     /// inside it only when the point lies on the carrier plane as well as within the radius.
     /// </para>
     /// </summary>
-    public readonly struct GeoCircle3 : IEquatable<GeoCircle3>
+    public readonly partial struct GeoCircle3 : IEquatable<GeoCircle3>
     {
         /// <summary>
         /// Gets the centre of the circle.
@@ -270,11 +270,6 @@ namespace GeometryHelper.Geometry
         public bool IsPointOn(GeoPoint3 point, Tolerance tolerance) => Containment3.IsPointOn(this, point, tolerance);
 
         /// <summary>
-        /// Gets the point on the circumference closest to a target point.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToCircle(this, point);
-
-        /// <summary>
         /// Gets the point of this disc closest to a target point, read as a filled surface.
         /// </summary>
         public GeoPoint3 GetClosestPointOnSurface(GeoPoint3 point) => Projection3.ProjectToDisc(this, point);
@@ -297,15 +292,6 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
         public bool TryOffset(double distance, out GeoCircle3 result, Tolerance tolerance) => Offset3.TryOffset(this, distance, out result, tolerance);
-
-        /// <summary>
-        /// Calculates the shortest distance from this disc to a point.
-        /// </summary>
-        /// <remarks>
-        /// The disc counts as a filled surface, so a point directly above the centre is measured straight
-        /// down to the surface rather than out to the circumference.
-        /// </remarks>
-        public double DistanceTo(GeoPoint3 point) => Distance3.DistanceTo(this, point);
 
         #endregion
 

@@ -1,0 +1,14 @@
+using System;
+using System.Collections.Generic;
+using GeometryHelper.Core;
+using GeometryHelper.Enums;
+
+namespace GeometryHelper.Geometry
+{
+    /// <summary>
+    /// Whether a curved loop touches another shape.
+    /// </summary>
+    public sealed partial class GeoPolygonArc3
+    {
+    }
+}

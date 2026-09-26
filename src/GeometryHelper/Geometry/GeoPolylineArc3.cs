@@ -29,7 +29,7 @@ namespace GeometryHelper.Geometry
     /// <see cref="ToPolyline3(double)"/>, which puts the accuracy in the call.
     /// </para>
     /// </remarks>
-    public sealed class GeoPolylineArc3 : IEquatable<GeoPolylineArc3>
+    public sealed partial class GeoPolylineArc3 : IEquatable<GeoPolylineArc3>
     {
         private readonly GeoPoint3[] _vertices;
         private readonly double[] _bulges;
@@ -320,31 +320,6 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public double GetParameterAtPoint(GeoPoint3 point, Tolerance tolerance)
             => GetParameterAtDistance(GetDistanceAtPoint(point, tolerance));
-
-        /// <summary>
-        /// Gets the point of the chain nearest another point.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => GetClosestPointOnBoundary(point, Tolerance.Global);
-
-        /// <summary>
-        /// Gets the point of the chain nearest another point, within a tolerance.
-        /// </summary>
-        /// <remarks>
-        /// Measured on the arcs, so a point sitting over the middle of a bulge is answered with a point on
-        /// the bulge and not with one on the chord across it.
-        /// </remarks>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance)
-            => ArcChain3.ClosestPoint(ArcChain3.EdgesOf(this), point, tolerance);
-
-        /// <summary>
-        /// Gets the distance from the chain to a point.
-        /// </summary>
-        public double DistanceTo(GeoPoint3 point) => DistanceTo(point, Tolerance.Global);
-
-        /// <summary>
-        /// Gets the distance from the chain to a point, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
 
         /// <summary>
         /// Determines whether a point lies on the chain.

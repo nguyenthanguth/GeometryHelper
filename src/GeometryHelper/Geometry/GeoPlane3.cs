@@ -179,23 +179,6 @@ namespace GeometryHelper.Geometry
         public GeoVector3 Project(GeoVector3 vector) => Projection3.ProjectOntoPlane(vector, Normal);
 
         /// <summary>
-        /// Gets the point of this plane nearest a target point.
-        /// </summary>
-        /// <remarks>
-        /// A plane is endless, so this is the foot of the perpendicular and never anything else. The sign of
-        /// which side the point was on is in <see cref="SignedDistanceTo(GeoPoint3)"/>.
-        /// </remarks>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToPlane(this, point);
-
-        /// <summary>
-        /// Gets the point of this plane nearest a target point, within a tolerance.
-        /// </summary>
-        /// <remarks>
-        /// The tolerance changes nothing here; it is taken so that this reads like every other shape.
-        /// </remarks>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance) => Projection3.ProjectToPlane(this, point);
-
-        /// <summary>
         /// Determines which side of the plane a point lies on, using the default tolerance.
         /// </summary>
         public PlaneSide GetSide(GeoPoint3 point) => Containment3.GetSide(this, point);

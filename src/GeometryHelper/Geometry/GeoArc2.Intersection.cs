@@ -65,7 +65,7 @@ namespace GeometryHelper.Geometry
         public GeoPoint2[] GetIntersections(GeoArc2 other) => Arc2.GetIntersections(this, other);
 
         /// <summary>
-        /// Gets every point where this arc crosses an arc, within a tolerance.
+        /// Gets every point where this arc crosses a arc, within a tolerance.
         /// </summary>
         public GeoPoint2[] GetIntersections(GeoArc2 other, Tolerance tolerance) => Arc2.GetIntersections(this, other, tolerance);
 

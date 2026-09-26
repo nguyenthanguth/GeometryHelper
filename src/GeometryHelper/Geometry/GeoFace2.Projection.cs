@@ -48,12 +48,12 @@ namespace GeometryHelper.Geometry
         public GeoLine2 GetShortestLineTo(GeoLine2 line, Tolerance tolerance) => Face2.GetShortestLineTo(this, line, tolerance);
 
         /// <summary>
-        /// Gets the shortest segment leaving the boundary of this face and landing on an arc.
+        /// Gets the shortest segment leaving the boundary of this face and landing on a arc.
         /// </summary>
         public GeoLine2 GetShortestLineTo(GeoArc2 arc) => Face2.GetShortestLineTo(this, arc);
 
         /// <summary>
-        /// Gets the shortest segment leaving the boundary of this face and landing on an arc, within a tolerance.
+        /// Gets the shortest segment leaving the boundary of this face and landing on a arc, within a tolerance.
         /// </summary>
         public GeoLine2 GetShortestLineTo(GeoArc2 arc, Tolerance tolerance) => Face2.GetShortestLineTo(this, arc, tolerance);
 

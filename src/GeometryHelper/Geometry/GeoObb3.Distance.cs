@@ -6,7 +6,7 @@ using GeometryHelper.Core;
 namespace GeometryHelper.Geometry
 {
     /// <summary>
-    /// How far a box is from another shape, and how deep inside one it sits.
+    /// How far an oriented box is from another shape, and how deep inside one it sits.
     /// </summary>
     public sealed partial class GeoObb3
     {

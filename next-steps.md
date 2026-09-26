@@ -159,6 +159,17 @@ These are kept because they govern the work above, not as a record of what was d
 - **A bulge is stored with the plane it bulges in.** Deriving that plane from the neighbouring legs breaks on
   reversing a chain, on splitting one, and at either end.
 - **Only a corner between two straight legs is rounded in space.** A curved leg lies in a plane of its own.
+- **Measuring lives in four partial files per shape type**, named after the `Core` class that computes the
+  answer: `GeoLine2.Distance.cs` mirrors `Distance2`, `.Projection.cs` mirrors `Projection2`, and so on
+  through `.Collision.cs` and `.Intersection.cs`. Four suffixes rather than eight operation names, and the
+  boundary is not invented — it is the same split `Core` already uses. **All four exist for all 27 shape
+  types, empty where nothing is offered yet**, so the place to add a direction is already there and named;
+  `GeoArc3.Collision.cs` being empty is the work item in section 2, stated as a file. The six types that are
+  not shapes — `GeoVector2/3`, `GeoTransform2/3`, `GeoCoordinateSystem2/3` — have none, since a direction has
+  no distance to a polygon. The splitter is kept at `scratchpad/split2.py` and can be run again.
+- **A refactor that must not change the API is proved, not asserted.** Diff the sorted `<member name=` lines
+  of `bin/Release/netstandard2.0/GeometryHelper.xml` before and after: 5,119 both times, no difference, and
+  the test count unchanged at 2,287. Cheap, and it turns "I was careful" into a fact.
 - **Both directions live on the types, and the surface being large is the accepted price.** Decided at
   6.0.0, having counted it: two thirds of `GeoArc2`'s hundred and fifty members are measuring wiring, and
   section 2 will add about as much again to the types in space. Moving the family to extension methods was
