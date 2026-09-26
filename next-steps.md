@@ -99,7 +99,7 @@ the plane. And `GeoSolid3.SplitShells()` → `GeoSolid3[]`, the separate pieces 
 - Not an overload of `TryIntersect`: an `out GeoSolid3[]` beside the `out GeoSolid3` one would make every
   existing call with `out _` ambiguous, which is the trap `GeoLine3.TryIntersectWith` walked into.
 
-**C. What touches, when nothing overlaps.** `GeoSolid3.TryGetContact(GeoSolid3 other, out GeoFace3[] contact)`
+**C. What touches, when nothing overlaps.** — **Done.** `GeoSolid3.TryGetContact(GeoSolid3 other, out GeoFace3[] contact)`
 — the patches where the two surfaces lie against each other, face to face.
 
 - Two faces are in contact where they are coplanar with **opposite** outward normals; the patch is their

@@ -722,6 +722,23 @@ namespace GeometryHelper.Geometry
         public GeoSolid3[] SplitShells(Tolerance tolerance) => Boolean3.SplitShells(this, tolerance);
 
         /// <summary>
+        /// Gets the patches where this body and another lie against each other, face to face.
+        /// </summary>
+        /// <remarks>
+        /// Two bodies that only touch share no volume, so <see cref="Intersect(GeoSolid3)"/> is empty and
+        /// <see cref="CollidesWith(GeoSolid3)"/> is true, and neither says where. This says where: the area where a
+        /// face of each lies in one plane, facing the other. Only contact with area is a patch — two bodies meeting
+        /// along an edge or at a point have none, and <c>CollidesWith</c> is what reports them.
+        /// </remarks>
+        public bool TryGetContact(GeoSolid3 other, out GeoFace3[] contact) => Boolean3.TryGetContact(this, other, out contact);
+
+        /// <summary>
+        /// Gets the patches where this body and another lie against each other, face to face, within a tolerance.
+        /// </summary>
+        public bool TryGetContact(GeoSolid3 other, out GeoFace3[] contact, Tolerance tolerance)
+            => Boolean3.TryGetContact(this, other, out contact, tolerance);
+
+        /// <summary>
         /// Takes another solid out of this one, using the default tolerance.
         /// </summary>
         public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result) => Boolean3.TrySubtract(this, tool, out result);
