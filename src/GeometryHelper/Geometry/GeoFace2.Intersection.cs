@@ -103,5 +103,191 @@ namespace GeometryHelper.Geometry
             => edge.IsArc
                 ? GetIntersections(edge.ToArc(), tolerance)
                 : GetIntersections(edge.ToLine(), tolerance);
+        /// <summary>
+        /// Tries to find where this face meets an arc.
+        /// </summary>
+        /// <remarks>
+        /// This is <see cref="GetIntersections(GeoArc2, Tolerance)"/> read a second way -- the list, plus
+        /// whether it is empty -- so a caller who only wants to know <i>whether</i> need not measure the array.
+        /// It is built here rather than forwarded to <c>Core</c> because there is no arithmetic in it: the
+        /// crossing itself is worked out in one place and this only reports on it.
+        /// </remarks>
+        public bool TryIntersectWith(GeoArc2 arc, out GeoPoint2[] intersections)
+            => TryIntersectWith(arc, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this face meets an arc, within a tolerance.
+        /// </summary>
+        /// <param name="arc">The shape to test against.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoArc2 arc, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(arc, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Tries to find where this face meets a circle.
+        /// </summary>
+        public bool TryIntersectWith(GeoCircle2 circle, out GeoPoint2[] intersections)
+            => TryIntersectWith(circle, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this face meets a circle, within a tolerance.
+        /// </summary>
+        /// <param name="circle">The shape to test against.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoCircle2 circle, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(circle, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Tries to find where this face meets an edge.
+        /// </summary>
+        public bool TryIntersectWith(GeoEdge2 edge, out GeoPoint2[] intersections)
+            => TryIntersectWith(edge, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this face meets an edge, within a tolerance.
+        /// </summary>
+        /// <param name="edge">The shape to test against.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoEdge2 edge, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(edge, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Tries to find where this face meets a segment.
+        /// </summary>
+        public bool TryIntersectWith(GeoLine2 line, out GeoPoint2[] intersections)
+            => TryIntersectWith(line, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this face meets a segment, within a tolerance.
+        /// </summary>
+        /// <param name="line">The shape to test against.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(line, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Tries to find where this face meets a polygon.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolygon2 polygon, out GeoPoint2[] intersections)
+            => TryIntersectWith(polygon, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this face meets a polygon, within a tolerance.
+        /// </summary>
+        /// <param name="polygon">The shape to test against.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoPolygon2 polygon, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(polygon, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Tries to find where this face meets a loop that may curve.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolygonArc2 loop, out GeoPoint2[] intersections)
+            => TryIntersectWith(loop, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this face meets a loop that may curve, within a tolerance.
+        /// </summary>
+        /// <param name="loop">The shape to test against.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoPolygonArc2 loop, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(loop, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Tries to find where this face meets a chain.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolyline2 polyline, out GeoPoint2[] intersections)
+            => TryIntersectWith(polyline, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this face meets a chain, within a tolerance.
+        /// </summary>
+        /// <param name="polyline">The shape to test against.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoPolyline2 polyline, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(polyline, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Tries to find where this face meets a chain that may curve.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections)
+            => TryIntersectWith(chain, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this face meets a chain that may curve, within a tolerance.
+        /// </summary>
+        /// <param name="chain">The shape to test against.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(chain, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Tries to find where this face meets a rectangle.
+        /// </summary>
+        public bool TryIntersectWith(GeoRectangle2 rect, out GeoPoint2[] intersections)
+            => TryIntersectWith(rect, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this face meets a rectangle, within a tolerance.
+        /// </summary>
+        /// <param name="rect">The shape to test against.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoRectangle2 rect, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(rect, tolerance);
+
+            return intersections.Length > 0;
+        }
+
     }
 }

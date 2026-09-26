@@ -680,5 +680,24 @@ namespace GeometryHelper.Geometry
         /// <param name="frame">The frame to lay it out in.</param>
         /// <returns>The segment in the plane of the frame.</returns>
         public GeoLine2 ProjectToLine2(GeoCoordinateSystem3 frame) => PlanarMap.ProjectToLine2(frame, this);
+        /// <summary>
+        /// Says where a point lies with respect to this segment.
+        /// </summary>
+        /// <remarks>
+        /// A segment is a curve and encloses nothing. There is no inside, so the answer is only ever <c>OnSide</c> or <c>OutSide</c>; it is
+        /// offered so that a caller holding any shape can ask the one question, and it reads the same way as
+        /// <see cref="GeoArc3.Locate(GeoPoint3)"/> does.
+        /// </remarks>
+        public PointLocation Locate(GeoPoint3 point) => Locate(point, Tolerance.Global);
+
+        /// <summary>
+        /// Says where a point lies with respect to this segment, within a tolerance.
+        /// </summary>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance that decides what counts as on it.</param>
+        /// <returns><c>OnSide</c> when the point is on the segment; otherwise, <c>OutSide</c>.</returns>
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance)
+            => IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
+
     }
 }

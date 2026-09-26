@@ -736,5 +736,24 @@ namespace GeometryHelper.Geometry
 
         #endregion
 
+        /// <summary>
+        /// Says where a point lies with respect to this chain.
+        /// </summary>
+        /// <remarks>
+        /// An open chain encloses nothing, even where its two ends happen to meet. There is no inside, so the answer is only ever <c>OnSide</c> or <c>OutSide</c>; it is
+        /// offered so that a caller holding any shape can ask the one question, and it reads the same way as
+        /// <see cref="GeoArc3.Locate(GeoPoint3)"/> does.
+        /// </remarks>
+        public PointLocation Locate(GeoPoint3 point) => Locate(point, Tolerance.Global);
+
+        /// <summary>
+        /// Says where a point lies with respect to this chain, within a tolerance.
+        /// </summary>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance that decides what counts as on it.</param>
+        /// <returns><c>OnSide</c> when the point is on the chain; otherwise, <c>OutSide</c>.</returns>
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance)
+            => IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
+
     }
 }

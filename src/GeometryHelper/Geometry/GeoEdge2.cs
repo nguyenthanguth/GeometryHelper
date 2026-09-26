@@ -490,5 +490,40 @@ namespace GeometryHelper.Geometry
 
         #endregion
 
+        /// <summary>
+        /// Determines whether a point lies on this edge.
+        /// </summary>
+        /// <remarks>
+        /// The edge reads itself as whichever of the two it is, so this is a point on a segment or a point on
+        /// an arc. <see cref="GeoEdge3"/> has answered this all along; the plane's edge had neither this nor
+        /// <see cref="Locate(GeoPoint2)"/>.
+        /// </remarks>
+        public bool IsPointOn(GeoPoint2 point) => IsPointOn(point, Tolerance.Global);
+
+        /// <summary>
+        /// Determines whether a point lies on this edge, within a tolerance.
+        /// </summary>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool IsPointOn(GeoPoint2 point, Tolerance tolerance)
+            => IsArc ? ToArc().IsPointOn(point, tolerance) : ToLine().IsPointOn(point, tolerance);
+
+        /// <summary>
+        /// Says where a point lies with respect to this edge.
+        /// </summary>
+        /// <remarks>
+        /// An edge is a curve and encloses nothing, so the answer is only ever <c>OnSide</c> or <c>OutSide</c>.
+        /// </remarks>
+        public PointLocation Locate(GeoPoint2 point) => Locate(point, Tolerance.Global);
+
+        /// <summary>
+        /// Says where a point lies with respect to this edge, within a tolerance.
+        /// </summary>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns><c>OnSide</c> when the point is on the edge; otherwise, <c>OutSide</c>.</returns>
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance)
+            => IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
+
     }
 }

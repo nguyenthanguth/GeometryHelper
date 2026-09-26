@@ -613,6 +613,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>true if the corner had room for the cut; otherwise, false.</returns>
         public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygon2 result, Tolerance tolerance) => Corner2.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
+        
         /// <summary>
         /// Rounds every corner of the loop by the same radius.
         /// </summary>
@@ -646,6 +647,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance)
             => Corner2.TryFilletAt(this, index, radius, out result, tolerance);
+        
         /// <summary>
         /// Cuts the loop by the straight line through a segment.
         /// </summary>
@@ -678,7 +680,6 @@ namespace GeometryHelper.Geometry
         public bool TrySplitBy(GeoPolyline2 cutLine, out GeoPolygon2[] pieces, Tolerance tolerance)
             => Splition2.TrySplitBy(this, cutLine, out pieces, tolerance);
 
-
         /// <summary>
         /// Gets the polygon running the other way round.
         /// </summary>
@@ -698,6 +699,5 @@ namespace GeometryHelper.Geometry
 
             return new GeoPolygon2(turned);
         }
-
     }
 }
