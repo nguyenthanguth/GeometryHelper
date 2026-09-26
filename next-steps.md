@@ -108,9 +108,13 @@ Every matrix drawn so far covered **measuring only**: `DistanceTo`, `SignedDista
 operations that *change* geometry were never laid out against the types at all, and a first count of them
 turns up more than the measuring audit did.
 
+**Merging is done** — `Core.Merge2` gained the default-tolerance twins it was missing, and both merge classes
+are reachable through `MergeExtension` and `GeoSolid3.MergeCoplanarFaces`. It is the pattern for the rest of
+this section: the arithmetic was there, the way in was not.
+
 | Family | Where it stands |
 |---|---|
-| **Merging** | `Core.Merge2` holds four methods and `Core.Merge3` seven, and **no type exposes either**. Joining a bag of segments into chains is bread-and-butter work and is reachable only through `Core`. `Merge2`'s methods also all demand an explicit `Tolerance` with no default-tolerance twin, unlike everything else in the library. |
+| **Conversions** | `GeoTriangle3` has no `ToPolygon3` or `ToFace3`, so a triangle from `Triangulate` has to be rebuilt from its three corners to be used as a face. |
 | **Splitting** | `GeoPolygon2` and `GeoFace2` **cannot be cut at all**, though `GeoPolygon3` and `GeoFace3` can. `Core.Splition2` has no pair for either. Here the plane is behind space, the reverse of everywhere else. |
 | **Booleans** | `GeoPolygon2`, `GeoFace2`, `GeoPolygonArc2`, `GeoSolid3` and `GeoAabb3` have them. `GeoObb3`, `GeoFace3` and `GeoPolygon3` do not — and the last two are a coplanar lift away, the same lift as 2.1. |
 | **Extending and trimming** | Only `GeoLine2` and `GeoLine3`, which have thirty-two methods apiece. **No arc, no polyline, no chain can be extended or trimmed to meet anything.** It would not start from nothing: `Core.CurveMeet2`, internal, already works out where the endless line behind a segment and the whole circle behind an arc cross, which is the part of trimming that is not bookkeeping. |
