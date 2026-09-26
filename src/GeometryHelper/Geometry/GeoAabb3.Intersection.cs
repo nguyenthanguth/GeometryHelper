@@ -95,5 +95,31 @@ namespace GeometryHelper.Geometry
                 ? GetIntersections(edge.ToArc(), tolerance)
                 : GetIntersections(edge.ToLine(), tolerance);
 
+        /// <summary>
+        /// Gets every point where a curved chain crosses this axis-aligned box.
+        /// </summary>
+        /// <param name="chain">The curved chain.</param>
+        public GeoPoint3[] GetIntersections(GeoPolylineArc3 chain) => ArcChain3.GetIntersections(chain, this);
+
+        /// <summary>
+        /// Gets every point where a curved chain crosses this axis-aligned box, within a tolerance.
+        /// </summary>
+        /// <param name="chain">The curved chain.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public GeoPoint3[] GetIntersections(GeoPolylineArc3 chain, Tolerance tolerance) => ArcChain3.GetIntersections(chain, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where a curved loop crosses this axis-aligned box.
+        /// </summary>
+        /// <param name="loop">The curved loop.</param>
+        public GeoPoint3[] GetIntersections(GeoPolygonArc3 loop) => ArcChain3.GetIntersections(loop, this);
+
+        /// <summary>
+        /// Gets every point where a curved loop crosses this axis-aligned box, within a tolerance.
+        /// </summary>
+        /// <param name="loop">The curved loop.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, Tolerance tolerance) => ArcChain3.GetIntersections(loop, this, tolerance);
+
     }
 }

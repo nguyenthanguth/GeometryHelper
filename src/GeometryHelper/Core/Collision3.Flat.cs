@@ -25,6 +25,32 @@ namespace GeometryHelper.Core
         #region Segments against flat shapes
 
         /// <summary>
+        /// Determines whether a segment touches a plane.
+        /// </summary>
+        public static bool CollidesWith(GeoLine3 line, GeoPlane3 plane) => CollidesWith(line, plane, Tolerance.Global);
+
+        /// <summary>
+        /// Determines whether a segment touches a plane, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A plane is endless, so this is not a crossing test: a segment lying in the plane touches it along
+        /// its whole length and crosses it nowhere. The two ends decide it — either one on the plane, or one
+        /// each side of it.
+        /// </remarks>
+        public static bool CollidesWith(GeoLine3 line, GeoPlane3 plane, Tolerance tolerance)
+        {
+            double atStart = plane.SignedDistanceTo(line.StartPoint);
+            double atEnd = plane.SignedDistanceTo(line.EndPoint);
+
+            if (System.Math.Abs(atStart) <= tolerance.EqualPlanar || System.Math.Abs(atEnd) <= tolerance.EqualPlanar)
+            {
+                return true;
+            }
+
+            return atStart < 0.0 != atEnd < 0.0;
+        }
+
+        /// <summary>
         /// Determines whether a segment touches a triangle.
         /// </summary>
         public static bool CollidesWith(GeoLine3 line, GeoTriangle3 triangle) => CollidesWith(line, triangle, Tolerance.Global);

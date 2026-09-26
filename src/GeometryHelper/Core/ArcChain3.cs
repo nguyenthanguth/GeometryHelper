@@ -14,7 +14,7 @@ namespace GeometryHelper.Core
     /// everything that measures a run against another shape, which in space has no closed form once the two
     /// are not in one plane.
     /// </remarks>
-    internal static class ArcChain3
+    internal static partial class ArcChain3
     {
         /// <summary>
         /// Gets the edges of a chain that may curve.

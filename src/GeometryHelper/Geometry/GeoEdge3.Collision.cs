@@ -113,5 +113,19 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance)
             => IsArc ? ToArc().CollidesWith(triangle, tolerance) : ToLine().CollidesWith(triangle, tolerance);
 
+        /// <summary>
+        /// Checks whether this edge touches a plane.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        public bool CollidesWith(GeoPlane3 plane) => CollidesWith(plane, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this edge touches a plane, within a tolerance.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance)
+            => IsArc ? ToArc().CollidesWith(plane, tolerance) : ToLine().CollidesWith(plane, tolerance);
+
     }
 }

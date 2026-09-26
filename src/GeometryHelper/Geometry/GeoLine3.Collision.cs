@@ -89,5 +89,18 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool CollidesWith(GeoCircle3 circle, Tolerance tolerance) => Arc3.CollidesWith(circle, this, tolerance);
 
+        /// <summary>
+        /// Checks whether this segment touches a plane, using the default tolerance.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        public bool CollidesWith(GeoPlane3 plane) => Collision3.CollidesWith(this, plane);
+
+        /// <summary>
+        /// Checks whether this segment touches a plane, within a tolerance.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) => Collision3.CollidesWith(this, plane, tolerance);
+
     }
 }
