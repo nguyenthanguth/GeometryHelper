@@ -26,7 +26,7 @@ namespace GeometryHelper.Core
     /// the foot of the perpendicular from it.
     /// </para>
     /// </summary>
-    public static class Lengthen3
+    public static partial class Lengthen3
     {
         #region By distance
 

@@ -30,7 +30,7 @@ namespace GeometryHelper.Core
     /// perpendicular, so a point to one side of the line still pulls the end level with it.
     /// </para>
     /// </summary>
-    public static class Lengthen2
+    public static partial class Lengthen2
     {
         #region By distance
 

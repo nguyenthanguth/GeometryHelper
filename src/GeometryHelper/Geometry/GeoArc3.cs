@@ -1,4 +1,5 @@
 using System;
+using GeometryHelper.Core;
 using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
@@ -506,6 +507,67 @@ namespace GeometryHelper.Geometry
 
             return new GeoPolyline3(points);
         }
+
+        #endregion
+
+        #region Extending and trimming
+
+        /// <summary>
+        /// Lengthens the arc along itself at one end, keeping its centre and radius.
+        /// </summary>
+        /// <remarks>
+        /// The distance is arc length and not chord, which is the only reading that leaves the curve where it
+        /// was. A negative distance takes length away, and an extension past a whole turn is refused.
+        /// </remarks>
+        public GeoArc3 Extend(double distance, LineEnd end) => Lengthen3.Extend(this, distance, end);
+
+        /// <summary>
+        /// Lengthens the arc along itself at one end, within a tolerance.
+        /// </summary>
+        public GeoArc3 Extend(double distance, LineEnd end, Tolerance tolerance) => Lengthen3.Extend(this, distance, end, tolerance);
+
+        /// <summary>
+        /// Lengthens the arc along itself at both ends at once.
+        /// </summary>
+        public GeoArc3 Extend(double startDistance, double endDistance) => Lengthen3.Extend(this, startDistance, endDistance);
+
+        /// <summary>
+        /// Lengthens the arc along itself at both ends at once, within a tolerance.
+        /// </summary>
+        public GeoArc3 Extend(double startDistance, double endDistance, Tolerance tolerance)
+            => Lengthen3.Extend(this, startDistance, endDistance, tolerance);
+
+        /// <summary>
+        /// Lengthens or shortens the arc at one end until it is a given arc length.
+        /// </summary>
+        public GeoArc3 ExtendToLength(double length, LineEnd end) => Lengthen3.ExtendToLength(this, length, end);
+
+        /// <summary>
+        /// Lengthens or shortens the arc at one end until it is a given arc length, within a tolerance.
+        /// </summary>
+        public GeoArc3 ExtendToLength(double length, LineEnd end, Tolerance tolerance) => Lengthen3.ExtendToLength(this, length, end, tolerance);
+
+        /// <summary>
+        /// Lengthens the arc at one end until it reaches a point on its own circle.
+        /// </summary>
+        public bool TryExtendTo(GeoPoint3 point, LineEnd end, out GeoArc3 result) => Lengthen3.TryExtendTo(this, point, end, out result);
+
+        /// <summary>
+        /// Lengthens the arc at one end until it reaches a point on its own circle, within a tolerance.
+        /// </summary>
+        public bool TryExtendTo(GeoPoint3 point, LineEnd end, out GeoArc3 result, Tolerance tolerance)
+            => Lengthen3.TryExtendTo(this, point, end, out result, tolerance);
+
+        /// <summary>
+        /// Shortens the arc at one end back to a point on it.
+        /// </summary>
+        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoArc3 result) => Lengthen3.TryTrimTo(this, point, end, out result);
+
+        /// <summary>
+        /// Shortens the arc at one end back to a point on it, within a tolerance.
+        /// </summary>
+        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoArc3 result, Tolerance tolerance)
+            => Lengthen3.TryTrimTo(this, point, end, out result, tolerance);
 
         #endregion
 

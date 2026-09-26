@@ -871,5 +871,45 @@ namespace GeometryHelper.Geometry
 
         #endregion
 
+        #region Extending and trimming
+
+        /// <summary>
+        /// Lengthens the chain along its end leg, round if that leg curves, keeping its radius.
+        /// </summary>
+        /// <remarks>
+        /// Every other leg is untouched, so the bends and their radii survive. A chain is carried outwards only;
+        /// the splitting family shortens one, and <c>TryTrimTo</c> below is that cut with the end named rather
+        /// than the piece.
+        /// </remarks>
+        public GeoPolylineArc3 Extend(double distance, LineEnd end) => Lengthen3.Extend(this, distance, end);
+
+        /// <summary>
+        /// Lengthens the chain along its end leg, within a tolerance.
+        /// </summary>
+        public GeoPolylineArc3 Extend(double distance, LineEnd end, Tolerance tolerance) => Lengthen3.Extend(this, distance, end, tolerance);
+
+        /// <summary>
+        /// Lengthens the chain along its end leg until the whole chain is a given length.
+        /// </summary>
+        public GeoPolylineArc3 ExtendToLength(double length, LineEnd end) => Lengthen3.ExtendToLength(this, length, end);
+
+        /// <summary>
+        /// Lengthens the chain along its end leg until the whole chain is a given length, within a tolerance.
+        /// </summary>
+        public GeoPolylineArc3 ExtendToLength(double length, LineEnd end, Tolerance tolerance) => Lengthen3.ExtendToLength(this, length, end, tolerance);
+
+        /// <summary>
+        /// Shortens the chain at one end back to a point on it.
+        /// </summary>
+        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoPolylineArc3 result) => Lengthen3.TryTrimTo(this, point, end, out result);
+
+        /// <summary>
+        /// Shortens the chain at one end back to a point on it, within a tolerance.
+        /// </summary>
+        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoPolylineArc3 result, Tolerance tolerance)
+            => Lengthen3.TryTrimTo(this, point, end, out result, tolerance);
+
+        #endregion
+
     }
 }

@@ -679,5 +679,45 @@ namespace GeometryHelper.Geometry
         public bool TryFilletAt(int index, double radius, out GeoPolylineArc2 result, Tolerance tolerance)
             => Corner2.TryFilletAt(this, index, radius, out result, tolerance);
 
+        #region Extending and trimming
+
+        /// <summary>
+        /// Lengthens the chain along its end leg, straight on.
+        /// </summary>
+        /// <remarks>
+        /// Every other leg is untouched, so the bends and their radii survive. A chain is carried outwards only;
+        /// the splitting family shortens one, and <c>TryTrimTo</c> below is that cut with the end named rather
+        /// than the piece.
+        /// </remarks>
+        public GeoPolyline2 Extend(double distance, LineEnd end) => Lengthen2.Extend(this, distance, end);
+
+        /// <summary>
+        /// Lengthens the chain along its end leg, within a tolerance.
+        /// </summary>
+        public GeoPolyline2 Extend(double distance, LineEnd end, Tolerance tolerance) => Lengthen2.Extend(this, distance, end, tolerance);
+
+        /// <summary>
+        /// Lengthens the chain along its end leg until the whole chain is a given length.
+        /// </summary>
+        public GeoPolyline2 ExtendToLength(double length, LineEnd end) => Lengthen2.ExtendToLength(this, length, end);
+
+        /// <summary>
+        /// Lengthens the chain along its end leg until the whole chain is a given length, within a tolerance.
+        /// </summary>
+        public GeoPolyline2 ExtendToLength(double length, LineEnd end, Tolerance tolerance) => Lengthen2.ExtendToLength(this, length, end, tolerance);
+
+        /// <summary>
+        /// Shortens the chain at one end back to a point on it.
+        /// </summary>
+        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoPolyline2 result) => Lengthen2.TryTrimTo(this, point, end, out result);
+
+        /// <summary>
+        /// Shortens the chain at one end back to a point on it, within a tolerance.
+        /// </summary>
+        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoPolyline2 result, Tolerance tolerance)
+            => Lengthen2.TryTrimTo(this, point, end, out result, tolerance);
+
+        #endregion
+
     }
 }

@@ -696,5 +696,45 @@ namespace GeometryHelper.Geometry
         /// <param name="frame">The frame to lay it out in.</param>
         /// <returns>The chain in the plane of the frame.</returns>
         public GeoPolyline2 ProjectToPolyline2(GeoCoordinateSystem3 frame) => PlanarMap.ProjectToPolyline2(frame, this);
+        #region Extending and trimming
+
+        /// <summary>
+        /// Lengthens the chain along its end leg, straight on.
+        /// </summary>
+        /// <remarks>
+        /// Every other leg is untouched, so the bends and their radii survive. A chain is carried outwards only;
+        /// the splitting family shortens one, and <c>TryTrimTo</c> below is that cut with the end named rather
+        /// than the piece.
+        /// </remarks>
+        public GeoPolyline3 Extend(double distance, LineEnd end) => Lengthen3.Extend(this, distance, end);
+
+        /// <summary>
+        /// Lengthens the chain along its end leg, within a tolerance.
+        /// </summary>
+        public GeoPolyline3 Extend(double distance, LineEnd end, Tolerance tolerance) => Lengthen3.Extend(this, distance, end, tolerance);
+
+        /// <summary>
+        /// Lengthens the chain along its end leg until the whole chain is a given length.
+        /// </summary>
+        public GeoPolyline3 ExtendToLength(double length, LineEnd end) => Lengthen3.ExtendToLength(this, length, end);
+
+        /// <summary>
+        /// Lengthens the chain along its end leg until the whole chain is a given length, within a tolerance.
+        /// </summary>
+        public GeoPolyline3 ExtendToLength(double length, LineEnd end, Tolerance tolerance) => Lengthen3.ExtendToLength(this, length, end, tolerance);
+
+        /// <summary>
+        /// Shortens the chain at one end back to a point on it.
+        /// </summary>
+        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoPolyline3 result) => Lengthen3.TryTrimTo(this, point, end, out result);
+
+        /// <summary>
+        /// Shortens the chain at one end back to a point on it, within a tolerance.
+        /// </summary>
+        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoPolyline3 result, Tolerance tolerance)
+            => Lengthen3.TryTrimTo(this, point, end, out result, tolerance);
+
+        #endregion
+
     }
 }
