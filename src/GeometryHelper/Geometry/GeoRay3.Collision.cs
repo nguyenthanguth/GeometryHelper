@@ -68,5 +68,25 @@ namespace GeometryHelper.Geometry
         /// Checks whether this ray starts inside an oriented box or runs into it, within a tolerance.
         /// </summary>
         public bool CollidesWith(GeoObb3 box, Tolerance tolerance) => Collision3.CollidesWith(this, box, tolerance);
+        /// <summary>
+        /// Checks whether this ray touches an arc, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoArc3 arc) => Arc3.CollidesWith(arc, this);
+
+        /// <summary>
+        /// Checks whether this ray touches an arc, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoArc3 arc, Tolerance tolerance) => Arc3.CollidesWith(arc, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this ray touches a circle, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoCircle3 circle) => Arc3.CollidesWith(circle, this);
+
+        /// <summary>
+        /// Checks whether this ray touches a circle, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoCircle3 circle, Tolerance tolerance) => Arc3.CollidesWith(circle, this, tolerance);
+
     }
 }

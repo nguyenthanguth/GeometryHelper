@@ -69,5 +69,25 @@ namespace GeometryHelper.Geometry
         /// Checks whether this segment touches a face, within a tolerance.
         /// </summary>
         public bool CollidesWith(GeoFace3 face, Tolerance tolerance) => Collision3.CollidesWith(this, face, tolerance);
+        /// <summary>
+        /// Checks whether this segment touches an arc, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoArc3 arc) => Arc3.CollidesWith(arc, this);
+
+        /// <summary>
+        /// Checks whether this segment touches an arc, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoArc3 arc, Tolerance tolerance) => Arc3.CollidesWith(arc, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this segment touches a circle, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoCircle3 circle) => Arc3.CollidesWith(circle, this);
+
+        /// <summary>
+        /// Checks whether this segment touches a circle, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoCircle3 circle, Tolerance tolerance) => Arc3.CollidesWith(circle, this, tolerance);
+
     }
 }
