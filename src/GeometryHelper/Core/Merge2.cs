@@ -11,6 +11,11 @@ namespace GeometryHelper.Core
     public static class Merge2
     {
         /// <summary>
+        /// Rejoins the segments of a classified run that end where the next one begins, using the default tolerance.
+        /// </summary>
+        public static GeoLine2[] ConsecutiveLines(IEnumerable<GeoLine2> segments) => ConsecutiveLines(segments, Tolerance.Global);
+
+        /// <summary>
         /// Rejoins the segments of a classified run that end where the next one begins.
         /// </summary>
         /// <param name="segments">The pieces landing on one side, in order along the subject.</param>
@@ -25,7 +30,7 @@ namespace GeometryHelper.Core
         /// Joining start to end looks careless, since it discards whatever lay between them, but every
         /// piece here was cut from a single straight subject and the discarded point was on the line
         /// joining the two ends. The polyline form cannot take this shortcut and has to decide, which is
-        /// what <see cref="Polylines"/> is for.
+        /// what <see cref="Polylines(GeoPolyline2, GeoPolyline2, Tolerance)"/> is for.
         /// </para>
         /// </remarks>
         public static GeoLine2[] ConsecutiveLines(IEnumerable<GeoLine2> segments, Tolerance tolerance)
@@ -60,6 +65,11 @@ namespace GeometryHelper.Core
             }
             return result.ToArray();
         }
+
+        /// <summary>
+        /// Joins two pieces into one if the first ends where the second begins, using the default tolerance.
+        /// </summary>
+        public static GeoPolyline2 Polylines(GeoPolyline2 first, GeoPolyline2 second) => Polylines(first, second, Tolerance.Global);
 
         /// <summary>
         /// Joins two pieces into one if the first ends where the second begins.
@@ -117,6 +127,11 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Rejoins the pieces of a classified run that end where the next one begins, using the default tolerance.
+        /// </summary>
+        public static GeoPolyline2[] ConsecutivePolylines(IEnumerable<GeoPolyline2> polylines) => ConsecutivePolylines(polylines, Tolerance.Global);
+
+        /// <summary>
         /// Rejoins the pieces of a classified run that end where the next one begins.
         /// </summary>
         /// <param name="polylines">The pieces landing on one side, in order along the subject.</param>
@@ -124,9 +139,9 @@ namespace GeometryHelper.Core
         /// <returns>One piece per unbroken stretch, in order along the subject.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polylines"/> is null.</exception>
         /// <remarks>
-        /// The counterpart of <see cref="ConsecutiveLines"/> for a subject that can bend. The walk
+        /// The counterpart of <see cref="ConsecutiveLines(IEnumerable{GeoLine2}, Tolerance)"/> for a subject that can bend. The walk
         /// is the same; what differs is that whether two pieces join at all is left to
-        /// <see cref="Polylines"/>, which returns null when they do not.
+        /// <see cref="Polylines(GeoPolyline2, GeoPolyline2, Tolerance)"/>, which returns null when they do not.
         /// </remarks>
         public static GeoPolyline2[] ConsecutivePolylines(IEnumerable<GeoPolyline2> polylines, Tolerance tolerance)
         {
@@ -163,6 +178,11 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Joins a collection of segments into polylines by matching endpoints, using the default tolerance.
+        /// </summary>
+        public static GeoPolyline2[] Join(IEnumerable<GeoLine2> lines) => Join(lines, Tolerance.Global);
+
+        /// <summary>
         /// Joins a collection of line segments into polylines by matching endpoints, similar to AutoCAD's JOIN command.
         /// Non-collinear connected segments form polylines, and collinear segments are simplified by removing redundant junctions.
         /// </summary>
@@ -171,7 +191,7 @@ namespace GeometryHelper.Core
         /// <returns>An array of joined polylines.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="lines"/> is null.</exception>
         /// <remarks>
-        /// Unlike <see cref="ConsecutiveLines"/> the segments arrive in no particular order and pointing
+        /// Unlike <see cref="ConsecutiveLines(IEnumerable{GeoLine2}, Tolerance)"/> the segments arrive in no particular order and pointing
         /// in no particular direction, so a run is grown outwards from a seed segment in both
         /// directions at once, turning round whatever it picks up when that is what makes it fit.
         /// <para>
@@ -245,23 +265,23 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Joins line segments into polylines by comparing every pair of runs, the way
-        /// <see cref="Join"/> went about it before it was given a grid to search.
+        /// <see cref="Join(IEnumerable{GeoLine2}, Tolerance)"/> went about it before it was given a grid to search.
         /// </summary>
         /// <param name="lines">The line segments to join.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>An array of joined polylines.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="lines"/> is null.</exception>
         /// <remarks>
-        /// Kept as the plain reading of what joining means, to hold <see cref="Join"/> against. It
+        /// Kept as the plain reading of what joining means, to hold <see cref="Join(IEnumerable{GeoLine2}, Tolerance)"/> against. It
         /// tries every pair of runs and starts the sweep again after each merge, which is short enough
         /// to check by eye, at a cost that grows with the square of the number of segments: around four
-        /// thousand of them it takes half a second where <see cref="Join"/> takes a few milliseconds.
+        /// thousand of them it takes half a second where <see cref="Join(IEnumerable{GeoLine2}, Tolerance)"/> takes a few milliseconds.
         /// So it is for reading and for testing against, not for drawings.
         /// <para>
         /// The joining is as it was. The two guards around it are not: a null argument used to come
         /// back as a NullReferenceException, and a segment of zero length used to survive to the end
         /// and yield a polyline with two identical vertices, which the public GeoPolyline2 constructor
-        /// refuses. Putting those back alongside a working <see cref="Join"/> would only be putting
+        /// refuses. Putting those back alongside a working <see cref="Join(IEnumerable{GeoLine2}, Tolerance)"/> would only be putting
         /// back two faults.
         /// </para>
         /// <para>

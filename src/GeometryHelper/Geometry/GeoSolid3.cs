@@ -418,6 +418,25 @@ namespace GeometryHelper.Geometry
         public GeoTriangle3[] Triangulate() => Triangulate(Tolerance.Global);
 
         /// <summary>
+        /// Runs the faces that share a plane and an edge together into single faces.
+        /// </summary>
+        public GeoSolid3 MergeCoplanarFaces() => Core.Merge3.CoplanarFaces(this);
+
+        /// <summary>
+        /// Runs the faces that share a plane and an edge together into single faces, within a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance deciding what counts as one plane and one edge.</param>
+        /// <returns>The body with each coplanar, adjoining group of faces replaced by one face.</returns>
+        /// <remarks>
+        /// This is the other direction from <see cref="Triangulate()"/>: it turns a triangulated skin back
+        /// into the flat panels it stands for, which is worth doing to a body read out of a mesh format
+        /// before anything is measured against its faces one at a time. The openings are simplified with the
+        /// outer surface, and a body whose faces cannot be reduced below four comes back as it was, since
+        /// fewer than four flat faces cannot enclose a volume.
+        /// </remarks>
+        public GeoSolid3 MergeCoplanarFaces(Tolerance tolerance) => Core.Merge3.CoplanarFaces(this, tolerance);
+
+        /// <summary>
         /// Breaks every face into triangles, giving the surface of the solid as a triangle mesh, within a
         /// tolerance.
         /// </summary>
