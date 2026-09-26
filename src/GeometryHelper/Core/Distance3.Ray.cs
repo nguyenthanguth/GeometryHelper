@@ -64,6 +64,9 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
+
             if (Containment3.Contains(solid, ray.Origin, tolerance))
             {
                 return 0.0;

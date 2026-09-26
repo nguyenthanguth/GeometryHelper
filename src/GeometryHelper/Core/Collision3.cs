@@ -270,6 +270,11 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid2));
             }
 
+            // The faces run straight across every opening; read the material the probe can reach instead.
+            GeoAabb3 reach1 = solid1.GetAabb();
+            solid1 = Material3.Near(solid1, solid2.GetAabb(), tolerance);
+            solid2 = Material3.Near(solid2, reach1, tolerance);
+
             if (!solid1.GetAabb().CollidesWith(solid2.GetAabb(), tolerance))
             {
                 return false;
@@ -433,6 +438,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(polyline));
             }
+
+            // The faces run straight across every opening; read the material the probe can reach instead.
+            solid = Material3.Near(solid, polyline.GetAabb(), tolerance);
 
             for (int i = 0; i < polyline.EdgeCount; i++)
             {

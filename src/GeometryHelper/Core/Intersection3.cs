@@ -598,6 +598,9 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // The faces run straight across every opening; read the material the probe can reach instead.
+            solid = Material3.Near(solid, plane, tolerance);
+
             List<GeoPoint3> hits = new List<GeoPoint3>();
 
             foreach (GeoFace3 face in solid.Faces)
@@ -729,6 +732,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(solid));
             }
+
+            // The faces run straight across every opening; read the material the probe can reach instead.
+            solid = Material3.Near(solid, line.GetAabb(), tolerance);
 
             List<double> distances = new List<double>();
             CollectSolidCrossings(line, solid, tolerance, distances);

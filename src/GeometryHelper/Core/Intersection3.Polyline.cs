@@ -427,7 +427,22 @@ namespace GeometryHelper.Core
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoSolid3 solid, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => segment.GetIntersections(solid, tolerance), tolerance);
+        {
+            if (polyline == null)
+            {
+                throw new ArgumentNullException(nameof(polyline));
+            }
+
+            if (solid == null)
+            {
+                throw new ArgumentNullException(nameof(solid));
+            }
+
+            // Cut the openings the chain can reach once, rather than once for every segment of it.
+            GeoSolid3 material = Material3.Near(solid, polyline.GetAabb(), tolerance);
+
+            return CrossingsOfSegments(polyline, segment => segment.GetIntersections(material, tolerance), tolerance);
+        }
 
         /// <summary>
         /// Tries to find where a straight chain crosses a body.

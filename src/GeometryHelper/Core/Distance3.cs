@@ -406,6 +406,9 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
+
             if (Containment3.Contains(solid, line.StartPoint, tolerance) ||
                 Containment3.Contains(solid, line.EndPoint, tolerance))
             {
@@ -450,6 +453,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(solid));
             }
+
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
 
             if (Containment3.Contains(solid, triangle.A, tolerance) ||
                 Containment3.Contains(solid, triangle.B, tolerance) ||
@@ -497,6 +503,9 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
+
             double best = double.MaxValue;
 
             foreach (GeoTriangle3 piece in polygon.Triangulate())
@@ -531,6 +540,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(polyline));
             }
+
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
 
             double best = double.MaxValue;
 
@@ -567,6 +579,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(solid));
             }
+
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
 
             double above = double.MinValue;
             double below = double.MaxValue;
@@ -650,6 +665,10 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(solid2));
             }
+
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid1 = Material3.Whole(solid1, tolerance);
+            solid2 = Material3.Whole(solid2, tolerance);
 
             if (Collision3.CollidesWith(solid1, solid2, tolerance))
             {

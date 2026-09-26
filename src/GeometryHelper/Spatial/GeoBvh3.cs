@@ -113,7 +113,7 @@ namespace GeometryHelper.Spatial
                 throw new ArgumentNullException(nameof(solid));
             }
 
-            return new GeoBvh3(solid.Triangulate(tolerance));
+            return new GeoBvh3(solid.TriangulateSurface(tolerance));
         }
 
         /// <summary>

@@ -33,6 +33,9 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // The faces run straight across every opening; read the material the probe can reach instead.
+            solid = Material3.Near(solid, ray, tolerance);
+
             var reaches = new List<double>();
 
             foreach (GeoTriangle3 face in solid.Triangulate(tolerance))

@@ -73,7 +73,7 @@ parts over each opening removed, and the walls of each opening where they run th
 - `Triangulate` keeps its meaning — the faces as they are — and its remark is corrected, so nobody reads it as
   the boundary again. `Volume` does not move: it never used `Triangulate`.
 
-**A2. Make every query read the material.** Each broken query takes the body through A1 first. The point queries are **done** with the fixes above; what is left is everything that reads the mesh.
+**A2. Make every query read the material.** — **Done.** Each broken query takes the body through A1 first.
 
 - `CollidesWith` and `GetIntersections` need only the openings whose box meets the probe's box. That is
   exact — an opening out of the probe's reach removes nothing the probe could touch — and it keeps a bolt

@@ -146,6 +146,9 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
+
             GeoTriangle3[] faces = solid.Triangulate(tolerance);
             GeoLine3 best = GetShortestLineTo(line, faces[0], tolerance).Reverse();
 
@@ -176,6 +179,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(solid));
             }
+
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
 
             GeoTriangle3[] faces = solid.Triangulate(tolerance);
             GeoLine3 best = GetShortestLineTo(faces[0], triangle, tolerance);
@@ -221,6 +227,10 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(second));
             }
+
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            first = Material3.Whole(first, tolerance);
+            second = Material3.Whole(second, tolerance);
 
             GeoTriangle3[] ours = first.Triangulate(tolerance);
             GeoTriangle3[] theirs = second.Triangulate(tolerance);
@@ -333,6 +343,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(solid));
             }
+
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
 
             GeoTriangle3[] faces = solid.Triangulate(tolerance);
             GeoLine3 best = GetShortestLineTo(ray, faces[0], tolerance).Reverse();

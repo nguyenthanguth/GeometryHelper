@@ -27,6 +27,9 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // The faces run straight across every opening; read the material the probe can reach instead.
+            solid = Material3.Near(solid, ray, tolerance);
+
             if (Containment3.Contains(solid, ray.Origin, tolerance))
             {
                 return true;
