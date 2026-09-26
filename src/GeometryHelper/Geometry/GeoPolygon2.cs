@@ -792,6 +792,53 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance) => Intersection2.TryIntersectWith(chain, this, out intersections, tolerance);
 
         /// <summary>
+        /// Checks whether this polygon touches an edge.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge) => CollidesWith(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this polygon touches an edge, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? CollidesWith(edge.ToArc(), tolerance)
+                : CollidesWith(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the distance from this polygon to an edge.
+        /// </summary>
+        public double DistanceTo(GeoEdge2 edge)
+            => edge.IsArc
+                ? DistanceTo(edge.ToArc())
+                : DistanceTo(edge.ToLine());
+
+        /// <summary>
+        /// Gets every point where this polygon crosses an edge.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge) => GetIntersections(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this polygon crosses an edge, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetIntersections(edge.ToArc(), tolerance)
+                : GetIntersections(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this polygon and landing on an edge.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge) => GetShortestLineTo(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this polygon and landing on an edge, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetShortestLineTo(edge.ToArc(), tolerance)
+                : GetShortestLineTo(edge.ToLine(), tolerance);
+
+        /// <summary>
         /// Checks whether this polygon is simple, using default tolerance: no edge crosses or touches another
         /// except where neighbours share their vertex.
         /// </summary>

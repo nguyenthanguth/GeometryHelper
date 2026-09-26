@@ -889,6 +889,53 @@ namespace GeometryHelper.Geometry
         public GeoPoint2[] GetIntersections(GeoPolyline2 polyline, Tolerance tolerance) => Intersection2.GetIntersections(polyline, this, tolerance);
 
         /// <summary>
+        /// Checks whether this rectangle touches an edge.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge) => CollidesWith(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this rectangle touches an edge, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? CollidesWith(edge.ToArc(), tolerance)
+                : CollidesWith(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the distance from this rectangle to an edge.
+        /// </summary>
+        public double DistanceTo(GeoEdge2 edge)
+            => edge.IsArc
+                ? DistanceTo(edge.ToArc())
+                : DistanceTo(edge.ToLine());
+
+        /// <summary>
+        /// Gets every point where this rectangle crosses an edge.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge) => GetIntersections(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this rectangle crosses an edge, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetIntersections(edge.ToArc(), tolerance)
+                : GetIntersections(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this rectangle and landing on an edge.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge) => GetShortestLineTo(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this rectangle and landing on an edge, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetShortestLineTo(edge.ToArc(), tolerance)
+                : GetShortestLineTo(edge.ToLine(), tolerance);
+
+        /// <summary>
         /// Checks whether a line segment is parallel to this rectangle's axes using default tolerance.
         /// </summary>
         public bool IsParallelTo(GeoLine2 line) => Parallel2.IsParallel(this, line, Tolerance.Global);

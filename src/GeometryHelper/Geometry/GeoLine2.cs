@@ -732,6 +732,71 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance) => Intersection2.TryIntersectWith(chain, this, out intersections, tolerance);
 
         /// <summary>
+        /// Checks whether this segment touches an edge.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge) => CollidesWith(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this segment touches an edge, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? CollidesWith(edge.ToArc(), tolerance)
+                : CollidesWith(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets every point where this segment crosses an edge.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge) => GetIntersections(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this segment crosses an edge, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The one direction here that is not simply the edge read as whichever shape it is: two straight
+        /// pieces meet at a single point rather than at a list of them, so that answer is wrapped to match
+        /// the curved case. <see cref="GeoEdge2.GetIntersections(GeoLine2, Tolerance)"/> does the same the
+        /// other way round.
+        /// </remarks>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge, Tolerance tolerance)
+        {
+            if (edge.IsArc)
+            {
+                return GetIntersections(edge.ToArc(), tolerance);
+            }
+
+            GeoPoint2? meeting = Intersection2.GetIntersection(this, edge.ToLine(), tolerance);
+
+            return meeting.HasValue ? new[] { meeting.Value } : new GeoPoint2[0];
+        }
+
+        /// <summary>
+        /// Gets the distance from this segment to an edge.
+        /// </summary>
+        public double DistanceTo(GeoEdge2 edge) => DistanceTo(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from this segment to an edge, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? DistanceTo(edge.ToArc(), tolerance)
+                : DistanceTo(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this segment and landing on an edge.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge) => GetShortestLineTo(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this segment and landing on an edge, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetShortestLineTo(edge.ToArc(), tolerance)
+                : GetShortestLineTo(edge.ToLine(), tolerance);
+
+        /// <summary>
         /// Splits this segment at a point lying on it, using the default tolerance.
         /// </summary>
         /// <param name="point">The point to split at, which must lie on this segment.</param>

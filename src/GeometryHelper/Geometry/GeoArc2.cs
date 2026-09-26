@@ -1122,6 +1122,71 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance) => Intersection2.TryIntersectWith(chain, this, out intersections, tolerance);
 
+        /// <summary>
+        /// Checks whether this arc touches an edge.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge) => CollidesWith(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this arc touches an edge, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? CollidesWith(edge.ToArc(), tolerance)
+                : CollidesWith(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the distance from this arc to an edge.
+        /// </summary>
+        public double DistanceTo(GeoEdge2 edge) => DistanceTo(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from this arc to an edge, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? DistanceTo(edge.ToArc(), tolerance)
+                : DistanceTo(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets every point where this arc crosses an edge.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge) => GetIntersections(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this arc crosses an edge, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetIntersections(edge.ToArc(), tolerance)
+                : GetIntersections(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on an edge.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge) => GetShortestLineTo(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on an edge, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetShortestLineTo(edge.ToArc(), tolerance)
+                : GetShortestLineTo(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Tries to find where this arc crosses an edge.
+        /// </summary>
+        public bool TryIntersectWith(GeoEdge2 edge, out GeoPoint2[] intersections) => TryIntersectWith(edge, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this arc crosses an edge, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoEdge2 edge, out GeoPoint2[] intersections, Tolerance tolerance)
+            => edge.IsArc
+                ? TryIntersectWith(edge.ToArc(), out intersections, tolerance)
+                : TryIntersectWith(edge.ToLine(), out intersections, tolerance);
+
         #endregion
     }
 }

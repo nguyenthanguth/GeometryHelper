@@ -557,6 +557,45 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance) => Face2.GetShortestLineTo(this, chain, tolerance);
 
+        /// <summary>
+        /// Checks whether this face touches an edge.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge) => CollidesWith(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this face touches an edge, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? CollidesWith(edge.ToArc(), tolerance)
+                : CollidesWith(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets every point where this face crosses an edge.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge) => GetIntersections(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this face crosses an edge, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetIntersections(edge.ToArc(), tolerance)
+                : GetIntersections(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this face and landing on an edge.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge) => GetShortestLineTo(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this face and landing on an edge, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetShortestLineTo(edge.ToArc(), tolerance)
+                : GetShortestLineTo(edge.ToLine(), tolerance);
+
         #region Equality
 
         /// <summary>

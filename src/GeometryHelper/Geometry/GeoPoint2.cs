@@ -327,6 +327,22 @@ namespace GeometryHelper.Geometry
         public GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, Tolerance tolerance) => ClosestEdge2.GetClosestEdge(chain, this, tolerance);
 
         /// <summary>
+        /// Gets the distance from this point to an edge.
+        /// </summary>
+        public double DistanceTo(GeoEdge2 edge)
+            => edge.IsArc
+                ? DistanceTo(edge.ToArc())
+                : DistanceTo(edge.ToLine());
+
+        /// <summary>
+        /// Gets the point of an edge nearest this point.
+        /// </summary>
+        public GeoPoint2 GetClosestPointOnBoundary(GeoEdge2 edge)
+            => edge.IsArc
+                ? GetClosestPointOnBoundary(edge.ToArc())
+                : GetClosestPointOnBoundary(edge.ToLine());
+
+        /// <summary>
         /// Checks whether this point lies on the line segment using default tolerance.
         /// </summary>
         public bool IsPointOn(GeoLine2 line) => Containment2.IsPointOn(line, this, Tolerance.Global);

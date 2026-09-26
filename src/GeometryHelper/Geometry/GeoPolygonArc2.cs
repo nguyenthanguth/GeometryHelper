@@ -1313,6 +1313,84 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance) => Intersection2.TryIntersectWith(this, chain, out intersections, tolerance);
 
         /// <summary>
+        /// Checks whether this curved loop touches an edge.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge) => CollidesWith(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this curved loop touches an edge, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? CollidesWith(edge.ToArc(), tolerance)
+                : CollidesWith(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the distance from this curved loop to an edge.
+        /// </summary>
+        public double DistanceTo(GeoEdge2 edge) => DistanceTo(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from this curved loop to an edge, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? DistanceTo(edge.ToArc(), tolerance)
+                : DistanceTo(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the edge of this curved loop nearest an edge.
+        /// </summary>
+        public GeoEdge2 GetClosestEdge(GeoEdge2 edge) => GetClosestEdge(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the edge of this curved loop nearest an edge, within a tolerance.
+        /// </summary>
+        public GeoEdge2 GetClosestEdge(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetClosestEdge(edge.ToArc(), tolerance)
+                : GetClosestEdge(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets every point where this curved loop crosses an edge.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge) => GetIntersections(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this curved loop crosses an edge, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetIntersections(edge.ToArc(), tolerance)
+                : GetIntersections(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this curved loop and landing on an edge.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge) => GetShortestLineTo(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this curved loop and landing on an edge, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetShortestLineTo(edge.ToArc(), tolerance)
+                : GetShortestLineTo(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Tries to find where this curved loop crosses an edge.
+        /// </summary>
+        public bool TryIntersectWith(GeoEdge2 edge, out GeoPoint2[] intersections) => TryIntersectWith(edge, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this curved loop crosses an edge, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoEdge2 edge, out GeoPoint2[] intersections, Tolerance tolerance)
+            => edge.IsArc
+                ? TryIntersectWith(edge.ToArc(), out intersections, tolerance)
+                : TryIntersectWith(edge.ToLine(), out intersections, tolerance);
+
+        /// <summary>
         /// Offsets the loop, keeping its arcs as arcs.
         /// </summary>
         /// <param name="distance">How far to move it: outward when positive, inward when negative.</param>

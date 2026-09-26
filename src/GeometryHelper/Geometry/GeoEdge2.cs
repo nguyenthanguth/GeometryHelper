@@ -511,6 +511,266 @@ namespace GeometryHelper.Geometry
             => IsArc ? ToArc().CollidesWith(chain, tolerance) : ToLine().CollidesWith(chain, tolerance);
 
         /// <summary>
+        /// Checks whether this edge touches a face.
+        /// </summary>
+        public bool CollidesWith(GeoFace2 face) => CollidesWith(face, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this edge touches a face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoFace2 face, Tolerance tolerance)
+            => IsArc ? ToArc().CollidesWith(face, tolerance) : ToLine().CollidesWith(face, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this edge to a polygon.
+        /// </summary>
+        public double DistanceTo(GeoPolygon2 poly)
+            => IsArc ? ToArc().DistanceTo(poly) : ToLine().DistanceTo(poly);
+
+        /// <summary>
+        /// Gets the distance from this edge to a curved loop.
+        /// </summary>
+        public double DistanceTo(GeoPolygonArc2 loop) => DistanceTo(loop, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from this edge to a curved loop, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance)
+            => IsArc ? ToArc().DistanceTo(loop, tolerance) : ToLine().DistanceTo(loop, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this edge to a polyline.
+        /// </summary>
+        public double DistanceTo(GeoPolyline2 polyline)
+            => IsArc ? ToArc().DistanceTo(polyline) : ToLine().DistanceTo(polyline);
+
+        /// <summary>
+        /// Gets the distance from this edge to a curved chain.
+        /// </summary>
+        public double DistanceTo(GeoPolylineArc2 chain) => DistanceTo(chain, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from this edge to a curved chain, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance)
+            => IsArc ? ToArc().DistanceTo(chain, tolerance) : ToLine().DistanceTo(chain, tolerance);
+
+        /// <summary>
+        /// Gets the distance from this edge to a rectangle.
+        /// </summary>
+        public double DistanceTo(GeoRectangle2 rect)
+            => IsArc ? ToArc().DistanceTo(rect) : ToLine().DistanceTo(rect);
+
+        /// <summary>
+        /// Gets the edge of this edge nearest a curved loop.
+        /// </summary>
+        public GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop) => GetClosestEdge(loop, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the edge of this edge nearest a curved loop, within a tolerance.
+        /// </summary>
+        public GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, Tolerance tolerance)
+            => IsArc ? ToArc().GetClosestEdge(loop, tolerance) : ToLine().GetClosestEdge(loop, tolerance);
+
+        /// <summary>
+        /// Gets the edge of this edge nearest a curved chain.
+        /// </summary>
+        public GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain) => GetClosestEdge(chain, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the edge of this edge nearest a curved chain, within a tolerance.
+        /// </summary>
+        public GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, Tolerance tolerance)
+            => IsArc ? ToArc().GetClosestEdge(chain, tolerance) : ToLine().GetClosestEdge(chain, tolerance);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a circle.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoCircle2 circle) => GetIntersections(circle, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a circle, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoCircle2 circle, Tolerance tolerance)
+            => IsArc ? ToArc().GetIntersections(circle, tolerance) : ToLine().GetIntersections(circle, tolerance);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a face.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoFace2 face) => GetIntersections(face, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a face, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoFace2 face, Tolerance tolerance)
+            => IsArc ? ToArc().GetIntersections(face, tolerance) : ToLine().GetIntersections(face, tolerance);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a polygon.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygon2 poly) => GetIntersections(poly, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a polygon, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygon2 poly, Tolerance tolerance)
+            => IsArc ? ToArc().GetIntersections(poly, tolerance) : ToLine().GetIntersections(poly, tolerance);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a curved loop.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygonArc2 loop) => GetIntersections(loop, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a curved loop, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, Tolerance tolerance)
+            => IsArc ? ToArc().GetIntersections(loop, tolerance) : ToLine().GetIntersections(loop, tolerance);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a polyline.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolyline2 polyline) => GetIntersections(polyline, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a polyline, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolyline2 polyline, Tolerance tolerance)
+            => IsArc ? ToArc().GetIntersections(polyline, tolerance) : ToLine().GetIntersections(polyline, tolerance);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a curved chain.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolylineArc2 chain) => GetIntersections(chain, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a curved chain, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, Tolerance tolerance)
+            => IsArc ? ToArc().GetIntersections(chain, tolerance) : ToLine().GetIntersections(chain, tolerance);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a rectangle.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRectangle2 rect) => GetIntersections(rect, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a rectangle, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRectangle2 rect, Tolerance tolerance)
+            => IsArc ? ToArc().GetIntersections(rect, tolerance) : ToLine().GetIntersections(rect, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a face.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoFace2 face) => GetShortestLineTo(face, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a face, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoFace2 face, Tolerance tolerance)
+            => IsArc ? ToArc().GetShortestLineTo(face, tolerance) : ToLine().GetShortestLineTo(face, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a polygon.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly) => GetShortestLineTo(poly, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a polygon, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly, Tolerance tolerance)
+            => IsArc ? ToArc().GetShortestLineTo(poly, tolerance) : ToLine().GetShortestLineTo(poly, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a curved loop.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop) => GetShortestLineTo(loop, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a curved loop, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance)
+            => IsArc ? ToArc().GetShortestLineTo(loop, tolerance) : ToLine().GetShortestLineTo(loop, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a polyline.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline) => GetShortestLineTo(polyline, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a polyline, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance)
+            => IsArc ? ToArc().GetShortestLineTo(polyline, tolerance) : ToLine().GetShortestLineTo(polyline, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a curved chain.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain) => GetShortestLineTo(chain, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a curved chain, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance)
+            => IsArc ? ToArc().GetShortestLineTo(chain, tolerance) : ToLine().GetShortestLineTo(chain, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a rectangle.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect) => GetShortestLineTo(rect, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a rectangle, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance)
+            => IsArc ? ToArc().GetShortestLineTo(rect, tolerance) : ToLine().GetShortestLineTo(rect, tolerance);
+
+        /// <summary>
+        /// Tries to find where this edge crosses an arc.
+        /// </summary>
+        public bool TryIntersectWith(GeoArc2 arc, out GeoPoint2[] intersections) => TryIntersectWith(arc, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this edge crosses an arc, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoArc2 arc, out GeoPoint2[] intersections, Tolerance tolerance)
+            => IsArc ? ToArc().TryIntersectWith(arc, out intersections, tolerance) : ToLine().TryIntersectWith(arc, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a circle.
+        /// </summary>
+        public bool TryIntersectWith(GeoCircle2 circle, out GeoPoint2[] intersections) => TryIntersectWith(circle, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a circle, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoCircle2 circle, out GeoPoint2[] intersections, Tolerance tolerance)
+            => IsArc ? ToArc().TryIntersectWith(circle, out intersections, tolerance) : ToLine().TryIntersectWith(circle, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a curved loop.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolygonArc2 loop, out GeoPoint2[] intersections) => TryIntersectWith(loop, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a curved loop, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolygonArc2 loop, out GeoPoint2[] intersections, Tolerance tolerance)
+            => IsArc ? ToArc().TryIntersectWith(loop, out intersections, tolerance) : ToLine().TryIntersectWith(loop, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a curved chain.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections) => TryIntersectWith(chain, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a curved chain, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance)
+            => IsArc ? ToArc().TryIntersectWith(chain, out intersections, tolerance) : ToLine().TryIntersectWith(chain, out intersections, tolerance);
+
+        /// <summary>
         /// Splits the edge at a normalized parameter along it.
         /// </summary>
         /// <param name="parameter">Where to cut, between 0 and 1.</param>

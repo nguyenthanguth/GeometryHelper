@@ -708,6 +708,66 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance) => Intersection2.TryIntersectWith(chain, this, out intersections, tolerance);
 
         /// <summary>
+        /// Checks whether this circle touches an edge.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge) => CollidesWith(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this circle touches an edge, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? CollidesWith(edge.ToArc(), tolerance)
+                : CollidesWith(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the distance from this circle to an edge.
+        /// </summary>
+        public double DistanceTo(GeoEdge2 edge)
+            => edge.IsArc
+                ? DistanceTo(edge.ToArc())
+                : DistanceTo(edge.ToLine());
+
+        /// <summary>
+        /// Gets every point where this circle crosses an edge.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge) => GetIntersections(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this circle crosses an edge, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetIntersections(edge.ToArc(), tolerance)
+                : GetIntersections(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this circle and landing on an edge.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge) => GetShortestLineTo(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this circle and landing on an edge, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetShortestLineTo(edge.ToArc(), tolerance)
+                : GetShortestLineTo(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Tries to find where this circle crosses an edge.
+        /// </summary>
+        public bool TryIntersectWith(GeoEdge2 edge, out GeoPoint2[] intersections) => TryIntersectWith(edge, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this circle crosses an edge, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoEdge2 edge, out GeoPoint2[] intersections, Tolerance tolerance)
+            => edge.IsArc
+                ? TryIntersectWith(edge.ToArc(), out intersections, tolerance)
+                : TryIntersectWith(edge.ToLine(), out intersections, tolerance);
+
+        /// <summary>
         /// Translates a circle by a vector.
         /// </summary>
         public static GeoCircle2 operator +(GeoCircle2 circle, GeoVector2 vector) => circle.Translate(vector);
