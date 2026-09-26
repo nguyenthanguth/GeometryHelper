@@ -744,6 +744,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(20.0, cube.SignedDistanceTo(new GeoPoint3(50, 50, -20)), 9);
             Assert.Equal(-50.0, box.SignedDistanceTo(new GeoPoint3(50, 50, 50)), 9);
 
+            // And the point asks the same thing from the other side.
+            Assert.Equal(-50.0, new GeoPoint3(50, 50, 50).SignedDistanceTo(cube), 9);
+
             GeoSolid3 duct = new GeoAabb3(new GeoPoint3(40, 40, -10), new GeoPoint3(60, 60, 110)).ToObb().ToSolid();
             GeoSolid3 pierced = cube.WithOpenings(new[] { duct });
 
@@ -829,6 +832,66 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 Assert.True(bar.DistanceTo(vertex) <= 1E-6);
             }
+        }
+
+        [Fact]
+        public void EveryShapeCanBeAsked_EverySampleHolds()
+        {
+            GeoSolid3 slab = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
+
+            var beside = new GeoLine3(new GeoPoint3(200, 50, 50), new GeoPoint3(300, 50, 50));
+            var through = new GeoLine3(new GeoPoint3(-50, 50, 50), new GeoPoint3(150, 50, 50));
+
+            Assert.Equal(100.0, beside.DistanceTo(slab), 6);
+            Assert.Equal(slab.DistanceTo(beside), beside.DistanceTo(slab), 9);
+            Assert.True(through.CollidesWith(slab));
+            Assert.Equal(slab.CollidesWith(through), through.CollidesWith(slab));
+            Assert.Equal(2, through.GetIntersections(slab).Length);
+
+            GeoLine3 away = beside.GetShortestLineTo(slab);
+            GeoLine3 home = slab.GetShortestLineTo(beside);
+
+            Assert.True(away.StartPoint.IsEqualTo(home.EndPoint));
+            Assert.True(away.EndPoint.IsEqualTo(home.StartPoint));
+            Assert.Equal(100.0, away.Length, 6);
+            Assert.Equal(home.Length, away.Length, 9);
+
+            var by = new GeoVector3(11, -23, 37);
+
+            Assert.Equal(slab.Volume, slab.Translate(by).Volume, 6);
+            Assert.True(beside.Translate(by).IsEqualTo(beside.TransformBy(GeoTransform3.Translation(by))));
+            Assert.True(GeoPlane3.XY.Translate(by).Normal.IsParallelTo(GeoPlane3.XY.Normal));
+        }
+
+        [Fact]
+        public void ASegmentOrRayAgainstAFlatShape_EverySampleHolds()
+        {
+            var flat = new GeoTriangle3(
+                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+            var piercing = new GeoLine3(new GeoPoint3(20, 10, -50), new GeoPoint3(20, 10, 50));
+
+            Assert.True(piercing.CollidesWith(flat));
+            Assert.True(flat.CollidesWith(piercing));
+
+            var plate = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0),
+                    new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0)),
+                new[]
+                {
+                    new GeoPolygon3(
+                        new GeoPoint3(40, 40, 0), new GeoPoint3(60, 40, 0),
+                        new GeoPoint3(60, 60, 0), new GeoPoint3(40, 60, 0))
+                });
+
+            Assert.True(new GeoLine3(new GeoPoint3(20, 20, -50), new GeoPoint3(20, 20, 50)).CollidesWith(plate));
+            Assert.False(new GeoLine3(new GeoPoint3(50, 50, -50), new GeoPoint3(50, 50, 50)).CollidesWith(plate));
+
+            GeoAabb3 crate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100));
+
+            Assert.True(new GeoRay3(new GeoPoint3(50, 50, 50), new GeoVector3(1, 0, 0)).CollidesWith(crate));
+            Assert.True(new GeoRay3(new GeoPoint3(-50, 50, 50), new GeoVector3(1, 0, 0)).CollidesWith(crate));
+            Assert.False(new GeoRay3(new GeoPoint3(-50, 50, 50), new GeoVector3(-1, 0, 0)).CollidesWith(crate));
         }
     }
 }

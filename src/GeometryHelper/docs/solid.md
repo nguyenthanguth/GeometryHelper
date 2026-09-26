@@ -233,7 +233,7 @@ slab.DistanceTo(otherSolid);
 
 slab.CollidesWith(line);     slab.CollidesWith(ray);      slab.CollidesWith(polyline);
 slab.CollidesWith(polygon);  slab.CollidesWith(face);     slab.CollidesWith(obb);
-slab.CollidesWith(otherSolid);
+slab.CollidesWith(aabb);     slab.CollidesWith(otherSolid);
 
 slab.GetIntersections(line);   // where it goes in and where it comes out
 slab.GetIntersections(ray);
@@ -283,11 +283,91 @@ are asking for.
 slab.DistanceTo(circle.ToPolylineByChordTolerance(0.1));
 ```
 
+### And every shape can be asked, not only the body
+
+For a long time a body could be asked about a segment and the segment could not be asked about the body.
+That is gone. Every measuring question reads from either side and gives the same answer:
+
+```csharp
+GeoSolid3 slab = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
+
+var beside  = new GeoLine3(new GeoPoint3(200, 50, 50), new GeoPoint3(300, 50, 50));
+var through = new GeoLine3(new GeoPoint3(-50, 50, 50), new GeoPoint3(150, 50, 50));
+
+beside.DistanceTo(slab);                  // 100.0, the same as slab.DistanceTo(beside)
+through.CollidesWith(slab);               // true,  the same as slab.CollidesWith(through)
+through.GetIntersections(slab).Length;    // 2,     in one side and out the other
+```
+
+A joining segment is the one thing that is not simply interchangeable. It **leaves the shape it was asked
+of and lands on the other**, so the two directions are each other reversed:
+
+```csharp
+GeoLine3 away = beside.GetShortestLineTo(slab);   // starts on the segment, ends on the body
+GeoLine3 home = slab.GetShortestLineTo(beside);   // starts on the body, ends on the segment
+
+away.StartPoint.IsEqualTo(home.EndPoint);         // true
+away.Length == home.Length;                       // true, both 100
+```
+
+A point, a segment, a ray, a triangle, a polygon, a face, a plane and either kind of box all take part.
+Every shape in space also moves, which is the translating transformation and nothing more:
+
+```csharp
+var by = new GeoVector3(11, -23, 37);
+
+slab.Translate(by);   beside.Translate(by);   GeoPlane3.XY.Translate(by);
+```
+
+#### A segment or a ray against a flat shape
+
+A segment, a ray and a flat region have no thickness between them, so there is nothing to overlap in: they
+touch exactly where they cross.
+
+```csharp
+var flat = new GeoTriangle3(
+    new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+var piercing = new GeoLine3(new GeoPoint3(20, 10, -50), new GeoPoint3(20, 10, 50));
+
+piercing.CollidesWith(flat);   // true
+flat.CollidesWith(piercing);   // true
+```
+
+A `GeoFace3` is material with holes in it, so a run down the middle of a hole touches nothing at all:
+
+```csharp
+var plate = new GeoFace3(
+    new GeoPolygon3(
+        new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0),
+        new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0)),
+    new[]
+    {
+        new GeoPolygon3(
+            new GeoPoint3(40, 40, 0), new GeoPoint3(60, 40, 0),
+            new GeoPoint3(60, 60, 0), new GeoPoint3(40, 60, 0))
+    });
+
+new GeoLine3(new GeoPoint3(20, 20, -50), new GeoPoint3(20, 20, 50)).CollidesWith(plate);   // true
+new GeoLine3(new GeoPoint3(50, 50, -50), new GeoPoint3(50, 50, 50)).CollidesWith(plate);   // false
+```
+
+A ray is a half-line, so where it starts decides as much as where it points. One starting inside a box
+touches it without entering anywhere:
+
+```csharp
+GeoAabb3 crate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100));
+
+new GeoRay3(new GeoPoint3(50, 50, 50), new GeoVector3(1, 0, 0)).CollidesWith(crate);    // true, inside it
+new GeoRay3(new GeoPoint3(-50, 50, 50), new GeoVector3(1, 0, 0)).CollidesWith(crate);   // true, into it
+new GeoRay3(new GeoPoint3(-50, 50, 50), new GeoVector3(-1, 0, 0)).CollidesWith(crate);  // false, away
+```
+
 ### How deep inside, not just whether
 
 `DistanceTo` reads a body as solid through, so a point anywhere inside one is nought away and how far in it
 sits cannot be got back out of the answer. `SignedDistanceTo` keeps it, for the three shapes that enclose a
-volume: `GeoSolid3`, `GeoObb3` and `GeoAabb3`.
+volume — `GeoSolid3`, `GeoObb3` and `GeoAabb3` — and by a `GeoPoint3`, which asks the same thing from the
+other side.
 
 ```csharp
 GeoAabb3 box = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100));
@@ -298,6 +378,8 @@ cube.SignedDistanceTo(new GeoPoint3(50, 50, 50));   // -50.0  — fifty in from 
 cube.SignedDistanceTo(new GeoPoint3(50, 50, 10));   // -10.0
 cube.SignedDistanceTo(new GeoPoint3(50, 50, -20));  //  20.0  — outside
 box.SignedDistanceTo(new GeoPoint3(50, 50, 50));    // -50.0  — either kind of box answers too
+
+new GeoPoint3(50, 50, 50).SignedDistanceTo(cube);   // -50.0  — and so does the point
 ```
 
 The definition is tied to `Locate`: negative where it answers `Inside`, nought where it answers `OnSide`,

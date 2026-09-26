@@ -80,6 +80,59 @@ poly.GetShortestLineTo(arc);    rect.CollidesWith(slot);
 rect.GetIntersections(arc);     slot.GetClosestEdge(circle);
 ```
 
+#### A face is material, and a hole is not
+
+A `GeoFace2` is a region with holes in it, so touching one means reaching its **material**. Its boundary is
+the outline together with the rim of every hole, and a probe lying wholly inside a hole reaches nothing —
+even though it is inside the outline:
+
+```csharp
+var outline = new GeoPolygon2(
+    new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
+var cut = new GeoPolygon2(
+    new GeoPoint2(80, 80), new GeoPoint2(120, 80), new GeoPoint2(120, 120), new GeoPoint2(80, 120));
+
+var plate = new GeoFace2(outline, new[] { cut });
+var inHole = new GeoLine2(new GeoPoint2(90, 90), new GeoPoint2(110, 110));
+
+plate.Boundary.CollidesWith(inHole);   // true  — it is inside the outline
+plate.CollidesWith(inHole);            // false — but over a hole, so it touches no material
+
+var right = new GeoLine2(new GeoPoint2(-50, 100), new GeoPoint2(250, 100));
+
+plate.GetIntersections(right).Length;  // 4 — the two sides and the two rims
+```
+
+A ring drawn *around* a hole has its centre in that hole and crosses no rim either, and it does reach the
+material. The two cases look identical until the rim is asked whether it falls within the probe:
+
+```csharp
+plate.CollidesWith(new GeoCircle2(new GeoPoint2(100, 100), 60));   // true  — it encircles the hole
+plate.CollidesWith(new GeoCircle2(new GeoPoint2(100, 100), 10));   // false — it lies in the hole
+```
+
+#### An edge is a segment or an arc
+
+A `GeoEdge2` is a chord with a bulge, so it is one or the other, and it is read as whichever it is — in both
+directions, and for every operation the segment and the arc both answer:
+
+```csharp
+var bend = new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), 1.0);   // a half turn
+
+bend.DistanceTo(poly);     poly.DistanceTo(bend);
+bend.CollidesWith(rect);   rect.CollidesWith(bend);
+bend.GetIntersections(circle);
+```
+
+A straight edge answers exactly what its segment answers, and a curved one exactly what its arc answers:
+
+```csharp
+var flat = new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0));
+
+flat.DistanceTo(poly) == flat.ToLine().DistanceTo(poly);   // true
+bend.DistanceTo(poly) == bend.ToArc().DistanceTo(poly);    // true
+```
+
 ### The nearest thing, and the segment to it
 
 Three questions sound alike and are not. Each has its own name, and the return type tells them apart:
@@ -114,6 +167,15 @@ plate.GetShortestLineTo(hole).Length;   // 40.0 — out to the nearest side
 many-edged shape to another is really a *pair* of edges, which is a different answer from the one the name
 promises, so it is not offered.
 
+That rule is about the **probe**, not about which of the two makes the call. A point can be asked which edge
+of a polygon faces it, and gets the same edge the polygon names:
+
+```csharp
+var below = new GeoPoint2(50, -50);
+
+below.GetClosestEdge(poly);   // the same side poly.GetClosestEdge(below) returns
+```
+
 Every edge is weighed on its own, so a probe inside a closed shape still names the edge nearest it rather
 than reporting nothing, and where two edges are equally near the earlier one in the shape's own order wins.
 
@@ -145,7 +207,13 @@ the rest. Inside the tolerance band around the boundary the sign is not worth re
 there is nought either way and which side of nought it lands on turns on rounding.
 
 Offered by every shape that encloses an area — `GeoCircle2`, `GeoRectangle2`, `GeoPolygon2`, `GeoFace2` and
-`GeoPolygonArc2`. A curved loop is measured on its arcs, and an arc counts only where it actually reaches:
+`GeoPolygonArc2` — and by a `GeoPoint2`, which asks the same question from the other side:
+
+```csharp
+new GeoPoint2(50, 50).SignedDistanceTo(plate);   // -50.0, the same answer plate gives about the point
+```
+
+A curved loop is measured on its arcs, and an arc counts only where it actually reaches:
 
 ```csharp
 var slot = new GeoPolygonArc2(

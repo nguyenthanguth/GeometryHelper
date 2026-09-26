@@ -971,6 +971,68 @@ namespace GeometryHelper.UnitTest.Plane
             var tooNear = new GeoPoint2(20, 50);
 
             Assert.False(Math.Abs(plate.SignedDistanceTo(tooNear)) >= 40.0 && plate.SignedDistanceTo(tooNear) < 0.0);
+
+            // A point asks the same question from the other side.
+            Assert.Equal(-50.0, new GeoPoint2(50, 50).SignedDistanceTo(plate), 9);
+            Assert.Equal(plate.SignedDistanceTo(new GeoPoint2(50, 50)), new GeoPoint2(50, 50).SignedDistanceTo(plate), 9);
+        }
+
+        [Fact]
+        public void AFaceIsMaterialAndAHoleIsNot_EverySampleHolds()
+        {
+            var outline = new GeoPolygon2(
+                new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
+            var cut = new GeoPolygon2(
+                new GeoPoint2(80, 80), new GeoPoint2(120, 80), new GeoPoint2(120, 120), new GeoPoint2(80, 120));
+
+            var plate = new GeoFace2(outline, new[] { cut });
+            var inHole = new GeoLine2(new GeoPoint2(90, 90), new GeoPoint2(110, 110));
+
+            Assert.True(plate.Boundary.CollidesWith(inHole));
+            Assert.False(plate.CollidesWith(inHole));
+
+            var right = new GeoLine2(new GeoPoint2(-50, 100), new GeoPoint2(250, 100));
+
+            Assert.Equal(4, plate.GetIntersections(right).Length);
+
+            Assert.True(plate.CollidesWith(new GeoCircle2(new GeoPoint2(100, 100), 60)));
+            Assert.False(plate.CollidesWith(new GeoCircle2(new GeoPoint2(100, 100), 10)));
+        }
+
+        [Fact]
+        public void AnEdgeIsASegmentOrAnArc_EverySampleHolds()
+        {
+            var poly = new GeoPolygon2(
+                new GeoPoint2(300, -50), new GeoPoint2(400, -50), new GeoPoint2(400, 50), new GeoPoint2(300, 50));
+            var rect = new GeoRectangle2(new GeoPoint2(350, 0), 100, 100);
+            var circle = new GeoCircle2(new GeoPoint2(50, 0), 80);
+
+            var bend = new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), 1.0);
+            var flat = new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0));
+
+            // Both ways round, for everything the segment and the arc both answer.
+            Assert.Equal(bend.DistanceTo(poly), poly.DistanceTo(bend), 9);
+            Assert.Equal(bend.CollidesWith(rect), rect.CollidesWith(bend));
+            Assert.Equal(bend.GetIntersections(circle).Length, circle.GetIntersections(bend).Length);
+
+            // And each answers exactly what the shape it stands for answers.
+            Assert.Equal(flat.ToLine().DistanceTo(poly), flat.DistanceTo(poly), 9);
+            Assert.Equal(bend.ToArc().DistanceTo(poly), bend.DistanceTo(poly), 9);
+        }
+
+        [Fact]
+        public void APointCanBeAskedWhichEdgeFacesIt_EverySampleHolds()
+        {
+            var poly = new GeoPolygon2(
+                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+
+            var below = new GeoPoint2(50, -50);
+
+            Assert.True(below.GetClosestEdge(poly).IsEqualTo(poly.GetClosestEdge(below)));
+
+            // It is the bottom side, which is the one facing the point.
+            Assert.Equal(0.0, below.GetClosestEdge(poly).StartPoint.Y, 9);
+            Assert.Equal(0.0, below.GetClosestEdge(poly).EndPoint.Y, 9);
         }
     }
 }
