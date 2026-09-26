@@ -442,5 +442,124 @@ namespace GeometryHelper.Geometry
         /// Returns a string that represents the current box.
         /// </summary>
         public override string ToString() => $"Box3(Center: {Center}, Size: ({SizeX:0.###}, {SizeY:0.###}, {SizeZ:0.###}))";
+
+        #region Combining with a body
+
+        /// <summary>
+        /// Joins this box to another box.
+        /// </summary>
+        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box.</remarks>
+        public bool TryUnion(GeoObb3 other, out GeoSolid3 result) => TryUnion(other, out result, Tolerance.Global);
+
+        /// <summary>
+        /// Joins this box to another box, within a tolerance.
+        /// </summary>
+        /// <param name="other">The other box.</param>
+        /// <param name="result">The body the two make, or nothing where they make none.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the two made a body; otherwise, false.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the other box is null.</exception>
+        public bool TryUnion(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance)
+            => Boolean3.TryUnion(ToSolid(), AsBody(other, nameof(other)), out result, tolerance);
+
+        /// <summary>
+        /// Joins this box to a body.
+        /// </summary>
+        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box.</remarks>
+        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result) => TryUnion(other, out result, Tolerance.Global);
+
+        /// <summary>
+        /// Joins this box to a body, within a tolerance.
+        /// </summary>
+        /// <param name="other">The body.</param>
+        /// <param name="result">The body the two make, or nothing where they make none.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the two made a body; otherwise, false.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
+        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance)
+            => Boolean3.TryUnion(ToSolid(), other, out result, tolerance);
+
+        /// <summary>
+        /// Keeps what this box and another box both enclose.
+        /// </summary>
+        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box.</remarks>
+        public bool TryIntersect(GeoObb3 other, out GeoSolid3 result) => TryIntersect(other, out result, Tolerance.Global);
+
+        /// <summary>
+        /// Keeps what this box and another box both enclose, within a tolerance.
+        /// </summary>
+        /// <param name="other">The other box.</param>
+        /// <param name="result">The body the two make, or nothing where they make none.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the two made a body; otherwise, false.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the other box is null.</exception>
+        public bool TryIntersect(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance)
+            => Boolean3.TryIntersect(ToSolid(), AsBody(other, nameof(other)), out result, tolerance);
+
+        /// <summary>
+        /// Keeps what this box and a body both enclose.
+        /// </summary>
+        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box.</remarks>
+        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result) => TryIntersect(other, out result, Tolerance.Global);
+
+        /// <summary>
+        /// Keeps what this box and a body both enclose, within a tolerance.
+        /// </summary>
+        /// <param name="other">The body.</param>
+        /// <param name="result">The body the two make, or nothing where they make none.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the two made a body; otherwise, false.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
+        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance)
+            => Boolean3.TryIntersect(ToSolid(), other, out result, tolerance);
+
+        /// <summary>
+        /// Takes another box out of this box.
+        /// </summary>
+        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box.</remarks>
+        public bool TrySubtract(GeoObb3 tool, out GeoSolid3 result) => TrySubtract(tool, out result, Tolerance.Global);
+
+        /// <summary>
+        /// Takes another box out of this box, within a tolerance.
+        /// </summary>
+        /// <param name="tool">The other box.</param>
+        /// <param name="result">The body the two make, or nothing where they make none.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the two made a body; otherwise, false.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the other box is null.</exception>
+        public bool TrySubtract(GeoObb3 tool, out GeoSolid3 result, Tolerance tolerance)
+            => Boolean3.TrySubtract(ToSolid(), AsBody(tool, nameof(tool)), out result, tolerance);
+
+        /// <summary>
+        /// Takes a body out of this box.
+        /// </summary>
+        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box.</remarks>
+        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result) => TrySubtract(tool, out result, Tolerance.Global);
+
+        /// <summary>
+        /// Takes a body out of this box, within a tolerance.
+        /// </summary>
+        /// <param name="tool">The body.</param>
+        /// <param name="result">The body the two make, or nothing where they make none.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the two made a body; otherwise, false.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
+        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance)
+            => Boolean3.TrySubtract(ToSolid(), tool, out result, tolerance);
+
+        /// <summary>
+        /// Reads a box as the body it bounds, complaining in the caller's own words when it is null.
+        /// </summary>
+        private static GeoSolid3 AsBody(GeoObb3 box, string name)
+        {
+            if (box == null)
+            {
+                throw new ArgumentNullException(name);
+            }
+
+            return box.ToSolid();
+        }
+
+        #endregion
     }
 }

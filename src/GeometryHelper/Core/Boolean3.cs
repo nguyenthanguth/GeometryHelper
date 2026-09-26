@@ -43,7 +43,7 @@ namespace GeometryHelper.Core
     /// the exception — nothing is cut there, and each keeps the openings it came with.
     /// </para>
     /// </summary>
-    public static class Boolean3
+    public static partial class Boolean3
     {
         /// <summary>
         /// Joins two solids into one, using the default tolerance.

@@ -31,6 +31,11 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether a plane is the plane this loop lies in.
         /// </summary>
+        public bool SharesPlaneWith(GeoPlane3 other) => SharesPlaneWith(other, Tolerance.Global);
+
+        /// <summary>
+        /// Determines whether a plane is the plane this loop lies in, within a tolerance.
+        /// </summary>
         /// <param name="other">The plane.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the two are the same plane, so that work in the loop's frame is exact.</returns>
