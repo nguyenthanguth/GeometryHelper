@@ -38,8 +38,10 @@ rather than typing.
 
 ## 3. Space is far behind the plane
 
-The plane is complete: every shape answers about every other, both ways round. Space is not, and the gap is
-widest exactly where a reinforcing bar lives. `GeoArc3`, `GeoCircle3`, `GeoEdge3`, `GeoPolygonArc3` and
+For **measuring** — distance, clearance, nearest point, touching, crossing — the plane is complete: every
+shape answers about every other, both ways round. That is the only family anyone has audited; section 4 is
+about the ones nobody has. Space is not complete even for measuring, and the gap is widest exactly where a
+reinforcing bar lives. `GeoArc3`, `GeoCircle3`, `GeoEdge3`, `GeoPolygonArc3` and
 `GeoPolylineArc3` have, between them, **no crossings, no collisions, no joining segment and no cutting at
 all**. They answer about a point, they move, an arc, a circle and a closed loop can be offset, and a chain
 can be filleted. That is the whole of it.
@@ -106,7 +108,30 @@ measuring that are there, and the crossing and joining that are not.
 3. **Arc and circle crossings** (3.2), beginning with the plane case, because everything else leans on it.
 4. **The straight gaps** (3.4), which are ordinary wiring once the pairs exist in `Core`.
 
-## 4. What needs a machine with Tekla
+## 4. Whole families nobody has audited
+
+Every matrix drawn so far covered **measuring only**: `DistanceTo`, `SignedDistanceTo`, `GetShortestLineTo`,
+`GetClosestPointOnBoundary`, `GetClosestEdge`, `CollidesWith`, `GetIntersections`, `TryIntersectWith`. The
+operations that *change* geometry were never laid out against the types at all, and a first count of them
+turns up more than the measuring audit did.
+
+| Family | Where it stands |
+|---|---|
+| **Merging** | `Core.Merge2` holds four methods and `Core.Merge3` seven, and **no type exposes either**. Joining a bag of segments into chains is bread-and-butter work and is reachable only through `Core`. `Merge2`'s methods also all demand an explicit `Tolerance` with no default-tolerance twin, unlike everything else in the library. |
+| **Splitting** | `GeoPolygon2` and `GeoFace2` **cannot be cut at all**, though `GeoPolygon3` and `GeoFace3` can. `Core.Splition2` has no pair for either. Here the plane is behind space, the reverse of everywhere else. |
+| **Booleans** | `GeoPolygon2`, `GeoFace2`, `GeoPolygonArc2`, `GeoSolid3` and `GeoAabb3` have them. `GeoObb3`, `GeoFace3` and `GeoPolygon3` do not — and the last two are a coplanar lift away, the same lift as 3.1. |
+| **Extending and trimming** | Only `GeoLine2` and `GeoLine3`, which have thirty-two methods apiece. **No arc, no polyline, no chain can be extended or trimmed to meet anything.** It would not start from nothing: `Core.CurveMeet2`, internal, already works out where the endless line behind a segment and the whole circle behind an arc cross, which is the part of trimming that is not bookkeeping. |
+| **Filleting** | `GeoPolygon3` has none, though `GeoPolyline3` does and both are chains of straight legs. |
+| **Offsetting** | `GeoPolyline3`, `GeoPolylineArc3`, `GeoObb3` and `GeoAabb3` have none. Growing a box by a distance is a one-line answer. |
+
+Before doing any of it, **draw the matrix for that family first**, the way section *Checking the surface*
+describes. The measuring audit found roughly a hundred and fifty directions once it was written down, and
+none of them were visible before.
+
+`GeometryHelper.Spatial` — `GeoBvh2` and `GeoBvh3` — is a standalone index that no shape type points at.
+Whether it should stay that way is a decision nobody has taken.
+
+## 5. What needs a machine with Tekla
 
 `GeometryHelper.TeklaConvert` compiles against 2020, 2025 and 2026, and everything but the read itself is
 covered by tests that run without Tekla. What cannot be checked here:
