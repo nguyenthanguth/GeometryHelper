@@ -19,9 +19,9 @@ the release body.
 Do not use *Run workflow* on that workflow to try it out. It has no dry run, and the two push steps are not
 guarded by the event type, so a manual run publishes to nuget.org and GitHub Packages for real.
 
-## 2. Arcs in space: what is done, and what is left
+## 2. Arcs in space: done, with three small pieces left
 
-Phases one to four of the plan are done. `Core.Arc3` answers for a plane, a segment, a ray, another arc, a
+All five phases are done. `Core.Arc3` answers for a plane, a segment, a ray, another arc, a
 circle, a triangle, a polygon, a face, either kind of box and a body — and none of it is sampled, because an
 arc lies in a plane and every flat-faced shape is made of planes. Two readings carry all of it: coplanar goes
 to the radical line of the two circles, and not coplanar goes to the line where the two planes meet. A line
@@ -35,12 +35,20 @@ arcs rather than polylines.
 
 ### What is left here
 
+All five phases are done. `GeoPolygonArc3` works in its own plane — booleans against a coplanar loop or
+polygon, `Chamfer`, `TryFilletAt`, `TryChamferAt`, `SignedDistanceTo` — and both a chain and a closed loop can
+be cut, by a point, a distance, a plane, a face or a body.
+
 | Piece | Note |
 |---|---|
-| **Phase 5: the coplanar lift for `GeoPolygonArc3`** | Needs only `GeoPolygonArc2`, which is complete. **Blocked on one decision**: what a probe that does *not* lie in the loop's plane should do. Refusing is honest, projecting it is convenient and quietly wrong, sampling is neither. No precedent in the library. |
-| Cutting a closed loop | `GeoPolygonArc3` has the crossings but no `TrySplitBy`. Cutting a loop gives open chains and the first and last runs have to be joined, since the loop wraps. |
-| Cutting by a box or an array of cutters | `GeoPolyline3` has those; the curved chain has point, distance, plane, face and body. Same shape of code. |
-| `GeoPolylineArc3` against another chain | Not offered either way. The union-over-edges reading extends to it, but every edge pair is an arc against an arc, so it is quadratic in the edge counts and wants thinking about first. |
+| Cutting by a box, or by an array of cutters | `GeoPolyline3` has those; the curved chain has point, distance, plane, face and body. Same shape of code. |
+| A chain against another chain | Not offered either way. The union-over-edges reading extends to it, but every edge pair is an arc against an arc, so it is quadratic in the edge counts and wants thinking about first. |
+| `GetShortestLineTo` and `GetClosestEdge` on a loop | Coplanar only, so the same refusal applies. `GetClosestEdge` of a *point* needs no coplanarity at all and is the easier half. |
+
+**The decision that was blocking phase five is taken: a second shape has to lie in the loop's plane, and is
+refused where it does not**, with an `ArgumentException`. Projecting it in would report two stirrups a hundred
+apart as overlapping and say nothing about it; the library already refuses in three comparable places, and
+refusing is the reversible direction. `SharesPlaneWith` is public, so a caller can ask before it asks.
 
 ### What stays refused
 
