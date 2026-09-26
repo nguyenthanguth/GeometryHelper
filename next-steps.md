@@ -117,6 +117,15 @@ boolean**, and reading them as neither made three closed cells look blank.
 | **Offsetting** | `GeoPolylineArc3.OffsetInPlane` moves a bent bar to another cover without straightening it. `GeoObb3.TryExpand` gives the oriented box the margin the square one had. |
 | **Merging** | Done earlier: `Core.Merge2` gained its default-tolerance twins and both merge classes are reachable through `MergeExtension` and `GeoSolid3.MergeCoplanarFaces`. |
 
+### Drawing it per family found three more
+
+Counting per *family* rather than per *pair* showed three gaps the earlier readings had not: a straight chain
+in space could be measured against nine shapes and asked whether it touched three; `GeoFace2` and
+`GeoRectangle2` had `GetIntersections` and no `TryIntersectWith`; and `Locate` was missing wherever a shape had
+`IsPointOn` without it. All three are closed. The lesson is the reading, not the gaps: **count how many
+distinct shapes a type can be asked about, per family, and compare a type against its own twin in the other
+dimension.** `…/scratchpad/matrix_all.py` does exactly that and prints both tables.
+
 ### What the matrix still shows blank, and why that is right
 
 - `GeoRectangle2`, `GeoTriangle3`, `GeoAabb3` and `GeoObb3` are each **one conversion away** from the family
@@ -128,6 +137,11 @@ boolean**, and reading them as neither made three closed cells look blank.
 - A **circle** cannot be lengthened or cut: it is already a whole turn, and cutting it gives arcs, which the
   plane does not offer either. The two agree, which is the test.
 - **`GeoPolyline*` has no booleans.** A chain is not an area.
+- **`GeoPlane3` has no `Locate`**, on purpose: `GetSide` answers `Above`, `Below` or `On`, which is strictly
+  more than `Locate` could say. And a **point** keeps `IsPointOn` without `Locate`, because there the point is
+  the one asking about a shape, not the shape being asked about a point.
+- **The open curves have no `Contains`.** They enclose nothing, so it would be `IsPointOn` under a name that
+  promises an interior.
 
 `GeometryHelper.Spatial` — `GeoBvh2` and `GeoBvh3` — is a standalone index that no shape type points at.
 Whether it should stay that way is a decision nobody has taken, and it is the one open question left here.

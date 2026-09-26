@@ -242,6 +242,23 @@
         the same shape of call. GeoLine3 keeps its single-point TryIntersectWith and gains no array twin,
         because a second one differing only in the shape of its out would make every existing call ambiguous.
 
+      ALSO NEW. Three more the matrix showed once it was drawn per family rather than per pair.
+
+      - A STRAIGHT CHAIN IN SPACE could say how far off nine kinds of shape were and whether it touched
+        three. It now answers CollidesWith, GetIntersections and TryIntersectWith about a plane, a segment,
+        a ray, an arc, a circle, a triangle, a polygon, a face, either kind of box, a body, and another
+        chain. A chain is a run of segments and a GeoLine3 already answered all of it, so each answer is
+        the union over the segments with a crossing at a shared vertex named once. Chain against chain
+        drops a segment pair whose boxes cannot reach each other before doing any arithmetic.
+      - A FACE AND A RECTANGLE in the plane had GetIntersections against nine and ten shapes and no
+        TryIntersectWith at all. Both now have the twin, for every shape they can be crossed with.
+      - LOCATE wherever a shape had IsPointOn without it: GeoLine3, GeoPolyline3 and GeoRay3, whose plane
+        twins have had it all along, and GeoEdge2, which had neither although GeoEdge3 has both. An open
+        shape encloses nothing, so the answer is only ever OnSide or OutSide, never Inside -- not even for
+        a chain whose ends happen to meet. GeoPlane3 deliberately keeps GetSide instead: Above, Below or On
+        is more than Locate could say. A point keeps IsPointOn alone, because there the point is the one
+        asking.
+
       Nothing above changed an answer that was already being given.
 
       NEW IN 5.1.0
