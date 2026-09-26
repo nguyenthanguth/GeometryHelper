@@ -427,7 +427,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Throws<ArgumentException>(() => flat.OffsetInPlane(1.0, GeoVector3.XAxis));
             Assert.Throws<ArgumentException>(() => flat.OffsetInPlane(1.0, GeoVector3.Zero));
             Assert.Throws<ArgumentException>(() => new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)).OffsetInPlane(1.0, GeoVector3.XAxis));
-            Assert.Throws<ArgumentNullException>(() => Offset3.OffsetInPlane(null, 1.0, GeoVector3.ZAxis));
+            Assert.Throws<ArgumentNullException>(() => Offset3.OffsetInPlane((GeoPolyline3)null, 1.0, GeoVector3.ZAxis));
         }
 
         [Fact]

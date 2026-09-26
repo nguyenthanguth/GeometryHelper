@@ -19,7 +19,7 @@ namespace GeometryHelper.Core
     /// normal points to, a positive distance moves a curve to the left of its direction of travel.
     /// </para>
     /// </summary>
-    public static class Offset3
+    public static partial class Offset3
     {
         #region Line
 

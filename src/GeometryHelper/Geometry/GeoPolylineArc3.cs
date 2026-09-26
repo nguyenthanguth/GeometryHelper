@@ -531,6 +531,54 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolylineArc3 result, Tolerance tolerance)
             => Corner3.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
+        #region Offsetting
+
+        /// <summary>
+        /// Gets the curve parallel to this chain at a distance to its left within its plane.
+        /// </summary>
+        /// <remarks>
+        /// The chain has to lie in one plane, and that plane is taken from its arcs rather than from its
+        /// vertices, because any three vertices are flat. An arc comes back as an arc with its radius moved by
+        /// the distance, so a bar set out at one cover can be moved to another without being straightened.
+        /// </remarks>
+        public GeoPolylineArc3[] OffsetInPlane(double distance, GeoVector3 planeNormal)
+            => Offset3.OffsetInPlane(this, distance, planeNormal);
+
+        /// <summary>
+        /// Gets the curve parallel to this chain at a distance to its left within its plane, within a tolerance.
+        /// </summary>
+        public GeoPolylineArc3[] OffsetInPlane(double distance, GeoVector3 planeNormal, Tolerance tolerance)
+            => Offset3.OffsetInPlane(this, distance, planeNormal, tolerance);
+
+        /// <summary>
+        /// Gets the curve parallel to this chain at a distance to its left within its plane, with the given shape
+        /// of corner.
+        /// </summary>
+        public GeoPolylineArc3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetJoin join)
+            => Offset3.OffsetInPlane(this, distance, planeNormal, join);
+
+        /// <summary>
+        /// Gets the curve parallel to this chain at a distance to its left within its plane, with the given shape
+        /// of corner, within a tolerance.
+        /// </summary>
+        public GeoPolylineArc3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetJoin join, Tolerance tolerance)
+            => Offset3.OffsetInPlane(this, distance, planeNormal, join, tolerance);
+
+        /// <summary>
+        /// Gets the curve parallel to this chain at a distance to its left within its plane, as the options say.
+        /// </summary>
+        public GeoPolylineArc3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetOptions options)
+            => Offset3.OffsetInPlane(this, distance, planeNormal, options);
+
+        /// <summary>
+        /// Gets the curve parallel to this chain at a distance to its left within its plane, as the options say,
+        /// within a tolerance. A negative distance goes to the right.
+        /// </summary>
+        public GeoPolylineArc3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetOptions options, Tolerance tolerance)
+            => Offset3.OffsetInPlane(this, distance, planeNormal, options, tolerance);
+
+        #endregion
+
 
 
         /// <summary>
