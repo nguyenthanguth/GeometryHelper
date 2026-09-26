@@ -614,6 +614,40 @@ namespace GeometryHelper.Geometry
         /// <returns>true if the corner had room for the cut; otherwise, false.</returns>
         public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygon2 result, Tolerance tolerance) => Corner2.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
         /// <summary>
+        /// Rounds every corner of the loop by the same radius.
+        /// </summary>
+        /// <remarks>
+        /// A rounded corner is an arc, so the answer is a <see cref="GeoPolygonArc2"/>: a <see cref="GeoPolygon2"/> cannot hold it.
+        /// </remarks>
+        public GeoPolygonArc2 Fillet(double radius) => Corner2.Fillet(this, radius);
+
+        /// <summary>
+        /// Rounds every corner of the loop by the same radius, within a tolerance.
+        /// </summary>
+        public GeoPolygonArc2 Fillet(double radius, Tolerance tolerance) => Corner2.Fillet(this, radius, tolerance);
+
+        /// <summary>
+        /// Rounds the corners of the loop, one radius each.
+        /// </summary>
+        public GeoPolygonArc2 Fillet(System.Collections.Generic.IReadOnlyList<double> radii) => Corner2.Fillet(this, radii);
+
+        /// <summary>
+        /// Rounds the corners of the loop, one radius each, within a tolerance.
+        /// </summary>
+        public GeoPolygonArc2 Fillet(System.Collections.Generic.IReadOnlyList<double> radii, Tolerance tolerance) => Corner2.Fillet(this, radii, tolerance);
+
+        /// <summary>
+        /// Rounds one corner of the loop; every vertex of a loop is a corner.
+        /// </summary>
+        public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result) => Corner2.TryFilletAt(this, index, radius, out result);
+
+        /// <summary>
+        /// Rounds one corner of the loop within a tolerance; every vertex of a loop is a corner.
+        /// </summary>
+        public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance)
+            => Corner2.TryFilletAt(this, index, radius, out result, tolerance);
+
+        /// <summary>
         /// Gets the polygon running the other way round.
         /// </summary>
         /// <returns>The same shape, walked in the other direction.</returns>

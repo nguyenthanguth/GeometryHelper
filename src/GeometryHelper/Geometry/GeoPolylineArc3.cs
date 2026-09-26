@@ -497,6 +497,41 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TryFilletAt(int index, double radius, out GeoPolylineArc3 result, Tolerance tolerance)
             => Corner3.TryFilletAt(this, index, radius, out result, tolerance);
+        /// <summary>
+        /// Cuts every corner of the chain back by the same distance.
+        /// </summary>
+        /// <remarks>Only a corner between two straight legs is cut. A leg that curves leaves at a tangent, so cutting the corner off it would move the cut onto the arc and change its radius.</remarks>
+        public GeoPolylineArc3 Chamfer(double distance) => Corner3.Chamfer(this, distance);
+
+        /// <summary>
+        /// Cuts every corner of the chain back by the same distance, within a tolerance.
+        /// </summary>
+        public GeoPolylineArc3 Chamfer(double distance, Tolerance tolerance) => Corner3.Chamfer(this, distance, tolerance);
+
+        /// <summary>
+        /// Cuts every corner of the chain back, by one distance along the way in and another along the way out.
+        /// </summary>
+        public GeoPolylineArc3 Chamfer(double distance1, double distance2) => Corner3.Chamfer(this, distance1, distance2);
+
+        /// <summary>
+        /// Cuts every corner of the chain back, by one distance along the way in and another along the way out,
+        /// within a tolerance.
+        /// </summary>
+        public GeoPolylineArc3 Chamfer(double distance1, double distance2, Tolerance tolerance)
+            => Corner3.Chamfer(this, distance1, distance2, tolerance);
+
+        /// <summary>
+        /// Cuts one corner of the chain back; the two ends of a chain are not corners.
+        /// </summary>
+        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolylineArc3 result)
+            => Corner3.TryChamferAt(this, index, distance1, distance2, out result);
+
+        /// <summary>
+        /// Cuts one corner of the chain back within a tolerance; the two ends of a chain are not corners.
+        /// </summary>
+        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolylineArc3 result, Tolerance tolerance)
+            => Corner3.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
+
 
         /// <summary>
         /// Gets the chain walked the other way, drawing the same curve.

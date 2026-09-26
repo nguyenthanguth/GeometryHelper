@@ -645,5 +645,39 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>true if the corner had room for the cut; otherwise, false.</returns>
         public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolyline2 result, Tolerance tolerance) => Corner2.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
+        /// <summary>
+        /// Rounds every corner of the chain by the same radius.
+        /// </summary>
+        /// <remarks>
+        /// A rounded corner is an arc, so the answer is a <see cref="GeoPolylineArc2"/>: a <see cref="GeoPolyline2"/> cannot hold it.
+        /// </remarks>
+        public GeoPolylineArc2 Fillet(double radius) => Corner2.Fillet(this, radius);
+
+        /// <summary>
+        /// Rounds every corner of the chain by the same radius, within a tolerance.
+        /// </summary>
+        public GeoPolylineArc2 Fillet(double radius, Tolerance tolerance) => Corner2.Fillet(this, radius, tolerance);
+
+        /// <summary>
+        /// Rounds the corners of the chain, one radius each.
+        /// </summary>
+        public GeoPolylineArc2 Fillet(System.Collections.Generic.IReadOnlyList<double> radii) => Corner2.Fillet(this, radii);
+
+        /// <summary>
+        /// Rounds the corners of the chain, one radius each, within a tolerance.
+        /// </summary>
+        public GeoPolylineArc2 Fillet(System.Collections.Generic.IReadOnlyList<double> radii, Tolerance tolerance) => Corner2.Fillet(this, radii, tolerance);
+
+        /// <summary>
+        /// Rounds one corner of the chain; the two ends of a chain are not corners.
+        /// </summary>
+        public bool TryFilletAt(int index, double radius, out GeoPolylineArc2 result) => Corner2.TryFilletAt(this, index, radius, out result);
+
+        /// <summary>
+        /// Rounds one corner of the chain within a tolerance; the two ends of a chain are not corners.
+        /// </summary>
+        public bool TryFilletAt(int index, double radius, out GeoPolylineArc2 result, Tolerance tolerance)
+            => Corner2.TryFilletAt(this, index, radius, out result, tolerance);
+
     }
 }

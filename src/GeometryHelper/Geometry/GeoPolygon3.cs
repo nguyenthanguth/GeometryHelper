@@ -492,8 +492,81 @@ namespace GeometryHelper.Geometry
 
         #endregion
 
-        #region Offsetting
+        #region Shaping
 
+        /// <summary>
+        /// Rounds every corner of the loop by the same radius.
+        /// </summary>
+        /// <remarks>
+        /// A rounded corner is an arc, so the answer is a <see cref="GeoPolygonArc3"/>: a <see cref="GeoPolygon3"/> cannot hold it.
+        /// </remarks>
+        public GeoPolygonArc3 Fillet(double radius) => Corner3.Fillet(this, radius);
+
+        /// <summary>
+        /// Rounds every corner of the loop by the same radius, within a tolerance.
+        /// </summary>
+        public GeoPolygonArc3 Fillet(double radius, Tolerance tolerance) => Corner3.Fillet(this, radius, tolerance);
+
+        /// <summary>
+        /// Rounds the corners of the loop, one radius each.
+        /// </summary>
+        public GeoPolygonArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii) => Corner3.Fillet(this, radii);
+
+        /// <summary>
+        /// Rounds the corners of the loop, one radius each, within a tolerance.
+        /// </summary>
+        public GeoPolygonArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii, Tolerance tolerance) => Corner3.Fillet(this, radii, tolerance);
+
+        /// <summary>
+        /// Rounds one corner of the loop; every vertex of a loop is a corner.
+        /// </summary>
+        public bool TryFilletAt(int index, double radius, out GeoPolygonArc3 result) => Corner3.TryFilletAt(this, index, radius, out result);
+
+        /// <summary>
+        /// Rounds one corner of the loop within a tolerance; every vertex of a loop is a corner.
+        /// </summary>
+        public bool TryFilletAt(int index, double radius, out GeoPolygonArc3 result, Tolerance tolerance)
+            => Corner3.TryFilletAt(this, index, radius, out result, tolerance);
+
+        /// <summary>
+        /// Cuts every corner of the loop back by the same distance.
+        /// </summary>
+        /// <remarks>A loop is flat, so cutting its corners keeps it flat and the answer is a loop of the same sort.</remarks>
+        public GeoPolygon3 Chamfer(double distance) => Corner3.Chamfer(this, distance);
+
+        /// <summary>
+        /// Cuts every corner of the loop back by the same distance, within a tolerance.
+        /// </summary>
+        public GeoPolygon3 Chamfer(double distance, Tolerance tolerance) => Corner3.Chamfer(this, distance, tolerance);
+
+        /// <summary>
+        /// Cuts every corner of the loop back, by one distance along the way in and another along the way out.
+        /// </summary>
+        public GeoPolygon3 Chamfer(double distance1, double distance2) => Corner3.Chamfer(this, distance1, distance2);
+
+        /// <summary>
+        /// Cuts every corner of the loop back, by one distance along the way in and another along the way out,
+        /// within a tolerance.
+        /// </summary>
+        public GeoPolygon3 Chamfer(double distance1, double distance2, Tolerance tolerance)
+            => Corner3.Chamfer(this, distance1, distance2, tolerance);
+
+        /// <summary>
+        /// Cuts one corner of the loop back; every vertex of a loop is a corner.
+        /// </summary>
+        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygon3 result)
+            => Corner3.TryChamferAt(this, index, distance1, distance2, out result);
+
+        /// <summary>
+        /// Cuts one corner of the loop back within a tolerance; every vertex of a loop is a corner.
+        /// </summary>
+        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygon3 result, Tolerance tolerance)
+            => Corner3.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
+
+
+        #endregion
+
+        #region Offsetting
         /// <summary>
         /// Grows this polygon within its own plane by a distance, or shrinks it when the distance is negative,
         /// with sharp corners, using the default tolerance. See

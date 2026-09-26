@@ -16,7 +16,7 @@ namespace GeometryHelper.Core
     /// corner where two loose segments would meet, rather than cutting one that already exists.
     /// </para>
     /// </summary>
-    public static class Corner2
+    public static partial class Corner2
     {
         #region Public API
 

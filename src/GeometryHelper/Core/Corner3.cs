@@ -25,7 +25,7 @@ namespace GeometryHelper.Core
     /// in; such a corner is left alone rather than answered approximately.
     /// </para>
     /// </remarks>
-    public static class Corner3
+    public static partial class Corner3
     {
         /// <summary>
         /// Rounds every corner of a straight chain by the same radius.
