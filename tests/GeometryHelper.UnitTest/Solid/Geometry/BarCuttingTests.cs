@@ -211,8 +211,8 @@ namespace GeometryHelper.UnitTest.Solid
                 bar.TrySplitBy(slab, out GeoPolylineArc3[] f, out _, global));
             Assert.Equal(e.Length, f.Length);
 
-            Assert.Throws<ArgumentNullException>(() => ArcChain3.TrySplitBy(null, plane, out _));
-            Assert.Throws<ArgumentNullException>(() => ArcChain3.TrySplitAtDistance(null, 1.0, out _));
+            Assert.Throws<ArgumentNullException>(() => ArcChain3.TrySplitBy((GeoPolylineArc3)null, plane, out _));
+            Assert.Throws<ArgumentNullException>(() => ArcChain3.TrySplitAtDistance((GeoPolylineArc3)null, 1.0, out _));
             Assert.Throws<ArgumentNullException>(() => bar.TrySplitBy((GeoSolid3)null, out _, out _));
         }
     }
