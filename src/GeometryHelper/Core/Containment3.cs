@@ -378,14 +378,22 @@ namespace GeometryHelper.Core
         /// <param name="point">The point to locate.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// <see cref="PointLocation.OnSide"/> when the point lies on a face of the solid or on the wall of
-        /// one of its openings, <see cref="PointLocation.Inside"/> when it lies in the material, and
+        /// <see cref="PointLocation.OnSide"/> when the point lies where the material ends — on a face of the
+        /// solid outside every opening, or on the wall of an opening where that wall runs through the body —
+        /// <see cref="PointLocation.Inside"/> when it lies in the material, and
         /// <see cref="PointLocation.OutSide"/> otherwise, openings included.
         /// </returns>
         /// <remarks>
         /// Interior points are found by counting how many faces a ray from the point crosses: an odd count
         /// means it started inside. The answer is only as good as the boundary — an open shell has no
         /// inside and the count means nothing — which is what <see cref="GeoSolid3.IsClosed()"/> is for.
+        /// <para>
+        /// An opening is asked first, because it takes away everything strictly inside it, the body's own
+        /// skin included. A plate's top face is a whole square even where a bolt hole passes through it, so a
+        /// point in the middle of the hole at the level of that face is on a face and in empty space at once,
+        /// and empty space is the answer. The wall of an opening drawn overshooting a face, as a through-hole
+        /// usually is, is boundary only where it runs through the body.
+        /// </para>
         /// </remarks>
         public static PointLocation Locate(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
         {
@@ -400,6 +408,23 @@ namespace GeometryHelper.Core
             if (solid.GetAabb().DistanceTo(point) > tolerance.EqualPoint)
             {
                 return PointLocation.OutSide;
+            }
+
+            // An opening takes away everything strictly inside it, the body's own skin included, so it is asked
+            // before the faces are: a point in the middle of a bolt hole at the level of the plate's top face is
+            // on that face and in the hole at once, and the hole wins.
+            bool onAnOpeningWall = false;
+
+            foreach (GeoSolid3 opening in solid.Openings)
+            {
+                PointLocation inOpening = Locate(opening, point, tolerance);
+
+                if (inOpening == PointLocation.Inside)
+                {
+                    return PointLocation.OutSide;
+                }
+
+                onAnOpeningWall |= inOpening == PointLocation.OnSide;
             }
 
             foreach (GeoFace3 face in solid.Faces)
@@ -418,22 +443,16 @@ namespace GeometryHelper.Core
                 }
             }
 
-            foreach (GeoSolid3 opening in solid.Openings)
+            bool inBody = IsInsideByRayCast(solid, point, tolerance);
+
+            // The wall of an opening is where the material ends only where it runs through the body; a hole
+            // drawn overshooting a face has walls standing out in empty space as well.
+            if (onAnOpeningWall)
             {
-                PointLocation inOpening = Locate(opening, point, tolerance);
-
-                if (inOpening == PointLocation.OnSide)
-                {
-                    return PointLocation.OnSide;
-                }
-
-                if (inOpening == PointLocation.Inside)
-                {
-                    return PointLocation.OutSide;
-                }
+                return inBody ? PointLocation.OnSide : PointLocation.OutSide;
             }
 
-            return IsInsideByRayCast(solid, point, tolerance) ? PointLocation.Inside : PointLocation.OutSide;
+            return inBody ? PointLocation.Inside : PointLocation.OutSide;
         }
 
         /// <summary>

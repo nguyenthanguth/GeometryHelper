@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GeometryHelper;
 using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
@@ -587,8 +588,18 @@ namespace GeometryHelper.Core
         /// Projects a point onto the surface of a solid, within a tolerance.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The answer is always on the boundary, interior points included, because a solid is described
         /// only by its faces and there is nothing else to land on.
+        /// </para>
+        /// <para>
+        /// <b>The boundary is where the material ends, openings included.</b> A body keeps an opening as a
+        /// whole body subtracted from it, so its faces run straight across every hole, and the nearest point
+        /// of a face can sit in the middle of one. The nearest point of the material is then on the rim, which
+        /// is a point of neither the faces nor the opening alone — it only exists once the opening is cut in.
+        /// So the openings within reach are cut in and the answer is taken from what is left; see
+        /// <see cref="ProjectToMaterial(GeoSolid3, GeoPoint3, Tolerance)"/> for which are within reach.
+        /// </para>
         /// </remarks>
         public static GeoPoint3 ProjectToSolid(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
         {
@@ -597,10 +608,74 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            return solid.Openings.Count == 0
+                ? ProjectToFaces(solid.Faces, point, tolerance)
+                : ProjectToMaterial(solid, point, tolerance);
+        }
+
+        /// <summary>
+        /// Projects a point onto the surface of a body with openings, cutting in only the openings that can
+        /// change the answer.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Cutting every opening in for every point would make a plate with twenty bolt holes cost twenty cuts
+        /// per question. An opening farther from the point than the answer found without it cannot change that
+        /// answer: the material within that distance of the point is the same whether it is cut in or not, and
+        /// the answer is the nearest boundary within it. So the openings are taken on in rings — those within
+        /// the distance found so far — until none is left within it.
+        /// </para>
+        /// <para>
+        /// A body whose openings take all of its material has no boundary to land on; the faces are answered
+        /// then, as the only thing the body still describes.
+        /// </para>
+        /// </remarks>
+        internal static GeoPoint3 ProjectToMaterial(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
+        {
+            GeoPoint3 best = ProjectToFaces(solid.Faces, point, tolerance);
+            double reach = point.DistanceTo(best);
+
+            var chosen = new List<GeoSolid3>();
+            bool[] taken = new bool[solid.Openings.Count];
+
+            while (true)
+            {
+                bool widened = false;
+
+                for (int i = 0; i < solid.Openings.Count; i++)
+                {
+                    if (!taken[i] && solid.Openings[i].GetAabb().DistanceTo(point) <= reach + tolerance.EqualPoint)
+                    {
+                        taken[i] = true;
+                        chosen.Add(solid.Openings[i]);
+                        widened = true;
+                    }
+                }
+
+                if (!widened)
+                {
+                    return best;
+                }
+
+                if (!Boolean3.TryCutOpenings(solid, chosen, out GeoSolid3 material, tolerance))
+                {
+                    return ProjectToFaces(solid.Faces, point, tolerance);
+                }
+
+                best = ProjectToFaces(material.Faces, point, tolerance);
+                reach = point.DistanceTo(best);
+            }
+        }
+
+        /// <summary>
+        /// Projects a point onto the nearest of a set of faces, stepping off any hole cut in a face onto its rim.
+        /// </summary>
+        private static GeoPoint3 ProjectToFaces(IReadOnlyList<GeoFace3> faces, GeoPoint3 point, Tolerance tolerance)
+        {
             GeoPoint3 best = point;
             double bestDistanceSquared = double.MaxValue;
 
-            foreach (GeoFace3 face in solid.Faces)
+            foreach (GeoFace3 face in faces)
             {
                 GeoPoint3 candidate = ProjectToPolygon(face.Boundary, point, tolerance);
 

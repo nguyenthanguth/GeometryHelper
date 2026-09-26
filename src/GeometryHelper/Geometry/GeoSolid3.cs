@@ -442,13 +442,15 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="tolerance">The tolerance deciding what counts as a degenerate triangle.</param>
         /// <remarks>
-        /// Every triangle lies within the material of the face it came from, so the mesh describes the
-        /// surface and nothing more: a concave face is followed rather than spanned, and a hole is left
-        /// open. That is what lets clash detection, ray casting and body-to-body distance read this mesh
-        /// as the boundary of the solid.
+        /// Every triangle lies within the material of the face it came from: a concave face is followed rather
+        /// than spanned, and a hole cut in a face is left open.
         /// <para>
-        /// The openings are not meshed. They are whole bodies subtracted from this one rather than part
-        /// of its surface, and each carries its own faces to mesh if that is what is wanted.
+        /// <b>The openings are not meshed, and so this is not the boundary of the material when there are
+        /// any.</b> They are whole bodies subtracted from this one rather than holes in its faces, so a plate
+        /// with a bolt hole meshes its top face as a whole square. Anything that reads the mesh as where the
+        /// material ends — clash detection, ray casting, distance — wants
+        /// <see cref="TriangulateSurface(Tolerance)"/>, which cuts the openings in first. For a body without
+        /// openings the two are the same mesh.
         /// </para>
         /// </remarks>
         public GeoTriangle3[] Triangulate(Tolerance tolerance)
@@ -462,6 +464,62 @@ namespace GeometryHelper.Geometry
 
             return triangles.ToArray();
         }
+
+        /// <summary>
+        /// Meshes the surface of the material, with every opening cut in first.
+        /// </summary>
+        public GeoTriangle3[] TriangulateSurface() => TriangulateSurface(Tolerance.Global);
+
+        /// <summary>
+        /// Meshes the surface of the material, with every opening cut in first, within a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// The triangles of the material's boundary: the outer faces with the parts over each opening taken
+        /// away, and the walls of each opening where they run through the body. Empty when the openings take
+        /// all of the material.
+        /// </returns>
+        /// <remarks>
+        /// This is the mesh to read as where the material ends, as <see cref="GeoFace3.TriangulateSurface()"/>
+        /// is for a face. For a body without openings it is <see cref="Triangulate(Tolerance)"/>; with them,
+        /// it costs cutting the openings in, so a body asked many questions is better cut once with
+        /// <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/> and the result kept.
+        /// </remarks>
+        public GeoTriangle3[] TriangulateSurface(Tolerance tolerance)
+            => Boolean3.TryCutOpenings(this, out GeoSolid3 material, tolerance)
+                ? material.Triangulate(tolerance)
+                : new GeoTriangle3[0];
+
+        /// <summary>
+        /// Cuts every opening into this body, giving one without openings whose faces are the surface of its
+        /// material.
+        /// </summary>
+        public bool TryCutOpenings(out GeoSolid3 material) => Boolean3.TryCutOpenings(this, out material);
+
+        /// <summary>
+        /// Cuts every opening into this body, giving one without openings whose faces are the surface of its
+        /// material, within a tolerance.
+        /// </summary>
+        /// <param name="material">
+        /// The body with its openings cut in, or this body when it has none; null when the method returns false.
+        /// </param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when some material is left; false when the openings take all of it.</returns>
+        /// <remarks>
+        /// <para>
+        /// Every question this library asks of a body takes its openings into account already. Cutting them in
+        /// is for a body that will be asked <b>many</b> questions: the queries that need it do the cutting each
+        /// time, and a caller checking one plate against a hundred bolts is better off cutting the plate once
+        /// and asking the result — the same bargain as <see cref="BuildIndex()"/>, and for the same reason: the
+        /// body is a value, so it keeps no cache of its own.
+        /// </para>
+        /// <para>
+        /// The answer holds the same material, so its <see cref="Volume"/> is what
+        /// <see cref="GetNetVolume()"/> measures — not the cheaper <see cref="NetVolume"/>, which takes every
+        /// opening off whole and so overcounts one drawn poking out past a face, as a through-hole usually is.
+        /// </para>
+        /// </remarks>
+        public bool TryCutOpenings(out GeoSolid3 material, Tolerance tolerance) => Boolean3.TryCutOpenings(this, out material, tolerance);
 
         #endregion
 

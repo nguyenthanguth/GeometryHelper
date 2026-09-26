@@ -37,9 +37,28 @@ and not a hole cut in the face, so a pin through the hole crosses that square an
 
 For a clash check between Tekla parts this means **every bolted connection is reported as a clash.**
 
+### Found on the way, and fixed first
+
+Writing the tests for A1 turned up three more, each older than this work and each in the way of it.
+
+- **The booleans judged a cell in two pieces by one point.** A plane lying along the wall of a hole does not
+  cut the strip either side of it, so that strip came out as one cell in two pieces and a single point
+  decided for both. Subtracting a box overlapping an existing hole threw away material nowhere near the box —
+  168 000 where it is 180 000 — and `GetNetVolume` inherited it. `Core.Shells3` now separates every cell into
+  the pieces that do not touch before it is judged. **Done**, `a0f2563`. It is also the heart of B.
+- **`Locate` asked the faces before the openings**, so a point in the middle of a bolt hole at the level of
+  the top face was boundary, and an opening's wall standing out past the face, where a through-hole
+  overshoots, was boundary too. The openings are asked first now.
+- **The nearest point was sought on the faces and on each opening in turn**, then kept only where the body
+  called it boundary. That cannot find the rim of a hole — a point of neither alone — so a point below a duct
+  came out nought away, and `DistanceTo`, `SignedDistanceTo` and `GetClosestPointOnBoundary` of a point were
+  all wrong near an opening. They agreed with the old `Locate`, which is why nothing caught it. Now the
+  openings within reach are cut in and the answer is read off the material; an opening farther away than
+  the answer found without it cannot change it, so a point far from every hole cuts nothing.
+
 ### The plan, in order — each step built, tested and committed before the next
 
-**A1. Cut the openings into the body.** `Boolean3.TryCutOpenings(solid, out material)` turns a body with
+**A1. Cut the openings into the body.** — **Done**, with the three above. `Boolean3.TryCutOpenings(solid, out material)` turns a body with
 openings into one without, whose faces are exactly the surface of the material: the outer faces with the
 parts over each opening removed, and the walls of each opening where they run through the body. Exposed as
 `GeoSolid3.TryCutOpenings(out GeoSolid3 material)` and `GeoSolid3.TriangulateSurface()` — the same name
@@ -54,7 +73,7 @@ parts over each opening removed, and the walls of each opening where they run th
 - `Triangulate` keeps its meaning — the faces as they are — and its remark is corrected, so nobody reads it as
   the boundary again. `Volume` does not move: it never used `Triangulate`.
 
-**A2. Make every query read the material.** Each broken query takes the body through A1 first.
+**A2. Make every query read the material.** Each broken query takes the body through A1 first. The point queries are **done** with the fixes above; what is left is everything that reads the mesh.
 
 - `CollidesWith` and `GetIntersections` need only the openings whose box meets the probe's box. That is
   exact — an opening out of the probe's reach removes nothing the probe could touch — and it keeps a bolt

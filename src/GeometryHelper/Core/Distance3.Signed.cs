@@ -106,58 +106,15 @@ namespace GeometryHelper.Core
         /// Gets the distance from a point to the boundary of a body, opening walls included.
         /// </summary>
         /// <remarks>
-        /// <para>
-        /// <see cref="Projection3.ProjectToSolid(GeoSolid3, GeoPoint3, Tolerance)"/> walks the faces of the
-        /// body it is given and nothing else, so each opening is offered in turn, and each opening offers its
-        /// own openings, the way <see cref="Containment3.Locate(GeoSolid3, GeoPoint3, Tolerance)"/> reaches
-        /// them.
-        /// </para>
-        /// <para>
-        /// Each point offered is then held against the body itself and kept only if the body agrees it is on
-        /// the boundary. That is what keeps the answer and <c>Locate</c> saying the same thing: a duct bored
-        /// right through a slab runs out past both faces, and the part of its wall out there bounds nothing,
-        /// so a point below the slab is measured to the underside rather than to the mouth of the duct
-        /// hanging past it.
-        /// </para>
+        /// The boundary is where the material ends, which is what
+        /// <see cref="Projection3.ProjectToSolid(GeoSolid3, GeoPoint3, Tolerance)"/> lands on: the openings in
+        /// reach are cut in first, so a point below a duct bored through a slab is measured to the rim of the
+        /// duct's mouth and not to the underside across it, where there is no material. The earlier way — the
+        /// nearest point of the faces and of each opening, kept only where the body called it boundary — could
+        /// not find that rim at all, since it is a point of neither alone, and fell back on a distance of nought.
         /// </remarks>
         private static double ReachToSurface(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
-        {
-            double onBoundary = double.MaxValue;
-            double anywhere = double.MaxValue;
-
-            Offer(solid, solid, point, tolerance, ref onBoundary, ref anywhere);
-
-            // A body always has a boundary, so the fallback is there for shapes too broken to have one
-            // rather than for any case worth naming.
-            return onBoundary < double.MaxValue ? onBoundary : anywhere;
-        }
-
-        /// <summary>
-        /// Offers the nearest point of one part of a body, and of every opening within that part.
-        /// </summary>
-        private static void Offer(
-            GeoSolid3 body,
-            GeoSolid3 part,
-            GeoPoint3 point,
-            Tolerance tolerance,
-            ref double onBoundary,
-            ref double anywhere)
-        {
-            GeoPoint3 candidate = Projection3.ProjectToSolid(part, point, tolerance);
-            double reach = point.DistanceTo(candidate);
-
-            anywhere = Math.Min(anywhere, reach);
-
-            if (Containment3.Locate(body, candidate, tolerance) == PointLocation.OnSide)
-            {
-                onBoundary = Math.Min(onBoundary, reach);
-            }
-
-            foreach (GeoSolid3 opening in part.Openings)
-            {
-                Offer(body, opening, point, tolerance, ref onBoundary, ref anywhere);
-            }
-        }
+            => point.DistanceTo(Projection3.ProjectToSolid(solid, point, tolerance));
 
         /// <summary>
         /// Turns a distance to a surface into a signed one, by where the point sits.
