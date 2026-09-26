@@ -450,6 +450,17 @@ line.TrySplitAtDistance(0, out _);                 // false — a cut at an endp
 line.TrySplitBy(new GeoPoint3(5, 3, 0), out _);    // false — the point is not on the segment
 ```
 
+An arc is cut the same way, and keeps its centre, its radius and its plane — only the sweep is shared out,
+so the pieces put back end to end draw exactly what went in:
+
+```csharp
+GeoArc3 bend = GeoArc3.FromThreePoints(new GeoPoint3(100, 0, 0), new GeoPoint3(71, 71, 0), new GeoPoint3(0, 100, 0));
+
+bend.TrySplitAt(0.25, out GeoArc3[] quarters);                   // at a parameter
+bend.TrySplitAt(bend.GetPointAtParameter(0.5), out _);           // at a point, or the place nearest one
+bend.TrySplitAtDistance(50.0, out _);                            // at a length along the curve
+```
+
 A cutter does not have to be a plane. Cutting by a **closed body** sorts the pieces into those inside it
 and those outside, because a body has no side the way a plane does:
 
@@ -578,6 +589,30 @@ asks that they pass within `EqualPoint` of each other. Where they do, each keeps
 end at the meeting point; where they pass wider than that, it reports `false` rather than inventing a
 corner one of them does not touch.
 
+**Arcs, chains and edges.** An arc is lengthened **along itself** — the centre, the radius and the plane
+stay, the sweep grows, and the distance asked for is arc length and not chord. A chain is lengthened by its
+**end leg**, along that leg, which is how a bar's end is pulled out for anchorage without disturbing a bend.
+
+```csharp
+GeoArc3 bend = GeoArc3.FromThreePoints(new GeoPoint3(100, 0, 0), new GeoPoint3(71, 71, 0), new GeoPoint3(0, 100, 0));
+
+bend.Extend(50.0, LineEnd.End);                 // fifty more of curve, same centre, radius and plane
+bend.ExtendToLength(200.0, LineEnd.Start);      // two hundred of curve, end where it was
+bend.TryTrimTo(bend.GetPointAtParameter(0.5), LineEnd.End, out GeoArc3 half);
+
+GeoPolylineArc3 bar = new GeoPolyline3(
+    new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
+
+bar.Extend(300.0, LineEnd.End);                 // the last leg carries on; the bend keeps its radius
+bar.ExtendToLength(1000.0, LineEnd.Start);      // a thousand long, measured along the arcs
+bar.TryTrimTo(bar.GetPointAtDistance(200.0), LineEnd.End, out GeoPolylineArc3 back);
+```
+
+A whole turn is the limit for an arc, so an extension past it is refused rather than wrapped. **A chain is
+carried outwards only** — shortening one belongs to the splitting family, which keeps its bends, and
+`TryTrimTo` is that cut with the end named rather than the piece. A `GeoEdge3` answers both ways too:
+straight on if it is a leg, round if it is a bend.
+
 ### Offsetting
 
 `Offset3` moves a segment sideways and grows or shrinks a flat region within its own plane.
@@ -652,6 +687,33 @@ other is what makes the gluing work where they meet — cut that way both sides 
 same plane carved by the same knives, so they come out as the same polygon and cancel. And dividing A by
 the planes of B already lays a face along every part of the surface of B that runs through A, which is why
 a difference is just the cells of A that fall outside B: the walls of the cavity are already there.
+
+**Flat shapes and boxes.** Two areas in one plane are combined by the plane library and the answer lifted
+back, so it is exact; and a box is combined through the body it bounds, which is six flat faces and no
+fitting at all.
+
+```csharp
+var plate = new GeoPolygon3(
+    new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+GeoPolygon3 patch = plate.Translate(new GeoVector3(50, 50, 0));
+
+GeoFace3[] joined = plate.Union(patch);      // GeoFace3, because joining two areas can leave a hole
+plate.Intersect(patch);                      // what they both cover
+plate.Subtract(patch);                       // what is left of the first
+plate.Xor(patch);                            // what they cover between them but do not share
+
+var first = new GeoObb3(GeoPoint3.Origin, 100, 100, 100);
+var second = new GeoObb3(new GeoPoint3(50, 0, 0), 100, 100, 100);
+
+first.TryUnion(second, out GeoSolid3 both);   // a GeoSolid3: a boolean of two boxes is hardly ever a box
+first.TryExpand(10.0, out GeoObb3 bigger);    // and a margin on every face, keeping the axes
+```
+
+Everything comes back as `GeoFace3` because joining two areas can leave a hole in the middle and only a
+face can hold one — four bars round a square give one face with one hole. **A shape that does not lie in
+the first one's plane is refused**, with an `ArgumentException`: projecting it in would report two plates a
+metre apart as overlapping and say nothing about it. `SharesPlaneWith` asks beforehand, on
+`GeoPolygon3`, `GeoFace3` and `GeoPolygonArc3` alike.
 
 ### Merging
 
@@ -777,16 +839,73 @@ again and **refuse** what does not lie in the frame rather than flattening it qu
 runs against the frame is the same arc seen from behind, so its bulge changes sign coming down; that is what
 keeps the trip exact whichever way the frame was built.
 
+### One bar against another, and against everything else
+
+A bar is asked about a plane, a segment, a ray, an arc, a circle, a triangle, a polygon, a face, either
+box, a body — and about another bar.
+
+```csharp
+bar.GetIntersections(new GeoLine3(new GeoPoint3(200, -50, 0), new GeoPoint3(200, 50, 0)));
+bar.GetIntersections(new GeoRay3(new GeoPoint3(200, -50, 0), new GeoVector3(0, 1, 0)));
+bar.CollidesWith(otherBar);                       // one chain against another
+stirrup.GetIntersections(bar);                    // a loop against a chain, either way round
+bar.GetIntersections(setOut);                     // and against a straight GeoPolyline3
+```
+
+**Chain against chain walks every pair of edges**, so the work grows with the two edge counts multiplied
+rather than added: two forty-edge bars are sixteen hundred edge pairs. What makes it usable is that each
+edge carries a box round itself, so a pair whose boxes cannot reach each other is dropped before any
+arithmetic is done, and bars in a model are mostly far apart. Two pieces lying along each other meet along
+a length and name no place, so `CollidesWith` is what says they touch.
+
+### Cutting a bar to a schedule, and to the openings
+
+```csharp
+bar.SplitAtDistances(new[] { 1000.0, 2500.0 }, out GeoPolylineArc3[] lengths);
+bar.TrySplitBy(opening, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside);       // a box
+bar.TrySplitBy(everyOpening, out GeoPolylineArc3[] within, out GeoPolylineArc3[] clear);   // an array of them
+```
+
+A piece is inside when it is inside **any** cutter, so overlapping openings behave as the one region they
+cover: consecutive pieces on the same side are joined into one run, and a gap in the array is passed over
+rather than throwing. Which side a piece is on is settled at its **middle** and never at an end, because
+every end is on a surface by construction and a surface belongs to neither side.
+
+### Cutting corners in space, and measuring from a loop
+
+A chamfer needs no plane at all — it moves back along one leg and forward along the other, so both points
+land on the legs themselves. Only a corner between two **straight** legs is cut, the rule the fillet keeps,
+because a leg that curves leaves at a tangent.
+
+```csharp
+crooked.Chamfer(50.0);                     // a GeoPolyline3 that lies in no one plane, all the same
+crooked.Chamfer(80.0, 20.0);               // unequal: back along the way in, then along the way out
+loop.Fillet(30.0);                         // a GeoPolygon3 rounded: a GeoPolygonArc3 comes back
+bar.OffsetInPlane(30.0, GeoVector3.ZAxis); // and a bent bar moved to another cover, bends and all
+
+stirrup.GetShortestLineTo(point);          // leaves the boundary, lands on the point
+stirrup.GetClosestEdge(point);             // which edge that was
+stirrup.GetShortestLineTo(coplanarPlate);  // to a shape in the same plane
+```
+
+**A point needs no coplanarity and every other shape does.** That is not a compromise: a point off the
+plane stands at the same height above every point of the boundary, so the nearest place to it is the
+nearest place to its shadow, and the answer is exact. Two shapes in different planes have no such
+shortcut, so they are refused. `GetClosestEdge` takes a primitive probe only — a point, a segment, an arc,
+a circle or an edge — because the nearest edge of one many-edged shape to another is a *pair* of edges.
+
 ### What is exact, and what is sampled
 
 Everything worked out on the curve itself is exact, because a `GeoArc3` answers the point nearest another
 point in closed form: length, walking, the nearest point, the box, moving, reversing, planarity, flattening,
 filleting, and **everything** on `GeoPolygonArc3`, because it projects.
 
-Measuring a curved chain against another shape in space is not offered, and deliberately. The distance from
-an arc to anything but a point has no closed form once the two are not in one plane — it wants a polynomial
-root solve — and a sampled answer under an exact name is worse than no answer. Say how closely the bar should
-be followed and ask the ordinary question instead:
+**Where** two things cross is exact; **how far apart** they are is the refusal, and the line between the two
+is drawn there on purpose. A crossing reduces to one quadratic — two coplanar circles meet on their radical
+line, two in different planes on the line where their planes meet — and the distance from an arc to anything
+but a point has no closed form at all once they are not coplanar. It wants a polynomial root solve, and a
+sampled answer under an exact name is worse than no answer. Say how closely the bar should be followed and
+ask the ordinary question instead:
 
 ```csharp
 bar.ToPolyline3(0.1).DistanceTo(slab);
@@ -824,6 +943,21 @@ on the surface is a point that is really on it. That is what separates it from `
 which fans the boundary from one vertex and is meant only for the signed sums — area, centroid, volume —
 where the part of a fan reaching outside the face cancels against the part overlapping it. Use
 `GeoFace3.TriangulateSurface` wherever the triangles stand for material.
+
+A triangle out of either of them reads as a polygon or as a face, which is what the boolean, offset and
+splitting families take:
+
+```csharp
+foreach (GeoTriangle3 triangle in body.Triangulate())
+{
+    if (triangle.IsDegenerate())
+    {
+        continue;                       // three collinear points are not a polygon, so this is refused
+    }
+
+    GeoFace3 face = triangle.ToFace3();  // and ToPolygon3() for the outline alone
+}
+```
 
 `Collision3.CollidesWith(solid, solid)` builds one internally once the meshes are large enough to be worth
 it, and falls back to comparing every pair below that — below the threshold, the plain scan wins.

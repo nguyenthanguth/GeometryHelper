@@ -298,6 +298,33 @@ The instance methods live on the shape being cut, not on the cutter: `polygon.Sp
 
 **Against a polygon.** A part running along the boundary counts as inside, matching `Contains`. A path that merely touches the boundary and turns back has not crossed it, so it comes back whole instead of split in two at the touch.
 
+### Cutting a region into regions
+
+Everything above cuts a *curve* and hands back curves. A region is cut by the straight line through a
+segment, which is what a plane is to space: unbounded, so the segment's length is ignored and a stub in
+the middle of a shape cuts all of it. The two sides are **left** and **right** of the segment's own
+direction, because above and below mean nothing here.
+
+```csharp
+var plate = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
+var cutter = new GeoLine2(new GeoPoint2(100, -50), new GeoPoint2(100, 250));   // travelling in +y
+
+plate.TrySplitBy(cutter, out GeoPolygon2[] left, out GeoPolygon2[] right);
+// left: the small-x half, right: the other; reversing the cutter swaps them and changes nothing else
+
+// A face is cut holes and all: a hole the line misses stays a hole, one it crosses opens into the outline.
+new GeoFace2(plate).TrySplitBy(cutter, out GeoFace2[] nearSide, out GeoFace2[] farSide);
+
+// Or along a chain drawn across the region, which is the bounded cutter: the pieces keep its vertices.
+var dogLeg = new GeoPolyline2(new GeoPoint2(0, 100), new GeoPoint2(100, 60), new GeoPoint2(200, 100));
+plate.TrySplitBy(dogLeg, out GeoPolygon2[] pieces);
+```
+
+Each side is an array because one cut can part a concave region into several pieces — a U cut across its
+prongs gives two above and one below. Both ends of a cut line have to sit on the boundary and everything
+between them has to stay inside: a chain that leaves and comes back would divide the region into more than
+two, so it is refused rather than answered in part.
+
 ## Extending and trimming
 
 `Lengthen2` changes how long a segment is while keeping it on its own line, as AutoCAD's LENGTHEN, EXTEND and TRIM do. A segment has no picked point to say which end is meant, so each method takes a `LineEnd`; the other end never moves, and the segment never turns round.
@@ -322,6 +349,34 @@ new GeoLine2(0, 0, 1, 1).TryIntersectWith(new GeoLine2(10, 0, 11, -1), LineExten
 ```
 
 `TryExtendTo` only ever lengthens: the end runs outward to the nearest place the line meets the boundary, which can be a point (the foot of the perpendicular), a segment, a polyline, a polygon, a circle or a rectangle. `TryTrimTo` only ever shortens, back to the nearest crossing still within the segment. An end already on the boundary, within tolerance, satisfies both and is left there, so `line.TryExtendTo(b, end, out fit) || line.TryTrimTo(b, end, out fit)` fits an end to a boundary whichever side of it the end starts on. A boundary segment counts only where it is drawn, as with AutoCAD's default EDGEMODE; to reach the line carrying it, intersect with `LineExtension.Both` and extend to that point.
+
+**Arcs, chains and edges.** A segment is not the only thing that can be lengthened. An arc is lengthened
+**along itself** — the centre and the radius stay, the sweep grows, and the distance asked for is arc
+length and not chord, which is the only reading that leaves the curve where it was. A chain is lengthened
+by its **end leg**, along that leg, so every other leg and bend survives.
+
+```csharp
+var arc = new GeoArc2(new GeoPoint2(0, 0), 100.0, 0.0, Math.PI / 2.0);
+
+arc.Extend(50.0, LineEnd.End);              // fifty more of curve, same centre and radius
+arc.ExtendToLength(200.0, LineEnd.Start);   // two hundred of curve, end where it was
+arc.TryExtendTo(new GeoPoint2(0, -100), LineEnd.End, out GeoArc2 round);   // to a point on its own circle
+arc.TryTrimTo(arc.GetPointAtParameter(0.5), LineEnd.End, out GeoArc2 half);
+
+var bar = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(400, 0), new GeoPoint2(400, 200));
+
+bar.Extend(300.0, LineEnd.End);             // the last leg carries on; the bend does not move
+bar.ExtendToLength(1000.0, LineEnd.Start);  // a thousand long, measured along it
+bar.TryTrimTo(new GeoPoint2(200, 0), LineEnd.End, out GeoPolyline2 back);
+
+new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)).Extend(50.0, LineEnd.End);   // straight on
+```
+
+A whole turn is the limit for an arc, so an extension that would pass it is refused rather than wrapped,
+and so is one that would leave no arc or turn it back the other way. **A chain is carried outwards only**:
+shortening one belongs to the splitting family, which keeps its bends, and `TryTrimTo` is that cut with the
+end named rather than the piece. An edge carries on straight or carries on round, keeping its radius, and
+hands back an edge either way.
 
 ## Offsetting
 
@@ -406,6 +461,16 @@ corners eat into the edge between them:
 What was skipped, and why, is written to `GeometryHelperLog`. `TryChamferAt` reports `false` instead, for
 a caller who needs to know about one corner in particular. Every cut is measured on the shape as it came
 in, never on a shape half cut already, so the answer does not depend on which vertex the walk began at.
+
+**Rounding them instead.** A straight chain or a straight polygon can be rounded as well as chamfered. A
+rounded corner is an arc, so the answer is the curved type — `GeoPolylineArc2` for a chain,
+`GeoPolygonArc2` for a loop — and the rules for which corners are left alone are the chamfer's.
+
+```csharp
+plate.Fillet(30.0);                     // GeoPolygonArc2: every corner rounded by thirty
+plate.Fillet(new[] { 20.0, 0.0, 20.0, 0.0 });   // a radius each; nought leaves that corner square
+chain.TryFilletAt(1, 50.0, out GeoPolylineArc2 rounded);
+```
 
 ## Arcs
 

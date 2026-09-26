@@ -118,10 +118,11 @@
       - GeoPolyline3 can now be measured against a segment, another chain, a triangle, a polygon, a plane,
         either kind of box and a solid, which is what gives ToPolyline3 somewhere to lead.
 
-      Measuring a curved chain against another shape in space is deliberately not offered. The distance from
+      MEASURING a curved chain against another shape in space is deliberately not offered. The distance from
       an arc to anything but a point has no closed form once the two are not coplanar, so say how closely the
       bar should be followed and ask the ordinary question: bar.ToPolyline3(0.1).DistanceTo(slab). A sampled
       chain lies inside the arcs it stands for, so a clearance worked out that way errs on the safe side.
+      Where the two CROSS is another matter, and is exact -- see below.
 
       In GeometryHelper.TeklaConvert, ReinforcementConvert turns a Reinforcement, any sequence of them or a
       RebarSet into bars, and RebarGeometryConvert turns one geometry. A bar is only ever read as Tekla works
@@ -172,6 +173,76 @@
 
       Core and the shape types now agree everywhere, and so does shape against shape: there is no pair one
       of them answers that the other will not, whichever is in hand.
+
+      ALSO NEW. Where an arc in space reaches, and what can be done to it.
+
+      A GeoArc3 could say how far a point was and nothing else. Core.Arc3 now answers for a plane, a
+      segment, a ray, another arc, a circle, a triangle, a polygon, a face, either kind of box and a body,
+      and none of it is sampled. Two readings carry all of it: two coplanar circles meet on their radical
+      line, two in different planes on the line where the planes meet, and one quadratic gives the
+      candidates for the other shape's own test to keep.
+
+      - GeoCircle3 forwards to the whole-turn arc; GeoEdge3 reads itself as its arc or its segment and
+        dispatches; GeoPolylineArc3 and GeoPolygonArc3 take the union over their edges, naming each place
+        once so a crossing at a shared corner is not found twice.
+      - A bar can be CUT: at a point, at a distance, at a set of distances, by a plane, a face, a body,
+        either kind of box, or an array of bodies or boxes. The pieces come back as chains of arcs, so a
+        bar stopped at a pour break keeps its bends and with them the length a schedule needs.
+      - A closed loop can be cut too, and gives open chains: a ring cut once is a strip as long as the ring.
+      - An arc in space can be cut in two, at a parameter, a point or a length along the curve, keeping its
+        centre, its radius and its plane.
+      - One chain can be asked about another, and about a segment, a ray and a straight GeoPolyline3. That
+        one walks every pair of edges, so each edge carries a box round itself and a pair whose boxes cannot
+        reach each other is dropped before any arithmetic.
+      - GeoPolygonArc3 works in its own plane: booleans against a coplanar loop or polygon, Chamfer,
+        TryFilletAt, TryChamferAt, SignedDistanceTo, the joining line and the nearest edge.
+
+      WHERE two things cross is exact; HOW FAR APART they are is still the refusal, and the line is drawn
+      there on purpose. A crossing reduces to one quadratic; a distance from an arc to anything but a point
+      has no closed form at all once they are not coplanar.
+
+      A second shape has to lie in the loop's plane and is refused where it does not, with an
+      ArgumentException. Projecting it in would report two stirrups a hundred apart as overlapping and say
+      nothing about it. SharesPlaneWith asks beforehand. A POINT is the exception, and not as a compromise:
+      a point off the plane stands at the same height above every point of the boundary, so the nearest
+      place to it is the nearest place to its shadow, and the answer is exact.
+
+      ALSO NEW. The families that change geometry, which no matrix had ever covered.
+
+      Every audit before this one covered measuring. The operations that change geometry were laid out
+      against the types for the first time, and the gaps are closed.
+
+      - A REGION in the plane can be cut into regions. GeoPolygon2 and GeoFace2 are cut by the straight line
+        through a segment -- its length is ignored, as a plane's extent is -- or along a GeoPolyline2 drawn
+        across them. The sides are called left and right, of the cutter's own direction, because above and
+        below mean nothing in the plane. Space had both readings all along.
+      - ARCS, CHAINS, LOOPS AND EDGES can be extended and trimmed, where only GeoLine2 and GeoLine3 could.
+        An arc is lengthened along itself: the centre and radius stay, the sweep grows, and the distance
+        asked for is arc length and not chord. A chain is lengthened by its end leg, so every other leg and
+        bend survives -- which is what a bar wants for anchorage. Both outwards only; the splitting family
+        shortens one and keeps its bends, and TryTrimTo is that cut with the end named rather than the piece.
+      - ROUNDING a straight chain or loop. GeoPolyline2, GeoPolygon2 and GeoPolygon3 can be filleted, which
+        the curved types could already do. The answer is the curved type, because a rounded corner is an arc.
+      - CHAMFERING in space. GeoPolyline3, GeoPolygon3 and GeoPolylineArc3 can be cut back. A chamfer needs
+        no plane at all -- it moves back along one leg and forward along the other -- so a chain lying in no
+        one plane is cut all the same. Only a corner between two straight legs is cut, the rule the fillet
+        keeps, because a leg that curves leaves at a tangent.
+      - BOOLEANS on the flat shapes in space. GeoPolygon3 and GeoFace3 have all four through the coplanar
+        lift; GeoObb3 has the three solid ones through the body it bounds, offered both ways round with
+        GeoSolid3. Everything flat comes back as GeoFace3, because joining two areas can leave a hole in the
+        middle and only a face can hold one.
+      - OFFSETTING what could not be offset. GeoPolylineArc3.OffsetInPlane moves a bent bar to another cover
+        without straightening it: an arc comes back an arc with its radius moved by the distance.
+        GeoObb3.TryExpand gives the oriented box the margin the square one already had, keeping its axes.
+      - CONVERSIONS. GeoTriangle3.ToPolygon3 and ToFace3 name the rebuild a triangle out of Triangulate
+        needed before anything taking a polygon would accept it. A triangle with no area is refused, because
+        a polygon of three collinear points is not a polygon; IsDegenerate asks first.
+      - A segment's crossing with another segment is now also readable as a LIST, which is what lets a
+        GeoEdge3 be asked about one: an edge offers a direction only where a segment and a bend answer with
+        the same shape of call. GeoLine3 keeps its single-point TryIntersectWith and gains no array twin,
+        because a second one differing only in the shape of its out would make every existing call ambiguous.
+
+      Nothing above changed an answer that was already being given.
 
       NEW IN 5.1.0
 

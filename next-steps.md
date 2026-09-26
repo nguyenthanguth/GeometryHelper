@@ -19,7 +19,7 @@ the release body.
 Do not use *Run workflow* on that workflow to try it out. It has no dry run, and the two push steps are not
 guarded by the event type, so a manual run publishes to nuget.org and GitHub Packages for real.
 
-## 2. Arcs in space: done, with three small pieces left
+## 2. Arcs in space: done
 
 All five phases are done. `Core.Arc3` answers for a plane, a segment, a ray, another arc, a
 circle, a triangle, a polygon, a face, either kind of box and a body — and none of it is sampled, because an
@@ -35,20 +35,38 @@ arcs rather than polylines.
 
 ### What is left here
 
-All five phases are done. `GeoPolygonArc3` works in its own plane — booleans against a coplanar loop or
-polygon, `Chamfer`, `TryFilletAt`, `TryChamferAt`, `SignedDistanceTo` — and both a chain and a closed loop can
-be cut, by a point, a distance, a plane, a face or a body.
+Nothing. The three pieces this section named on 26 September are done: cutting by a box or by an array of
+cutters, one chain against another, and the loop's `GetShortestLineTo` and `GetClosestEdge`.
 
-| Piece | Note |
-|---|---|
-| Cutting by a box, or by an array of cutters | `GeoPolyline3` has those; the curved chain has point, distance, plane, face and body. Same shape of code. |
-| A chain against another chain | Not offered either way. The union-over-edges reading extends to it, but every edge pair is an arc against an arc, so it is quadratic in the edge counts and wants thinking about first. |
-| `GetShortestLineTo` and `GetClosestEdge` on a loop | Coplanar only, so the same refusal applies. `GetClosestEdge` of a *point* needs no coplanarity at all and is the easier half. |
+`GeoPolygonArc3` works in its own plane — booleans against a coplanar loop or polygon, `Chamfer`,
+`TryFilletAt`, `TryChamferAt`, `SignedDistanceTo`, the joining line and the nearest edge. A chain and a
+closed loop can both be cut: by a point, a distance, a set of distances, a plane, a face, a body, either
+kind of box, or an array of bodies or boxes. An arc in space can be cut in two. A chain can be asked about a
+segment, a ray and another chain. And a chain's end leg can be lengthened, which is what a bar wants for
+anchorage.
 
-**The decision that was blocking phase five is taken: a second shape has to lie in the loop's plane, and is
-refused where it does not**, with an `ArgumentException`. Projecting it in would report two stirrups a hundred
-apart as overlapping and say nothing about it; the library already refuses in three comparable places, and
-refusing is the reversible direction. `SharesPlaneWith` is public, so a caller can ask before it asks.
+**Decisions taken here, not to be re-opened:**
+
+- **A second shape has to lie in the loop's plane, and is refused where it does not** (`ArgumentException`).
+  Projecting it in would report two stirrups a hundred apart as overlapping and say nothing about it.
+  `SharesPlaneWith` is public on `GeoPolygon3`, `GeoFace3` and `GeoPolygonArc3` so a caller can ask first.
+  **A point is the exception, and not as a compromise**: a point off the plane stands at the same height
+  above every point of the boundary, so the nearest place to it is the nearest place to its shadow, and the
+  answer is exact.
+- **Chain against chain walks every pair of edges**, so the cost grows with the two edge counts multiplied.
+  Each edge carries a box round itself and a pair whose boxes cannot reach each other is dropped before any
+  arithmetic; the second chain's boxes are worked out once. That is what makes it usable, and it is the
+  reason this one was held back while the rest was written.
+- **Cutting sorts pieces by the middle of each piece, and joins neighbours on the same side into one run.**
+  Every end is on a surface by construction, so an end cannot say which side it is on; and two overlapping
+  cutters name a surface inside the region they cover between them, so without the joining a bar would come
+  back as three pieces inside one opening. `Splition3` already kept this rule for a straight chain.
+- **`GeoLine3` gets no array-form `TryIntersectWith` against another `GeoLine3`.** It already has one handing
+  back a single point, and a second differing only in the shape of its `out` makes every existing call
+  ambiguous — which the build proved. `GetIntersections` is the list reading; `GeoEdge3` builds its own list
+  from that rather than forwarding.
+- **A ray is a value type**, so it cannot be refused for being absent. One with no direction reads as its own
+  origin and nothing more.
 
 ### What stays refused
 
@@ -72,37 +90,47 @@ a different question and are exact.
 - **A near miss to remember:** `dotnet test --no-build` reported eight passing tests from a build that had
   failed on an analyser rule. Read the build result first, every time.
 
-### The still-missing pieces this work leant on and had to work around
+### The pieces this work leant on and had to work around
 
-`GeoPolyline3` has no `GetIntersections`; `GeoPolygon3` has no `Fillet`; `GeoTriangle3` has no `ToPolygon3` or
-`ToFace3`. All three are in section 3.
+All three are closed now: `GeoPolyline3` answers `GetIntersections` against a curved chain or loop,
+`GeoPolygon3` can be filleted and chamfered, and `GeoTriangle3` reads as a polygon or a face.
 
-## 3. Whole families nobody has audited
+## 3. The families that change geometry: audited and closed
 
-Every matrix drawn so far covered **measuring only**: `DistanceTo`, `SignedDistanceTo`, `GetShortestLineTo`,
-`GetClosestPointOnBoundary`, `GetClosestEdge`, `CollidesWith`, `GetIntersections`, `TryIntersectWith`. The
-operations that *change* geometry were never laid out against the types at all, and a first count of them
-turns up more than the measuring audit did.
+Every matrix drawn before 26 September covered **measuring only**. The families that *change* geometry were
+never laid out against the types. They have been now, and the gaps the matrix showed are closed.
 
-**Merging is done** — `Core.Merge2` gained the default-tolerance twins it was missing, and both merge classes
-are reachable through `MergeExtension` and `GeoSolid3.MergeCoplanarFaces`. It is the pattern for the rest of
-this section: the arithmetic was there, the way in was not.
+**How the matrix was drawn**, so it can be redrawn rather than trusted: `…/scratchpad/shaping.py` reads every
+`public` member of `src/GeometryHelper/Geometry/*.cs`, files each one under an operation family by the name it
+starts with, and prints a type-by-family grid. A blank cell is then a gap or a decision, never a guess. Two
+traps it walked into and now avoids: **`Expand` is an offset under another name** and **`TryUnion` is a
+boolean**, and reading them as neither made three closed cells look blank.
 
 | Family | Where it stands |
 |---|---|
-| **Conversions** | `GeoTriangle3` has no `ToPolygon3` or `ToFace3`, so a triangle from `Triangulate` has to be rebuilt from its three corners to be used as a face. |
-| **Splitting** | `GeoPolygon2` and `GeoFace2` **cannot be cut at all**, though `GeoPolygon3` and `GeoFace3` can. `Core.Splition2` has no pair for either. Here the plane is behind space, the reverse of everywhere else. |
-| **Booleans** | `GeoPolygon2`, `GeoFace2`, `GeoPolygonArc2`, `GeoSolid3` and `GeoAabb3` have them. `GeoObb3`, `GeoFace3` and `GeoPolygon3` do not — and the last two are a coplanar lift away, the same lift as 2.1. |
-| **Extending and trimming** | Only `GeoLine2` and `GeoLine3`, which have thirty-two methods apiece. **No arc, no polyline, no chain can be extended or trimmed to meet anything.** It would not start from nothing: `Core.CurveMeet2`, internal, already works out where the endless line behind a segment and the whole circle behind an arc cross, which is the part of trimming that is not bookkeeping. |
-| **Filleting** | `GeoPolygon3` has none, though `GeoPolyline3` does and both are chains of straight legs. |
-| **Offsetting** | `GeoPolyline3`, `GeoPolylineArc3`, `GeoObb3` and `GeoAabb3` have none. Growing a box by a distance is a one-line answer. |
+| **Conversions** | `GeoTriangle3.ToPolygon3` and `ToFace3` name the rebuild a triangle out of `Triangulate` needed before anything taking a polygon would accept it. A triangle with no area is refused; `IsDegenerate` asks first. |
+| **Splitting** | `GeoPolygon2` and `GeoFace2` are cut into *areas* by the straight line through a segment, or along a `GeoPolyline2` drawn across them. An arc in space is cut at a parameter, a point or a distance. A curved chain or loop is cut by a box or an array of cutters, and `SplitAtDistances` is on the chain as well as the loop. |
+| **Booleans** | `GeoPolygon3` and `GeoFace3` have all four through the coplanar lift, both against each other and against a curved loop. `GeoObb3` has the three solid ones through the body it bounds, offered both ways round with `GeoSolid3`. |
+| **Extending and trimming** | Arcs, chains, loops and edges, in the plane and in space. An arc is lengthened *along itself*; a chain by its *end leg*; both outwards only, with the splitting family for the other direction. |
+| **Filleting** | `GeoPolyline2`, `GeoPolygon2` and `GeoPolygon3` can be rounded, which the curved types could already do. The answer is the curved type, because a rounded corner is an arc. |
+| **Chamfering** | `GeoPolyline3`, `GeoPolygon3` and `GeoPolylineArc3` can be cut back. A chamfer needs no plane, so a chain lying in none is cut all the same; only a corner between two straight legs is cut. |
+| **Offsetting** | `GeoPolylineArc3.OffsetInPlane` moves a bent bar to another cover without straightening it. `GeoObb3.TryExpand` gives the oriented box the margin the square one had. |
+| **Merging** | Done earlier: `Core.Merge2` gained its default-tolerance twins and both merge classes are reachable through `MergeExtension` and `GeoSolid3.MergeCoplanarFaces`. |
 
-Before doing any of it, **draw the matrix for that family first**, the way section *Checking the surface*
-describes. The measuring audit found roughly a hundred and fifty directions once it was written down, and
-none of them were visible before.
+### What the matrix still shows blank, and why that is right
+
+- `GeoRectangle2`, `GeoTriangle3`, `GeoAabb3` and `GeoObb3` are each **one conversion away** from the family
+  they lack — `ToPolygon2`, `ToPolygon3`/`ToFace3`, `ToObb`, `ToSolid`. Adding a second way to do the same
+  thing would only make the surface bigger.
+- **`GeoEdge2` and `GeoEdge3` cannot be offset.** An edge offers a direction only where a segment and a bend
+  answer with the **same shape of call**, and here they do not: `GeoLine2.Offset` hands back a segment while
+  `GeoArc2.TryOffset` reports whether the radius survived.
+- A **circle** cannot be lengthened or cut: it is already a whole turn, and cutting it gives arcs, which the
+  plane does not offer either. The two agree, which is the test.
+- **`GeoPolyline*` has no booleans.** A chain is not an area.
 
 `GeometryHelper.Spatial` — `GeoBvh2` and `GeoBvh3` — is a standalone index that no shape type points at.
-Whether it should stay that way is a decision nobody has taken.
+Whether it should stay that way is a decision nobody has taken, and it is the one open question left here.
 
 ## 4. What needs a machine with Tekla
 

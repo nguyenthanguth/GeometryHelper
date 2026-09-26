@@ -1034,5 +1034,61 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(0.0, below.GetClosestEdge(poly).StartPoint.Y, 9);
             Assert.Equal(0.0, below.GetClosestEdge(poly).EndPoint.Y, 9);
         }
+        [Fact]
+        public void CuttingARegionIntoRegions()
+        {
+            var plate = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
+            var cutter = new GeoLine2(new GeoPoint2(100, -50), new GeoPoint2(100, 250));
+
+            Assert.True(plate.TrySplitBy(cutter, out GeoPolygon2[] left, out GeoPolygon2[] right));
+            Assert.Single(left);
+            Assert.Single(right);
+            Assert.Equal(plate.Area / 2.0, left[0].Area, 6);
+            Assert.True(left[0].Contains(new GeoPoint2(50, 100)));
+
+            Assert.True(new GeoFace2(plate).TrySplitBy(cutter, out GeoFace2[] nearSide, out GeoFace2[] farSide));
+            Assert.Equal(plate.Area, nearSide[0].Area + farSide[0].Area, 6);
+
+            var dogLeg = new GeoPolyline2(new GeoPoint2(0, 100), new GeoPoint2(100, 60), new GeoPoint2(200, 100));
+
+            Assert.True(plate.TrySplitBy(dogLeg, out GeoPolygon2[] pieces));
+            Assert.Equal(2, pieces.Length);
+            Assert.Equal(plate.Area, pieces.Sum(piece => piece.Area), 6);
+        }
+
+        [Fact]
+        public void LengtheningArcsChainsAndEdgesInThePlane()
+        {
+            var arc = new GeoArc2(new GeoPoint2(0, 0), 100.0, 0.0, Math.PI / 2.0);
+
+            Assert.Equal(arc.Length + 50.0, arc.Extend(50.0, LineEnd.End).Length, 6);
+            Assert.Equal(200.0, arc.ExtendToLength(200.0, LineEnd.Start).Length, 6);
+            Assert.True(arc.TryExtendTo(new GeoPoint2(0, -100), LineEnd.End, out GeoArc2 round));
+            Assert.Equal(2.0 * Math.PI * 100.0 * 0.75, round.Length, 6);
+            Assert.True(arc.TryTrimTo(arc.GetPointAtParameter(0.5), LineEnd.End, out GeoArc2 half));
+            Assert.Equal(arc.Length / 2.0, half.Length, 6);
+
+            var bar = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(400, 0), new GeoPoint2(400, 200));
+
+            Assert.Equal(bar.Length + 300.0, bar.Extend(300.0, LineEnd.End).Length, 6);
+            Assert.Equal(1000.0, bar.ExtendToLength(1000.0, LineEnd.Start).Length, 6);
+            Assert.True(bar.TryTrimTo(new GeoPoint2(200, 0), LineEnd.End, out GeoPolyline2 back));
+            Assert.Equal(200.0, back.Length, 6);
+
+            Assert.Equal(150.0, new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)).Extend(50.0, LineEnd.End).Length, 6);
+        }
+
+        [Fact]
+        public void RoundingTheStraightShapes()
+        {
+            var plate = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+            var chain = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(400, 0), new GeoPoint2(400, 200));
+
+            Assert.Equal(4, plate.Fillet(30.0).GetEdges().Count(edge => edge.IsArc));
+            Assert.Equal(2, plate.Fillet(new[] { 20.0, 0.0, 20.0, 0.0 }).GetEdges().Count(edge => edge.IsArc));
+            Assert.True(chain.TryFilletAt(1, 50.0, out GeoPolylineArc2 rounded));
+            Assert.Single(rounded.GetEdges(), edge => edge.IsArc);
+        }
+
     }
 }
