@@ -256,7 +256,29 @@ namespace GeometryHelper.Core
                 cells = divided;
             }
 
-            return cells;
+            return OnePieceEach(cells, tolerance);
+        }
+
+        /// <summary>
+        /// Separates every cell into the pieces of material that do not touch.
+        /// </summary>
+        /// <remarks>
+        /// A cell is judged by one point of it, which is only safe when the cell is one piece. A plane lying
+        /// exactly along the wall of a hole does not cut the strip either side of the hole — there is no
+        /// material on the far side of it to cut — so that strip comes out as one cell in two pieces, and a
+        /// single point decides for both. Subtracting a box that overlapped an existing hole once threw away a
+        /// whole block of material nowhere near the box that way.
+        /// </remarks>
+        private static List<GeoSolid3> OnePieceEach(List<GeoSolid3> cells, Tolerance tolerance)
+        {
+            var pieces = new List<GeoSolid3>(cells.Count);
+
+            foreach (GeoSolid3 cell in cells)
+            {
+                pieces.AddRange(Shells3.Split(cell, tolerance));
+            }
+
+            return pieces;
         }
 
         /// <summary>
