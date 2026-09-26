@@ -255,6 +255,45 @@ namespace GeometryHelper.Geometry
         /// Gets the axis-aligned bounding box enclosing this oriented box.
         /// </summary>
         public GeoAabb3 GetAabb() => GeoAabb3.FromPoints(GetCorners());
+        /// <summary>
+        /// Grows the box by a margin on every side, or shrinks it by a negative one.
+        /// </summary>
+        /// <param name="margin">How far to move every face outwards; negative moves them inwards.</param>
+        /// <param name="result">The grown box, or this one where the margin shrank it past nothing.</param>
+        /// <returns>true when a box came back; otherwise, false.</returns>
+        /// <remarks>
+        /// The box keeps its axes — every face moves along its own normal, so the corners stay square and the
+        /// result is exact rather than a re-fit. There is no tolerance in it, and so no overload taking one.
+        /// <para>
+        /// It draws the line exactly where its square twin <see cref="GeoAabb3.Expand(double)"/> draws it: a
+        /// margin that takes a side to nothing gives a box with that side flat, which
+        /// <see cref="IsDegenerate()"/> will say, and only a margin that would take a side past nothing is
+        /// refused. Ask for the box you want and check, rather than reading false as "it got thin".
+        /// </para>
+        /// </remarks>
+        public bool TryExpand(double margin, out GeoObb3 result)
+        {
+            result = this;
+
+            if (double.IsNaN(margin) || double.IsInfinity(margin))
+            {
+                throw new ArgumentOutOfRangeException(nameof(margin), "The margin has to be a finite number.");
+            }
+
+            double growth = margin * 2.0;
+            double sizeX = SizeX + growth;
+            double sizeY = SizeY + growth;
+            double sizeZ = SizeZ + growth;
+
+            if (sizeX < 0.0 || sizeY < 0.0 || sizeZ < 0.0)
+            {
+                return false;
+            }
+
+            result = new GeoObb3(CoordinateSystem, sizeX, sizeY, sizeZ);
+            return true;
+        }
+
 
         /// <summary>
         /// Moves the box by a vector.

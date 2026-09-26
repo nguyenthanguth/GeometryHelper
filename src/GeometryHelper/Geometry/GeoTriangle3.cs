@@ -143,6 +143,39 @@ namespace GeometryHelper.Geometry
         /// Gets the axis-aligned bounding box enclosing this triangle.
         /// </summary>
         public GeoAabb3 GetAabb() => GeoAabb3.FromPoints(new[] { A, B, C });
+        /// <summary>
+        /// Reads the triangle as a three-sided polygon.
+        /// </summary>
+        /// <remarks>
+        /// A triangle out of <c>Triangulate</c> had to be rebuilt from its three corners before anything that
+        /// takes a polygon would accept it. This is that rebuild, named.
+        /// </remarks>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the triangle encloses no area. Ask <see cref="IsDegenerate()"/> first where that is
+        /// possible: a polygon of three collinear points is not a polygon.
+        /// </exception>
+        public GeoPolygon3 ToPolygon3() => new GeoPolygon3(A, B, C);
+
+        /// <summary>
+        /// Reads the triangle as a three-sided polygon, within a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance that decides whether the three corners enclose an area.</param>
+        /// <exception cref="ArgumentException">Thrown when the triangle encloses no area.</exception>
+        public GeoPolygon3 ToPolygon3(Tolerance tolerance) => new GeoPolygon3(new[] { A, B, C }, tolerance);
+
+        /// <summary>
+        /// Reads the triangle as a face with no holes in it.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the triangle encloses no area.</exception>
+        public GeoFace3 ToFace3() => new GeoFace3(ToPolygon3());
+
+        /// <summary>
+        /// Reads the triangle as a face with no holes in it, within a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance that decides whether the three corners enclose an area.</param>
+        /// <exception cref="ArgumentException">Thrown when the triangle encloses no area.</exception>
+        public GeoFace3 ToFace3(Tolerance tolerance) => new GeoFace3(ToPolygon3(tolerance), null, tolerance);
+
 
         /// <summary>
         /// Moves the triangle by a vector.
