@@ -159,6 +159,13 @@ These are kept because they govern the work above, not as a record of what was d
 - **A bulge is stored with the plane it bulges in.** Deriving that plane from the neighbouring legs breaks on
   reversing a chain, on splitting one, and at either end.
 - **Only a corner between two straight legs is rounded in space.** A curved leg lies in a plane of its own.
+- **Both directions live on the types, and the surface being large is the accepted price.** Decided at
+  6.0.0, having counted it: two thirds of `GeoArc2`'s hundred and fifty members are measuring wiring, and
+  section 2 will add about as much again to the types in space. Moving the family to extension methods was
+  considered and turned down. `a.DistanceTo(b)` compiling whatever is in hand is worth more than a short
+  member list, it needs no `using` in a script, and it is what lets a test compare the two directions
+  against each other — which is how nearly every mis-wiring this week was caught. So **wire both
+  directions by default**, and do not re-propose extension methods for it.
 - **A joining segment leaves the shape it was asked of and lands on the other.** `Core` computes each pair
   one way round only, so half the directions on the types turn the answer over. Handing it back as it comes
   gives a segment of the right length pointing backwards, which no length assertion catches.
