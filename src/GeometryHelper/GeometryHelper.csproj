@@ -167,8 +167,11 @@
       - A point can be asked how deep inside a shape it sits, through SignedDistanceTo, and in the plane it
         reaches the arcs, the curved chains and the face, which it could not before.
 
-      Core and the shape types now agree everywhere: there is no pair Core computes that some type will not
-      answer, whichever of the two is in hand.
+      - A GeoEdge2 can be asked about, not only ask. Every shape in the plane takes one, reading it as the
+        segment or the arc it stands for, which is how the edge has always read itself.
+
+      Core and the shape types now agree everywhere, and so does shape against shape: there is no pair one
+      of them answers that the other will not, whichever is in hand.
 
       NEW IN 5.1.0
 

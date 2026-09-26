@@ -26,15 +26,27 @@ The notes are already written under **NEW IN 6.0.0**. Copy that text into the re
 whichever of the two shapes is in hand. That took five passes: `Translate` and the nearest point, then
 meeting, then joining, then the matrix that showed what the audit table had missed, then the last of it.
 
-To check it again after any change, re-derive the matrix rather than trusting this paragraph. Read every
-`public` member of `src/GeometryHelper/Geometry/*.cs` and every `public static` of `src/GeometryHelper/Core`,
-take the first two `Geo…` arguments of each static as an unordered pair, and report every pair for which
-neither shape offers the operation. Two things that scan wrongly and must be allowed for:
+To check it again after any change, re-derive the matrix rather than trusting this paragraph. Two readings
+are needed, and the first alone will miss things:
+
+1. **Against `Core`.** Read every `public` member of `src/GeometryHelper/Geometry/*.cs` and every
+   `public static` of `src/GeometryHelper/Core`, take the first two `Geo…` arguments of each static as an
+   unordered pair, and report every pair for which neither shape offers the operation.
+2. **Shape against shape.** Lay the types out as a grid — row the shape in hand, column the shape asked
+   about, cell the operations available — and look for cells that are not their own mirror. This is the
+   reading that finds what `Core` has no pair for at all: `GeoEdge2` as something to be asked *about* was
+   invisible to the first check for exactly that reason, because an edge is always read as its segment or
+   its arc and `Core` names neither.
+
+Three things that scan wrongly and must be allowed for:
 
 - a static whose result is an `out` parameter (`TryIntersectWith`) puts its shapes first, so take the
   arguments in order and stop at two;
 - a shape against its own sort reads as one pair, and it is easy to skip. Box-to-box, plane-to-plane and
-  triangle-to-triangle distance were missing for exactly that reason.
+  triangle-to-triangle distance were missing for exactly that reason;
+- two overloads can share a return type and still not be interchangeable. `GeoLine2.TryIntersectWith`
+  hands back one point against a segment and a list against an arc, so anything dispatching between them
+  must compare the whole argument list, not just what comes back.
 
 What remains open is a question of meaning, not of wiring:
 
@@ -95,6 +107,15 @@ be checked here:
   This was misfiled once as though the whole reverse direction were settled against.
 - **`GetClosestEdge` on the straight shapes takes no tolerance**, because `Core.ClosestEdge2` has no such
   overload for them; only the curved ones do. Any wiring generated for both must follow that.
+- **A `GeoEdge2` is always read as its segment or its arc**, in both directions, and a direction is offered
+  only where those two answer it with the *same shape of call*. Where they do not — `TryIntersectWith`
+  against a segment gives one point, against an arc a list — the direction is left out rather than papered
+  over. The single exception, `GeoLine2.GetIntersections(GeoEdge2)`, is written by hand because a segment
+  meeting a segment at one point is still a list of length one, which is what the edge's own
+  `GetIntersections(GeoLine2)` has always done.
+- **Wiring follows the tolerance overloads of the shapes underneath, not the house style.** Where
+  `GeoLine2.DistanceTo` against a polygon takes none, neither does the edge's. An uneven surface honestly
+  mirrored beats an even one that quietly drops a tolerance.
 - **A rebar is only ever read as Tekla works it out.** Set-out readings were written and dropped: those
   points are hardly used and gave a second answer that differed from the model.
 - **`GetClosestPointOnBoundary` on `GeoAabb3` and `GeoObb3` clamps into the box**, so an interior point comes
