@@ -21,7 +21,7 @@ namespace GeometryHelper.Geometry
     /// which makes it the right seed for a loop that unions boxes together.
     /// </para>
     /// </summary>
-    public readonly struct GeoAabb3 : IEquatable<GeoAabb3>
+    public readonly partial struct GeoAabb3 : IEquatable<GeoAabb3>
     {
         /// <summary>
         /// Gets the corner with the smallest coordinate on every axis.
@@ -362,70 +362,6 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Calculates the shortest distance from this box to a point. A point inside is at distance zero,
-        /// and an empty box is infinitely far from everything.
-        /// </summary>
-        /// <remarks>
-        /// This is what prunes a search through a tree of boxes: a box already farther away than the best
-        /// answer so far cannot hold anything nearer, so the whole branch below it can be skipped without
-        /// being looked at.
-        /// </remarks>
-        public double DistanceTo(GeoPoint3 point)
-        {
-            if (IsEmpty)
-            {
-                return double.PositiveInfinity;
-            }
-
-            return GetClosestPointOnBoundary(point).DistanceTo(point);
-        }
-
-        /// <summary>
-        /// Calculates the shortest distance between this box and another one. Boxes that overlap are at
-        /// distance zero, and an empty box is infinitely far from everything.
-        /// </summary>
-        /// <remarks>
-        /// The gap between two axis-aligned boxes separates on each axis independently, so the distance is
-        /// the length of the vector of per-axis gaps. This is what prunes a traversal of two trees at once:
-        /// a pair of boxes already farther apart than the best answer so far cannot hold a nearer pair.
-        /// </remarks>
-        public double DistanceTo(GeoAabb3 other)
-        {
-            if (IsEmpty || other.IsEmpty)
-            {
-                return double.PositiveInfinity;
-            }
-
-            double gapX = Math.Max(0.0, Math.Max(Min.X - other.Max.X, other.Min.X - Max.X));
-            double gapY = Math.Max(0.0, Math.Max(Min.Y - other.Max.Y, other.Min.Y - Max.Y));
-            double gapZ = Math.Max(0.0, Math.Max(Min.Z - other.Max.Z, other.Min.Z - Max.Z));
-
-            return Math.Sqrt(gapX * gapX + gapY * gapY + gapZ * gapZ);
-        }
-
-        /// <summary>
-        /// Checks whether this box overlaps another one, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoAabb3 other) => CollidesWith(other, Tolerance.Global);
-
-        /// <summary>
-        /// Checks whether this box overlaps another one, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoAabb3 other, Tolerance tolerance)
-        {
-            if (IsEmpty || other.IsEmpty)
-            {
-                return false;
-            }
-
-            double t = tolerance.EqualPoint;
-
-            return Min.X - t <= other.Max.X && Max.X + t >= other.Min.X &&
-                   Min.Y - t <= other.Max.Y && Max.Y + t >= other.Min.Y &&
-                   Min.Z - t <= other.Max.Z && Max.Z + t >= other.Min.Z;
-        }
-
-        /// <summary>
         /// Gets this box as an oriented box aligned with the world axes.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
@@ -438,26 +374,6 @@ namespace GeometryHelper.Geometry
 
             return new GeoObb3(Center, SizeX, SizeY, SizeZ);
         }
-
-        /// <summary>
-        /// Checks whether this box touches an oriented box, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoObb3 box) => Core.Collision3.CollidesWith(box, this);
-
-        /// <summary>
-        /// Checks whether this box touches an oriented box, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoObb3 box, Tolerance tolerance) => Core.Collision3.CollidesWith(box, this, tolerance);
-
-        /// <summary>
-        /// Checks whether this box touches a segment, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoLine3 line) => Core.Collision3.CollidesWith(line, this);
-
-        /// <summary>
-        /// Checks whether this box touches a segment, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Core.Collision3.CollidesWith(line, this, tolerance);
 
         /// <summary>
         /// Gets every point where a segment crosses the surface of this box, using the default tolerance.
@@ -479,63 +395,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Core.Intersection3.GetIntersections(ray, this, tolerance);
 
-        /// <summary>
-        /// Gets the distance from this box to a polyline, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPolyline3 polyline) => Core.Distance3.DistanceTo(polyline, this);
-
-        /// <summary>
-        /// Gets the distance from this box to a polyline, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Core.Distance3.DistanceTo(polyline, this, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this box to a solid, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoSolid3 solid) => Core.Distance3.DistanceTo(solid, this);
-
-        /// <summary>
-        /// Gets the distance from this box to a solid, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Core.Distance3.DistanceTo(solid, this, tolerance);
-
-        /// <summary>
-        /// Checks whether a ray starts inside this box or runs into it, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoRay3 ray) => Core.Collision3.CollidesWith(ray, this);
-
-        /// <summary>
-        /// Checks whether a ray starts inside this box or runs into it, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Core.Collision3.CollidesWith(ray, this, tolerance);
-
-        /// <summary>
-        /// Checks whether this box touches a solid, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoSolid3 solid) => Core.Collision3.CollidesWith(this, solid);
-
-        /// <summary>
-        /// Checks whether this box touches a solid, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Core.Collision3.CollidesWith(this, solid, tolerance);
-
         #endregion
-
-        /// <summary>
-        /// Calculates the distance from this box to a point, negative for a point within it.
-        /// </summary>
-        /// <remarks>
-        /// The magnitude is the distance to the surface, whichever side of it the point is on, and the sign
-        /// says which side: negative inside, nought on it, positive outside. <see cref="DistanceTo(GeoPoint3)"/>
-        /// reads this box as filled and so answers nothing at all for a point inside, which is the one
-        /// place the two part company.
-        /// </remarks>
-        public double SignedDistanceTo(GeoPoint3 point) => Core.Distance3.SignedDistanceTo(this, point);
-
-        /// <summary>
-        /// Calculates the distance from this box to a point, negative for a point within it, within a tolerance.
-        /// </summary>
-        public double SignedDistanceTo(GeoPoint3 point, Tolerance tolerance) => Core.Distance3.SignedDistanceTo(this, point, tolerance);
 
         #region Equality
 

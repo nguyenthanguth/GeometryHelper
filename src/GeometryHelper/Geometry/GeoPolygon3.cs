@@ -22,7 +22,7 @@ namespace GeometryHelper.Geometry
     /// of a figure-eight cancel, so it reports an area near zero however large those lobes are.
     /// </para>
     /// </summary>
-    public sealed class GeoPolygon3 : IEquatable<GeoPolygon3>
+    public sealed partial class GeoPolygon3 : IEquatable<GeoPolygon3>
     {
         private readonly GeoPoint3[] _vertices;
 
@@ -449,15 +449,6 @@ namespace GeometryHelper.Geometry
         public bool IsPointOn(GeoPoint3 point, Tolerance tolerance) => Containment3.IsPointOn(this, point, tolerance);
 
         /// <summary>
-        /// Calculates the shortest distance from this polygon to a point.
-        /// </summary>
-        /// <remarks>
-        /// The polygon counts as a filled surface, so a point above its interior is measured straight down
-        /// to the surface rather than out to the nearest edge.
-        /// </remarks>
-        public double DistanceTo(GeoPoint3 point) => Distance3.DistanceTo(this, point);
-
-        /// <summary>
         /// Gets the point on this polygon closest to a target point.
         /// </summary>
         public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToPolygon(this, point);
@@ -523,76 +514,6 @@ namespace GeometryHelper.Geometry
         /// Checks whether this polygon is simple, within a tolerance.
         /// </summary>
         public bool IsSimple(Tolerance tolerance) => Intersection3.IsSimple(this, tolerance);
-
-        /// <summary>
-        /// Checks whether this polygon touches an oriented box, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoObb3 box) => Collision3.CollidesWith(this, box);
-
-        /// <summary>
-        /// Checks whether this polygon touches an oriented box, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoObb3 box, Tolerance tolerance) => Collision3.CollidesWith(this, box, tolerance);
-
-        /// <summary>
-        /// Checks whether this polygon touches a solid, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoSolid3 solid) => Collision3.CollidesWith(this, solid);
-
-        /// <summary>
-        /// Checks whether this polygon touches a solid, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this polygon to a segment, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoLine3 line) => Distance3.DistanceTo(line, this);
-
-        /// <summary>
-        /// Gets the distance from this polygon to a segment, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoLine3 line, Tolerance tolerance) => Distance3.DistanceTo(line, this, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this polygon to a polyline, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPolyline3 polyline) => Distance3.DistanceTo(polyline, this);
-
-        /// <summary>
-        /// Gets the distance from this polygon to a polyline, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this polygon to a solid, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoSolid3 solid) => Distance3.DistanceTo(solid, this);
-
-        /// <summary>
-        /// Gets the distance from this polygon to a solid, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.DistanceTo(solid, this, tolerance);
-
-        /// <summary>
-        /// Checks whether this polygon touches a segment, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoLine3 line) => Collision3.CollidesWith(line, this);
-
-        /// <summary>
-        /// Checks whether this polygon touches a segment, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Collision3.CollidesWith(line, this, tolerance);
-
-        /// <summary>
-        /// Checks whether a ray runs into this polygon, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoRay3 ray) => Collision3.CollidesWith(ray, this);
-
-        /// <summary>
-        /// Checks whether a ray runs into this polygon, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Collision3.CollidesWith(ray, this, tolerance);
 
         #endregion
 

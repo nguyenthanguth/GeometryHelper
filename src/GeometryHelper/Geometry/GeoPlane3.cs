@@ -14,7 +14,7 @@ namespace GeometryHelper.Geometry
     /// and it is why <see cref="Flip"/> is a meaningful operation rather than a no-op.
     /// </para>
     /// </summary>
-    public readonly struct GeoPlane3 : IEquatable<GeoPlane3>
+    public readonly partial struct GeoPlane3 : IEquatable<GeoPlane3>
     {
         /// <summary>
         /// Gets a point lying on the plane.
@@ -179,24 +179,6 @@ namespace GeometryHelper.Geometry
         public GeoVector3 Project(GeoVector3 vector) => Projection3.ProjectOntoPlane(vector, Normal);
 
         /// <summary>
-        /// Calculates the unsigned distance from a point to the plane.
-        /// </summary>
-        public double DistanceTo(GeoPoint3 point) => Distance3.DistanceTo(this, point);
-
-        /// <summary>
-        /// Calculates the shortest distance from a line segment to the plane. A segment that crosses the
-        /// plane is at distance zero.
-        /// </summary>
-        public double DistanceTo(GeoLine3 line) => Distance3.DistanceTo(this, line);
-
-        /// <summary>
-        /// Calculates the signed distance from a point to the plane.
-        /// </summary>
-        /// <param name="point">The target point.</param>
-        /// <returns>Positive if the point is on the side the normal points towards, negative otherwise.</returns>
-        public double SignedDistanceTo(GeoPoint3 point) => Origin.GetVectorTo(point).DotProduct(Normal);
-
-        /// <summary>
         /// Gets the point of this plane nearest a target point.
         /// </summary>
         /// <remarks>
@@ -283,86 +265,6 @@ namespace GeometryHelper.Geometry
         /// Checks whether this plane is perpendicular to another plane within a tolerance.
         /// </summary>
         public bool IsPerpendicularTo(GeoPlane3 other, Tolerance tolerance) => Parallel3.IsPerpendicular(this, other, tolerance);
-
-        /// <summary>
-        /// Tries to find the line where this plane meets another plane, using the default tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoPlane3 other, out GeoRay3 intersection) => Intersection3.TryIntersectWith(this, other, out intersection);
-
-        /// <summary>
-        /// Tries to find the line where this plane meets another plane, within a tolerance.
-        /// </summary>
-        public bool TryIntersectWith(GeoPlane3 other, out GeoRay3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(this, other, out intersection, tolerance);
-
-        /// <summary>
-        /// Gets every point where the edges of a solid cross this plane, using the default tolerance.
-        /// </summary>
-        public GeoPoint3[] GetIntersections(GeoSolid3 solid) => Intersection3.GetIntersections(this, solid);
-
-        /// <summary>
-        /// Gets every point where the edges of a solid cross this plane, within a tolerance.
-        /// </summary>
-        public GeoPoint3[] GetIntersections(GeoSolid3 solid, Tolerance tolerance) => Intersection3.GetIntersections(this, solid, tolerance);
-
-        /// <summary>
-        /// Tries to find the point where a segment crosses this plane, using the default tolerance.
-        /// </summary>
-        /// <param name="line">The segment.</param>
-        /// <param name="intersection">The crossing point when the method returns true.</param>
-        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(line, this, out intersection);
-
-        /// <summary>
-        /// Tries to find the point where a segment crosses this plane, within a tolerance.
-        /// </summary>
-        /// <param name="line">The segment.</param>
-        /// <param name="intersection">The crossing point when the method returns true.</param>
-        /// <param name="tolerance">The tolerance.</param>
-        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(line, this, out intersection, tolerance);
-
-        /// <summary>
-        /// Tries to find the point where a ray crosses this plane, using the default tolerance.
-        /// </summary>
-        /// <param name="ray">The ray.</param>
-        /// <param name="intersection">The crossing point when the method returns true.</param>
-        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(ray, this, out intersection);
-
-        /// <summary>
-        /// Tries to find the point where a ray crosses this plane, within a tolerance.
-        /// </summary>
-        /// <param name="ray">The ray.</param>
-        /// <param name="intersection">The crossing point when the method returns true.</param>
-        /// <param name="tolerance">The tolerance.</param>
-        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(ray, this, out intersection, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this plane to a polyline, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPolyline3 polyline) => Distance3.DistanceTo(polyline, this);
-
-        /// <summary>
-        /// Gets the distance from this plane to a polyline, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this plane to a solid, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoSolid3 solid) => Distance3.DistanceTo(solid, this);
-
-        /// <summary>
-        /// Gets the distance from this plane to a solid, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.DistanceTo(solid, this, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this plane to a plane, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPlane3 other) => Distance3.DistanceTo(this, other);
-
-        /// <summary>
-        /// Gets the distance from this plane to a plane, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPlane3 other, Tolerance tolerance) => Distance3.DistanceTo(this, other, tolerance);
 
         #endregion
 

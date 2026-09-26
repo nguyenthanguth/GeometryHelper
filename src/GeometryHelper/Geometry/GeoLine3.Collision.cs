@@ -1,0 +1,73 @@
+using System;
+using GeometryHelper;
+using GeometryHelper.Enums;
+using GeometryHelper.Core;
+
+namespace GeometryHelper.Geometry
+{
+    /// <summary>
+    /// Whether a segment touches another shape.
+    /// </summary>
+    public readonly partial struct GeoLine3
+    {
+        /// <summary>
+        /// Checks whether this segment touches an axis-aligned box, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoAabb3 box) => Collision3.CollidesWith(this, box);
+
+        /// <summary>
+        /// Checks whether this segment touches an axis-aligned box, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoAabb3 box, Tolerance tolerance) => Collision3.CollidesWith(this, box, tolerance);
+
+        /// <summary>
+        /// Checks whether this segment touches an oriented box, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoObb3 box) => Collision3.CollidesWith(this, box);
+
+        /// <summary>
+        /// Checks whether this segment touches an oriented box, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoObb3 box, Tolerance tolerance) => Collision3.CollidesWith(this, box, tolerance);
+
+        /// <summary>
+        /// Checks whether this segment touches a solid, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid) => Collision3.CollidesWith(this, solid);
+
+        /// <summary>
+        /// Checks whether this segment touches a solid, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
+
+        /// <summary>
+        /// Checks whether this segment touches a triangle, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoTriangle3 triangle) => Collision3.CollidesWith(this, triangle);
+
+        /// <summary>
+        /// Checks whether this segment touches a triangle, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) => Collision3.CollidesWith(this, triangle, tolerance);
+
+        /// <summary>
+        /// Checks whether this segment touches a polygon, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygon3 polygon) => Collision3.CollidesWith(this, polygon);
+
+        /// <summary>
+        /// Checks whether this segment touches a polygon, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Collision3.CollidesWith(this, polygon, tolerance);
+
+        /// <summary>
+        /// Checks whether this segment touches a face, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoFace3 face) => Collision3.CollidesWith(this, face);
+
+        /// <summary>
+        /// Checks whether this segment touches a face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoFace3 face, Tolerance tolerance) => Collision3.CollidesWith(this, face, tolerance);
+    }
+}

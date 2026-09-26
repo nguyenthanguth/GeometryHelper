@@ -16,7 +16,7 @@ namespace GeometryHelper.Geometry
     /// for this only on what survives.
     /// </para>
     /// </summary>
-    public sealed class GeoObb3 : IEquatable<GeoObb3>
+    public sealed partial class GeoObb3 : IEquatable<GeoObb3>
     {
         /// <summary>
         /// Gets the local coordinate system of the box: its centre and its three orthonormal axes.
@@ -327,65 +327,9 @@ namespace GeometryHelper.Geometry
         public bool Contains(GeoPoint3 point, Tolerance tolerance) => Containment3.Contains(this, point, tolerance);
 
         /// <summary>
-        /// Calculates the shortest distance from this box to a point. A point inside the box is at
-        /// distance zero.
-        /// </summary>
-        public double DistanceTo(GeoPoint3 point) => Distance3.DistanceTo(this, point);
-
-        /// <summary>
         /// Gets the point of this box closest to a target point.
         /// </summary>
         public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToObb(this, point);
-
-        /// <summary>
-        /// Checks whether this box overlaps another one, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoObb3 other) => Collision3.CollidesWith(this, other);
-
-        /// <summary>
-        /// Checks whether this box overlaps another one, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoObb3 other, Tolerance tolerance) => Collision3.CollidesWith(this, other, tolerance);
-
-        /// <summary>
-        /// Checks whether this box touches an axis-aligned box, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoAabb3 box) => Collision3.CollidesWith(this, box);
-
-        /// <summary>
-        /// Checks whether this box touches an axis-aligned box, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoAabb3 box, Tolerance tolerance) => Collision3.CollidesWith(this, box, tolerance);
-
-        /// <summary>
-        /// Checks whether this box touches a solid, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoSolid3 solid) => Collision3.CollidesWith(this, solid);
-
-        /// <summary>
-        /// Checks whether this box touches a solid, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
-
-        /// <summary>
-        /// Checks whether this box touches a segment, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoLine3 line) => Collision3.CollidesWith(line, this);
-
-        /// <summary>
-        /// Checks whether this box touches a segment, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Collision3.CollidesWith(line, this, tolerance);
-
-        /// <summary>
-        /// Checks whether this box touches a polygon, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoPolygon3 polygon) => Collision3.CollidesWith(polygon, this);
-
-        /// <summary>
-        /// Checks whether this box touches a polygon, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Collision3.CollidesWith(polygon, this, tolerance);
 
         /// <summary>
         /// Gets every point where a segment crosses the surface of this box, using the default tolerance.
@@ -407,63 +351,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Intersection3.GetIntersections(ray, this, tolerance);
 
-        /// <summary>
-        /// Gets the distance from this box to a polyline, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPolyline3 polyline) => Distance3.DistanceTo(polyline, this);
-
-        /// <summary>
-        /// Gets the distance from this box to a polyline, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this box to a solid, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoSolid3 solid) => Distance3.DistanceTo(solid, this);
-
-        /// <summary>
-        /// Gets the distance from this box to a solid, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.DistanceTo(solid, this, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this box to a box, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoObb3 other) => Distance3.DistanceTo(this, other);
-
-        /// <summary>
-        /// Gets the distance from this box to a box, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoObb3 other, Tolerance tolerance) => Distance3.DistanceTo(this, other, tolerance);
-
-        /// <summary>
-        /// Checks whether a ray starts inside this box or runs into it, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoRay3 ray) => Collision3.CollidesWith(ray, this);
-
-        /// <summary>
-        /// Checks whether a ray starts inside this box or runs into it, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Collision3.CollidesWith(ray, this, tolerance);
-
         #endregion
-
-        /// <summary>
-        /// Calculates the distance from this box to a point, negative for a point within it.
-        /// </summary>
-        /// <remarks>
-        /// The magnitude is the distance to the surface, whichever side of it the point is on, and the sign
-        /// says which side: negative inside, nought on it, positive outside. <see cref="DistanceTo(GeoPoint3)"/>
-        /// reads this box as filled and so answers nothing at all for a point inside, which is the one
-        /// place the two part company.
-        /// </remarks>
-        public double SignedDistanceTo(GeoPoint3 point) => Distance3.SignedDistanceTo(this, point);
-
-        /// <summary>
-        /// Calculates the distance from this box to a point, negative for a point within it, within a tolerance.
-        /// </summary>
-        public double SignedDistanceTo(GeoPoint3 point, Tolerance tolerance) => Distance3.SignedDistanceTo(this, point, tolerance);
 
         #region Equality
 

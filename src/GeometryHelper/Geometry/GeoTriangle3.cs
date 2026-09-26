@@ -14,7 +14,7 @@ namespace GeometryHelper.Geometry
     /// always coplanar, which is why a triangle needs no flatness check while a polygon does.
     /// </para>
     /// </summary>
-    public readonly struct GeoTriangle3 : IEquatable<GeoTriangle3>
+    public readonly partial struct GeoTriangle3 : IEquatable<GeoTriangle3>
     {
         /// <summary>
         /// Gets the first vertex.
@@ -244,16 +244,6 @@ namespace GeometryHelper.Geometry
         #region Queries
 
         /// <summary>
-        /// Calculates the shortest distance from this triangle to a point.
-        /// </summary>
-        public double DistanceTo(GeoPoint3 point) => Distance3.DistanceTo(this, point);
-
-        /// <summary>
-        /// Gets the closest point on this triangle to a target point.
-        /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToTriangle(this, point);
-
-        /// <summary>
         /// Locates a point relative to this triangle, using the default tolerance.
         /// </summary>
         public PointLocation Locate(GeoPoint3 point) => Containment3.Locate(this, point);
@@ -292,158 +282,6 @@ namespace GeometryHelper.Geometry
         /// Tries to find the point where a ray crosses this triangle, within a tolerance.
         /// </summary>
         public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(ray, this, out intersection, tolerance);
-
-        /// <summary>
-        /// Checks whether this triangle touches another triangle, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoTriangle3 other) => Collision3.CollidesWith(this, other);
-
-        /// <summary>
-        /// Checks whether this triangle touches another triangle, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoTriangle3 other, Tolerance tolerance) => Collision3.CollidesWith(this, other, tolerance);
-
-        /// <summary>
-        /// Gets the shortest segment joining this triangle to another, using the default tolerance.
-        /// </summary>
-        /// <remarks>
-        /// The segment leaves this triangle and lands on the other triangle, so its length is the clearance
-        /// between them and nought where they touch.
-        /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoTriangle3 other) => Projection3.GetShortestLineTo(this, other);
-
-        /// <summary>
-        /// Gets the shortest segment joining this triangle to another, within a tolerance.
-        /// </summary>
-        /// <remarks>
-        /// The segment leaves this triangle and lands on the other triangle, so its length is the clearance
-        /// between them and nought where they touch.
-        /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoTriangle3 other, Tolerance tolerance) => Projection3.GetShortestLineTo(this, other, tolerance);
-
-        /// <summary>
-        /// Gets the shortest segment joining this triangle to a segment, using the default tolerance.
-        /// </summary>
-        /// <remarks>
-        /// The segment leaves this triangle and lands on the segment, so its length is the clearance
-        /// between them and nought where they touch.
-        /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoLine3 line) => Projection3.GetShortestLineTo(line, this).Reverse();
-
-        /// <summary>
-        /// Gets the shortest segment joining this triangle to a segment, within a tolerance.
-        /// </summary>
-        /// <remarks>
-        /// The segment leaves this triangle and lands on the segment, so its length is the clearance
-        /// between them and nought where they touch.
-        /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoLine3 line, Tolerance tolerance) => Projection3.GetShortestLineTo(line, this, tolerance).Reverse();
-
-        /// <summary>
-        /// Gets the shortest segment joining this triangle to a ray, using the default tolerance.
-        /// </summary>
-        /// <remarks>
-        /// The segment leaves this triangle and lands on the ray, so its length is the clearance
-        /// between them and nought where they touch.
-        /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoRay3 ray) => Projection3.GetShortestLineTo(ray, this).Reverse();
-
-        /// <summary>
-        /// Gets the shortest segment joining this triangle to a ray, within a tolerance.
-        /// </summary>
-        /// <remarks>
-        /// The segment leaves this triangle and lands on the ray, so its length is the clearance
-        /// between them and nought where they touch.
-        /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoRay3 ray, Tolerance tolerance) => Projection3.GetShortestLineTo(ray, this, tolerance).Reverse();
-
-        /// <summary>
-        /// Gets the shortest segment joining this triangle to a solid, using the default tolerance.
-        /// </summary>
-        /// <remarks>
-        /// The segment leaves this triangle and lands on the solid, so its length is the clearance
-        /// between them and nought where they touch.
-        /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoSolid3 solid) => Projection3.GetShortestLineTo(solid, this).Reverse();
-
-        /// <summary>
-        /// Gets the shortest segment joining this triangle to a solid, within a tolerance.
-        /// </summary>
-        /// <remarks>
-        /// The segment leaves this triangle and lands on the solid, so its length is the clearance
-        /// between them and nought where they touch.
-        /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoSolid3 solid, Tolerance tolerance) => Projection3.GetShortestLineTo(solid, this, tolerance).Reverse();
-
-        /// <summary>
-        /// Gets the distance from this triangle to a segment, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoLine3 line) => Distance3.DistanceTo(line, this);
-
-        /// <summary>
-        /// Gets the distance from this triangle to a segment, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoLine3 line, Tolerance tolerance) => Distance3.DistanceTo(line, this, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this triangle to a ray, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoRay3 ray) => Distance3.DistanceTo(ray, this);
-
-        /// <summary>
-        /// Gets the distance from this triangle to a ray, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoRay3 ray, Tolerance tolerance) => Distance3.DistanceTo(ray, this, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this triangle to a polyline, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPolyline3 polyline) => Distance3.DistanceTo(polyline, this);
-
-        /// <summary>
-        /// Gets the distance from this triangle to a polyline, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this triangle to a solid, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoSolid3 solid) => Distance3.DistanceTo(solid, this);
-
-        /// <summary>
-        /// Gets the distance from this triangle to a solid, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.DistanceTo(solid, this, tolerance);
-
-        /// <summary>
-        /// Gets the distance from this triangle to a triangle, using the default tolerance.
-        /// </summary>
-        public double DistanceTo(GeoTriangle3 other) => Distance3.DistanceTo(this, other);
-
-        /// <summary>
-        /// Gets the distance from this triangle to a triangle, within a tolerance.
-        /// </summary>
-        public double DistanceTo(GeoTriangle3 other, Tolerance tolerance) => Distance3.DistanceTo(this, other, tolerance);
-
-        /// <summary>
-        /// Checks whether this triangle touches a segment, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoLine3 line) => Collision3.CollidesWith(line, this);
-
-        /// <summary>
-        /// Checks whether this triangle touches a segment, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Collision3.CollidesWith(line, this, tolerance);
-
-        /// <summary>
-        /// Checks whether a ray runs into this triangle, using the default tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoRay3 ray) => Collision3.CollidesWith(ray, this);
-
-        /// <summary>
-        /// Checks whether a ray runs into this triangle, within a tolerance.
-        /// </summary>
-        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Collision3.CollidesWith(ray, this, tolerance);
 
         #endregion
 
