@@ -127,5 +127,48 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance)
             => IsArc ? ToArc().CollidesWith(plane, tolerance) : ToLine().CollidesWith(plane, tolerance);
 
+
+        /// <summary>
+        /// Determines whether this edge touches a segment.
+        /// </summary>
+        public bool CollidesWith(GeoLine3 line) => CollidesWith(line, Tolerance.Global);
+
+        /// <summary>
+        /// Determines whether this edge touches a segment, within a tolerance.
+        /// </summary>
+        /// <param name="line">The segment.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool CollidesWith(GeoLine3 line, Tolerance tolerance)
+            => IsArc ? ToArc().CollidesWith(line, tolerance) : ToLine().CollidesWith(line, tolerance);
+
+        /// <summary>
+        /// Determines whether this edge touches a ray.
+        /// </summary>
+        public bool CollidesWith(GeoRay3 ray) => CollidesWith(ray, Tolerance.Global);
+
+        /// <summary>
+        /// Determines whether this edge touches a ray, within a tolerance.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance)
+            => IsArc ? ToArc().CollidesWith(ray, tolerance) : ToLine().CollidesWith(ray, tolerance);
+        /// <summary>
+        /// Determines whether this edge touches another edge.
+        /// </summary>
+        /// <remarks>
+        /// Two edges lying along each other touch along a length and cross nowhere, so this is not the crossing
+        /// test with the place thrown away.
+        /// </remarks>
+        public bool CollidesWith(GeoEdge3 other) => CollidesWith(other, Tolerance.Global);
+
+        /// <summary>
+        /// Determines whether this edge touches another edge, within a tolerance.
+        /// </summary>
+        /// <param name="other">The other edge.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool CollidesWith(GeoEdge3 other, Tolerance tolerance)
+            => other.IsArc ? CollidesWith(other.ToArc(), tolerance) : CollidesWith(other.ToLine(), tolerance);
+
     }
 }

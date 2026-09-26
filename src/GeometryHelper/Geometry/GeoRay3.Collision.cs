@@ -88,5 +88,19 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool CollidesWith(GeoCircle3 circle, Tolerance tolerance) => Arc3.CollidesWith(circle, this, tolerance);
 
+        /// <summary>
+        /// Determines whether this ray touches a segment.
+        /// </summary>
+        /// <remarks>
+        /// Two pieces lying along each other touch along a length and cross nowhere, so this is not the crossing
+        /// test with the place thrown away: it is the shortest line between the two having no length.
+        /// </remarks>
+        public bool CollidesWith(GeoLine3 line) => Collision3.CollidesWith(this, line);
+
+        /// <summary>
+        /// Determines whether this ray touches a segment, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Collision3.CollidesWith(this, line, tolerance);
+
     }
 }

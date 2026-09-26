@@ -102,5 +102,33 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) => Collision3.CollidesWith(this, plane, tolerance);
 
+        /// <summary>
+        /// Determines whether this segment touches a segment.
+        /// </summary>
+        /// <remarks>
+        /// Two pieces lying along each other touch along a length and cross nowhere, so this is not the crossing
+        /// test with the place thrown away: it is the shortest line between the two having no length.
+        /// </remarks>
+        public bool CollidesWith(GeoLine3 line) => Collision3.CollidesWith(this, line);
+
+        /// <summary>
+        /// Determines whether this segment touches a segment, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Collision3.CollidesWith(this, line, tolerance);
+
+        /// <summary>
+        /// Determines whether this segment touches a ray.
+        /// </summary>
+        /// <remarks>
+        /// Two pieces lying along each other touch along a length and cross nowhere, so this is not the crossing
+        /// test with the place thrown away: it is the shortest line between the two having no length.
+        /// </remarks>
+        public bool CollidesWith(GeoRay3 ray) => Collision3.CollidesWith(this, ray);
+
+        /// <summary>
+        /// Determines whether this segment touches a ray, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Collision3.CollidesWith(this, ray, tolerance);
+
     }
 }

@@ -20,5 +20,25 @@ namespace GeometryHelper.Geometry
         /// Determines whether this chain touches or overlaps a solid, within a tolerance.
         /// </summary>
         public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
+
+        /// <summary>
+        /// Determines whether this chain touches a curved chain.
+        /// </summary>
+        public bool CollidesWith(GeoPolylineArc3 other) => Core.ArcChain3.CollidesWith(other, this);
+
+        /// <summary>
+        /// Determines whether this chain touches a curved chain, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolylineArc3 other, Tolerance tolerance) => Core.ArcChain3.CollidesWith(other, this, tolerance);
+
+        /// <summary>
+        /// Determines whether this chain touches a curved loop.
+        /// </summary>
+        public bool CollidesWith(GeoPolygonArc3 other) => Core.ArcChain3.CollidesWith(other, this);
+
+        /// <summary>
+        /// Determines whether this chain touches a curved loop, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoPolygonArc3 other, Tolerance tolerance) => Core.ArcChain3.CollidesWith(other, this, tolerance);
     }
 }

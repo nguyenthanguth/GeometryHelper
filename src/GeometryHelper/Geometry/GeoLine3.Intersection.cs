@@ -276,5 +276,51 @@ namespace GeometryHelper.Geometry
                 : new GeoPoint3[0];
         }
 
+        /// <summary>
+        /// Gets where this segment crosses a segment, as a list.
+        /// </summary>
+        /// <remarks>
+        /// Two straight pieces meet at one place, so the list is one long or empty. It is a list because a
+        /// <see cref="GeoEdge3"/> has to be able to ask the same question of a segment and of a bend.
+        /// <para>
+        /// There is deliberately no <c>TryIntersectWith</c> twin taking an array here: this type already has one
+        /// handing back a single point, and a second one differing only in the shape of its <c>out</c> would make
+        /// every existing call to it ambiguous. <see cref="GetIntersection(GeoLine3)"/> is the single-point
+        /// reading and this is the list reading of the same answer.
+        /// </para>
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoLine3 line) => Intersection3.GetIntersections(this, line);
+
+        /// <summary>
+        /// Gets where this segment crosses a segment, as a list, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => Intersection3.GetIntersections(this, line, tolerance);
+
+        /// <summary>
+        /// Gets where this segment crosses a ray, as a list.
+        /// </summary>
+        /// <remarks>
+        /// Two straight pieces meet at one place, so the list is one long or empty. It is a list because a
+        /// <see cref="GeoEdge3"/> has to be able to ask the same question of a segment and of a bend.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoRay3 ray) => Intersection3.GetIntersections(this, ray);
+
+        /// <summary>
+        /// Gets where this segment crosses a ray, as a list, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Intersection3.GetIntersections(this, ray, tolerance);
+
+        /// <summary>
+        /// Tries to find where this segment crosses a ray.
+        /// </summary>
+        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3[] intersections)
+            => Intersection3.TryIntersectWith(this, ray, out intersections);
+
+        /// <summary>
+        /// Tries to find where this segment crosses a ray, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Intersection3.TryIntersectWith(this, ray, out intersections, tolerance);
+
     }
 }

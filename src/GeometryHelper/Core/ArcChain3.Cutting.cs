@@ -304,25 +304,7 @@ namespace GeometryHelper.Core
 
             GeoPolylineArc3[] pieces = AsChains(CutRuns(chain.GetEdges(), GetIntersections(chain, cutter, tolerance), tolerance));
 
-            var within = new List<GeoPolylineArc3>();
-            var without = new List<GeoPolylineArc3>();
-
-            foreach (GeoPolylineArc3 piece in pieces)
-            {
-                if (Containment3.Contains(cutter, piece.GetPointAtDistance(piece.Length / 2.0), tolerance))
-                {
-                    within.Add(piece);
-                }
-                else
-                {
-                    without.Add(piece);
-                }
-            }
-
-            inside = within.ToArray();
-            outside = without.ToArray();
-
-            return pieces.Length > 1;
+            return Sorted(pieces, point => Containment3.Contains(cutter, point, tolerance), out inside, out outside);
         }
 
         #endregion
@@ -509,23 +491,7 @@ namespace GeometryHelper.Core
 
             bool cut = TryCutLoop(loop, GetIntersections(loop, cutter, tolerance), tolerance, out GeoPolylineArc3[] pieces);
 
-            var within = new List<GeoPolylineArc3>();
-            var without = new List<GeoPolylineArc3>();
-
-            foreach (GeoPolylineArc3 piece in pieces)
-            {
-                if (Containment3.Contains(cutter, piece.GetPointAtDistance(piece.Length / 2.0), tolerance))
-                {
-                    within.Add(piece);
-                }
-                else
-                {
-                    without.Add(piece);
-                }
-            }
-
-            inside = within.ToArray();
-            outside = without.ToArray();
+            Sorted(pieces, point => Containment3.Contains(cutter, point, tolerance), out inside, out outside);
 
             return cut;
         }

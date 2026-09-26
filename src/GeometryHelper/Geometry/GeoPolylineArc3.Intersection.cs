@@ -127,5 +127,123 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         public GeoPoint3[] GetIntersections(GeoCircle3 circle, Tolerance tolerance) => ArcChain3.GetIntersections(this, circle, tolerance);
 
+        /// <summary>
+        /// Gets every point where this chain crosses a segment.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoLine3 line) => Core.ArcChain3.GetIntersections(this, line);
+
+        /// <summary>
+        /// Gets every point where this chain crosses a segment, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance)
+            => Core.ArcChain3.GetIntersections(this, line, tolerance);
+
+        /// <summary>
+        /// Tries to find where this chain crosses a segment.
+        /// </summary>
+        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3[] intersections)
+            => Core.ArcChain3.TryIntersectWith(this, line, out intersections);
+
+        /// <summary>
+        /// Tries to find where this chain crosses a segment, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Core.ArcChain3.TryIntersectWith(this, line, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets every point where this chain crosses a ray.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoRay3 ray) => Core.ArcChain3.GetIntersections(this, ray);
+
+        /// <summary>
+        /// Gets every point where this chain crosses a ray, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance)
+            => Core.ArcChain3.GetIntersections(this, ray, tolerance);
+
+        /// <summary>
+        /// Tries to find where this chain crosses a ray.
+        /// </summary>
+        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3[] intersections)
+            => Core.ArcChain3.TryIntersectWith(this, ray, out intersections);
+
+        /// <summary>
+        /// Tries to find where this chain crosses a ray, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Core.ArcChain3.TryIntersectWith(this, ray, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets every point where this chain crosses a curved chain.
+        /// </summary>
+        /// <remarks>Every pair of edges is asked, so the work grows with the two edge counts multiplied. Each edge carries a box round itself and a pair whose boxes cannot reach each other is dropped before any arithmetic, which is what makes it usable on bars that are mostly far apart.</remarks>
+        public GeoPoint3[] GetIntersections(GeoPolylineArc3 other) => Core.ArcChain3.GetIntersections(this, other);
+
+        /// <summary>
+        /// Gets every point where this chain crosses a curved chain, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoPolylineArc3 other, Tolerance tolerance)
+            => Core.ArcChain3.GetIntersections(this, other, tolerance);
+
+        /// <summary>
+        /// Tries to find where this chain crosses a curved chain.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolylineArc3 other, out GeoPoint3[] intersections)
+            => Core.ArcChain3.TryIntersectWith(this, other, out intersections);
+
+        /// <summary>
+        /// Tries to find where this chain crosses a curved chain, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolylineArc3 other, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Core.ArcChain3.TryIntersectWith(this, other, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets every point where this chain crosses a curved loop.
+        /// </summary>
+        /// <remarks>Every pair of edges is asked, so the work grows with the two edge counts multiplied. Each edge carries a box round itself and a pair whose boxes cannot reach each other is dropped before any arithmetic, which is what makes it usable on bars that are mostly far apart.</remarks>
+        public GeoPoint3[] GetIntersections(GeoPolygonArc3 other) => Core.ArcChain3.GetIntersections(this, other);
+
+        /// <summary>
+        /// Gets every point where this chain crosses a curved loop, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoPolygonArc3 other, Tolerance tolerance)
+            => Core.ArcChain3.GetIntersections(this, other, tolerance);
+
+        /// <summary>
+        /// Tries to find where this chain crosses a curved loop.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolygonArc3 other, out GeoPoint3[] intersections)
+            => Core.ArcChain3.TryIntersectWith(this, other, out intersections);
+
+        /// <summary>
+        /// Tries to find where this chain crosses a curved loop, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolygonArc3 other, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Core.ArcChain3.TryIntersectWith(this, other, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets every point where this chain crosses a straight chain.
+        /// </summary>
+        /// <remarks>Every pair of edges is asked, so the work grows with the two edge counts multiplied. Each edge carries a box round itself and a pair whose boxes cannot reach each other is dropped before any arithmetic, which is what makes it usable on bars that are mostly far apart.</remarks>
+        public GeoPoint3[] GetIntersections(GeoPolyline3 other) => Core.ArcChain3.GetIntersections(this, other);
+
+        /// <summary>
+        /// Gets every point where this chain crosses a straight chain, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoPolyline3 other, Tolerance tolerance)
+            => Core.ArcChain3.GetIntersections(this, other, tolerance);
+
+        /// <summary>
+        /// Tries to find where this chain crosses a straight chain.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolyline3 other, out GeoPoint3[] intersections)
+            => Core.ArcChain3.TryIntersectWith(this, other, out intersections);
+
+        /// <summary>
+        /// Tries to find where this chain crosses a straight chain, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoPolyline3 other, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Core.ArcChain3.TryIntersectWith(this, other, out intersections, tolerance);
+
     }
 }

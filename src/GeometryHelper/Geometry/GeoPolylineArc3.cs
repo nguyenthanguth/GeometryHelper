@@ -868,6 +868,102 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public bool TrySplitBy(GeoSolid3 cutter, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside, Tolerance tolerance)
             => Core.ArcChain3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
+        /// <summary>
+        /// Cuts the chain where it crosses a box, telling what is in from what is out.
+        /// </summary>
+        /// <remarks>
+        /// Which side a piece is on is settled at its middle and never at an end, because every end is on a
+        /// surface by construction and a surface belongs to neither side. A box is asked as itself rather than as the body it bounds: the same answer by a shorter road.
+        /// </remarks>
+        public bool TrySplitBy(GeoObb3 cutter, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
+            => Core.ArcChain3.TrySplitBy(this, cutter, out inside, out outside);
+
+        /// <summary>
+        /// Cuts the chain where it crosses a box, telling what is in from what is out, within a tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoObb3 cutter, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside, Tolerance tolerance)
+            => Core.ArcChain3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
+
+        /// <summary>
+        /// Cuts the chain where it crosses a square box, telling what is in from what is out.
+        /// </summary>
+        /// <remarks>
+        /// Which side a piece is on is settled at its middle and never at an end, because every end is on a
+        /// surface by construction and a surface belongs to neither side. A box is asked as itself rather than as the body it bounds: the same answer by a shorter road.
+        /// </remarks>
+        public bool TrySplitBy(GeoAabb3 cutter, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
+            => Core.ArcChain3.TrySplitBy(this, cutter, out inside, out outside);
+
+        /// <summary>
+        /// Cuts the chain where it crosses a square box, telling what is in from what is out, within a tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoAabb3 cutter, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside, Tolerance tolerance)
+            => Core.ArcChain3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
+
+        /// <summary>
+        /// Cuts the chain where it crosses several bodies, telling what is in from what is out.
+        /// </summary>
+        /// <remarks>
+        /// Which side a piece is on is settled at its middle and never at an end, because every end is on a
+        /// surface by construction and a surface belongs to neither side. A piece is inside when it is inside any one of them, so overlapping cutters behave as the one region they cover, and a gap in the array is passed over.
+        /// </remarks>
+        public bool TrySplitBy(GeoSolid3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
+            => Core.ArcChain3.TrySplitBy(this, cutters, out inside, out outside);
+
+        /// <summary>
+        /// Cuts the chain where it crosses several bodies, telling what is in from what is out, within a tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoSolid3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside, Tolerance tolerance)
+            => Core.ArcChain3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
+
+        /// <summary>
+        /// Cuts the chain where it crosses several boxes, telling what is in from what is out.
+        /// </summary>
+        /// <remarks>
+        /// Which side a piece is on is settled at its middle and never at an end, because every end is on a
+        /// surface by construction and a surface belongs to neither side. A piece is inside when it is inside any one of them, so overlapping cutters behave as the one region they cover, and a gap in the array is passed over.
+        /// </remarks>
+        public bool TrySplitBy(GeoObb3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
+            => Core.ArcChain3.TrySplitBy(this, cutters, out inside, out outside);
+
+        /// <summary>
+        /// Cuts the chain where it crosses several boxes, telling what is in from what is out, within a tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoObb3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside, Tolerance tolerance)
+            => Core.ArcChain3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
+
+        /// <summary>
+        /// Cuts the chain where it crosses several square boxes, telling what is in from what is out.
+        /// </summary>
+        /// <remarks>
+        /// Which side a piece is on is settled at its middle and never at an end, because every end is on a
+        /// surface by construction and a surface belongs to neither side. A piece is inside when it is inside any one of them, so overlapping cutters behave as the one region they cover, and a gap in the array is passed over.
+        /// </remarks>
+        public bool TrySplitBy(GeoAabb3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
+            => Core.ArcChain3.TrySplitBy(this, cutters, out inside, out outside);
+
+        /// <summary>
+        /// Cuts the chain where it crosses several square boxes, telling what is in from what is out, within a tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoAabb3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside, Tolerance tolerance)
+            => Core.ArcChain3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
+
+        /// <summary>
+        /// Cuts the chain at a set of distances measured along it.
+        /// </summary>
+        /// <remarks>
+        /// Cutting a bar into a schedule of lengths is the usual way round, and one cut at a time was all there
+        /// was here while a loop could already be cut at several.
+        /// </remarks>
+        public bool SplitAtDistances(System.Collections.Generic.IEnumerable<double> distances, out GeoPolylineArc3[] pieces)
+            => Core.ArcChain3.SplitAtDistances(this, distances, out pieces);
+
+        /// <summary>
+        /// Cuts the chain at a set of distances measured along it, within a tolerance.
+        /// </summary>
+        public bool SplitAtDistances(System.Collections.Generic.IEnumerable<double> distances, out GeoPolylineArc3[] pieces, Tolerance tolerance)
+            => Core.ArcChain3.SplitAtDistances(this, distances, out pieces, tolerance);
+
 
         #endregion
 

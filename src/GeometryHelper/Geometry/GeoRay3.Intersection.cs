@@ -138,5 +138,31 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         public bool TryIntersectWith(GeoCircle3 circle, out GeoPoint3[] intersections, Tolerance tolerance) => Arc3.TryIntersectWith(circle, this, out intersections, tolerance);
 
+        /// <summary>
+        /// Gets where this ray crosses a segment, as a list.
+        /// </summary>
+        /// <remarks>
+        /// Two straight pieces meet at one place, so the list is one long or empty. It is a list because a
+        /// <see cref="GeoEdge3"/> has to be able to ask the same question of a segment and of a bend.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoLine3 line) => Intersection3.GetIntersections(this, line);
+
+        /// <summary>
+        /// Gets where this ray crosses a segment, as a list, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => Intersection3.GetIntersections(this, line, tolerance);
+
+        /// <summary>
+        /// Tries to find where this ray crosses a segment.
+        /// </summary>
+        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3[] intersections)
+            => Intersection3.TryIntersectWith(this, line, out intersections);
+
+        /// <summary>
+        /// Tries to find where this ray crosses a segment, within a tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Intersection3.TryIntersectWith(this, line, out intersections, tolerance);
+
     }
 }
