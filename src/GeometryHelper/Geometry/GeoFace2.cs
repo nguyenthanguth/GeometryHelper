@@ -261,6 +261,27 @@ namespace GeometryHelper.Geometry
 
         #endregion
 
+        #region Splitting
+
+        /// <summary>
+        /// Cuts the face by the straight line through a segment.
+        /// </summary>
+        /// <remarks>
+        /// The segment is read as the whole straight line through it, which is what a plane is to space, so its
+        /// length is ignored: a segment crossing half the face cuts all of it. Left and right are read from the
+        /// segment's own direction, so reversing it swaps the two answers and nothing else.
+        /// </remarks>
+        public bool TrySplitBy(GeoLine2 cutter, out GeoFace2[] left, out GeoFace2[] right)
+            => Splition2.TrySplitBy(this, cutter, out left, out right);
+
+        /// <summary>
+        /// Cuts the face by the straight line through a segment, within a tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoLine2 cutter, out GeoFace2[] left, out GeoFace2[] right, Tolerance tolerance)
+            => Splition2.TrySplitBy(this, cutter, out left, out right, tolerance);
+
+        #endregion
+
         #region Equality
 
         /// <summary>

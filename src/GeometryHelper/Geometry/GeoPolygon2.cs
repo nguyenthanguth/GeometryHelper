@@ -646,6 +646,38 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance)
             => Corner2.TryFilletAt(this, index, radius, out result, tolerance);
+        /// <summary>
+        /// Cuts the loop by the straight line through a segment.
+        /// </summary>
+        /// <remarks>
+        /// The segment is read as the whole straight line through it, which is what a plane is to space, so its
+        /// length is ignored: a segment crossing half the loop cuts all of it. Left and right are read from the
+        /// segment's own direction, so reversing it swaps the two answers and nothing else.
+        /// </remarks>
+        public bool TrySplitBy(GeoLine2 cutter, out GeoPolygon2[] left, out GeoPolygon2[] right)
+            => Splition2.TrySplitBy(this, cutter, out left, out right);
+
+        /// <summary>
+        /// Cuts the loop by the straight line through a segment, within a tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoLine2 cutter, out GeoPolygon2[] left, out GeoPolygon2[] right, Tolerance tolerance)
+            => Splition2.TrySplitBy(this, cutter, out left, out right, tolerance);
+
+        /// <summary>
+        /// Cuts the loop in two along a chain drawn across it.
+        /// </summary>
+        /// <remarks>
+        /// Both ends of the chain have to sit on the boundary and everything between them has to stay inside,
+        /// or nothing is cut. Unlike the line, this cutter is bounded: the pieces keep the chain's own vertices.
+        /// </remarks>
+        public bool TrySplitBy(GeoPolyline2 cutLine, out GeoPolygon2[] pieces) => Splition2.TrySplitBy(this, cutLine, out pieces);
+
+        /// <summary>
+        /// Cuts the loop in two along a chain drawn across it, within a tolerance.
+        /// </summary>
+        public bool TrySplitBy(GeoPolyline2 cutLine, out GeoPolygon2[] pieces, Tolerance tolerance)
+            => Splition2.TrySplitBy(this, cutLine, out pieces, tolerance);
+
 
         /// <summary>
         /// Gets the polygon running the other way round.
