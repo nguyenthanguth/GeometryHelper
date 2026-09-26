@@ -238,6 +238,25 @@ namespace GeometryHelper.Geometry
 
             return Lift(frame, ProjectToPolygonArc2(frame).Subtract(Flatten(tool, frame, tolerance, nameof(tool))));
         }
+        /// <summary>
+        /// Keeps what this loop and a polygon lying in the same plane cover between them but do not share.
+        /// </summary>
+        public GeoFace3[] Xor(GeoPolygon3 other) => Xor(other, Tolerance.Global);
+
+        /// <summary>
+        /// Keeps what this loop and a polygon lying in the same plane cover between them but do not share,
+        /// within a tolerance.
+        /// </summary>
+        /// <param name="other">The polygon; it has to lie in this loop's plane.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the polygon lies in a different plane.</exception>
+        public GeoFace3[] Xor(GeoPolygon3 other, Tolerance tolerance)
+        {
+            GeoCoordinateSystem3 frame = GetFrame();
+
+            return Lift(frame, ProjectToPolygonArc2(frame).Xor(Flatten(other, frame, tolerance, nameof(other))));
+        }
 
         #endregion
 

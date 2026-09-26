@@ -93,13 +93,20 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(100, 0, 100), new GeoPoint3(0, 0, 100)));
 
             Assert.Throws<ArgumentException>(() => flat.Union(upright));
-            Assert.Throws<ArgumentException>(() => flat.Union(new GeoPolygon3(
+
+            var raised = new GeoPolygon3(
                 new GeoPoint3(0, 0, 50), new GeoPoint3(100, 0, 50),
-                new GeoPoint3(100, 100, 50), new GeoPoint3(0, 100, 50))));
+                new GeoPoint3(100, 100, 50), new GeoPoint3(0, 100, 50));
+
+            Assert.Throws<ArgumentException>(() => flat.Union(raised));
+            Assert.Throws<ArgumentException>(() => flat.Intersect(raised));
+            Assert.Throws<ArgumentException>(() => flat.Subtract(raised));
+            Assert.Throws<ArgumentException>(() => flat.Xor(raised));
 
             // And a null operand is a different complaint.
             Assert.Throws<ArgumentNullException>(() => flat.Union((GeoPolygonArc3)null));
             Assert.Throws<ArgumentNullException>(() => flat.Union((GeoPolygon3)null));
+            Assert.Throws<ArgumentNullException>(() => flat.Xor((GeoPolygon3)null));
         }
 
         [Fact]
@@ -113,6 +120,14 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Single(loop.Union(polygon));
             Assert.Equal(50 * 50, loop.Intersect(polygon)[0].Area, 6);
             Assert.Equal(100 * 100 - 50 * 50, loop.Subtract(polygon)[0].Area, 6);
+            Assert.Equal(2 * (100 * 100 - 50 * 50), loop.Xor(polygon).Sum(face => face.Area), 6);
+
+            // All four are offered against a polygon, as they are in the plane underneath, and every face
+            // comes back in the loop's own plane.
+            foreach (GeoFace3 face in loop.Union(polygon).Concat(loop.Xor(polygon)))
+            {
+                Assert.All(face.Boundary.Vertices, vertex => Assert.Equal(0.0, vertex.Z, 6));
+            }
         }
 
         [Fact]
@@ -212,7 +227,12 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolygonArc3 stirrup = Stirrup();
             var plane = new GeoPlane3(new GeoPoint3(100, 0, 0), new GeoVector3(1, 0, 0));
 
+            var polygon = new GeoPolygon3(
+                new GeoPoint3(50, 50, 0), new GeoPoint3(150, 50, 0),
+                new GeoPoint3(150, 150, 0), new GeoPoint3(50, 150, 0));
+
             Assert.Equal(loop.Union(other).Length, loop.Union(other, global).Length);
+            Assert.Equal(loop.Xor(polygon).Length, loop.Xor(polygon, global).Length);
             Assert.Equal(loop.Intersect(other)[0].Area, loop.Intersect(other, global)[0].Area, 6);
             Assert.Equal(loop.Chamfer(10.0).Area, loop.Chamfer(10.0, global).Area, 6);
             Assert.Equal(loop.SignedDistanceTo(new GeoPoint3(10, 50, 0)), loop.SignedDistanceTo(new GeoPoint3(10, 50, 0), global), 9);
