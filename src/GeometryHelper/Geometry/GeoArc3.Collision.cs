@@ -119,5 +119,21 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool CollidesWith(GeoAabb3 box, Tolerance tolerance) => Arc3.CollidesWith(this, box, tolerance);
 
+        /// <summary>
+        /// Checks whether this arc touches an edge.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        public bool CollidesWith(GeoEdge3 edge) => CollidesWith(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this arc touches an edge, within a tolerance.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? CollidesWith(edge.ToArc(), tolerance)
+                : CollidesWith(edge.ToLine(), tolerance);
+
     }
 }

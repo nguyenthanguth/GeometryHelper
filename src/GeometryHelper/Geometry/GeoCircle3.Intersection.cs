@@ -285,5 +285,38 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         public bool TryIntersectWith(GeoAabb3 box, out GeoPoint3[] intersections, Tolerance tolerance) => Arc3.TryIntersectWith(this, box, out intersections, tolerance);
 
+        /// <summary>
+        /// Gets every point where an edge crosses this circle.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoEdge3 edge) => GetIntersections(edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where an edge crosses this circle, within a tolerance.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public GeoPoint3[] GetIntersections(GeoEdge3 edge, Tolerance tolerance)
+            => edge.IsArc
+                ? GetIntersections(edge.ToArc(), tolerance)
+                : GetIntersections(edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Tries to find where an edge crosses this circle.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections) => TryIntersectWith(edge, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where an edge crosses this circle, within a tolerance.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections, Tolerance tolerance)
+            => edge.IsArc
+                ? TryIntersectWith(edge.ToArc(), out intersections, tolerance)
+                : TryIntersectWith(edge.ToLine(), out intersections, tolerance);
+
     }
 }

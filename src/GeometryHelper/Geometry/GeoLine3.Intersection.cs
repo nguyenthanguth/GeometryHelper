@@ -188,5 +188,93 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         public bool TryIntersectWith(GeoCircle3 circle, out GeoPoint3[] intersections, Tolerance tolerance) => Arc3.TryIntersectWith(circle, this, out intersections, tolerance);
 
+        /// <summary>
+        /// Gets every point where this segment crosses a plane.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoPlane3 plane) => GetIntersections(plane, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this segment crosses a plane, within a tolerance.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A segment meets a plane at a single point, and this is that point wrapped so that it reads
+        /// like every other crossing. It is what lets a <see cref="GeoEdge3"/> be handed on as
+        /// whichever of a segment or an arc it is, since an arc can meet one twice.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoPlane3 plane, Tolerance tolerance)
+        {
+            return Intersection3.TryIntersectWith(this, plane, out GeoPoint3 crossing, tolerance)
+                ? new[] { crossing }
+                : new GeoPoint3[0];
+        }
+
+        /// <summary>
+        /// Gets every point where this segment crosses a triangle.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle) => GetIntersections(triangle, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this segment crosses a triangle, within a tolerance.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A segment meets a triangle at a single point, and this is that point wrapped so that it reads
+        /// like every other crossing. It is what lets a <see cref="GeoEdge3"/> be handed on as
+        /// whichever of a segment or an arc it is, since an arc can meet one twice.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance)
+        {
+            return Intersection3.TryIntersectWith(this, triangle, out GeoPoint3 crossing, tolerance)
+                ? new[] { crossing }
+                : new GeoPoint3[0];
+        }
+
+        /// <summary>
+        /// Gets every point where this segment crosses a polygon.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon) => GetIntersections(polygon, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this segment crosses a polygon, within a tolerance.
+        /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A segment meets a polygon at a single point, and this is that point wrapped so that it reads
+        /// like every other crossing. It is what lets a <see cref="GeoEdge3"/> be handed on as
+        /// whichever of a segment or an arc it is, since an arc can meet one twice.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance)
+        {
+            return Intersection3.TryIntersectWith(this, polygon, out GeoPoint3 crossing, tolerance)
+                ? new[] { crossing }
+                : new GeoPoint3[0];
+        }
+
+        /// <summary>
+        /// Gets every point where this segment crosses a face.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoFace3 face) => GetIntersections(face, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this segment crosses a face, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A segment meets a face at a single point, and this is that point wrapped so that it reads
+        /// like every other crossing. It is what lets a <see cref="GeoEdge3"/> be handed on as
+        /// whichever of a segment or an arc it is, since an arc can meet one twice.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance)
+        {
+            return Intersection3.TryIntersectWith(this, face, out GeoPoint3 crossing, tolerance)
+                ? new[] { crossing }
+                : new GeoPoint3[0];
+        }
+
     }
 }
