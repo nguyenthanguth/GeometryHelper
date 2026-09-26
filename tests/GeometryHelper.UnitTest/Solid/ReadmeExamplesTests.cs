@@ -1080,5 +1080,78 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(4, tree.GetIntersections(throughTheMiddle).Length);
         }
 
+        [Fact]
+        public void EveryQuestionTakesTheOpeningsIntoAccount()
+        {
+            GeoSolid3 plate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 20)).ToObb().ToSolid()
+                .WithOpenings(new[] { new GeoAabb3(new GeoPoint3(40, 40, -1), new GeoPoint3(60, 60, 21)).ToObb().ToSolid() });
+            GeoSolid3 pin = new GeoAabb3(new GeoPoint3(45, 45, -50), new GeoPoint3(55, 55, 50)).ToObb().ToSolid();
+
+            Assert.False(plate.CollidesWith(pin));
+            Assert.Equal(5.0, plate.DistanceTo(pin), 6);
+            Assert.Equal(PointLocation.OutSide, plate.Locate(new GeoPoint3(50, 50, 20)));
+
+            Assert.True(plate.TryCutOpenings(out GeoSolid3 material));
+            Assert.Equal(10, material.Faces.Count);
+            Assert.NotEmpty(plate.TriangulateSurface());
+
+            // Cut once, asked many times: the same answers.
+            Assert.Equal(plate.DistanceTo(pin), material.DistanceTo(pin), 9);
+        }
+
+        [Fact]
+        public void CheckingPartsAgainstEachOther()
+        {
+            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
+                => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+
+            Assert.True(Box(0, 0, 0, 30, 100, 30).TryUnion(Box(70, 0, 0, 100, 100, 30), out GeoSolid3 plates));
+
+            GeoSolid3 plate = Box(0, 0, 0, 100, 100, 20).WithOpenings(new[] { Box(40, 40, -1, 60, 60, 21) });
+
+            var pairs = new[]
+            {
+                (plates, Box(-10, 40, 10, 110, 60, 20)),               // a beam through two plates: two clashes
+                (Box(0, 0, 0, 200, 200, 50), Box(50, 50, 50, 150, 150, 500)), // a column on a footing: bearing
+                (plate, Box(45, 45, -50, 55, 55, 50)),                  // a pin through a bolt hole: nothing
+                (Box(0, 0, 0, 10, 10, 10), Box(500, 0, 0, 510, 10, 10)), // apart: nothing to ask
+            };
+
+            int clashCount = 0;
+            int bearingCount = 0;
+            double overlapTotal = 0.0;
+
+            foreach (var (a, b) in pairs)
+            {
+                if (!a.GetAabb().CollidesWith(b.GetAabb()))
+                {
+                    continue;
+                }
+
+                if (!a.CollidesWith(b))
+                {
+                    continue;
+                }
+
+                GeoSolid3[] clashes = a.Intersect(b);
+
+                if (clashes.Length == 0 && a.TryGetContact(b, out GeoFace3[] bearing))
+                {
+                    bearingCount++;
+                    Assert.Equal(100.0 * 100, bearing.Sum(patch => patch.Area), 6);
+                }
+
+                foreach (GeoSolid3 clash in clashes)
+                {
+                    clashCount++;
+                    overlapTotal += clash.Volume;
+                }
+            }
+
+            Assert.Equal(2, clashCount);
+            Assert.Equal(1, bearingCount);
+            Assert.Equal(2 * 30.0 * 20 * 10, overlapTotal, 3);
+        }
+
     }
 }

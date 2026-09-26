@@ -259,6 +259,41 @@
         is more than Locate could say. A point keeps IsPointOn alone, because there the point is the one
         asking.
 
+      FIXED. A body's openings, everywhere.
+
+      A GeoSolid3 keeps an opening as a whole body subtracted from it, so its faces run straight across
+      every hole: a plate's top face is a whole square even where a bolt hole passes through it. Fifteen
+      queries read those faces, or the mesh made from them, as where the material ends -- because
+      Triangulate said openings are not meshed and, in the same remark, that clash detection reads its mesh
+      as the boundary. A pin through a bolt hole, five clear of every wall, was a clash, nought away, and
+      crossed four times. For a clash check between Tekla parts that is every bolted connection.
+
+      - CollidesWith, GetIntersections, DistanceTo and GetShortestLineTo against a segment, a ray, a
+        polyline, a triangle, a polygon, a face, either box and another body now read the material. So do
+        DistanceTo, SignedDistanceTo and GetClosestPointOnBoundary of a point, which were wrong near an
+        opening in a way no test caught because they agreed with the old Locate.
+      - Locate asked the faces before the openings, so the middle of a bolt hole at the level of the top face
+        was boundary. The openings are asked first.
+      - TrySubtract judged a cell in two pieces by one point, so subtracting a box that overlapped an
+        existing hole could throw away material nowhere near it; GetNetVolume inherited that. Every cell is
+        separated into its pieces before it is judged.
+      - GeoBvh3.FromSolid, and so BuildIndex, index the material: a ray down a bolt hole passes through.
+
+      Touching or crossing cuts in only the openings the probe can reach, so a bolt against a plate with
+      twenty holes costs one cut. Distance cuts them all, since the nearest material can sit on the rim of
+      an opening the probe never comes near. A body asked many questions is cut once with TryCutOpenings.
+
+      ALSO NEW. Solid against solid, for a clash report.
+
+      - GeoSolid3.TryCutOpenings and TriangulateSurface: the body with its openings cut in, and the mesh of
+        where its material ends.
+      - GeoSolid3.Intersect(other) -> GeoSolid3[]: one body per region two bodies share, so a beam through
+        two plates reports two clashes; empty when they share no volume. GeoSolid3.SplitShells: the separate
+        pieces of any body. Two regions meeting only along an edge share no volume and are two.
+      - GeoSolid3.TryGetContact(other, out GeoFace3[]): where two bodies that only touch lie against each
+        other, face to face, less any hole in the material under it. Edge and point contact have no patch;
+        CollidesWith reports those.
+
       Nothing above changed an answer that was already being given.
 
       NEW IN 5.1.0

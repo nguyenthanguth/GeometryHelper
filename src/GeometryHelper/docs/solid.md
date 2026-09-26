@@ -163,6 +163,30 @@ pierced.Locate(new GeoPoint3(5, 5, 5)); // OutSide — inside the duct
 reported unsigned: faces wound inwards give the same answer as faces wound outwards. It does depend on the
 boundary being closed, which is what `IsClosed()` is for.
 
+**Every question takes the openings into account.** The faces of a pierced body run straight across its
+openings — a plate's top face is a whole square even where a bolt hole passes through it — so nothing reads
+the faces alone as where the material ends. A pin through a bolt hole touches nothing, a ray down the hole
+crosses nothing, and a point in the hole is measured to its walls:
+
+```csharp
+GeoSolid3 plate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 20)).ToObb().ToSolid()
+    .WithOpenings(new[] { new GeoAabb3(new GeoPoint3(40, 40, -1), new GeoPoint3(60, 60, 21)).ToObb().ToSolid() });
+GeoSolid3 pin = new GeoAabb3(new GeoPoint3(45, 45, -50), new GeoPoint3(55, 55, 50)).ToObb().ToSolid();
+
+plate.CollidesWith(pin);                          // false — five clear of every wall
+plate.DistanceTo(pin);                            // 5
+plate.Locate(new GeoPoint3(50, 50, 20));          // OutSide — on the top face as drawn, but in the hole
+
+plate.TryCutOpenings(out GeoSolid3 material);     // the same material with the holes cut in: 10 faces
+plate.TriangulateSurface();                       // the mesh of where the material ends, walls and all
+```
+
+A question about touching or crossing cuts only the openings the probe can reach, so a bolt against a plate
+with twenty holes costs one cut. A question about distance cuts them all, because the nearest material can sit
+on the rim of an opening the probe never comes near. **A body asked many questions is cut once** with
+`TryCutOpenings` and the result asked instead — the same answers, the cutting paid once. `Triangulate` still
+meshes the faces as they are; `TriangulateSurface` is the mesh to read as the boundary.
+
 ## Operations
 
 | Class | Answers |
@@ -915,6 +939,49 @@ bar.ToPolyline3(0.1).CollidesWith(slab);
 A sampled chain lies inside the arcs it stands for, so it is never nearer to anything outside the bar than
 the bar is: a clearance worked out this way errs on the safe side. The same bargain `GeoCircle3` offers
 through `ToPolylineByChordTolerance`.
+
+## Checking parts against each other
+
+A clash check between parts asks four questions, from cheapest to dearest, and stops at the first that
+settles it:
+
+```csharp
+foreach (var (a, b) in pairs)
+{
+    if (!a.GetAabb().CollidesWith(b.GetAabb()))   // boxes apart: nothing to ask
+    {
+        continue;
+    }
+
+    if (!a.CollidesWith(b))                       // no touch at all, openings honoured
+    {
+        continue;
+    }
+
+    GeoSolid3[] clashes = a.Intersect(b);         // one body per region the two share
+
+    if (clashes.Length == 0 && a.TryGetContact(b, out GeoFace3[] bearing))
+    {
+        // They only touch: bearing is where they lie against each other.
+    }
+
+    foreach (GeoSolid3 clash in clashes)
+    {
+        double overlap = clash.Volume;            // how badly, and clash.Centroid for where
+    }
+}
+```
+
+- **`Intersect` gives one body per clash.** A beam through two separate plates clashes twice, and
+  `TryIntersect`, which gives the whole shared region as one body, cannot say where either is. The pieces
+  always add up to it. Two regions meeting only along an edge share no volume and are two.
+- **Touching is not a clash.** A column standing on a footing shares no volume with it, so `Intersect` is
+  empty. `TryGetContact` says where the two lie against each other, face to face — back to back in one
+  plane — and a hole in the material under the contact is left out of it. Two bodies meeting only along an
+  edge or at a corner have no contact patch; `CollidesWith` is what reports those.
+- **`SplitShells`** gives the separate pieces of any body, the same way.
+- A part checked against many others is cut once with `TryCutOpenings` first, as above; `CollidesWith`
+  between two large meshes builds an index on its own once they are big enough to be worth it.
 
 ## Working with large meshes
 
