@@ -19,58 +19,127 @@ the release body.
 Do not use *Run workflow* on that workflow to try it out. It has no dry run, and the two push steps are not
 guarded by the event type, so a manual run publishes to nuget.org and GitHub Packages for real.
 
-## 2. Space is far behind the plane
+## 2. Arcs in space cannot be asked anything
 
-For **measuring** — distance, clearance, nearest point, touching, crossing — the plane is complete: every
-shape answers about every other, both ways round. That is the only family anyone has audited; section 3 is
-about the ones nobody has. Space is not complete even for measuring, and the gap is widest exactly where a
-reinforcing bar lives. `GeoArc3`, `GeoCircle3`, `GeoEdge3`, `GeoPolygonArc3` and
-`GeoPolylineArc3` have, between them, **no crossings, no collisions, no joining segment and no cutting at
-all**. They answer about a point, they move, an arc, a circle and a closed loop can be offset, and a chain
-can be filleted. That is the whole of it.
+`GeoArc3`, `GeoCircle3`, `GeoEdge3`, `GeoPolygonArc3` and `GeoPolylineArc3` answer about **a point and
+nothing else**. `GeoArc3` is 633 lines and 55 public members — as much machinery as `GeoArc2`, which answers
+about a hundred directions — and `Core` holds nothing for an arc in space but
+`Distance3.DistanceTo(GeoCircle3, GeoPoint3)`. Their `.Collision.cs` and `.Intersection.cs` files exist and
+are empty; this section is how they get filled.
 
-Count directions rather than methods when reading what follows, and count them from the source rather than
-from this page — the section below was first written from a listing cut short at forty entries, and claimed
-`GeoPolyline3` could not be cut when in fact it can be cut twelve ways.
+### 2.1 Why all of it is exact
 
-### 2.1 What can be lifted or dispatched, with no new arithmetic
+An arc in space **lies in a plane**, and every flat-faced shape in the library is made of planes. Two
+reductions cover every pair, and neither samples anything:
 
-This is the same work done twice in the plane, and it should be done first because it is exact and cheap.
+**Reduction A — coplanar, so drop into the plane.** When the other shape lies in the arc's own plane, take
+`PlanarMap.FrameOf(arc.GetPlane())`, bring both down with `TryToArc2`, `ProjectToLine2`,
+`ProjectToPolygon2`, answer with the whole of `Core.Arc2`, and lift the points back with `ToPoint3`. Exact,
+and it reuses code that is already tested to death.
 
-| Type | What it could answer | How |
-|---|---|---|
-| `GeoPolygonArc3` | everything `GeoPolygonArc2` answers, against any shape sharing its plane | it **enforces coplanarity**, so project to `GeoPolygonArc2`, answer there, lift back — exactly as `Area`, `Locate`, `Offset` and `Fillet` already do |
-| `GeoPolylineArc3` | the same, when `IsPlanar()` is true | `TryGetPlane` already decides it; off-plane must refuse rather than approximate |
-| `GeoEdge3` | everything `GeoArc3` and `GeoLine3` both answer | `IsArc ? ToArc().X(…) : ToLine().X(…)`, and the reverse on every other type — the pattern `GeoEdge2` now follows, including the rule that a direction is offered only where both answer with the **same shape of call** |
+**Reduction B — not coplanar, so the answer is on a line.** Two distinct planes meet in a line
+(`Intersection3.TryIntersectWith(plane, plane, out GeoRay3)`). Every point the arc shares with any flat shape
+must lie on that line, so: arc against that line gives **at most two candidates**, and each candidate is then
+tested against the other shape with `Containment3.Contains`. No iteration, no tolerance bargain.
 
-### 2.2 Crossings in space have closed forms and are simply missing
+| Other shape | How |
+|---|---|
+| `GeoPlane3` | B. Coplanar is the special case: the whole arc lies in the plane, so nothing *crosses* it |
+| `GeoLine3`, `GeoRay3` | in the arc's plane → A; otherwise it pierces that plane at one point, so test `arc.IsPointOn` |
+| `GeoArc3`, `GeoCircle3` | coplanar → A (`Arc2.GetIntersections`); otherwise B through the two planes |
+| `GeoTriangle3`, `GeoPolygon3`, `GeoFace3` | coplanar → A; otherwise B, then `Containment3.Contains(shape, candidate)` |
+| `GeoAabb3`, `GeoObb3`, `GeoSolid3` | the surface is flat faces, so the union of arc against each face — `Triangulate()` for a body |
 
-`Core` holds **nothing** for an arc or a circle in space beyond `Distance3.DistanceTo(GeoCircle3, GeoPoint3)`.
-Crossings were never refused — they were never written, and each has an exact answer:
+**A `GeoCircle3` is an arc of a whole turn** — `GeoArc3` takes equal start and end angles as exactly that — so
+every circle pair is the arc pair with no second implementation. Write the arc one and forward.
 
-- **against a plane.** The arc's own plane meets the given plane in a line; that line meets the circle in at
-  most two points; keep those inside the sweep.
-- **against a segment or a ray.** It meets the arc's plane at one point, unless it lies in that plane, in
-  which case the answer is the plane one.
-- **against another arc or circle.** Coplanar reduces to `GeoArc2`, which is exact. Otherwise the two planes
-  meet in a line, each circle meets that line in at most two points, and the answer is the points both hold —
-  so at most two, and no iteration.
-- **`CollidesWith` follows from those** for the crossing cases, and from containment plus crossing for a box
-  or a body.
+### 2.2 Phase 1 — `Core/Arc3.cs`, the reduction kit
 
-### 2.3 Cutting a curved chain, which is a Tekla question
+Mirrors `Core/Arc2.cs`. Two internal helpers carry the weight:
 
-`GeoPolyline3` can be cut twelve ways — by a point, a distance, a plane, a polygon, a face, a box, a body,
-or a list of any of those. **A `GeoPolylineArc3` cannot be cut at all**, and neither can a `GeoArc3`, though
-`GeoArc2.TrySplitAt` exists. A bar stopped at a pour break or trimmed to a face is exactly this question, and
-the answer has to keep the bends: cutting a chain of arcs gives chains of arcs, not a polyline.
+```
+TryReduce(GeoArc3 arc, GeoPlane3 other, Tolerance, out GeoCoordinateSystem3 frame)   // coplanar?
+Candidates(GeoArc3 arc, GeoRay3 line, Tolerance)                                    // the <=2 points on a line
+```
 
-`GeoPolylineArc3` has no `Offset` either, though `GeoPolygonArc3` has one.
+Then the public pairs, split the way `Core` splits everything else:
 
-### 2.4 The straight types in space are short too
+| File | Pairs |
+|---|---|
+| `Arc3.cs` | the helpers, plus plane, segment, ray |
+| `Arc3.Curves.cs` | arc, circle |
+| `Arc3.Flat.cs` | triangle, polygon, face |
+| `Arc3.Bodies.cs` | axis-aligned box, oriented box, solid |
 
-Counted as directions, not methods. `GeoPolyline3` is better served than it looks — it is the cutting and the
-measuring that are there, and the crossing and joining that are not.
+Each pair gets `GetIntersections`, `CollidesWith` and `TryIntersectWith`, each with its tolerance twin.
+
+**Decide before writing:** `CollidesWith` against a body is *not* just "a crossing exists". An arc lying
+wholly inside a solid crosses nothing and still touches it, so the rule is
+`crossings.Length > 0 || Containment3.Contains(solid, arc.StartPoint)` — the same shape as the ray-against-solid
+rule already in `Collision3.Ray.cs`.
+
+### 2.3 Phase 2 — wire it onto the types, both ways
+
+Into the empty files already waiting: `GeoArc3.Intersection.cs`, `GeoArc3.Collision.cs`, `GeoCircle3.*`, and
+the reverse direction on `GeoPlane3`, `GeoLine3`, `GeoRay3`, `GeoTriangle3`, `GeoPolygon3`, `GeoFace3`,
+`GeoAabb3`, `GeoObb3`, `GeoSolid3`.
+
+**One dependency to settle here, or phase 3 stalls.** `GeoEdge3` dispatch needs `GeoLine3` to answer the same
+*shape of call* as `GeoArc3`. It does not: `GeoLine3.TryIntersectWith(plane, out GeoPoint3)` hands back one
+point where the arc hands back an array. So phase 2 also adds
+`GeoLine3.GetIntersections(GeoPlane3 | GeoTriangle3 | GeoPolygon3 | GeoFace3)` in array form, wrapping the
+single point — the same glue `GeoLine2.GetIntersections(GeoEdge2)` already uses, and for the same reason.
+
+### 2.4 Phase 3 — `GeoEdge3`
+
+`IsArc ? ToArc().X(…) : ToLine().X(…)`, and the reverse on every other type. Free once phases 1 and 2 are
+done, and governed by the rule `GeoEdge2` already follows: **a direction is offered only where the arc and the
+segment both answer with the same shape of call.** Where they do not, leave it out.
+
+### 2.5 Phase 4 — the curved chains, and cutting them
+
+Crossings for `GeoPolylineArc3` and `GeoPolygonArc3` are the union over `GetEdges()`, each edge answered by
+phase 3. `CollidesWith` follows.
+
+Then the one the Tekla work actually wants. `GeoPolyline3` can be cut twelve ways — by a point, a distance, a
+plane, a polygon, a face, a box, a body, or a list of any of those — and **a curved chain cannot be cut at
+all**. A bar stopped at a pour break or trimmed to a face is exactly this. Build it on the phase-4 crossings,
+and **the pieces must come back as chains of arcs, not polylines**: cutting a bar must not straighten its
+bends.
+
+### 2.6 Phase 5 — the coplanar lift for `GeoPolygonArc3`
+
+Independent of everything above: it needs only `GeoPolygonArc2`, which is complete. Project to
+`GeoPolygonArc2`, answer, lift back — as `Area`, `Locate`, `Offset` and `Fillet` already do.
+
+**Blocked on one decision.** What should a probe that does *not* lie in the loop's plane do? Refusing is
+honest, projecting it is convenient and quietly wrong, and falling back to `ToPolygon3(chordTolerance)` is
+neither. Settle that first; the library has no precedent.
+
+### 2.7 What stays refused
+
+`DistanceTo` and `GetShortestLineTo` from an arc or a circle in space to anything but a point. A line wants a
+quartic, another circle a degree-eight polynomial. `ToPolyline3(chordTolerance)` is the gateway, and a sampled
+chain lies **inside** its arcs, so a clearance worked out that way errs on the safe side. Crossings are a
+different question and are exact — see 2.1.
+
+### 2.8 How each phase is tested
+
+Three checks, and the second is the one that makes this safe without hand-computing every case:
+
+1. **Exact values on geometry worked out by hand** — an arc of radius 100 about the origin in the XY plane
+   crosses the plane `x = 50` at `(50, ±86.602540)`.
+2. **Against a sampled arc.** `arc.GetIntersections(x)` must agree with
+   `arc.ToPolylineByChordTolerance(0.01).GetIntersections(x)` to within the chord tolerance. A wrong reduction
+   shows up here immediately, and it needs no arithmetic from me.
+3. **Against the plane library, where the case is coplanar.** Reduction A must give exactly what
+   `Arc2.GetIntersections` gives for the same shapes laid flat.
+
+Plus, as everywhere: both directions agree, every method has its tolerance twin, and null is refused.
+
+### 2.9 The straight types are short too
+
+Separate from the arcs, and ordinary wiring once the pairs exist in `Core`:
 
 | Type | Missing |
 |---|---|
@@ -81,25 +150,6 @@ measuring that are there, and the crossing and joining that are not.
 | `GeoAabb3`, `GeoObb3` | `GetShortestLineTo` against anything, `DistanceTo` against a triangle, polygon, face, plane, segment or ray, `TryIntersectWith` |
 | `GeoPlane3` | `GetIntersections` against a segment, ray, face, polygon or chain |
 | `GeoSolid3` | `TryIntersectWith`; `GetIntersections` against a polygon, face or triangle |
-
-### 2.5 Where to start
-
-The order matters here, because three of these stand on the first one. `GeoEdge3` dispatch reads
-`IsArc ? ToArc().X(…) : ToLine().X(…)`, and **there is nothing to dispatch to until `GeoArc3` can answer**.
-
-1. **Arc and circle crossings** (2.2), the plane case first. Nothing else in space can be built without it,
-   and it is exact.
-2. **`GeoEdge3` dispatch** (2.1). Free once step 1 exists, and it is what lets a reinforcing bar be asked
-   the questions a bar is asked.
-3. **Cutting a curved chain** (2.3). Every edge is a segment or an arc, so this needs step 1's arc against
-   a plane and against a face. It is the most asked-for of these in a Tekla setting.
-4. **The straight gaps** (2.4), ordinary wiring once the pairs exist in `Core`.
-
-**The coplanar lift for `GeoPolygonArc3`** (2.1) stands apart: it needs only `GeoPolygonArc2`, which is
-complete, so it can be done at any point. Settle one thing before starting it — what a probe that does
-**not** lie in the loop's plane should do. Refusing is honest, projecting it is convenient and quietly
-wrong, and falling back to `ToPolygon3(chordTolerance)` is neither. The library has no precedent for this
-choice.
 
 ## 3. Whole families nobody has audited
 
