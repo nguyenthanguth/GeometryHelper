@@ -679,5 +679,114 @@ namespace GeometryHelper.Geometry
 
             return polyline;
         }
+        #region Cutting
+
+        /// <summary>
+        /// Cuts the chain at a point on it.
+        /// </summary>
+        /// <param name="point">The point to cut at; it has to be on the chain.</param>
+        /// <param name="pieces">The pieces, in order along the chain, when the cut was made.</param>
+        /// <returns>true when the chain came apart; otherwise, false, and it is handed back whole.</returns>
+        public bool TrySplitBy(GeoPoint3 point, out GeoPolylineArc3[] pieces)
+            => Core.ArcChain3.TrySplitBy(this, point, out pieces);
+
+        /// <summary>
+        /// Cuts the chain at a point on it, within a tolerance.
+        /// </summary>
+        /// <param name="point">The point to cut at; it has to be on the chain.</param>
+        /// <param name="pieces">The pieces, in order along the chain, when the cut was made.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the chain came apart; otherwise, false, and it is handed back whole.</returns>
+        public bool TrySplitBy(GeoPoint3 point, out GeoPolylineArc3[] pieces, Tolerance tolerance)
+            => Core.ArcChain3.TrySplitBy(this, point, out pieces, tolerance);
+
+        /// <summary>
+        /// Cuts the chain at a distance measured along it.
+        /// </summary>
+        /// <param name="distance">How far along to cut, measured along the arcs rather than across the chords.</param>
+        /// <param name="pieces">The two pieces when the cut was made.</param>
+        /// <returns>true when the chain came apart; otherwise, false.</returns>
+        public bool TrySplitAtDistance(double distance, out GeoPolylineArc3[] pieces)
+            => Core.ArcChain3.TrySplitAtDistance(this, distance, out pieces);
+
+        /// <summary>
+        /// Cuts the chain at a distance measured along it, within a tolerance.
+        /// </summary>
+        /// <param name="distance">How far along to cut, measured along the arcs rather than across the chords.</param>
+        /// <param name="pieces">The two pieces when the cut was made.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the chain came apart; otherwise, false.</returns>
+        public bool TrySplitAtDistance(double distance, out GeoPolylineArc3[] pieces, Tolerance tolerance)
+            => Core.ArcChain3.TrySplitAtDistance(this, distance, out pieces, tolerance);
+
+        /// <summary>
+        /// Cuts the chain wherever it crosses a plane.
+        /// </summary>
+        /// <param name="cutter">The plane to cut at.</param>
+        /// <param name="pieces">The pieces, in order along the chain, when any cut was made.</param>
+        /// <returns>true when the chain came apart; otherwise, false.</returns>
+        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolylineArc3[] pieces)
+            => Core.ArcChain3.TrySplitBy(this, cutter, out pieces);
+
+        /// <summary>
+        /// Cuts the chain wherever it crosses a plane, within a tolerance.
+        /// </summary>
+        /// <param name="cutter">The plane to cut at.</param>
+        /// <param name="pieces">The pieces, in order along the chain, when any cut was made.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the chain came apart; otherwise, false.</returns>
+        /// <remarks>
+        /// This is the pour break. The pieces keep their bends, so each one's length is still a length a bar
+        /// schedule can use.
+        /// </remarks>
+        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolylineArc3[] pieces, Tolerance tolerance)
+            => Core.ArcChain3.TrySplitBy(this, cutter, out pieces, tolerance);
+
+        /// <summary>
+        /// Cuts the chain wherever it crosses a face.
+        /// </summary>
+        /// <param name="cutter">The face to cut at; only its material cuts, so a hole lets the chain through.</param>
+        /// <param name="pieces">The pieces, in order along the chain, when any cut was made.</param>
+        /// <returns>true when the chain came apart; otherwise, false.</returns>
+        public bool TrySplitBy(GeoFace3 cutter, out GeoPolylineArc3[] pieces)
+            => Core.ArcChain3.TrySplitBy(this, cutter, out pieces);
+
+        /// <summary>
+        /// Cuts the chain wherever it crosses a face, within a tolerance.
+        /// </summary>
+        /// <param name="cutter">The face to cut at; only its material cuts, so a hole lets the chain through.</param>
+        /// <param name="pieces">The pieces, in order along the chain, when any cut was made.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the chain came apart; otherwise, false.</returns>
+        public bool TrySplitBy(GeoFace3 cutter, out GeoPolylineArc3[] pieces, Tolerance tolerance)
+            => Core.ArcChain3.TrySplitBy(this, cutter, out pieces, tolerance);
+
+        /// <summary>
+        /// Cuts the chain where it crosses the surface of a solid, telling what is in from what is out.
+        /// </summary>
+        /// <param name="cutter">The body to cut against.</param>
+        /// <param name="inside">The pieces within the material, in order along the chain.</param>
+        /// <param name="outside">The pieces outside it, in order along the chain.</param>
+        /// <returns>true when the chain came apart; otherwise, false.</returns>
+        public bool TrySplitBy(GeoSolid3 cutter, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
+            => Core.ArcChain3.TrySplitBy(this, cutter, out inside, out outside);
+
+        /// <summary>
+        /// Cuts the chain where it crosses the surface of a solid, telling what is in from what is out, within
+        /// a tolerance.
+        /// </summary>
+        /// <param name="cutter">The body to cut against.</param>
+        /// <param name="inside">The pieces within the material, in order along the chain.</param>
+        /// <param name="outside">The pieces outside it, in order along the chain.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the chain came apart; otherwise, false.</returns>
+        /// <remarks>
+        /// This is a bar trimmed to a member: what is in the concrete and what is sticking out of it.
+        /// </remarks>
+        public bool TrySplitBy(GeoSolid3 cutter, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside, Tolerance tolerance)
+            => Core.ArcChain3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
+
+        #endregion
+
     }
 }
