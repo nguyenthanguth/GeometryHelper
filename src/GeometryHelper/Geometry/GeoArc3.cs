@@ -444,8 +444,18 @@ namespace GeometryHelper.Geometry
         /// <param name="frame">The frame to lay it out in.</param>
         /// <returns>The arc in the plane of the frame.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the arc stands square to the plane, where it would flatten into a segment rather than an arc.</exception>
+        /// <remarks>
+        /// A whole turn has to be laid out from its centre rather than from three of its points, because its
+        /// start and its end are in the same place and there is no third point to be found among them. Any
+        /// pair of angles describes the whole of a circle, so nought to nought is as good as any.
+        /// </remarks>
         public GeoArc2 ProjectToArc2(GeoCoordinateSystem3 frame)
         {
+            if (Math.Abs(SweptAngle) >= 2.0 * Math.PI - Tolerance.Global.EqualAngleRad)
+            {
+                return new GeoArc2(ToLocal(frame, Center), Radius, 0.0, 0.0, IsClockwise);
+            }
+
             return GeoArc2.FromThreePoints(ToLocal(frame, StartPoint), ToLocal(frame, MidPoint), ToLocal(frame, EndPoint));
         }
 

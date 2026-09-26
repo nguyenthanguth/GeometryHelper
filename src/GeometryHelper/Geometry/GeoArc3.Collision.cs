@@ -39,5 +39,25 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Arc3.CollidesWith(this, ray, tolerance);
 
+        /// <summary>
+        /// Checks whether this arc touches an arc, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoArc3 other) => Arc3.CollidesWith(this, other);
+
+        /// <summary>
+        /// Checks whether this arc touches an arc, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoArc3 other, Tolerance tolerance) => Arc3.CollidesWith(this, other, tolerance);
+
+        /// <summary>
+        /// Checks whether this arc touches a circle, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoCircle3 circle) => Arc3.CollidesWith(this, circle);
+
+        /// <summary>
+        /// Checks whether this arc touches a circle, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoCircle3 circle, Tolerance tolerance) => Arc3.CollidesWith(this, circle, tolerance);
+
     }
 }
