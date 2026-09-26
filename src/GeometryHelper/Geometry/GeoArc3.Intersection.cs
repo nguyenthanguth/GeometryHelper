@@ -134,5 +134,80 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         public bool TryIntersectWith(GeoCircle3 circle, out GeoPoint3[] intersections, Tolerance tolerance) => Arc3.TryIntersectWith(this, circle, out intersections, tolerance);
 
+        /// <summary>
+        /// Gets every point where this arc crosses a triangle, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle) => Arc3.GetIntersections(this, triangle);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a triangle, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) => Arc3.GetIntersections(this, triangle, tolerance);
+
+        /// <summary>
+        /// Tries to find where this arc crosses a triangle, using the default tolerance.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3[] intersections) => Arc3.TryIntersectWith(this, triangle, out intersections);
+
+        /// <summary>
+        /// Tries to find where this arc crosses a triangle, within a tolerance.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3[] intersections, Tolerance tolerance) => Arc3.TryIntersectWith(this, triangle, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a polygon, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon) => Arc3.GetIntersections(this, polygon);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a polygon, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) => Arc3.GetIntersections(this, polygon, tolerance);
+
+        /// <summary>
+        /// Tries to find where this arc crosses a polygon, using the default tolerance.
+        /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoPolygon3 polygon, out GeoPoint3[] intersections) => Arc3.TryIntersectWith(this, polygon, out intersections);
+
+        /// <summary>
+        /// Tries to find where this arc crosses a polygon, within a tolerance.
+        /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoPolygon3 polygon, out GeoPoint3[] intersections, Tolerance tolerance) => Arc3.TryIntersectWith(this, polygon, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a face, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoFace3 face) => Arc3.GetIntersections(this, face);
+
+        /// <summary>
+        /// Gets every point where this arc crosses a face, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) => Arc3.GetIntersections(this, face, tolerance);
+
+        /// <summary>
+        /// Tries to find where this arc crosses a face, using the default tolerance.
+        /// </summary>
+        /// <param name="face">The face.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoFace3 face, out GeoPoint3[] intersections) => Arc3.TryIntersectWith(this, face, out intersections);
+
+        /// <summary>
+        /// Tries to find where this arc crosses a face, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoFace3 face, out GeoPoint3[] intersections, Tolerance tolerance) => Arc3.TryIntersectWith(this, face, out intersections, tolerance);
+
     }
 }
