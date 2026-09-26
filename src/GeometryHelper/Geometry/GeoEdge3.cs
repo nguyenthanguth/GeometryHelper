@@ -469,5 +469,91 @@ namespace GeometryHelper.Geometry
         /// Lifts a point of the flat arc into the frame the bulge was read in.
         /// </summary>
         private static GeoPoint3 Lift(GeoPoint2 point) => new GeoPoint3(point.X, point.Y, 0.0);
+        #region Extending and trimming
+
+        /// <summary>
+        /// Lengthens the edge at one end, along itself.
+        /// </summary>
+        /// <remarks>
+        /// A straight leg carries on straight and a bend carries on round, keeping its radius, so the distance is
+        /// measured along the edge either way. Both readings hand back an edge, which is why this can be offered
+        /// at all: a direction is only offered here where a segment and a bend answer with the same shape of call.
+        /// </remarks>
+        public GeoEdge3 Extend(double distance, LineEnd end) => Extend(distance, end, Tolerance.Global);
+
+        /// <summary>
+        /// Lengthens the edge at one end, along itself, within a tolerance.
+        /// </summary>
+        /// <param name="distance">How much length to add, measured along the edge; a negative distance takes it away.</param>
+        /// <param name="end">Which end to move.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public GeoEdge3 Extend(double distance, LineEnd end, Tolerance tolerance)
+        {
+            if (IsArc)
+            {
+                return new GeoEdge3(ToArc().Extend(distance, end, tolerance));
+            }
+
+            GeoLine3 carried = ToLine().Extend(distance, end, tolerance);
+
+            return new GeoEdge3(carried.StartPoint, carried.EndPoint);
+        }
+
+        /// <summary>
+        /// Lengthens or shortens the edge at one end until it is a given length.
+        /// </summary>
+        public GeoEdge3 ExtendToLength(double length, LineEnd end) => ExtendToLength(length, end, Tolerance.Global);
+
+        /// <summary>
+        /// Lengthens or shortens the edge at one end until it is a given length, within a tolerance.
+        /// </summary>
+        /// <param name="length">The length it should end up with, measured along the edge.</param>
+        /// <param name="end">Which end to move; the other stays where it is.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public GeoEdge3 ExtendToLength(double length, LineEnd end, Tolerance tolerance)
+        {
+            if (IsArc)
+            {
+                return new GeoEdge3(ToArc().ExtendToLength(length, end, tolerance));
+            }
+
+            GeoLine3 carried = ToLine().ExtendToLength(length, end, tolerance);
+
+            return new GeoEdge3(carried.StartPoint, carried.EndPoint);
+        }
+
+        /// <summary>
+        /// Shortens the edge at one end back to a point on it.
+        /// </summary>
+        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoEdge3 result) => TryTrimTo(point, end, out result, Tolerance.Global);
+
+        /// <summary>
+        /// Shortens the edge at one end back to a point on it, within a tolerance.
+        /// </summary>
+        /// <param name="point">The point to stop at; it has to lie on the edge.</param>
+        /// <param name="end">Which end to move.</param>
+        /// <param name="result">The shortened edge, or the edge unchanged.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the edge was shortened; otherwise, false.</returns>
+        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoEdge3 result, Tolerance tolerance)
+        {
+            if (IsArc)
+            {
+                bool cut = ToArc().TryTrimTo(point, end, out GeoArc3 trimmed, tolerance);
+
+                result = cut ? new GeoEdge3(trimmed) : this;
+
+                return cut;
+            }
+
+            bool shortened = ToLine().TryTrimTo(point, end, out var line, tolerance);
+
+            result = shortened ? new GeoEdge3(line.StartPoint, line.EndPoint) : this;
+
+            return shortened;
+        }
+
+        #endregion
+
     }
 }

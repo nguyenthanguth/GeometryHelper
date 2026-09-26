@@ -680,5 +680,46 @@ namespace GeometryHelper.Geometry
         }
 
         #endregion
+        #region Cutting
+
+        /// <summary>
+        /// Cuts the arc at a normalized parameter, where 0 is its start and 1 its end.
+        /// </summary>
+        /// <remarks>
+        /// The centre, the radius and the plane all stay; only the sweep is shared out, so the pieces put back
+        /// end to end draw exactly what went in.
+        /// </remarks>
+        public bool TrySplitAt(double parameter, out GeoArc3[] pieces) => Arc3.TrySplitAt(this, parameter, out pieces);
+
+        /// <summary>
+        /// Cuts the arc at a normalized parameter, within a tolerance.
+        /// </summary>
+        public bool TrySplitAt(double parameter, out GeoArc3[] pieces, Tolerance tolerance)
+            => Arc3.TrySplitAt(this, parameter, out pieces, tolerance);
+
+        /// <summary>
+        /// Cuts the arc at the point of it nearest a point.
+        /// </summary>
+        public bool TrySplitAt(GeoPoint3 point, out GeoArc3[] pieces) => Arc3.TrySplitAt(this, point, out pieces);
+
+        /// <summary>
+        /// Cuts the arc at the point of it nearest a point, within a tolerance.
+        /// </summary>
+        public bool TrySplitAt(GeoPoint3 point, out GeoArc3[] pieces, Tolerance tolerance)
+            => Arc3.TrySplitAt(this, point, out pieces, tolerance);
+
+        /// <summary>
+        /// Cuts the arc at an arc length measured from its start.
+        /// </summary>
+        public bool TrySplitAtDistance(double distance, out GeoArc3[] pieces) => Arc3.TrySplitAtDistance(this, distance, out pieces);
+
+        /// <summary>
+        /// Cuts the arc at an arc length measured from its start, within a tolerance.
+        /// </summary>
+        public bool TrySplitAtDistance(double distance, out GeoArc3[] pieces, Tolerance tolerance)
+            => Arc3.TrySplitAtDistance(this, distance, out pieces, tolerance);
+
+        #endregion
+
     }
 }

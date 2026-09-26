@@ -1,4 +1,5 @@
 using System;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -403,5 +404,91 @@ namespace GeometryHelper.Geometry
                 ? $"GeoEdge2[{StartPoint} -> {EndPoint}, bulge {Bulge:0.####}]"
                 : $"GeoEdge2[{StartPoint} -> {EndPoint}]";
         }
+        #region Extending and trimming
+
+        /// <summary>
+        /// Lengthens the edge at one end, along itself.
+        /// </summary>
+        /// <remarks>
+        /// A straight leg carries on straight and a bend carries on round, keeping its radius, so the distance is
+        /// measured along the edge either way. Both readings hand back an edge, which is why this can be offered
+        /// at all: a direction is only offered here where a segment and a bend answer with the same shape of call.
+        /// </remarks>
+        public GeoEdge2 Extend(double distance, LineEnd end) => Extend(distance, end, Tolerance.Global);
+
+        /// <summary>
+        /// Lengthens the edge at one end, along itself, within a tolerance.
+        /// </summary>
+        /// <param name="distance">How much length to add, measured along the edge; a negative distance takes it away.</param>
+        /// <param name="end">Which end to move.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public GeoEdge2 Extend(double distance, LineEnd end, Tolerance tolerance)
+        {
+            if (IsArc)
+            {
+                return new GeoEdge2(ToArc().Extend(distance, end, tolerance));
+            }
+
+            GeoLine2 carried = ToLine().Extend(distance, end, tolerance);
+
+            return new GeoEdge2(carried.StartPoint, carried.EndPoint);
+        }
+
+        /// <summary>
+        /// Lengthens or shortens the edge at one end until it is a given length.
+        /// </summary>
+        public GeoEdge2 ExtendToLength(double length, LineEnd end) => ExtendToLength(length, end, Tolerance.Global);
+
+        /// <summary>
+        /// Lengthens or shortens the edge at one end until it is a given length, within a tolerance.
+        /// </summary>
+        /// <param name="length">The length it should end up with, measured along the edge.</param>
+        /// <param name="end">Which end to move; the other stays where it is.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public GeoEdge2 ExtendToLength(double length, LineEnd end, Tolerance tolerance)
+        {
+            if (IsArc)
+            {
+                return new GeoEdge2(ToArc().ExtendToLength(length, end, tolerance));
+            }
+
+            GeoLine2 carried = ToLine().ExtendToLength(length, end, tolerance);
+
+            return new GeoEdge2(carried.StartPoint, carried.EndPoint);
+        }
+
+        /// <summary>
+        /// Shortens the edge at one end back to a point on it.
+        /// </summary>
+        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoEdge2 result) => TryTrimTo(point, end, out result, Tolerance.Global);
+
+        /// <summary>
+        /// Shortens the edge at one end back to a point on it, within a tolerance.
+        /// </summary>
+        /// <param name="point">The point to stop at; it has to lie on the edge.</param>
+        /// <param name="end">Which end to move.</param>
+        /// <param name="result">The shortened edge, or the edge unchanged.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the edge was shortened; otherwise, false.</returns>
+        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoEdge2 result, Tolerance tolerance)
+        {
+            if (IsArc)
+            {
+                bool cut = ToArc().TryTrimTo(point, end, out GeoArc2 trimmed, tolerance);
+
+                result = cut ? new GeoEdge2(trimmed) : this;
+
+                return cut;
+            }
+
+            bool shortened = ToLine().TryTrimTo(point, end, out var line, tolerance);
+
+            result = shortened ? new GeoEdge2(line.StartPoint, line.EndPoint) : this;
+
+            return shortened;
+        }
+
+        #endregion
+
     }
 }
