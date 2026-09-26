@@ -29,5 +29,55 @@ namespace GeometryHelper.Geometry
         /// Gets every point where a ray crosses the surface of this box, within a tolerance.
         /// </summary>
         public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Intersection3.GetIntersections(ray, this, tolerance);
+        /// <summary>
+        /// Gets every point where an arc crosses the surface of this oriented box, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoArc3 arc) => Arc3.GetIntersections(arc, this);
+
+        /// <summary>
+        /// Gets every point where an arc crosses the surface of this oriented box, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoArc3 arc, Tolerance tolerance) => Arc3.GetIntersections(arc, this, tolerance);
+
+        /// <summary>
+        /// Tries to find where an arc crosses the surface of this oriented box, using the default tolerance.
+        /// </summary>
+        /// <param name="arc">The arc.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoArc3 arc, out GeoPoint3[] intersections) => Arc3.TryIntersectWith(arc, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where an arc crosses the surface of this oriented box, within a tolerance.
+        /// </summary>
+        /// <param name="arc">The arc.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoArc3 arc, out GeoPoint3[] intersections, Tolerance tolerance) => Arc3.TryIntersectWith(arc, this, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets every point where a circle crosses the surface of this oriented box, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoCircle3 circle) => Arc3.GetIntersections(circle, this);
+
+        /// <summary>
+        /// Gets every point where a circle crosses the surface of this oriented box, within a tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoCircle3 circle, Tolerance tolerance) => Arc3.GetIntersections(circle, this, tolerance);
+
+        /// <summary>
+        /// Tries to find where a circle crosses the surface of this oriented box, using the default tolerance.
+        /// </summary>
+        /// <param name="circle">The circle.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoCircle3 circle, out GeoPoint3[] intersections) => Arc3.TryIntersectWith(circle, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where a circle crosses the surface of this oriented box, within a tolerance.
+        /// </summary>
+        /// <param name="circle">The circle.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoCircle3 circle, out GeoPoint3[] intersections, Tolerance tolerance) => Arc3.TryIntersectWith(circle, this, out intersections, tolerance);
+
     }
 }

@@ -89,5 +89,35 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool CollidesWith(GeoFace3 face, Tolerance tolerance) => Arc3.CollidesWith(this, face, tolerance);
 
+        /// <summary>
+        /// Checks whether this arc touches a solid, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid) => Arc3.CollidesWith(this, solid);
+
+        /// <summary>
+        /// Checks whether this arc touches a solid, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Arc3.CollidesWith(this, solid, tolerance);
+
+        /// <summary>
+        /// Checks whether this arc touches an oriented box, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoObb3 box) => Arc3.CollidesWith(this, box);
+
+        /// <summary>
+        /// Checks whether this arc touches an oriented box, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoObb3 box, Tolerance tolerance) => Arc3.CollidesWith(this, box, tolerance);
+
+        /// <summary>
+        /// Checks whether this arc touches an axis-aligned box, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoAabb3 box) => Arc3.CollidesWith(this, box);
+
+        /// <summary>
+        /// Checks whether this arc touches an axis-aligned box, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoAabb3 box, Tolerance tolerance) => Arc3.CollidesWith(this, box, tolerance);
+
     }
 }
