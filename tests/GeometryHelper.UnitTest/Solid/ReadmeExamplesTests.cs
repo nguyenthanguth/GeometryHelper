@@ -1153,5 +1153,36 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(2 * 30.0 * 20 * 10, overlapTotal, 3);
         }
 
+        [Fact]
+        public void ABodyAskedManyQuestions()
+        {
+            GeoSolid3 slab = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(10, 10, 10)).ToObb().ToSolid();
+            GeoSolid3 duct = new GeoAabb3(new GeoPoint3(4, 4, 4), new GeoPoint3(6, 6, 6)).ToObb().ToSolid();
+            GeoSolid3 pierced = slab.WithOpenings(new[] { duct });
+            var point = new GeoPoint3(5, 5, 5);
+            var ray = new GeoRay3(new GeoPoint3(5, 5, -5), GeoVector3.ZAxis);
+            GeoSolid3[] bolts =
+            {
+                new GeoAabb3(new GeoPoint3(4.5, 4.5, 4.5), new GeoPoint3(5.5, 5.5, 5.5)).ToObb().ToSolid(),
+                new GeoAabb3(new GeoPoint3(8, 8, -5), new GeoPoint3(9, 9, 15)).ToObb().ToSolid(),
+                new GeoAabb3(new GeoPoint3(20, 0, 0), new GeoPoint3(21, 1, 1)).ToObb().ToSolid(),
+            };
+
+            GeoPreparedSolid3 plate = pierced.Prepare();
+
+            Assert.Equal(pierced.Locate(point), plate.Locate(point));
+            Assert.Equal(pierced.SignedDistanceTo(point), plate.SignedDistanceTo(point), 9);
+            Assert.Equal(pierced.GetClosestPointOnBoundary(point).DistanceTo(point), plate.GetClosestPointOnBoundary(point).DistanceTo(point), 9);
+            Assert.Equal(4, plate.GetIntersections(ray).Length);
+
+            foreach (GeoSolid3 bolt in bolts)
+            {
+                GeoPreparedSolid3 prepared = bolt.Prepare();
+
+                Assert.Equal(pierced.CollidesWith(bolt), plate.CollidesWith(prepared));
+                Assert.Equal(pierced.DistanceTo(bolt), plate.DistanceTo(prepared), 9);
+                Assert.Equal(pierced.Intersect(bolt).Length, plate.Intersect(prepared).Length);
+            }
+        }
     }
 }

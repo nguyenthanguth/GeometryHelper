@@ -1013,5 +1013,24 @@ namespace GeometryHelper.Geometry
         /// <returns>The hierarchy; it is a snapshot and holds no reference back to this shape.</returns>
         public Spatial.GeoBvh3 BuildIndex(Tolerance tolerance) => Spatial.GeoBvh3.FromSolid(this, tolerance);
 
+        /// <summary>
+        /// Prepares this body to be asked many questions, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The openings are cut in once, the surface meshed and indexed once, and the box kept, so that a body
+        /// asked about a hundred others pays for each of those once instead of a hundred times. The prepared body
+        /// answers as this one does. It is <c>Prepare</c> and not <c>Get</c> because it does the work, as
+        /// <see cref="BuildIndex()"/> does: calling it in a loop is slower than not calling it.
+        /// </remarks>
+        /// <returns>The prepared body; a snapshot, safe to share between threads.</returns>
+        public Spatial.GeoPreparedSolid3 Prepare() => Prepare(Tolerance.Global);
+
+        /// <summary>
+        /// Prepares this body to be asked many questions, within a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance the openings are cut in and the surface meshed to.</param>
+        /// <returns>The prepared body; a snapshot, safe to share between threads.</returns>
+        public Spatial.GeoPreparedSolid3 Prepare(Tolerance tolerance) => new Spatial.GeoPreparedSolid3(this, tolerance);
+
     }
 }

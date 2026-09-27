@@ -186,8 +186,9 @@ plate.TriangulateSurface();                       // the mesh of where the mater
 
 A question about touching or crossing cuts only the openings the probe can reach, so a bolt against a plate
 with twenty holes costs one cut. A question about distance cuts them all, because the nearest material can sit
-on the rim of an opening the probe never comes near. **A body asked many questions is cut once** with
-`TryCutOpenings` and the result asked instead — the same answers, the cutting paid once. `Triangulate` still
+on the rim of an opening the probe never comes near. **A body asked many questions is prepared once** with
+`Prepare()` — see [A body asked many questions](#a-body-asked-many-questions) — or cut once with
+`TryCutOpenings` and the result asked instead: the same answers, the cutting paid once. `Triangulate` still
 meshes the faces as they are; `TriangulateSurface` is the mesh to read as the boundary.
 
 ## Operations
@@ -988,8 +989,37 @@ foreach (var (a, b) in pairs)
   plane — and a hole in the material under the contact is left out of it. Two bodies meeting only along an
   edge or at a corner have no contact patch; `CollidesWith` is what reports those.
 - **`SplitShells`** gives the separate pieces of any body, the same way.
-- A part checked against many others is cut once with `TryCutOpenings` first, as above; `CollidesWith`
-  between two large meshes builds an index on its own once they are big enough to be worth it.
+- A part checked against many others is prepared once with `Prepare()`, below; `CollidesWith` between two
+  large meshes builds an index on its own once they are big enough to be worth it, but throws it away again.
+
+## A body asked many questions
+
+`Prepare()` does once what the body's own questions do every time they are asked: it cuts the openings in,
+meshes where the material ends and indexes the mesh, and keeps the box. The `GeoPreparedSolid3` it gives back
+answers as the body does — the same locations, distances, crossings and clashes — only without paying for any
+of that again. It is a snapshot, immutable and safe to ask from many threads at once.
+
+```csharp
+GeoPreparedSolid3 plate = pierced.Prepare();       // openings cut, surface meshed and indexed: once
+
+plate.Locate(point);                               // as pierced.Locate(point)
+plate.SignedDistanceTo(point);
+plate.GetClosestPointOnBoundary(point);
+plate.GetIntersections(ray);                       // each place once, in the order the ray meets them
+
+foreach (GeoSolid3 bolt in bolts)
+{
+    GeoPreparedSolid3 prepared = bolt.Prepare();
+
+    plate.CollidesWith(prepared);                  // the two indexes, and a corner for one inside the other
+    plate.DistanceTo(prepared);
+    plate.Intersect(prepared);                     // one body per clash
+}
+```
+
+`Material` is the body with its openings cut in, `Surface` the mesh and `Index` the tree over it, for whatever
+the prepared body does not ask itself. Preparing costs a cut of every opening and a sort of the mesh, so it
+pays from the second question on; a body asked one thing is quicker asked directly.
 
 ## Working with large meshes
 

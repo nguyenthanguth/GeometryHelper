@@ -362,6 +362,15 @@
         every query reading the mesh found material there: a ray down a bolt hole hit the plate. What is
         left once the rest is clipped away may now be a row of points with no area.
 
+      NEW. A body asked many questions.
+
+      - GeoSolid3.Prepare() gives a GeoPreparedSolid3 (GeometryHelper.Spatial): the openings cut in once,
+        the surface meshed and indexed once, the box kept. It answers Locate, Contains, DistanceTo,
+        SignedDistanceTo, GetClosestPointOnBoundary and GetIntersections of a point or a ray, and
+        CollidesWith, DistanceTo, Intersect and TryGetContact of another body, as the body does -- a test
+        checks every one against the body on random points, rays and boxes -- without cutting the
+        openings each time. It is immutable and safe to ask from many threads.
+
       NEW IN 5.1.0
 
       Rounding a corner no longer means rounding every corner by the same radius.
