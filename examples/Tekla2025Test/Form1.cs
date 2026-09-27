@@ -99,7 +99,7 @@ namespace Tekla2025Test
                 int unbuilt = 0;
                 foreach (Reinforcement reinforcement in reinforcements)
                 {
-                    var geometries = reinforcement.GetRebarGeometries(true);
+                    var geometries = reinforcement.GetRebarGeometriesWithoutClashes(true);
                     if (geometries == null)
                     {
                         continue;
@@ -121,7 +121,7 @@ namespace Tekla2025Test
 
                 // The IFC bodies with their openings cut, since a bar through a hole in a web is no clash. Cutting
                 // costs time: set ApplyVoids to false for speed when no opening matters.
-                GeoSolid3[] bodies = referenceObjects.ToGeoSolids(new IfcConvertOptions { ApplyVoids = false }.AddOnlyNames("GIRDER"));
+                GeoSolid3[] bodies = referenceObjects.ToGeoSolids(new IfcConvertOptions { ApplyVoids = false });
                 TimeSpan read = stopwatch.Elapsed;
 
                 // One set against the other: First indexes the bars, Second the IFC bodies.
