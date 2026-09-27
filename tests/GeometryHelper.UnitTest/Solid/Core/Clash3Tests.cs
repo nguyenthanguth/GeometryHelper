@@ -164,6 +164,64 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.DoesNotContain(found, r => r.Kind == ClashKind.Unresolved);
         }
 
+        /// <summary>
+        /// An I-beam along X and the bars a check in Tekla would set against it: one straight through the web, one
+        /// bent over the top flange, a square bar lying on the flange and one running above it too near. What is
+        /// reported is what the pieces mesh to, so what is drawn from them shows what was measured.
+        /// </summary>
+        [Fact]
+        public void BarsAgainstABeamMeshToWhatTheyReport()
+        {
+            var section = new GeoPolygon2(
+                new GeoPoint2(-100, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 15), new GeoPoint2(5, 15),
+                new GeoPoint2(5, 285), new GeoPoint2(100, 285), new GeoPoint2(100, 300), new GeoPoint2(-100, 300),
+                new GeoPoint2(-100, 285), new GeoPoint2(-5, 285), new GeoPoint2(-5, 15), new GeoPoint2(-100, 15));
+            GeoSolid3 beam = GeoSolid3.Extrude(section, new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.YAxis, GeoVector3.ZAxis), 2000);
+
+            GeoSolid3 through = GeoSolid3.Pipe(new GeoPolyline3(new GeoPoint3(500, -300, 150), new GeoPoint3(500, 300, 150)), 8, 0.1);
+            GeoPolylineArc3 hooked = new GeoPolyline3(new GeoPoint3(800, 60, 450), new GeoPoint3(800, 60, 200), new GeoPoint3(800, 400, 200)).Fillet(40);
+            GeoSolid3 bent = GeoSolid3.Pipe(hooked, 8, 0.1);
+            GeoSolid3 lying = Box(1200, -20, 300, 1400, 20, 330);
+            GeoSolid3 above = GeoSolid3.Pipe(new GeoPolyline3(new GeoPoint3(1500, -50, 318), new GeoPoint3(1900, -50, 318)), 8, 0.1);
+
+            ClashResult[] found = Clash3.Find(new[] { through, bent, lying, above }, new[] { beam }, new ClashOptions(clearance: 25.0));
+
+            Assert.Equal(
+                new[] { (0, ClashKind.Hard), (1, ClashKind.Hard), (2, ClashKind.Touch), (3, ClashKind.Clearance) },
+                found.Select(r => (r.First, r.Kind)));
+
+            // The straight runs cross the web and the flange square, so each shares its section times the thickness
+            // crossed; the bend lies clear of the steel.
+            double sectionArea = through.Volume / 600;
+            Assert.Equal(sectionArea * 10, found[0].Volume, 6);
+            Assert.Equal(sectionArea * 15, found[1].Volume, 6);
+
+            foreach (ClashResult hard in found.Take(2))
+            {
+                Assert.Equal(hard.Volume, hard.Overlaps.Sum(piece => EnclosedVolume(piece.TriangulateSurface())), 6);
+            }
+
+            ClashResult touching = found[2];
+            Assert.Equal(200.0 * 40, touching.ContactArea, 6);
+            Assert.Equal(touching.ContactArea, touching.Contact.Sum(patch => patch.TriangulateSurface().Sum(t => t.Area)), 6);
+
+            // The section's flat sides lie inside its circle, so the bar is a little further off than its axis says.
+            ClashResult near = found[3];
+            Assert.InRange(near.Distance, 10.0, 10.1);
+            Assert.Equal(near.Distance, near.Gap.Value.Length, 9);
+            Assert.Equal(300.0, Math.Min(near.Gap.Value.StartPoint.Z, near.Gap.Value.EndPoint.Z), 9);
+        }
+
+        /// <summary>
+        /// The volume a closed mesh wound outwards encloses: the signed tetrahedra from one of its corners.
+        /// </summary>
+        private static double EnclosedVolume(GeoTriangle3[] triangles)
+        {
+            GeoPoint3 apex = triangles[0].A;
+
+            return triangles.Sum(t => (t.A - apex).DotProduct((t.B - apex).CrossProduct(t.C - apex))) / 6.0;
+        }
+
         [Fact]
         public void OptionsRefuseWhatIsNotAClearanceOrAThreadCount()
         {

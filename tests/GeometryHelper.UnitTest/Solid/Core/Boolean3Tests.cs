@@ -63,6 +63,47 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(first.Volume, second.Volume, 4);
         }
 
+        /// <summary>
+        /// A bar bent under the edge of a plate crosses it along a straight run, so it shares its section times the
+        /// plate's thickness and nothing outside the plate. Cut by the planes of its own bend as well, it came apart
+        /// into thousands of cells: twenty seconds, and a shared part reaching five below the plate.
+        /// </summary>
+        [Fact]
+        public void ABentBarCrossingAPlateSharesItsSectionTimesTheThickness()
+        {
+            GeoPolylineArc3 centreLine = new GeoPolyline3(
+                new GeoPoint3(800, 60, 450), new GeoPoint3(800, 60, 200), new GeoPoint3(800, 400, 200)).Fillet(40);
+            GeoSolid3 bar = GeoSolid3.Pipe(centreLine, 8, 0.1);
+            GeoSolid3 plate = Box(new GeoPoint3(0, -100, 285), new GeoPoint3(2000, 100, 300));
+            double section = GeoSolid3.Pipe(new GeoPolyline3(GeoPoint3.Origin, new GeoPoint3(0, 0, 100)), 8, 0.1).Volume / 100;
+
+            Assert.True(bar.TryIntersect(plate, out GeoSolid3 shared));
+
+            Assert.Equal(section * 15, shared.Volume, 6);
+            Assert.True(shared.IsClosed());
+            Assert.InRange(shared.GetAabb().Min.Z, 285 - 1E-9, 300);
+            Assert.InRange(shared.GetAabb().Max.Z, 285, 300 + 1E-9);
+        }
+
+        /// <summary>
+        /// A stirrup wholly inside a beam is shared whole: no plane of the beam comes near it, so it is one cell.
+        /// </summary>
+        [Fact]
+        public void AStirrupWhollyInsideABeamIsSharedWhole()
+        {
+            GeoPolylineArc3 centreLine = new GeoPolyline3(
+                new GeoPoint3(500, 40, 40), new GeoPoint3(500, 260, 40), new GeoPoint3(500, 260, 460),
+                new GeoPoint3(500, 40, 460), new GeoPoint3(500, 40, 60)).Fillet(20);
+            GeoSolid3 stirrup = GeoSolid3.Pipe(centreLine, 5, 0.1);
+            GeoSolid3 beam = Box(GeoPoint3.Origin, new GeoPoint3(3000, 300, 500));
+
+            Assert.True(stirrup.TryIntersect(beam, out GeoSolid3 shared));
+            Assert.True(beam.TryIntersect(stirrup, out GeoSolid3 sharedTheOtherWay));
+
+            Assert.Equal(stirrup.Volume, shared.Volume, 6);
+            Assert.Equal(stirrup.Volume, sharedTheOtherWay.Volume, 6);
+        }
+
         #endregion
 
         #region Subtract

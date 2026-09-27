@@ -10,11 +10,11 @@ namespace GeometryHelper.Core
     /// Combines solids: the union of two bodies, the part they share, and one taken out of the other.
     /// <para>
     /// The method is the same one <c>Splition3</c> uses to cut a plate against a body, carried up a
-    /// dimension. Both bodies are divided by one shared set of planes — the face planes of each of them
-    /// together — which leaves cells that are each wholly inside or wholly outside the other body, since
-    /// the surface of a body never leaves the planes of its own faces. The cells wanted for the operation
-    /// are then glued back together: a face shared by two kept cells appears twice, once each way round,
-    /// and dropping both leaves exactly the outer skin.
+    /// dimension. For a union or a difference both bodies are divided by one shared set of planes — the
+    /// face planes of each of them together — which leaves cells that are each wholly inside or wholly
+    /// outside the other body, since the surface of a body never leaves the planes of its own faces. The
+    /// cells wanted for the operation are then glued back together: a face shared by two kept cells
+    /// appears twice, once each way round, and dropping both leaves exactly the outer skin.
     /// </para>
     /// <para>
     /// Using one shared set of planes for both bodies rather than each against the other is what makes
@@ -28,6 +28,12 @@ namespace GeometryHelper.Core
     /// through A. That is why an intersection is just the cells of A that fall inside B, and a difference
     /// just the cells of A that fall outside it: the walls of the cavity are already there, and adding the
     /// faces of B on top of them would describe the same surface twice.
+    /// </para>
+    /// <para>
+    /// An intersection needs no more than that, so it cuts one body only, by the planes of the other that
+    /// come near it and of its own openings. Its own outer faces bound it already, and cutting by them is
+    /// what took a bent bar apart into thousands of cells: every plane of a bend runs on through the rest of
+    /// the bar.
     /// </para>
     /// <para>
     /// Every operation reports <c>false</c> when the answer is nothing at all — two bodies that do not
@@ -110,6 +116,14 @@ namespace GeometryHelper.Core
         /// Gets the part two solids have in common, within a tolerance.
         /// </summary>
         /// <returns>false when the two bodies share no volume.</returns>
+        /// <remarks>
+        /// Only one body is cut, and only by the planes of the other that come near it and of its own openings:
+        /// those are what leave every cell wholly inside or wholly outside the other, and wholly material or wholly
+        /// carved out. Its own outer faces bound it already and need not cut it. On a bent bar they would: every
+        /// plane of a bend runs on through the rest of the bar, and a bar with a hook came out in thousands of
+        /// cells, twenty seconds against a plate. The body cut is the one fewer planes cut, so a bar crossing a
+        /// beam is cut by a handful of the beam's planes rather than the beam by the hundreds of the bar's.
+        /// </remarks>
         public static bool TryIntersect(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance)
         {
             Guard(first, second);
@@ -121,12 +135,45 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            List<GeoPlane3> planes = SharedPlanes(first, second, tolerance);
+            List<GeoPlane3> cuttingFirst = KnivesFor(first, second, tolerance);
+            List<GeoPlane3> cuttingSecond = KnivesFor(second, first, tolerance);
+            bool firstIsCut = cuttingFirst.Count <= cuttingSecond.Count;
 
-            List<GeoFace3> kept = FacesOfCells(SplitIntoCells(first, planes, tolerance), first, second, true, tolerance);
+            GeoSolid3 cut = firstIsCut ? first : second;
+            GeoSolid3 other = firstIsCut ? second : first;
+            List<GeoPlane3> knives = firstIsCut ? cuttingFirst : cuttingSecond;
+            List<GeoPlane3> otherKnives = firstIsCut ? cuttingSecond : cuttingFirst;
+
+            List<GeoFace3> kept = CellsInside(cut, other, knives, tolerance, out bool clean);
+
+            // A plane can cross a cell and leave it whole: a face with a sliver past the plane too thin to be a
+            // polygon keeps the cut from closing, and the cell is then judged by one point for both sides of the
+            // plane, which once gave nothing for two blocks sharing sixty. Cut the other way, the slivers fall
+            // elsewhere, so the other body is cut before that is settled for — when that costs about the same.
+            // A bar's hundreds of planes would cut a beam into thousands of cells again.
+            if (!clean && otherKnives.Count <= 2 * knives.Count + 16)
+            {
+                List<GeoFace3> otherWay = CellsInside(other, cut, otherKnives, tolerance, out bool otherClean);
+
+                if (otherClean)
+                {
+                    kept = otherWay;
+                }
+            }
 
             return TryGlue(kept, tolerance, out result);
         }
+
+        /// <summary>
+        /// Collects the faces of the cells of one body that lie inside another, the body cut by the planes given.
+        /// </summary>
+        /// <param name="body">The body to cut.</param>
+        /// <param name="other">The body whose inside is wanted.</param>
+        /// <param name="knives">The planes to cut by; see <see cref="KnivesFor"/>.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="clean">false when a plane crossed a cell and still left it whole.</param>
+        private static List<GeoFace3> CellsInside(GeoSolid3 body, GeoSolid3 other, List<GeoPlane3> knives, Tolerance tolerance, out bool clean)
+            => FacesOfCells(SplitIntoCells(body, knives, tolerance, out clean), body, other, true, tolerance);
 
         /// <summary>
         /// Takes one solid out of another, using the default tolerance.
@@ -222,6 +269,68 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the planes that cut a body into cells each wholly inside or wholly outside another, and each wholly
+        /// material or wholly carved out: those of the other's faces and openings that come near the body, and
+        /// those of the body's own openings that come near the other.
+        /// </summary>
+        /// <remarks>
+        /// Near the body, the surface of the other lies on the planes of its faces that come near the body, so a
+        /// cell crossing none of them does not cross that surface, and one point inside the cell says which side of
+        /// it the whole cell is on. The body's own openings need cutting along only where the other is: a cell
+        /// anywhere else is outside the other, and dropped whatever it holds.
+        /// </remarks>
+        private static List<GeoPlane3> KnivesFor(GeoSolid3 body, GeoSolid3 other, Tolerance tolerance)
+        {
+            var planes = new List<GeoPlane3>();
+
+            AddPlanesNear(other, body.GetAabb(), planes, tolerance);
+
+            foreach (GeoSolid3 opening in body.Openings)
+            {
+                AddPlanesNear(opening, other.GetAabb(), planes, tolerance);
+            }
+
+            return planes;
+        }
+
+        /// <summary>
+        /// Adds to a list the planes not already in it of the faces of a body, and of its openings, that come near
+        /// a box.
+        /// </summary>
+        private static void AddPlanesNear(GeoSolid3 solid, GeoAabb3 box, List<GeoPlane3> planes, Tolerance tolerance)
+        {
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                if (!face.GetAabb().CollidesWith(box, tolerance))
+                {
+                    continue;
+                }
+
+                GeoPlane3 plane = face.GetPlane();
+                bool known = false;
+
+                foreach (GeoPlane3 existing in planes)
+                {
+                    if (existing.IsEqualTo(plane, tolerance) || existing.IsEqualTo(plane.Flip(), tolerance))
+                    {
+                        known = true;
+                        break;
+                    }
+                }
+
+                if (!known)
+                {
+                    planes.Add(plane);
+                }
+            }
+
+            foreach (GeoSolid3 opening in solid.Openings)
+            {
+                AddPlanesNear(opening, box, planes, tolerance);
+            }
+        }
+
+        /// <summary>
         /// Divides a body by a set of planes, so that no piece straddles any of them.
         /// </summary>
         /// <remarks>
@@ -230,7 +339,19 @@ namespace GeometryHelper.Core
         /// offered.
         /// </remarks>
         private static List<GeoSolid3> SplitIntoCells(GeoSolid3 subject, List<GeoPlane3> planes, Tolerance tolerance)
+            => SplitIntoCells(subject, planes, tolerance, out _);
+
+        /// <summary>
+        /// Divides a body by a set of planes, saying whether every plane that crossed a piece divided it.
+        /// </summary>
+        /// <param name="subject">The body to divide.</param>
+        /// <param name="planes">The planes to divide it by.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="clean">false when a plane had corners of a piece beyond the tolerance on both sides and still left it whole.</param>
+        private static List<GeoSolid3> SplitIntoCells(GeoSolid3 subject, List<GeoPlane3> planes, Tolerance tolerance, out bool clean)
         {
+            clean = true;
+
             // The gross boundary, with whatever the body has carved out of it left behind. An opening is
             // a region to be classified, not a property the pieces should inherit; the planes bounding it
             // are among the knives, so the cells it covers come out separately and are dropped later.
@@ -250,6 +371,7 @@ namespace GeometryHelper.Core
                     else
                     {
                         divided.Add(cell);
+                        clean = clean && !Crosses(cell, plane, tolerance);
                     }
                 }
 
@@ -257,6 +379,32 @@ namespace GeometryHelper.Core
             }
 
             return OnePieceEach(cells, tolerance);
+        }
+
+        /// <summary>
+        /// Checks whether a plane has corners of a body beyond the tolerance on both sides of it.
+        /// </summary>
+        private static bool Crosses(GeoSolid3 solid, GeoPlane3 plane, Tolerance tolerance)
+        {
+            bool above = false, below = false;
+
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                foreach (GeoPoint3 corner in face.Boundary.Vertices)
+                {
+                    double distance = plane.SignedDistanceTo(corner);
+
+                    above = above || distance > tolerance.EqualPlanar;
+                    below = below || distance < -tolerance.EqualPlanar;
+
+                    if (above && below)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

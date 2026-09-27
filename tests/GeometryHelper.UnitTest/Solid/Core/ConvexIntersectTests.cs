@@ -189,6 +189,41 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>
+        /// Two pairs of a scan of three thousand where the general boolean at the ordinary tolerance once missed. Pair
+        /// 2240 it gave as 2318 where the two share 2206, cutting the first by the planes of both. Pair 1556 it gave as
+        /// nothing where they share 59.4, cutting the second by the first's planes alone: a face had a sliver past a
+        /// plane too thin to keep, the cut did not close, and the cell was left whole across the first's surface.
+        /// </summary>
+        [Fact]
+        public void TheBooleanAgreesWithTheTightOneWhereItOnceMissed()
+        {
+            var rng = new Random(2026);
+            var missed = new Dictionary<int, (GeoSolid3, GeoSolid3)>();
+
+            for (int k = 0; k <= 2240; k++)
+            {
+                GeoSolid3 a = ConvexPart(rng), b = ConvexPart(rng);
+
+                if (k == 1556 || k == 2240)
+                {
+                    missed[k] = (a, b);
+                }
+            }
+
+            foreach (KeyValuePair<int, (GeoSolid3, GeoSolid3)> pair in missed)
+            {
+                (GeoSolid3 a, GeoSolid3 b) = pair.Value;
+                double exact = Boolean3.Intersect(a, b, Tight).Sum(p => p.Volume);
+                double plain = Boolean3.Intersect(a, b, Tol).Sum(p => p.Volume);
+                double otherWay = Boolean3.Intersect(b, a, Tol).Sum(p => p.Volume);
+
+                Assert.True(exact > 50, $"pair {pair.Key}: the tight boolean gives only {exact}");
+                Assert.True(Math.Abs(plain - exact) <= 1E-3 * exact, $"pair {pair.Key}: {plain}, exactly {exact}");
+                Assert.True(Math.Abs(otherWay - exact) <= 1E-3 * exact, $"pair {pair.Key} the other way: {otherWay}, exactly {exact}");
+            }
+        }
+
+        /// <summary>
         /// A mesh of round bars and a scatter of turned blocks: the clash check gives what checking every pair by
         /// hand with the general boolean gives.
         /// </summary>
@@ -232,9 +267,14 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(byHand.Count(p => p.Item3 == ClashKind.Hard) > 40, $"only {byHand.Count} colliding pairs");
             Assert.Equal(byHand.Select(p => (p.Item1, p.Item2, p.Item3)), found.Select(r => (r.First, r.Second, r.Kind)));
 
+            // The check clips convex pairs at the ordinary tolerance, so its corners may move by that much, as they may
+            // in WhereTheClippingAnswersItIsTheRegion; the boolean by hand cuts one part by the other's planes alone
+            // and lands on the exact volume. (It used to cut by both parts' planes and round the way the clipping does:
+            // pair 5-32 shares 17.819013, which both gave as 17.819552.)
             for (int k = 0; k < found.Length; k++)
             {
-                Assert.Equal(byHand[k].Item4, found[k].Volume, 6);
+                double allowed = Tol.EqualPoint * found[k].Overlaps.Sum(piece => piece.Faces.Sum(f => f.Area)) + 1E-9;
+                Assert.True(Math.Abs(byHand[k].Item4 - found[k].Volume) <= allowed, $"pair {found[k].First}-{found[k].Second}: {found[k].Volume}, by hand {byHand[k].Item4}, allowed {allowed}");
             }
         }
     }

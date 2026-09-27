@@ -704,9 +704,10 @@ Each reports `false` when the answer is nothing at all — two bodies that never
 body swallowed whole leaves nothing behind. That is an outcome rather than a failure, which is why it
 comes back as `false` rather than as an exception or an empty body.
 
-The method is the cutting above carried up a dimension. Both bodies are divided by one shared set of
-planes — the face planes of each of them together — which leaves cells that are each wholly inside or
-wholly outside the other, since the surface of a body never leaves the planes of its own faces. The cells
+The method is the cutting above carried up a dimension. For a union or a difference both bodies are
+divided by one shared set of planes — the face planes of each of them together — which leaves cells that
+are each wholly inside or wholly outside the other, since the surface of a body never leaves the planes of
+its own faces. The cells
 the operation wants are then glued: a face shared by two kept cells appears twice, once each way round,
 and dropping both leaves exactly the outer skin.
 
@@ -718,6 +719,11 @@ in two pieces, so faces still lying back to back after that are cancelled by the
 than left standing inside the body as a sheet of no thickness. And dividing A by the planes of B already
 lays a face along every part of the surface of B that runs through A, which is why a difference is just the
 cells of A that fall outside B: the walls of the cavity are already there.
+
+An intersection needs no more than that, so it cuts one body only — by the planes of the other that come
+near it, and of its own openings — and the one it cuts is the one fewer planes cut. A bent bar cut by the
+planes of its own bend as well came apart into thousands of cells, since every plane of a bend runs on
+through the rest of the bar; cut by a beam's handful, it is a few.
 
 **Flat shapes and boxes.** Two areas in one plane are combined by the plane library and the answer lifted
 back, so it is exact; and a box is combined through the body it bounds, which is six flat faces and no

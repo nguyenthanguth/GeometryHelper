@@ -329,6 +329,18 @@
 
       FIXED. What a review of Geometry and Core found.
 
+      - Intersecting a bent bar with anything took tens of seconds, and so did a clash check of
+        reinforcement with hooks or bends: a group of eight bent bars against one IFC beam took 57 s. The
+        intersection cut the bar by the planes of its own bend as well as the other body's, and every such
+        plane runs on through the rest of the bar and cuts it again: thousands of cells, and room for them to
+        go wrong. A bar bent over a plate came out 2969 where it shares 2967, reaching five below the plate,
+        and a stirrup wholly inside a beam threw after half a minute. It now cuts one body only, the one fewer
+        planes cut, by the planes of the other that come near it and of its own openings: the eight bars take
+        12 ms, and every answer here is exact. Where a plane still crosses a cell and leaves it whole — a
+        face with a sliver past the plane too thin to be a polygon, so the cut does not close — the other body
+        is cut instead, when that costs about the same. On 40000 random pairs of convex parts the answers more
+        than 1% out fell from 0.48% to 0.35% and the time from 78 s to 43 s; the rest are such slivers where
+        both ways fail. (Found testing the clash check in Tekla.)
       - The end face of an I, a channel or any section with an inside corner was meshed across its gaps.
         Ear clipping took the flanges of an I off first and then took as an ear a triangle across the web and
         the gap beside it, since a corner of the web lay on the triangle's edge and only corners strictly
