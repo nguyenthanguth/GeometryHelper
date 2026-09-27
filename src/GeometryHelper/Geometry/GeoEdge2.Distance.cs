@@ -68,11 +68,11 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public double DistanceTo(GeoCircle2 circle, Tolerance tolerance)
         {
-            // A circle is an arc sweeping a whole turn, so both cases go the same way and both honour the
-            // tolerance.
+            // The circle is the disc it bounds, whichever the edge is: a straight edge goes the way a segment
+            // does, a curved one the way its arc does.
             return IsArc
                 ? Core.Arc2.DistanceTo(ToArc(), circle, tolerance)
-                : Core.Arc2.DistanceTo(Core.Arc2.AsArc(circle), ToLine(), tolerance);
+                : Core.Distance2.DistanceTo(circle, ToLine());
         }
 
         /// <summary>

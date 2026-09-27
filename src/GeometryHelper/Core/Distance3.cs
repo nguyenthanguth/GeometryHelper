@@ -508,7 +508,10 @@ namespace GeometryHelper.Core
 
             double best = double.MaxValue;
 
-            foreach (GeoTriangle3 piece in polygon.Triangulate())
+            // Triangles that each lie inside the polygon. The fan a polygon breaks into by default covers a
+            // concave one only by signed sum, reaching across a notch with one triangle and taking it back
+            // with another, so a body sitting in the notch of an L measured nought to it.
+            foreach (GeoTriangle3 piece in new GeoFace3(polygon).TriangulateSurface(tolerance))
             {
                 best = Math.Min(best, DistanceTo(solid, piece, tolerance));
 

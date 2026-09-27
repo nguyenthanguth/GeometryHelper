@@ -118,7 +118,9 @@ namespace GeometryHelper.Core
 
             double best = double.MaxValue;
 
-            foreach (GeoTriangle3 piece in polygon.Triangulate())
+            // Triangles that each lie inside the polygon: the default fan reaches across the notch of a
+            // concave one and would measure a chain passing through the notch as touching it.
+            foreach (GeoTriangle3 piece in new GeoFace3(polygon).TriangulateSurface(tolerance))
             {
                 best = Math.Min(best, DistanceTo(polyline, piece, tolerance));
 

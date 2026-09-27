@@ -123,20 +123,25 @@ namespace GeometryHelper.Core
             {
                 GeoVector2 unit = betweenCenters.Multiply(1.0 / apart);
 
-                // The two points of the circles on the line joining the centres, facing each other and
-                // facing away, are where two whole circles are nearest and furthest. Each is clamped onto
-                // its own arc: an arc that does not reach that far round is nearest at an end instead, and
-                // every end is weighed above. Testing the direction against Tolerance.EqualAngleRad
-                // instead would admit a point a whole degree past the end, which on a radius of a hundred
-                // is nearly two of whatever the drawing is measured in.
-                foreach (int side in new[] { 1, -1 })
+                // Two whole circles are nearest and furthest at points on the line joining their centres:
+                // facing each other when the circles lie apart, on the same side when one lies inside the
+                // other. All four pairings are weighed — weighing only the facing and the facing-away pair
+                // missed the circle inside, and an arc round a small circle measured three to it where the
+                // gap was one. Each point is clamped onto its own arc: an arc that does not reach that far
+                // round is nearest at an end instead, and every end is weighed above. Testing the direction
+                // against Tolerance.EqualAngleRad instead would admit a point a whole degree past the end,
+                // which on a radius of a hundred is nearly two of whatever the drawing is measured in.
+                foreach (int sideFirst in new[] { 1, -1 })
                 {
-                    GeoPoint2 onFirst = first.Center.Add(unit.Multiply(side * first.Radius));
-                    GeoPoint2 onSecond = second.Center.Add(unit.Multiply(-side * second.Radius));
+                    foreach (int sideSecond in new[] { 1, -1 })
+                    {
+                        GeoPoint2 onFirst = first.Center.Add(unit.Multiply(sideFirst * first.Radius));
+                        GeoPoint2 onSecond = second.Center.Add(unit.Multiply(sideSecond * second.Radius));
 
-                    best = Math.Min(
-                        best,
-                        ProjectToArc(first, onFirst, tolerance).DistanceTo(ProjectToArc(second, onSecond, tolerance)));
+                        best = Math.Min(
+                            best,
+                            ProjectToArc(first, onFirst, tolerance).DistanceTo(ProjectToArc(second, onSecond, tolerance)));
+                    }
                 }
             }
 
@@ -156,12 +161,16 @@ namespace GeometryHelper.Core
         /// Gets the distance between an arc and a circle, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A circle is an arc that sweeps a whole turn, so the two are measured against each other the way
-        /// two arcs are, exactly and without either being cut into pieces.
+        /// The circle is read as the disc it bounds, as every closed shape is by <c>DistanceTo</c>: an arc lying
+        /// inside it, or crossing its rim, is nought away. Beyond it the nearest point of the disc lies on the
+        /// rim straight towards the centre, so the distance is how near the arc comes to the centre, less the
+        /// radius. It was measured to the rim as one arc to another, so an arc inside a disc of radius a
+        /// hundred was seventy away while <c>CollidesWith</c> said the two touched.
+        /// <see cref="GetShortestLineTo(GeoArc2, GeoCircle2, Tolerance)"/> still runs rim to rim.
         /// </remarks>
         public static double DistanceTo(GeoArc2 arc, GeoCircle2 circle, Tolerance tolerance)
         {
-            return DistanceTo(arc, AsArc(circle), tolerance);
+            return Math.Max(0.0, DistanceTo(arc, circle.Center, tolerance) - circle.Radius);
         }
 
         /// <summary>
@@ -469,7 +478,7 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// As with an arc and a segment, the pair is one of those
         /// <see cref="DistanceTo(GeoArc2, GeoArc2, Tolerance)"/> already weighs: an end of one against the
-        /// other, or the two points facing each other along the line joining the centres.
+        /// other, or a point of each on the line joining the centres.
         /// </remarks>
         public static GeoLine2 GetShortestLineTo(GeoArc2 first, GeoArc2 second, Tolerance tolerance)
         {
@@ -491,21 +500,20 @@ namespace GeometryHelper.Core
             {
                 GeoVector2 unit = betweenCenters.Multiply(1.0 / apart);
 
-                // The two points of the circles on the line joining the centres, facing each other and
-                // facing away, are where two whole circles are nearest and furthest. Each is clamped onto
-                // its own arc: an arc that does not reach that far round is nearest at an end instead, and
-                // every end is weighed above. Testing the direction against Tolerance.EqualAngleRad
-                // instead would admit a point a whole degree past the end, which on a radius of a hundred
-                // is nearly two of whatever the drawing is measured in.
-                foreach (int side in new[] { 1, -1 })
+                // All four pairings of the points on the line joining the centres, as in DistanceTo: the
+                // circle inside another is nearest it on the same side, not facing it.
+                foreach (int sideFirst in new[] { 1, -1 })
                 {
-                    GeoPoint2 onFirst = first.Center.Add(unit.Multiply(side * first.Radius));
-                    GeoPoint2 onSecond = second.Center.Add(unit.Multiply(-side * second.Radius));
+                    foreach (int sideSecond in new[] { 1, -1 })
+                    {
+                        GeoPoint2 onFirst = first.Center.Add(unit.Multiply(sideFirst * first.Radius));
+                        GeoPoint2 onSecond = second.Center.Add(unit.Multiply(sideSecond * second.Radius));
 
-                    Consider(
-                        ref best,
-                        ProjectToArc(first, onFirst, tolerance),
-                        ProjectToArc(second, onSecond, tolerance));
+                        Consider(
+                            ref best,
+                            ProjectToArc(first, onFirst, tolerance),
+                            ProjectToArc(second, onSecond, tolerance));
+                    }
                 }
             }
 

@@ -327,6 +327,20 @@
         along the longer of them, and a flat shape meets a plane wherever it stands off it by more than
         EqualPlanar. Two infinite lines, and two planes, still go by the angle. IsParallelTo is unchanged:
         it answers about directions.
+      - DistanceTo from an arc or an edge to a GeoCircle2 measured to the rim. Every closed shape is read as
+        the region it encloses, and a segment always read the disc, but an arc inside a disc of radius a
+        hundred was seventy away while CollidesWith said the two touched, and a straight edge inside it was
+        eighty away from the edge's side and nought from the circle's. GetShortestLineTo still runs rim to
+        rim, as it does for every closed shape.
+      - Two arcs, one lying inside the other's circle, were measured facing each other along the line
+        joining the centres rather than on the same side of it, so an arc round a small circle came out
+        3.4 from it where the gap was 1.2, and in a random run 49.7 where it was 7.5. DistanceTo and
+        GetShortestLineTo between arcs, and every curved edge and chain built on them, weigh all four
+        pairings now.
+      - DistanceTo between a body or a chain in space and a concave GeoPolygon3 used the fan the polygon
+        breaks into, which covers a concave polygon only by signed sum: a body sitting in the notch of an L
+        measured nought to it while CollidesWith said it did not touch. They use triangles lying inside the
+        polygon.
 
       NEW IN 5.1.0
 
