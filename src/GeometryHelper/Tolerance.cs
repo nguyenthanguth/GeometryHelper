@@ -89,25 +89,13 @@ namespace GeometryHelper
         /// <exception cref="ArgumentOutOfRangeException">Thrown when one of the thresholds is negative.</exception>
         public Tolerance(double equalPoint, double equalVector, double equalAngleRad, double equalPlanar)
         {
-            if (equalPoint < 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(equalPoint), "Tolerance cannot be negative.");
-            }
+            Guard.NonNegative(equalPoint, nameof(equalPoint), "A tolerance has to be a number, and cannot be negative.");
 
-            if (equalVector < 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(equalVector), "Tolerance cannot be negative.");
-            }
+            Guard.NonNegative(equalVector, nameof(equalVector), "A tolerance has to be a number, and cannot be negative.");
 
-            if (equalAngleRad < 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(equalAngleRad), "Tolerance cannot be negative.");
-            }
+            Guard.NonNegative(equalAngleRad, nameof(equalAngleRad), "A tolerance has to be a number, and cannot be negative.");
 
-            if (equalPlanar < 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(equalPlanar), "Tolerance cannot be negative.");
-            }
+            Guard.NonNegative(equalPlanar, nameof(equalPlanar), "A tolerance has to be a number, and cannot be negative.");
 
             EqualPoint = equalPoint;
             EqualVector = equalVector;

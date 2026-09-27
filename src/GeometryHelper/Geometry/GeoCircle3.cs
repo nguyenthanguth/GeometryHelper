@@ -44,10 +44,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentException("A circle needs a normal of non-zero length.", nameof(normal));
             }
 
-            if (radius <= 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(radius), "A circle must have a positive radius.");
-            }
+            Guard.Positive(radius, nameof(radius), "A circle must have a positive radius.");
 
             Center = center;
             Normal = unit;

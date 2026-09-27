@@ -92,7 +92,9 @@ namespace GeometryHelper.Geometry
         public bool TryGetNormal(out GeoVector2 normal, Tolerance tolerance)
         {
             double len = Length;
-            if (len <= tolerance.EqualVector)
+
+            // Written as what the length has to be, so that a vector of NaNs has no direction.
+            if (!(len > tolerance.EqualVector) || double.IsInfinity(len))
             {
                 normal = Zero;
                 return false;

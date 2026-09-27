@@ -341,6 +341,12 @@
         breaks into, which covers a concave polygon only by signed sum: a body sitting in the notch of an L
         measured nought to it while CollidesWith said it did not touch. They use triangles lying inside the
         polygon.
+      - A size, a distance or a tolerance that was not a number got through where a negative one was
+        refused. GeoCircle2, GeoCircle3, GeoObb3, GeoRectangle2, GeoRay3.ToLine and Tolerance each asked
+        whether the value was below nought, which NaN is not, and the shape then answered NaN or false to
+        every question without a word. TryGetNormal normalised a vector of NaNs into another, so a plane or
+        a ray built on one was taken. All of them refuse NaN and infinity now, and a rectangle refuses an
+        angle that is not a number.
 
       NEW IN 5.1.0
 

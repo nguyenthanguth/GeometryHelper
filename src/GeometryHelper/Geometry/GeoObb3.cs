@@ -124,23 +124,12 @@ namespace GeometryHelper.Geometry
         /// <param name="sizeX">Full size along the local X axis.</param>
         /// <param name="sizeY">Full size along the local Y axis.</param>
         /// <param name="sizeZ">Full size along the local Z axis.</param>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when any size is negative.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when any size is negative, NaN or infinite.</exception>
         public GeoObb3(GeoCoordinateSystem3 coordinateSystem, double sizeX, double sizeY, double sizeZ)
         {
-            if (sizeX < 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(sizeX), "A box cannot have a negative size.");
-            }
-
-            if (sizeY < 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(sizeY), "A box cannot have a negative size.");
-            }
-
-            if (sizeZ < 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(sizeZ), "A box cannot have a negative size.");
-            }
+            Guard.NonNegative(sizeX, nameof(sizeX), "A box size has to be a number, and cannot be negative.");
+            Guard.NonNegative(sizeY, nameof(sizeY), "A box size has to be a number, and cannot be negative.");
+            Guard.NonNegative(sizeZ, nameof(sizeZ), "A box size has to be a number, and cannot be negative.");
 
             CoordinateSystem = coordinateSystem;
             ExtentX = sizeX * 0.5;

@@ -43,10 +43,7 @@ namespace GeometryHelper.Geometry
         /// <param name="radius">Radius of the circle (must be non-negative).</param>
         public GeoCircle2(GeoPoint2 center, double radius)
         {
-            if (radius < 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(radius), "Radius cannot be negative.");
-            }
+            Guard.NonNegative(radius, nameof(radius), "A radius has to be a number, and cannot be negative.");
             Center = center;
             Radius = radius;
         }

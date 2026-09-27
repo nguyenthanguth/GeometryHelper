@@ -215,7 +215,10 @@ namespace GeometryHelper.Geometry
         public bool TryGetNormal(out GeoVector3 normal, Tolerance tolerance)
         {
             double length = Length;
-            if (length <= tolerance.EqualVector)
+
+            // Written as what the length has to be, so that a vector of NaNs, whose length is no more "too
+            // short" than it is anything else, has no direction rather than a direction of NaNs.
+            if (!(length > tolerance.EqualVector) || double.IsInfinity(length))
             {
                 normal = Zero;
                 return false;

@@ -123,13 +123,10 @@ namespace GeometryHelper.Geometry
         /// Gets the line segment covering the ray from its origin out to a given distance.
         /// </summary>
         /// <param name="distance">How far along the ray the segment should reach.</param>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is negative.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is negative, NaN or infinite.</exception>
         public GeoLine3 ToLine(double distance)
         {
-            if (distance < 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(distance), "A ray cannot be sampled backwards into a segment.");
-            }
+            Guard.NonNegative(distance, nameof(distance), "A ray is sampled forwards, over a distance that is a number.");
 
             return new GeoLine3(Origin, GetPointAtDistance(distance));
         }

@@ -55,18 +55,14 @@ namespace GeometryHelper.Geometry
         /// <param name="width">Rectangle width.</param>
         /// <param name="height">Rectangle height.</param>
         /// <param name="angleRad">Rotation angle in radians.</param>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when width or height is negative.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when width or height is negative, NaN or infinite, or the angle is not a finite number.
+        /// </exception>
         public GeoRectangle2(GeoPoint2 center, double width, double height, double angleRad = 0.0)
         {
-            if (width < 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(width), "Width cannot be negative.");
-            }
-
-            if (height < 0.0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(height), "Height cannot be negative.");
-            }
+            Guard.NonNegative(width, nameof(width), "A width has to be a number, and cannot be negative.");
+            Guard.NonNegative(height, nameof(height), "A height has to be a number, and cannot be negative.");
+            Guard.Finite(angleRad, nameof(angleRad), "An angle has to be a number.");
 
             Center = center;
             Width = width;
