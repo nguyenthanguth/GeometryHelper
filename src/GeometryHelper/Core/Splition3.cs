@@ -491,6 +491,79 @@ namespace GeometryHelper.Core
             GeoFace3[] none = new GeoFace3[0];
             GeoFace3[] whole = { face };
 
+            switch (Cut(face, cutter, tolerance, tolerance, out List<GeoFace3> upper, out List<GeoFace3> lower))
+            {
+                case FaceCut.InPlane:
+                    // A face lying entirely in the cutting plane belongs to neither side; hand it back on both
+                    // so the caller still has it.
+                    above = whole;
+                    below = whole;
+                    return false;
+
+                case FaceCut.Above:
+                    above = whole;
+                    below = none;
+                    return false;
+
+                case FaceCut.Below:
+                    above = none;
+                    below = whole;
+                    return false;
+            }
+
+            if (upper.Count == 0 || lower.Count == 0)
+            {
+                above = upper.Count > 0 ? upper.ToArray() : whole;
+                below = lower.Count > 0 ? lower.ToArray() : none;
+                return false;
+            }
+
+            above = upper.ToArray();
+            below = lower.ToArray();
+            return true;
+        }
+
+        /// <summary>
+        /// How a face lies against a cutting plane.
+        /// </summary>
+        private enum FaceCut
+        {
+            /// <summary>Every corner is on the plane.</summary>
+            InPlane,
+
+            /// <summary>
+            /// On the side the normal points to, touching the plane at most; or crossing it so nearly along it,
+            /// for the face's size, that there is no line to cut along.
+            /// </summary>
+            Above,
+
+            /// <summary>On the other side, touching the plane at most.</summary>
+            Below,
+
+            /// <summary>Crossed, with the pieces on each side handed back.</summary>
+            Crossed,
+        }
+
+        /// <summary>
+        /// Cuts a face by a plane, handing back the pieces on each side when the plane crosses it.
+        /// </summary>
+        /// <param name="face">The face to cut, holes included.</param>
+        /// <param name="cutter">The cutting plane.</param>
+        /// <param name="tolerance">The tolerance deciding which side each corner is on and where the edges cross.</param>
+        /// <param name="pieces">The tolerance the pieces are built within; see <see cref="LoopAssembly.ForPieces"/>.</param>
+        /// <param name="above">The pieces on the side the cutter normal points towards, when crossed; null otherwise.</param>
+        /// <param name="below">The pieces on the other side, when crossed; null otherwise.</param>
+        /// <returns>How the face lies against the plane.</returns>
+        /// <remarks>
+        /// A crossed face can hand back nothing on one side: a piece that thin is not a polygon at all. The
+        /// caller decides what that means, which is why the pieces are handed back as they are rather than the
+        /// whole face in their place.
+        /// </remarks>
+        private static FaceCut Cut(GeoFace3 face, GeoPlane3 cutter, Tolerance tolerance, Tolerance pieces, out List<GeoFace3> above, out List<GeoFace3> below)
+        {
+            above = null;
+            below = null;
+
             bool anyAbove = false;
             bool anyBelow = false;
 
@@ -508,15 +581,19 @@ namespace GeometryHelper.Core
                 }
             }
 
-            if (!anyAbove || !anyBelow)
+            if (!anyAbove && !anyBelow)
             {
-                // A face lying entirely in the cutting plane belongs to neither side; hand it back on both
-                // so the caller still has it, and so a solid split can tell that case apart.
-                // Reaching here means at least one side is empty, so "on this side or on neither" is just
-                // "not only on the other side".
-                above = !anyBelow ? whole : none;
-                below = !anyAbove ? whole : none;
-                return false;
+                return FaceCut.InPlane;
+            }
+
+            if (!anyBelow)
+            {
+                return FaceCut.Above;
+            }
+
+            if (!anyAbove)
+            {
+                return FaceCut.Below;
             }
 
             // The corners already show the plane passing through the face, so what decides whether there is a
@@ -526,28 +603,14 @@ namespace GeometryHelper.Core
 
             if (!Intersection3.TryGetMeetingLine(face.GetPlane(), cutter, extent, out GeoRay3 cutLine, tolerance))
             {
-                above = whole;
-                below = none;
-                return false;
+                return FaceCut.Above;
             }
 
-            List<List<GeoPoint3>> loopsAbove = CutRings(face, cutter, cutLine, 1, tolerance);
-            List<List<GeoPoint3>> loopsBelow = CutRings(face, cutter, cutLine, -1, tolerance);
-
-            List<GeoFace3> upper = LoopAssembly.AssembleFaces(loopsAbove, face.Normal, tolerance);
-            List<GeoFace3> lower = LoopAssembly.AssembleFaces(loopsBelow, face.Normal, tolerance);
-
-            if (upper.Count == 0 || lower.Count == 0)
-            {
-                above = upper.Count > 0 ? upper.ToArray() : whole;
-                below = lower.Count > 0 ? lower.ToArray() : none;
-                return false;
-            }
-
-            above = upper.ToArray();
-            below = lower.ToArray();
-            return true;
+            above = LoopAssembly.AssembleFaces(CutRings(face, cutter, cutLine, 1, tolerance), face.Normal, pieces);
+            below = LoopAssembly.AssembleFaces(CutRings(face, cutter, cutLine, -1, tolerance), face.Normal, pieces);
+            return FaceCut.Crossed;
         }
+
 
         /// <summary>
         /// Walks every ring of a face: the outer boundary first, then each hole.
@@ -999,33 +1062,33 @@ namespace GeometryHelper.Core
 
             List<GeoFace3> upperFaces = new List<GeoFace3>();
             List<GeoFace3> lowerFaces = new List<GeoFace3>();
+            Tolerance pieces = LoopAssembly.ForPieces(tolerance);
 
             foreach (GeoFace3 face in solid.Faces)
             {
-                if (TrySplitBy(face, cutter, out GeoFace3[] faceAbove, out GeoFace3[] faceBelow, tolerance))
+                switch (Cut(face, cutter, tolerance, pieces, out List<GeoFace3> faceAbove, out List<GeoFace3> faceBelow))
                 {
-                    upperFaces.AddRange(faceAbove);
-                    lowerFaces.AddRange(faceBelow);
-                    continue;
-                }
+                    case FaceCut.InPlane:
+                        // A face lying in the cutting plane belongs to neither side: the cap replaces it.
+                        break;
 
-                bool touchesAbove = faceAbove.Length > 0;
-                bool touchesBelow = faceBelow.Length > 0;
+                    case FaceCut.Above:
+                        upperFaces.Add(face);
+                        break;
 
-                // A face lying in the cutting plane is reported on both sides and belongs to neither: the
-                // cap replaces it.
-                if (touchesAbove && touchesBelow)
-                {
-                    continue;
-                }
+                    case FaceCut.Below:
+                        lowerFaces.Add(face);
+                        break;
 
-                if (touchesAbove)
-                {
-                    upperFaces.Add(face);
-                }
-                else if (touchesBelow)
-                {
-                    lowerFaces.Add(face);
+                    default:
+                        // Each side takes its own pieces and only those. The whole face on one side would reach
+                        // past the plane, and dropped from both it would leave a hole in each; either way a rim
+                        // that does not close. A piece too thin to be a polygon even here has its two corners on
+                        // the plane within the point tolerance of each other, so the faces beside it meet along
+                        // the same stretch without it and the half still closes.
+                        upperFaces.AddRange(faceAbove);
+                        lowerFaces.AddRange(faceBelow);
+                        break;
                 }
             }
 
@@ -1038,12 +1101,12 @@ namespace GeometryHelper.Core
             // rims usually describe the same shape, but not when the cutting plane holds a face of the body
             // already: there the two halves meet the plane over different areas, and one cap cannot serve
             // for both. Cutting an L-shaped prism along the plane of its own notch is exactly that case.
-            if (!TryBuildCaps(upperFaces, cutter, cutter.Normal.Negate(), tolerance, out List<GeoFace3> upperCaps))
+            if (!TryBuildCaps(upperFaces, cutter, cutter.Normal.Negate(), tolerance, pieces, out List<GeoFace3> upperCaps))
             {
                 return false;
             }
 
-            if (!TryBuildCaps(lowerFaces, cutter, cutter.Normal, tolerance, out List<GeoFace3> lowerCaps))
+            if (!TryBuildCaps(lowerFaces, cutter, cutter.Normal, tolerance, pieces, out List<GeoFace3> lowerCaps))
             {
                 return false;
             }
@@ -1109,9 +1172,10 @@ namespace GeometryHelper.Core
         /// <param name="cutter">The cutting plane.</param>
         /// <param name="outward">The direction the cap should face, which is out of the half it closes.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <param name="pieces">The tolerance the caps are built within; see <see cref="LoopAssembly.ForPieces"/>.</param>
         /// <param name="caps">The faces closing the half.</param>
         /// <returns>false when the edges left by the cut do not close into loops.</returns>
-        private static bool TryBuildCaps(List<GeoFace3> halfFaces, GeoPlane3 cutter, GeoVector3 outward, Tolerance tolerance, out List<GeoFace3> caps)
+        private static bool TryBuildCaps(List<GeoFace3> halfFaces, GeoPlane3 cutter, GeoVector3 outward, Tolerance tolerance, Tolerance pieces, out List<GeoFace3> caps)
         {
             caps = new List<GeoFace3>();
 
@@ -1154,7 +1218,9 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            caps = LoopAssembly.AssembleFaces(loops, outward, tolerance);
+            // A plane taking a corner off leaves a cap as small as the slivers beside it, and one refused would
+            // leave the half open.
+            caps = LoopAssembly.AssembleFaces(loops, outward, pieces);
 
             return caps.Count > 0;
         }

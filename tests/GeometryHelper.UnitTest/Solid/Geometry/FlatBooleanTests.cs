@@ -200,6 +200,46 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(Boolean2.Subtract(flatFirst, flatSecond).Sum(f => f.Area), first.Subtract(second).Sum(f => f.Area), 6);
         }
 
+        /// <summary>
+        /// Taking one plate out of another so that only a corner a hundredth across is left gives that corner. The
+        /// piece is under the area a polygon refuses at the ordinary tolerance, and lifting it back out of the plane
+        /// threw, taking with it any union of two bodies whose gluing met such a sliver.
+        /// </summary>
+        [Fact]
+        public void TakingAPlateOutOfAnotherThatLeavesACornerSliverGivesTheSliver()
+        {
+            foreach (double leg in new[] { 0.01, 0.003 })
+            {
+                var square = new GeoFace3(Plate(0, 0, 1));
+                var allButTheCorner = new GeoFace3(new GeoPolygon3(
+                    new GeoPoint3(leg, 0, 0), new GeoPoint3(2, 0, 0), new GeoPoint3(2, 2, 0), new GeoPoint3(0, 2, 0), new GeoPoint3(0, leg, 0)));
+
+                GeoFace3[] left = Boolean3.Subtract(square, allButTheCorner, Tolerance.Global);
+
+                Assert.True(Math.Abs(left.Sum(face => face.Area) - leg * leg / 2) <= 1E-6 * leg * leg, $"leg {leg}: {left.Sum(face => face.Area)}");
+            }
+        }
+
+        /// <summary>
+        /// A face too small for the plane to hold adds nothing and takes nothing away. A speck five hundred-thousandths
+        /// across is a polygon at a tight tolerance, and laid out in the plane, which merges corners within the
+        /// ordinary point tolerance, it is not one; combining it threw.
+        /// </summary>
+        [Fact]
+        public void AFaceTooSmallForThePlaneAddsNothingAndTakesNothingAway()
+        {
+            var tight = new Tolerance(1E-7, 1E-12, Tolerance.DefaultEqualAngleRad, 1E-7);
+            var plate = new GeoFace3(Plate(0, 0, 1));
+            var speck = new GeoFace3(new GeoPolygon3(
+                new[] { new GeoPoint3(0.5, 0.5, 0), new GeoPoint3(0.50005, 0.5, 0), new GeoPoint3(0.5, 0.50005, 0) }, tight));
+
+            Assert.Empty(Boolean3.Intersect(plate, speck, tight));
+            Assert.Equal(1.0, Assert.Single(Boolean3.Subtract(plate, speck, tight)).Area, 9);
+            Assert.Equal(1.0, Assert.Single(Boolean3.Union(plate, speck, tight)).Area, 9);
+            Assert.Equal(1.0, Assert.Single(Boolean3.Xor(speck, plate, tight)).Area, 9);
+            Assert.Empty(Boolean3.Subtract(speck, plate, tight));
+        }
+
         [Fact]
         public void APolygonAndACurvedLoopInOnePlaneMeetFromEitherSide()
         {

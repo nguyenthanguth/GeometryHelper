@@ -51,8 +51,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = AsFace(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Union(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Union, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -76,8 +75,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = NotNull(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Union(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Union, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -101,8 +99,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = AsFace(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Union(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Union, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -126,8 +123,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = NotNull(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Union(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Union, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -151,8 +147,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = AsFace(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Intersect(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Intersect, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -176,8 +171,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = NotNull(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Intersect(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Intersect, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -201,8 +195,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = AsFace(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Intersect(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Intersect, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -226,8 +219,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = NotNull(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Intersect(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Intersect, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -251,8 +243,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = AsFace(tool, nameof(tool));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(tool));
 
-            return Lift(frame, Boolean2.Subtract(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Subtract, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -276,8 +267,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = NotNull(tool, nameof(tool));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(tool));
 
-            return Lift(frame, Boolean2.Subtract(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Subtract, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -301,8 +291,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = AsFace(tool, nameof(tool));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(tool));
 
-            return Lift(frame, Boolean2.Subtract(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Subtract, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -326,8 +315,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = NotNull(tool, nameof(tool));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(tool));
 
-            return Lift(frame, Boolean2.Subtract(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Subtract, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -351,8 +339,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = AsFace(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Xor(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Xor, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -376,8 +363,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = NotNull(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Xor(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Xor, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -401,8 +387,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = AsFace(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Xor(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Xor, frame, subject, other, tolerance);
         }
 
         /// <summary>
@@ -426,8 +411,7 @@ namespace GeometryHelper.Core
             GeoFace3 other = NotNull(second, nameof(second));
             GeoCoordinateSystem3 frame = FlatFrame(subject, other, tolerance, nameof(second));
 
-            return Lift(frame, Boolean2.Xor(
-                PlanarMap.ProjectToFace2(frame, subject), PlanarMap.ProjectToFace2(frame, other), tolerance));
+            return Combine(Combination.Xor, frame, subject, other, tolerance);
         }
 
         #endregion
@@ -499,18 +483,133 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Lifts the faces the plane gave back into the plane the two shapes share.
+        /// The four ways two flat shapes combine.
         /// </summary>
-        private static GeoFace3[] Lift(GeoCoordinateSystem3 frame, GeoFace2[] flat)
+        private enum Combination
         {
-            var lifted = new GeoFace3[flat.Length];
+            Union,
+            Intersect,
+            Subtract,
+            Xor,
+        }
 
-            for (int i = 0; i < flat.Length; i++)
+        /// <summary>
+        /// Combines two faces of one plane by laying them out in it, combining them there and lifting the answer
+        /// back.
+        /// </summary>
+        /// <remarks>
+        /// A face with no area left once laid out — a sliver whose corners come within the plane's point tolerance
+        /// of one another — adds nothing and takes nothing away: sharing with it gives nothing, taking it out
+        /// changes nothing, and joining it or keeping what the two do not share gives the other. Laid out as it
+        /// was, it threw, and took with it the union or difference of two bodies whose gluing compared such a
+        /// sliver with the face lying against it.
+        /// </remarks>
+        private static GeoFace3[] Combine(Combination combination, GeoCoordinateSystem3 frame, GeoFace3 first, GeoFace3 second, Tolerance tolerance)
+        {
+            GeoFace2 one = Flatten(frame, first);
+            GeoFace2 other = Flatten(frame, second);
+
+            if (one == null || other == null)
             {
-                lifted[i] = PlanarMap.ToFace3(frame, flat[i]);
+                if (combination == Combination.Intersect || one == null && (other == null || combination == Combination.Subtract))
+                {
+                    return new GeoFace3[0];
+                }
+
+                return new[] { one == null ? second : first };
             }
 
-            return lifted;
+            switch (combination)
+            {
+                case Combination.Union:
+                    return Lift(frame, Boolean2.Union(one, other, tolerance), tolerance);
+                case Combination.Intersect:
+                    return Lift(frame, Boolean2.Intersect(one, other, tolerance), tolerance);
+                case Combination.Subtract:
+                    return Lift(frame, Boolean2.Subtract(one, other, tolerance), tolerance);
+                default:
+                    return Lift(frame, Boolean2.Xor(one, other, tolerance), tolerance);
+            }
+        }
+
+        /// <summary>
+        /// Lays a face out in a frame, or gives null when nothing with an area is left of it there.
+        /// </summary>
+        private static GeoFace2 Flatten(GeoCoordinateSystem3 frame, GeoFace3 face)
+        {
+            try
+            {
+                return PlanarMap.ProjectToFace2(frame, face);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Lifts the faces the plane gave back into the plane the two shapes share.
+        /// </summary>
+        /// <remarks>
+        /// Each piece is built as thin as the point tolerance allows (<see cref="LoopAssembly.ForPieces"/>), since the
+        /// faces it came from can be that thin: a body cut near a corner keeps slivers a few thousandths across, and
+        /// the gluing of a union takes such faces from one another here. Built within the ordinary tolerance, a
+        /// sliver of the answer threw, and took the whole union with it. A piece with nothing left of it once lifted,
+        /// its corners within the point tolerance of one another or of a line, is dropped rather than thrown over:
+        /// the plane draws finer than space does, and such a piece has no area to speak of.
+        /// </remarks>
+        private static GeoFace3[] Lift(GeoCoordinateSystem3 frame, GeoFace2[] flat, Tolerance tolerance)
+        {
+            Tolerance pieces = LoopAssembly.ForPieces(tolerance);
+            var lifted = new List<GeoFace3>(flat.Length);
+
+            foreach (GeoFace2 face in flat)
+            {
+                GeoPolygon3 boundary = LiftRing(frame, face.Boundary, pieces);
+
+                if (boundary == null)
+                {
+                    continue;
+                }
+
+                var holes = new List<GeoPolygon3>(face.Holes.Count);
+
+                foreach (GeoPolygon2 hole in face.Holes)
+                {
+                    GeoPolygon3 ring = LiftRing(frame, hole, pieces);
+
+                    if (ring != null)
+                    {
+                        holes.Add(ring);
+                    }
+                }
+
+                lifted.Add(new GeoFace3(boundary, holes, pieces));
+            }
+
+            return lifted.ToArray();
+        }
+
+        /// <summary>
+        /// Lifts one ring into the plane, or gives null when nothing of it is left there.
+        /// </summary>
+        private static GeoPolygon3 LiftRing(GeoCoordinateSystem3 frame, GeoPolygon2 ring, Tolerance tolerance)
+        {
+            var corners = new List<GeoPoint3>(ring.Vertices.Count);
+
+            foreach (GeoPoint2 corner in ring.Vertices)
+            {
+                corners.Add(PlanarMap.ToPoint3(frame, corner));
+            }
+
+            try
+            {
+                return new GeoPolygon3(corners, tolerance);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
         }
 
         /// <summary>

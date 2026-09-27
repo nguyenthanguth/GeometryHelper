@@ -496,9 +496,18 @@ namespace GeometryHelper.Core
                 return group;
             }
 
-            List<GeoFace3> assembled = LoopAssembly.AssembleFaces(loops, plane.Normal, tolerance);
+            // Every loop is the outline of faces that exist, however thin, so it is built as thin as they were:
+            // a sliver left by a cut beside the plane's other faces would otherwise be refused and leave a hole.
+            // A loop lost anyway leaves the group as it was rather than a surface with a hole in it.
+            List<GeoFace3> assembled = LoopAssembly.AssembleFaces(loops, plane.Normal, LoopAssembly.ForPieces(tolerance));
+            int rings = 0;
 
-            return assembled.Count > 0 ? assembled : (IEnumerable<GeoFace3>)group;
+            foreach (GeoFace3 face in assembled)
+            {
+                rings += 1 + face.Holes.Count;
+            }
+
+            return assembled.Count > 0 && rings == loops.Count ? assembled : (IEnumerable<GeoFace3>)group;
         }
 
         /// <summary>

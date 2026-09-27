@@ -224,6 +224,55 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>
+        /// Pairs of the scans where a sliver once stopped a cut. A corner of one part a few thousandths past a plane
+        /// of the other left a sliver under the area a polygon refuses, so the half it belonged to could not close,
+        /// the cell stayed whole across the other part's surface, and one point judged both sides of it: seed 7's
+        /// pairs 1716 and 9492 came out more than 1% wrong both ways round. Seed 5's 642, 996 and 1185 — the last
+        /// only touching — joined into open bodies once the slivers were kept, until joining the faces of one plane
+        /// kept them too.
+        /// </summary>
+        [Fact]
+        public void TheBooleansAgreeWithTheTightOneWhereASliverOnceStoppedACut()
+        {
+            foreach ((int seed, int index) in new[] { (7, 1716), (7, 9492), (5, 642), (5, 996), (5, 1185) })
+            {
+                (GeoSolid3 a, GeoSolid3 b) = PairOf(seed, index);
+                double shared = Boolean3.Intersect(a, b, Tight).Sum(p => p.Volume);
+                double allowed = 1E-6 * (a.Volume + b.Volume);
+                string pair = $"seed {seed}, pair {index}";
+
+                Assert.True(Math.Abs(Boolean3.Intersect(a, b, Tol).Sum(p => p.Volume) - shared) <= allowed, $"{pair}: the first with the second");
+                Assert.True(Math.Abs(Boolean3.Intersect(b, a, Tol).Sum(p => p.Volume) - shared) <= allowed, $"{pair}: the second with the first");
+
+                Assert.True(Boolean3.TryUnion(a, b, out GeoSolid3 union, Tol), pair);
+                Assert.True(Math.Abs(union.Volume - (a.Volume + b.Volume - shared)) <= allowed, $"{pair}: union {union.Volume}");
+                Assert.True(union.IsClosed(), $"{pair}: the union is open");
+
+                Assert.True(Boolean3.TrySubtract(a, b, out GeoSolid3 rest, Tol), pair);
+                Assert.True(Math.Abs(rest.Volume - (a.Volume - shared)) <= allowed, $"{pair}: difference {rest.Volume}");
+                Assert.True(rest.IsClosed(), $"{pair}: the difference is open");
+            }
+        }
+
+        /// <summary>
+        /// The pair a scan drawing two parts at a time from a seed drew at a given place.
+        /// </summary>
+        private static (GeoSolid3, GeoSolid3) PairOf(int seed, int index)
+        {
+            var rng = new Random(seed);
+
+            for (int k = 0; ; k++)
+            {
+                GeoSolid3 a = ConvexPart(rng), b = ConvexPart(rng);
+
+                if (k == index)
+                {
+                    return (a, b);
+                }
+            }
+        }
+
+        /// <summary>
         /// A mesh of round bars and a scatter of turned blocks: the clash check gives what checking every pair by
         /// hand with the general boolean gives.
         /// </summary>

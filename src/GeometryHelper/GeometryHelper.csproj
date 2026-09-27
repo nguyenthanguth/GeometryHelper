@@ -336,11 +336,25 @@
         go wrong. A bar bent over a plate came out 2969 where it shares 2967, reaching five below the plate,
         and a stirrup wholly inside a beam threw after half a minute. It now cuts one body only, the one fewer
         planes cut, by the planes of the other that come near it and of its own openings: the eight bars take
-        12 ms, and every answer here is exact. Where a plane still crosses a cell and leaves it whole — a
-        face with a sliver past the plane too thin to be a polygon, so the cut does not close — the other body
-        is cut instead, when that costs about the same. On 40000 random pairs of convex parts the answers more
-        than 1% out fell from 0.48% to 0.35% and the time from 78 s to 43 s; the rest are such slivers where
-        both ways fail. (Found testing the clash check in Tekla.)
+        12 ms, and every answer here is exact. Where a plane still crosses a cell and leaves it whole, the
+        other body is cut instead, when that costs about the same. (Found testing the clash check in Tekla.)
+      - The solid booleans were wrong on about one pair in 250 where one body passed a few thousandths from a
+        corner of the other, and unions and differences of such pairs could throw. A plane cutting that close
+        to a corner leaves a sliver on each face meeting there, under the 1e-4 area a polygon refuses at the
+        ordinary tolerance. Refused, the half it belonged to could not close and the cut failed, so a cell was
+        left whole across the other body and judged by one point for both sides of it: two blocks sharing
+        sixty were found to share nothing. A face crossed with a sliver on one side went whole to the other
+        side, or to neither. The pieces of a cut, the caps closing it, the faces joined in one plane and the
+        pieces lifted out of a flat boolean are now built as thin as the point tolerance allows, and a crossed
+        face gives each side its own pieces. On 47,574 intersections of random convex parts the answers more
+        than 1% out fell from 194 to none; checked closer on 1,815 pairs, every union, intersection and
+        difference agrees with the same boolean at 1e-10 to a part in a million. On 1,687 pairs among bent
+        bars, stars, Ls and Is, 36 answers more than 1% out fell to none, and the 67 unions and differences
+        that threw now answer with the right volume; eight of those come out open, faces rejoined across
+        thousands of cells not quite meeting. A flat boolean gives the sliver it leaves rather than throwing,
+        and takes a face too small for the plane to hold as adding nothing and taking nothing away. The steel
+        frame's clash check gives the same results, prepared and checked in 1.6 s rather than 1.9 s. (Found
+        fixing the clash check for bent bars.)
       - The end face of an I, a channel or any section with an inside corner was meshed across its gaps.
         Ear clipping took the flanges of an I off first and then took as an ear a triangle across the web and
         the gap beside it, since a corner of the web lay on the triangle's edge and only corners strictly

@@ -146,11 +146,11 @@ namespace GeometryHelper.Core
 
             List<GeoFace3> kept = CellsInside(cut, other, knives, tolerance, out bool clean);
 
-            // A plane can cross a cell and leave it whole: a face with a sliver past the plane too thin to be a
-            // polygon keeps the cut from closing, and the cell is then judged by one point for both sides of the
-            // plane, which once gave nothing for two blocks sharing sixty. Cut the other way, the slivers fall
-            // elsewhere, so the other body is cut before that is settled for — when that costs about the same.
-            // A bar's hundreds of planes would cut a beam into thousands of cells again.
+            // A plane can still cross a cell and leave it whole where the cut does not close — a body running
+            // through itself, say — and the cell is then judged by one point for both sides of the plane. Cut the
+            // other way, the trouble falls elsewhere, so the other body is cut before that is settled for, when that
+            // costs about the same: a bar's hundreds of planes would cut a beam into thousands of cells again.
+            // Slivers were the common cause, and the cut keeps those now; see LoopAssembly.ForPieces.
             if (!clean && otherKnives.Count <= 2 * knives.Count + 16)
             {
                 List<GeoFace3> otherWay = CellsInside(other, cut, otherKnives, tolerance, out bool otherClean);

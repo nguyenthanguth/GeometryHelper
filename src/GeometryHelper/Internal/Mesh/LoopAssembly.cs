@@ -311,6 +311,28 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the tolerance a piece of an existing surface is built within: the one given, with an area as small
+        /// as its point and planar tolerances allow.
+        /// </summary>
+        /// <remarks>
+        /// A polygon refuses an area below the vector tolerance read as an area: 1e-4 by default, a triangle a
+        /// hundredth of a millimetre across. A plane passing a few thousandths from a corner of a body leaves a
+        /// sliver that small on each face meeting at it, and the pieces of a surface rejoined can close a loop
+        /// as thin. Refused, the surface has a hole there. A cut that loses one does not close and fails, leaving
+        /// the body whole across the plane — two blocks sharing sixty were found to share nothing that way — and
+        /// a merge that loses one leaves the body open. Such a piece has two corners further apart than the point
+        /// tolerance, or they would be one, and a third further than the planar tolerance from the line through
+        /// them, or it would be on it, so its area is at least half the two together; an eighth keeps every one
+        /// and still refuses what rounding leaves of three points in a line.
+        /// </remarks>
+        internal static Tolerance ForPieces(Tolerance tolerance)
+            => new Tolerance(
+                tolerance.EqualPoint,
+                Math.Min(tolerance.EqualVector, tolerance.EqualPoint * tolerance.EqualPlanar * 0.125),
+                tolerance.EqualAngleRad,
+                tolerance.EqualPlanar);
+
+        /// <summary>
         /// Builds a polygon from a walked loop, matching the orientation asked for.
         /// </summary>
         /// <returns>null when the loop is too small or too thin to be a polygon.</returns>

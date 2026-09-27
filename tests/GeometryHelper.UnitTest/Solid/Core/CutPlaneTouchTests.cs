@@ -287,6 +287,34 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(twice.IsClosed());
         }
 
+        /// <summary>
+        /// A plane taking a corner a few thousandths deep off a cube still cuts it. The three faces meeting at the
+        /// corner each leave a sliver past the plane, and the cap closing the corner is as small, all under the
+        /// area a polygon refuses at the ordinary tolerance. Refused, the corner's half had no faces at all and the
+        /// cube came back uncut; inside a boolean, such a sliver left a cell whole across the other body.
+        /// </summary>
+        [Fact]
+        public void APlaneTakingACornerOffJustPastIt_StillCuts()
+        {
+            GeoSolid3 cube = Prism(new[]
+            {
+                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0)
+            }, 10.0);
+            double depth = 0.003;
+            GeoVector3 across = new GeoVector3(1, 1, 1).Normalize();
+            var plane = new GeoPlane3(GeoPoint3.Origin.Add(across.Multiply(depth)), across);
+
+            Assert.True(cube.TrySplitBy(plane, out GeoSolid3 above, out GeoSolid3 below));
+
+            // The corner is a tetrahedron whose legs are the depth times root three: root three over two times the
+            // depth cubed.
+            Assert.Equal(Math.Sqrt(3.0) / 2.0 * depth * depth * depth, below.Volume, 15);
+            Assert.Equal(1000.0, above.Volume + below.Volume, 9);
+            Assert.True(above.IsClosed());
+            Assert.True(below.IsClosed());
+        }
+
         #endregion
     }
 }
