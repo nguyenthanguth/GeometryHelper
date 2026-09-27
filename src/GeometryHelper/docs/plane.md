@@ -657,6 +657,22 @@ Boolean2.Subtract(flat, opening);         // now the whole 2D half of the librar
 The chords of an arc lie inside it, so a shape bulging outward encloses a little less once flattened, and
 one bulging inward a little more. `Flatten` on a chain with no arcs gives back exactly what went in.
 
+## A polygon that crosses itself
+
+A `GeoPolygon2` is taken as it is drawn, and one that crosses itself is still a polygon: `IsSimple()`
+says whether it does. Its `Area` is then the shoelace sum, in which the lobes wound the other way count
+against the rest — a bow tie of two equal triangles measures nought — while `Locate` and the booleans
+read the region it covers. `MakeValid()` gives that region as faces that do not cross themselves, one per
+piece, so their areas add up to what the other questions see.
+
+```csharp
+var bowTie = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 10), new GeoPoint2(10, 0), new GeoPoint2(0, 10));
+
+bowTie.IsSimple();     // false
+bowTie.Area;           // 0: the two triangles set against each other
+bowTie.MakeValid();    // two faces of 25
+```
+
 ## Hulls and fitted rectangles
 
 `ConvexHull2.Of(points)` is the smallest convex polygon holding some points, counter-clockwise, with every

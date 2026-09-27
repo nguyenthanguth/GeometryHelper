@@ -247,6 +247,16 @@ namespace GeometryHelper.Geometry
         #endregion
 
         /// <summary>
+        /// Gets whether this is a shape a constructor could have made: the origin is a valid point and the axes of unit length, square to each other and right-handed.
+        /// </summary>
+        /// <remarks>
+        /// A value made by a constructor always is. A <c>default</c> one — an element of a new array, or what
+        /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
+        /// questions without complaint all the same. A default one has no axes, so it sends every point to its origin.
+        /// </remarks>
+        public bool IsValid => Origin.IsValid && Guard.IsUnit(XAxis) && Guard.IsUnit(YAxis) && Guard.IsUnit(ZAxis) && Math.Abs(XAxis.DotProduct(YAxis)) <= 1E-9 && XAxis.CrossProduct(YAxis).DotProduct(ZAxis) > 1.0 - 1E-9;
+
+        /// <summary>
         /// Returns a string that represents the current coordinate system.
         /// </summary>
         public override string ToString() => $"LCS(Origin: {Origin}, X: {XAxis}, Y: {YAxis}, Z: {ZAxis})";

@@ -43,7 +43,37 @@ bool same = first.IsEqualTo(second, new Tolerance(1E-6, 1E-6));
 ```
 
 `Tolerance.Global` is a single shared setting. Changing it for a drawing in the plane changes it for
-a model in space as well.
+a model in space as well. Setting it swaps it whole, so a thread reading it while another sets it sees
+the old tolerance or the new one, never a mix of the two.
+
+Where one thread needs another tolerance for a while, open a scope instead of setting the shared one:
+
+```csharp
+using (Tolerance.Use(new Tolerance(1E-3, 1E-3)))
+{
+    plate.CollidesWith(bolt);   // within a thousandth, on this thread; every other thread is untouched
+}
+```
+
+Scopes nest, and each one disposed puts back what it replaced. A scope belongs to its thread: work handed
+to other threads sees the shared setting, which is why a method that spreads its work, such as
+`Clash3.Find`, takes the tolerance as it stands when it is called and passes it on.
+
+## Valid values
+
+Every constructor refuses what is not a shape — a radius or a size that is negative or not a number, a
+direction of no length — but a `default` value never meets a constructor. An element of a new array, or
+the `out` of a `Try` method that said false, is a plane with no normal, a ray with no direction or a
+coordinate system with no axes, and it answers questions without complaint all the same: the plane is
+nought from everything. `IsValid`, on every value type, says whether a value is one a constructor could
+have made.
+
+```csharp
+var planes = new GeoPlane3[4];
+planes[0].IsValid;                     // false: no normal
+new GeoPoint3(double.NaN, 0, 0).IsValid; // false
+default(GeoPoint3).IsValid;            // true: the origin is a point like any other
+```
 
 ## Angle
 

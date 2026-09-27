@@ -367,6 +367,43 @@ namespace GeometryHelper.Core
             return ClipperRegion.ToFaces(groups, origin, false);
         }
 
+        /// <summary>
+        /// Gets the region a polygon covers as faces that do not cross themselves, using the default tolerance.
+        /// </summary>
+        public static GeoFace2[] MakeValid(GeoPolygon2 polygon) => MakeValid(polygon, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the region a polygon covers as faces that do not cross themselves, within a tolerance.
+        /// </summary>
+        /// <param name="polygon">The polygon, which may cross itself.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// The region the polygon covers, read as <c>Locate</c> and the booleans read it — a point is inside when
+        /// a ray from it crosses the outline an odd number of times — one face per piece; a simple polygon comes
+        /// back as the one face it is.
+        /// </returns>
+        /// <remarks>
+        /// A polygon crossing itself is accepted as it is drawn, and its <see cref="GeoPolygon2.Area"/> is the
+        /// shoelace sum, in which the lobes wound the other way count against the rest: a figure of eight with
+        /// lobes of 608 and 3 measures 605. The booleans and <c>Locate</c> read the region it covers instead, 611.
+        /// These faces are that region, so their areas add up to what the other questions see.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public static GeoFace2[] MakeValid(GeoPolygon2 polygon, Tolerance tolerance)
+        {
+            if (polygon == null)
+            {
+                throw new ArgumentNullException(nameof(polygon));
+            }
+
+            GeoPoint2 origin = polygon[0];
+            int precision = ClipperRegion.GetPrecision(ClipperRegion.Extent(polygon.Vertices, origin));
+            List<LoopGroup> groups = ClipperRegion.Resolve(
+                new[] { ClipperRegion.ToLocal(polygon.Vertices, origin) }, Clipper2Lib.FillRule.EvenOdd, precision, tolerance);
+
+            return ClipperRegion.ToFaces(groups, origin, false);
+        }
+
         private static IEnumerable<Operand> Concat(IReadOnlyList<Operand> first, IReadOnlyList<Operand> second)
         {
             foreach (Operand operand in first)

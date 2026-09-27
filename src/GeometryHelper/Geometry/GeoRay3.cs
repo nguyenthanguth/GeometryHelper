@@ -214,6 +214,16 @@ namespace GeometryHelper.Geometry
         #endregion
 
         /// <summary>
+        /// Gets whether this is a shape a constructor could have made: the origin is a valid point and the direction of unit length.
+        /// </summary>
+        /// <remarks>
+        /// A value made by a constructor always is. A <c>default</c> one — an element of a new array, or what
+        /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
+        /// questions without complaint all the same. A default one has no direction, so it is only a point.
+        /// </remarks>
+        public bool IsValid => Origin.IsValid && Guard.IsUnit(Direction);
+
+        /// <summary>
         /// Returns a string that represents the current ray.
         /// </summary>
         public override string ToString() => $"Ray3(Origin: {Origin}, Direction: {Direction})";

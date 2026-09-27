@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Threading;
 
 namespace GeometryHelper
 {
@@ -38,21 +39,104 @@ namespace GeometryHelper
         public const double DefaultEqualPlanar = 1E-4;
 
         /// <summary>
+        /// The process-wide setting, held whole so that it is swapped in one step: a tolerance is several
+        /// numbers, and a struct written while another thread reads it can be read half old and half new.
+        /// </summary>
+        private sealed class Held
+        {
+            internal readonly Tolerance Value;
+
+            internal Held(Tolerance value)
+            {
+                Value = value;
+            }
+        }
+
+        private static volatile Held _global = new Held(
+            new Tolerance(DefaultEqualPoint, DefaultEqualVector, DefaultEqualAngleRad, DefaultEqualPlanar));
+
+        [ThreadStatic]
+        private static Held _scoped;
+
+        /// <summary>
         /// Tolerance applied for overloads without explicit tolerance.
         /// </summary>
         /// <remarks>
-        /// This is process-wide mutable state, and it is not synchronized. Set it once while starting up,
-        /// before any geometry is built, and read it thereafter. Changing it while other threads are
-        /// working means they may read the old value, the new one, or a mix across the several comparisons
-        /// of one operation — and it changes the answers in the plane and in space alike, since both
-        /// libraries read this one setting.
         /// <para>
-        /// Where a tolerance has to vary — per drawing, per model, per thread — pass it explicitly. Every
-        /// affected method takes one, and that overload touches nothing shared.
+        /// This is one setting for the process, read by the plane and by space alike. Setting it replaces it
+        /// whole, so a thread reading it while another sets it sees the old tolerance or the new one, never a
+        /// mix; but an operation already under way may read it more than once, so set it while starting up,
+        /// before geometry is built.
+        /// </para>
+        /// <para>
+        /// Where a tolerance has to vary for a while on one thread — one drawing, one model — open a scope with
+        /// <see cref="Use(Tolerance)"/>: this property returns the scope's tolerance on that thread until the
+        /// scope is disposed, and every other thread keeps the process-wide one. Where it has to vary per call,
+        /// pass it: every affected method takes one, and that overload touches nothing shared.
         /// </para>
         /// </remarks>
-        public static Tolerance Global { get; set; } =
-            new Tolerance(DefaultEqualPoint, DefaultEqualVector, DefaultEqualAngleRad, DefaultEqualPlanar);
+        public static Tolerance Global
+        {
+            get => (_scoped ?? _global).Value;
+            set => _global = new Held(value);
+        }
+
+        /// <summary>
+        /// Makes a tolerance the one every overload without a tolerance uses on this thread, until the returned
+        /// scope is disposed.
+        /// </summary>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>The scope; disposing it puts back whatever this thread used before.</returns>
+        /// <remarks>
+        /// <code>
+        /// using (Tolerance.Use(new Tolerance(1E-3, 1E-3)))
+        /// {
+        ///     plate.CollidesWith(bolt);   // within a thousandth, on this thread only
+        /// }
+        /// </code>
+        /// Scopes nest: each one disposed puts back the one it replaced. The scope belongs to the thread that
+        /// opened it — work handed to other threads, by <c>Parallel</c> or a task, sees the process-wide
+        /// setting, which is why the methods that spread their work, such as <c>Clash3.Find</c>, take the
+        /// tolerance as it stands when they are called and pass it on.
+        /// </remarks>
+        public static IDisposable Use(Tolerance tolerance)
+        {
+            var scope = new Scope(_scoped);
+            _scoped = new Held(tolerance);
+            return scope;
+        }
+
+        /// <summary>
+        /// A tolerance scope, putting back the tolerance it replaced when it is disposed.
+        /// </summary>
+        private sealed class Scope : IDisposable
+        {
+            private readonly Held _previous;
+            private readonly int _thread;
+            private bool _disposed;
+
+            internal Scope(Held previous)
+            {
+                _previous = previous;
+                _thread = Thread.CurrentThread.ManagedThreadId;
+            }
+
+            public void Dispose()
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                if (Thread.CurrentThread.ManagedThreadId != _thread)
+                {
+                    throw new InvalidOperationException("A tolerance scope has to be closed on the thread that opened it.");
+                }
+
+                _scoped = _previous;
+                _disposed = true;
+            }
+        }
 
         /// <summary>
         /// Initializes a tolerance instance with thresholds for points and vectors, using the default

@@ -224,6 +224,16 @@ namespace GeometryHelper.Geometry
         public static bool operator !=(GeoCircle2 left, GeoCircle2 right) => !left.Equals(right);
 
         /// <summary>
+        /// Gets whether this is a shape a constructor could have made: the centre is a valid point and the radius a number of nought or more.
+        /// </summary>
+        /// <remarks>
+        /// A value made by a constructor always is. A <c>default</c> one — an element of a new array, or what
+        /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
+        /// questions without complaint all the same.
+        /// </remarks>
+        public bool IsValid => Center.IsValid && Radius >= 0.0 && Guard.IsFinite(Radius);
+
+        /// <summary>
         /// Returns the string representation of the circle.
         /// </summary>
         public override string ToString() => $"GeoCircle2[Center:{Center}, Radius:{Radius:0.###}]";

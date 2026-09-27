@@ -536,6 +536,16 @@ namespace GeometryHelper.Geometry
         public static bool operator !=(GeoRectangle2 left, GeoRectangle2 right) => !left.Equals(right);
 
         /// <summary>
+        /// Gets whether this is a shape a constructor could have made: the centre is a valid point, the sizes numbers of nought or more and the angle a number.
+        /// </summary>
+        /// <remarks>
+        /// A value made by a constructor always is. A <c>default</c> one — an element of a new array, or what
+        /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
+        /// questions without complaint all the same.
+        /// </remarks>
+        public bool IsValid => Center.IsValid && Width >= 0.0 && Guard.IsFinite(Width) && Height >= 0.0 && Guard.IsFinite(Height) && Guard.IsFinite(AngleRad);
+
+        /// <summary>
         /// Returns the string representation of the rectangle.
         /// </summary>
         /// <returns>A string representation detailing center, width, height, and angle.</returns>

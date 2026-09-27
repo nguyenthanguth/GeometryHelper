@@ -396,6 +396,16 @@ namespace GeometryHelper.Geometry
         public static bool operator !=(GeoEdge2 left, GeoEdge2 right) => !left.Equals(right);
 
         /// <summary>
+        /// Gets whether this is a shape a constructor could have made: both ends are valid points and the bulge a number.
+        /// </summary>
+        /// <remarks>
+        /// A value made by a constructor always is. A <c>default</c> one — an element of a new array, or what
+        /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
+        /// questions without complaint all the same.
+        /// </remarks>
+        public bool IsValid => StartPoint.IsValid && EndPoint.IsValid && Guard.IsFinite(Bulge);
+
+        /// <summary>
         /// Describes the edge.
         /// </summary>
         public override string ToString()

@@ -401,6 +401,18 @@
         points. GeoRectangle2.Fit gives the rectangle of least area round points, exactly; GeoObb3.Fit a box
         stood on the best face of the hull, the least box for anything with a flat face to stand on.
 
+      NEW. Values that are shapes, and a tolerance for a while.
+
+      - IsValid on every value type: whether a value is one a constructor could have made. A default
+        GeoPlane3, GeoRay3, coordinate system, arc or GeoCircle3 is not -- no normal, no direction, no
+        axes, no radius -- and answers questions without complaint all the same.
+      - GeoPolygon2.MakeValid and Boolean2.MakeValid: the region a polygon crossing itself covers, as faces
+        that do not cross themselves, which is the region Locate and the booleans read. Its Area stays the
+        shoelace sum, and now says so.
+      - Tolerance.Use(tolerance) makes a tolerance the one the overloads without one use on this thread
+        until the scope is disposed. Tolerance.Global is swapped whole when set, so it can no longer be
+        read half old and half new.
+
       NEW IN 5.1.0
 
       Rounding a corner no longer means rounding every corner by the same radius.

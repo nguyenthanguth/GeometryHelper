@@ -426,6 +426,16 @@ namespace GeometryHelper.Geometry
         #endregion
 
         /// <summary>
+        /// Gets whether this is a shape a constructor could have made: it is empty, or both corners are valid points with the low one no higher than the high one on any axis.
+        /// </summary>
+        /// <remarks>
+        /// A value made by a constructor always is. A <c>default</c> one — an element of a new array, or what
+        /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
+        /// questions without complaint all the same.
+        /// </remarks>
+        public bool IsValid => IsEmpty || (Min.IsValid && Max.IsValid && Min.X <= Max.X && Min.Y <= Max.Y && Min.Z <= Max.Z);
+
+        /// <summary>
         /// Returns a string that represents the current box.
         /// </summary>
         public override string ToString() => IsEmpty ? "BoundingBox3(Empty)" : $"BoundingBox3({Min} .. {Max})";

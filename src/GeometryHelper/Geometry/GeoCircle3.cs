@@ -349,6 +349,16 @@ namespace GeometryHelper.Geometry
         #endregion
 
         /// <summary>
+        /// Gets whether this is a shape a constructor could have made: the centre is a valid point, the normal of unit length and the radius a positive number.
+        /// </summary>
+        /// <remarks>
+        /// A value made by a constructor always is. A <c>default</c> one — an element of a new array, or what
+        /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
+        /// questions without complaint all the same. A default one has no radius and no normal.
+        /// </remarks>
+        public bool IsValid => Center.IsValid && Guard.IsUnit(Normal) && Radius > 0.0 && Guard.IsFinite(Radius);
+
+        /// <summary>
         /// Returns a string that represents the current circle.
         /// </summary>
         public override string ToString() => $"Circle3(Center: {Center}, Normal: {Normal}, Radius: {Radius:0.###})";

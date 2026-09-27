@@ -312,6 +312,16 @@ namespace GeometryHelper.Geometry
         #endregion
 
         /// <summary>
+        /// Gets whether this is a shape a constructor could have made: the origin is a valid point and the normal of unit length.
+        /// </summary>
+        /// <remarks>
+        /// A value made by a constructor always is. A <c>default</c> one — an element of a new array, or what
+        /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
+        /// questions without complaint all the same. A default one has no normal, so it measures nought to everything and projects every point onto itself.
+        /// </remarks>
+        public bool IsValid => Origin.IsValid && Guard.IsUnit(Normal);
+
+        /// <summary>
         /// Returns a string that represents the current plane.
         /// </summary>
         public override string ToString() => $"Plane3(Origin: {Origin}, Normal: {Normal})";

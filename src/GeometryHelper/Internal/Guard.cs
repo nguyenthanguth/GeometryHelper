@@ -38,6 +38,21 @@ namespace GeometryHelper
         }
 
         /// <summary>
+        /// Determines whether a value is a finite number.
+        /// </summary>
+        internal static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+
+        /// <summary>
+        /// Determines whether a vector is of unit length, as a constructor that normalises leaves it.
+        /// </summary>
+        internal static bool IsUnit(Geometry.GeoVector2 vector) => Math.Abs(vector.Length - 1.0) <= 1E-9;
+
+        /// <summary>
+        /// Determines whether a vector is of unit length, as a constructor that normalises leaves it.
+        /// </summary>
+        internal static bool IsUnit(Geometry.GeoVector3 vector) => Math.Abs(vector.Length - 1.0) <= 1E-9;
+
+        /// <summary>
         /// Refuses a value that is not a finite number.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is NaN or infinite.</exception>

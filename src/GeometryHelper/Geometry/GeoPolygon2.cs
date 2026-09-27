@@ -173,7 +173,23 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the area the polygon encloses, whichever way its vertices run.
         /// </summary>
+        /// <remarks>
+        /// For a polygon crossing itself this is the shoelace sum, in which lobes wound the other way count
+        /// against the rest; <see cref="IsSimple()"/> says whether that is the case, and <see cref="MakeValid()"/>
+        /// gives the region the booleans and <c>Locate</c> read instead.
+        /// </remarks>
         public double Area => Math.Abs(SignedArea);
+
+        /// <summary>
+        /// Gets the region this polygon covers as faces that do not cross themselves, using the default tolerance.
+        /// </summary>
+        public GeoFace2[] MakeValid() => Boolean2.MakeValid(this, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the region this polygon covers as faces that do not cross themselves, within a tolerance: the
+        /// region the booleans and <c>Locate</c> read, one face per piece.
+        /// </summary>
+        public GeoFace2[] MakeValid(Tolerance tolerance) => Boolean2.MakeValid(this, tolerance);
 
         /// <summary>
         /// Gets a value indicating whether the vertices of the polygon run clockwise.
