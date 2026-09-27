@@ -20,7 +20,7 @@ namespace GeometryHelper.Arranging.Algorithms
         {
             var translations = new GeoVector2[arranges.Count];
             // STEP 1: Collect all static obstacles from the input (block polygons and block lines)
-            var occupied = GeometryHelper.Arranging.Arrange.CollectStaticObstacles(arranges);
+            var occupied = Obstacle.CollectStatic(arranges);
 
             // STEP 2: Determine placement order of labels.
             var processingOrder = PlacementHeuristics.GetProcessingOrder(arranges, occupied, options);
@@ -73,7 +73,7 @@ namespace GeometryHelper.Arranging.Algorithms
                 GeoRectangle2 moved = arrange.GeoRectangle2.Translate(translation);
 
                 // Detailed collision check
-                if (GeometryHelper.Arranging.Arrange.Collides(nearby, moved, options.Tolerance))
+                if (Obstacle.AnyCollides(nearby, moved, options.Tolerance))
                 {
                     continue;
                 }

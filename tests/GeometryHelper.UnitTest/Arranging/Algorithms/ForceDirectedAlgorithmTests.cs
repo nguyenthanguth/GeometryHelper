@@ -43,7 +43,7 @@ namespace GeometryHelper.UnitTest.Arranging
         [Fact]
         public void Arrange_Run_ForceDirected_PushesLabelsAwayFromObstacleNotToward()
         {
-            // Repulsive force from polygon obstacles was once inverted ??it ATTRACTED labels to obstacles instead of repelling them.
+            // Repulsive force from polygon obstacles was once inverted — it ATTRACTED labels to obstacles instead of repelling them.
             // The blocked region is completely above the guide segment, so the label must end up below it.
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var blockPoly = new GeoPolygon2(

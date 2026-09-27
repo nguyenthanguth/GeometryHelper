@@ -131,7 +131,7 @@ namespace GeometryHelper.Arranging.Algorithms
                 var moved = arrange.GeoRectangle2.Translate(translation);
 
                 // If this position does not overlap any obstacles, consider it a free position
-                if (!GeometryHelper.Arranging.Arrange.Collides(staticObstacles, moved, options.Tolerance))
+                if (!Obstacle.AnyCollides(staticObstacles, moved, options.Tolerance))
                 {
                     free++;
                 }

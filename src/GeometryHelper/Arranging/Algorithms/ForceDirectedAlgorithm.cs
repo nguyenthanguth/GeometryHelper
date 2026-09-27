@@ -28,7 +28,7 @@ namespace GeometryHelper.Arranging.Algorithms
                 return new List<GeoVector2>();
             }
 
-            var staticObstacles = GeometryHelper.Arranging.Arrange.CollectStaticObstacles(arranges);
+            var staticObstacles = Obstacle.CollectStatic(arranges);
             var anchors = new GeoPoint2[arranges.Count];
             var positions = new GeoPoint2[arranges.Count];
 
@@ -170,7 +170,7 @@ namespace GeometryHelper.Arranging.Algorithms
                     GeoRectangle2 moved = arrange.GeoRectangle2.Translate(translation);
 
                     // Only accept if the candidate does not collide with static obstacles and previously placed labels
-                    if (!GeometryHelper.Arranging.Arrange.Collides(nearby, moved, options.Tolerance))
+                    if (!Obstacle.AnyCollides(nearby, moved, options.Tolerance))
                     {
                         double dist = candidate.DistanceTo(physTarget);
                         if (dist < bestDist)

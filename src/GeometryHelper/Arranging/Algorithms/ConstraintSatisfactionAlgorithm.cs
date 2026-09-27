@@ -62,7 +62,7 @@ namespace GeometryHelper.Arranging.Algorithms
         {
             var translations = new GeoVector2[arranges.Count];
             // STEP 1: Collect initial static obstacles
-            var staticObstacles = GeometryHelper.Arranging.Arrange.CollectStaticObstacles(arranges);
+            var staticObstacles = Obstacle.CollectStatic(arranges);
 
             // STEP 2: Initialize CSP variables and filter initial domains
             var variables = new List<CSPVariable>();
@@ -87,7 +87,7 @@ namespace GeometryHelper.Arranging.Algorithms
                     GeoRectangle2 moved = arrange.GeoRectangle2.Translate(trans);
 
                     // Only add to domain if candidate does not collide with static obstacles from the start
-                    if (!GeometryHelper.Arranging.Arrange.Collides(nearby, moved, options.Tolerance))
+                    if (!Obstacle.AnyCollides(nearby, moved, options.Tolerance))
                     {
                         v.Domain.Add(trans);
                     }

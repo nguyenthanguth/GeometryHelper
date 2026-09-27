@@ -71,7 +71,7 @@ namespace GeometryHelper.UnitTest.Arranging
         [Fact]
         public void Arrange_Run_SingleArgumentOverload_UsesDefaultOptions()
         {
-            // Label does not set MarkOffsetFromLine, so it keeps Arrange's default value of 50.
+            // Label does not set BaseOffsetFromLine, so it keeps Arrange's default value of 50.
             var label = new Arrange
             {
                 GeoLine2 = new GeoLine2(0.0, 0.0, 400.0, 0.0),
@@ -80,7 +80,7 @@ namespace GeometryHelper.UnitTest.Arranging
 
             Arrange.Run(new List<Arrange> { label });
 
-            // Default BaseOffset = half height (5) + MarkOffsetFromLine (50) = 55.
+            // Default BaseOffset = half height (5) + BaseOffsetFromLine (50) = 55.
             Assert.Equal(55.0, Math.Abs(MovedBox(label, label.TranslationVector).Center.Y), 6);
         }
 
@@ -96,18 +96,18 @@ namespace GeometryHelper.UnitTest.Arranging
 
             var points = label.GetPlacePoints(options);
 
-            // First pair must lie on the first perpendicular level (BaseOffset = height/2 + MarkOffsetFromLine = 5 + 5 = 10)
+            // First pair must lie on the first perpendicular level (BaseOffset = height/2 + BaseOffsetFromLine = 5 + 5 = 10)
             Assert.True(points[0].IsEqualTo(new GeoPoint2(20.0, 10.0)));
             Assert.True(points[1].IsEqualTo(new GeoPoint2(20.0, -10.0)));
         }
 
         [Fact]
-        public void Arrange_MarkOffsetFromLine_IsPerLabelNotGlobal()
+        public void Arrange_BaseOffsetFromLine_IsPerLabelNotGlobal()
         {
             // Offset is per-label, so two labels sharing the same ArrangeOptions must still
             // expand candidates from two different perpendicular levels.
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
-            var near = LabelOn(leader);                       // MarkOffsetFromLine = 5
+            var near = LabelOn(leader);                       // BaseOffsetFromLine = 5
             var far = LabelOn(leader);
             far.BaseOffsetFromLine = 30.0;
 
@@ -119,12 +119,12 @@ namespace GeometryHelper.UnitTest.Arranging
         }
 
         [Fact]
-        public void Arrange_Run_HonoursEachLabelsOwnMarkOffsetFromLine()
+        public void Arrange_Run_HonoursEachLabelsOwnBaseOffsetFromLine()
         {
             // Same guide segment, same options: label declaring larger offset must
             // stop further from the guide segment, and both must lie exactly on their first perpendicular level.
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
-            var near = LabelOn(leader);                       // MarkOffsetFromLine = 5
+            var near = LabelOn(leader);                       // BaseOffsetFromLine = 5
             var far = LabelOn(leader);
             far.BaseOffsetFromLine = 30.0;
 
@@ -335,7 +335,7 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             // The Placed flag must describe the FINAL layout. Three labels sharing a short guide segment with one
             // perpendicular level only have room for two, so the count of successful labels must match the count of
-            // labels that actually do not overlap anyone ??including labels overlapped by others falling back.
+            // labels that actually do not overlap anyone — including labels overlapped by others falling back.
             var leader = new GeoLine2(0.0, 0.0, 10.0, 0.0);
             var labels = new List<Arrange> { LabelOn(leader), LabelOn(leader), LabelOn(leader) };
 

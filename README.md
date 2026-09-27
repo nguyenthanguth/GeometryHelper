@@ -66,7 +66,7 @@ solver, and the test suite checks the two against each other.
 | `src/GeometryHelper.TeklaConvert` | Tekla Structures bridge, built once per Tekla version (`-p:TeklaVersion=2020`, `2025` or `2026`) | netstandard2.0 |
 | `src/GeometryHelper.CadConvert` | AutoCAD bridge | netstandard2.0 |
 | `src/GeometryHelper.IfcConvert` | IFC (xBIM) bridge; runs on .NET Framework 4.8 x64 | netstandard2.0 |
-| `tests/GeometryHelper.UnitTest` | xUnit; folders `Common`, `Plane`, `Solid`, `Arrange` | net48 |
+| `tests/GeometryHelper.UnitTest` | xUnit; folders `Common`, `Plane`, `Solid`, `Arranging` | net48 |
 | `tests/GeometryHelper.TeklaConvert.UnitTest` | xUnit | net48 |
 | `tests/GeometryHelper.IfcConvert.UnitTest` | xUnit | net48 |
 | `examples/GeometryHelper.ArrangeAlgorithms.CadTest` | AutoCAD 2021 plugin for visual testing | net48 |

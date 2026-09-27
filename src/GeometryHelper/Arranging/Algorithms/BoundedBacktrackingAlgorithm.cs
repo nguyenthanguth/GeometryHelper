@@ -31,7 +31,7 @@ namespace GeometryHelper.Arranging.Algorithms
         {
             var translations = new GeoVector2[arranges.Count];
             // STEP 1: Collect initial static obstacles
-            var occupied = GeometryHelper.Arranging.Arrange.CollectStaticObstacles(arranges);
+            var occupied = Obstacle.CollectStatic(arranges);
 
             // STEP 2: Calculate label processing priority order
             var processingOrder = PlacementHeuristics.GetProcessingOrder(arranges, occupied, options).ToArray();
@@ -101,7 +101,7 @@ namespace GeometryHelper.Arranging.Algorithms
                 GeoVector2 translation = centre.GetVectorTo(candidate);
                 GeoRectangle2 moved = arrange.GeoRectangle2.Translate(translation);
 
-                if (!GeometryHelper.Arranging.Arrange.Collides(nearby, moved, options.Tolerance))
+                if (!Obstacle.AnyCollides(nearby, moved, options.Tolerance))
                 {
                     double clearance = PlacementHeuristics.MeasureClearance(nearby, moved);
                     candidates.Add((translation, clearance));
@@ -113,7 +113,7 @@ namespace GeometryHelper.Arranging.Algorithms
             // Previously this was sorted purely by descending clearance, meaning it always tried the FURTHEST position first and
             // almost always stopped there. Measured consequence: average distance from label to guide segment was 2405
             // compared to 550 for Greedy — every label was thrown to the outermost perpendicular level even if closer spots were empty.
-            // All default values (Arrange.MarkOffsetFromLine, LongitudinalOvershootRatio) indicate that labels should stay close
+            // All default values (Arrange.BaseOffsetFromLine, LongitudinalOvershootRatio) indicate that labels should stay close
             // to the guide segment, so translation magnitude is the primary criteria.
             //
             // Clearance is still useful to break ties: symmetric candidate generator makes equidistant positions

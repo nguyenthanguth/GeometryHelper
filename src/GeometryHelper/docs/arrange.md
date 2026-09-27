@@ -41,7 +41,7 @@ var arranges = new List<Arrange>
         // Guide segment: its midpoint is the origin for candidate positions expansion
         GeoLine2      = leader,
         // Minimum perpendicular offset between label edge and guide segment, specific to this label (default 50)
-        MarkOffsetFromLine = 50.0,
+        BaseOffsetFromLine = 50.0,
         // Blocked regions the label must not overlap
         BlockPolygons = new List<GeoPolygon2>(),
         BlockLines    = new List<GeoLine2>()
@@ -75,21 +75,21 @@ var options = new ArrangeOptions
 List<GeoVector2> moves = Arrange.Run(arranges, options);
 ```
 
-`ArrangeOptions` is the shared configuration for the entire list. `MarkOffsetFromLine` is set per `Arrange` because each label may require a different offset:
+`ArrangeOptions` is the shared configuration for the entire list. `BaseOffsetFromLine` is set per `Arrange` because each label may require a different offset:
 
 ```csharp
 var smallTextLabel = new Arrange
 {
     GeoRectangle2 = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
     GeoLine2      = leader,
-    MarkOffsetFromLine = 50.0   // small text, closely sticks to guide segment
+    BaseOffsetFromLine = 50.0   // small text, closely sticks to guide segment
 };
 
 var largeTextLabel = new Arrange
 {
     GeoRectangle2 = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 4000.0, 2000.0),
     GeoLine2      = leader,
-    MarkOffsetFromLine = 200.0  // large text, must move further away
+    BaseOffsetFromLine = 200.0  // large text, must move further away
 };
 
 List<GeoVector2> moves = Arrange.Run(new List<Arrange> { smallTextLabel, largeTextLabel }, options);
@@ -99,7 +99,7 @@ List<GeoVector2> moves = Arrange.Run(new List<Arrange> { smallTextLabel, largeTe
 
 All 5 algorithms share the same set of discrete candidate positions, expanding from the midpoint of the guide segment:
 
-- **Perpendicular Translation** — each level in `PerpendicularLevels` creates a row of labels, symmetric on both sides of the guide segment. The first level is placed at half the label height plus the label's own `MarkOffsetFromLine`. Each subsequent level adds the label height plus `RowGap`.
+- **Perpendicular Translation** — each level in `PerpendicularLevels` creates a row of labels, symmetric on both sides of the guide segment. The first level is placed at half the label height plus the label's own `BaseOffsetFromLine`. Each subsequent level adds the label height plus `RowGap`.
 - **Longitudinal Sliding** — in each row, the label slides parallel to the guide segment in both directions, up to a maximum of half the guide segment length plus `LongitudinalOvershootRatio` times the label width.
 
 The algorithms only differ in how they **select** from this candidate set.
@@ -124,7 +124,7 @@ The algorithms only differ in how they **select** from this candidate set.
 |---|---|---|
 | `GeoRectangle2` | — | Label bounding box, the geometry that will be translated |
 | `GeoLine2` | — | Guide segment; its midpoint is the origin for candidate positions expansion |
-| `MarkOffsetFromLine` | 50.0 | Minimum perpendicular offset between label edge and guide segment |
+| `BaseOffsetFromLine` | 50.0 | Minimum perpendicular offset between label edge and guide segment |
 | `BlockPolygons` | — | Blocked polygons that the label must not overlap |
 | `BlockLines` | — | Blocked line segments that the label must not overlap |
 

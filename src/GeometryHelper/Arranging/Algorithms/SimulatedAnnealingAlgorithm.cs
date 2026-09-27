@@ -26,7 +26,7 @@ namespace GeometryHelper.Arranging.Algorithms
             }
 
             // STEP 1: Collect initial static obstacles
-            var staticObstacles = GeometryHelper.Arranging.Arrange.CollectStaticObstacles(arranges);
+            var staticObstacles = Obstacle.CollectStatic(arranges);
 
             // STEP 2: Pre-generate lists of all candidate translation points for each label
             var candidates = new List<List<(GeoVector2 Translation, GeoPoint2 GeoPoint2)>>();
@@ -163,7 +163,7 @@ namespace GeometryHelper.Arranging.Algorithms
                 Bounds box = movedBoxes[i];
 
                 // 1. Penalty for colliding with static obstacles
-                if (GeometryHelper.Arranging.Arrange.Collides(nearby[i], rect, options.Tolerance))
+                if (Obstacle.AnyCollides(nearby[i], rect, options.Tolerance))
                 {
                     energy += 10000.0;
                 }
