@@ -170,6 +170,69 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(flange.Prepare().IsPartedFrom(beam.Prepare(), Tol));
         }
 
+        private static GeoPolygon2 ISection(double h, double b, double tw, double tf)
+        {
+            double x = b / 2, y = h / 2, w = tw / 2, f = y - tf;
+            return new GeoPolygon2(
+                new GeoPoint2(-x, -y), new GeoPoint2(x, -y), new GeoPoint2(x, -f), new GeoPoint2(w, -f),
+                new GeoPoint2(w, f), new GeoPoint2(x, f), new GeoPoint2(x, y), new GeoPoint2(-x, y),
+                new GeoPoint2(-x, f), new GeoPoint2(-w, f), new GeoPoint2(-w, -f), new GeoPoint2(-x, -f));
+        }
+
+        /// <summary>
+        /// A beam framing into a column's web between the flanges: neither is wholly on one side of the web's
+        /// plane — the flanges reach past it — but where their boxes overlap, the web parts them. Turned any way,
+        /// so the boxes overlap on every axis; set into the web instead, or reaching a flange, they are not parted.
+        /// </summary>
+        [Fact]
+        public void ABeamFramingIntoAWebIsPartedByItAndOneSetIntoItIsNot()
+        {
+            var rng = new Random(11);
+            GeoSolid3 column = GeoSolid3.Extrude(ISection(300, 300, 10, 15), new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis), 4000);
+
+            foreach (double into in new[] { 0.0, 0.0, 1E-9, -2.0, 1E-3, 0.5 })
+            {
+                // The beam's end on the web's face at x = 5, clear of the flanges (their inside faces are at y = +-135).
+                GeoSolid3 beam = new GeoAabb3(new GeoPoint3(5 - into, -100, 3500), new GeoPoint3(1500, 100, 3900)).ToObb().ToSolid();
+
+                GeoTransform3 turn = GeoTransform3.RotationAxis(new GeoPoint3(rng.Next(-99, 99), rng.Next(-99, 99), 0), new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5), 0.3 + rng.NextDouble() * 5);
+                GeoPreparedSolid3 pc = column.TransformBy(turn).Prepare(), pb = beam.TransformBy(turn).Prepare();
+
+                bool isParted = pc.IsPartedFrom(pb, Tol);
+                Assert.Equal(isParted, pb.IsPartedFrom(pc, Tol));
+
+                if (into <= 1E-9)
+                {
+                    Assert.True(isParted, $"not parted with the end {into} into the web");
+                }
+                else
+                {
+                    Assert.False(isParted, $"parted with the end {into} into the web");
+                }
+
+                if (isParted)
+                {
+                    Assert.True(pc.Intersect(pb).Length == 0, "parted, yet the boolean finds shared volume");
+                }
+            }
+
+            // Wide enough to reach the flanges: the web alone no longer parts them where the boxes overlap.
+            GeoSolid3 wide = new GeoAabb3(new GeoPoint3(5, -140, 3500), new GeoPoint3(1500, 140, 3900)).ToObb().ToSolid();
+            Assert.False(column.Prepare().IsPartedFrom(wide.Prepare(), Tol));
+        }
+
+        [Fact]
+        public void BoxesMeetingOnlyAtAnEdgeOrACornerArePartedAtOnce()
+        {
+            GeoPreparedSolid3 a = Block(10, 10, 10).Prepare();
+            GeoPreparedSolid3 edge = Block(10, 10, 10).TransformBy(GeoTransform3.Translation(new GeoVector3(10, 10, 0))).Prepare();
+            GeoPreparedSolid3 corner = Block(10, 10, 10).TransformBy(GeoTransform3.Translation(new GeoVector3(10, 10, 10))).Prepare();
+
+            Assert.True(a.CollidesWith(edge) && a.CollidesWith(corner));
+            Assert.True(a.IsPartedFrom(edge, Tol));
+            Assert.True(a.IsPartedFrom(corner, Tol));
+        }
+
         /// <summary>
         /// Blocks on a grid touch face to face and edge to edge; checking them by hand with the boolean must give
         /// what the check gives taking the corners' word for the pairs that are parted.

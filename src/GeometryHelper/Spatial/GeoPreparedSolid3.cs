@@ -421,22 +421,26 @@ namespace GeometryHelper.Spatial
         }
 
         /// <summary>
-        /// Checks whether a face of either body parts the two: this one wholly behind the face's plane and the
-        /// other wholly in front of it, or the other way round, so that they can touch across the plane but share
-        /// no volume.
+        /// Checks whether a face of either body parts the two where their boxes overlap: the part of this one there
+        /// wholly behind the face's plane and the part of the other wholly in front of it, or the other way round,
+        /// so that they can touch across the plane but share no volume.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// A body lies within the hull of its corners, and so does everything on one side of a plane that all its
-        /// corners are on, so the corners settle it. Only the faces near where the two boxes overlap are tried:
-        /// a face parting the bodies is one they touch across. A beam bearing on a column's flange, a plate on a
-        /// cap, two blocks side by side are all parted by a face this way; a bolt in a hole it fills is not, and
-        /// a pair nothing parts is left for the boolean to decide.
+        /// What two bodies share lies where their boxes overlap, so boxes meeting only in a face, an edge or a corner
+        /// settle it at once — every contact square to the axes does — and otherwise only the part of each body
+        /// inside that overlap need be parted. That part lies within the hull of its own corners, and so does everything on one side of a plane
+        /// that all those corners are on, so the corners settle it. They are the corners of each face clipped to the
+        /// box — its own corners inside the box, where its edges leave the box and where the box's edges pass
+        /// through it — and the corners of the box inside the body. A beam bearing on a column's web between the
+        /// flanges is parted this way though the flanges reach past the web's plane, since they lie outside the box
+        /// the two share; so is a beam on a flange, a plate on a cap, two blocks side by side. A bolt in a hole it
+        /// fills is not, and a pair nothing parts is left for the boolean to decide.
         /// </para>
         /// <para>
-        /// The corners are allowed a thousandth of the point tolerance past the plane, which is rounding and no
-        /// more: two bodies it lets through overlap by less than that, far below anything the boolean would cut
-        /// as a region, so where this says the bodies share no volume the boolean finds none.
+        /// The corners are allowed a thousandth of the point tolerance past the plane, which is rounding and no more:
+        /// two bodies it lets through overlap by less than that, far below anything the boolean would cut as a
+        /// region, so where this says the bodies share no volume the boolean finds none.
         /// </para>
         /// </remarks>
         internal bool IsPartedFrom(GeoPreparedSolid3 other, Tolerance tolerance)
@@ -446,22 +450,89 @@ namespace GeometryHelper.Spatial
                 return false;
             }
 
-            double t = tolerance.EqualPoint;
-            var overlap = new GeoAabb3(
-                new GeoPoint3(Math.Max(Box.Min.X, other.Box.Min.X) - t, Math.Max(Box.Min.Y, other.Box.Min.Y) - t, Math.Max(Box.Min.Z, other.Box.Min.Z) - t),
-                new GeoPoint3(Math.Min(Box.Max.X, other.Box.Max.X) + t, Math.Min(Box.Max.Y, other.Box.Max.Y) + t, Math.Min(Box.Max.Z, other.Box.Max.Z) + t));
+            double slack = 1E-3 * tolerance.EqualPoint;
+            double lowX = Math.Max(Box.Min.X, other.Box.Min.X), highX = Math.Min(Box.Max.X, other.Box.Max.X);
+            double lowY = Math.Max(Box.Min.Y, other.Box.Min.Y), highY = Math.Min(Box.Max.Y, other.Box.Max.Y);
+            double lowZ = Math.Max(Box.Min.Z, other.Box.Min.Z), highZ = Math.Min(Box.Max.Z, other.Box.Max.Z);
 
-            return HasPartingFace(this, other, overlap, tolerance) || HasPartingFace(other, this, overlap, tolerance);
+            if (highX - lowX <= slack || highY - lowY <= slack || highZ - lowZ <= slack)
+            {
+                // The boxes meet in a face, an edge or a corner, or not at all: there is no room to share anything.
+                return true;
+            }
+
+            var overlap = new GeoAabb3(new GeoPoint3(lowX, lowY, lowZ), new GeoPoint3(highX, highY, highZ));
+
+            // How near a corner of the overlap must be to a body to count as its: the rounding allowance, so that a
+            // corner merely within the ordinary tolerance of a face is not taken for part of the body.
+            var near = new Tolerance(slack, slack, tolerance.EqualAngleRad, slack);
+            GeoPlane3[] sides = Sides(overlap);
+            GeoPoint3[] boxCorners = overlap.GetCorners();
+            GeoPoint3[] mine = PartWithin(sides, overlap, boxCorners, near);
+            GeoPoint3[] theirs = other.PartWithin(sides, overlap, boxCorners, near);
+
+            if (HasPartingFace(this, mine, theirs, overlap, tolerance, slack) || HasPartingFace(other, theirs, mine, overlap, tolerance, slack))
+            {
+                return true;
+            }
+
+            // Where one body is convex, what the two share lies inside it as well as inside the overlap, and the other
+            // body's part of that smaller region may be parted where its part of the whole overlap is not: a beam
+            // turned askew reaching a column's web has a box overlapping the flanges too. That part is the other
+            // body's faces clipped by the convex body's planes as well, and the corners of the convex body's own part
+            // that the other body holds.
+            if (other._convex
+                && HasPartingFace(this, PartWithin(Concat(sides, other.FacePlanes()), overlap, theirs, near), theirs, overlap, tolerance, slack))
+            {
+                return true;
+            }
+
+            return _convex
+                && HasPartingFace(other, other.PartWithin(Concat(sides, FacePlanes()), overlap, mine, near), mine, overlap, tolerance, slack);
         }
 
         /// <summary>
-        /// Checks whether a face of one body near the overlap has that body behind its plane and the other body in
-        /// front of it.
+        /// The planes of this body's faces, facing out.
         /// </summary>
-        private static bool HasPartingFace(GeoPreparedSolid3 near, GeoPreparedSolid3 far, GeoAabb3 overlap, Tolerance tolerance)
+        private GeoPlane3[] FacePlanes()
         {
-            double slack = 1E-3 * tolerance.EqualPoint;
+            var planes = new GeoPlane3[Material.Faces.Count];
 
+            for (int i = 0; i < planes.Length; i++)
+            {
+                planes[i] = Material.Faces[i].GetPlane();
+            }
+
+            return planes;
+        }
+
+        private static GeoPlane3[] Concat(GeoPlane3[] first, GeoPlane3[] second)
+        {
+            var both = new GeoPlane3[first.Length + second.Length];
+            first.CopyTo(both, 0);
+            second.CopyTo(both, first.Length);
+            return both;
+        }
+
+        /// <summary>
+        /// The planes of the six sides of a box, facing out.
+        /// </summary>
+        private static GeoPlane3[] Sides(GeoAabb3 box)
+        {
+            return new[]
+            {
+                new GeoPlane3(box.Max, GeoVector3.XAxis), new GeoPlane3(box.Min, GeoVector3.XAxis.Multiply(-1)),
+                new GeoPlane3(box.Max, GeoVector3.YAxis), new GeoPlane3(box.Min, GeoVector3.YAxis.Multiply(-1)),
+                new GeoPlane3(box.Max, GeoVector3.ZAxis), new GeoPlane3(box.Min, GeoVector3.ZAxis.Multiply(-1)),
+            };
+        }
+
+        /// <summary>
+        /// Checks whether a face of one body near the overlap has that body's part of it behind its plane and the
+        /// other body's part in front.
+        /// </summary>
+        private static bool HasPartingFace(GeoPreparedSolid3 near, GeoPoint3[] nearCorners, GeoPoint3[] farCorners, GeoAabb3 overlap, Tolerance tolerance, double slack)
+        {
             foreach (GeoFace3 face in near.Material.Faces)
             {
                 if (!face.GetAabb().CollidesWith(overlap, tolerance))
@@ -471,13 +542,56 @@ namespace GeometryHelper.Spatial
 
                 GeoPlane3 plane = face.GetPlane();
 
-                if (AllOnOneSide(plane, far._corners, -slack, true) && AllOnOneSide(plane, near._corners, slack, false))
+                if (AllOnOneSide(plane, farCorners, -slack, true) && AllOnOneSide(plane, nearCorners, slack, false))
                 {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// The corners of the part of this body's material inside a convex region: every face clipped by the
+        /// region's planes, and those of the region's own corners that the body holds.
+        /// </summary>
+        /// <param name="sides">The planes bounding the region, facing out.</param>
+        /// <param name="box">A box holding the region, to pass over faces nowhere near it.</param>
+        /// <param name="regionCorners">The corners of the region, or points among which they all are.</param>
+        /// <param name="tolerance">How near a point must be to a plane or to the body to count as on it.</param>
+        /// <remarks>
+        /// Clipping keeps whatever lies on or just past a plane, so there can be more corners than the part has,
+        /// never fewer, and more corners only make the part harder to part.
+        /// </remarks>
+        private GeoPoint3[] PartWithin(GeoPlane3[] sides, GeoAabb3 box, GeoPoint3[] regionCorners, Tolerance tolerance)
+        {
+            var corners = new List<GeoPoint3>();
+            double on = tolerance.EqualPlanar;
+
+            foreach (GeoFace3 face in Material.Faces)
+            {
+                if (!face.GetAabb().CollidesWith(box, tolerance))
+                {
+                    continue;
+                }
+
+                AddClipped(face.Boundary.Vertices, sides, on, corners);
+
+                foreach (GeoPolygon3 hole in face.Holes)
+                {
+                    AddClipped(hole.Vertices, sides, on, corners);
+                }
+            }
+
+            foreach (GeoPoint3 corner in regionCorners)
+            {
+                if (Locate(corner, tolerance) != PointLocation.OutSide)
+                {
+                    corners.Add(corner);
+                }
+            }
+
+            return corners.ToArray();
         }
 
         /// <summary>
@@ -496,6 +610,23 @@ namespace GeometryHelper.Spatial
             }
 
             return true;
+        }
+
+        private static void AddClipped(IReadOnlyList<GeoPoint3> ring, GeoPlane3[] sides, double on, List<GeoPoint3> corners)
+        {
+            IReadOnlyList<GeoPoint3> clipped = ring;
+
+            foreach (GeoPlane3 side in sides)
+            {
+                clipped = Boolean3.Clip(clipped, side, on, null);
+
+                if (clipped.Count == 0)
+                {
+                    return;
+                }
+            }
+
+            corners.AddRange(clipped);
         }
 
         /// <summary>

@@ -211,13 +211,14 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Keeps the part of a convex outline behind a plane, adding to a list the points of it that lie on the plane.
+        /// Keeps the part of a convex outline behind a plane, adding to a list, when one is given, the points of it that
+        /// lie on the plane.
         /// </summary>
         /// <remarks>
         /// A corner within the tolerance of the plane counts as on it, and is kept; an edge running from well behind
         /// to well in front is cut where it crosses. So a corner the plane grazes is neither lost nor doubled.
         /// </remarks>
-        private static List<GeoPoint3> Clip(List<GeoPoint3> ring, GeoPlane3 plane, double on, List<GeoPoint3> cap)
+        internal static List<GeoPoint3> Clip(IReadOnlyList<GeoPoint3> ring, GeoPlane3 plane, double on, List<GeoPoint3> cap)
         {
             int count = ring.Count;
             var distances = new double[count];
@@ -238,7 +239,7 @@ namespace GeometryHelper.Core
                 {
                     kept.Add(ring[i]);
 
-                    if (here >= -on)
+                    if (here >= -on && cap != null)
                     {
                         cap.Add(ring[i]);
                     }
@@ -253,7 +254,7 @@ namespace GeometryHelper.Core
                         ring[i].Z + (ring[j].Z - ring[i].Z) * t);
 
                     kept.Add(crossing);
-                    cap.Add(crossing);
+                    cap?.Add(crossing);
                 }
             }
 

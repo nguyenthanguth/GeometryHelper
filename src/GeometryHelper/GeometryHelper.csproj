@@ -505,6 +505,16 @@
         as before. The mesh of 80 crossing bars: 3.0 s to 0.04 s. On some convex pairs the general boolean at
         the ordinary tolerance was plainly wrong — nothing shared by an octagonal prism and a block that share
         eight thousand cubic units, by points counted — and the clipping gets those right.
+      - What two parts share lies where their boxes overlap, so the parting face need only part the parts of
+        them inside that overlap: boxes meeting in a face, an edge or a corner settle it at once, as every
+        contact square to the axes does, and a beam framing into a column's web between the flanges is parted
+        by the web though the flanges reach past its plane. Where one part is convex the region narrows to the
+        inside of it as well, which parts such a beam turned askew. All 460 touching pairs of the frame are
+        now settled without the boolean, and its check allocates 343 MB rather than 748: 0.35 s to 0.21 s on
+        24 threads, where the parallel speed-up grew from 3 to 7 under the workstation garbage collector.
+
+      Altogether, on 24 threads under the workstation garbage collector: the steel frame, preparing and
+      checking, 9.7 s to 1.6 s; the bar mesh 3.0 s to 0.04 s; 2000 boxes 39 ms to 6 ms.
 
       NEW IN 5.1.0
 
