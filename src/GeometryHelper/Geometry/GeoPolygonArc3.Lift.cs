@@ -40,12 +40,30 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the two are the same plane, so that work in the loop's frame is exact.</returns>
         /// <remarks>
-        /// Parallel is not enough: two parallel planes a metre apart share nothing at all.
+        /// The whole loop has to lie in the plane — every corner, and the middle of every arc. Parallel is not
+        /// enough, since two parallel planes a metre apart share nothing at all, and neither is parallel through
+        /// one corner, since the angle tolerance is a whole degree: a loop turned half a degree about a line
+        /// through that corner would pass with its far side standing off the plane.
         /// </remarks>
         public bool SharesPlaneWith(GeoPlane3 other, Tolerance tolerance)
+            => Boolean3.LiesIn(other, PointsFixingPlane(), tolerance);
+
+        /// <summary>
+        /// The corners of the loop and the middle of each arc: the points whose plane is the loop's plane.
+        /// </summary>
+        private IEnumerable<GeoPoint3> PointsFixingPlane()
         {
-            return Parallel3.IsParallel(GetPlane(), other, tolerance)
-                && Containment3.IsPointOn(other, this[0], tolerance);
+            for (int i = 0; i < EdgeCount; i++)
+            {
+                GeoEdge3 edge = GetEdgeAt(i);
+
+                yield return edge.StartPoint;
+
+                if (edge.IsArc)
+                {
+                    yield return edge.ToArc().MidPoint;
+                }
+            }
         }
 
         /// <summary>
@@ -58,7 +76,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(name);
             }
 
-            if (!SharesPlaneWith(other.GetPlane(), tolerance))
+            if (!Boolean3.LiesIn(GetPlane(), other.PointsFixingPlane(), tolerance))
             {
                 throw new ArgumentException(
                     "The two loops lie in different planes, so there is no plane to work in. Bring them into one plane first.",
@@ -78,7 +96,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(name);
             }
 
-            if (!SharesPlaneWith(other.GetPlane(), tolerance))
+            if (!Boolean3.LiesIn(GetPlane(), other.Vertices, tolerance))
             {
                 throw new ArgumentException(
                     "The polygon lies in another plane than the loop, so there is no plane to work in. Bring them into one plane first.",

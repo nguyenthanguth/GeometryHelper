@@ -80,7 +80,7 @@ namespace GeometryHelper.Core
                 {
                     if (normal.DotProduct(other.Boundary.Normal) >= 0.0
                         || !faceBox.CollidesWith(other.GetAabb(), tolerance)
-                        || !SharesPlane(plane, other.GetPlane(), other.Boundary.Vertices[0], tolerance))
+                        || !LiesIn(plane, other, tolerance))
                     {
                         continue;
                     }

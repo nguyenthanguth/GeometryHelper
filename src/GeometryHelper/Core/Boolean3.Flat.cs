@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Core
@@ -434,23 +435,52 @@ namespace GeometryHelper.Core
         #region Laying the two out in one frame
 
         /// <summary>
-        /// Determines whether two planes are the same plane.
+        /// Determines whether every one of some points lies on a plane, within the point tolerance.
         /// </summary>
-        /// <param name="plane">The plane to measure against.</param>
-        /// <param name="other">The other plane.</param>
-        /// <param name="onOther">A point known to lie on <paramref name="other"/>.</param>
+        /// <param name="plane">The plane.</param>
+        /// <param name="points">The points fixing a shape: its corners, and a point along each curved edge.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true when the two are the same plane, so that work in one frame is exact.</returns>
+        /// <returns>true when the whole shape lies in the plane, so that work in the plane's frame is exact.</returns>
         /// <remarks>
-        /// Parallel is not enough: two parallel planes a metre apart share nothing at all — so a point of the
-        /// other plane has to land on this one. It must be a point of <b>the other</b> plane: measuring one of
-        /// this plane's own points against this plane is true whatever the other plane does, which makes every
-        /// parallel plane pass. A caller with no point in hand passes <c>other.Origin</c>.
+        /// A shape lies in a plane when all of it does. Planes parallel within the angle tolerance with one point
+        /// of the shape on this one are not enough: the angle tolerance is a whole degree, so a shape turned half
+        /// a degree about a line through that point passed — a metre long, its far end stood nine millimetres
+        /// off the plane, and it was projected onto it without a word. Two faces crossing at a shallow angle read
+        /// the same way as two lying back to back, which is how a boolean once took a piece of real boundary for
+        /// the inside of the body.
         /// </remarks>
-        internal static bool SharesPlane(GeoPlane3 plane, GeoPlane3 other, GeoPoint3 onOther, Tolerance tolerance)
+        internal static bool LiesIn(GeoPlane3 plane, IEnumerable<GeoPoint3> points, Tolerance tolerance)
         {
-            return Parallel3.IsParallel(plane, other, tolerance)
-                && Containment3.IsPointOn(plane, onOther, tolerance);
+            foreach (GeoPoint3 point in points)
+            {
+                if (!Containment3.IsPointOn(plane, point, tolerance))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether the whole of a face, holes and all, lies in a plane, within the point tolerance.
+        /// </summary>
+        internal static bool LiesIn(GeoPlane3 plane, GeoFace3 face, Tolerance tolerance)
+        {
+            if (!LiesIn(plane, face.Boundary.Vertices, tolerance))
+            {
+                return false;
+            }
+
+            foreach (GeoPolygon3 hole in face.Holes)
+            {
+                if (!LiesIn(plane, hole.Vertices, tolerance))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -458,7 +488,7 @@ namespace GeometryHelper.Core
         /// </summary>
         private static GeoCoordinateSystem3 FlatFrame(GeoFace3 first, GeoFace3 second, Tolerance tolerance, string name)
         {
-            if (!SharesPlane(first.GetPlane(), second.GetPlane(), second.Boundary.Vertices[0], tolerance))
+            if (!LiesIn(first.GetPlane(), second, tolerance))
             {
                 throw new ArgumentException(
                     "The two shapes lie in different planes, so there is no plane to work in. Bring them into one plane first.",

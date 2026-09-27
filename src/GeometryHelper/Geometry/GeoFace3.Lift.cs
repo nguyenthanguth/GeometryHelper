@@ -33,7 +33,7 @@ namespace GeometryHelper.Geometry
         /// combining two shapes, which refuses a second shape lying anywhere else.
         /// </remarks>
         public bool SharesPlaneWith(GeoPlane3 other, Tolerance tolerance)
-            => Boolean3.SharesPlane(GetPlane(), other, other.Origin, tolerance);
+            => Boolean3.LiesIn(other, this, tolerance);
 
         /// <summary>
         /// Joins this face to a face.

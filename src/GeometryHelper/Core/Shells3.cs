@@ -30,6 +30,12 @@ namespace GeometryHelper.Core
     /// A cavity is a closed shell of its own, wound inwards, and belongs to the piece around it rather than
     /// being a piece in itself. Each opening goes with every piece its box reaches.
     /// </para>
+    /// <para>
+    /// A group of faces enclosing nothing — a lone face, or two lying back to back as a sheet of no thickness
+    /// — is no piece either. It goes with the piece holding it, so that nothing the body was given is lost,
+    /// and is dropped only when no piece holds it. Such a group once reached the constructor of a body and
+    /// made splitting throw.
+    /// </para>
     /// </remarks>
     internal static class Shells3
     {
@@ -354,12 +360,21 @@ namespace GeometryHelper.Core
         /// Turns the groups of faces into bodies, giving each cavity to the piece around it and each opening
         /// to every piece it reaches.
         /// </summary>
-        private static List<GeoSolid3> Assemble(List<List<GeoFace3>> groups, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance)
+        private static List<GeoSolid3> Assemble(List<List<GeoFace3>> found, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance)
         {
+            var groups = new List<List<GeoFace3>>();
+            var sheets = new List<List<GeoFace3>>();
             var shells = new List<GeoSolid3>();
 
-            foreach (List<GeoFace3> group in groups)
+            foreach (List<GeoFace3> group in found)
             {
+                if (EnclosesNothing(group, tolerance))
+                {
+                    sheets.Add(group);
+                    continue;
+                }
+
+                groups.Add(group);
                 shells.Add(new GeoSolid3(group));
             }
 
@@ -411,6 +426,31 @@ namespace GeometryHelper.Core
                 }
             }
 
+            // A sheet goes with the smallest piece holding it; one that no piece holds encloses nothing and
+            // stands nowhere in the material, so there is nothing to give it to.
+            foreach (List<GeoFace3> sheet in sheets)
+            {
+                GeoPoint3 witness = sheet[0].Centroid;
+                int home = -1;
+                double smallest = double.MaxValue;
+
+                for (int o = 0; o < outer.Count; o++)
+                {
+                    if (outer[o].Volume < smallest
+                        && outer[o].GetAabb().Contains(witness, tolerance)
+                        && Containment3.Locate(outer[o], witness, tolerance) != PointLocation.OutSide)
+                    {
+                        home = o;
+                        smallest = outer[o].Volume;
+                    }
+                }
+
+                if (home >= 0)
+                {
+                    solids[home].AddRange(sheet);
+                }
+            }
+
             var pieces = new List<GeoSolid3>(solids.Count);
 
             foreach (List<GeoFace3> faces in solids)
@@ -431,6 +471,34 @@ namespace GeometryHelper.Core
             }
 
             return pieces;
+        }
+
+        /// <summary>
+        /// Determines whether a group of faces encloses no volume: too few faces to close, or no thicker than
+        /// the tolerance on average.
+        /// </summary>
+        private static bool EnclosesNothing(List<GeoFace3> group, Tolerance tolerance)
+        {
+            if (group.Count < 4)
+            {
+                return true;
+            }
+
+            // The divergence theorem face by face: each plane face adds a third of its area times the reach of
+            // its plane from the origin along its outward normal.
+            double volume = 0.0;
+            double area = 0.0;
+
+            foreach (GeoFace3 face in group)
+            {
+                GeoVector3 normal = face.Boundary.Normal;
+                GeoPoint3 point = face.Boundary[0];
+
+                volume += (normal.X * point.X + normal.Y * point.Y + normal.Z * point.Z) * face.Area;
+                area += face.Area;
+            }
+
+            return Math.Abs(volume / 3.0) <= tolerance.EqualPoint * area;
         }
 
         #endregion

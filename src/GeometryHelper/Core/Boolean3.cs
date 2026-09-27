@@ -420,9 +420,10 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// A face between two cells that were both kept is interior to the result, and it appears twice
-        /// among the collected faces, once each way round. Dropping both leaves exactly the outer skin.
-        /// The survivors are then merged where they are coplanar and touching, which undoes the
-        /// subdivision the cutting introduced.
+        /// among the collected faces, once each way round. Dropping both leaves exactly the outer skin —
+        /// when the two copies match vertex for vertex, which they need not; see
+        /// <see cref="CancelBackToBack"/> for the pairs that do not. The survivors are then merged where they
+        /// are coplanar and touching, which undoes the subdivision the cutting introduced.
         /// </remarks>
         private static bool TryGlue(List<GeoFace3> faces, Tolerance tolerance, out GeoSolid3 result)
         {
@@ -463,6 +464,8 @@ namespace GeometryHelper.Core
                 }
             }
 
+            skin = CancelBackToBack(skin, tolerance);
+
             if (skin.Count < 4)
             {
                 return false;
@@ -470,6 +473,111 @@ namespace GeometryHelper.Core
 
             result = Merge3.CoplanarFaces(new GeoSolid3(skin), tolerance);
             return true;
+        }
+
+        /// <summary>
+        /// Takes from the faces still lying back to back in one plane the area they share.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The two copies of a face between kept cells need not match vertex for vertex. A cut that reaches the
+        /// cell on one side and not the one on the other leaves one copy in two pieces, or with a point along its
+        /// edge that the other copy lacks, and the exact match lets both through. They would stand inside the
+        /// body as a sheet of no thickness: the volume never notices, since the two cancel, but everything that
+        /// reads the boundary does — a point a millimetre from the sheet measured a millimetre to the boundary,
+        /// the surface mesh carried the sheet, and splitting the body into pieces failed on it.
+        /// </para>
+        /// <para>
+        /// Whatever two faces lying back to back share is inside the body however it was cut, so it goes from
+        /// both, and what is left of either is boundary.
+        /// </para>
+        /// </remarks>
+        private static List<GeoFace3> CancelBackToBack(List<GeoFace3> faces, Tolerance tolerance)
+        {
+            int count = faces.Count;
+            var normals = new GeoVector3[count];
+            var boxes = new GeoAabb3[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                normals[i] = faces[i].Boundary.Normal;
+                boxes[i] = faces[i].GetAabb();
+            }
+
+            double speck = tolerance.EqualPoint * tolerance.EqualPoint;
+            List<int>[] against = null;
+
+            for (int i = 0; i < count; i++)
+            {
+                GeoPlane3 plane = faces[i].GetPlane();
+
+                for (int j = i + 1; j < count; j++)
+                {
+                    if (normals[i].DotProduct(normals[j]) >= 0.0
+                        || !boxes[i].CollidesWith(boxes[j], tolerance)
+                        || !LiesIn(plane, faces[j], tolerance)
+                        || AreaOf(Intersect(faces[i], faces[j], tolerance)) <= speck)
+                    {
+                        continue;
+                    }
+
+                    against = against ?? new List<int>[count];
+                    (against[i] = against[i] ?? new List<int>()).Add(j);
+                    (against[j] = against[j] ?? new List<int>()).Add(i);
+                }
+            }
+
+            if (against == null)
+            {
+                return faces;
+            }
+
+            var kept = new List<GeoFace3>(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                if (against[i] == null)
+                {
+                    kept.Add(faces[i]);
+                    continue;
+                }
+
+                var left = new List<GeoFace3> { faces[i] };
+
+                foreach (int j in against[i])
+                {
+                    var rest = new List<GeoFace3>();
+
+                    foreach (GeoFace3 piece in left)
+                    {
+                        rest.AddRange(Subtract(piece, faces[j], tolerance));
+                    }
+
+                    left = rest;
+                }
+
+                foreach (GeoFace3 piece in left)
+                {
+                    if (piece.Area > speck)
+                    {
+                        kept.Add(piece);
+                    }
+                }
+            }
+
+            return kept;
+        }
+
+        private static double AreaOf(GeoFace3[] faces)
+        {
+            double area = 0.0;
+
+            foreach (GeoFace3 face in faces)
+            {
+                area += face.Area;
+            }
+
+            return area;
         }
 
         #endregion

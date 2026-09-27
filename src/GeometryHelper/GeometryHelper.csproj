@@ -296,6 +296,26 @@
 
       Nothing above changed an answer that was already being given.
 
+      FIXED. What a review of Geometry and Core found.
+
+      - The solid booleans could leave a sheet of no thickness inside their result. A face between two kept
+        cells is found twice, once each way round, and the pair was dropped only when the two copies matched
+        vertex for vertex; a cut that reached the cell on one side and not the other left one copy in two
+        pieces, and both survived. The volume never noticed, since the two cancel, but a point beside the
+        sheet measured a millimetre to the boundary instead of five, TriangulateSurface meshed the sheet and
+        SplitShells threw. About one union or difference in two hundred of randomly turned boxes did it.
+        Faces left back to back now cancel by the area they share.
+      - SplitShells, and Intersect through it, threw on a group of faces enclosing nothing -- a lone face,
+        or two back to back. Such a group now goes with the piece holding it, and is dropped where no piece
+        does.
+      - Two shapes lie in one plane when the whole of each does. The test was planes parallel within the
+        angle tolerance, a whole degree, with one point of one on the other, so a plate turned half a
+        degree about a line through that point passed: SharesPlaneWith said true, the flat booleans
+        projected it onto the plane instead of refusing it, TryGetContact reported a patch where two bodies
+        met along an edge, and the solid booleans could take real boundary crossing a face at a shallow
+        angle for the inside of the body. Every corner, and the middle of every arc, now has to lie on the
+        plane.
+
       NEW IN 5.1.0
 
       Rounding a corner no longer means rounding every corner by the same radius.

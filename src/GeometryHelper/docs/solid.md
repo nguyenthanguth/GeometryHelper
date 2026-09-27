@@ -708,9 +708,12 @@ and dropping both leaves exactly the outer skin.
 
 Two details are worth knowing. Using one shared plane set for both bodies rather than each against the
 other is what makes the gluing work where they meet — cut that way both sides of the interface are the
-same plane carved by the same knives, so they come out as the same polygon and cancel. And dividing A by
-the planes of B already lays a face along every part of the surface of B that runs through A, which is why
-a difference is just the cells of A that fall outside B: the walls of the cavity are already there.
+same plane carved by the same knives, so they come out as the same polygon and cancel. Not always vertex
+for vertex, though: a knife that reaches the cell on one side and not the one on the other leaves one copy
+in two pieces, so faces still lying back to back after that are cancelled by the area they share rather
+than left standing inside the body as a sheet of no thickness. And dividing A by the planes of B already
+lays a face along every part of the surface of B that runs through A, which is why a difference is just the
+cells of A that fall outside B: the walls of the cavity are already there.
 
 **Flat shapes and boxes.** Two areas in one plane are combined by the plane library and the answer lifted
 back, so it is exact; and a box is combined through the body it bounds, which is six flat faces and no
@@ -736,8 +739,10 @@ first.TryExpand(10.0, out GeoObb3 bigger);    // and a margin on every face, kee
 Everything comes back as `GeoFace3` because joining two areas can leave a hole in the middle and only a
 face can hold one — four bars round a square give one face with one hole. **A shape that does not lie in
 the first one's plane is refused**, with an `ArgumentException`: projecting it in would report two plates a
-metre apart as overlapping and say nothing about it. `SharesPlaneWith` asks beforehand, on
-`GeoPolygon3`, `GeoFace3` and `GeoPolygonArc3` alike.
+metre apart as overlapping and say nothing about it. The whole of the shape has to lie in the plane, every
+corner and the middle of every arc: a plate turned half a degree about one of its corners is refused too,
+though its plane is parallel within the angle tolerance and passes through that corner. `SharesPlaneWith`
+asks beforehand, on `GeoPolygon3`, `GeoFace3` and `GeoPolygonArc3` alike.
 
 ### Merging
 
