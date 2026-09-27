@@ -748,6 +748,33 @@ corner and the middle of every arc: a plate turned half a degree about one of it
 though its plane is parallel within the angle tolerance and passes through that corner. `SharesPlaneWith`
 asks beforehand, on `GeoPolygon3`, `GeoFace3` and `GeoPolygonArc3` alike.
 
+### Making bodies
+
+A body can be made by moving a flat profile: straight out of its plane, along a path, or round an axis.
+
+```csharp
+var placement = new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis);
+
+GeoSolid3 plate  = GeoSolid3.Extrude(outline, placement, 20);          // a GeoPolygon2, GeoFace2 or GeoPolygonArc2
+GeoSolid3 slab   = GeoSolid3.Extrude(face, new GeoVector3(0, 0, 200)); // a GeoPolygon3 or GeoFace3, any way out of its plane
+GeoSolid3 bolt   = GeoSolid3.Cylinder(head, tip, 8, 32);               // corners on the circle
+GeoSolid3 bar    = GeoSolid3.Pipe(centreLine, 8, 0.1);                 // a GeoPolylineArc3, bends and all
+GeoSolid3 member = GeoSolid3.Sweep(section, path);                     // the section's Y up where the path allows
+GeoSolid3 ring   = GeoSolid3.Revolve(profile, placement, 2 * Math.PI, 0.1); // X from the axis, Y along it
+```
+
+Every body comes back closed and wound outwards whichever way round the profile was drawn. A hole in the
+profile runs through the extrusion as a shaft. Carried along a path, the section stands square to it at either
+end and lies on the plane halving each bend, so the pieces meet mitred; it turns with the path about the axis
+of each bend and nothing else, so it does not twist. With the section centred on the path, the volume is the
+section times the path's length exactly — the wedge a mitre adds outside a bend is the one it takes inside.
+Curves come back as facets: a bend, a circle or a revolution is cut into chords no further than the chord
+tolerance from the curve, and nought picks one from the radius.
+
+A path turning back on itself at one vertex — sharper than about 170 degrees — is refused, and so is a profile
+revolved across its own axis. A section larger than a tight bend folds over itself at the inside of the bend;
+that is not checked.
+
 ### Merging
 
 `Merge3` is the other direction. `ConsecutiveLines` and `ConsecutivePolylines` take the pieces in the order

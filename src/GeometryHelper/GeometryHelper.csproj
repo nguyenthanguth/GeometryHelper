@@ -377,6 +377,19 @@
         the clearance are looked at, and those are checked in parallel; the results come back in the order
         of the indexes. On 120 random parts it finds exactly what checking every pair by hand finds.
 
+      NEW. Making bodies.
+
+      - GeoSolid3.Extrude: a GeoPolygon3 or GeoFace3 along any vector out of its plane, holes running
+        through as shafts; a GeoPolygon2, GeoFace2 or GeoPolygonArc2 drawn in a GeoCoordinateSystem3,
+        along its Z for a length.
+      - GeoSolid3.Cylinder between two points, GeoSolid3.Pipe along a GeoPolyline3 or a bent
+        GeoPolylineArc3 -- a reinforcing bar from its centre line -- and GeoSolid3.Sweep of any section
+        along either, optionally told which way is up.
+      - GeoSolid3.Revolve of a profile round the Y axis of a placement, through any angle up to a whole
+        turn.
+        Every body is closed and wound outwards. Along a path the pieces meet mitred and the section does
+        not twist, so a section centred on the path gives the section times the path length exactly.
+
       NEW IN 5.1.0
 
       Rounding a corner no longer means rounding every corner by the same radius.

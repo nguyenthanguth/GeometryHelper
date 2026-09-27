@@ -1226,5 +1226,33 @@ namespace GeometryHelper.UnitTest.Solid
             ClashResult near = Assert.Single(Clash3.Find(new[] { parts[3] }, parts.Take(3).ToList(), new ClashOptions(clearance: 60.0)));
             Assert.Equal((0, 0, ClashKind.Clearance), (near.First, near.Second, near.Kind));
         }
+        [Fact]
+        public void MakingBodies()
+        {
+            var placement = new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis);
+            var outline = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 200), new GeoPoint2(0, 200));
+            var face = new GeoFace3(new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0)));
+            GeoPoint3 head = new GeoPoint3(150, 100, -30), tip = new GeoPoint3(150, 100, 50);
+            GeoPolylineArc3 centreLine = new GeoPolyline3(new GeoPoint3(0, 0, 100), new GeoPoint3(500, 0, 100), new GeoPoint3(500, 0, 600)).Fillet(40);
+            var section = new GeoPolygon2(new GeoPoint2(-50, -100), new GeoPoint2(50, -100), new GeoPoint2(50, 100), new GeoPoint2(-50, 100));
+            var path = new GeoPolyline3(new GeoPoint3(0, 1000, 0), new GeoPoint3(3000, 1000, 0));
+            var profile = new GeoPolygon2(new GeoPoint2(100, 0), new GeoPoint2(150, 0), new GeoPoint2(150, 50), new GeoPoint2(100, 50));
+
+            GeoSolid3 plate = GeoSolid3.Extrude(outline, placement, 20);
+            GeoSolid3 slab = GeoSolid3.Extrude(face, new GeoVector3(0, 0, 200));
+            GeoSolid3 bolt = GeoSolid3.Cylinder(head, tip, 8, 32);
+            GeoSolid3 bar = GeoSolid3.Pipe(centreLine, 8, 0.1);
+            GeoSolid3 member = GeoSolid3.Sweep(section, path);
+            GeoSolid3 ring = GeoSolid3.Revolve(profile, placement, 2 * Math.PI, 0.1);
+
+            Assert.Equal(300.0 * 200 * 20, plate.Volume, 6);
+            Assert.Equal(100.0 * 100 * 200, slab.Volume, 6);
+            Assert.True(bolt.CollidesWith(plate));
+            Assert.All(new[] { plate, slab, bolt, bar, member, ring }, body => Assert.True(body.IsClosed()));
+            Assert.Equal(100.0 * 200 * 3000, member.Volume, 6);
+
+            // The member stands upright: its section's Y is the world's Z.
+            Assert.Equal(200.0, member.GetAabb().Max.Z - member.GetAabb().Min.Z, 9);
+        }
     }
 }
