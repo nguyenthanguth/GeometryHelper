@@ -461,6 +461,19 @@
       - GeoPolylineArc3.SplitAtDistances(distances) hands back the pieces as the other chains do, beside the
         form answering true or false.
 
+      FASTER. The clash check, step by step, each answering exactly what it answered before.
+
+      Measured on a steel frame of 789 parts with 400 bolt holes, a mesh of 80 crossing bars and 2000 boxes,
+      24 threads:
+
+      - Two indexes are walked nearest pair of boxes first, so the bound drops to near the answer at once
+        and the rest is passed over, and GeoPreparedSolid3.GetShortestLineTo walks them rather than meshing
+        both bodies again and weighing every pair of faces. The clearance check measures a gap and finds it
+        in one walk, which stops at the clearance, where it used to test for a collision twice and measure
+        twice. The frame's check: 3.5 s to 1.6 s. Where several segments are shortest alike, between
+        parallel faces or round a bolt in its hole, the one given may differ from before; how short it is
+        does not.
+
       NEW IN 5.1.0
 
       Rounding a corner no longer means rounding every corner by the same radius.

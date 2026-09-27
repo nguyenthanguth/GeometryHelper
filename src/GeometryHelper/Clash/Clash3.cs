@@ -324,9 +324,10 @@ namespace GeometryHelper.Clash
                     return ClashResult.Touch(i, j, contact, contact.Length > 0 ? default(GeoPoint3) : a.GetShortestLineTo(b, tolerance).StartPoint);
                 }
 
-                if (options.Clearance > 0.0 && a.DistanceTo(b, tolerance) < options.Clearance)
+                // Apart, so one walk of the two indexes both measures the gap and finds where it is.
+                if (options.Clearance > 0.0 && a.TryGetShortestLineWithin(b, options.Clearance, tolerance, out GeoLine3 gap))
                 {
-                    return ClashResult.Near(i, j, a.GetShortestLineTo(b, tolerance));
+                    return ClashResult.Near(i, j, gap);
                 }
 
                 return null;

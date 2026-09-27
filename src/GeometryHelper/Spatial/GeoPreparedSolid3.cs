@@ -344,6 +344,13 @@ namespace GeometryHelper.Spatial
         /// <summary>
         /// Gets the shortest segment from this body to another, within a tolerance; of no length where they touch.
         /// </summary>
+        /// <remarks>
+        /// The two surfaces are meshed and indexed already, so the answer is found by walking the two indexes,
+        /// nearest boxes first: the segment
+        /// <see cref="Projection3.GetShortestLineTo(GeoSolid3, GeoSolid3, Tolerance)"/> finds on the two materials,
+        /// without meshing them again and weighing every pair of faces. Where several pairs are nearest alike, as
+        /// between two parallel faces, either may be the one given.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the other body is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPreparedSolid3 other, Tolerance tolerance)
         {
@@ -352,8 +359,30 @@ namespace GeometryHelper.Spatial
                 throw new ArgumentNullException(nameof(other));
             }
 
+            if (Index.TryGetShortestLineTo(other.Index, double.PositiveInfinity, tolerance, out GeoLine3 line))
+            {
+                return line;
+            }
+
+            // A surface with nothing on it: answered as it always was.
             return Projection3.GetShortestLineTo(Material, other.Material, tolerance);
         }
+
+        /// <summary>
+        /// Gets the shortest segment from this body's surface to another's when it is shorter than a reach.
+        /// </summary>
+        /// <param name="other">The other body.</param>
+        /// <param name="reach">How short the segment has to be.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="line">The segment, as <see cref="GetShortestLineTo(GeoPreparedSolid3, Tolerance)"/> gives it.</param>
+        /// <returns>false when the two surfaces come no nearer than the reach.</returns>
+        /// <remarks>
+        /// One walk of the two indexes answers both whether the bodies come within the reach and where, and two
+        /// bodies farther apart than the reach cost no more than the test of their outer boxes. It measures surface
+        /// to surface: the caller settles first whether the bodies touch or one holds the other.
+        /// </remarks>
+        internal bool TryGetShortestLineWithin(GeoPreparedSolid3 other, double reach, Tolerance tolerance, out GeoLine3 line)
+            => Index.TryGetShortestLineTo(other.Index, reach, tolerance, out line);
 
         /// <summary>
         /// Gets one body per region this body shares with another, using the default tolerance.

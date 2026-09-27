@@ -434,24 +434,90 @@ namespace GeometryHelper.Spatial
                 return double.PositiveInfinity;
             }
 
-            double best = double.MaxValue;
+            return Walk(other, double.PositiveInfinity, false, tolerance, out _);
+        }
 
-            Stack<int> pending = new Stack<int>();
-            pending.Push(0);
-            pending.Push(0);
+        /// <summary>
+        /// Gets the shortest segment from this mesh to another when it is shorter than a reach.
+        /// </summary>
+        /// <param name="other">The mesh the segment lands on.</param>
+        /// <param name="reach">How short the segment has to be; <see cref="double.PositiveInfinity"/> for any.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="line">
+        /// The shortest segment leaving a triangle of this mesh and landing on a triangle of the other, the one
+        /// <see cref="Projection3.GetShortestLineTo(GeoTriangle3, GeoTriangle3, Tolerance)"/> gives for the nearest
+        /// pair; <c>default</c> when the method returns false.
+        /// </param>
+        /// <returns>false when either mesh is empty, or no pair of triangles comes nearer than the reach.</returns>
+        /// <remarks>
+        /// A reach lets a caller who only cares about what is near stop early: every pair of boxes at least that
+        /// far apart is passed over from the start, so two meshes farther apart than the reach cost the one test
+        /// of their outer boxes.
+        /// </remarks>
+        internal bool TryGetShortestLineTo(GeoBvh3 other, double reach, Tolerance tolerance, out GeoLine3 line)
+        {
+            if (other == null)
+            {
+                throw new ArgumentNullException(nameof(other));
+            }
+
+            line = default(GeoLine3);
+
+            if (_rootCount == 0 || other._rootCount == 0)
+            {
+                return false;
+            }
+
+            return Walk(other, reach, true, tolerance, out line) < reach;
+        }
+
+        /// <summary>
+        /// Walks both trees at once, the nearest pair of boxes first, and measures the pairs of triangles under
+        /// every pair of boxes that could still hold a nearer pair than the best found so far.
+        /// </summary>
+        /// <param name="other">The other tree; neither may be empty.</param>
+        /// <param name="reach">The bound to start from: box pairs at least this far apart are never opened.</param>
+        /// <param name="line">
+        /// Whether to measure each pair of triangles by its shortest segment, keeping the best in
+        /// <paramref name="best"/>, rather than by distance alone.
+        /// </param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="best">The segment of the nearest pair found, when segments were asked for.</param>
+        /// <returns>The distance of the nearest pair found, or <paramref name="reach"/> when none came nearer.</returns>
+        /// <remarks>
+        /// Of the two pairs of boxes a split gives, the nearer one is opened first. The first pairs of triangles
+        /// measured are then among the nearest there are, the bound drops to near the answer at once, and every
+        /// pair of boxes farther apart than it is passed over whole — where walking the children in a fixed
+        /// order would measure whatever lay first and prune by a bound far from the answer. Under the leaves the
+        /// box of each triangle is tested before the triangle is measured, since a leaf holds several.
+        /// </remarks>
+        private double Walk(GeoBvh3 other, double reach, bool line, Tolerance tolerance, out GeoLine3 best)
+        {
+            best = default(GeoLine3);
+            double nearest = reach;
+
+            double rootGap = _nodes[0].Bounds.DistanceTo(other._nodes[0].Bounds);
+
+            if (!(rootGap < nearest))
+            {
+                return nearest;
+            }
+
+            Stack<NodePair> pending = new Stack<NodePair>();
+            pending.Push(new NodePair(0, 0, rootGap));
 
             while (pending.Count > 0)
             {
-                int rightIndex = pending.Pop();
-                int leftIndex = pending.Pop();
+                NodePair pair = pending.Pop();
 
-                Node left = _nodes[leftIndex];
-                Node right = other._nodes[rightIndex];
-
-                if (left.Bounds.DistanceTo(right.Bounds) >= best)
+                // The bound may have dropped since the pair was put aside.
+                if (pair.Gap >= nearest)
                 {
                     continue;
                 }
+
+                Node left = _nodes[pair.Left];
+                Node right = other._nodes[pair.Right];
 
                 bool leftIsLeaf = left.Left < 0;
                 bool rightIsLeaf = right.Left < 0;
@@ -460,18 +526,42 @@ namespace GeometryHelper.Spatial
                 {
                     for (int i = left.Start; i < left.Start + left.Count; i++)
                     {
+                        int a = _order[i];
+                        GeoAabb3 box = _triangleBounds[a];
+
                         for (int j = right.Start; j < right.Start + right.Count; j++)
                         {
-                            double distance = Distance3.DistanceTo(_triangles[_order[i]], other._triangles[other._order[j]], tolerance);
+                            int b = other._order[j];
 
-                            if (distance < best)
+                            if (box.DistanceTo(other._triangleBounds[b]) >= nearest)
                             {
-                                best = distance;
+                                continue;
+                            }
 
-                                if (best <= 0.0)
+                            if (line)
+                            {
+                                GeoLine3 candidate = Projection3.GetShortestLineTo(_triangles[a], other._triangles[b], tolerance);
+                                double length = candidate.Length;
+
+                                if (length < nearest)
                                 {
-                                    return 0.0;
+                                    nearest = length;
+                                    best = candidate;
                                 }
+                            }
+                            else
+                            {
+                                double distance = Distance3.DistanceTo(_triangles[a], other._triangles[b], tolerance);
+
+                                if (distance < nearest)
+                                {
+                                    nearest = distance;
+                                }
+                            }
+
+                            if (nearest <= 0.0)
+                            {
+                                return 0.0;
                             }
                         }
                     }
@@ -479,23 +569,59 @@ namespace GeometryHelper.Spatial
                     continue;
                 }
 
+                // Splitting the larger side keeps the two descending at a similar rate.
+                NodePair first, second;
+
                 if (rightIsLeaf || (!leftIsLeaf && left.Count >= right.Count))
                 {
-                    pending.Push(left.Left);
-                    pending.Push(rightIndex);
-                    pending.Push(left.Right);
-                    pending.Push(rightIndex);
+                    first = new NodePair(left.Left, pair.Right, _nodes[left.Left].Bounds.DistanceTo(right.Bounds));
+                    second = new NodePair(left.Right, pair.Right, _nodes[left.Right].Bounds.DistanceTo(right.Bounds));
                 }
                 else
                 {
-                    pending.Push(leftIndex);
-                    pending.Push(right.Left);
-                    pending.Push(leftIndex);
-                    pending.Push(right.Right);
+                    first = new NodePair(pair.Left, right.Left, left.Bounds.DistanceTo(other._nodes[right.Left].Bounds));
+                    second = new NodePair(pair.Left, right.Right, left.Bounds.DistanceTo(other._nodes[right.Right].Bounds));
+                }
+
+                // The nearer pair goes on top of the stack, so that it is opened next.
+                if (second.Gap < first.Gap)
+                {
+                    NodePair swap = first;
+                    first = second;
+                    second = swap;
+                }
+
+                if (second.Gap < nearest)
+                {
+                    pending.Push(second);
+                }
+
+                if (first.Gap < nearest)
+                {
+                    pending.Push(first);
                 }
             }
 
-            return best;
+            return nearest;
+        }
+
+        /// <summary>
+        /// A node of this tree and a node of another, put aside to be opened, with how far apart their boxes are.
+        /// </summary>
+        private readonly struct NodePair
+        {
+            public NodePair(int left, int right, double gap)
+            {
+                Left = left;
+                Right = right;
+                Gap = gap;
+            }
+
+            public int Left { get; }
+
+            public int Right { get; }
+
+            public double Gap { get; }
         }
 
         /// <summary>
