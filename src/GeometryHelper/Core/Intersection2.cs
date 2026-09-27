@@ -99,15 +99,9 @@ namespace GeometryHelper.Core
 
             double rCrossS = r.CrossProduct(s);
 
-            // |r x s| equals |r| * |s| * sin(angle), so it has units of length squared. Comparing it
-            // directly against a length threshold makes the parallel test depend on the scale of the
-            // input: the same pair of segments scaled up would be reported as intersecting while the
-            // small version would not. Dividing by both lengths reduces it to sin(angle), which is
-            // scale invariant and lets EqualAngleRad act as the angular threshold it is meant to be.
-            // This also keeps the result consistent with Parallel2.IsParallel for the same two lines.
-            if (Math.Abs(rCrossS) <= tolerance.EqualAngleSin * rLength * sLength)
+            if (IsParallelOver(Math.Abs(rCrossS) / (rLength * sLength), extendFirst, extendSecond, rLength, sLength, tolerance))
             {
-                return false; // Parallel2 or collinear
+                return false; // parallel or collinear
             }
 
             GeoVector2 qMinusP = line1.StartPoint.GetVectorTo(line2.StartPoint);
@@ -146,6 +140,35 @@ namespace GeometryHelper.Core
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Determines whether two members are parallel as far as finding the one point where they cross goes.
+        /// </summary>
+        /// <param name="sine">The sine of the angle between the two.</param>
+        /// <param name="extendFirst">Whether the first is read as its infinite line.</param>
+        /// <param name="extendSecond">Whether the second is read as its infinite line.</param>
+        /// <param name="length1">The length of the first as drawn.</param>
+        /// <param name="length2">The length of the second as drawn.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when there is no single crossing to give.</returns>
+        /// <remarks>
+        /// Two members are parallel when they draw apart by less than the point tolerance along the longer of the
+        /// members drawn: to within the tolerance they are then one line or two lines side by side, and neither
+        /// gives one point. The angle alone decided before, against a whole degree, however long the members —
+        /// two ten-metre members crossing at 0.9 degrees, 157 apart at their ends, crossed nowhere while
+        /// CollidesWith said true and DistanceTo nought. Only two infinite lines have no length to measure over,
+        /// and those still go by the angle.
+        /// </remarks>
+        internal static bool IsParallelOver(double sine, bool extendFirst, bool extendSecond, double length1, double length2, Tolerance tolerance)
+        {
+            double reach = extendFirst
+                ? (extendSecond ? 0.0 : length2)
+                : (extendSecond ? length1 : Math.Max(length1, length2));
+
+            return reach > 0.0
+                ? sine * reach <= tolerance.EqualPoint
+                : sine <= tolerance.EqualAngleSin;
         }
 
         /// <summary>

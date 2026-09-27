@@ -50,7 +50,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            if (Parallel3.IsParallel(line1, line2, tolerance))
+            if (IsParallelOver(line1, line2, LineExtension.None, tolerance))
             {
                 return false;
             }
@@ -123,7 +123,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            if (Parallel3.IsParallel(line1, line2, tolerance))
+            if (IsParallelOver(line1, line2, extension, tolerance))
             {
                 return false;
             }
@@ -159,6 +159,27 @@ namespace GeometryHelper.Core
 
         #endregion
 
+        /// <summary>
+        /// Determines whether two segments are parallel as far as finding the one point where they cross goes:
+        /// drawing apart by less than the point tolerance along the longer of the members drawn.
+        /// </summary>
+        private static bool IsParallelOver(GeoLine3 line1, GeoLine3 line2, LineExtension extension, Tolerance tolerance)
+        {
+            GeoVector3 d1 = line1.Direction;
+            GeoVector3 d2 = line2.Direction;
+            double length1 = d1.Length;
+            double length2 = d2.Length;
+            double sine = d1.CrossProduct(d2).Length / (length1 * length2);
+
+            return Intersection2.IsParallelOver(
+                sine,
+                extension == LineExtension.First || extension == LineExtension.Both,
+                extension == LineExtension.Second || extension == LineExtension.Both,
+                length1,
+                length2,
+                tolerance);
+        }
+
         #region Line - Plane
 
         /// <summary>
@@ -191,11 +212,12 @@ namespace GeometryHelper.Core
 
             double denominator = direction.DotProduct(plane.Normal);
 
-            // The normal is a unit vector, so dividing by the segment length turns this into the sine of
-            // the angle between the segment and the plane. Comparing that against the angular threshold
-            // keeps the parallel test independent of how long the segment is, and agrees with what
-            // Parallel3.IsParallel reports for the same pair.
-            if (Math.Abs(denominator) <= tolerance.EqualAngleSin * length)
+            // The normal is a unit vector, so this is how far the segment climbs or falls from one end to the
+            // other. Less than the planar tolerance and it is parallel to the plane as drawn: it lies in it or
+            // beside it, and neither gives one point. The angle alone decided before, against a whole degree,
+            // so a ten-metre member crossing the plane at half a degree, its ends forty-four off it, crossed
+            // nowhere.
+            if (Math.Abs(denominator) <= tolerance.EqualPlanar)
             {
                 return false;
             }
@@ -232,15 +254,25 @@ namespace GeometryHelper.Core
             intersection = GeoPoint3.Origin;
 
             double denominator = ray.Direction.DotProduct(plane.Normal);
+            double rise = ray.Origin.GetVectorTo(plane.Origin).DotProduct(plane.Normal);
 
-            // Both vectors are unit length here, so the dot product is already the sine of the angle
-            // between the ray and the plane and needs no scaling.
-            if (Math.Abs(denominator) <= tolerance.EqualAngleSin)
+            // Both vectors are unit length here, so the dot product is the sine of the angle between the ray
+            // and the plane. A ray starting in the plane and running along it within the angle tolerance meets
+            // it over a stretch rather than at a point. One starting off the plane reaches it at one point at
+            // any angle but none at all, however far along: refusing every crossing under a degree lost the
+            // far side of a long member to the ray cast behind Locate, which then called a point inside the
+            // member outside.
+            if (Math.Abs(rise) <= tolerance.EqualPlanar ? Math.Abs(denominator) <= tolerance.EqualAngleSin : denominator == 0.0)
             {
                 return false;
             }
 
-            double distance = ray.Origin.GetVectorTo(plane.Origin).DotProduct(plane.Normal) / denominator;
+            double distance = rise / denominator;
+
+            if (double.IsInfinity(distance))
+            {
+                return false;
+            }
 
             if (distance < -tolerance.EqualPoint)
             {
@@ -361,6 +393,32 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool TryIntersectWith(GeoPlane3 plane1, GeoPlane3 plane2, out GeoRay3 intersection, Tolerance tolerance)
         {
+            // Two planes have no size, so there is nothing to measure how far they draw apart over: they go by
+            // the angle.
+            return TryGetMeetingLine(plane1, plane2, 0.0, out intersection, tolerance);
+        }
+
+        /// <summary>
+        /// Gets the line where two planes meet, for a shape of a known size lying in the first.
+        /// </summary>
+        /// <param name="plane1">The plane the shape lies in.</param>
+        /// <param name="plane2">The other plane.</param>
+        /// <param name="extent">
+        /// How far the shape reaches across its plane, such as the diagonal of its box; nought to read the first
+        /// plane as the whole plane and go by the angle alone.
+        /// </param>
+        /// <param name="intersection">The line, as a ray from a point on it along it.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>false when the two are parallel as far as the shape goes.</returns>
+        /// <remarks>
+        /// Planes within the angle tolerance of each other are parallel as planes go, but a shape of finite size
+        /// in one of them still crosses the other wherever it stands off it by more than the planar tolerance —
+        /// and it stands off by up to the sine of the angle times its size. So that decides, not the angle:
+        /// under a degree, a face poking five hundredths through a cutting plane went uncut, and a box corner
+        /// poking into another was counted twice by the union.
+        /// </remarks>
+        internal static bool TryGetMeetingLine(GeoPlane3 plane1, GeoPlane3 plane2, double extent, out GeoRay3 intersection, Tolerance tolerance)
+        {
             intersection = default;
 
             GeoVector3 n1 = plane1.Normal;
@@ -369,7 +427,9 @@ namespace GeometryHelper.Core
 
             // Both normals are unit vectors, so the length of their cross product is the sine of the
             // angle between the planes.
-            if (direction.Length <= tolerance.EqualAngleSin)
+            double sine = direction.Length;
+
+            if (extent > 0.0 ? sine * extent <= tolerance.EqualPlanar : sine <= tolerance.EqualAngleSin)
             {
                 return false;
             }

@@ -43,7 +43,12 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static bool IsCoplanar(GeoArc3 arc, GeoPlane3 plane, Tolerance tolerance)
         {
-            return Parallel3.IsParallel(arc.GetPlane(), plane, tolerance)
+            // The circle stands off a plane through its centre by up to the sine of the angle between the two
+            // times its radius; within the planar tolerance it lies in the plane. Parallel within the angle
+            // tolerance was not enough: a whole degree off, a circle of a metre stands seventeen off the plane.
+            double sine = arc.GetPlane().Normal.CrossProduct(plane.Normal).Length;
+
+            return sine * arc.Radius <= tolerance.EqualPlanar
                 && Containment3.IsPointOn(plane, arc.Center, tolerance);
         }
 
@@ -131,7 +136,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static List<GeoPoint3> PointsOnPlane(GeoArc3 arc, GeoPlane3 plane, Tolerance tolerance)
         {
-            if (!Intersection3.TryIntersectWith(arc.GetPlane(), plane, out GeoRay3 meeting, tolerance))
+            if (!Intersection3.TryGetMeetingLine(arc.GetPlane(), plane, 2.0 * arc.Radius, out GeoRay3 meeting, tolerance))
             {
                 return new List<GeoPoint3>();
             }

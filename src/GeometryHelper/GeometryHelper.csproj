@@ -315,6 +315,18 @@
         met along an edge, and the solid booleans could take real boundary crossing a face at a shallow
         angle for the inside of the body. Every corner, and the middle of every arc, now has to lie on the
         plane.
+      - Crossings under a degree were refused as parallel. Two members were parallel for a crossing when
+        the angle between them was under the angle tolerance, a whole degree, however long they were: two
+        ten-metre members crossing at 0.9 degrees, 157 apart at their ends, crossed nowhere, while
+        CollidesWith said true and DistanceTo nought. The same held for a member against a plane, an arc
+        in space against a plane, and a face against the plane cutting it. The booleans lean on the last:
+        a box corner poking five hundredths through a face turned under a degree from it went uncut, and
+        the union counted it twice. And the ray cast behind Locate lost a crossing that way, so a point
+        inside a long member lying under a degree off one of the directions it casts in was reported
+        outside the member. Two members are now parallel when they draw apart by less than EqualPoint
+        along the longer of them, and a flat shape meets a plane wherever it stands off it by more than
+        EqualPlanar. Two infinite lines, and two planes, still go by the angle. IsParallelTo is unchanged:
+        it answers about directions.
 
       NEW IN 5.1.0
 

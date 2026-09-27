@@ -215,7 +215,7 @@ namespace GeometryHelper.UnitTest.Plane
         public void TwoSegmentsThatCrossAlwaysMeet()
         {
             Random rng = new Random(7005);
-            int crossing = 0, missed = 0, offSegment = 0, nearlyParallel = 0, inconsistent = 0;
+            int crossing = 0, missed = 0, offSegment = 0, nearlyParallel = 0;
 
             for (int t = 0; t < 4000; t++)
             {
@@ -239,16 +239,11 @@ namespace GeometryHelper.UnitTest.Plane
                 if (!(d1 * d2 < 0 && d3 * d4 < 0)) { continue; }
                 if (Math.Min(Math.Min(Math.Abs(d1), Math.Abs(d2)), Math.Min(Math.Abs(d3), Math.Abs(d4))) < 1E-3) { continue; }
 
-                // Two segments can cross geometrically and still be parallel as far as this library is
-                // concerned: the default angular threshold is a whole degree, and the meeting point of
-                // two segments that close together is not a number worth reporting. Those are refused on
-                // purpose, so what is checked for them is that the refusal is the parallel one.
+                // Segments within the angle tolerance of parallel are counted too: they cross, so they meet.
+                // They used to be refused as parallel, which made the crossing disagree with CollidesWith.
                 if (Parallel2.IsParallel(a.Direction, b.Direction, Tol))
                 {
                     nearlyParallel++;
-
-                    if (Intersection2.TryIntersectWith(a, b, out GeoPoint2 _, Tol)) { inconsistent++; }
-                    continue;
                 }
 
                 crossing++;
@@ -259,13 +254,9 @@ namespace GeometryHelper.UnitTest.Plane
             }
 
             Assert.True(crossing > 300, $"only {crossing} pairs properly crossed");
+            Assert.True(nearlyParallel > 0, "no crossing pair was within the angle tolerance of parallel");
             Assert.Equal(0, missed);
             Assert.Equal(0, offSegment);
-
-            // The refusal has to be the parallel one and nothing else: a pair refused here must be a pair
-            // Parallel2 also calls parallel, or the two are disagreeing about the same question.
-            Assert.True(nearlyParallel > 0, "no crossing pair was near enough to parallel to be refused");
-            Assert.Equal(0, inconsistent);
         }
 
         /// <summary>Twice the signed area of the triangle the segment makes with a point.</summary>

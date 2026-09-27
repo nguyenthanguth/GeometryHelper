@@ -435,7 +435,7 @@ namespace GeometryHelper.Core
         #region Laying the two out in one frame
 
         /// <summary>
-        /// Determines whether every one of some points lies on a plane, within the point tolerance.
+        /// Determines whether every one of some points lies on a plane, within the planar tolerance.
         /// </summary>
         /// <param name="plane">The plane.</param>
         /// <param name="points">The points fixing a shape: its corners, and a point along each curved edge.</param>
@@ -463,7 +463,7 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Determines whether the whole of a face, holes and all, lies in a plane, within the point tolerance.
+        /// Determines whether the whole of a face, holes and all, lies in a plane, within the planar tolerance.
         /// </summary>
         internal static bool LiesIn(GeoPlane3 plane, GeoFace3 face, Tolerance tolerance)
         {

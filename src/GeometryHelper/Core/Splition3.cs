@@ -519,7 +519,12 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            if (!Intersection3.TryIntersectWith(face.GetPlane(), cutter, out GeoRay3 cutLine, tolerance))
+            // The corners already show the plane passing through the face, so what decides whether there is a
+            // line to cut along is how far the face reaches, not the angle between the two planes.
+            GeoAabb3 box = face.GetAabb();
+            double extent = box.Min.DistanceTo(box.Max);
+
+            if (!Intersection3.TryGetMeetingLine(face.GetPlane(), cutter, extent, out GeoRay3 cutLine, tolerance))
             {
                 above = whole;
                 below = none;

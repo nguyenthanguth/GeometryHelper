@@ -285,17 +285,19 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void LineLine_NearlyParallelSegments_AgreeWithParallelIsParallel()
+        public void LineLine_NearlyParallelSegmentsThatCross_MeetWhereTheyCross()
         {
-            // Two long segments meeting at well under a degree. Whatever the verdict, the two operations
-            // must not contradict each other by calling them parallel and intersecting at the same time.
+            // Two long segments crossing at a tenth of a degree, two apart at their ends. IsParallel answers
+            // about the directions, within the angle tolerance; a crossing is a point, and these two have one.
+            // Refusing it made the intersection disagree with CollidesWith and DistanceTo instead.
             var a = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1000, 0));
             var b = new GeoLine2(new GeoPoint2(0, -1), new GeoPoint2(1000, 1));
 
-            bool parallel = Parallel2.IsParallel(a, b);
-            bool intersects = Intersection2.TryIntersectWith(a, b, out _);
-
-            Assert.False(parallel && intersects);
+            Assert.True(Parallel2.IsParallel(a, b));
+            Assert.True(Intersection2.TryIntersectWith(a, b, out GeoPoint2 crossing));
+            Assert.Equal(500.0, crossing.X, 9);
+            Assert.Equal(0.0, crossing.Y, 9);
+            Assert.True(a.CollidesWith(b));
         }
 
         [Fact]

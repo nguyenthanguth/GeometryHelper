@@ -25,6 +25,14 @@ point. A face twelve metres long that is tilted by a hundredth of a degree devia
 millimetres at its far end — far more than `EqualPoint` allows, yet still flat enough to work with.
 Only the solid half of the library uses it.
 
+**Whether two things cross is not a question of angle.** `EqualAngleRad` answers `IsParallelTo` and
+`IsPerpendicularTo`, which are about directions. Where two members cross is a point, and two members
+are parallel for that purpose only when they draw apart by less than `EqualPoint` along the longer of
+them; a flat shape meets a plane wherever it stands off it by more than `EqualPlanar`. So two
+ten-metre members crossing at a tenth of a degree cross at a point, though `IsParallelTo` calls their
+directions parallel. Only two infinite lines, or two planes, have no length to measure over, and those
+still go by the angle.
+
 ```csharp
 // One setting for both libraries.
 Tolerance.Global = new Tolerance(equalPoint: 1E-3, equalVector: 1E-3);
