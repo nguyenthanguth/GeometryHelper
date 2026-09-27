@@ -80,7 +80,12 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoLine3 GetShortestLineTo(GeoTriangle3 first, GeoTriangle3 second, Tolerance tolerance)
         {
-            for (int i = 0; i < 3; i++)
+            // Two triangles one of which lies clear to one side of the other's plane have no crossing to find, and
+            // saying so costs three distances rather than six crossings looked for in vain.
+            bool apart = !first.IsDegenerate(tolerance) && !second.IsDegenerate(tolerance)
+                && (Collision3.IsClearOf(first, second, tolerance) || Collision3.IsClearOf(second, first, tolerance));
+
+            for (int i = 0; i < 3 && !apart; i++)
             {
                 if (Intersection3.TryIntersectWith(first.GetEdgeAt(i), second, out GeoPoint3 through, tolerance) ||
                     Intersection3.TryIntersectWith(second.GetEdgeAt(i), first, out through, tolerance))

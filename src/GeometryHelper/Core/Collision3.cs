@@ -193,6 +193,11 @@ namespace GeometryHelper.Core
                 return false;
             }
 
+            if (IsClearOf(triangle1, triangle2, tolerance) || IsClearOf(triangle2, triangle1, tolerance))
+            {
+                return false;
+            }
+
             for (int i = 0; i < 3; i++)
             {
                 if (Intersection3.TryIntersectWith(triangle1.GetEdgeAt(i), triangle2, out _, tolerance) ||
@@ -233,6 +238,34 @@ namespace GeometryHelper.Core
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Checks whether a triangle lies wholly to one side of another's plane, clear of it by more than twice
+        /// the larger of the point and planar tolerances.
+        /// </summary>
+        /// <param name="triangle">The triangle whose plane is the dividing one; it must not be degenerate.</param>
+        /// <param name="other">The triangle judged against it.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// Such a pair cannot meet, and three distances to a plane say so for the price of a cross product, where
+        /// the full test asks six edges whether they cross a face. The margin is what makes it safe. Every way the
+        /// full test finds contact — an edge of one reaching the other's plane with the segment stretched by the
+        /// point tolerance at each end, a point placed on the other triangle within the point or the planar
+        /// tolerance, the two lying in one plane within the planar tolerance — puts some point of
+        /// <paramref name="other"/> within the larger of the two tolerances of this plane, and all of it lies
+        /// farther away than that.
+        /// </remarks>
+        internal static bool IsClearOf(GeoTriangle3 triangle, GeoTriangle3 other, Tolerance tolerance)
+        {
+            GeoPlane3 plane = triangle.GetPlane();
+            double clear = 2.0 * Math.Max(tolerance.EqualPoint, tolerance.EqualPlanar);
+
+            double a = plane.SignedDistanceTo(other.A);
+            double b = plane.SignedDistanceTo(other.B);
+            double c = plane.SignedDistanceTo(other.C);
+
+            return (a > clear && b > clear && c > clear) || (a < -clear && b < -clear && c < -clear);
         }
 
         #endregion

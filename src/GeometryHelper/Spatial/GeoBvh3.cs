@@ -606,6 +606,16 @@ namespace GeometryHelper.Spatial
         }
 
         /// <summary>
+        /// Checks whether two boxes come within a reach of each other along every axis.
+        /// </summary>
+        private static bool Near(GeoAabb3 first, GeoAabb3 second, double reach)
+        {
+            return first.Min.X - reach <= second.Max.X && second.Min.X - reach <= first.Max.X
+                && first.Min.Y - reach <= second.Max.Y && second.Min.Y - reach <= first.Max.Y
+                && first.Min.Z - reach <= second.Max.Z && second.Min.Z - reach <= first.Max.Z;
+        }
+
+        /// <summary>
         /// A node of this tree and a node of another, put aside to be opened, with how far apart their boxes are.
         /// </summary>
         private readonly struct NodePair
@@ -650,6 +660,10 @@ namespace GeometryHelper.Spatial
                 return false;
             }
 
+            // Two triangles the collision test calls touching are within the larger of the point and planar
+            // tolerances of each other, so their boxes are too; twice that is room to spare.
+            double reach = 2.0 * Math.Max(tolerance.EqualPoint, tolerance.EqualPlanar);
+
             Stack<int> pending = new Stack<int>();
             pending.Push(0);
             pending.Push(0);
@@ -674,9 +688,20 @@ namespace GeometryHelper.Spatial
                 {
                     for (int i = left.Start; i < left.Start + left.Count; i++)
                     {
+                        int a = _order[i];
+
                         for (int j = right.Start; j < right.Start + right.Count; j++)
                         {
-                            if (Collision3.CollidesWith(_triangles[_order[i]], other._triangles[other._order[j]], tolerance))
+                            int b = other._order[j];
+
+                            // A leaf holds several triangles, and two leaves whose boxes meet can hold pairs whose
+                            // own boxes do not, which cannot meet either.
+                            if (!Near(_triangleBounds[a], other._triangleBounds[b], reach))
+                            {
+                                continue;
+                            }
+
+                            if (Collision3.CollidesWith(_triangles[a], other._triangles[b], tolerance))
                             {
                                 return true;
                             }

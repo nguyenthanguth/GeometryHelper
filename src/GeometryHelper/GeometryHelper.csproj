@@ -479,6 +479,11 @@
         could match, in the same order and by the same test, and a GeoPolygon3 and a GeoSolid3 measure
         their box once, when they are made. A plate with four bolt holes: 317 ms to 43 ms; with 32 holes,
         1.7 s to 0.6 s. Preparing the frame: 6.3 s to 1.7 s.
+      - Two triangles one of which lies wholly to one side of the other's plane, clear of it by more than
+        twice the larger of the point and planar tolerances, cannot meet: Collision3.CollidesWith and
+        Projection3.GetShortestLineTo for two triangles now say so from three distances, where they looked
+        for six crossings, and walking two indexes for a collision tests the box of each triangle under a
+        leaf before the triangle. The frame's CollidesWith: 1.3 s to 0.35 s on one thread.
 
       NEW IN 5.1.0
 
