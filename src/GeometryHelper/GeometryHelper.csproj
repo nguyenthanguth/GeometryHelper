@@ -513,8 +513,11 @@
         now settled without the boolean, and its check allocates 343 MB rather than 748: 0.35 s to 0.21 s on
         24 threads, where the parallel speed-up grew from 3 to 7 under the workstation garbage collector.
 
-      Altogether, on 24 threads under the workstation garbage collector: the steel frame, preparing and
-      checking, 9.7 s to 1.6 s; the bar mesh 3.0 s to 0.04 s; 2000 boxes 39 ms to 6 ms.
+      Altogether, the median of three runs on 24 threads: the steel frame, preparing and checking, 9.7 s to
+      2.0 s under the workstation garbage collector and 7.3 s to 0.65 s under the server one; the bar mesh
+      3.0 s to 0.04 s; 2000 boxes 39 ms to 3 ms. Every pair and kind of clash found is the same; the gaps of
+      31 bolts in their holes are now right (see FIXED), and the rest agree with volumes found by counting
+      random points and gaps found by weighing every pair of triangles.
 
       NEW IN 5.1.0
 
