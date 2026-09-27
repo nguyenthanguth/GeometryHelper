@@ -18,8 +18,8 @@ namespace GeometryHelper.Arranging.Algorithms
         {
             /// <summary>Gets the original index of the label.</summary>
             public int OriginalIndex { get; }
-            /// <summary>Gets the label object.</summary>
-            public Arrange Arrange { get; }
+            /// <summary>Gets the label.</summary>
+            public ArrangeItem Item { get; }
             /// <summary>Gets or sets the list of initial valid translation candidates (no static collisions).</summary>
             public List<GeoVector2> Domain { get; set; }
             /// <summary>Gets or sets the currently assigned translation vector.</summary>
@@ -31,11 +31,11 @@ namespace GeometryHelper.Arranging.Algorithms
             /// Initializes a new instance of the <see cref="CSPVariable"/> class.
             /// </summary>
             /// <param name="originalIndex">The original index of the label.</param>
-            /// <param name="arrange">The label object.</param>
-            public CSPVariable(int originalIndex, Arrange arrange)
+            /// <param name="item">The label.</param>
+            public CSPVariable(int originalIndex, ArrangeItem item)
             {
                 OriginalIndex = originalIndex;
-                Arrange = arrange;
+                Item = item;
                 Domain = new List<GeoVector2>();
                 AssignedValue = GeoVector2.Zero;
                 IsAssigned = false;
@@ -55,36 +55,36 @@ namespace GeometryHelper.Arranging.Algorithms
         /// <summary>
         /// Arranges the labels using a constraint satisfaction algorithm.
         /// </summary>
-        /// <param name="arranges">The list of labels to arrange.</param>
+        /// <param name="items">The labels to arrange.</param>
         /// <param name="options">The arrangement options.</param>
-        /// <returns>The list of translation vectors for the labels.</returns>
-        public List<GeoVector2> Arrange(List<Arrange> arranges, ArrangeOptions options)
+        /// <returns>How far each label moves, in the order of the labels.</returns>
+        public GeoVector2[] Arrange(IReadOnlyList<ArrangeItem> items, ArrangeOptions options)
         {
-            var translations = new GeoVector2[arranges.Count];
+            var translations = new GeoVector2[items.Count];
             // STEP 1: Collect initial static obstacles
-            var staticObstacles = Obstacle.CollectStatic(arranges);
+            var staticObstacles = Obstacle.CollectStatic(items);
 
             // STEP 2: Initialize CSP variables and filter initial domains
             var variables = new List<CSPVariable>();
-            for (int i = 0; i < arranges.Count; i++)
+            for (int i = 0; i < items.Count; i++)
             {
-                var arrange = arranges[i];
-                if (arrange == null) continue;
+                var item = items[i];
+                if (item == null) continue;
 
-                var v = new CSPVariable(i, arrange);
-                GeoPoint2 centre = arrange.GeoRectangle2.Center;
+                var v = new CSPVariable(i, item);
+                GeoPoint2 centre = item.Box.Center;
 
                 // Pre-filter obstacles out of the label's reach. The loop below runs
                 // (number of candidates x number of obstacles) times, so filtering once here cuts most of the work.
                 // Degenerate labels that cannot form bounds retain the full list.
-                List<Obstacle> nearby = PlacementHeuristics.TryGetCandidateBounds(arrange, options, out Bounds region)
+                List<Obstacle> nearby = PlacementHeuristics.TryGetCandidateBounds(item, options, out Bounds region)
                     ? staticObstacles.Where(o => region.Overlaps(o.Box)).ToList()
                     : staticObstacles;
 
-                foreach (GeoPoint2 candidate in arrange.EnumeratePlacePoints(options))
+                foreach (GeoPoint2 candidate in item.EnumeratePlacePoints(options))
                 {
                     GeoVector2 trans = centre.GetVectorTo(candidate);
-                    GeoRectangle2 moved = arrange.GeoRectangle2.Translate(trans);
+                    GeoRectangle2 moved = item.Box.Translate(trans);
 
                     // Only add to domain if candidate does not collide with static obstacles from the start
                     if (!Obstacle.AnyCollides(nearby, moved, options.Tolerance))
@@ -109,19 +109,19 @@ namespace GeometryHelper.Arranging.Algorithms
             if (!success)
             {
                 var greedy = new GreedyAlgorithm();
-                return greedy.Arrange(arranges, options);
+                return greedy.Arrange(items, options);
             }
 
             // STEP 5: Aggregate translation results
-            for (int i = 0; i < arranges.Count; i++)
+            for (int i = 0; i < items.Count; i++)
             {
-                if (arranges[i] == null) continue;
+                if (items[i] == null) continue;
 
                 var variable = variables.Find(v => v.OriginalIndex == i);
                 translations[i] = variable != null ? variable.AssignedValue : GeoVector2.Zero;
             }
 
-            return translations.ToList();
+            return translations;
         }
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace GeometryHelper.Arranging.Algorithms
 
                 // FORWARD CHECKING: Filter the domains of other unassigned variables
                 bool forwardCheckOk = true;
-                GeoRectangle2 currentRect = currentVar.Arrange.GeoRectangle2.Translate(val);
+                GeoRectangle2 currentRect = currentVar.Item.Box.Translate(val);
 
                 foreach (var otherVar in variables.Where(v => !v.IsAssigned))
                 {
@@ -171,7 +171,7 @@ namespace GeometryHelper.Arranging.Algorithms
                     var newDomain = new List<GeoVector2>();
                     foreach (GeoVector2 otherVal in otherVar.Domain)
                     {
-                        GeoRectangle2 otherRect = otherVar.Arrange.GeoRectangle2.Translate(otherVal);
+                        GeoRectangle2 otherRect = otherVar.Item.Box.Translate(otherVal);
 
                         if (!currentRect.CollidesWith(otherRect, options.Tolerance))
                         {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper.Arranging;
 using GeometryHelper;
 using GeometryHelper.Core;
@@ -33,9 +34,9 @@ namespace GeometryHelper.UnitTest.Arranging
         /// <summary>
         /// A row of labels hung off a row of paths, with a few obstacles in the way.
         /// </summary>
-        private static List<Arrange> Scene(Random rng, int count)
+        private static List<ArrangeItem> Scene(Random rng, int count)
         {
-            var scene = new List<Arrange>();
+            var scene = new List<ArrangeItem>();
 
             var blocks = new List<GeoPolygon2>();
             for (int i = 0; i < 2; i++)
@@ -56,11 +57,11 @@ namespace GeometryHelper.UnitTest.Arranging
                 double x = i * 45 - 100;
                 double y = rng.Next(-30, 31);
 
-                scene.Add(new Arrange
+                scene.Add(new ArrangeItem
                 {
-                    GeoRectangle2 = new GeoRectangle2(new GeoPoint2(x, y + 60), 90, 30),
-                    GeoLine2 = new GeoLine2(new GeoPoint2(x - 40, y), new GeoPoint2(x + 40, y)),
-                    BaseOffsetFromLine = 25,
+                    Box = new GeoRectangle2(new GeoPoint2(x, y + 60), 90, 30),
+                    Leader = new GeoLine2(new GeoPoint2(x - 40, y), new GeoPoint2(x + 40, y)),
+                    Offset = 25,
                     BlockPolygons = blocks,
                     BlockLines = new List<GeoLine2>()
                 });
@@ -79,17 +80,22 @@ namespace GeometryHelper.UnitTest.Arranging
                 for (int t = 0; t < 12; t++)
                 {
                     int count = 1 + rng.Next(6);
-                    List<Arrange> scene = Scene(rng, count);
+                    List<ArrangeItem> scene = Scene(rng, count);
 
-                    List<GeoVector2> moves = Arrange.Run(scene, new ArrangeOptions { Algorithm = which });
+                    var options = new ArrangeOptions { Algorithm = which };
+                    ArrangeResult[] results = Arranger.Run(scene, options);
 
-                    Assert.Equal(count, moves.Count);
+                    Assert.Equal(count, results.Length);
 
-                    // The vector handed back and the one left on the label must be the same answer.
+                    // Each result answers for the label in its place: it sends that label to one of that label's
+                    // own candidate positions, or leaves it where it is.
                     for (int i = 0; i < count; i++)
                     {
-                        Assert.True(moves[i].IsEqualTo(scene[i].TranslationVector, Tol),
-                                    $"{which}: label {i} was told {moves[i]} but carries {scene[i].TranslationVector}");
+                        GeoPoint2 centre = scene[i].Box.Center + results[i].Translation;
+                        bool stays = results[i].Translation.IsEqualTo(GeoVector2.Zero, Tol);
+                        bool own = scene[i].GetPlacePoints(options).Any(p => p.IsEqualTo(centre, Tol));
+
+                        Assert.True(stays || own, $"{which}: label {i} was sent to {centre}, none of its own candidates");
                     }
                 }
             }
@@ -105,16 +111,16 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 for (int t = 0; t < 12; t++)
                 {
-                    List<Arrange> scene = Scene(rng, 4 + rng.Next(6));
-                    Arrange.Run(scene, new ArrangeOptions { Algorithm = which });
+                    List<ArrangeItem> scene = Scene(rng, 4 + rng.Next(6));
+                    ArrangeResult[] results = Arranger.Run(scene, new ArrangeOptions { Algorithm = which });
 
                     var settled = new List<GeoRectangle2>();
 
                     for (int i = 0; i < scene.Count; i++)
                     {
-                        GeoRectangle2 box = scene[i].GeoRectangle2.Translate(scene[i].TranslationVector);
+                        GeoRectangle2 box = scene[i].Box.Translate(results[i].Translation);
 
-                        if (!scene[i].Placed) { unplaced++; continue; }
+                        if (!results[i].Placed) { unplaced++; continue; }
 
                         placed++;
 
@@ -154,22 +160,22 @@ namespace GeometryHelper.UnitTest.Arranging
 
             foreach (ArrangeAlgorithmType which in Algorithms)
             {
-                var trapped = new List<Arrange>
+                var trapped = new List<ArrangeItem>
                 {
-                    new Arrange
+                    new ArrangeItem
                     {
-                        GeoRectangle2 = new GeoRectangle2(new GeoPoint2(0, 100), 90, 30),
-                        GeoLine2 = new GeoLine2(new GeoPoint2(-40, 0), new GeoPoint2(40, 0)),
-                        BaseOffsetFromLine = 25,
+                        Box = new GeoRectangle2(new GeoPoint2(0, 100), 90, 30),
+                        Leader = new GeoLine2(new GeoPoint2(-40, 0), new GeoPoint2(40, 0)),
+                        Offset = 25,
                         BlockPolygons = new List<GeoPolygon2> { wall },
                         BlockLines = new List<GeoLine2>()
                     }
                 };
 
-                List<GeoVector2> moves = Arrange.Run(trapped, new ArrangeOptions { Algorithm = which });
+                ArrangeResult[] results = Arranger.Run(trapped, new ArrangeOptions { Algorithm = which });
 
-                Assert.Single(moves);
-                Assert.False(trapped[0].Placed,
+                Assert.Single(results);
+                Assert.False(results[0].Placed,
                              $"{which}: claimed to place a label on a sheet that is entirely blocked");
             }
         }
@@ -184,17 +190,17 @@ namespace GeometryHelper.UnitTest.Arranging
                 // The seed is fixed per algorithm so both runs see the same scene.
                 var options = new ArrangeOptions { Algorithm = which };
 
-                List<Arrange> first = Scene(new Random(99), 4);
-                List<Arrange> second = Scene(new Random(99), 4);
+                List<ArrangeItem> first = Scene(new Random(99), 4);
+                List<ArrangeItem> second = Scene(new Random(99), 4);
 
-                List<GeoVector2> a = Arrange.Run(first, options);
-                List<GeoVector2> b = Arrange.Run(second, options);
+                ArrangeResult[] a = Arranger.Run(first, options);
+                ArrangeResult[] b = Arranger.Run(second, options);
 
-                Assert.Equal(a.Count, b.Count);
+                Assert.Equal(a.Length, b.Length);
 
-                for (int i = 0; i < a.Count; i++)
+                for (int i = 0; i < a.Length; i++)
                 {
-                    Assert.True(a[i].IsEqualTo(b[i], Tol),
+                    Assert.True(a[i].Translation.IsEqualTo(b[i].Translation, Tol) && a[i].Placed == b[i].Placed,
                                 $"{which}: the same scene arranged twice gave {a[i]} then {b[i]}");
                 }
             }
@@ -205,22 +211,22 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             foreach (ArrangeAlgorithmType which in Algorithms)
             {
-                var alone = new List<Arrange>
+                var alone = new List<ArrangeItem>
                 {
-                    new Arrange
+                    new ArrangeItem
                     {
-                        GeoRectangle2 = new GeoRectangle2(new GeoPoint2(0, 100), 90, 30),
-                        GeoLine2 = new GeoLine2(new GeoPoint2(-40, 0), new GeoPoint2(40, 0)),
-                        BaseOffsetFromLine = 25,
+                        Box = new GeoRectangle2(new GeoPoint2(0, 100), 90, 30),
+                        Leader = new GeoLine2(new GeoPoint2(-40, 0), new GeoPoint2(40, 0)),
+                        Offset = 25,
                         BlockPolygons = new List<GeoPolygon2>(),
                         BlockLines = new List<GeoLine2>()
                     }
                 };
 
-                List<GeoVector2> moves = Arrange.Run(alone, new ArrangeOptions { Algorithm = which });
+                ArrangeResult[] results = Arranger.Run(alone, new ArrangeOptions { Algorithm = which });
 
-                Assert.Single(moves);
-                Assert.True(alone[0].Placed, $"{which}: a lone label with an empty sheet was not placed");
+                Assert.Single(results);
+                Assert.True(results[0].Placed, $"{which}: a lone label with an empty sheet was not placed");
             }
         }
 
@@ -229,15 +235,15 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             foreach (ArrangeAlgorithmType which in Algorithms)
             {
-                Assert.Empty(Arrange.Run(new List<Arrange>(), new ArrangeOptions { Algorithm = which }));
+                Assert.Empty(Arranger.Run(new List<ArrangeItem>(), new ArrangeOptions { Algorithm = which }));
             }
         }
 
         [Fact]
         public void NullArgumentsAreRefused()
         {
-            Assert.Throws<ArgumentNullException>(() => Arrange.Run(null));
-            Assert.Throws<ArgumentNullException>(() => Arrange.Run(new List<Arrange>(), null));
+            Assert.Throws<ArgumentNullException>(() => Arranger.Run(null));
+            Assert.Throws<ArgumentNullException>(() => Arranger.Run(new List<ArrangeItem>(), null));
         }
     }
 }

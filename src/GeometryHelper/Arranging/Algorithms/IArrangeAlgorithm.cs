@@ -11,9 +11,9 @@ namespace GeometryHelper.Arranging.Algorithms
         /// <summary>
         /// Performs arrangement of the label list.
         /// </summary>
-        /// <param name="arranges">List of labels to be arranged.</param>
+        /// <param name="items">The labels to arrange; a null entry is passed over.</param>
         /// <param name="options">Configuration options controlling the algorithm.</param>
-        /// <returns>List of translation GeoVectors corresponding to each label.</returns>
-        List<GeoVector2> Arrange(List<Arrange> arranges, ArrangeOptions options);
+        /// <returns>How far each label moves, in the order of the labels.</returns>
+        GeoVector2[] Arrange(IReadOnlyList<ArrangeItem> items, ArrangeOptions options);
     }
 }

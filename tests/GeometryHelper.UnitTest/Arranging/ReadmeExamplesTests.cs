@@ -1,8 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using GeometryHelper;
-using GeometryHelper.Enums;
-using GeometryHelper.Core;
 using GeometryHelper.Geometry;
 using Xunit;
 using GeometryHelper.Arranging;
@@ -10,48 +7,49 @@ using GeometryHelper.Arranging;
 namespace GeometryHelper.UnitTest.Arranging
 {
     /// <summary>
-    /// Runs the code shown in README.md and checks the numbers it quotes.
+    /// Runs the code shown in docs/arrange.md and checks what it says.
     /// <para>
     /// The README used to document an <c>IntersectsWith</c> family that never existed anywhere in the
     /// library, and it went unnoticed because nothing compiled it. Prose drifts silently; a test does not.
-    /// Every snippet in the README is reproduced here, so renaming or removing an API breaks the build
+    /// Every snippet in the guide is reproduced here, so renaming or removing an API breaks the build
     /// rather than leaving a reader with instructions that cannot work.
     /// </para>
     /// </summary>
     public class ReadmeExamplesTests
     {
-
         [Fact]
-        public void QuickStart_RunsAndFillsInEveryLabel()
+        public void QuickStart_AnswersForEveryLabelAndLeavesTheItemsAlone()
         {
             var leader = new GeoLine2(0.0, 0.0, 2000.0, 0.0);
 
-            var arranges = new List<Arrange>
+            var items = new List<ArrangeItem>
             {
-                new Arrange
+                new ArrangeItem
                 {
-                    GeoRectangle2 = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
-                    GeoLine2      = leader,
-                    BaseOffsetFromLine = 50.0,
+                    Box    = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
+                    Leader = leader,
+                    Offset = 50.0,
                     BlockPolygons = new List<GeoPolygon2>(),
                     BlockLines    = new List<GeoLine2>()
                 }
             };
 
-            List<GeoVector2> moves = Arrange.Run(arranges);
+            ArrangeResult[] results = Arranger.Run(items);
 
-            Assert.Equal(arranges.Count, moves.Count);
+            Assert.Equal(items.Count, results.Length);
 
-            for (int i = 0; i < arranges.Count; i++)
+            for (int i = 0; i < items.Count; i++)
             {
-                GeoVector2 move = arranges[i].TranslationVector;
-                GeoPoint2 newPosition = arranges[i].GeoRectangle2.Center + move;
-                bool isPlaced = arranges[i].Placed;
+                GeoPoint2 newCentre = items[i].Box.Center + results[i].Translation;
+                bool placed = results[i].Placed;
 
-                // The README promises the returned vector and the property are the same value.
-                Assert.True(move.IsEqualTo(moves[i]));
-                Assert.True(newPosition.IsEqualTo(arranges[i].GeoRectangle2.Center + moves[i]));
-                Assert.True(isPlaced);
+                // The guide promises the items are left as they were given...
+                Assert.True(items[i].Box.Center.IsEqualTo(new GeoPoint2(1000.0, 0.0)));
+
+                // ...and the first row at half the label's height plus its offset from the leader.
+                Assert.Equal(1000.0, newCentre.X, 9);
+                Assert.Equal(500.0 + 50.0, Math.Abs(newCentre.Y), 9);
+                Assert.True(placed);
             }
         }
 
@@ -67,27 +65,27 @@ namespace GeometryHelper.UnitTest.Arranging
                 PerpendicularLevels = 3
             };
 
-            var smallTextLabel = new Arrange
+            var smallTextLabel = new ArrangeItem
             {
-                GeoRectangle2 = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
-                GeoLine2      = leader,
-                BaseOffsetFromLine = 50.0
+                Box    = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
+                Leader = leader,
+                Offset = 50.0
             };
 
-            var largeTextLabel = new Arrange
+            var largeTextLabel = new ArrangeItem
             {
-                GeoRectangle2 = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 4000.0, 2000.0),
-                GeoLine2      = leader,
-                BaseOffsetFromLine = 200.0
+                Box    = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 4000.0, 2000.0),
+                Leader = leader,
+                Offset = 200.0
             };
 
-            List<GeoVector2> moves = Arrange.Run(new List<Arrange> { smallTextLabel, largeTextLabel }, options);
+            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { smallTextLabel, largeTextLabel }, options);
 
-            Assert.Equal(2, moves.Count);
+            Assert.Equal(2, results.Length);
 
-            // The larger label carries the larger offset, so it has to end up further from the guide.
-            double smallGap = smallTextLabel.GeoRectangle2.Translate(moves[0]).DistanceTo(leader);
-            double largeGap = largeTextLabel.GeoRectangle2.Translate(moves[1]).DistanceTo(leader);
+            // The larger label carries the larger offset, so it has to end up further from the leader.
+            double smallGap = smallTextLabel.Box.Translate(results[0].Translation).DistanceTo(leader);
+            double largeGap = largeTextLabel.Box.Translate(results[1].Translation).DistanceTo(leader);
             Assert.True(largeGap > smallGap);
         }
     }

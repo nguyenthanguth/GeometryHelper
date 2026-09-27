@@ -12,17 +12,17 @@ namespace GeometryHelper.UnitTest.Arranging
         public void Arrange_Run_SimulatedAnnealing_FindsSolution()
         {
             var leaderLine = new GeoLine2(0.0, 0.0, 10.0, 0.0);
-            var a1 = new Arrange
+            var a1 = new ArrangeItem
             {
-                GeoRectangle2 = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0),
-                GeoLine2 = leaderLine,
-                BaseOffsetFromLine = 5.0
+                Box = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0),
+                Leader = leaderLine,
+                Offset = 5.0
             };
-            var a2 = new Arrange
+            var a2 = new ArrangeItem
             {
-                GeoRectangle2 = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0),
-                GeoLine2 = leaderLine,
-                BaseOffsetFromLine = 5.0
+                Box = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0),
+                Leader = leaderLine,
+                Offset = 5.0
             };
 
             var options = new ArrangeOptions
@@ -32,10 +32,10 @@ namespace GeometryHelper.UnitTest.Arranging
                 PerpendicularLevels = 2
             };
 
-            Arrange.Run(new List<Arrange> { a1, a2 }, options);
+            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a1, a2 }, options);
 
-            var moved1 = new GeoRectangle2(a1.GeoRectangle2.Center + a1.TranslationVector, a1.GeoRectangle2.Width, a1.GeoRectangle2.Height);
-            var moved2 = new GeoRectangle2(a2.GeoRectangle2.Center + a2.TranslationVector, a2.GeoRectangle2.Width, a2.GeoRectangle2.Height);
+            var moved1 = new GeoRectangle2(a1.Box.Center + results[0].Translation, a1.Box.Width, a1.Box.Height);
+            var moved2 = new GeoRectangle2(a2.Box.Center + results[1].Translation, a2.Box.Width, a2.Box.Height);
 
             Assert.False(moved1.CollidesWith(moved2));
         }
@@ -45,37 +45,29 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             // Simulated annealing is inherently random, but the library fixes the seed so that the layout remains unchanged
             // after each rerun. This is an important contract with CAD users.
-            List<Arrange> Solve()
+            ArrangeResult[] Solve()
             {
                 var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
-                var labels = new List<Arrange>();
+                var labels = new List<ArrangeItem>();
                 for (int i = 0; i < 5; i++)
                 {
-                    labels.Add(new Arrange
+                    labels.Add(new ArrangeItem
                     {
-                        GeoRectangle2 = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
-                        GeoLine2 = leader,
-                        BaseOffsetFromLine = 5.0
+                        Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
+                        Leader = leader,
+                        Offset = 5.0
                     });
                 }
 
-                Arrange.Run(labels, new ArrangeOptions
+                return Arranger.Run(labels, new ArrangeOptions
                 {
                     Algorithm = ArrangeAlgorithmType.SimulatedAnnealing,
                     RowGap = 5.0,
                     PerpendicularLevels = 3
                 });
-
-                return labels;
             }
 
-            var first = Solve();
-            var second = Solve();
-
-            for (int i = 0; i < first.Count; i++)
-            {
-                Assert.Equal(first[i].TranslationVector, second[i].TranslationVector);
-            }
+            Assert.Equal(Solve(), Solve());
         }
 
         [Fact]
@@ -84,24 +76,24 @@ namespace GeometryHelper.UnitTest.Arranging
             // The energy function adds a penalty based on translation magnitude, so a solitary label
             // must stop at the nearest perpendicular level instead of wandering far away.
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
-            var label = new Arrange
+            var label = new ArrangeItem
             {
-                GeoRectangle2 = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
-                GeoLine2 = leader,
-                BaseOffsetFromLine = 5.0
+                Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
+                Leader = leader,
+                Offset = 5.0
             };
 
-            Arrange.Run(new List<Arrange> { label }, new ArrangeOptions
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, new ArrangeOptions
             {
                 Algorithm = ArrangeAlgorithmType.SimulatedAnnealing,
                 RowGap = 5.0,
                 PerpendicularLevels = 3
-            });
+            })[0];
 
-            var moved = new GeoRectangle2(label.GeoRectangle2.Center + label.TranslationVector, 20.0, 10.0);
+            var moved = new GeoRectangle2(label.Box.Center + result.Translation, 20.0, 10.0);
 
             Assert.Equal(10.0, Math.Abs(moved.Center.Y), 6);
-            Assert.True(label.Placed);
+            Assert.True(result.Placed);
         }
 
         [Fact]
@@ -114,29 +106,29 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoPoint2(60.0, 60.0),
                 new GeoPoint2(-60.0, 60.0));
 
-            var a = new Arrange
+            var a = new ArrangeItem
             {
-                GeoRectangle2 = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
-                GeoLine2 = leader,
-                BaseOffsetFromLine = 5.0,
+                Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
+                Leader = leader,
+                Offset = 5.0,
                 BlockPolygons = new List<GeoPolygon2> { blockPoly }
             };
-            var b = new Arrange
+            var b = new ArrangeItem
             {
-                GeoRectangle2 = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
-                GeoLine2 = leader,
-                BaseOffsetFromLine = 5.0
+                Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
+                Leader = leader,
+                Offset = 5.0
             };
 
-            Arrange.Run(new List<Arrange> { a, b }, new ArrangeOptions
+            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, new ArrangeOptions
             {
                 Algorithm = ArrangeAlgorithmType.SimulatedAnnealing,
                 RowGap = 5.0,
                 PerpendicularLevels = 3
             });
 
-            var movedA = new GeoRectangle2(a.GeoRectangle2.Center + a.TranslationVector, 20.0, 10.0);
-            var movedB = new GeoRectangle2(b.GeoRectangle2.Center + b.TranslationVector, 20.0, 10.0);
+            var movedA = new GeoRectangle2(a.Box.Center + results[0].Translation, 20.0, 10.0);
+            var movedB = new GeoRectangle2(b.Box.Center + results[1].Translation, 20.0, 10.0);
 
             // The blocked region is collected globally for the list, so both labels must avoid it.
             Assert.False(movedA.CollidesWith(blockPoly));
@@ -148,11 +140,11 @@ namespace GeometryHelper.UnitTest.Arranging
         public void Arrange_Run_SimulatedAnnealing_ZeroTemperature_DoesNotThrow()
         {
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
-            var label = new Arrange
+            var label = new ArrangeItem
             {
-                GeoRectangle2 = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
-                GeoLine2 = leader,
-                BaseOffsetFromLine = 5.0
+                Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
+                Leader = leader,
+                Offset = 5.0
             };
 
             var options = new ArrangeOptions
@@ -164,9 +156,9 @@ namespace GeometryHelper.UnitTest.Arranging
             };
 
             // This should not throw DivideByZeroException when calculating Boltzmann probability (e.g. deltaEnergy / Temp)
-            Arrange.Run(new List<Arrange> { label }, options);
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, options)[0];
 
-            Assert.True(label.Placed);
+            Assert.True(result.Placed);
         }
 
         [Fact]
@@ -175,26 +167,26 @@ namespace GeometryHelper.UnitTest.Arranging
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var blockLine = new GeoLine2(-50.0, 10.0, 150.0, 10.0); // Blocks the first upper level
 
-            var label = new Arrange
+            var label = new ArrangeItem
             {
-                GeoRectangle2 = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
-                GeoLine2 = leader,
-                BaseOffsetFromLine = 5.0,
+                Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
+                Leader = leader,
+                Offset = 5.0,
                 BlockLines = new List<GeoLine2> { blockLine }
             };
 
-            Arrange.Run(new List<Arrange> { label }, new ArrangeOptions
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, new ArrangeOptions
             {
                 Algorithm = ArrangeAlgorithmType.SimulatedAnnealing,
                 RowGap = 5.0,
                 PerpendicularLevels = 3
-            });
+            })[0];
 
-            var moved = new GeoRectangle2(label.GeoRectangle2.Center + label.TranslationVector, 20.0, 10.0);
+            var moved = new GeoRectangle2(label.Box.Center + result.Translation, 20.0, 10.0);
 
             // It should either go to the bottom row (Y=-10) or upper row 2 (Y=25) to avoid the line obstacle
             Assert.False(moved.CollidesWith(blockLine));
-            Assert.True(label.Placed);
+            Assert.True(result.Placed);
         }
     }
 }

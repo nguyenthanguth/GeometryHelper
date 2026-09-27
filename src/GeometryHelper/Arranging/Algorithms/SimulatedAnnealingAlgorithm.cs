@@ -15,45 +15,45 @@ namespace GeometryHelper.Arranging.Algorithms
         /// <summary>
         /// Arranges the labels using a simulated annealing algorithm.
         /// </summary>
-        /// <param name="arranges">The list of labels to arrange.</param>
+        /// <param name="items">The labels to arrange.</param>
         /// <param name="options">The arrangement options.</param>
-        /// <returns>The list of translation vectors for the labels.</returns>
-        public List<GeoVector2> Arrange(List<Arrange> arranges, ArrangeOptions options)
+        /// <returns>How far each label moves, in the order of the labels.</returns>
+        public GeoVector2[] Arrange(IReadOnlyList<ArrangeItem> items, ArrangeOptions options)
         {
-            if (arranges.Count == 0)
+            if (items.Count == 0)
             {
-                return new List<GeoVector2>();
+                return new GeoVector2[0];
             }
 
             // STEP 1: Collect initial static obstacles
-            var staticObstacles = Obstacle.CollectStatic(arranges);
+            var staticObstacles = Obstacle.CollectStatic(items);
 
             // STEP 2: Pre-generate lists of all candidate translation points for each label
             var candidates = new List<List<(GeoVector2 Translation, GeoPoint2 GeoPoint2)>>();
-            var currentTranslations = new GeoVector2[arranges.Count];
-            var currentIndices = new int[arranges.Count];
+            var currentTranslations = new GeoVector2[items.Count];
+            var currentIndices = new int[items.Count];
 
             // Pre-filter nearby obstacles for each label once here.
             // The filtered region only depends on the guide segment and label dimensions, so it remains constant
             // throughout the annealing process, whereas CalculateEnergy is called thousands of times.
             // Filtering inside the loop would waste performance.
-            var nearby = new List<Obstacle>[arranges.Count];
+            var nearby = new List<Obstacle>[items.Count];
 
-            for (int i = 0; i < arranges.Count; i++)
+            for (int i = 0; i < items.Count; i++)
             {
-                var arrange = arranges[i];
+                var item = items[i];
                 var list = new List<(GeoVector2 Translation, GeoPoint2 GeoPoint2)>();
                 nearby[i] = staticObstacles;
 
-                if (arrange != null)
+                if (item != null)
                 {
-                    GeoPoint2 centre = arrange.GeoRectangle2.Center;
-                    foreach (GeoPoint2 p in arrange.EnumeratePlacePoints(options))
+                    GeoPoint2 centre = item.Box.Center;
+                    foreach (GeoPoint2 p in item.EnumeratePlacePoints(options))
                     {
                         list.Add((centre.GetVectorTo(p), p));
                     }
 
-                    if (PlacementHeuristics.TryGetCandidateBounds(arrange, options, out Bounds region))
+                    if (PlacementHeuristics.TryGetCandidateBounds(item, options, out Bounds region))
                     {
                         nearby[i] = staticObstacles.Where(o => region.Overlaps(o.Box)).ToList();
                     }
@@ -73,7 +73,7 @@ namespace GeometryHelper.Arranging.Algorithms
                 }
             }
 
-            double currentEnergy = CalculateEnergy(arranges, currentTranslations, nearby, options);
+            double currentEnergy = CalculateEnergy(items, currentTranslations, nearby, options);
             double bestEnergy = currentEnergy;
             var bestTranslations = currentTranslations.ToArray();
 
@@ -89,7 +89,7 @@ namespace GeometryHelper.Arranging.Algorithms
                 for (int step = 0; step < 50; step++)
                 {
                     // Randomly select a label
-                    int i = random.Next(arranges.Count);
+                    int i = random.Next(items.Count);
                     if (candidates[i].Count == 0) continue;
 
                     // Randomly select a different translation candidate for that label
@@ -104,7 +104,7 @@ namespace GeometryHelper.Arranging.Algorithms
                     currentTranslations[i] = newTranslation;
                     currentIndices[i] = newCandidateIndex;
 
-                    double nextEnergy = CalculateEnergy(arranges, currentTranslations, nearby, options);
+                    double nextEnergy = CalculateEnergy(items, currentTranslations, nearby, options);
                     double delta = nextEnergy - currentEnergy;
 
                     // Accept the new state based on lower energy or Boltzmann probability distribution
@@ -131,33 +131,33 @@ namespace GeometryHelper.Arranging.Algorithms
                 T *= coolingRate;
             }
 
-            // Placed flag is determined by Arrange.MarkPlacementResults on the final layout.
-            return bestTranslations.ToList();
+            // Whether a label is placed is judged by Arranger on the final layout.
+            return bestTranslations;
         }
 
         /// <summary>
         /// Calculates the total energy (penalty function) of the current label configuration.
         /// </summary>
         private static double CalculateEnergy(
-            List<Arrange> arranges, GeoVector2[] translations, List<Obstacle>[] nearby, ArrangeOptions options)
+            IReadOnlyList<ArrangeItem> items, GeoVector2[] translations, List<Obstacle>[] nearby, ArrangeOptions options)
         {
             double energy = 0.0;
 
-            var movedRects = new GeoRectangle2[arranges.Count];
-            var movedBoxes = new Bounds[arranges.Count];
+            var movedRects = new GeoRectangle2[items.Count];
+            var movedBoxes = new Bounds[items.Count];
 
-            for (int i = 0; i < arranges.Count; i++)
+            for (int i = 0; i < items.Count; i++)
             {
-                if (arranges[i] == null) continue;
+                if (items[i] == null) continue;
 
-                movedRects[i] = arranges[i].GeoRectangle2.Translate(translations[i]);
+                movedRects[i] = items[i].Box.Translate(translations[i]);
 
                 movedBoxes[i] = Bounds.Of(movedRects[i]);
             }
 
-            for (int i = 0; i < arranges.Count; i++)
+            for (int i = 0; i < items.Count; i++)
             {
-                if (arranges[i] == null) continue;
+                if (items[i] == null) continue;
 
                 GeoRectangle2 rect = movedRects[i];
                 Bounds box = movedBoxes[i];
@@ -169,9 +169,9 @@ namespace GeometryHelper.Arranging.Algorithms
                 }
 
                 // 2. Penalty for cross-collisions between mobile labels
-                for (int j = i + 1; j < arranges.Count; j++)
+                for (int j = i + 1; j < items.Count; j++)
                 {
-                    if (arranges[j] == null) continue;
+                    if (items[j] == null) continue;
 
                     if (box.Overlaps(movedBoxes[j]))
                     {

@@ -16,8 +16,9 @@
     <PackageReleaseNotes>
       NEW IN 6.0.0
 
-      Two breaking changes, and the reason for both is that a name and a tolerance were each saying
-      something they did not mean.
+      Three breaking changes. The first two have one reason, that a name and a tolerance were each saying
+      something they did not mean; the third, that label placement wrote its answers into what it was
+      given.
 
       RENAMED. GetClosestOnBoundary returned the shortest segment joining two shapes. The name reads as
       "the closest thing on my boundary", which is a different idea, and GeoPolygonArc2 and
@@ -48,6 +49,36 @@
       The question is now asked as a distance rather than as an angle, which is the unit the answer is in.
       Arcs that only nearly touch are no longer reported as crossing. Nothing in the existing test suite
       had to be amended for this.
+
+      RESHAPED. Label placement, GeometryHelper.Arranging. Arrange was the label, the entry point and the
+      answer at once: Arrange.Run wrote each label's Placed and TranslationVector back into the list it was
+      given, and returned the vectors besides. Its second pass lent the labels relaxed blocks for the while
+      and handed their own back after, which lost them for good when a label was listed twice, and showed
+      the loan to anything reading the labels meanwhile. Now the label is only read, and the answer comes
+      back on its own:
+
+      - Arrange is now ArrangeItem, and its properties say what they are for: GeoRectangle2 is Box,
+        GeoLine2 is Leader, BaseOffsetFromLine is Offset. BlockPolygons and BlockLines take any
+        IReadOnlyList and start empty.
+      - Arrange.Run(list[, options]) is now Arranger.Run(items[, options]). It returns an ArrangeResult
+        for each item, in the same order, holding what the item used to carry: Translation and Placed. A
+        null entry is answered with default, not moved and not placed.
+      - Nothing is written into the items, so the same items can be run again, with other options, or on
+        several threads at once.
+      - ArrangeOptions.Default is a new instance each time it is read. One instance for the whole process
+        could be changed by anyone for everyone, and kept the tolerance of whichever thread read it first,
+        a Tolerance.Use scope included.
+
+          Before                                     After
+          new Arrange { GeoRectangle2 = box,         new ArrangeItem { Box = box,
+                        GeoLine2 = leader,                             Leader = leader,
+                        BaseOffsetFromLine = 50 }                      Offset = 50 }
+          Arrange.Run(list, options)                 ArrangeResult[] results = Arranger.Run(items, options)
+          list[i].TranslationVector                  results[i].Translation
+          list[i].Placed                             results[i].Placed
+
+      The namespace is unchanged; the code now lives in src/GeometryHelper/Arranging, one type to a file.
+      As with the renames, nothing old is kept alongside.
 
       NEW. Both halves of the nearest-thing pair now exist on both families of shape.
 

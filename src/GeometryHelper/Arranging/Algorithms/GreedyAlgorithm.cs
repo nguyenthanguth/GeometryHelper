@@ -13,41 +13,41 @@ namespace GeometryHelper.Arranging.Algorithms
         /// <summary>
         /// Arranges the labels using a greedy algorithm.
         /// </summary>
-        /// <param name="arranges">The list of labels to arrange.</param>
+        /// <param name="items">The labels to arrange.</param>
         /// <param name="options">The arrangement options.</param>
-        /// <returns>The list of translation vectors for the labels.</returns>
-        public List<GeoVector2> Arrange(List<Arrange> arranges, ArrangeOptions options)
+        /// <returns>How far each label moves, in the order of the labels.</returns>
+        public GeoVector2[] Arrange(IReadOnlyList<ArrangeItem> items, ArrangeOptions options)
         {
-            var translations = new GeoVector2[arranges.Count];
+            var translations = new GeoVector2[items.Count];
             // STEP 1: Collect all static obstacles from the input (block polygons and block lines)
-            var occupied = Obstacle.CollectStatic(arranges);
+            var occupied = Obstacle.CollectStatic(items);
 
             // STEP 2: Determine placement order of labels.
-            var processingOrder = PlacementHeuristics.GetProcessingOrder(arranges, occupied, options);
+            var processingOrder = PlacementHeuristics.GetProcessingOrder(items, occupied, options);
 
             // STEP 3: Sequentially place each label according to the calculated order.
             foreach (int index in processingOrder)
             {
-                translations[index] = Place(arranges[index], occupied, options);
+                translations[index] = Place(items[index], occupied, options);
             }
 
-            return translations.ToList();
+            return translations;
         }
 
         /// <summary>
         /// Finds the best placement position for a single label using a greedy strategy.
         /// </summary>
-        private GeoVector2 Place(Arrange arrange, List<Obstacle> occupied, ArrangeOptions options)
+        private GeoVector2 Place(ArrangeItem item, List<Obstacle> occupied, ArrangeOptions options)
         {
             // Verify label box validity and calculate local filter Bounds
-            if (!PlacementHeuristics.TryGetCandidateBounds(arrange, options, out Bounds region))
+            if (!PlacementHeuristics.TryGetCandidateBounds(item, options, out Bounds region))
             {
                 // Cannot calculate candidate: label stays in place, but we must still record the area it occupies so subsequent labels do not overlap it.
-                AddBox(arrange, occupied, GeoVector2.Zero);
+                AddBox(item, occupied, GeoVector2.Zero);
                 return GeoVector2.Zero;
             }
 
-            GeoPoint2 centre = arrange.GeoRectangle2.Center;
+            GeoPoint2 centre = item.Box.Center;
 
             // Fast filtering: Keep only obstacles that could potentially collide in the neighborhood
             List<Obstacle> nearby = occupied.Where(obstacle => region.Overlaps(obstacle.Box)).ToList();
@@ -59,7 +59,7 @@ namespace GeometryHelper.Arranging.Algorithms
             bool hasCandidate = false;
 
             // Iterate through search positions to find empty candidates
-            foreach (GeoPoint2 candidate in arrange.EnumeratePlacePoints(options))
+            foreach (GeoPoint2 candidate in item.EnumeratePlacePoints(options))
             {
                 GeoVector2 translation = centre.GetVectorTo(candidate);
 
@@ -70,7 +70,7 @@ namespace GeometryHelper.Arranging.Algorithms
                     hasCandidate = true;
                 }
 
-                GeoRectangle2 moved = arrange.GeoRectangle2.Translate(translation);
+                GeoRectangle2 moved = item.Box.Translate(translation);
 
                 // Detailed collision check
                 if (Obstacle.AnyCollides(nearby, moved, options.Tolerance))
@@ -110,7 +110,7 @@ namespace GeometryHelper.Arranging.Algorithms
             {
                 if (!hasCandidate)
                 {
-                    AddBox(arrange, occupied, GeoVector2.Zero);
+                    AddBox(item, occupied, GeoVector2.Zero);
                     return GeoVector2.Zero;
                 }
 
@@ -118,7 +118,7 @@ namespace GeometryHelper.Arranging.Algorithms
             }
 
             // Add the newly chosen position to the static obstacle list for subsequent labels
-            AddBox(arrange, occupied, chosen);
+            AddBox(item, occupied, chosen);
 
             // Ignore negligible tiny movements
             return chosen.Length > options.MinimumMoveDistance ? chosen : GeoVector2.Zero;
@@ -127,9 +127,9 @@ namespace GeometryHelper.Arranging.Algorithms
         /// <summary>
         /// Translates the label box and adds it to the occupied static obstacle list.
         /// </summary>
-        private static void AddBox(Arrange arrange, List<Obstacle> occupied, GeoVector2 translation)
+        private static void AddBox(ArrangeItem item, List<Obstacle> occupied, GeoVector2 translation)
         {
-            var moved = arrange.GeoRectangle2.Translate(translation);
+            var moved = item.Box.Translate(translation);
             occupied.Add(new Obstacle(moved));
         }
     }

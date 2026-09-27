@@ -49,7 +49,7 @@ beam.TryTrimTo(wall, LineEnd.End, out GeoLine3 cut);      // (0,0,0) -> (2500,0,
 | `GeometryHelper.Core` | 28 operation classes, each dimension mirroring the other: `Boolean2`/`Boolean3`, `Offset2`/`Offset3`, `Distance2`/`Distance3`, … plus `Arc2`, `Corner2` for chamfering and rounding, and `PlanarMap`, which carries flat shapes between the two |
 | `GeometryHelper.Spatial` | `GeoBvh2` and `GeoBvh3`, the bounding volume hierarchies for large chains and meshes |
 | `GeometryHelper.Extension` | turning raw point lists into geometry |
-| `GeometryHelper.Arranging` | label placement: `Arrange`, `ArrangeOptions`, five algorithms |
+| `GeometryHelper.Arranging` | label placement: `Arranger`, `ArrangeItem`, `ArrangeResult`, `ArrangeOptions`, five algorithms |
 
 Every operation is reachable both ways: the static form names the larger shape first, and the instance
 form sits on whichever of the two reads better where you are calling from.

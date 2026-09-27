@@ -1,8 +1,8 @@
 # Label placement
 
-2D label placement for engineering drawings: given a set of labels, each associated with a guide
-segment and surrounding blocked regions, the library calculates translation vectors that keep labels
-from overlapping each other and from encroaching on the blocked regions.
+2D label placement for engineering drawings: given a set of labels, each belonging to a leader and
+keeping clear of blocked regions, `Arranger.Run` works out how far to move each label so that none
+overlaps another or encroaches on the blocked regions.
 
 It depends on AutoCAD and Tekla for nothing. The geometry it works in is [geometry in the
 plane](plane.md), and its own types live in the `GeometryHelper.Arranging` namespace.
@@ -32,35 +32,41 @@ Here is an example of reinforcement marks before and after arrangement:
 ```csharp
 var leader = new GeoLine2(0.0, 0.0, 2000.0, 0.0);
 
-var arranges = new List<Arrange>
+var items = new List<ArrangeItem>
 {
-    new Arrange
+    new ArrangeItem
     {
-        // Label bounding box: center, width, height, rotation angle (radians, counter-clockwise)
-        GeoRectangle2 = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
-        // Guide segment: its midpoint is the origin for candidate positions expansion
-        GeoLine2      = leader,
-        // Minimum perpendicular offset between label edge and guide segment, specific to this label (default 50)
-        BaseOffsetFromLine = 50.0,
-        // Blocked regions the label must not overlap
+        // The label's box: centre, width, height, rotation angle (radians, counter-clockwise)
+        Box    = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
+        // The leader: the candidate positions spread out from its midpoint
+        Leader = leader,
+        // The least gap between the label's edge and the leader, for this label alone (default 50)
+        Offset = 50.0,
+        // What the label must not overlap
         BlockPolygons = new List<GeoPolygon2>(),
         BlockLines    = new List<GeoLine2>()
     }
 };
 
-// Returns translation vector for each label, in the exact input order.
-// Each Arrange object is also automatically updated: arranges[i].TranslationVector contains the same vector.
-List<GeoVector2> moves = Arrange.Run(arranges);
+// One result for each item, in the same order. The items themselves are left as they were given.
+ArrangeResult[] results = Arranger.Run(items);
 
-for (int i = 0; i < arranges.Count; i++)
+for (int i = 0; i < items.Count; i++)
 {
-    // You can use the returned 'moves[i]' or read the property directly:
-    GeoVector2 move = arranges[i].TranslationVector; 
-    
-    GeoPoint2 newPosition = arranges[i].GeoRectangle2.Center + move;
-    bool isPlaced = arranges[i].Placed; // false = forced to fallback, still has overlap
+    GeoPoint2 newCentre = items[i].Box.Center + results[i].Translation;
+    bool placed = results[i].Placed; // false: no clear place was found, and the label overlaps something
 }
 ```
+
+`Arranger.Run` only reads the items. What becomes of each comes back as an `ArrangeResult`: `Translation`,
+how far to move the label, and `Placed`, whether it ends up clear of every other label and of every block.
+The same list can therefore be run again, with other options or on another thread, to compare. A null entry
+is passed over and answered with `default`: not moved, not placed.
+
+A run goes over the labels twice. The first pass places every label under every constraint. The labels it
+leaves overlapping something are tried once more with the block lines lifted, keeping clear of the labels
+already placed. `Placed` is judged afterwards, on the final layout as a whole, so a label that another one fell
+back onto is not reported clear.
 
 To change the algorithm or fine-tune parameters, pass `ArrangeOptions`:
 
@@ -72,35 +78,36 @@ var options = new ArrangeOptions
     PerpendicularLevels = 3
 };
 
-List<GeoVector2> moves = Arrange.Run(arranges, options);
+ArrangeResult[] results = Arranger.Run(items, options);
 ```
 
-`ArrangeOptions` is the shared configuration for the entire list. `BaseOffsetFromLine` is set per `Arrange` because each label may require a different offset:
+`ArrangeOptions` is the shared configuration for the entire list. `Offset` is set per `ArrangeItem` because each label may require a different offset:
 
 ```csharp
-var smallTextLabel = new Arrange
+var smallTextLabel = new ArrangeItem
 {
-    GeoRectangle2 = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
-    GeoLine2      = leader,
-    BaseOffsetFromLine = 50.0   // small text, closely sticks to guide segment
+    Box    = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
+    Leader = leader,
+    Offset = 50.0   // small text, closely sticks to the leader
 };
 
-var largeTextLabel = new Arrange
+var largeTextLabel = new ArrangeItem
 {
-    GeoRectangle2 = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 4000.0, 2000.0),
-    GeoLine2      = leader,
-    BaseOffsetFromLine = 200.0  // large text, must move further away
+    Box    = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 4000.0, 2000.0),
+    Leader = leader,
+    Offset = 200.0  // large text, must move further away
 };
 
-List<GeoVector2> moves = Arrange.Run(new List<Arrange> { smallTextLabel, largeTextLabel }, options);
+ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { smallTextLabel, largeTextLabel }, options);
 ```
 
 ## Candidate Positions Generation
 
-All 5 algorithms share the same set of discrete candidate positions, expanding from the midpoint of the guide segment:
+All 5 algorithms share the same set of discrete candidate positions, expanding from the midpoint of the leader;
+`ArrangeItem.GetPlacePoints(options)` lists them:
 
-- **Perpendicular Translation** — each level in `PerpendicularLevels` creates a row of labels, symmetric on both sides of the guide segment. The first level is placed at half the label height plus the label's own `BaseOffsetFromLine`. Each subsequent level adds the label height plus `RowGap`.
-- **Longitudinal Sliding** — in each row, the label slides parallel to the guide segment in both directions, up to a maximum of half the guide segment length plus `LongitudinalOvershootRatio` times the label width.
+- **Perpendicular Translation** — each level in `PerpendicularLevels` creates a row of labels, symmetric on both sides of the leader. The first level is placed at half the label height plus the label's own `Offset`. Each subsequent level adds the label height plus `RowGap`.
+- **Longitudinal Sliding** — in each row, the label slides parallel to the leader in both directions, up to a maximum of half the leader's length plus `LongitudinalOvershootRatio` times the label width.
 
 The algorithms only differ in how they **select** from this candidate set.
 
@@ -118,15 +125,18 @@ The algorithms only differ in how they **select** from this candidate set.
 
 `SimulatedAnnealing` uses a fixed seed, so its results are reproducible between runs.
 
-## Parameters for each `Arrange`
+## Parameters of each `ArrangeItem`
 
 | Parameter | Default | Meaning |
 |---|---|---|
-| `GeoRectangle2` | — | Label bounding box, the geometry that will be translated |
-| `GeoLine2` | — | Guide segment; its midpoint is the origin for candidate positions expansion |
-| `BaseOffsetFromLine` | 50.0 | Minimum perpendicular offset between label edge and guide segment |
-| `BlockPolygons` | — | Blocked polygons that the label must not overlap |
-| `BlockLines` | — | Blocked line segments that the label must not overlap |
+| `Box` | — | The label's box, the rectangle that is moved |
+| `Leader` | — | The segment the label belongs to; its midpoint is the origin of the candidate positions |
+| `Offset` | 50.0 | The least gap between the label's edge and the leader |
+| `BlockPolygons` | empty | Regions the label must not overlap |
+| `BlockLines` | empty | Segments the label must not overlap; lifted in the second pass, and a label left across one is not `Placed` |
+
+The blocks of all the items are gathered into one set before any label is placed, so every label keeps clear of
+the blocks of every item, and a block given to many items is tested once.
 
 ## Main Parameters of `ArrangeOptions`
 
@@ -146,7 +156,7 @@ The algorithms only differ in how they **select** from this candidate set.
 | `AnnealingInitialTemperature` | 100.0 | Initial temperature for the Simulated Annealing algorithm |
 | `AnnealingCoolingRate` | 0.95 | Cooling rate for the Simulated Annealing algorithm |
 | `ForceIterations` | 100 | Number of force simulation iterations for the Force-Directed algorithm |
-| `Tolerance` | `Tolerance.Global` | Tolerance for geometric comparisons |
+| `Tolerance` | `Tolerance.Global` | Tolerance for geometric comparisons; `Tolerance.Global` as it stands when the options are made |
 
 Default values are in millimeters, matching conventional structural drawings.
 

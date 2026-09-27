@@ -17,10 +17,10 @@ namespace GeometryHelper.Arranging.Algorithms
         /// Calculates processing (sorting) order of labels to optimize placement success.
         /// </summary>
         internal static IEnumerable<int> GetProcessingOrder(
-            List<Arrange> arranges, List<Obstacle> staticObstacles, ArrangeOptions options)
+            IReadOnlyList<ArrangeItem> items, List<Obstacle> staticObstacles, ArrangeOptions options)
         {
-            int[] indices = Enumerable.Range(0, arranges.Count)
-                .Where(index => arranges[index] != null)
+            int[] indices = Enumerable.Range(0, items.Count)
+                .Where(index => items[index] != null)
                 .ToArray();
 
             if (indices.Length == 0)
@@ -38,8 +38,8 @@ namespace GeometryHelper.Arranging.Algorithms
                 double sumY = 0;
                 foreach (int index in indices)
                 {
-                    sumX += arranges[index].GeoRectangle2.Center.X;
-                    sumY += arranges[index].GeoRectangle2.Center.Y;
+                    sumX += items[index].Box.Center.X;
+                    sumY += items[index].Box.Center.Y;
                 }
                 centroidX = sumX / indices.Length;
                 centroidY = sumY / indices.Length;
@@ -52,14 +52,14 @@ namespace GeometryHelper.Arranging.Algorithms
                 {
                     // Sort in ascending order of squared distance to centroid (from core to outer edge)
                     return indices
-                        .OrderBy(index => GetSquaredDistanceToCentroid(arranges[index], centroidX, centroidY))
+                        .OrderBy(index => GetSquaredDistanceToCentroid(items[index], centroidX, centroidY))
                         .ToArray();
                 }
 
                 // Default sorting: left to right, bottom to top
                 return indices
-                    .OrderBy(index => arranges[index].GeoRectangle2.Center.X)
-                    .ThenBy(index => arranges[index].GeoRectangle2.Center.Y)
+                    .OrderBy(index => items[index].Box.Center.X)
+                    .ThenBy(index => items[index].Box.Center.Y)
                     .ToArray();
             }
 
@@ -68,13 +68,13 @@ namespace GeometryHelper.Arranging.Algorithms
             // Freedom degree is measured against static obstacles, calculated once before placing any labels.
             // Re-measuring after each placement is more accurate but costs quadratic time relative to label count,
             // whereas most constraints originate from static obstacles.
-            var freedom = new int[arranges.Count];
-            var room = new int[arranges.Count];
+            var freedom = new int[items.Count];
+            var room = new int[items.Count];
 
             foreach (int index in indices)
             {
-                freedom[index] = CountFreePlaces(arranges[index], staticObstacles, options);
-                room[index] = CountAllPlaces(arranges[index], options);
+                freedom[index] = CountFreePlaces(items[index], staticObstacles, options);
+                room[index] = CountAllPlaces(items[index], options);
             }
 
             if (options.PlaceFromInsideOut)
@@ -82,7 +82,7 @@ namespace GeometryHelper.Arranging.Algorithms
                 // Prioritize the most constrained label first. If tie in freedom, prioritize the one closer to the centroid.
                 return indices
                     .OrderBy(index => freedom[index])
-                    .ThenBy(index => GetSquaredDistanceToCentroid(arranges[index], centroidX, centroidY))
+                    .ThenBy(index => GetSquaredDistanceToCentroid(items[index], centroidX, centroidY))
                     .ToArray();
             }
 
@@ -101,23 +101,23 @@ namespace GeometryHelper.Arranging.Algorithms
         /// <summary>
         /// Calculates the squared distance from the label center to the area centroid.
         /// </summary>
-        private static double GetSquaredDistanceToCentroid(Arrange arrange, double centroidX, double centroidY)
+        private static double GetSquaredDistanceToCentroid(ArrangeItem item, double centroidX, double centroidY)
         {
-            double dx = arrange.GeoRectangle2.Center.X - centroidX;
-            double dy = arrange.GeoRectangle2.Center.Y - centroidY;
+            double dx = item.Box.Center.X - centroidX;
+            double dy = item.Box.Center.Y - centroidY;
             return dx * dx + dy * dy;
         }
 
         /// <summary>
         /// Counts the actual number of free positions within the first sample candidate group.
         /// </summary>
-        private static int CountFreePlaces(Arrange arrange, List<Obstacle> staticObstacles, ArrangeOptions options)
+        private static int CountFreePlaces(ArrangeItem item, List<Obstacle> staticObstacles, ArrangeOptions options)
         {
-            GeoPoint2 centre = arrange.GeoRectangle2.Center;
+            GeoPoint2 centre = item.Box.Center;
             int free = 0;
             int examined = 0;
 
-            foreach (GeoPoint2 candidate in arrange.EnumeratePlacePoints(options))
+            foreach (GeoPoint2 candidate in item.EnumeratePlacePoints(options))
             {
                 // Only sample a small quantity configured by FreedomSampleSize (default = 12) to guarantee performance
                 if (examined >= options.FreedomSampleSize)
@@ -128,7 +128,7 @@ namespace GeometryHelper.Arranging.Algorithms
                 examined++;
 
                 var translation = centre.GetVectorTo(candidate);
-                var moved = arrange.GeoRectangle2.Translate(translation);
+                var moved = item.Box.Translate(translation);
 
                 // If this position does not overlap any obstacles, consider it a free position
                 if (!Obstacle.AnyCollides(staticObstacles, moved, options.Tolerance))
@@ -143,9 +143,9 @@ namespace GeometryHelper.Arranging.Algorithms
         /// <summary>
         /// Calculates the maximum total number of candidates that can be generated along the guide segment.
         /// </summary>
-        private static int CountAllPlaces(Arrange arrange, ArrangeOptions options)
+        private static int CountAllPlaces(ArrangeItem item, ArrangeOptions options)
         {
-            if (!arrange.TryGetLayout(options, out Layout layout))
+            if (!item.TryGetLayout(options, out Layout layout))
             {
                 return 0;
             }
@@ -176,14 +176,14 @@ namespace GeometryHelper.Arranging.Algorithms
 
                 switch (obstacle.Type)
                 {
-                    case ObstacleType.GeoRectangle2:
-                        distance = moved.DistanceTo(obstacle.GeoRectangle2);
+                    case ObstacleType.Rectangle:
+                        distance = moved.DistanceTo(obstacle.Rectangle);
                         break;
-                    case ObstacleType.GeoPolygon2:
-                        distance = moved.DistanceTo(obstacle.GeoPolygon2);
+                    case ObstacleType.Polygon:
+                        distance = moved.DistanceTo(obstacle.Polygon);
                         break;
-                    case ObstacleType.GeoLine2:
-                        distance = moved.DistanceTo(obstacle.GeoLine2);
+                    case ObstacleType.Line:
+                        distance = moved.DistanceTo(obstacle.Line);
                         break;
                 }
 
@@ -200,9 +200,9 @@ namespace GeometryHelper.Arranging.Algorithms
         /// Calculates the bounding box containing all potential candidate points that can be generated.
         /// Used for rough filtering to exclude obstacles too far from the label.
         /// </summary>
-        internal static bool TryGetCandidateBounds(Arrange arrange, ArrangeOptions options, out Bounds bounds)
+        internal static bool TryGetCandidateBounds(ArrangeItem item, ArrangeOptions options, out Bounds bounds)
         {
-            if (!arrange.TryGetLayout(options, out Layout layout))
+            if (!item.TryGetLayout(options, out Layout layout))
             {
                 bounds = default(Bounds);
                 return false;
@@ -223,7 +223,7 @@ namespace GeometryHelper.Arranging.Algorithms
             };
 
             // Create bounding box enclosing the 4 outer corners and expand it by NeighbourMargin for safety
-            bounds = Bounds.Around(corners).Expand(arrange.GetBoxSpan(options) + options.NeighbourMargin);
+            bounds = Bounds.Around(corners).Expand(item.GetBoxSpan() + options.NeighbourMargin);
             return true;
         }
     }

@@ -124,20 +124,20 @@ namespace GeometryHelper.ArrangeAlgorithms.TeklaTest
                 }
             }
 
-            // Create Arrange objects representing the layout constraints for each mark
-            List<Arrange> arranges = new List<Arrange>();
+            // Create an item for each mark: its box, its leader and what it must keep clear of
+            List<ArrangeItem> items = new List<ArrangeItem>();
             foreach (var markGroup in markGroups)
             {
                 var markBox = markGroup.Mark.GetAxisAlignedBoundingBox();
 
-                arranges.Add(new Arrange
+                items.Add(new ArrangeItem
                 {
                     // Define the mark's boundary rectangle (center point, width, height, and angle)
-                    GeoRectangle2 = markBox.ToGeoRectangle2(),
+                    Box = markBox.ToGeoRectangle2(),
                     // Define the target centerline for the mark
-                    GeoLine2 = markGroup.MiddleLineRebar.ToGeoLine2(),
+                    Leader = markGroup.MiddleLineRebar.ToGeoLine2(),
                     // Preferred offset distance of the mark from the rebar centerline
-                    BaseOffsetFromLine = 50.0,
+                    Offset = 50.0,
                     // Keep track of obstacles (dimensions and other rebar lines) to avoid overlaps
                     BlockPolygons = blockPolygons,
                     BlockLines = blockLines,
@@ -152,16 +152,16 @@ namespace GeometryHelper.ArrangeAlgorithms.TeklaTest
             };
 
             // Run the label placement optimization algorithm
-            Arrange.Run(arranges, arrangeOptions);
+            ArrangeResult[] results = Arranger.Run(items, arrangeOptions);
 
             // Apply calculated displacement vectors to move the marks in the drawing
-            for (int i = 0; i < arranges.Count; i++)
+            for (int i = 0; i < results.Length; i++)
             {
                 // Only move the mark if the calculated displacement exceeds the minimum distance threshold
-                if (arranges[i].TranslationVector.Length < arrangeOptions.MinimumMoveDistance)
+                if (results[i].Translation.Length < arrangeOptions.MinimumMoveDistance)
                     continue;
 
-                TSG.Vector translate = arranges[i].TranslationVector.ToTeklaVector();
+                TSG.Vector translate = results[i].Translation.ToTeklaVector();
                 markGroups[i].Mark.MoveObjectRelative(translate);
                 markGroups[i].Mark.Modify();
             }

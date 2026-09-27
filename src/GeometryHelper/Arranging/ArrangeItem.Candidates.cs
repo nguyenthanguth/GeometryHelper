@@ -5,15 +5,24 @@ using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Arranging
 {
-    public partial class Arrange
+    public sealed partial class ArrangeItem
     {
-        /// <summary>Generates candidate position list with default configuration.</summary>
+        /// <summary>
+        /// Gets the positions the centre of the label is tried at, with the default options.
+        /// </summary>
+        /// <returns>The candidate centres, nearest row first; empty when the label cannot be arranged.</returns>
         public List<GeoPoint2> GetPlacePoints()
         {
             return GetPlacePoints(ArrangeOptions.Default);
         }
 
-        /// <summary>Generates candidate positions for the label center.</summary>
+        /// <summary>
+        /// Gets the positions the centre of the label is tried at: rows on either side of the leader, each sliding
+        /// along it. Every algorithm chooses among these.
+        /// </summary>
+        /// <param name="options">The options setting the rows and how far they slide.</param>
+        /// <returns>The candidate centres, nearest row first; empty when the label cannot be arranged.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="options"/> is null.</exception>
         public List<GeoPoint2> GetPlacePoints(ArrangeOptions options)
         {
             if (options == null)
@@ -92,14 +101,14 @@ namespace GeometryHelper.Arranging
             // STEP 1: Initial validity check of label box dimensions.
             // If width or height is smaller than minimum configuration, ignore it to prevent division by zero or geometric distortion.
             // Strict comparison (<): label dimensions exactly equal to threshold are still valid.
-            if (GeoRectangle2.Width < options.MinimumBoxSize || GeoRectangle2.Height < options.MinimumBoxSize)
+            if (Box.Width < options.MinimumBoxSize || Box.Height < options.MinimumBoxSize)
             {
                 return false;
             }
 
-            // STEP 2: Determine directional axis (unit GeoVector2) along the label guide path (Anchor GeoLine2).
+            // STEP 2: Determine directional axis (unit GeoVector2) along the leader.
             // This axis points in the direction where the label can slide longitudinally.
-            if (!GeoLine2.Direction.TryGetNormal(out GeoVector2 direction))
+            if (!Leader.Direction.TryGetNormal(out GeoVector2 direction))
             {
                 return false;
             }
@@ -116,7 +125,7 @@ namespace GeometryHelper.Arranging
 
             // STEP 3: Measure label bounding box in the new local coordinate system.
             // Iterate through 4 vertices of the label rectangle (which can be rotated at an arbitrary angle)
-            var vertices = GeoRectangle2.GetVertices();
+            var vertices = Box.GetVertices();
             for (int i = 0; i < vertices.Length; i++)
             {
                 // Transform vertex coordinates into a GeoVector2 from origin (0,0)
@@ -147,30 +156,29 @@ namespace GeometryHelper.Arranging
 
             // STEP 4: Set up the complete Layout structure
             layout = new Layout(
-                GeoLine2.MidPoint, // Anchor point (midpoint of the guide path)
+                Leader.MidPoint, // Anchor point (midpoint of the leader)
                 direction,        // Local longitudinal axis
                 perpendicular,    // Local perpendicular axis
                 height,           // Actual label height along perpendicular axis
 
                 // BaseOffset: Minimum perpendicular distance from the path to the center of the first label row,
-                // which equals half the label height plus this label's unique offset margin (BaseOffsetFromLine)
-                height * 0.5 + BaseOffsetFromLine,
+                // which equals half the label height plus this label's unique offset margin (Offset)
+                height * 0.5 + Offset,
 
                 // MaximumShift: Maximum allowable longitudinal shift distance along the path,
                 // which equals half the path length plus a portion of the label width overshooting the ends (LongitudinalOvershootRatio)
-                GeoLine2.Length * 0.5 + width * options.LongitudinalOvershootRatio);
+                Leader.Length * 0.5 + width * options.LongitudinalOvershootRatio);
 
             return true;
         }
 
         /// <summary>
-        /// Calculates the maximum diagonal dimension of the label's bounding box.
+        /// Calculates the longer side of the axis-aligned box around the label.
         /// </summary>
-        /// <param name="options">The arrangement options.</param>
-        /// <returns>The diagonal span of the bounding box.</returns>
-        internal double GetBoxSpan(ArrangeOptions options)
+        /// <returns>The longer side of the box around the label.</returns>
+        internal double GetBoxSpan()
         {
-            var vertices = GeoRectangle2.GetVertices();
+            var vertices = Box.GetVertices();
             double minX = double.MaxValue, minY = double.MaxValue;
             double maxX = double.MinValue, maxY = double.MinValue;
             foreach (var v in vertices)

@@ -18,28 +18,28 @@ namespace GeometryHelper.Arranging.Algorithms
         /// <summary>
         /// Arranges the labels using a force-directed algorithm.
         /// </summary>
-        /// <param name="arranges">The list of labels to arrange.</param>
+        /// <param name="items">The labels to arrange.</param>
         /// <param name="options">The arrangement options.</param>
-        /// <returns>The list of translation vectors for the labels.</returns>
-        public List<GeoVector2> Arrange(List<Arrange> arranges, ArrangeOptions options)
+        /// <returns>How far each label moves, in the order of the labels.</returns>
+        public GeoVector2[] Arrange(IReadOnlyList<ArrangeItem> items, ArrangeOptions options)
         {
-            if (arranges.Count == 0)
+            if (items.Count == 0)
             {
-                return new List<GeoVector2>();
+                return new GeoVector2[0];
             }
 
-            var staticObstacles = Obstacle.CollectStatic(arranges);
-            var anchors = new GeoPoint2[arranges.Count];
-            var positions = new GeoPoint2[arranges.Count];
+            var staticObstacles = Obstacle.CollectStatic(items);
+            var anchors = new GeoPoint2[items.Count];
+            var positions = new GeoPoint2[items.Count];
 
             // STEP 1: Record initial default positions (Anchors)
-            for (int i = 0; i < arranges.Count; i++)
+            for (int i = 0; i < items.Count; i++)
             {
-                var arrange = arranges[i];
-                if (arrange == null) continue;
+                var item = items[i];
+                if (item == null) continue;
 
-                anchors[i] = arrange.GeoRectangle2.Center;
-                positions[i] = arrange.GeoRectangle2.Center;
+                anchors[i] = item.Box.Center;
+                positions[i] = item.Box.Center;
             }
 
             // STEP 2: Run continuous physical force simulation
@@ -48,29 +48,29 @@ namespace GeometryHelper.Arranging.Algorithms
 
             for (int step = 0; step < iterations; step++)
             {
-                var forces = new GeoVector2[arranges.Count];
-                for (int i = 0; i < arranges.Count; i++)
+                var forces = new GeoVector2[items.Count];
+                for (int i = 0; i < items.Count; i++)
                 {
                     forces[i] = GeoVector2.Zero;
                 }
 
                 // 1. Spring Force pulling the label back to its original position to prevent it from drifting too far
-                for (int i = 0; i < arranges.Count; i++)
+                for (int i = 0; i < items.Count; i++)
                 {
-                    if (arranges[i] == null) continue;
+                    if (items[i] == null) continue;
 
                     GeoVector2 toAnchor = positions[i].GetVectorTo(anchors[i]);
                     forces[i] = forces[i].Add(toAnchor * 0.05); // Spring elasticity coefficient
                 }
 
                 // 2. Coulomb Repulsive Force pushing labels away from each other
-                for (int i = 0; i < arranges.Count; i++)
+                for (int i = 0; i < items.Count; i++)
                 {
-                    if (arranges[i] == null) continue;
+                    if (items[i] == null) continue;
 
-                    for (int j = i + 1; j < arranges.Count; j++)
+                    for (int j = i + 1; j < items.Count; j++)
                     {
-                        if (arranges[j] == null) continue;
+                        if (items[j] == null) continue;
 
                         GeoVector2 toOther = positions[i].GetVectorTo(positions[j]);
                         double distance = Math.Max(toOther.Length, 10.0);
@@ -90,9 +90,9 @@ namespace GeometryHelper.Arranging.Algorithms
                 }
 
                 // 3. Repulsive force from static obstacles (block polygons and lines)
-                for (int i = 0; i < arranges.Count; i++)
+                for (int i = 0; i < items.Count; i++)
                 {
-                    if (arranges[i] == null) continue;
+                    if (items[i] == null) continue;
 
                     // Obstacles further than PushRadius do not contribute force. Exclude them using bounding box
                     // overlap checks first, since GetClosestBoundaryPoint must iterate through each edge and is significantly more expensive.
@@ -127,9 +127,9 @@ namespace GeometryHelper.Arranging.Algorithms
                 }
 
                 // 4. Update label positions (Enforce maximum displacement to keep system stable)
-                for (int i = 0; i < arranges.Count; i++)
+                for (int i = 0; i < items.Count; i++)
                 {
-                    if (arranges[i] == null) continue;
+                    if (items[i] == null) continue;
 
                     GeoVector2 stepMove = forces[i] * timestep;
                     if (stepMove.Length > 500.0)
@@ -143,15 +143,15 @@ namespace GeometryHelper.Arranging.Algorithms
 
             // STEP 3: Discrete Mapping
             // Find the nearest non-colliding discrete candidate point to the final physical position
-            var translations = new GeoVector2[arranges.Count];
+            var translations = new GeoVector2[items.Count];
             var finalOccupied = new List<Obstacle>(staticObstacles);
 
-            for (int i = 0; i < arranges.Count; i++)
+            for (int i = 0; i < items.Count; i++)
             {
-                var arrange = arranges[i];
-                if (arrange == null) continue;
+                var item = items[i];
+                if (item == null) continue;
 
-                GeoPoint2 centre = arrange.GeoRectangle2.Center;
+                GeoPoint2 centre = item.Box.Center;
                 GeoPoint2 physTarget = positions[i];
                 GeoVector2 bestTranslation = GeoVector2.Zero;
                 double bestDist = double.MaxValue;
@@ -159,15 +159,15 @@ namespace GeometryHelper.Arranging.Algorithms
 
                 // Pre-filter obstacles out of the label's reach. finalOccupied grows as labels
                 // are placed, so this filter is beneficial even if the drawing has no static blocked regions.
-                List<Obstacle> nearby = PlacementHeuristics.TryGetCandidateBounds(arrange, options, out Bounds region)
+                List<Obstacle> nearby = PlacementHeuristics.TryGetCandidateBounds(item, options, out Bounds region)
                     ? finalOccupied.Where(o => region.Overlaps(o.Box)).ToList()
                     : finalOccupied;
 
                 // Iterate through all discrete candidates of the label
-                foreach (GeoPoint2 candidate in arrange.EnumeratePlacePoints(options))
+                foreach (GeoPoint2 candidate in item.EnumeratePlacePoints(options))
                 {
                     GeoVector2 translation = centre.GetVectorTo(candidate);
-                    GeoRectangle2 moved = arrange.GeoRectangle2.Translate(translation);
+                    GeoRectangle2 moved = item.Box.Translate(translation);
 
                     // Only accept if the candidate does not collide with static obstacles and previously placed labels
                     if (!Obstacle.AnyCollides(nearby, moved, options.Tolerance))
@@ -183,21 +183,21 @@ namespace GeometryHelper.Arranging.Algorithms
                 }
 
                 // If no empty position is found, fallback to the default level 0 position of the label.
-                // Placed flag is determined by Arrange.MarkPlacementResults on the final layout.
+                // Whether a label is placed is judged by Arranger on the final layout.
                 if (!mapped)
                 {
-                    var points = arrange.EnumeratePlacePoints(options).ToList();
+                    var points = item.EnumeratePlacePoints(options).ToList();
                     bestTranslation = points.Count > 0 ? centre.GetVectorTo(points[0]) : GeoVector2.Zero;
                 }
 
                 translations[i] = bestTranslation;
 
                 // Add the selected position as a static obstacle for subsequent labels
-                GeoRectangle2 finalRect = arrange.GeoRectangle2.Translate(bestTranslation);
+                GeoRectangle2 finalRect = item.Box.Translate(bestTranslation);
                 finalOccupied.Add(new Obstacle(finalRect));
             }
 
-            return translations.ToList();
+            return translations;
         }
 
         /// <summary>
@@ -207,12 +207,12 @@ namespace GeometryHelper.Arranging.Algorithms
         {
             switch (obstacle.Type)
             {
-                case ObstacleType.GeoLine2:
-                    return obstacle.GeoLine2.GetClosestPointOnBoundary(from);
-                case ObstacleType.GeoRectangle2:
-                    return GetClosestPointOnEdges(obstacle.GeoRectangle2.GetEdges(), from);
+                case ObstacleType.Line:
+                    return obstacle.Line.GetClosestPointOnBoundary(from);
+                case ObstacleType.Rectangle:
+                    return GetClosestPointOnEdges(obstacle.Rectangle.GetEdges(), from);
                 default:
-                    return GetClosestPointOnEdges(obstacle.GeoPolygon2.GetEdges(), from);
+                    return GetClosestPointOnEdges(obstacle.Polygon.GetEdges(), from);
             }
         }
 

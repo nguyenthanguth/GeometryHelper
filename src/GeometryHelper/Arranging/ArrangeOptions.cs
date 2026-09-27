@@ -7,9 +7,16 @@ namespace GeometryHelper.Arranging
     public sealed class ArrangeOptions
     {
         /// <summary>
-        /// Default configuration options, used by <see cref="Arrange.Run(System.Collections.Generic.List{Arrange})"/>.
+        /// Gets the default options, a new instance each time it is read, as
+        /// <see cref="Arranger.Run(System.Collections.Generic.IReadOnlyList{ArrangeItem})"/> runs with them.
         /// </summary>
-        public static ArrangeOptions Default { get; } = new ArrangeOptions();
+        /// <remarks>
+        /// A new instance, so that changing what it gives changes no other run, and so that its
+        /// <see cref="Tolerance"/> is the one <see cref="GeometryHelper.Tolerance.Global"/> gives at the time, a
+        /// <see cref="GeometryHelper.Tolerance.Use(GeometryHelper.Tolerance)"/> scope included. One instance for the
+        /// whole process did neither: it kept the tolerance of whichever thread first read it.
+        /// </remarks>
+        public static ArrangeOptions Default => new ArrangeOptions();
 
         /// <summary>
         /// The label arrangement algorithm to be used.
@@ -102,7 +109,8 @@ namespace GeometryHelper.Arranging
         public int ForceIterations { get; set; } = 100;
 
         /// <summary>
-        /// Tolerance used for geometric calculations and intersection checks.
+        /// Tolerance used for geometric calculations and intersection checks: <see cref="GeometryHelper.Tolerance.Global"/>
+        /// as it stands when the options are made, unless set.
         /// </summary>
         public Tolerance Tolerance { get; set; } = Tolerance.Global;
     }

@@ -9,11 +9,11 @@ namespace GeometryHelper.Arranging
     internal enum ObstacleType
     {
         /// <summary>A polygon obstacle.</summary>
-        GeoPolygon2,
+        Polygon,
         /// <summary>A line segment obstacle.</summary>
-        GeoLine2,
+        Line,
         /// <summary>A rectangular obstacle.</summary>
-        GeoRectangle2
+        Rectangle
     }
 
     /// <summary>
@@ -23,12 +23,12 @@ namespace GeometryHelper.Arranging
     {
         /// <summary>Gets the type of the obstacle.</summary>
         internal ObstacleType Type { get; }
-        /// <summary>Gets the underlying polygon geometry if type is GeoPolygon2.</summary>
-        internal GeoPolygon2 GeoPolygon2 { get; }
-        /// <summary>Gets the underlying line segment geometry if type is GeoLine2.</summary>
-        internal GeoLine2 GeoLine2 { get; }
-        /// <summary>Gets the underlying rectangle geometry if type is GeoRectangle2.</summary>
-        internal GeoRectangle2 GeoRectangle2 { get; }
+        /// <summary>Gets the polygon, when the type is <see cref="ObstacleType.Polygon"/>.</summary>
+        internal GeoPolygon2 Polygon { get; }
+        /// <summary>Gets the segment, when the type is <see cref="ObstacleType.Line"/>.</summary>
+        internal GeoLine2 Line { get; }
+        /// <summary>Gets the rectangle, when the type is <see cref="ObstacleType.Rectangle"/>.</summary>
+        internal GeoRectangle2 Rectangle { get; }
         /// <summary>Gets the bounding box of the obstacle.</summary>
         internal Bounds Box { get; }
 
@@ -38,10 +38,10 @@ namespace GeometryHelper.Arranging
         /// <param name="polygon">The polygon geometry.</param>
         internal Obstacle(GeoPolygon2 polygon)
         {
-            Type = ObstacleType.GeoPolygon2;
-            GeoPolygon2 = polygon;
-            GeoLine2 = default(GeoLine2);
-            GeoRectangle2 = default(GeoRectangle2);
+            Type = ObstacleType.Polygon;
+            Polygon = polygon;
+            Line = default(GeoLine2);
+            Rectangle = default(GeoRectangle2);
             Box = Bounds.Of(polygon);
         }
 
@@ -51,10 +51,10 @@ namespace GeometryHelper.Arranging
         /// <param name="line">The line segment geometry.</param>
         internal Obstacle(GeoLine2 line)
         {
-            Type = ObstacleType.GeoLine2;
-            GeoPolygon2 = null;
-            GeoLine2 = line;
-            GeoRectangle2 = default(GeoRectangle2);
+            Type = ObstacleType.Line;
+            Polygon = null;
+            Line = line;
+            Rectangle = default(GeoRectangle2);
             Box = Bounds.Of(line);
         }
 
@@ -64,10 +64,10 @@ namespace GeometryHelper.Arranging
         /// <param name="rectangle">The rectangle geometry.</param>
         internal Obstacle(GeoRectangle2 rectangle)
         {
-            Type = ObstacleType.GeoRectangle2;
-            GeoPolygon2 = null;
-            GeoLine2 = default(GeoLine2);
-            GeoRectangle2 = rectangle;
+            Type = ObstacleType.Rectangle;
+            Polygon = null;
+            Line = default(GeoLine2);
+            Rectangle = rectangle;
             Box = Bounds.Of(rectangle);
         }
 
@@ -80,23 +80,23 @@ namespace GeometryHelper.Arranging
         /// geometries remains small. Deduplication here benefits all algorithms.
         /// </para>
         /// </summary>
-        /// <param name="arranges">The list of labels containing obstacles.</param>
+        /// <param name="items">The labels; a null entry is passed over.</param>
         /// <returns>A list of deduplicated obstacles.</returns>
-        internal static List<Obstacle> CollectStatic(List<Arrange> arranges)
+        internal static List<Obstacle> CollectStatic(IReadOnlyList<ArrangeItem> items)
         {
             var occupied = new List<Obstacle>();
-            if (arranges == null) return occupied;
+            if (items == null) return occupied;
 
             var seenPolygons = new HashSet<GeoPolygon2>();
             var seenLines = new HashSet<GeoLine2>();
 
-            foreach (Arrange arrange in arranges)
+            foreach (ArrangeItem item in items)
             {
-                if (arrange == null) continue;
+                if (item == null) continue;
 
-                if (arrange.BlockPolygons != null)
+                if (item.BlockPolygons != null)
                 {
-                    foreach (GeoPolygon2 block in arrange.BlockPolygons)
+                    foreach (GeoPolygon2 block in item.BlockPolygons)
                     {
                         if (block != null && seenPolygons.Add(block))
                         {
@@ -105,9 +105,9 @@ namespace GeometryHelper.Arranging
                     }
                 }
 
-                if (arrange.BlockLines != null)
+                if (item.BlockLines != null)
                 {
-                    foreach (GeoLine2 block in arrange.BlockLines)
+                    foreach (GeoLine2 block in item.BlockLines)
                     {
                         if (seenLines.Add(block))
                         {
@@ -141,19 +141,19 @@ namespace GeometryHelper.Arranging
                 // Detailed collision check based on specific geometric type
                 switch (obstacle.Type)
                 {
-                    case ObstacleType.GeoRectangle2:
+                    case ObstacleType.Rectangle:
                         // OBB vs OBB: Using SAT (Separating Axis Theorem)
-                        if (moved.CollidesWith(obstacle.GeoRectangle2, tolerance))
+                        if (moved.CollidesWith(obstacle.Rectangle, tolerance))
                             return true;
                         break;
-                    case ObstacleType.GeoPolygon2:
+                    case ObstacleType.Polygon:
                         // OBB vs Polygon: Check edge intersections and containment
-                        if (moved.CollidesWith(obstacle.GeoPolygon2, tolerance))
+                        if (moved.CollidesWith(obstacle.Polygon, tolerance))
                             return true;
                         break;
-                    case ObstacleType.GeoLine2:
+                    case ObstacleType.Line:
                         // OBB vs Line Segment: Check edge intersections and endpoints
-                        if (moved.CollidesWith(obstacle.GeoLine2, tolerance))
+                        if (moved.CollidesWith(obstacle.Line, tolerance))
                             return true;
                         break;
                 }

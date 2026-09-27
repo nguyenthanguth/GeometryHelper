@@ -21,43 +21,43 @@ namespace GeometryHelper.UnitTest.Arranging
         }
 
         /// <summary>20x10 label initially placed at the midpoint of the guide segment.</summary>
-        private static Arrange LabelOn(GeoLine2 leader)
+        private static ArrangeItem LabelOn(GeoLine2 leader)
         {
-            return new Arrange
+            return new ArrangeItem
             {
-                GeoLine2 = leader,
-                GeoRectangle2 = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
-                BaseOffsetFromLine = 5.0
+                Leader = leader,
+                Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
+                Offset = 5.0
             };
         }
 
-        private static GeoRectangle2 MovedBox(Arrange arrange, GeoVector2 translation)
+        private static GeoRectangle2 MovedBox(ArrangeItem arrange, GeoVector2 translation)
         {
             return new GeoRectangle2(
-                arrange.GeoRectangle2.Center + translation,
-                arrange.GeoRectangle2.Width,
-                arrange.GeoRectangle2.Height,
-                arrange.GeoRectangle2.AngleRad);
+                arrange.Box.Center + translation,
+                arrange.Box.Width,
+                arrange.Box.Height,
+                arrange.Box.AngleRad);
         }
 
         [Fact]
         public void Arrange_Run_Greedy_ArrangesNonOverlappingLabels()
         {
             var leaderLine = new GeoLine2(0.0, 0.0, 10.0, 0.0);
-            var a1 = new Arrange
+            var a1 = new ArrangeItem
             {
-                GeoRectangle2 = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0),
-                GeoLine2 = leaderLine,
-                BaseOffsetFromLine = 5.0
+                Box = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0),
+                Leader = leaderLine,
+                Offset = 5.0
             };
-            var a2 = new Arrange
+            var a2 = new ArrangeItem
             {
-                GeoRectangle2 = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0),
-                GeoLine2 = leaderLine,
-                BaseOffsetFromLine = 5.0
+                Box = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0),
+                Leader = leaderLine,
+                Offset = 5.0
             };
 
-            var list = new List<Arrange> { a1, a2 };
+            var list = new List<ArrangeItem> { a1, a2 };
             var options = new ArrangeOptions
             {
                 Algorithm = ArrangeAlgorithmType.Greedy,
@@ -65,14 +65,14 @@ namespace GeometryHelper.UnitTest.Arranging
                 PerpendicularLevels = 3
             };
 
-            Arrange.Run(list, options);
+            ArrangeResult[] results = Arranger.Run(list, options);
 
-            var moved1 = new GeoRectangle2(a1.GeoRectangle2.Center + a1.TranslationVector, a1.GeoRectangle2.Width, a1.GeoRectangle2.Height);
-            var moved2 = new GeoRectangle2(a2.GeoRectangle2.Center + a2.TranslationVector, a2.GeoRectangle2.Width, a2.GeoRectangle2.Height);
+            var moved1 = new GeoRectangle2(a1.Box.Center + results[0].Translation, a1.Box.Width, a1.Box.Height);
+            var moved2 = new GeoRectangle2(a2.Box.Center + results[1].Translation, a2.Box.Width, a2.Box.Height);
 
             Assert.False(moved1.CollidesWith(moved2));
-            Assert.True(a1.Placed);
-            Assert.True(a2.Placed);
+            Assert.True(results[0].Placed);
+            Assert.True(results[1].Placed);
         }
 
         [Fact]
@@ -90,11 +90,11 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoPoint2(-50.0, 30.0)
             );
 
-            var arrange = new Arrange
+            var arrange = new ArrangeItem
             {
-                GeoRectangle2 = rect,
-                GeoLine2 = leaderLine,
-                BaseOffsetFromLine = 5.0,
+                Box = rect,
+                Leader = leaderLine,
+                Offset = 5.0,
                 BlockPolygons = new List<GeoPolygon2> { blockPoly }
             };
 
@@ -105,13 +105,13 @@ namespace GeometryHelper.UnitTest.Arranging
                 PerpendicularLevels = 2
             };
 
-            Arrange.Run(new List<Arrange> { arrange }, options);
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { arrange }, options)[0];
 
-            var moved = new GeoRectangle2(arrange.GeoRectangle2.Center + arrange.TranslationVector, arrange.GeoRectangle2.Width, arrange.GeoRectangle2.Height);
+            var moved = new GeoRectangle2(arrange.Box.Center + result.Translation, arrange.Box.Width, arrange.Box.Height);
 
             Assert.True(moved.Center.Y < 0.0);
             Assert.False(blockPoly.CollidesWith(moved));
-            Assert.True(arrange.Placed);
+            Assert.True(result.Placed);
         }
 
         [Fact]
@@ -130,11 +130,11 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoPoint2(-100.0, 100.0)
             );
 
-            var arrange = new Arrange
+            var arrange = new ArrangeItem
             {
-                GeoRectangle2 = rect,
-                GeoLine2 = leaderLine,
-                BaseOffsetFromLine = 5.0,
+                Box = rect,
+                Leader = leaderLine,
+                Offset = 5.0,
                 BlockPolygons = new List<GeoPolygon2> { blockPoly }
             };
 
@@ -145,12 +145,12 @@ namespace GeometryHelper.UnitTest.Arranging
                 PerpendicularLevels = 2
             };
 
-            Arrange.Run(new List<Arrange> { arrange }, options);
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { arrange }, options)[0];
 
             // Regardless of constraints, the Greedy algorithm must fallback to the first candidate
             // instead of staying in place, which causes uncertainty.
-            Assert.False(arrange.Placed);
-            Assert.NotEqual(GeoVector2.Zero, arrange.TranslationVector);
+            Assert.False(result.Placed);
+            Assert.NotEqual(GeoVector2.Zero, result.Translation);
         }
 
         [Fact]
@@ -170,44 +170,36 @@ namespace GeometryHelper.UnitTest.Arranging
                     new GeoPoint2(990.0, 30.0))
             };
 
-            Arrange.Run(new List<Arrange> { near, far }, GreedyOptions());
+            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { near, far }, GreedyOptions());
 
             // translations[0] must correspond to the left label, translations[1] to the right label.
-            Assert.Equal(20.0, MovedBox(near, near.TranslationVector).Center.X, 6);
-            Assert.Equal(1020.0, MovedBox(far, far.TranslationVector).Center.X, 6);
+            Assert.Equal(20.0, MovedBox(near, results[0].Translation).Center.X, 6);
+            Assert.Equal(1020.0, MovedBox(far, results[1].Translation).Center.X, 6);
 
             // And the label blocked above must dodge downwards.
-            Assert.True(MovedBox(far, far.TranslationVector).Center.Y < 0.0);
+            Assert.True(MovedBox(far, results[1].Translation).Center.Y < 0.0);
         }
 
         [Fact]
         public void Arrange_Run_Greedy_IsDeterministic()
         {
-            List<Arrange> Solve()
+            ArrangeResult[] Solve()
             {
-                var labels = new List<Arrange>();
+                var labels = new List<ArrangeItem>();
                 for (int i = 0; i < 6; i++)
                 {
                     labels.Add(LabelOn(new GeoLine2(i * 12.0, 0.0, i * 12.0 + 30.0, 0.0)));
                 }
-                Arrange.Run(labels, GreedyOptions());
-                return labels;
+                return Arranger.Run(labels, GreedyOptions());
             }
 
-            var first = Solve();
-            var second = Solve();
-
-            Assert.Equal(first.Count, second.Count);
-            for (int i = 0; i < first.Count; i++)
-            {
-                Assert.Equal(first[i].TranslationVector, second[i].TranslationVector);
-            }
+            Assert.Equal(Solve(), Solve());
         }
 
         [Fact]
         public void Arrange_Run_Greedy_WithEmptyList_DoesNotThrow()
         {
-            Arrange.Run(new List<Arrange>(), GreedyOptions());
+            Assert.Empty(Arranger.Run(new List<ArrangeItem>(), GreedyOptions()));
         }
 
         [Fact]
@@ -216,13 +208,13 @@ namespace GeometryHelper.UnitTest.Arranging
             var a = LabelOn(new GeoLine2(0.0, 0.0, 40.0, 0.0));
             var b = LabelOn(new GeoLine2(0.0, 0.0, 40.0, 0.0));
 
-            var labels = new List<Arrange> { a, null, b };
-            Arrange.Run(labels, GreedyOptions());
+            var labels = new List<ArrangeItem> { a, null, b };
+            ArrangeResult[] results = Arranger.Run(labels, GreedyOptions());
 
             // The two real labels must still be arranged normally.
-            Assert.False(MovedBox(a, a.TranslationVector).CollidesWith(MovedBox(b, b.TranslationVector)));
-            Assert.True(a.Placed);
-            Assert.True(b.Placed);
+            Assert.False(MovedBox(a, results[0].Translation).CollidesWith(MovedBox(b, results[2].Translation)));
+            Assert.True(results[0].Placed);
+            Assert.True(results[2].Placed);
         }
 
         [Fact]
@@ -235,12 +227,12 @@ namespace GeometryHelper.UnitTest.Arranging
             var blockLine = new GeoLine2(-20.0, 10.0, 60.0, 10.0);
             arrange.BlockLines = new List<GeoLine2> { blockLine };
 
-            Arrange.Run(new List<Arrange> { arrange }, GreedyOptions());
-            var moved = MovedBox(arrange, arrange.TranslationVector);
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { arrange }, GreedyOptions())[0];
+            var moved = MovedBox(arrange, result.Translation);
 
             Assert.True(moved.Center.Y < 0.0);
             Assert.False(moved.CollidesWith(blockLine));
-            Assert.True(arrange.Placed);
+            Assert.True(result.Placed);
         }
 
         [Fact]
@@ -250,17 +242,17 @@ namespace GeometryHelper.UnitTest.Arranging
             var leader = new GeoLine2(0.0, 0.0, 40.0, 40.0);
             var box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0, Math.PI / 4.0);
 
-            var a = new Arrange { GeoLine2 = leader, GeoRectangle2 = box, BaseOffsetFromLine = 5.0 };
-            var b = new Arrange { GeoLine2 = leader, GeoRectangle2 = box, BaseOffsetFromLine = 5.0 };
+            var a = new ArrangeItem { Leader = leader, Box = box, Offset = 5.0 };
+            var b = new ArrangeItem { Leader = leader, Box = box, Offset = 5.0 };
 
-            Arrange.Run(new List<Arrange> { a, b }, GreedyOptions());
+            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, GreedyOptions());
 
-            Assert.False(MovedBox(a, a.TranslationVector).CollidesWith(MovedBox(b, b.TranslationVector)));
-            Assert.True(a.Placed);
-            Assert.True(b.Placed);
+            Assert.False(MovedBox(a, results[0].Translation).CollidesWith(MovedBox(b, results[1].Translation)));
+            Assert.True(results[0].Placed);
+            Assert.True(results[1].Placed);
 
             // The two labels must be placed on opposite sides of the guide segment, i.e., shifted in perpendicular directions.
-            Assert.NotEqual(a.TranslationVector, b.TranslationVector);
+            Assert.NotEqual(results[0].Translation, results[1].Translation);
         }
 
         [Fact]
@@ -274,10 +266,10 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoPoint2(50.0, 30.0),
                 new GeoPoint2(-50.0, 30.0));
 
-            List<Arrange> Solve(bool onEveryLabel)
+            ArrangeResult[] Solve(bool onEveryLabel)
             {
                 var block = Block();
-                var labels = new List<Arrange>();
+                var labels = new List<ArrangeItem>();
                 for (int i = 0; i < 4; i++)
                 {
                     var label = LabelOn(new GeoLine2(i * 15.0, 0.0, i * 15.0 + 40.0, 0.0));
@@ -286,17 +278,10 @@ namespace GeometryHelper.UnitTest.Arranging
                         : new List<GeoPolygon2>();
                     labels.Add(label);
                 }
-                Arrange.Run(labels, GreedyOptions());
-                return labels;
+                return Arranger.Run(labels, GreedyOptions());
             }
 
-            var once = Solve(false);
-            var everywhere = Solve(true);
-
-            for (int i = 0; i < once.Count; i++)
-            {
-                Assert.Equal(once[i].TranslationVector, everywhere[i].TranslationVector);
-            }
+            Assert.Equal(Solve(false), Solve(true));
         }
 
         [Fact]
@@ -305,13 +290,13 @@ namespace GeometryHelper.UnitTest.Arranging
             // Three labels share a short guide segment but only have one perpendicular level, meaning there is only room for two.
             // The third label is forced to fallback and overlap an already placed label.
             var leader = new GeoLine2(0.0, 0.0, 10.0, 0.0);
-            var labels = new List<Arrange> { LabelOn(leader), LabelOn(leader), LabelOn(leader) };
+            var labels = new List<ArrangeItem> { LabelOn(leader), LabelOn(leader), LabelOn(leader) };
 
-            Arrange.Run(labels, GreedyOptions(perpendicularLevels: 1));
+            ArrangeResult[] results = Arranger.Run(labels, GreedyOptions(perpendicularLevels: 1));
 
             // The OVERLAPPED label must also be reported as failed, not just the label causing the collision.
             // Previously it still retained the success flag because that spot was empty when its turn came.
-            Assert.Equal(1, labels.Count(x => x.Placed));
+            Assert.Equal(1, results.Count(x => x.Placed));
         }
 
         [Fact]
@@ -325,11 +310,11 @@ namespace GeometryHelper.UnitTest.Arranging
             options.PlaceMostConstrainedFirst = false;
             options.PlaceFromInsideOut = false;
 
-            Arrange.Run(new List<Arrange> { a, b }, options);
+            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, options);
 
-            Assert.False(MovedBox(a, a.TranslationVector).CollidesWith(MovedBox(b, b.TranslationVector)));
-            Assert.True(a.Placed);
-            Assert.True(b.Placed);
+            Assert.False(MovedBox(a, results[0].Translation).CollidesWith(MovedBox(b, results[1].Translation)));
+            Assert.True(results[0].Placed);
+            Assert.True(results[1].Placed);
         }
     }
 }
