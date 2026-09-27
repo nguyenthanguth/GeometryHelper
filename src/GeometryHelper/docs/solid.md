@@ -161,7 +161,10 @@ pierced.Locate(new GeoPoint3(5, 5, 5)); // OutSide — inside the duct
 
 `Volume` is measured by the divergence theorem, so it does not depend on where the solid sits and is
 reported unsigned: faces wound inwards give the same answer as faces wound outwards. It does depend on the
-boundary being closed, which is what `IsClosed()` is for.
+boundary being closed, which is what `IsClosed()` is for: every stretch of every edge shared by an even
+number of faces. A long edge beside two short ones is matched stretch by stretch, and two blocks meeting
+along an edge put four faces on it and are closed; a missing face leaves a stretch with one, and a fin
+standing off the surface one with three.
 
 **Every question takes the openings into account.** The faces of a pierced body run straight across its
 openings — a plate's top face is a whole square even where a bolt hole passes through it — so nothing reads

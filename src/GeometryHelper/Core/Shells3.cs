@@ -226,6 +226,118 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Determines whether faces close up: every stretch of every edge is shared by an even number of them.
+        /// </summary>
+        /// <remarks>
+        /// Edges are matched by overlap along a line, as for splitting, so a long edge beside two short ones is
+        /// matched stretch by stretch. An odd count is an open rim, one face, or a fin, three; two close the
+        /// surface, and so do four where two blocks meet along an edge.
+        /// </remarks>
+        internal static bool ClosesUp(IReadOnlyList<GeoFace3> faces, Tolerance tolerance)
+        {
+            List<Segment> segments = CollectSegments(faces, tolerance);
+
+            if (segments.Count == 0)
+            {
+                return false;
+            }
+
+            int[] line = new int[segments.Count];
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                line[i] = i;
+            }
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                Segment a = segments[i];
+
+                for (int j = i + 1; j < segments.Count && segments[j].MinX <= a.MaxX; j++)
+                {
+                    if (Overlap(a, segments[j], tolerance))
+                    {
+                        Union(line, i, j);
+                    }
+                }
+            }
+
+            var groups = new Dictionary<int, List<int>>();
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                int root = Find(line, i);
+
+                if (!groups.TryGetValue(root, out List<int> members))
+                {
+                    members = new List<int>();
+                    groups.Add(root, members);
+                }
+
+                members.Add(i);
+            }
+
+            foreach (List<int> members in groups.Values)
+            {
+                if (members.Count == 1 || !EvenAlong(segments, members, tolerance))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether every stretch of one line is covered by an even number of the edges along it.
+        /// </summary>
+        private static bool EvenAlong(List<Segment> segments, List<int> members, Tolerance tolerance)
+        {
+            Segment first = segments[members[0]];
+            GeoPoint3 origin = first.Start;
+            GeoVector3 axis = first.Start.GetVectorTo(first.End).Normalize();
+
+            var stops = new List<double>();
+
+            foreach (int m in members)
+            {
+                stops.Add(origin.GetVectorTo(segments[m].Start).DotProduct(axis));
+                stops.Add(origin.GetVectorTo(segments[m].End).DotProduct(axis));
+            }
+
+            stops.Sort();
+
+            for (int k = 0; k + 1 < stops.Count; k++)
+            {
+                if (stops[k + 1] - stops[k] <= tolerance.EqualPoint)
+                {
+                    continue;
+                }
+
+                double middle = (stops[k] + stops[k + 1]) * 0.5;
+                int covering = 0;
+
+                foreach (int m in members)
+                {
+                    double t0 = origin.GetVectorTo(segments[m].Start).DotProduct(axis);
+                    double t1 = origin.GetVectorTo(segments[m].End).DotProduct(axis);
+
+                    if (middle > Math.Min(t0, t1) && middle < Math.Max(t0, t1))
+                    {
+                        covering++;
+                    }
+                }
+
+                if (covering % 2 != 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Determines whether two segments lie along one line and share a stretch of it longer than the
         /// tolerance.
         /// </summary>

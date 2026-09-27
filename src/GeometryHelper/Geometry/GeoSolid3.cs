@@ -534,12 +534,20 @@ namespace GeometryHelper.Geometry
         /// Checks whether the boundary closes without gaps, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A closed surface has every boundary edge shared by exactly two faces. One face on an edge means
-        /// an open rim; three or more means the surface branches, which is not a solid boundary either.
+        /// <para>
+        /// A closed surface has every stretch of every edge shared by an even number of faces. One face on a
+        /// stretch is an open rim and three are a fin standing off the surface; two close it, and so do four
+        /// where two blocks meet along an edge — watertight, and measuring and holding points as they should.
         /// Hole rims count as edges like any other, since in a closed body they are shared with the surface
-        /// lining the cavity behind them. Vertices are matched through a spatial grid rather than by
-        /// scanning what has been seen so far, which keeps the cost linear in the number of vertices
-        /// instead of quadratic.
+        /// lining the cavity behind them.
+        /// </para>
+        /// <para>
+        /// Edges are first matched by their end points, through a spatial grid, which settles the usual body
+        /// in time linear in its vertices. Only where that leaves an edge not used exactly twice are the edges
+        /// matched by overlap along a line, stretch by stretch: a long edge beside two short ones — which
+        /// merging coplanar faces and the booleans both leave behind — has no partner by its end points, and
+        /// was called open, as was a body meeting itself along an edge.
+        /// </para>
         /// </remarks>
         public bool IsClosed(Tolerance tolerance)
         {
@@ -568,7 +576,7 @@ namespace GeometryHelper.Geometry
             {
                 if (count != 2)
                 {
-                    return false;
+                    return Shells3.ClosesUp(_faces, tolerance);
                 }
             }
 

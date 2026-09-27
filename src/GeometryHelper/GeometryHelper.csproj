@@ -347,6 +347,13 @@
         every question without a word. TryGetNormal normalised a vector of NaNs into another, so a plane or
         a ray built on one was taken. All of them refuse NaN and infinity now, and a rectangle refuses an
         angle that is not a number.
+      - IsClosed matched edges by their end points and wanted each used exactly twice. A long edge beside
+        two short ones -- which merging coplanar faces and the booleans both leave -- had no partner that
+        way, and two blocks meeting along an edge put four faces on one edge; both bodies are watertight
+        and measure right, and both were called open, so IfcConvert warned on them and meshed them again.
+        A body is closed now when every stretch of every edge is shared by an even number of faces. The
+        end points still settle the usual body; only where they leave an edge unmatched is the edge
+        matched along its line.
 
       NEW IN 5.1.0
 
