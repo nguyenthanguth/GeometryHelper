@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using GeometryHelper;
+using GeometryHelper.Core;
 using GeometryHelper.Geometry;
 using GeometryHelper.Spatial;
 
@@ -307,9 +308,13 @@ namespace GeometryHelper.Clash
             {
                 if (a.CollidesWith(b, tolerance))
                 {
-                    // Parts that lie against each other across a face of one of them share no volume, and the
-                    // boolean would only have cut them into cells to find that out.
-                    GeoSolid3[] overlaps = a.IsPartedFrom(b, tolerance) ? new GeoSolid3[0] : a.Intersect(b, tolerance);
+                    // Two convex parts that plainly share a region have it clipped out at once. Otherwise parts that
+                    // lie against each other across a face of one of them share no volume, and the boolean would only
+                    // have cut them into cells to find that out; what is left is the boolean's to decide.
+                    if (!a.TryIntersectConvex(b, tolerance, out GeoSolid3[] overlaps))
+                    {
+                        overlaps = a.IsPartedFrom(b, tolerance) ? new GeoSolid3[0] : Boolean3.Intersect(a.Material, b.Material, tolerance);
+                    }
 
                     if (overlaps.Length > 0)
                     {

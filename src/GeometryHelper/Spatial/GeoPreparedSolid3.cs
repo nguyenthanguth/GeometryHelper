@@ -412,12 +412,23 @@ namespace GeometryHelper.Spatial
 
             // Two convex bodies share one convex region at most, which clipping one by the other's faces finds
             // outright; where it is not plainly a region the general boolean decides, as it always did.
-            if (_convex && other._convex && Boolean3.TryIntersectConvex(Material, other.Material, tolerance, out GeoSolid3[] shared))
+            if (TryIntersectConvex(other, tolerance, out GeoSolid3[] shared))
             {
                 return shared;
             }
 
             return Boolean3.Intersect(Material, other.Material, tolerance);
+        }
+
+        /// <summary>
+        /// Gets the region this body and another share by clipping, when both are convex and the region is plainly one.
+        /// </summary>
+        /// <returns>false when either body is not convex, or the clipping leaves it to the general boolean.</returns>
+        internal bool TryIntersectConvex(GeoPreparedSolid3 other, Tolerance tolerance, out GeoSolid3[] shared)
+        {
+            shared = null;
+
+            return _convex && other._convex && Boolean3.TryIntersectConvex(Material, other.Material, tolerance, out shared);
         }
 
         /// <summary>
