@@ -473,6 +473,12 @@
         twice. The frame's check: 3.5 s to 1.6 s. Where several segments are shortest alike, between
         parallel faces or round a bolt in its hole, the one given may differ from before; how short it is
         does not.
+      - Cutting openings in glued the cells back by comparing every face with every face and every edge
+        with every edge, and measured the box of every cell and every opening afresh each time one was
+        asked for. The faces and edges are now filed by where they lie and compared only with those that
+        could match, in the same order and by the same test, and a GeoPolygon3 and a GeoSolid3 measure
+        their box once, when they are made. A plate with four bolt holes: 317 ms to 43 ms; with 32 holes,
+        1.7 s to 0.6 s. Preparing the frame: 6.3 s to 1.7 s.
 
       NEW IN 5.1.0
 

@@ -25,6 +25,7 @@ namespace GeometryHelper.Geometry
     {
         private readonly GeoFace3[] _faces;
         private readonly GeoSolid3[] _openings;
+        private readonly GeoAabb3 _box;
 
         /// <summary>
         /// Gets the read-only list of faces bounding the solid.
@@ -94,6 +95,15 @@ namespace GeometryHelper.Geometry
 
             _faces = keptFaces.ToArray();
             _openings = keptOpenings.ToArray();
+
+            GeoAabb3 box = GeoAabb3.Empty;
+
+            foreach (GeoFace3 face in _faces)
+            {
+                box = box.Union(face.GetAabb());
+            }
+
+            _box = box;
         }
 
         /// <summary>
@@ -399,17 +409,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the axis-aligned bounding box enclosing this solid.
         /// </summary>
-        public GeoAabb3 GetAabb()
-        {
-            GeoAabb3 box = GeoAabb3.Empty;
-
-            foreach (GeoFace3 face in _faces)
-            {
-                box = box.Union(face.GetAabb());
-            }
-
-            return box;
-        }
+        /// <remarks>
+        /// The box of the faces, measured once when the body is made: the body cannot change, and cutting it or
+        /// placing a point against it asks for the box of every piece and every opening, again and again. The
+        /// openings are not in it, since they only take material away.
+        /// </remarks>
+        public GeoAabb3 GetAabb() => _box;
 
         /// <summary>
         /// Breaks every face into triangles, giving the surface of the solid as a triangle mesh, using

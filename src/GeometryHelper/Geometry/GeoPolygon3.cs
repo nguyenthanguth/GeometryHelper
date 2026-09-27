@@ -25,6 +25,7 @@ namespace GeometryHelper.Geometry
     public sealed partial class GeoPolygon3 : IEquatable<GeoPolygon3>
     {
         private readonly GeoPoint3[] _vertices;
+        private readonly GeoAabb3 _box;
 
         /// <summary>
         /// Gets the read-only list of vertices defining the polygon.
@@ -129,6 +130,7 @@ namespace GeometryHelper.Geometry
             }
 
             _vertices = loop;
+            _box = GeoAabb3.FromPoints(loop);
             Normal = normal;
             Area = areaVector.Length;
             Length = MeasurePerimeter(loop);
@@ -153,6 +155,7 @@ namespace GeometryHelper.Geometry
         private GeoPolygon3(GeoPoint3[] validatedVertices, GeoVector3 normal, double area)
         {
             _vertices = validatedVertices;
+            _box = GeoAabb3.FromPoints(validatedVertices);
             Normal = normal;
             Area = area;
             Length = MeasurePerimeter(validatedVertices);
@@ -368,7 +371,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the axis-aligned bounding box enclosing this polygon.
         /// </summary>
-        public GeoAabb3 GetAabb() => GeoAabb3.FromPoints(_vertices);
+        /// <remarks>
+        /// Measured once, when the polygon is made, as its normal and area are: the polygon cannot change, and
+        /// the box is asked for over and over — by every face of a body, every time a point is placed against
+        /// it or a plane cuts it.
+        /// </remarks>
+        public GeoAabb3 GetAabb() => _box;
 
         /// <summary>
         /// Gets the boundary of this polygon as an open chain, with the closing vertex written out.

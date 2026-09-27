@@ -350,13 +350,29 @@ namespace GeometryHelper.Core
         /// </remarks>
         private static void SplitAtEdgeEnds(List<GeoLine3> edges, Tolerance tolerance)
         {
-            List<GeoPoint3> ends = new List<GeoPoint3>(edges.Count * 2);
+            // The ends sorted along X, so that the ones that could lie on an edge are found in a short run rather
+            // than by testing every end against every edge. A cut position does not depend on the order the ends
+            // are met in, since the split sorts them.
+            int count = edges.Count * 2;
+            GeoPoint3[] ends = new GeoPoint3[count];
+            double[] xs = new double[count];
 
-            foreach (GeoLine3 edge in edges)
+            for (int i = 0; i < edges.Count; i++)
             {
-                ends.Add(edge.StartPoint);
-                ends.Add(edge.EndPoint);
+                ends[2 * i] = edges[i].StartPoint;
+                ends[2 * i + 1] = edges[i].EndPoint;
             }
+
+            for (int i = 0; i < count; i++)
+            {
+                xs[i] = ends[i].X;
+            }
+
+            Array.Sort(xs, ends);
+
+            // A point on an edge lies within the tolerance of it, so inside its box grown by the tolerance; the
+            // box is grown a hair more so that rounding cannot shut out an end the exact test would take.
+            double reach = tolerance.EqualPoint * (1.0 + 1E-6) + 1E-12;
 
             List<GeoLine3> resolved = new List<GeoLine3>(edges.Count);
             List<double> cuts = new List<double>();
@@ -365,8 +381,20 @@ namespace GeometryHelper.Core
             {
                 cuts.Clear();
 
-                foreach (GeoPoint3 end in ends)
+                GeoPoint3 a = edge.StartPoint, b = edge.EndPoint;
+                double minY = Math.Min(a.Y, b.Y) - reach, maxY = Math.Max(a.Y, b.Y) + reach;
+                double minZ = Math.Min(a.Z, b.Z) - reach, maxZ = Math.Max(a.Z, b.Z) + reach;
+                double maxX = Math.Max(a.X, b.X) + reach;
+
+                for (int k = LowerBound(xs, Math.Min(a.X, b.X) - reach); k < count && xs[k] <= maxX; k++)
                 {
+                    GeoPoint3 end = ends[k];
+
+                    if (end.Y < minY || end.Y > maxY || end.Z < minZ || end.Z > maxZ)
+                    {
+                        continue;
+                    }
+
                     if (Containment3.IsPointOn(edge, end, tolerance))
                     {
                         cuts.Add(Parametrization3.GetDistanceAtPoint(edge, end));
@@ -380,6 +408,30 @@ namespace GeometryHelper.Core
 
             edges.Clear();
             edges.AddRange(resolved);
+        }
+
+        /// <summary>
+        /// Gets the first position in a sorted array holding a value no smaller than a given one.
+        /// </summary>
+        private static int LowerBound(double[] sorted, double value)
+        {
+            int low = 0, high = sorted.Length;
+
+            while (low < high)
+            {
+                int middle = low + (high - low) / 2;
+
+                if (sorted[middle] < value)
+                {
+                    low = middle + 1;
+                }
+                else
+                {
+                    high = middle;
+                }
+            }
+
+            return low;
         }
 
         /// <summary>
@@ -401,6 +453,18 @@ namespace GeometryHelper.Core
 
             bool[] dropped = new bool[edges.Count];
 
+            // The edge that cancels another starts where the other ends, so the edges are filed by their start
+            // and only those starting near an end are tried — in the same order, and against the same test, as
+            // trying every later edge, so the same pairs cancel.
+            PointGrid starts = new PointGrid(tolerance);
+
+            for (int j = 0; j < edges.Count; j++)
+            {
+                starts.Add(edges[j].StartPoint, j);
+            }
+
+            List<int> near = new List<int>();
+
             for (int i = 0; i < edges.Count; i++)
             {
                 if (dropped[i])
@@ -408,9 +472,11 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                for (int j = i + 1; j < edges.Count; j++)
+                starts.Near(edges[i].EndPoint, near);
+
+                foreach (int j in near)
                 {
-                    if (dropped[j])
+                    if (j <= i || dropped[j])
                     {
                         continue;
                     }

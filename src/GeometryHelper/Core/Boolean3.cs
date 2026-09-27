@@ -429,18 +429,54 @@ namespace GeometryHelper.Core
         {
             result = null;
 
-            bool[] dropped = new bool[faces.Count];
+            List<GeoFace3> skin = CancelBackToBack(DropMatchedPairs(faces, tolerance), tolerance);
 
-            for (int i = 0; i < faces.Count; i++)
+            if (skin.Count < 4)
+            {
+                return false;
+            }
+
+            result = Merge3.CoplanarFaces(new GeoSolid3(skin), tolerance);
+            return true;
+        }
+
+        /// <summary>
+        /// Drops each face together with the first later face that is it turned over, vertex for vertex: the two
+        /// sides of a wall between two cells that were both kept.
+        /// </summary>
+        /// <remarks>
+        /// Two such faces have the same corners, so the corners of their boxes lie within the tolerance of each
+        /// other. The faces are filed by the low corner of their box, and each is compared only with the later
+        /// faces filed near its own — in the order, and by the test, that comparing it with every later face would
+        /// use, so the same pairs are dropped without comparing every face with every other.
+        /// </remarks>
+        internal static List<GeoFace3> DropMatchedPairs(List<GeoFace3> faces, Tolerance tolerance)
+        {
+            int count = faces.Count;
+            bool[] dropped = new bool[count];
+            var boxes = new GeoAabb3[count];
+            var corners = new PointGrid(tolerance);
+
+            for (int j = 0; j < count; j++)
+            {
+                boxes[j] = faces[j].GetAabb();
+                corners.Add(boxes[j].Min, j);
+            }
+
+            var near = new List<int>();
+
+            for (int i = 0; i < count; i++)
             {
                 if (dropped[i])
                 {
                     continue;
                 }
 
-                for (int j = i + 1; j < faces.Count; j++)
+                corners.Near(boxes[i].Min, near);
+
+                foreach (int j in near)
                 {
-                    if (dropped[j])
+                    if (j <= i || dropped[j] || faces[j].Boundary.VertexCount != faces[i].Boundary.VertexCount)
                     {
                         continue;
                     }
@@ -454,25 +490,17 @@ namespace GeometryHelper.Core
                 }
             }
 
-            List<GeoFace3> skin = new List<GeoFace3>();
+            var kept = new List<GeoFace3>(count);
 
-            for (int i = 0; i < faces.Count; i++)
+            for (int i = 0; i < count; i++)
             {
                 if (!dropped[i])
                 {
-                    skin.Add(faces[i]);
+                    kept.Add(faces[i]);
                 }
             }
 
-            skin = CancelBackToBack(skin, tolerance);
-
-            if (skin.Count < 4)
-            {
-                return false;
-            }
-
-            result = Merge3.CoplanarFaces(new GeoSolid3(skin), tolerance);
-            return true;
+            return kept;
         }
 
         /// <summary>
@@ -492,44 +520,66 @@ namespace GeometryHelper.Core
         /// both, and what is left of either is boundary.
         /// </para>
         /// </remarks>
-        private static List<GeoFace3> CancelBackToBack(List<GeoFace3> faces, Tolerance tolerance)
+        internal static List<GeoFace3> CancelBackToBack(List<GeoFace3> faces, Tolerance tolerance)
         {
             int count = faces.Count;
             var normals = new GeoVector3[count];
             var boxes = new GeoAabb3[count];
+            var planes = new GeoPlane3[count];
+            var order = new int[count];
+            var lows = new double[count];
 
             for (int i = 0; i < count; i++)
             {
                 normals[i] = faces[i].Boundary.Normal;
                 boxes[i] = faces[i].GetAabb();
+                planes[i] = faces[i].GetPlane();
+                order[i] = i;
+                lows[i] = boxes[i].Min.X;
             }
 
             double speck = tolerance.EqualPoint * tolerance.EqualPoint;
-            List<int>[] against = null;
 
-            for (int i = 0; i < count; i++)
+            // Two faces lying against each other have boxes that meet, so they overlap along X: sorted by where
+            // their boxes start along X, each face need only be tried against those starting before its box ends.
+            // The pairs found are then taken in the order trying every pair would have met them, since the order a
+            // face's partners are listed in is the order they are taken away from it.
+            Array.Sort(lows, order);
+            double reach = 2.0 * tolerance.EqualPoint;
+            List<(int, int)> pairs = null;
+
+            for (int a = 0; a < count; a++)
             {
-                GeoPlane3 plane = faces[i].GetPlane();
+                int first = order[a];
 
-                for (int j = i + 1; j < count; j++)
+                for (int b = a + 1; b < count && lows[b] <= boxes[first].Max.X + reach; b++)
                 {
+                    int i = Math.Min(first, order[b]), j = Math.Max(first, order[b]);
+
                     if (normals[i].DotProduct(normals[j]) >= 0.0
                         || !boxes[i].CollidesWith(boxes[j], tolerance)
-                        || !LiesIn(plane, faces[j], tolerance)
+                        || !LiesIn(planes[i], faces[j], tolerance)
                         || AreaOf(Intersect(faces[i], faces[j], tolerance)) <= speck)
                     {
                         continue;
                     }
 
-                    against = against ?? new List<int>[count];
-                    (against[i] = against[i] ?? new List<int>()).Add(j);
-                    (against[j] = against[j] ?? new List<int>()).Add(i);
+                    (pairs = pairs ?? new List<(int, int)>()).Add((i, j));
                 }
             }
 
-            if (against == null)
+            if (pairs == null)
             {
                 return faces;
+            }
+
+            pairs.Sort();
+            var against = new List<int>[count];
+
+            foreach ((int i, int j) in pairs)
+            {
+                (against[i] = against[i] ?? new List<int>()).Add(j);
+                (against[j] = against[j] ?? new List<int>()).Add(i);
             }
 
             var kept = new List<GeoFace3>(count);
