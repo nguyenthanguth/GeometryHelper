@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 
-namespace GeometryHelper
+namespace GeometryHelper.Clash
 {
     /// <summary>
     /// One pair of parts a clash check found, and what they do to each other.

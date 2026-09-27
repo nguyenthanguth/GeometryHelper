@@ -1,4 +1,4 @@
-namespace GeometryHelper.Enums
+namespace GeometryHelper.Clash
 {
     /// <summary>
     /// What two parts found by a clash check do to each other.

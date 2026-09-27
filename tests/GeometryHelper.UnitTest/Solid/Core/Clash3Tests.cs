@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
+using GeometryHelper.Clash;
 using GeometryHelper.Core;
 using GeometryHelper.Enums;
 using GeometryHelper.Geometry;

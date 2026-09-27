@@ -1011,9 +1011,12 @@ through `ToPolylineByChordTolerance`.
 ## Checking parts against each other
 
 `Clash3.Find` checks a whole set of parts, or one set against another, and says what every pair that clashes
-does:
+does. It lives in `GeometryHelper.Clash` with everything it takes and gives: `ClashOptions`, `ClashResult` and
+`ClashKind`.
 
 ```csharp
+using GeometryHelper.Clash;
+
 ClashResult[] clashes = Clash3.Find(parts, new ClashOptions(clearance: 25.0));
 
 foreach (ClashResult clash in clashes)

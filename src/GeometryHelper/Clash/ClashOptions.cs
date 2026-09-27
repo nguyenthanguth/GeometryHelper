@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace GeometryHelper
+namespace GeometryHelper.Clash
 {
     /// <summary>
     /// What a clash check between many parts looks for, and how many threads it may use.
@@ -19,7 +19,7 @@ namespace GeometryHelper
         /// </summary>
         /// <param name="clearance">
         /// How far apart two parts have to stay; two nearer than this are reported as
-        /// <see cref="Enums.ClashKind.Clearance"/>. Nought asks only for parts running into or touching each other.
+        /// <see cref="ClashKind.Clearance"/>. Nought asks only for parts running into or touching each other.
         /// </param>
         /// <param name="includeTouching">Whether parts that touch without sharing volume are reported.</param>
         /// <param name="maxDegreeOfParallelism">How many threads may check pairs at once; -1 for every processor.</param>

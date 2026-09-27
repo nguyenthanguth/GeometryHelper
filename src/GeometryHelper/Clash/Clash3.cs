@@ -5,7 +5,7 @@ using GeometryHelper;
 using GeometryHelper.Geometry;
 using GeometryHelper.Spatial;
 
-namespace GeometryHelper.Core
+namespace GeometryHelper.Clash
 {
     /// <summary>
     /// Checking many parts against each other at once: which run into each other, which touch, and which come
@@ -23,7 +23,7 @@ namespace GeometryHelper.Core
     /// <para>
     /// Openings are honoured throughout: a bolt through its hole is no clash. The results come back in the
     /// order of the pairs' indexes, whatever order the threads finished in. A pair whose check throws is
-    /// reported as <see cref="Enums.ClashKind.Unresolved"/>, with the error, and logged, so that one part the
+    /// reported as <see cref="ClashKind.Unresolved"/>, with the error, and logged, so that one part the
     /// library cannot read does not cost the report for the rest of the model.
     /// </para>
     /// </remarks>

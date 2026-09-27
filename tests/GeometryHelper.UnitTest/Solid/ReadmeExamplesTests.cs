@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
+using GeometryHelper.Clash;
 using GeometryHelper.Enums;
 using GeometryHelper.Core;
 using GeometryHelper.Extension;
