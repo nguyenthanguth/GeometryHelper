@@ -484,6 +484,11 @@
         Projection3.GetShortestLineTo for two triangles now say so from three distances, where they looked
         for six crossings, and walking two indexes for a collision tests the box of each triangle under a
         leaf before the triangle. The frame's CollidesWith: 1.3 s to 0.35 s on one thread.
+      - Two parts that collide and are parted by a face of one of them — the one wholly behind the face's
+        plane, the other wholly in front, as a beam bearing on a column's flange is — share no volume, and
+        the check now takes that from their corners instead of cutting them into cells to find it out. A
+        pair nothing parts, a bolt in a hole it fills, goes to the boolean as before. The frame's check on
+        one thread: 3.1 s to 1.8 s; 460 of its 469 colliding pairs only touch.
 
       NEW IN 5.1.0
 

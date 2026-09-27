@@ -40,6 +40,7 @@ namespace GeometryHelper.Spatial
         };
 
         private readonly GeoTriangle3[] _surface;
+        private readonly GeoPoint3[] _corners;
 
         /// <summary>
         /// Prepares a body, using the default tolerance.
@@ -65,6 +66,7 @@ namespace GeometryHelper.Spatial
             Box = Material.GetAabb();
             _surface = Material.Triangulate(tolerance);
             Index = new GeoBvh3(_surface);
+            _corners = Corners(Material);
         }
 
         /// <summary>
@@ -404,6 +406,104 @@ namespace GeometryHelper.Spatial
             return Box.CollidesWith(other.Box, tolerance)
                 ? Boolean3.Intersect(Material, other.Material, tolerance)
                 : new GeoSolid3[0];
+        }
+
+        /// <summary>
+        /// Checks whether a face of either body parts the two: this one wholly behind the face's plane and the
+        /// other wholly in front of it, or the other way round, so that they can touch across the plane but share
+        /// no volume.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A body lies within the hull of its corners, and so does everything on one side of a plane that all its
+        /// corners are on, so the corners settle it. Only the faces near where the two boxes overlap are tried:
+        /// a face parting the bodies is one they touch across. A beam bearing on a column's flange, a plate on a
+        /// cap, two blocks side by side are all parted by a face this way; a bolt in a hole it fills is not, and
+        /// a pair nothing parts is left for the boolean to decide.
+        /// </para>
+        /// <para>
+        /// The corners are allowed a thousandth of the point tolerance past the plane, which is rounding and no
+        /// more: two bodies it lets through overlap by less than that, far below anything the boolean would cut
+        /// as a region, so where this says the bodies share no volume the boolean finds none.
+        /// </para>
+        /// </remarks>
+        internal bool IsPartedFrom(GeoPreparedSolid3 other, Tolerance tolerance)
+        {
+            if (Box.IsEmpty || other.Box.IsEmpty)
+            {
+                return false;
+            }
+
+            double t = tolerance.EqualPoint;
+            var overlap = new GeoAabb3(
+                new GeoPoint3(Math.Max(Box.Min.X, other.Box.Min.X) - t, Math.Max(Box.Min.Y, other.Box.Min.Y) - t, Math.Max(Box.Min.Z, other.Box.Min.Z) - t),
+                new GeoPoint3(Math.Min(Box.Max.X, other.Box.Max.X) + t, Math.Min(Box.Max.Y, other.Box.Max.Y) + t, Math.Min(Box.Max.Z, other.Box.Max.Z) + t));
+
+            return HasPartingFace(this, other, overlap, tolerance) || HasPartingFace(other, this, overlap, tolerance);
+        }
+
+        /// <summary>
+        /// Checks whether a face of one body near the overlap has that body behind its plane and the other body in
+        /// front of it.
+        /// </summary>
+        private static bool HasPartingFace(GeoPreparedSolid3 near, GeoPreparedSolid3 far, GeoAabb3 overlap, Tolerance tolerance)
+        {
+            double slack = 1E-3 * tolerance.EqualPoint;
+
+            foreach (GeoFace3 face in near.Material.Faces)
+            {
+                if (!face.GetAabb().CollidesWith(overlap, tolerance))
+                {
+                    continue;
+                }
+
+                GeoPlane3 plane = face.GetPlane();
+
+                if (AllOnOneSide(plane, far._corners, -slack, true) && AllOnOneSide(plane, near._corners, slack, false))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks whether every point is at least (in front) or at most (behind) a signed distance from a plane.
+        /// </summary>
+        private static bool AllOnOneSide(GeoPlane3 plane, GeoPoint3[] points, double bound, bool inFront)
+        {
+            foreach (GeoPoint3 point in points)
+            {
+                double distance = plane.SignedDistanceTo(point);
+
+                if (inFront ? distance < bound : distance > bound)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Every corner of every face of a body, the rims of holes in faces included.
+        /// </summary>
+        private static GeoPoint3[] Corners(GeoSolid3 solid)
+        {
+            var corners = new List<GeoPoint3>();
+
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                corners.AddRange(face.Boundary.Vertices);
+
+                foreach (GeoPolygon3 hole in face.Holes)
+                {
+                    corners.AddRange(hole.Vertices);
+                }
+            }
+
+            return corners.ToArray();
         }
 
         /// <summary>

@@ -307,7 +307,9 @@ namespace GeometryHelper.Clash
             {
                 if (a.CollidesWith(b, tolerance))
                 {
-                    GeoSolid3[] overlaps = a.Intersect(b, tolerance);
+                    // Parts that lie against each other across a face of one of them share no volume, and the
+                    // boolean would only have cut them into cells to find that out.
+                    GeoSolid3[] overlaps = a.IsPartedFrom(b, tolerance) ? new GeoSolid3[0] : a.Intersect(b, tolerance);
 
                     if (overlaps.Length > 0)
                     {
