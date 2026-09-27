@@ -414,8 +414,18 @@ namespace GeometryHelper.Core
 
                 if (!clipped)
                 {
-                    // A full pass with no ear found means the loop is not simple — a boundary crossing
-                    // itself, or a hole reaching outside the face. There is no triangulation to give.
+                    // What is left can be no area at all: clipping takes the first ear round the loop, so a
+                    // face with a row of points along one straight edge ends with that row and nothing across
+                    // from it, and no corner of it turns. Everything the face covers is already in triangles.
+                    // A face whose boundary merged with its neighbours carries such rows wherever a neighbour
+                    // had a corner, and giving up on one fell back to the fan, which covers the holes over.
+                    if (Math.Abs(SignedArea(working)) * 0.5 <= areaEpsilon)
+                    {
+                        break;
+                    }
+
+                    // Otherwise a full pass with no ear found means the loop is not simple — a boundary
+                    // crossing itself, or a hole reaching outside the face. There is no triangulation to give.
                     return false;
                 }
 
@@ -425,7 +435,10 @@ namespace GeometryHelper.Core
                 }
             }
 
-            Emit(result, working[0], working[1], working[2], tolerance);
+            if (working.Count == 3)
+            {
+                Emit(result, working[0], working[1], working[2], tolerance);
+            }
 
             triangles = result.ToArray();
             return triangles.Length > 0;

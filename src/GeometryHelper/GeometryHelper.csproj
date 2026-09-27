@@ -354,6 +354,13 @@
         A body is closed now when every stretch of every edge is shared by an even number of faces. The
         end points still settle the usual body; only where they leave an edge unmatched is the edge
         matched along its line.
+      - Ear clipping gave up on a face carrying a row of points along a straight edge -- which merging
+        coplanar faces leaves wherever a neighbour had a corner -- because clipping the first ear round the
+        loop each time ends with that row and nothing across from it, and no corner of a straight row
+        turns. The face then fell back to the fan of its outline, which covers its holes over. A plate
+        with its openings cut in came out of TriangulateSurface meshed across every hole, so BuildIndex and
+        every query reading the mesh found material there: a ray down a bolt hole hit the plate. What is
+        left once the rest is clipped away may now be a row of points with no area.
 
       NEW IN 5.1.0
 
