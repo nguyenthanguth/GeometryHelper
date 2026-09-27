@@ -951,8 +951,41 @@ through `ToPolylineByChordTolerance`.
 
 ## Checking parts against each other
 
-A clash check between parts asks four questions, from cheapest to dearest, and stops at the first that
-settles it:
+`Clash3.Find` checks a whole set of parts, or one set against another, and says what every pair that clashes
+does:
+
+```csharp
+ClashResult[] clashes = Clash3.Find(parts, new ClashOptions(clearance: 25.0));
+
+foreach (ClashResult clash in clashes)
+{
+    switch (clash.Kind)
+    {
+        case ClashKind.Hard:        // clash.Overlaps, one body per region; clash.Volume
+            break;
+        case ClashKind.Touch:       // clash.Contact, the patches face to face; clash.ContactArea
+            break;
+        case ClashKind.Clearance:   // clash.Distance and clash.Gap, the segment across it
+            break;
+        case ClashKind.Unresolved:  // clash.Error: the pair could not be checked
+            break;
+    }
+
+    // clash.First and clash.Second index the parts; clash.Location says where
+}
+
+Clash3.Find(reinforcement, embeds);   // one set against another: First indexes the first set
+```
+
+Every part is prepared once — see [A body asked many questions](#a-body-asked-many-questions) — and the boxes
+are swept along one axis, so only pairs whose boxes come within the clearance of each other are looked at;
+those are checked in parallel, and the results come back in the order of the indexes. Openings are honoured:
+a bolt through its hole is no clash. A pair whose check throws is reported `Unresolved` and logged rather than
+costing the report for the rest of the model. Parts already prepared can be passed as they are, so a model
+checked twice is prepared once.
+
+Underneath, each pair is asked four questions, from cheapest to dearest, stopping at the first that settles
+it — the recipe to follow for a check of your own:
 
 ```csharp
 foreach (var (a, b) in pairs)

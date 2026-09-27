@@ -1184,5 +1184,47 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Equal(pierced.Intersect(bolt).Length, plate.Intersect(prepared).Length);
             }
         }
+        [Fact]
+        public void CheckingAWholeSetOfParts()
+        {
+            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
+                => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+
+            var parts = new List<GeoSolid3>
+            {
+                Box(0, 0, 0, 200, 200, 50),          // a footing
+                Box(50, 50, 50, 150, 150, 500),      // a column standing on it
+                Box(-10, 90, 300, 210, 110, 320),    // a beam through the column
+                Box(250, 0, 0, 260, 10, 10),         // a bracket twenty clear of the footing
+            };
+
+            ClashResult[] clashes = Clash3.Find(parts, new ClashOptions(clearance: 25.0));
+            var kinds = new List<ClashKind>();
+
+            foreach (ClashResult clash in clashes)
+            {
+                switch (clash.Kind)
+                {
+                    case ClashKind.Hard:
+                        Assert.Equal(100.0 * 20 * 20, clash.Volume, 6);
+                        break;
+                    case ClashKind.Touch:
+                        Assert.Equal(100.0 * 100, clash.ContactArea, 6);
+                        break;
+                    case ClashKind.Clearance:
+                        Assert.Equal(50.0, clash.Distance, 6);
+                        break;
+                }
+
+                kinds.Add(clash.Kind);
+            }
+
+            Assert.Equal(new[] { ClashKind.Touch, ClashKind.Hard }, kinds.Take(2));
+            Assert.Equal(2, clashes.Length);
+
+            // One set against another: the bracket against everything else, clearance of sixty.
+            ClashResult near = Assert.Single(Clash3.Find(new[] { parts[3] }, parts.Take(3).ToList(), new ClashOptions(clearance: 60.0)));
+            Assert.Equal((0, 0, ClashKind.Clearance), (near.First, near.Second, near.Kind));
+        }
     }
 }

@@ -337,6 +337,25 @@ namespace GeometryHelper.Spatial
         public double DistanceTo(GeoSolid3 other, Tolerance tolerance) => Distance3.DistanceTo(Material, other, tolerance);
 
         /// <summary>
+        /// Gets the shortest segment from this body to another, using the default tolerance.
+        /// </summary>
+        public GeoLine3 GetShortestLineTo(GeoPreparedSolid3 other) => GetShortestLineTo(other, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment from this body to another, within a tolerance; of no length where they touch.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the other body is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPreparedSolid3 other, Tolerance tolerance)
+        {
+            if (other == null)
+            {
+                throw new ArgumentNullException(nameof(other));
+            }
+
+            return Projection3.GetShortestLineTo(Material, other.Material, tolerance);
+        }
+
+        /// <summary>
         /// Gets one body per region this body shares with another, using the default tolerance.
         /// </summary>
         public GeoSolid3[] Intersect(GeoPreparedSolid3 other) => Intersect(other, Tolerance.Global);

@@ -370,6 +370,12 @@
         CollidesWith, DistanceTo, Intersect and TryGetContact of another body, as the body does -- a test
         checks every one against the body on random points, rays and boxes -- without cutting the
         openings each time. It is immutable and safe to ask from many threads.
+      - Clash3.Find checks a set of parts against itself, or one set against another, and returns a
+        ClashResult per pair that clashes: Hard with the shared regions and their volume, Touch with the
+        contact patches, Clearance with the gap when ClashOptions asks for one, and Unresolved with the
+        error for a pair whose check threw. The parts are prepared once, only pairs whose boxes come within
+        the clearance are looked at, and those are checked in parallel; the results come back in the order
+        of the indexes. On 120 random parts it finds exactly what checking every pair by hand finds.
 
       NEW IN 5.1.0
 
