@@ -489,6 +489,13 @@
         the check now takes that from their corners instead of cutting them into cells to find it out. A
         pair nothing parts, a bolt in a hole it fills, goes to the boolean as before. The frame's check on
         one thread: 3.1 s to 1.8 s; 460 of its 469 colliding pairs only touch.
+      - Two convex parts share one convex region at most, and GeoPreparedSolid3.Intersect now clips it out
+        directly — one part cut by each face plane of the other — instead of cutting cells by every plane of
+        both. It answers only where the region is plainly one, a clean closed body thicker than ten
+        tolerances; a touch, a sliver, or a face the polygon tolerance would lose goes to the general boolean
+        as before. The mesh of 80 crossing bars: 3.0 s to 0.04 s. On some convex pairs the general boolean at
+        the ordinary tolerance was plainly wrong — nothing shared by an octagonal prism and a block that share
+        eight thousand cubic units, by points counted — and the clipping gets those right.
 
       NEW IN 5.1.0
 

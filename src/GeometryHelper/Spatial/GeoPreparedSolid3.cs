@@ -41,6 +41,7 @@ namespace GeometryHelper.Spatial
 
         private readonly GeoTriangle3[] _surface;
         private readonly GeoPoint3[] _corners;
+        private readonly bool _convex;
 
         /// <summary>
         /// Prepares a body, using the default tolerance.
@@ -67,6 +68,7 @@ namespace GeometryHelper.Spatial
             _surface = Material.Triangulate(tolerance);
             Index = new GeoBvh3(_surface);
             _corners = Corners(Material);
+            _convex = Boolean3.IsConvex(Material, tolerance);
         }
 
         /// <summary>
@@ -403,9 +405,19 @@ namespace GeometryHelper.Spatial
                 throw new ArgumentNullException(nameof(other));
             }
 
-            return Box.CollidesWith(other.Box, tolerance)
-                ? Boolean3.Intersect(Material, other.Material, tolerance)
-                : new GeoSolid3[0];
+            if (!Box.CollidesWith(other.Box, tolerance))
+            {
+                return new GeoSolid3[0];
+            }
+
+            // Two convex bodies share one convex region at most, which clipping one by the other's faces finds
+            // outright; where it is not plainly a region the general boolean decides, as it always did.
+            if (_convex && other._convex && Boolean3.TryIntersectConvex(Material, other.Material, tolerance, out GeoSolid3[] shared))
+            {
+                return shared;
+            }
+
+            return Boolean3.Intersect(Material, other.Material, tolerance);
         }
 
         /// <summary>
