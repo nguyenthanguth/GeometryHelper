@@ -1,0 +1,76 @@
+using System;
+using System.Collections.Generic;
+using GeometryHelper.Core;
+
+namespace GeometryHelper.Geometry
+{
+    public sealed partial class GeoSolid3
+    {
+        #region Mass properties and sections
+
+        /// <summary>
+        /// Gets the mass properties of the material at a density of one, using the default tolerance.
+        /// </summary>
+        public MassProperties3 GetMassProperties() => GetMassProperties(1.0, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the mass properties of the material at a density, using the default tolerance.
+        /// </summary>
+        public MassProperties3 GetMassProperties(double density) => GetMassProperties(density, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the mass properties of the material at a density: volume, mass, centroid, the moments and products
+        /// of inertia about the centroid, and the principal moments and axes.
+        /// </summary>
+        /// <param name="density">The mass of a unit of volume; in kilograms per cubic millimetre, steel is 7.85E-6.</param>
+        /// <param name="tolerance">The tolerance the openings are cut in and the surface meshed to.</param>
+        /// <returns>The properties; openings are taken out of every one of them.</returns>
+        /// <remarks>
+        /// Every integral is exact for the body's faces, taken over the surface by the divergence theorem, and the
+        /// body is read as its material: a plate's bolt holes come out of its weight and move its centroid.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the density is not a positive number.</exception>
+        public MassProperties3 GetMassProperties(double density, Tolerance tolerance) => Mass3.Of(this, density, tolerance);
+
+        /// <summary>
+        /// Gets where a plane cuts the material, using the default tolerance.
+        /// </summary>
+        public GeoFace3[] Section(GeoPlane3 plane) => Section(plane, Tolerance.Global);
+
+        /// <summary>
+        /// Gets where a plane cuts the material: the faces the cut leaves, holes and all, facing along the plane's
+        /// normal.
+        /// </summary>
+        /// <param name="plane">The cutting plane.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>One face per region of the cut; empty where the plane misses the body or only grazes it.</returns>
+        /// <remarks>
+        /// The material is cut, so a hole the plane passes through is a hole in the section, and a body in two
+        /// pieces gives two faces. A plane lying along a face of the body touches it without cutting it, and gives
+        /// nothing.
+        /// </remarks>
+        public GeoFace3[] Section(GeoPlane3 plane, Tolerance tolerance)
+        {
+            GeoSolid3 material = Material3.Whole(this, tolerance);
+
+            if (!Splition3.TrySplitBy(material, plane, out _, out GeoSolid3 below, tolerance))
+            {
+                return new GeoFace3[0];
+            }
+
+            var cut = new List<GeoFace3>();
+
+            foreach (GeoFace3 face in below.Faces)
+            {
+                if (face.Boundary.Normal.DotProduct(plane.Normal) > 0.0 && Boolean3.LiesIn(plane, face, tolerance))
+                {
+                    cut.Add(face);
+                }
+            }
+
+            return cut.ToArray();
+        }
+
+        #endregion
+    }
+}

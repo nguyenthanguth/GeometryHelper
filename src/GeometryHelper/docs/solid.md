@@ -775,6 +775,38 @@ A path turning back on itself at one vertex — sharper than about 170 degrees �
 revolved across its own axis. A section larger than a tight bend folds over itself at the inside of the bend;
 that is not checked.
 
+### Weighing a body, and cutting it
+
+```csharp
+MassProperties3 steel = plate.GetMassProperties(7.85E-6);   // kg per cubic millimetre
+
+steel.Mass;                 // the density times the volume, openings taken out
+steel.Centroid;             // the centre of mass
+steel.Ixx; steel.Ixy;       // moments and products about the centroid, parallel to the world's axes
+steel.PrincipalMoments;     // smallest first, with PrincipalAxes turning with them
+steel.GetMomentAbout(hinge, GeoVector3.XAxis);   // about any other axis
+
+GeoFace3[] cut = plate.Section(new GeoPlane3(new GeoPoint3(0, 0, 10), GeoVector3.ZAxis));
+```
+
+The integrals are exact for the faces — the divergence theorem over the surface, after Eberly — and are taken
+from the middle of the body's box, so a part far from the origin loses nothing to the size of its coordinates.
+Like every other question, both read the material: a bolt hole comes out of the weight, moves the centroid,
+and is a hole in the section. A section is one face per region the plane cuts, facing along the plane's normal;
+a plane that misses the body, or only lies along one of its faces, gives none.
+
+### Hulls and fitted boxes
+
+`ConvexHull3.Of(points)` is the smallest convex body holding some points, closed and with coplanar triangles
+merged, so the hull of a box's corners is the box. `GeoObb3.Fit(points)` stands a box on each face of that hull
+in turn, with the smallest rectangle round the points on that face, and keeps the smallest: exactly the least
+box for a block, a prism, or anything with a flat face to stand on, and close to it otherwise. Points all in one
+plane give a box of no depth.
+
+```csharp
+GeoObb3 box = GeoObb3.Fit(part.Faces.SelectMany(face => face.Boundary.Vertices));
+```
+
 ### Merging
 
 `Merge3` is the other direction. `ConsecutiveLines` and `ConsecutivePolylines` take the pieces in the order

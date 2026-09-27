@@ -390,6 +390,17 @@
         Every body is closed and wound outwards. Along a path the pieces meet mitred and the section does
         not twist, so a section centred on the path gives the section times the path length exactly.
 
+      NEW. Weighing, cutting and fitting.
+
+      - GeoSolid3.GetMassProperties(density) gives a MassProperties3: volume, mass, centroid, surface area,
+        the moments and products of inertia about the centroid, the principal moments and axes, and
+        GetMomentAbout any axis. The integrals are exact for the faces and read the material, so openings
+        come out of the weight.
+      - GeoSolid3.Section(plane): one GeoFace3 per region a plane cuts, holes and all.
+      - ConvexHull2 and ConvexHull3 (GeometryHelper.Core): the smallest convex polygon or body holding some
+        points. GeoRectangle2.Fit gives the rectangle of least area round points, exactly; GeoObb3.Fit a box
+        stood on the best face of the hull, the least box for anything with a flat face to stand on.
+
       NEW IN 5.1.0
 
       Rounding a corner no longer means rounding every corner by the same radius.

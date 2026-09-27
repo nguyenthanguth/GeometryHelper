@@ -1116,5 +1116,21 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(8, new GeoFace2(plate, new[] { hole }).BuildIndex().EdgeCount);
         }
 
+        [Fact]
+        public void HullsAndFittedRectangles()
+        {
+            // The corners of a fifty by ten rectangle running along (4, 3), and a point inside it.
+            var points = new[] { new GeoPoint2(0, 0), new GeoPoint2(40, 30), new GeoPoint2(34, 38), new GeoPoint2(-6, 8), new GeoPoint2(20, 20) };
+
+            GeoPolygon2 hull = ConvexHull2.Of(points);
+            GeoRectangle2 tightest = GeoRectangle2.Fit(points);
+
+            Assert.Equal(4, hull.VertexCount);
+            Assert.Equal(50.0 * 10, tightest.Area, 9);
+
+            // Its long side runs the way the points do.
+            double longSide = tightest.Width >= tightest.Height ? tightest.AngleRad : tightest.AngleRad + Math.PI / 2;
+            Assert.Equal(0.0, Math.Sin(longSide - Math.Atan2(3, 4)), 9);
+        }
     }
 }

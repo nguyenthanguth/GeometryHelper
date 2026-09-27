@@ -657,6 +657,19 @@ Boolean2.Subtract(flat, opening);         // now the whole 2D half of the librar
 The chords of an arc lie inside it, so a shape bulging outward encloses a little less once flattened, and
 one bulging inward a little more. `Flatten` on a chain with no arcs gives back exactly what went in.
 
+## Hulls and fitted rectangles
+
+`ConvexHull2.Of(points)` is the smallest convex polygon holding some points, counter-clockwise, with every
+corner a real turn; `TryOf` says false where the points span no area. `GeoRectangle2.Fit(points)` is the
+rectangle of least area round them, turned whichever way makes it smallest — a rectangle of least area always
+has a side along an edge of the hull, so trying each finds it exactly. Points all in one line give a rectangle
+of no height along that line.
+
+```csharp
+GeoPolygon2 hull = ConvexHull2.Of(points);
+GeoRectangle2 tightest = GeoRectangle2.Fit(points);   // turned the way the points run
+```
+
 ## Rounding corners
 
 `Corner2.Fillet` replaces a corner with an arc of a given radius, tangent to both edges, as AutoCAD's

@@ -1254,5 +1254,25 @@ namespace GeometryHelper.UnitTest.Solid
             // The member stands upright: its section's Y is the world's Z.
             Assert.Equal(200.0, member.GetAabb().Max.Z - member.GetAabb().Min.Z, 9);
         }
+        [Fact]
+        public void WeighingCuttingAndFittingABody()
+        {
+            GeoSolid3 plate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(200, 100, 20)).ToObb().ToSolid()
+                .WithOpenings(new[] { new GeoAabb3(new GeoPoint3(90, 40, -1), new GeoPoint3(110, 60, 21)).ToObb().ToSolid() });
+            var hinge = new GeoPoint3(0, 0, 0);
+
+            MassProperties3 steel = plate.GetMassProperties(7.85E-6);
+
+            Assert.Equal((200.0 * 100 * 20 - 20.0 * 20 * 20) * 7.85E-6, steel.Mass, 9);
+            Assert.True(steel.Centroid.DistanceTo(new GeoPoint3(100, 50, 10)) < 1E-9);
+            Assert.Equal(steel.PrincipalMoments.Min(), steel.PrincipalMoments[0]);
+            Assert.True(steel.GetMomentAbout(hinge, GeoVector3.XAxis) > steel.Ixx);
+
+            GeoFace3[] cut = plate.Section(new GeoPlane3(new GeoPoint3(0, 0, 10), GeoVector3.ZAxis));
+            Assert.Equal(200.0 * 100 - 400, Assert.Single(cut).Area, 6);
+
+            GeoObb3 box = GeoObb3.Fit(plate.Faces.SelectMany(face => face.Boundary.Vertices));
+            Assert.Equal(200.0 * 100 * 20, box.Volume, 6);
+        }
     }
 }
