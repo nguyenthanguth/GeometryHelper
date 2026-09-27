@@ -161,6 +161,21 @@ namespace GeometryHelper.Geometry
         public int VertexCount => _vertices.Length;
 
         /// <summary>
+        /// Gets the first vertex, where the chain starts.
+        /// </summary>
+        public GeoPoint2 StartPoint => _vertices[0];
+
+        /// <summary>
+        /// Gets the last vertex, where the chain ends.
+        /// </summary>
+        public GeoPoint2 EndPoint => _vertices[_vertices.Length - 1];
+
+        /// <summary>
+        /// Gets the point half way along the chain, measured along its arcs.
+        /// </summary>
+        public GeoPoint2 MidPoint => GetPointAtDistance(Length * 0.5);
+
+        /// <summary>
         /// Gets the number of edges of the chain, one fewer than its vertices.
         /// </summary>
         public int EdgeCount => _vertices.Length - 1;
@@ -538,6 +553,31 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TrySplitAtDistance(double distance, out GeoPolylineArc2 first, out GeoPolylineArc2 second, Tolerance tolerance)
             => Splition2.TrySplitAtDistance(this, distance, out first, out second, tolerance);
+
+        /// <summary>
+        /// Splits the chain at an arc length from its start, the pieces as a list, using the default tolerance.
+        /// </summary>
+        public bool TrySplitAtDistance(double distance, out GeoPolylineArc2[] pieces)
+            => TrySplitAtDistance(distance, out pieces, Tolerance.Global);
+
+        /// <summary>
+        /// Splits the chain at an arc length from its start, the pieces as a list, within a tolerance.
+        /// </summary>
+        /// <param name="distance">How far along the chain to cut.</param>
+        /// <param name="pieces">The two pieces in order; the chain whole when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the chain was cut in two; false when the distance falls at or beyond an end.</returns>
+        public bool TrySplitAtDistance(double distance, out GeoPolylineArc2[] pieces, Tolerance tolerance)
+        {
+            if (TrySplitAtDistance(distance, out GeoPolylineArc2 first, out GeoPolylineArc2 second, tolerance))
+            {
+                pieces = new[] { first, second };
+                return true;
+            }
+
+            pieces = new[] { this };
+            return false;
+        }
 
         /// <summary>
         /// Cuts the chain in two at a point on it.

@@ -221,6 +221,11 @@ namespace GeometryHelper.Geometry
         public GeoPoint3 EndPoint => _vertices[_vertices.Length - 1];
 
         /// <summary>
+        /// Gets the point half way along the chain, measured along its arcs.
+        /// </summary>
+        public GeoPoint3 MidPoint => GetPointAtDistance(Length * 0.5);
+
+        /// <summary>
         /// Gets the bulge of the edge leaving a vertex.
         /// </summary>
         public double GetBulgeAt(int index) => _bulges[index];
@@ -803,6 +808,37 @@ namespace GeometryHelper.Geometry
             => Core.ArcChain3.TrySplitAtDistance(this, distance, out pieces, tolerance);
 
         /// <summary>
+        /// Splits the chain at an arc length from its start into the piece before and the piece after, using the
+        /// default tolerance.
+        /// </summary>
+        public bool TrySplitAtDistance(double distance, out GeoPolylineArc3 first, out GeoPolylineArc3 second)
+            => TrySplitAtDistance(distance, out first, out second, Tolerance.Global);
+
+        /// <summary>
+        /// Splits the chain at an arc length from its start into the piece before and the piece after, within a
+        /// tolerance.
+        /// </summary>
+        /// <param name="distance">How far along the chain to cut.</param>
+        /// <param name="first">The piece holding the start; null when the method returns false.</param>
+        /// <param name="second">The piece holding the end; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the chain was cut in two; false when the distance falls at or beyond an end.</returns>
+        public bool TrySplitAtDistance(double distance, out GeoPolylineArc3 first, out GeoPolylineArc3 second, Tolerance tolerance)
+        {
+            first = null;
+            second = null;
+
+            if (!TrySplitAtDistance(distance, out GeoPolylineArc3[] pieces, tolerance) || pieces.Length != 2)
+            {
+                return false;
+            }
+
+            first = pieces[0];
+            second = pieces[1];
+            return true;
+        }
+
+        /// <summary>
         /// Cuts the chain wherever it crosses a plane.
         /// </summary>
         /// <param name="cutter">The plane to cut at.</param>
@@ -963,6 +999,26 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool SplitAtDistances(System.Collections.Generic.IEnumerable<double> distances, out GeoPolylineArc3[] pieces, Tolerance tolerance)
             => Core.ArcChain3.SplitAtDistances(this, distances, out pieces, tolerance);
+
+        /// <summary>
+        /// Cuts the chain at a set of distances measured along it, the pieces handed back as the other chains
+        /// hand theirs, using the default tolerance.
+        /// </summary>
+        public GeoPolylineArc3[] SplitAtDistances(System.Collections.Generic.IEnumerable<double> distances)
+            => SplitAtDistances(distances, Tolerance.Global);
+
+        /// <summary>
+        /// Cuts the chain at a set of distances measured along it, the pieces handed back as the other chains
+        /// hand theirs, within a tolerance.
+        /// </summary>
+        /// <param name="distances">How far along to cut; anything off the chain is passed over.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>The pieces in order along the chain; the chain whole when nothing was cut.</returns>
+        public GeoPolylineArc3[] SplitAtDistances(System.Collections.Generic.IEnumerable<double> distances, Tolerance tolerance)
+        {
+            Core.ArcChain3.SplitAtDistances(this, distances, out GeoPolylineArc3[] pieces, tolerance);
+            return pieces;
+        }
 
 
         #endregion

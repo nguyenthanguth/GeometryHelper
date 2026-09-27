@@ -25,6 +25,11 @@ namespace GeometryHelper.Geometry
         public GeoPoint2 EndPoint { get; }
 
         /// <summary>
+        /// Gets the point half way along the edge: the middle of its segment or of its arc.
+        /// </summary>
+        public GeoPoint2 MidPoint => IsArc ? ToArc().MidPoint : ToLine().MidPoint;
+
+        /// <summary>
         /// Gets the bulge: the tangent of a quarter of the angle an arc sweeps, or zero for a straight
         /// segment.
         /// </summary>

@@ -152,6 +152,11 @@ namespace GeometryHelper.Geometry
         public GeoPoint3 EndPoint => _vertices[_vertices.Length - 1];
 
         /// <summary>
+        /// Gets the point half way along the chain.
+        /// </summary>
+        public GeoPoint3 MidPoint => GetPointAtDistance(Length * 0.5);
+
+        /// <summary>
         /// Gets the segment at a given index.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is out of range.</exception>
@@ -419,6 +424,37 @@ namespace GeometryHelper.Geometry
         /// Splits this polyline at an arc length from its start, within a tolerance.
         /// </summary>
         public bool TrySplitAtDistance(double distance, out GeoPolyline3[] pieces, Tolerance tolerance) => Splition3.TrySplitAtDistance(this, distance, out pieces, tolerance);
+
+        /// <summary>
+        /// Splits the chain at an arc length from its start into the piece before and the piece after, using the
+        /// default tolerance.
+        /// </summary>
+        public bool TrySplitAtDistance(double distance, out GeoPolyline3 first, out GeoPolyline3 second)
+            => TrySplitAtDistance(distance, out first, out second, Tolerance.Global);
+
+        /// <summary>
+        /// Splits the chain at an arc length from its start into the piece before and the piece after, within a
+        /// tolerance.
+        /// </summary>
+        /// <param name="distance">How far along the chain to cut.</param>
+        /// <param name="first">The piece holding the start; null when the method returns false.</param>
+        /// <param name="second">The piece holding the end; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the chain was cut in two; false when the distance falls at or beyond an end.</returns>
+        public bool TrySplitAtDistance(double distance, out GeoPolyline3 first, out GeoPolyline3 second, Tolerance tolerance)
+        {
+            first = null;
+            second = null;
+
+            if (!TrySplitAtDistance(distance, out GeoPolyline3[] pieces, tolerance) || pieces.Length != 2)
+            {
+                return false;
+            }
+
+            first = pieces[0];
+            second = pieces[1];
+            return true;
+        }
 
         /// <summary>
         /// Splits this polyline at a point on it, using the default tolerance.

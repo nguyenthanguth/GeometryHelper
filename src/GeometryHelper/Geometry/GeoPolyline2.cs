@@ -57,6 +57,16 @@ namespace GeometryHelper.Geometry
         public GeoPoint2 MidPoint => GetPointAtDistance(Length * 0.5);
 
         /// <summary>
+        /// Gets the first vertex, where the chain starts.
+        /// </summary>
+        public GeoPoint2 StartPoint => _vertices[0];
+
+        /// <summary>
+        /// Gets the last vertex, where the chain ends.
+        /// </summary>
+        public GeoPoint2 EndPoint => _vertices[_vertices.Length - 1];
+
+        /// <summary>
         /// Initializes a new GeoPolyline2 instance from a collection of vertices.
         /// Consecutive duplicate vertices are automatically filtered out.
         /// </summary>
@@ -431,6 +441,31 @@ namespace GeometryHelper.Geometry
         /// <returns>true if the polyline was split; otherwise, false.</returns>
         public bool TrySplitAtDistance(double distance, out GeoPolyline2 first, out GeoPolyline2 second, Tolerance tolerance)
             => Splition2.TrySplitAtDistance(this, distance, out first, out second, tolerance);
+
+        /// <summary>
+        /// Splits the chain at an arc length from its start, the pieces as a list, using the default tolerance.
+        /// </summary>
+        public bool TrySplitAtDistance(double distance, out GeoPolyline2[] pieces)
+            => TrySplitAtDistance(distance, out pieces, Tolerance.Global);
+
+        /// <summary>
+        /// Splits the chain at an arc length from its start, the pieces as a list, within a tolerance.
+        /// </summary>
+        /// <param name="distance">How far along the chain to cut.</param>
+        /// <param name="pieces">The two pieces in order; the chain whole when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the chain was cut in two; false when the distance falls at or beyond an end.</returns>
+        public bool TrySplitAtDistance(double distance, out GeoPolyline2[] pieces, Tolerance tolerance)
+        {
+            if (TrySplitAtDistance(distance, out GeoPolyline2 first, out GeoPolyline2 second, tolerance))
+            {
+                pieces = new[] { first, second };
+                return true;
+            }
+
+            pieces = new[] { this };
+            return false;
+        }
 
         /// <summary>
         /// Splits this polyline at several arc lengths measured from its first vertex, using the default

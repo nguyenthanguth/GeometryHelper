@@ -420,6 +420,15 @@
       - SvgWriter: every shape of the plane as an SVG picture fitted round what is drawn, arcs as arcs, Y up.
       - Wkt.Write: points, segments, chains, polygons, faces and sets of faces as well-known text.
 
+      NEW. The chains of the plane and of space side by side.
+
+      - StartPoint and EndPoint on GeoPolyline2 and GeoPolylineArc2, which lacked the ends their twins in
+        space had; MidPoint on GeoPolyline3, GeoPolylineArc2, GeoPolylineArc3, GeoEdge2 and GeoEdge3.
+      - TrySplitAtDistance in both shapes on all four chains: the two pieces as first and second, null when
+        nothing is cut, and the pieces as a list, the chain whole when nothing is cut.
+      - GeoPolylineArc3.SplitAtDistances(distances) hands back the pieces as the other chains do, beside the
+        form answering true or false.
+
       NEW IN 5.1.0
 
       Rounding a corner no longer means rounding every corner by the same radius.
