@@ -413,6 +413,13 @@
         until the scope is disposed. Tolerance.Global is swapped whole when set, so it can no longer be
         read half old and half new.
 
+      NEW. Looking at the geometry (GeometryHelper.Export).
+
+      - ObjWriter: bodies, faces, meshes and chains in space as a Wavefront OBJ file, one named object each,
+        coordinates exact.
+      - SvgWriter: every shape of the plane as an SVG picture fitted round what is drawn, arcs as arcs, Y up.
+      - Wkt.Write: points, segments, chains, polygons, faces and sets of faces as well-known text.
+
       NEW IN 5.1.0
 
       Rounding a corner no longer means rounding every corner by the same radius.

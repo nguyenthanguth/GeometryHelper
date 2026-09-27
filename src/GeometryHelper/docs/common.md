@@ -201,3 +201,29 @@ GeometryHelperLog.Enable = false;   // nothing is written; true by default
 ## Licence
 
 MIT.
+
+## Looking at the geometry
+
+When an answer surprises, look at the shapes. `GeometryHelper.Export` writes them in three formats, numbers
+always with a point for the decimal whatever the culture:
+
+```csharp
+using GeometryHelper.Export;
+
+new ObjWriter()                      // space: any 3D viewer opens OBJ
+    .Add(plate, "plate")             // a body as the mesh of where its material ends
+    .Add(bar, 0.1, "bar")            // a bent bar as a line, bends cut into chords
+    .Save("clash.obj");
+
+new SvgWriter()                      // the plane: any browser opens SVG
+    .Add(outline, "black", "#eeeeee")
+    .Add(cut, "red")                 // arcs drawn as arcs, Y up as in the drawing
+    .Save("cut.svg");
+
+string text = Wkt.Write(face);       // POLYGON ((...), (...)): GIS tools, databases, online viewers
+```
+
+Each shape added to an OBJ file is an object of its own under the name given, so a viewer lists them
+separately, and coordinates are written exactly. An SVG picture is fitted round everything drawn, and every
+line keeps its width however far it is zoomed. WKT rings are written closed, the boundary counter-clockwise and
+the holes clockwise, as the format asks.
