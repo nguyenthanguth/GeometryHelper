@@ -4,19 +4,16 @@ Agreed on 2026-09-27 after the review of `Geometry` and `Core`. Every step: a te
 fix, a clean `dotnet build GeometryHelper.slnx -c Release -warnaserror --no-incremental`, all five suites
 (main, IfcConvert, TeklaConvert for 2020/2025/2026), commit, push.
 
-## Bugs, in this order
+## Bugs - done
 
-1. **Solid booleans leave a sheet inside the body.** `Boolean3.TryGlue` cancels the two copies of a face
-   between kept cells only when they match vertex for vertex; a copy cut in two, or carrying a point along
-   its edge, survives with its twin. Cancel faces lying back to back by the area they share. `Shells3` must
-   not throw on a group of faces that cannot be a body.
-2. **Crossings under a degree read as parallel.** `Intersection2`/`Intersection3` compare the sine of the
-   angle with `EqualAngleSin` whatever the length. Two members are parallel only when they draw apart by
-   less than `EqualPoint` along the longer of them.
-3. **An arc or an edge against a `GeoCircle2` measures to the rim.** Read the disc, as `GeoLine2` does.
-4. **NaN passes the size checks** of `GeoCircle2`, `GeoCircle3`, `GeoObb3`, `GeoRectangle2`, `GeoRay3`.
-5. **`IsClosed` says open** for T-junctions and for bodies meeting along an edge. Match edges stretch by
-   stretch.
+1. Solid booleans left a sheet inside the body; two shapes counted as lying in one plane when parallel within
+   a degree through one shared point (`91a9a47`).
+2. Crossings under a degree read as parallel - members, member and plane, arc and plane, face and cutting
+   plane; the ray cast behind `Locate` lost crossings the same way (`9217cfc`).
+3. An arc or an edge measured a `GeoCircle2` to its rim; two arcs one inside the other's circle were
+   measured facing each other; distance to a concave `GeoPolygon3` walked its fan (`b5b3367`).
+4. NaN passed the size checks and `TryGetNormal` (`c4243a1`).
+5. `IsClosed` called T-junctions and bodies meeting along an edge open (`cff3070`).
 
 ## Extensions, after the bugs
 
