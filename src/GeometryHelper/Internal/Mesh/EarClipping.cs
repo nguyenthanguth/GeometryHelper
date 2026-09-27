@@ -362,8 +362,11 @@ namespace GeometryHelper.Core
         /// reflex vertices are worth testing against: a convex one cannot sit inside an ear without a
         /// reflex one being there too.
         /// <para>
-        /// Vertices are tested for containment strictly, which is what lets the doubled vertices of a
-        /// hole bridge sit on the edge of an ear without blocking it. Without that no ear next to a
+        /// A vertex on the edge of an ear blocks it as surely as one inside: the cut would run through the
+        /// boundary there. Testing strictly let an I lose its flanges first and then take, as an ear, a
+        /// triangle across its web and the gap beside it, with a corner of the web on its edge; the loop
+        /// stuck after that and the face fell back to the fan. What does not block an ear is a vertex
+        /// standing on one of its own corners — the doubled ends of a hole's bridge — or no ear next to a
         /// bridge would ever be accepted.
         /// </para>
         /// </remarks>
@@ -399,7 +402,7 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    if (!IsEar(working, previousIndex, i, nextIndex, areaEpsilon))
+                    if (!IsEar(working, previousIndex, i, nextIndex, areaEpsilon, tolerance.EqualPoint))
                     {
                         continue;
                     }
@@ -466,9 +469,9 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Checks whether a convex corner is an ear, that is whether its triangle is empty.
+        /// Checks whether a convex corner is an ear, that is whether its triangle is empty, its edges included.
         /// </summary>
-        private static bool IsEar(List<Node> loop, int previousIndex, int index, int nextIndex, double areaEpsilon)
+        private static bool IsEar(List<Node> loop, int previousIndex, int index, int nextIndex, double areaEpsilon, double pointEpsilon)
         {
             Node a = loop[previousIndex];
             Node b = loop[index];
@@ -490,7 +493,13 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                if (InTriangle(a, b, c, current, areaEpsilon))
+                // A vertex standing on a corner of the ear, as the doubled ends of a hole's bridge do, leaves it be.
+                if (SamePlace(current, a, pointEpsilon) || SamePlace(current, b, pointEpsilon) || SamePlace(current, c, pointEpsilon))
+                {
+                    continue;
+                }
+
+                if (InOrOnTriangle(a, b, c, current, areaEpsilon))
                 {
                     return false;
                 }
@@ -530,13 +539,22 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Checks whether a point lies strictly inside a counter-clockwise triangle.
+        /// Checks whether a point lies inside a counter-clockwise triangle or on its edges, within an area tolerance.
         /// </summary>
-        private static bool InTriangle(Node a, Node b, Node c, Node point, double areaEpsilon)
+        private static bool InOrOnTriangle(Node a, Node b, Node c, Node point, double areaEpsilon)
         {
-            return Cross(a, b, point) > areaEpsilon
-                && Cross(b, c, point) > areaEpsilon
-                && Cross(c, a, point) > areaEpsilon;
+            return Cross(a, b, point) >= -areaEpsilon
+                && Cross(b, c, point) >= -areaEpsilon
+                && Cross(c, a, point) >= -areaEpsilon;
+        }
+
+        /// <summary>
+        /// Checks whether two nodes stand within a distance of each other.
+        /// </summary>
+        private static bool SamePlace(Node a, Node b, double pointEpsilon)
+        {
+            double dx = a.X - b.X, dy = a.Y - b.Y;
+            return dx * dx + dy * dy <= pointEpsilon * pointEpsilon;
         }
 
         /// <summary>

@@ -329,6 +329,15 @@
 
       FIXED. What a review of Geometry and Core found.
 
+      - The end face of an I, a channel or any section with an inside corner was meshed across its gaps.
+        Ear clipping took the flanges of an I off first and then took as an ear a triangle across the web and
+        the gap beside it, since a corner of the web lay on the triangle's edge and only corners strictly
+        inside counted; the loop stuck and the face fell back to the fan of its outline, four times its area.
+        A prepared column said a point in the plane of its end, a flange's width from the steel, lay on it,
+        and a plate with bolt holes meshed that way measured a bolt in its hole at 1.09 instead of 1.96: 31
+        of the 400 bolts in the steel frame used to test the clash check. A corner on an ear's edge now
+        blocks it, as one inside does, unless it stands on a corner of the ear, as the ends of a hole's
+        bridge do. (Found while speeding up the clash check.)
       - The solid booleans could leave a sheet of no thickness inside their result. A face between two kept
         cells is found twice, once each way round, and the pair was dropped only when the two copies matched
         vertex for vertex; a cut that reached the cell on one side and not the other left one copy in two
