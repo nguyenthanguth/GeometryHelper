@@ -48,7 +48,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                     return true;
                 }
 
-                return false;
+                // A face the file calls flat can stray from one plane by more than a polygon allows: Tekla writes
+                // coordinates to a tenth of a micron, and a corner rounded the other way leaves a strip 290 long off
+                // its plane by a few ten-thousandths. Left out, it left its body open; cut into triangles, each flat,
+                // it closes the body on the corners it came with. A face with no area gives no triangles.
+                return TryTessellateFace(face, options, out faces);
             }
 
             // Non-planar / curved face

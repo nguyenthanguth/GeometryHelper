@@ -147,6 +147,13 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             {
                 // Faces may arrive with mixed orientations (boolean results); make them all point outwards.
                 result = new GeoSolid3(FaceOrientation.Orient(faces, options.Tolerance));
+
+                // A shell the file calls closed can still be written with a flat gap in it; see FlatGaps.
+                if (!result.IsClosed(options.Tolerance) && FlatGaps.TryClose(result, options.Tolerance.ForConstruction(), out GeoSolid3 closed))
+                {
+                    result = closed;
+                }
+
                 return true;
             }
             catch (ArgumentException ex)
