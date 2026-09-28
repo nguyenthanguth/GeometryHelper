@@ -14,6 +14,14 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
+      NEW IN 6.1.0
+
+      Nothing breaks: code built against 6.0.0 runs unchanged.
+      - ClashResult.Depth: how deep two parts run into each other, the least thickness of what they share.
+        ClashOptions takes minimumDepth and minimumVolume; a shallower or smaller overlap is reported as Touch.
+      - ClashBar: reinforcement checked by its centre line and radius, Clash3.Find(bars, parts, ...), with no
+        body built and no boolean run; each clash says its Depth and LengthInside.
+
       NEW IN 6.0.0
 
       A summary. The full notes, with the reason and the measurement behind each item, and those of every

@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 6.1.0
 
 **NEW.** How deep a clash runs, and a way to leave the shallow ones out. `ClashResult.Depth` is the least
 thickness of the region two parts share, the smallest side of the least box round it, and of the deepest region
