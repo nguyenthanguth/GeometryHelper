@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using GeometryHelper;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Models;
@@ -171,7 +172,8 @@ namespace GeometryHelper.TeklaConvert
             IEnumerable<(int ReferenceModelId, string Guid)> requests,
             IReadOnlyDictionary<int, ReferenceModelConvert.Frame> frames)
         {
-            List<IfcProductGeometry> geometries = new List<IfcProductGeometry>();
+            // Each object once, in the order given, its file opened when first asked for.
+            var work = new List<(string Guid, ReferenceModelConvert.Frame Frame, IfcStoreCache Cache)>();
             HashSet<(int, string)> done = new HashSet<(int, string)>();
             Dictionary<int, IfcStoreCache> caches = new Dictionary<int, IfcStoreCache>();
 
@@ -190,36 +192,65 @@ namespace GeometryHelper.TeklaConvert
                     caches[referenceModelId] = cache;
                 }
 
-                if (cache == null)
+                if (cache != null)
                 {
-                    continue;
-                }
-
-                IfcProductGeometry geometry;
-                try
-                {
-                    geometry = cache.GetGeometry(guid, frame.Options);
-                }
-                catch (Exception exception)
-                {
-                    GeometryHelperLog.Warn($"{guid} in '{frame.IfcFilePath}' could not be converted; it is left out.", exception);
-                    continue;
-                }
-
-                if (geometry == null)
-                {
-                    GeometryHelperLog.Debug($"{guid} is not in '{Path.GetFileName(frame.IfcFilePath)}'; it is left out.");
-                    continue;
-                }
-
-                IfcProductGeometry moved = ReferenceModelConvert.TransformGeometry(geometry, frame.IfcToWorkPlane, frame.Options.Tolerance);
-                if (moved != null)
-                {
-                    geometries.Add(moved);
+                    work.Add((guid, frame, cache));
                 }
             }
 
-            return geometries;
+            // The objects do not depend on one another, so those of a file read into memory are converted and carried
+            // into the work plane on every core at once, and gathered back in the order given. A file xBIM keeps on
+            // disk is read one object at a time. Each is converted under the tolerance in force here, a scope the
+            // caller opened included, which the other threads would not see otherwise.
+            var converted = new IfcProductGeometry[work.Count];
+            Tolerance tolerance = Tolerance.Global;
+
+            Parallel.For(0, work.Count, i =>
+            {
+                if (work[i].Cache.IsInMemory)
+                {
+                    using (Tolerance.Use(tolerance))
+                    {
+                        converted[i] = ConvertOne(work[i].Guid, work[i].Frame, work[i].Cache);
+                    }
+                }
+            });
+
+            for (int i = 0; i < work.Count; i++)
+            {
+                if (!work[i].Cache.IsInMemory)
+                {
+                    converted[i] = ConvertOne(work[i].Guid, work[i].Frame, work[i].Cache);
+                }
+            }
+
+            return converted.Where(geometry => geometry != null).ToList();
+        }
+
+        /// <summary>
+        /// Converts the product with one GlobalId and carries it into the work plane; null, and logged, when the file
+        /// does not hold it or it fails.
+        /// </summary>
+        private static IfcProductGeometry ConvertOne(string guid, ReferenceModelConvert.Frame frame, IfcStoreCache cache)
+        {
+            IfcProductGeometry geometry;
+            try
+            {
+                geometry = cache.GetGeometry(guid, frame.Options);
+            }
+            catch (Exception exception)
+            {
+                GeometryHelperLog.Warn($"{guid} in '{frame.IfcFilePath}' could not be converted; it is left out.", exception);
+                return null;
+            }
+
+            if (geometry == null)
+            {
+                GeometryHelperLog.Debug($"{guid} is not in '{Path.GetFileName(frame.IfcFilePath)}'; it is left out.");
+                return null;
+            }
+
+            return ReferenceModelConvert.TransformGeometry(geometry, frame.IfcToWorkPlane, frame.Options.Tolerance);
         }
     }
 }

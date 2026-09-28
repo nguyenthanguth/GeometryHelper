@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using GeometryHelper;
 using GeometryHelper.Enums;
 using Xunit;
@@ -96,6 +98,32 @@ namespace GeometryHelper.UnitTest.Common
             }
 
             Assert.Contains("GeometryHelper: WARN Reference model 7 is not IFC. [IOException: locked]", text.ToString());
+        }
+
+        /// <summary>
+        /// Work done on many threads at once (a clash check, a batch of IFC products) logs from all of them, and the
+        /// writers a caller sets (a file, a status bar) are rarely safe to call from two at once.
+        /// </summary>
+        [Fact]
+        public void TheWriterIsCalledOneMessageAtATime_EvenFromManyThreads()
+        {
+            int inside = 0, overlapped = 0, written = 0;
+            GeometryHelperLog.Writer = (level, message, exception) =>
+            {
+                if (Interlocked.Increment(ref inside) > 1)
+                {
+                    Interlocked.Increment(ref overlapped);
+                }
+
+                Thread.Sleep(1);
+                Interlocked.Increment(ref written);
+                Interlocked.Decrement(ref inside);
+            };
+
+            Parallel.For(0, 64, new ParallelOptions { MaxDegreeOfParallelism = 8 }, i => GeometryHelperLog.Warn("message " + i));
+
+            Assert.Equal(64, written);
+            Assert.Equal(0, overlapped);
         }
 
         [Fact]

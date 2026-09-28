@@ -34,6 +34,10 @@ namespace GeometryHelper
         private static volatile bool _enable = true;
         private static volatile Action<GeometryHelperLogLevel, string, Exception> _writer;
 
+        // One message at a time: work done on many threads at once logs from all of them, and a writer is rarely safe
+        // to call from two at once.
+        private static readonly object Gate = new object();
+
         /// <summary>
         /// Gets or sets whether messages are written at all. Defaults to <c>true</c>.
         /// </summary>
@@ -47,6 +51,12 @@ namespace GeometryHelper
         /// Gets or sets what receives each message: its level, its text and the exception behind it, if any.
         /// Null, the default, writes <see cref="Format"/> of the message to <see cref="Trace"/>.
         /// </summary>
+        /// <remarks>
+        /// It is called one message at a time, even when the messages come from work done on several threads at
+        /// once — a clash check, the products of an IFC file — so a writer need not be safe to call from two at once.
+        /// It is called on those threads, though: a writer showing messages on a form hands them over with
+        /// <c>BeginInvoke</c>, since <c>Invoke</c> waits for the form's thread, which may be waiting for that very work.
+        /// </remarks>
         /// <example>
         /// On the console of a console application:
         /// <code>
@@ -135,13 +145,16 @@ namespace GeometryHelper
             {
                 Action<GeometryHelperLogLevel, string, Exception> writer = _writer;
 
-                if (writer != null)
+                lock (Gate)
                 {
-                    writer(level, message ?? string.Empty, exception);
-                }
-                else
-                {
-                    Trace.WriteLine(Format(level, message, exception), TraceCategory);
+                    if (writer != null)
+                    {
+                        writer(level, message ?? string.Empty, exception);
+                    }
+                    else
+                    {
+                        Trace.WriteLine(Format(level, message, exception), TraceCategory);
+                    }
                 }
             }
             catch (Exception)

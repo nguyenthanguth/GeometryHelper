@@ -203,6 +203,13 @@ Worth knowing:
   `{ "BEAM", "GIRDER", "PRD_COLUMN", "COLUMN" }` (3.5 s). The names are those the model gives its parts; both
   lists ignore case and take `*` as a wildcard, and apply to an assembly's parts too. See
   [Choosing Products by Name](https://github.com/nguyenthanguth/GeometryHelper/tree/main/src/GeometryHelper.IfcConvert#choosing-products-by-name).
+- **Speed: shared geometry, every core.** Tekla's IFC shares one body among the products of one shape (every
+  bolt of a size maps the same one), and each such body is built once and placed for every product using it.
+  The objects of a file xBIM reads into memory are converted on every core at once and come back in the order
+  asked for; a large file xBIM keeps on disk (a 114 MB one, for one) is read one object at a time. 2,549
+  objects selected from one 6.8 MB ifczip came back in 4.9 s instead of 84 s. Each object is converted under
+  the tolerance in force where you call, a `Tolerance.Use` scope included, and a writer set on
+  `GeometryHelperLog` is called from those threads, one message at a time.
 - **Several reference models.** Objects are grouped by reference model, so each is placed with its own
   position, rotation and scale. The same IFC file inserted twice is parsed once and placed twice.
 - **Assemblies.** Selecting an assembly *and* its parts returns those parts twice.

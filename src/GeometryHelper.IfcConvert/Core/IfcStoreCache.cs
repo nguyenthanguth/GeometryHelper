@@ -68,6 +68,16 @@ namespace GeometryHelper.IfcConvert.Core
         public IReadOnlyList<string> DuplicateGlobalIds => _session?.DuplicateGlobalIds ?? Array.Empty<string>();
 
         /// <summary>
+        /// Gets whether the file was read whole into memory. xBIM keeps a large file in a database on disk instead
+        /// (a 114 MB one, for one) and reads it as it is asked.
+        /// </summary>
+        /// <remarks>
+        /// The products of a file in memory can be converted from several threads at once: the geometry engine is one
+        /// per thread and the caches here are safe to share. Convert those of a file kept on disk one at a time.
+        /// </remarks>
+        public bool IsInMemory => _session?.IsInMemory ?? false;
+
+        /// <summary>
         /// Internal accessor for the underlying session (for testing purposes).
         /// </summary>
         internal object Session => _session;

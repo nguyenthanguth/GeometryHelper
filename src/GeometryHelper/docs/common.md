@@ -196,6 +196,10 @@ GeometryHelperLog.Enable = false;   // nothing is written; true by default
 - Each method takes the message and, optionally, the exception behind it. `GeometryHelperLog.Format` gives the text the
   default writer uses, for example `WARN The IFC file cannot be read. [IOException: The file is in use.]`.
 - Writing never throws: a writer that fails is ignored, so logging cannot break the work it reports on.
+- The writer is called one message at a time, even when work spread over several threads (a clash check, the
+  objects of an IFC file) logs from all of them, so it need not be safe to call from two threads at once. It
+  is called on those threads, though: a writer showing messages on a form hands them over with `BeginInvoke`,
+  since `Invoke` waits for the form's thread, which may be waiting for that very work.
 - `Enable` and `Writer` are shared by the whole process, like `Tolerance.Global`: set them once at start-up.
 
 ## Licence

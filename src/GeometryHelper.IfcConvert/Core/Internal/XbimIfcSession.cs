@@ -7,6 +7,7 @@ using GeometryHelper.IfcConvert.Models;
 using GeometryHelper.Geometry;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
+using Xbim.IO.Memory;
 
 namespace GeometryHelper.IfcConvert.Core.Internal
 {
@@ -44,6 +45,8 @@ namespace GeometryHelper.IfcConvert.Core.Internal
         public IReadOnlyDictionary<string, IIfcProduct> ProductsByGuid => _productsByGuid;
 
         public int ProductCount => _productsByGuid.Count;
+
+        public bool IsInMemory => _store?.Model is MemoryModel;
 
         public string SchemaVersion => _store?.SchemaVersion.ToString() ?? string.Empty;
 

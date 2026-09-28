@@ -15,6 +15,12 @@ namespace GeometryHelper.IfcConvert.UnitTest
     [Collection("IfcEngine")]
     public class IfcStoreCacheTests
     {
+        [Fact]
+        public void ASmallFile_IsReadWholeIntoMemory()
+        {
+            IfcTestFile.Run(IfcTestFile.CommonHeader(), model => Assert.True(model.IsInMemory));
+        }
+
         private static XbimEditorCredentials CreateCredentials()
         {
             return new XbimEditorCredentials

@@ -427,6 +427,10 @@
         with its openings cut in came out of TriangulateSurface meshed across every hole, so BuildIndex and
         every query reading the mesh found material there: a ray down a bolt hole hit the plate. What is
         left once the rest is clipped away may now be a row of points with no area.
+      - GeometryHelperLog.Writer was called on whichever thread logged, from two at once when two did. Work
+        spread over every core logs from all of them, and few writers are safe to call that way: logging 64
+        messages from eight threads, 63 calls began while another was running. Messages now reach the
+        writer, or Trace, one at a time.
 
       NEW. A body asked many questions.
 

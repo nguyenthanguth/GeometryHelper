@@ -15,6 +15,11 @@ namespace GeometryHelper.IfcConvert.Core.Internal
         string OriginalLengthUnit { get; }
         IReadOnlyList<string> DuplicateGlobalIds { get; }
 
+        /// <summary>
+        /// Gets whether the file was read whole into memory rather than kept in a database on disk.
+        /// </summary>
+        bool IsInMemory { get; }
+
         IfcConvertOptions ResolveUnitOptions(IfcConvertOptions options);
 
         GeoSolid3 GetSolid(string guid, IfcConvertOptions options);

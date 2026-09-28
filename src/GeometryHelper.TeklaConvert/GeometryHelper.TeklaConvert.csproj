@@ -60,6 +60,12 @@
       - Reference models that are not IFC, files that cannot be read and objects that cannot be converted
         are left out rather than thrown on, and written to GeometryHelperLog (GeometryHelper).
         Each IFC file is parsed once per process and then cached.
+      - The objects of a file read into memory are converted on every core at once and come back in the
+        order asked for, and geometry that products share is built once (GeometryHelper.IfcConvert):
+        2,549 objects selected in Tekla from one 6.8 MB ifczip came back in 4.9 s instead of 84 s, the
+        bodies byte for byte the same. A large file xBIM keeps on disk is still read one object at a time.
+        Every object is converted under the tolerance in force where the method is called, a
+        Tolerance.Use scope included.
       - These read IFC through GeometryHelper.IfcConvert, which this package depends on. They run on
         .NET Framework 4.8 x64, and Xbim.Geometry.Engine64.dll, which the build copies next to your
         plugin, has to ship with it.
