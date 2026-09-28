@@ -164,6 +164,45 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         }
 
         /// <summary>
+        /// Converts the solids of a set, and gives them back, with what went wrong with them, in one order.
+        /// </summary>
+        /// <remarks>
+        /// The geometry engine hands the shells of one brep back in an order that is not the same from one reading of a
+        /// file to the next, and the bodies of a product, the clashes found with them, and the warnings naming them by
+        /// their place, went with it. So the bodies are put in order of where they lie, low corner first, then of how
+        /// large they are, and the warnings in the order of their text. The order of the file's own items is kept.
+        /// </remarks>
+        private static List<GeoSolid3> InOneOrder(IEnumerable<IXbimSolid> set, IfcConvertOptions options, ICollection<string> warnings)
+        {
+            var bodies = new List<GeoSolid3>();
+            var said = new List<string>();
+
+            foreach (IXbimSolid solid in set)
+            {
+                if (solid.TryToGeoSolid3(out GeoSolid3 body, options, said))
+                {
+                    bodies.Add(body);
+                }
+            }
+
+            if (warnings != null)
+            {
+                foreach (string warning in said.OrderBy(warning => warning, StringComparer.Ordinal))
+                {
+                    warnings.Add(warning);
+                }
+            }
+
+            return bodies
+                .Select(body => (Body: body, Box: body.GetAabb()))
+                .OrderBy(b => b.Box.Min.X).ThenBy(b => b.Box.Min.Y).ThenBy(b => b.Box.Min.Z)
+                .ThenBy(b => b.Box.Max.X).ThenBy(b => b.Box.Max.Y).ThenBy(b => b.Box.Max.Z)
+                .ThenBy(b => b.Body.Volume).ThenBy(b => b.Body.Faces.Count)
+                .Select(b => b.Body)
+                .ToList();
+        }
+
+        /// <summary>
         /// Converts an xBIM geometry object (solid, solid set, or compound geometry) into a list of <see cref="GeoSolid3"/> bodies.
         /// </summary>
         /// <param name="geometryObject">The xBIM geometry object.</param>
@@ -191,23 +230,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             }
             else if (geometryObject is IXbimSolidSet solidSet)
             {
-                foreach (IXbimSolid solid in solidSet)
-                {
-                    if (solid.TryToGeoSolid3(out GeoSolid3 body, options, warnings))
-                    {
-                        solids.Add(body);
-                    }
-                }
+                solids.AddRange(InOneOrder(solidSet, options, warnings));
             }
             else if (geometryObject is IXbimGeometryObjectSet objectSet)
             {
-                foreach (IXbimSolid solid in objectSet.Solids)
-                {
-                    if (solid.TryToGeoSolid3(out GeoSolid3 body, options, warnings))
-                    {
-                        solids.Add(body);
-                    }
-                }
+                solids.AddRange(InOneOrder(objectSet.Solids, options, warnings));
 
                 // If no distinct solids exist but the set contains faces that form a closed volume
                 if (solids.Count == 0 && objectSet.Faces.Count >= 4)

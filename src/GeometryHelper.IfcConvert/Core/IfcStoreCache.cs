@@ -273,13 +273,33 @@ namespace GeometryHelper.IfcConvert.Core
         }
 
         /// <summary>
-        /// Converts and returns all <see cref="GeoSolid3"/> bodies present in the entire IFC model.
+        /// Converts and returns all <see cref="GeoSolid3"/> bodies present in the entire IFC model, product by product in
+        /// the order <see cref="EnumerateSolids"/> gives them, and on every core at once as
+        /// <see cref="GetAllGeometries"/> converts them.
         /// </summary>
         /// <param name="options">Optional conversion options.</param>
         /// <returns>A list of all converted solids in the model.</returns>
         public IReadOnlyList<GeoSolid3> GetAllSolids(IfcConvertOptions options = null)
         {
             return _session?.GetAllSolids(ResolveOptions(options)) ?? Array.Empty<GeoSolid3>();
+        }
+
+        /// <summary>
+        /// Converts every product across the model and returns them all at once: the ones
+        /// <see cref="EnumerateGeometries"/> gives, in the same order.
+        /// </summary>
+        /// <param name="options">Optional conversion options.</param>
+        /// <returns>The product geometries, in the order <see cref="EnumerateGeometries"/> gives them.</returns>
+        /// <remarks>
+        /// A file xBIM holds in memory (<see cref="IsInMemory"/>) is converted on every core at once, each product under
+        /// the tolerance in force where this is called, so the answers are the ones converting the products one at a
+        /// time gives. A file xBIM keeps on disk is converted one product at a time. Where a product fails, the call
+        /// throws what the first to fail in order threw. <see cref="EnumerateGeometries"/> converts as it is read
+        /// instead, and holds fewer products in memory at once.
+        /// </remarks>
+        public IReadOnlyList<IfcProductGeometry> GetAllGeometries(IfcConvertOptions options = null)
+        {
+            return _session?.GetAllGeometries(ResolveOptions(options)) ?? Array.Empty<IfcProductGeometry>();
         }
 
         /// <summary>

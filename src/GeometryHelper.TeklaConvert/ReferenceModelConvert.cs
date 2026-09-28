@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using GeometryHelper;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Models;
@@ -422,31 +423,42 @@ namespace GeometryHelper.TeklaConvert
         }
 
         /// <summary>
-        /// Converts every physical product of an opened file and carries it by <paramref name="transform"/>. Null
-        /// when the file fails part-way, so that it is left out whole rather than returned incomplete.
+        /// Converts every physical product of an opened file and carries it by <paramref name="transform"/>, in the
+        /// order the file gives them. Null when the file fails part-way, so that it is left out whole rather than
+        /// returned incomplete.
         /// </summary>
+        /// <remarks>
+        /// The products of a file held in memory are converted on every core at once
+        /// (<see cref="IfcStoreCache.GetAllGeometries"/>), and every product is carried on every core at once, since
+        /// carrying touches no file. Each is carried under the tolerance in force here, a scope the caller opened
+        /// included, which the other threads would not see otherwise.
+        /// </remarks>
         internal static List<IfcProductGeometry> ConvertWholeModel(IfcStoreCache cache, IfcConvertOptions options, GeoTransform3 transform)
         {
-            List<IfcProductGeometry> geometries = new List<IfcProductGeometry>();
-
             try
             {
-                foreach (IfcProductGeometry geometry in cache.EnumerateGeometries(options))
+                IReadOnlyList<IfcProductGeometry> converted = cache.GetAllGeometries(options);
+                var moved = new IfcProductGeometry[converted.Count];
+                Tolerance tolerance = Tolerance.Global;
+
+                Parallel.For(0, converted.Count, i =>
                 {
-                    IfcProductGeometry moved = geometry == null ? null : TransformGeometry(geometry, transform, options.Tolerance);
-                    if (moved != null)
+                    if (converted[i] != null)
                     {
-                        geometries.Add(moved);
+                        using (Tolerance.Use(tolerance))
+                        {
+                            moved[i] = TransformGeometry(converted[i], transform, options.Tolerance);
+                        }
                     }
-                }
+                });
+
+                return moved.Where(geometry => geometry != null).ToList();
             }
             catch (Exception exception)
             {
                 GeometryHelperLog.Warn($"Reading every product of '{cache.FilePath}' failed part-way; the file is left out.", exception);
                 return null;
             }
-
-            return geometries;
         }
 
         /// <summary>

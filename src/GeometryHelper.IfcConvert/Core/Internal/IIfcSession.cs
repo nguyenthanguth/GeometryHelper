@@ -30,6 +30,7 @@ namespace GeometryHelper.IfcConvert.Core.Internal
         IReadOnlyList<IfcProductGeometry> GetGeometriesByType(string ifcTypeName, IfcConvertOptions options);
 
         IReadOnlyList<GeoSolid3> GetAllSolids(IfcConvertOptions options);
+        IReadOnlyList<IfcProductGeometry> GetAllGeometries(IfcConvertOptions options);
         IEnumerable<IfcProductGeometry> EnumerateGeometries(IfcConvertOptions options);
         IEnumerable<GeoSolid3> EnumerateSolids(IfcConvertOptions options);
 

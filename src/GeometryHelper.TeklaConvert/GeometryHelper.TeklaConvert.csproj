@@ -66,6 +66,11 @@
         bodies byte for byte the same. A large file xBIM keeps on disk is still read one object at a time.
         Every object is converted under the tolerance in force where the method is called, a
         Tolerance.Use scope included.
+      - So is every product of a reference model read whole (ReferenceModelConvert.ToGeoSolids /
+        ToIfcGeometries), and each is carried into the work plane on every core at once too: three
+        reference models of about 21,000 products each, read whole outside Tekla on 24 logical processors,
+        came back in 28 s instead of 85 s, and in 14 s instead of 80 s with the server garbage collector,
+        the bodies the same.
       - These read IFC through GeometryHelper.IfcConvert, which this package depends on. They run on
         .NET Framework 4.8 x64, and Xbim.Geometry.Engine64.dll, which the build copies next to your
         plugin, has to ship with it.

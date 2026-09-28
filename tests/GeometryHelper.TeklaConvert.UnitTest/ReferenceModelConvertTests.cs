@@ -206,6 +206,83 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             }
         }
 
+        /// <summary>
+        /// A file of many products, converted and carried on every core at once: they come back in the order the file
+        /// gives them one at a time, each where it belongs.
+        /// </summary>
+        [Fact]
+        public void ConvertWholeModel_ManyProducts_ComeBackInTheFilesOrder_EachPlaced()
+        {
+            using (ManyWallsIfcFile file = new ManyWallsIfcFile(120))
+            {
+                IfcStoreCache cache = ReferenceModelConvert.TryOpen(file.FilePath);
+                IfcConvertOptions options = ReferenceModelConvert.CreateOptions(1.0, null, true);
+
+                List<IfcProductGeometry> geometries = ReferenceModelConvert.ConvertWholeModel(cache, options, GeoTransform3.Translation(new GeoVector3(0, 0, 10000)));
+
+                // The order one product at a time gives, from the file opened apart.
+                using (IfcStoreCache apart = IfcStoreCache.Open(file.FilePath))
+                {
+                    Assert.Equal(apart.EnumerateGeometries(options).Select(g => g.GlobalId), geometries.Select(g => g.GlobalId));
+                }
+
+                Assert.Equal(120, geometries.Count);
+                foreach (IfcProductGeometry wall in geometries)
+                {
+                    // Wall k is x 2k -0.5..+0.5, y -0.25..0.25, z 0..2 m, in millimetres here, and 10 m up.
+                    int k = int.Parse(wall.GlobalId.Substring(1), System.Globalization.CultureInfo.InvariantCulture);
+                    AssertBox(wall.BoundingBox, new GeoPoint3(2000 * k - 500, -250, 10000), new GeoPoint3(2000 * k + 500, 250, 12000));
+                }
+            }
+        }
+
+        /// <summary>
+        /// The products are carried on several threads, and a tolerance scope belongs to the thread that opened it.
+        /// Each is carried under the tolerance in force where ConvertWholeModel was called all the same, as when they
+        /// were carried there one by one. What a product logs is logged on the thread carrying it, so the writer sees the
+        /// tolerance it had: here every wall collapses under the transformation, and says so.
+        /// </summary>
+        [Fact]
+        public void ConvertWholeModel_CarriesEveryProductUnderTheToleranceInForceWhereItIsCalled()
+        {
+            using (ManyWallsIfcFile file = new ManyWallsIfcFile(200))
+            {
+                IfcStoreCache cache = ReferenceModelConvert.TryOpen(file.FilePath);
+                IfcConvertOptions options = ReferenceModelConvert.CreateOptions(1.0, null, true);
+
+                var seen = new List<(string GlobalId, double EqualPoint)>();
+                GeometryHelperLog.Enable = true;
+                GeometryHelperLog.Writer = (level, message, exception) =>
+                {
+                    if (message.StartsWith("W", StringComparison.Ordinal))
+                    {
+                        lock (seen)
+                        {
+                            seen.Add((message.Substring(0, 22), Tolerance.Global.EqualPoint));
+                        }
+
+                        // Long enough for the other threads to take their share rather than the caller all of it.
+                        System.Threading.Thread.Sleep(1);
+                    }
+                };
+
+                try
+                {
+                    using (Tolerance.Use(new Tolerance(0.25, 0.25)))
+                    {
+                        ReferenceModelConvert.ConvertWholeModel(cache, options, GeoTransform3.Scaling(1e-9));
+                    }
+                }
+                finally
+                {
+                    GeometryHelperLog.Writer = null;
+                }
+
+                Assert.Equal(200, seen.Select(entry => entry.GlobalId).Distinct().Count());
+                Assert.All(seen, entry => Assert.Equal(0.25, entry.EqualPoint));
+            }
+        }
+
         [Fact]
         public void TryOpen_AFileThatIsMissingOrNotIfc_ReturnsNull()
         {

@@ -79,9 +79,19 @@ of their true volume.
   500 beams (183 of them with bolt holes or cuts) took 1.5 s uncut and 29 s with openings cut. Most of
   those cut beams also came back not closed (a warning says so): their volumes remain plausible, but
   point containment may be off.
-- **Model-wide queries** (`GetAllSolids`, `EnumerateSolids`, `EnumerateGeometries`) skip openings,
-  spatial elements, annotations, grids, virtual elements, ports and structural analysis items unless
+- **Model-wide queries** (`GetAllGeometries`, `GetAllSolids`, `EnumerateSolids`, `EnumerateGeometries`) skip
+  openings, spatial elements, annotations, grids, virtual elements, ports and structural analysis items unless
   `IncludeNonPhysicalProducts` is set. Queries by GlobalId or type name are not filtered.
+- **Every product at once**: `GetAllGeometries` returns the products `EnumerateGeometries` gives, in its order,
+  all converted before it returns, and a file xBIM holds in memory (`IsInMemory`) is converted on every core at
+  once, each product under the tolerance in force where you call. `GetAllSolids` converts the same way. The
+  answers are the ones converting one product at a time gives. Three Tekla models of about 21,000 products each,
+  read whole outside Tekla on 24 logical processors, converted in 28 s instead of 85 s, and in 14 s instead of
+  80 s with the server garbage collector. `EnumerateGeometries` converts as it is read instead, and holds fewer
+  products in memory at once.
+- **Bodies in one order**: where the geometry engine cuts one brep into several shells, the bodies come back in
+  order of where they lie, low corner first, and their warnings in the order of their text. The engine hands the
+  shells back in an order that is not the same from one reading of a file to the next.
 - **Assemblies**: with `IncludeAggregatedParts`, a product also returns the parts it aggregates, for
   example a Tekla `IfcElementAssembly`, which has no body of its own.
 - **Units**: property and quantity units come from the value when present, otherwise from the project

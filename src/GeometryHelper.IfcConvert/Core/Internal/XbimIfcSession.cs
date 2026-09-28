@@ -2,6 +2,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ExceptionServices;
+using System.Threading.Tasks;
 using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.IfcConvert.Models;
 using GeometryHelper.Geometry;
@@ -228,13 +230,57 @@ namespace GeometryHelper.IfcConvert.Core.Internal
 
         public IReadOnlyList<GeoSolid3> GetAllSolids(IfcConvertOptions options)
         {
-            List<GeoSolid3> list = new List<GeoSolid3>();
-            foreach (KeyValuePair<string, IIfcProduct> kv in ModelWideProducts(options))
+            return GetAllGeometries(options).SelectMany(geometry => geometry.Solids).ToList();
+        }
+
+        /// <summary>
+        /// Every product model-wide queries visit, converted, in the order <see cref="EnumerateGeometries"/> gives them.
+        /// </summary>
+        public IReadOnlyList<IfcProductGeometry> GetAllGeometries(IfcConvertOptions options)
+        {
+            KeyValuePair<string, IIfcProduct>[] products = ModelWideProducts(options).ToArray();
+            var geometries = new IfcProductGeometry[products.Length];
+
+            if (!IsInMemory)
             {
-                list.AddRange(GetCachedGeometry(kv.Key, kv.Value, options).Solids);
+                // A file xBIM keeps in a database on disk is read one product at a time.
+                for (int i = 0; i < products.Length; i++)
+                {
+                    geometries[i] = GetCachedGeometry(products[i].Key, products[i].Value, options);
+                }
+
+                return geometries;
             }
 
-            return list;
+            // The products do not depend on one another, so those of a file held in memory are converted on every core
+            // at once and gathered back in order. Each is converted under the tolerance in force here, a scope the
+            // caller opened included, which the other threads would not see otherwise. A product that fails fails the
+            // call as it would one at a time: the first to fail in order is the one thrown.
+            Tolerance tolerance = Tolerance.Global;
+            var failures = new Exception[products.Length];
+
+            Parallel.For(0, products.Length, i =>
+            {
+                try
+                {
+                    using (Tolerance.Use(tolerance))
+                    {
+                        geometries[i] = GetCachedGeometry(products[i].Key, products[i].Value, options);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    failures[i] = exception;
+                }
+            });
+
+            Exception first = failures.FirstOrDefault(failure => failure != null);
+            if (first != null)
+            {
+                ExceptionDispatchInfo.Capture(first).Throw();
+            }
+
+            return geometries;
         }
 
         public IEnumerable<IfcProductGeometry> EnumerateGeometries(IfcConvertOptions options)
