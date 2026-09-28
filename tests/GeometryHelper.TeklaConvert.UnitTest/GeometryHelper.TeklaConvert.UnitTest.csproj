@@ -14,6 +14,12 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
 
+  <!-- Coverage, on demand, as for GeometryHelper.UnitTest: dotnet test with the collector "XPlat Code Coverage"
+       writes a Cobertura file under TestResults, with a package for each library the tests load. -->
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2" PrivateAssets="all" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\GeometryHelper.TeklaConvert\GeometryHelper.TeklaConvert.csproj" />
     <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
