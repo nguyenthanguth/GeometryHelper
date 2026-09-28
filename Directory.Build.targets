@@ -1,0 +1,15 @@
+<Project>
+
+  <!--
+    nuget.org turns away a package whose release notes run past 35,000 characters, and says so only when the
+    package is pushed: after the release is published and GitHub Packages has taken it. GeometryHelper 6.0.0
+    was refused that way. The length is checked here instead, when the package is made, which every build of a
+    packable project does (GeneratePackageOnBuild), so notes that are too long fail the build that wrote them.
+    Keep the full notes in CHANGELOG.md and a summary in PackageReleaseNotes.
+  -->
+  <Target Name="CheckPackageReleaseNotesLength" BeforeTargets="GenerateNuspec" Condition="'$(PackageReleaseNotes)' != ''">
+    <Error Condition="$(PackageReleaseNotes.Length) &gt; 35000"
+           Text="The release notes of $(PackageId) are $(PackageReleaseNotes.Length) characters long, and nuget.org refuses more than 35000. Keep the full notes in CHANGELOG.md and a summary in PackageReleaseNotes." />
+  </Target>
+
+</Project>

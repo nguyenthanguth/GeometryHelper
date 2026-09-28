@@ -1,0 +1,779 @@
+# Changelog
+
+The release notes of the GeometryHelper package in full, newest first. The package carries a summary of them,
+since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
+GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
+
+## 6.0.0
+
+Three breaking changes. The first two have one reason, that a name and a tolerance were each saying
+something they did not mean; the third, that label placement wrote its answers into what it was
+given.
+
+**RENAMED.** GetClosestOnBoundary returned the shortest segment joining two shapes. The name reads as
+"the closest thing on my boundary", which is a different idea, and GeoPolygonArc2 and
+GeoPolylineArc2 had taken it for exactly that and returned an edge of the shape instead. The
+summaries said the right thing all along, so only the names moved:
+
+- GetClosestOnBoundary(other) is now GetShortestLineTo(other), on GeoLine2, GeoCircle2,
+  GeoRectangle2, GeoPolygon2, GeoPolyline2 and GeoLine3.
+- Projection2.GetClosestSegment and Projection3.GetClosestSegment are now GetShortestLineTo.
+- On GeoPolygonArc2 and GeoPolylineArc2 the old method is GetClosestEdge, because a GeoEdge2 is
+  what it hands back. The return type differs, so a caller who takes the new name for the old
+  meaning stops compiling rather than quietly getting a different answer.
+- GetClosestPointOnBoundary is unchanged: it was already right.
+
+No [Obsolete] forwarders were left behind. Renaming is a one-line change at each call site, and
+carrying both names would double the surface of the library for two releases days old.
+
+**MEASURED DIFFERENTLY.** Whether an arc reached a point of its own circle was settled by comparing two
+directions within Tolerance.EqualAngleRad, a whole degree by default. A degree of a large arc is a
+long way: on a radius of a hundred it is nearly two of whatever the drawing is measured in. Two
+things came of that, both wrong by more than rounding:
+
+- Arc2.DistanceTo could weigh a point the arc does not reach and so report the arc nearer than any
+  of its own points allow.
+- Arc2.GetIntersections could report a crossing lying clean off the end of an arc, and everything
+  built on it inherited that: booleans, splitting, offsetting, CollidesWith and Locate.
+
+The question is now asked as a distance rather than as an angle, which is the unit the answer is in.
+Arcs that only nearly touch are no longer reported as crossing. Nothing in the existing test suite
+had to be amended for this.
+
+**RESHAPED.** Label placement, GeometryHelper.Arranging. Arrange was the label, the entry point and the
+answer at once: Arrange.Run wrote each label's Placed and TranslationVector back into the list it was
+given, and returned the vectors besides. Its second pass lent the labels relaxed blocks for the while
+and handed their own back after, which lost them for good when a label was listed twice, and showed
+the loan to anything reading the labels meanwhile. Now the label is only read, and the answer comes
+back on its own:
+
+- Arrange is now ArrangeItem, and its properties say what they are for: GeoRectangle2 is Box,
+  GeoLine2 is Leader, BaseOffsetFromLine is Offset. BlockPolygons and BlockLines take any
+  IReadOnlyList and start empty.
+- Arrange.Run(list[, options]) is now Arranger.Run(items[, options]). It returns an ArrangeResult
+  for each item, in the same order, holding what the item used to carry: Translation and Placed. A
+  null entry is answered with default, not moved and not placed.
+- Nothing is written into the items, so the same items can be run again, with other options, or on
+  several threads at once.
+- ArrangeOptions.Default is a new instance each time it is read. One instance for the whole process
+  could be changed by anyone for everyone, and kept the tolerance of whichever thread read it first,
+  a Tolerance.Use scope included.
+
+```
+Before                                     After
+new Arrange { GeoRectangle2 = box,         new ArrangeItem { Box = box,
+              GeoLine2 = leader,                             Leader = leader,
+              BaseOffsetFromLine = 50 }                      Offset = 50 }
+Arrange.Run(list, options)                 ArrangeResult[] results = Arranger.Run(items, options)
+list[i].TranslationVector                  results[i].Translation
+list[i].Placed                             results[i].Placed
+```
+
+The namespace is unchanged; the code now lives in src/GeometryHelper/Arranging, one type to a file.
+As with the renames, nothing old is kept alongside.
+
+### NEW. Both halves of the nearest-thing pair now exist on both families of shape.
+
+- GetClosestEdge on GeoPolygon2, GeoPolyline2 and GeoRectangle2, returning the edge of the shape
+  nearest a point, a segment, a circle or an arc. The probe is always a single primitive: the
+  nearest edge of one many-edged shape to another is really a pair of edges, which is a different
+  answer from the one the name promises.
+- GetShortestLineTo on GeoPolygonArc2, GeoPolylineArc2, GeoEdge2 and Core.Arc2. The closest point
+  pair for an arc against a segment, an arc or a circle is exact, not sampled.
+- A straight shape can be measured against a curved one, and asked whether it meets one, in either
+  order. GeoRectangle2 is offered to the curved types for the first time.
+- GeoSolid3 could only be asked about a point. It now answers DistanceTo for a segment, a ray, a
+  triangle, a polygon, a polyline, a plane, either kind of box and another solid; CollidesWith for
+  a segment, a ray, a polyline, a polygon, a face, a box and another solid; GetIntersections for a
+  segment, a ray and a plane; GetClosestPointOnBoundary; and GetShortestLineTo, built on a new
+  triangle-to-triangle closest pair in Projection3.
+- A ray is measured as a ray, not as a segment cut to some chosen length.
+
+A GeoCircle3 is deliberately not on that list. The distance from a circle in space to a flat face
+has no closed form, so turn it into a chain first and say in the call how close an answer you want.
+
+### ALSO NEW. How deep inside a closed shape a point sits.
+
+DistanceTo reads a closed shape as a filled region, so a point anywhere inside one is nought away and
+the depth cannot be got back out of the answer. SignedDistanceTo keeps it: the magnitude is the
+distance to the boundary whichever side of it the point is on, and the sign says which side.
+
+- Its whole definition is tied to Locate: negative where Locate answers Inside, nought where it
+  answers OnSide, positive where it answers OutSide. So Math.Abs of it is always the distance out to
+  the outline. Within the tolerance band around the boundary the sign is not worth reading, because
+  the answer there is nought either way.
+- Offered by every shape that encloses an area or a volume: GeoCircle2, GeoRectangle2, GeoPolygon2,
+  GeoFace2, GeoPolygonArc2, GeoSolid3, GeoObb3 and GeoAabb3. A curved loop is measured on its arcs.
+- The boundary of a GeoFace2 is its outline and the rim of every hole, so a point in a hole is off the
+  material and is measured to the rim it sits in. The surface of a pierced body is its faces and the
+  walls of every opening, and a duct running out past a face bounds nothing out there, so each
+  candidate is held against the body and kept only where the body agrees it is on the boundary.
+- Not offered for GeoTriangle3, GeoPolygon3 or GeoCircle3. They are flat regions standing in space and
+  enclose no volume, so a point is inside one only when it is also on its plane: a sign for them would
+  be negative on a set of no thickness and would read as though it meant more.
+  GeoPlane3.SignedDistanceTo already answers the question that does make sense for something flat.
+
+DistanceTo is untouched. Turning its sign over instead would have been a change no compiler could
+catch, and DistanceTo is also asked of two shapes, where a sign would have to mean penetration depth
+and does not. The naming follows SignedArea beside Area, and GeoPlane3.SignedDistanceTo, which the
+library has carried all along.
+
+A GeoFace2 also gained the plain DistanceTo to a point, which it had never had at all.
+
+### ALSO NEW. Arcs in space, and with them a reinforcing bar.
+
+A Tekla rebar carries a bending radius, so a bar is a chain of straight runs with a tangent arc at
+every bend. Nothing in the library could hold that, because a bulge is a flat idea: a chord and a
+bulge are satisfied by an arc in any of the planes through that chord.
+
+- GeoEdge3 is the twin of GeoEdge2 with the one thing space needs, a Normal saying which plane the
+  bulge is read in. A positive bulge sweeps counter-clockwise about it.
+- GeoPolylineArc3 is the open chain, and requires no plane, exactly as GeoPolyline3 requires none.
+  This is the type a bar is.
+- GeoPolygonArc3 is the closed loop and does enforce coplanarity, as GeoPolygon3 enforces it. That is
+  what keeps its area, its centroid, what is inside it, its offsets and its rounding exact: each is
+  answered by laying the loop out in its own plane as a GeoPolygonArc2 and lifting the answer back.
+- Corner3.Fillet rounds the corners of a chain in space, one radius or a radius per corner, and each
+  corner is rounded in the plane of its own two legs, so the bends need not share a plane. A bar is
+  shorter than its set-out by 2r - pi r / 2 at every bend, which is the number a bar schedule carries.
+- PlanarMap carries arcs both ways at last, so the round trip closes on a curved plate edge instead of
+  flattening it. An arc whose normal runs against the frame changes the sign of its bulge coming down.
+- GeoPolyline3 can now be measured against a segment, another chain, a triangle, a polygon, a plane,
+  either kind of box and a solid, which is what gives ToPolyline3 somewhere to lead.
+
+MEASURING a curved chain against another shape in space is deliberately not offered. The distance from
+an arc to anything but a point has no closed form once the two are not coplanar, so say how closely the
+bar should be followed and ask the ordinary question: bar.ToPolyline3(0.1).DistanceTo(slab). A sampled
+chain lies inside the arcs it stands for, so a clearance worked out that way errs on the safe side.
+Where the two CROSS is another matter, and is exact -- see below.
+
+In GeometryHelper.TeklaConvert, ReinforcementConvert turns a Reinforcement, any sequence of them or a
+RebarSet into bars, and RebarGeometryConvert turns one geometry. A bar is only ever read as Tekla works
+it out, because the hooks, the offsets and the lapping are settled by then and the set-out points do not
+show it. A sequence keeps its grouping: one entry per reinforcement, holding that one's bars.
+
+### ALSO NEW. Whichever of two shapes is in hand can be asked about the other.
+
+Core could work out roughly fifty-five things no type would answer. Some of it was a plain gap, and
+some of it ran one way only: a solid could be asked about a segment and a segment could not be asked
+about a solid. All of it is now on the types, and none of it changed an answer.
+
+- Translate on all fourteen types in space, which only GeoPoint3 had.
+- GetClosestPointOnBoundary on GeoFace2, GeoFace3 and GeoPlane3, and DistanceTo on GeoFace3, which had
+  none at all. The plane and space differ here and each follows its own side: in the plane the answer
+  is a point of the boundary even for a point on the material, as GeoPolygon2 does; in space it is a
+  point of the region, as GeoPolygon3 does.
+- CollidesWith, GetIntersections and TryIntersectWith in space, both ways round: thirty-one directions
+  across GeoAabb3, GeoObb3, GeoLine3, GeoRay3, GeoPlane3, GeoPolygon3, GeoTriangle3 and GeoFace3.
+  GeoLine3 also gained GetIntersection, the nullable answer beside TryIntersectWith that GeoLine2 has
+  always had.
+- GetShortestLineTo in space on GeoPoint3, GeoLine3, GeoRay3 and GeoTriangle3. The segment leaves the
+  shape it was asked of and lands on the other, so opposite directions are each other reversed.
+- GeoArc2 can be measured against, joined to, tested against and crossed with every shape in the plane,
+  where before it knew only a point, a segment and another arc. Two arcs of one circle collide when
+  either holds an end of the other: circles lying on each other meet along their length, not at points.
+- GeoEdge2 can be asked whether it touches a shape, not only how far off it is.
+- GeoFace2 answers about shapes and not only about points, through the new Core.Face2. The boundary of
+  a face is its outline together with the rim of every hole, so crossings are the union over that and
+  the reach is the shortest over it. Touching means reaching the material: a probe must reach the
+  outline and no hole may hold it whole. A ring drawn around a hole has its centre in the hole and
+  crosses no rim, exactly like a speck lying in one, and is told apart by whether the rim falls within
+  the probe.
+- And every shape can be asked about a face in turn, which is the direction the first pass left out.
+- DistanceTo in space now runs both ways: a triangle, a polygon, either box, a plane and a ray can be
+  asked how far off the other shapes are, where before several of them could be asked about a point and
+  nothing else. A box against a box, a plane against a plane and a triangle against a triangle could not
+  be asked at all.
+- TryIntersectWith runs both ways in the plane, as GetIntersections already did, and a circle, a curved
+  loop and a curved chain can be asked about their own sort.
+- Which edge of a many-edged shape is nearest can be asked from either side. The probe is still a single
+  primitive -- that rule is about the probe, not about which of the two makes the call.
+- A point can be asked how deep inside a shape it sits, through SignedDistanceTo, and in the plane it
+  reaches the arcs, the curved chains and the face, which it could not before.
+
+- A GeoEdge2 can be asked about, not only ask. Every shape in the plane takes one, reading it as the
+  segment or the arc it stands for, which is how the edge has always read itself.
+
+Core and the shape types now agree everywhere, and so does shape against shape: there is no pair one
+of them answers that the other will not, whichever is in hand.
+
+### ALSO NEW. Where an arc in space reaches, and what can be done to it.
+
+A GeoArc3 could say how far a point was and nothing else. Core.Arc3 now answers for a plane, a
+segment, a ray, another arc, a circle, a triangle, a polygon, a face, either kind of box and a body,
+and none of it is sampled. Two readings carry all of it: two coplanar circles meet on their radical
+line, two in different planes on the line where the planes meet, and one quadratic gives the
+candidates for the other shape's own test to keep.
+
+- GeoCircle3 forwards to the whole-turn arc; GeoEdge3 reads itself as its arc or its segment and
+  dispatches; GeoPolylineArc3 and GeoPolygonArc3 take the union over their edges, naming each place
+  once so a crossing at a shared corner is not found twice.
+- A bar can be CUT: at a point, at a distance, at a set of distances, by a plane, a face, a body,
+  either kind of box, or an array of bodies or boxes. The pieces come back as chains of arcs, so a
+  bar stopped at a pour break keeps its bends and with them the length a schedule needs.
+- A closed loop can be cut too, and gives open chains: a ring cut once is a strip as long as the ring.
+- An arc in space can be cut in two, at a parameter, a point or a length along the curve, keeping its
+  centre, its radius and its plane.
+- One chain can be asked about another, and about a segment, a ray and a straight GeoPolyline3. That
+  one walks every pair of edges, so each edge carries a box round itself and a pair whose boxes cannot
+  reach each other is dropped before any arithmetic.
+- GeoPolygonArc3 works in its own plane: booleans against a coplanar loop or polygon, Chamfer,
+  TryFilletAt, TryChamferAt, SignedDistanceTo, the joining line and the nearest edge.
+
+WHERE two things cross is exact; HOW FAR APART they are is still the refusal, and the line is drawn
+there on purpose. A crossing reduces to one quadratic; a distance from an arc to anything but a point
+has no closed form at all once they are not coplanar.
+
+A second shape has to lie in the loop's plane and is refused where it does not, with an
+ArgumentException. Projecting it in would report two stirrups a hundred apart as overlapping and say
+nothing about it. SharesPlaneWith asks beforehand. A POINT is the exception, and not as a compromise:
+a point off the plane stands at the same height above every point of the boundary, so the nearest
+place to it is the nearest place to its shadow, and the answer is exact.
+
+### ALSO NEW. The families that change geometry, which no matrix had ever covered.
+
+Every audit before this one covered measuring. The operations that change geometry were laid out
+against the types for the first time, and the gaps are closed.
+
+- A REGION in the plane can be cut into regions. GeoPolygon2 and GeoFace2 are cut by the straight line
+  through a segment -- its length is ignored, as a plane's extent is -- or along a GeoPolyline2 drawn
+  across them. The sides are called left and right, of the cutter's own direction, because above and
+  below mean nothing in the plane. Space had both readings all along.
+- ARCS, CHAINS, LOOPS AND EDGES can be extended and trimmed, where only GeoLine2 and GeoLine3 could.
+  An arc is lengthened along itself: the centre and radius stay, the sweep grows, and the distance
+  asked for is arc length and not chord. A chain is lengthened by its end leg, so every other leg and
+  bend survives -- which is what a bar wants for anchorage. Both outwards only; the splitting family
+  shortens one and keeps its bends, and TryTrimTo is that cut with the end named rather than the piece.
+- ROUNDING a straight chain or loop. GeoPolyline2, GeoPolygon2 and GeoPolygon3 can be filleted, which
+  the curved types could already do. The answer is the curved type, because a rounded corner is an arc.
+- CHAMFERING in space. GeoPolyline3, GeoPolygon3 and GeoPolylineArc3 can be cut back. A chamfer needs
+  no plane at all -- it moves back along one leg and forward along the other -- so a chain lying in no
+  one plane is cut all the same. Only a corner between two straight legs is cut, the rule the fillet
+  keeps, because a leg that curves leaves at a tangent.
+- BOOLEANS on the flat shapes in space. GeoPolygon3 and GeoFace3 have all four through the coplanar
+  lift; GeoObb3 has the three solid ones through the body it bounds, offered both ways round with
+  GeoSolid3. Everything flat comes back as GeoFace3, because joining two areas can leave a hole in the
+  middle and only a face can hold one.
+- OFFSETTING what could not be offset. GeoPolylineArc3.OffsetInPlane moves a bent bar to another cover
+  without straightening it: an arc comes back an arc with its radius moved by the distance.
+  GeoObb3.TryExpand gives the oriented box the margin the square one already had, keeping its axes.
+- CONVERSIONS. GeoTriangle3.ToPolygon3 and ToFace3 name the rebuild a triangle out of Triangulate
+  needed before anything taking a polygon would accept it. A triangle with no area is refused, because
+  a polygon of three collinear points is not a polygon; IsDegenerate asks first.
+- A segment's crossing with another segment is now also readable as a LIST, which is what lets a
+  GeoEdge3 be asked about one: an edge offers a direction only where a segment and a bend answer with
+  the same shape of call. GeoLine3 keeps its single-point TryIntersectWith and gains no array twin,
+  because a second one differing only in the shape of its out would make every existing call ambiguous.
+
+### ALSO NEW. Three more the matrix showed once it was drawn per family rather than per pair.
+
+- A STRAIGHT CHAIN IN SPACE could say how far off nine kinds of shape were and whether it touched
+  three. It now answers CollidesWith, GetIntersections and TryIntersectWith about a plane, a segment,
+  a ray, an arc, a circle, a triangle, a polygon, a face, either kind of box, a body, and another
+  chain. A chain is a run of segments and a GeoLine3 already answered all of it, so each answer is
+  the union over the segments with a crossing at a shared vertex named once. Chain against chain
+  drops a segment pair whose boxes cannot reach each other before doing any arithmetic.
+- A FACE AND A RECTANGLE in the plane had GetIntersections against nine and ten shapes and no
+  TryIntersectWith at all. Both now have the twin, for every shape they can be crossed with.
+- LOCATE wherever a shape had IsPointOn without it: GeoLine3, GeoPolyline3 and GeoRay3, whose plane
+  twins have had it all along, and GeoEdge2, which had neither although GeoEdge3 has both. An open
+  shape encloses nothing, so the answer is only ever OnSide or OutSide, never Inside -- not even for
+  a chain whose ends happen to meet. GeoPlane3 deliberately keeps GetSide instead: Above, Below or On
+  is more than Locate could say. A point keeps IsPointOn alone, because there the point is the one
+  asking.
+
+### FIXED. A body's openings, everywhere.
+
+A GeoSolid3 keeps an opening as a whole body subtracted from it, so its faces run straight across
+every hole: a plate's top face is a whole square even where a bolt hole passes through it. Fifteen
+queries read those faces, or the mesh made from them, as where the material ends -- because
+Triangulate said openings are not meshed and, in the same remark, that clash detection reads its mesh
+as the boundary. A pin through a bolt hole, five clear of every wall, was a clash, nought away, and
+crossed four times. For a clash check between Tekla parts that is every bolted connection.
+
+- CollidesWith, GetIntersections, DistanceTo and GetShortestLineTo against a segment, a ray, a
+  polyline, a triangle, a polygon, a face, either box and another body now read the material. So do
+  DistanceTo, SignedDistanceTo and GetClosestPointOnBoundary of a point, which were wrong near an
+  opening in a way no test caught because they agreed with the old Locate.
+- Locate asked the faces before the openings, so the middle of a bolt hole at the level of the top face
+  was boundary. The openings are asked first.
+- TrySubtract judged a cell in two pieces by one point, so subtracting a box that overlapped an
+  existing hole could throw away material nowhere near it; GetNetVolume inherited that. Every cell is
+  separated into its pieces before it is judged.
+- GeoBvh3.FromSolid, and so BuildIndex, index the material: a ray down a bolt hole passes through.
+
+Touching or crossing cuts in only the openings the probe can reach, so a bolt against a plate with
+twenty holes costs one cut. Distance cuts them all, since the nearest material can sit on the rim of
+an opening the probe never comes near. A body asked many questions is cut once with TryCutOpenings.
+
+### ALSO NEW. Solid against solid, for a clash report.
+
+- GeoSolid3.TryCutOpenings and TriangulateSurface: the body with its openings cut in, and the mesh of
+  where its material ends.
+- GeoSolid3.Intersect(other) -> GeoSolid3[]: one body per region two bodies share, so a beam through
+  two plates reports two clashes; empty when they share no volume. GeoSolid3.SplitShells: the separate
+  pieces of any body. Two regions meeting only along an edge share no volume and are two.
+- GeoSolid3.TryGetContact(other, out GeoFace3[]): where two bodies that only touch lie against each
+  other, face to face, less any hole in the material under it. Edge and point contact have no patch;
+  CollidesWith reports those.
+
+Nothing above changed an answer that was already being given.
+
+### FIXED. What a review of Geometry and Core found.
+
+- Intersecting a bent bar with anything took tens of seconds, and so did a clash check of
+  reinforcement with hooks or bends: a group of eight bent bars against one IFC beam took 57 s. The
+  intersection cut the bar by the planes of its own bend as well as the other body's, and every such
+  plane runs on through the rest of the bar and cuts it again: thousands of cells, and room for them to
+  go wrong. A bar bent over a plate came out 2969 where it shares 2967, reaching five below the plate,
+  and a stirrup wholly inside a beam threw after half a minute. It now cuts one body only, the one fewer
+  planes cut, by the planes of the other that come near it and of its own openings: the eight bars take
+  12 ms, and every answer here is exact. Where a plane still crosses a cell and leaves it whole, the
+  other body is cut instead, when that costs about the same. (Found testing the clash check in Tekla.)
+- The solid booleans were wrong on about one pair in 250 where one body passed a few thousandths from a
+  corner of the other, and unions and differences of such pairs could throw. A plane cutting that close
+  to a corner leaves a sliver on each face meeting there, under the 1e-4 area a polygon refuses at the
+  ordinary tolerance. Refused, the half it belonged to could not close and the cut failed, so a cell was
+  left whole across the other body and judged by one point for both sides of it: two blocks sharing
+  sixty were found to share nothing. A face crossed with a sliver on one side went whole to the other
+  side, or to neither. The pieces of a cut, the caps closing it, the faces joined in one plane and the
+  pieces lifted out of a flat boolean are now built as thin as the point tolerance allows, and a crossed
+  face gives each side its own pieces. On 47,574 intersections of random convex parts the answers more
+  than 1% out fell from 194 to none; checked closer on 1,815 pairs, every union, intersection and
+  difference agrees with the same boolean at 1e-10 to a part in a million. On 1,687 pairs among bent
+  bars, stars, Ls and Is, 36 answers more than 1% out fell to none, and the 67 unions and differences
+  that threw now answer with the right volume; eight of those come out open, faces rejoined across
+  thousands of cells not quite meeting. A flat boolean gives the sliver it leaves rather than throwing,
+  and takes a face too small for the plane to hold as adding nothing and taking nothing away. The steel
+  frame's clash check gives the same results, prepared and checked in 1.6 s rather than 1.9 s. (Found
+  fixing the clash check for bent bars.)
+- The end face of an I, a channel or any section with an inside corner was meshed across its gaps.
+  Ear clipping took the flanges of an I off first and then took as an ear a triangle across the web and
+  the gap beside it, since a corner of the web lay on the triangle's edge and only corners strictly
+  inside counted; the loop stuck and the face fell back to the fan of its outline, four times its area.
+  A prepared column said a point in the plane of its end, a flange's width from the steel, lay on it,
+  and a plate with bolt holes meshed that way measured a bolt in its hole at 1.09 instead of 1.96: 31
+  of the 400 bolts in the steel frame used to test the clash check. A corner on an ear's edge now
+  blocks it, as one inside does, unless it stands on a corner of the ear, as the ends of a hole's
+  bridge do. (Found while speeding up the clash check.)
+- The solid booleans could leave a sheet of no thickness inside their result. A face between two kept
+  cells is found twice, once each way round, and the pair was dropped only when the two copies matched
+  vertex for vertex; a cut that reached the cell on one side and not the other left one copy in two
+  pieces, and both survived. The volume never noticed, since the two cancel, but a point beside the
+  sheet measured a millimetre to the boundary instead of five, TriangulateSurface meshed the sheet and
+  SplitShells threw. About one union or difference in two hundred of randomly turned boxes did it.
+  Faces left back to back now cancel by the area they share.
+- SplitShells, and Intersect through it, threw on a group of faces enclosing nothing -- a lone face,
+  or two back to back. Such a group now goes with the piece holding it, and is dropped where no piece
+  does.
+- Two shapes lie in one plane when the whole of each does. The test was planes parallel within the
+  angle tolerance, a whole degree, with one point of one on the other, so a plate turned half a
+  degree about a line through that point passed: SharesPlaneWith said true, the flat booleans
+  projected it onto the plane instead of refusing it, TryGetContact reported a patch where two bodies
+  met along an edge, and the solid booleans could take real boundary crossing a face at a shallow
+  angle for the inside of the body. Every corner, and the middle of every arc, now has to lie on the
+  plane.
+- Crossings under a degree were refused as parallel. Two members were parallel for a crossing when
+  the angle between them was under the angle tolerance, a whole degree, however long they were: two
+  ten-metre members crossing at 0.9 degrees, 157 apart at their ends, crossed nowhere, while
+  CollidesWith said true and DistanceTo nought. The same held for a member against a plane, an arc
+  in space against a plane, and a face against the plane cutting it. The booleans lean on the last:
+  a box corner poking five hundredths through a face turned under a degree from it went uncut, and
+  the union counted it twice. And the ray cast behind Locate lost a crossing that way, so a point
+  inside a long member lying under a degree off one of the directions it casts in was reported
+  outside the member. Two members are now parallel when they draw apart by less than EqualPoint
+  along the longer of them, and a flat shape meets a plane wherever it stands off it by more than
+  EqualPlanar. Two infinite lines, and two planes, still go by the angle. IsParallelTo is unchanged:
+  it answers about directions.
+- DistanceTo from an arc or an edge to a GeoCircle2 measured to the rim. Every closed shape is read as
+  the region it encloses, and a segment always read the disc, but an arc inside a disc of radius a
+  hundred was seventy away while CollidesWith said the two touched, and a straight edge inside it was
+  eighty away from the edge's side and nought from the circle's. GetShortestLineTo still runs rim to
+  rim, as it does for every closed shape.
+- Two arcs, one lying inside the other's circle, were measured facing each other along the line
+  joining the centres rather than on the same side of it, so an arc round a small circle came out
+  3.4 from it where the gap was 1.2, and in a random run 49.7 where it was 7.5. DistanceTo and
+  GetShortestLineTo between arcs, and every curved edge and chain built on them, weigh all four
+  pairings now.
+- DistanceTo between a body or a chain in space and a concave GeoPolygon3 used the fan the polygon
+  breaks into, which covers a concave polygon only by signed sum: a body sitting in the notch of an L
+  measured nought to it while CollidesWith said it did not touch. They use triangles lying inside the
+  polygon.
+- A size, a distance or a tolerance that was not a number got through where a negative one was
+  refused. GeoCircle2, GeoCircle3, GeoObb3, GeoRectangle2, GeoRay3.ToLine and Tolerance each asked
+  whether the value was below nought, which NaN is not, and the shape then answered NaN or false to
+  every question without a word. TryGetNormal normalised a vector of NaNs into another, so a plane or
+  a ray built on one was taken. All of them refuse NaN and infinity now, and a rectangle refuses an
+  angle that is not a number.
+- IsClosed matched edges by their end points and wanted each used exactly twice. A long edge beside
+  two short ones -- which merging coplanar faces and the booleans both leave -- had no partner that
+  way, and two blocks meeting along an edge put four faces on one edge; both bodies are watertight
+  and measure right, and both were called open, so IfcConvert warned on them and meshed them again.
+  A body is closed now when every stretch of every edge is shared by an even number of faces. The
+  end points still settle the usual body; only where they leave an edge unmatched is the edge
+  matched along its line.
+- Ear clipping gave up on a face carrying a row of points along a straight edge -- which merging
+  coplanar faces leaves wherever a neighbour had a corner -- because clipping the first ear round the
+  loop each time ends with that row and nothing across from it, and no corner of a straight row
+  turns. The face then fell back to the fan of its outline, which covers its holes over. A plate
+  with its openings cut in came out of TriangulateSurface meshed across every hole, so BuildIndex and
+  every query reading the mesh found material there: a ray down a bolt hole hit the plate. What is
+  left once the rest is clipped away may now be a row of points with no area.
+- GeometryHelperLog.Writer was called on whichever thread logged, from two at once when two did. Work
+  spread over every core logs from all of them, and few writers are safe to call that way: logging 64
+  messages from eight threads, 63 calls began while another was running. Messages now reach the
+  writer, or Trace, one at a time.
+
+### NEW. A body asked many questions.
+
+- GeoSolid3.Prepare() gives a GeoPreparedSolid3 (GeometryHelper.Spatial): the openings cut in once,
+  the surface meshed and indexed once, the box kept. It answers Locate, Contains, DistanceTo,
+  SignedDistanceTo, GetClosestPointOnBoundary and GetIntersections of a point or a ray, and
+  CollidesWith, DistanceTo, Intersect and TryGetContact of another body, as the body does -- a test
+  checks every one against the body on random points, rays and boxes -- without cutting the
+  openings each time. It is immutable and safe to ask from many threads.
+- Clash3.Find (GeometryHelper.Clash, with ClashOptions, ClashResult and ClashKind) checks a set of
+  parts against itself, or one set against another, and returns a
+  ClashResult per pair that clashes: Hard with the shared regions and their volume, Touch with the
+  contact patches, Clearance with the gap when ClashOptions asks for one, and Unresolved with the
+  error for a pair whose check threw. The parts are prepared once, only pairs whose boxes come within
+  the clearance are looked at, and those are checked in parallel; the results come back in the order
+  of the indexes. On 120 random parts it finds exactly what checking every pair by hand finds.
+
+### NEW. Making bodies.
+
+- GeoSolid3.Extrude: a GeoPolygon3 or GeoFace3 along any vector out of its plane, holes running
+  through as shafts; a GeoPolygon2, GeoFace2 or GeoPolygonArc2 drawn in a GeoCoordinateSystem3,
+  along its Z for a length.
+- GeoSolid3.Cylinder between two points, GeoSolid3.Pipe along a GeoPolyline3 or a bent
+  GeoPolylineArc3 -- a reinforcing bar from its centre line -- and GeoSolid3.Sweep of any section
+  along either, optionally told which way is up.
+- GeoSolid3.Revolve of a profile round the Y axis of a placement, through any angle up to a whole
+  turn.
+  Every body is closed and wound outwards. Along a path the pieces meet mitred and the section does
+  not twist, so a section centred on the path gives the section times the path length exactly.
+
+### NEW. Weighing, cutting and fitting.
+
+- GeoSolid3.GetMassProperties(density) gives a MassProperties3: volume, mass, centroid, surface area,
+  the moments and products of inertia about the centroid, the principal moments and axes, and
+  GetMomentAbout any axis. The integrals are exact for the faces and read the material, so openings
+  come out of the weight.
+- GeoSolid3.Section(plane): one GeoFace3 per region a plane cuts, holes and all.
+- ConvexHull2 and ConvexHull3 (GeometryHelper.Core): the smallest convex polygon or body holding some
+  points. GeoRectangle2.Fit gives the rectangle of least area round points, exactly; GeoObb3.Fit a box
+  stood on the best face of the hull, the least box for anything with a flat face to stand on.
+
+### NEW. Values that are shapes, and a tolerance for a while.
+
+- IsValid on every value type: whether a value is one a constructor could have made. A default
+  GeoPlane3, GeoRay3, coordinate system, arc or GeoCircle3 is not -- no normal, no direction, no
+  axes, no radius -- and answers questions without complaint all the same.
+- GeoPolygon2.MakeValid and Boolean2.MakeValid: the region a polygon crossing itself covers, as faces
+  that do not cross themselves, which is the region Locate and the booleans read. Its Area stays the
+  shoelace sum, and now says so.
+- Tolerance.Use(tolerance) makes a tolerance the one the overloads without one use on this thread
+  until the scope is disposed. Tolerance.Global is swapped whole when set, so it can no longer be
+  read half old and half new.
+
+### NEW. Looking at the geometry (GeometryHelper.Export).
+
+- ObjWriter: bodies, faces, meshes and chains in space as a Wavefront OBJ file, one named object each,
+  coordinates exact.
+- SvgWriter: every shape of the plane as an SVG picture fitted round what is drawn, arcs as arcs, Y up.
+- Wkt.Write: points, segments, chains, polygons, faces and sets of faces as well-known text.
+
+### NEW. The chains of the plane and of space side by side.
+
+- StartPoint and EndPoint on GeoPolyline2 and GeoPolylineArc2, which lacked the ends their twins in
+  space had; MidPoint on GeoPolyline3, GeoPolylineArc2, GeoPolylineArc3, GeoEdge2 and GeoEdge3.
+- TrySplitAtDistance in both shapes on all four chains: the two pieces as first and second, null when
+  nothing is cut, and the pieces as a list, the chain whole when nothing is cut.
+- GeoPolylineArc3.SplitAtDistances(distances) hands back the pieces as the other chains do, beside the
+  form answering true or false.
+
+### FASTER. The clash check, step by step, each answering exactly what it answered before.
+
+Measured on a steel frame of 789 parts with 400 bolt holes, a mesh of 80 crossing bars and 2000 boxes,
+24 threads:
+
+- Two indexes are walked nearest pair of boxes first, so the bound drops to near the answer at once
+  and the rest is passed over, and GeoPreparedSolid3.GetShortestLineTo walks them rather than meshing
+  both bodies again and weighing every pair of faces. The clearance check measures a gap and finds it
+  in one walk, which stops at the clearance, where it used to test for a collision twice and measure
+  twice. The frame's check: 3.5 s to 1.6 s. Where several segments are shortest alike, between
+  parallel faces or round a bolt in its hole, the one given may differ from before; how short it is
+  does not.
+- Cutting openings in glued the cells back by comparing every face with every face and every edge
+  with every edge, and measured the box of every cell and every opening afresh each time one was
+  asked for. The faces and edges are now filed by where they lie and compared only with those that
+  could match, in the same order and by the same test, and a GeoPolygon3 and a GeoSolid3 measure
+  their box once, when they are made. A plate with four bolt holes: 317 ms to 43 ms; with 32 holes,
+  1.7 s to 0.6 s. Preparing the frame: 6.3 s to 1.7 s.
+- Two triangles one of which lies wholly to one side of the other's plane, clear of it by more than
+  twice the larger of the point and planar tolerances, cannot meet: Collision3.CollidesWith and
+  Projection3.GetShortestLineTo for two triangles now say so from three distances, where they looked
+  for six crossings, and walking two indexes for a collision tests the box of each triangle under a
+  leaf before the triangle. The frame's CollidesWith: 1.3 s to 0.35 s on one thread.
+- Two parts that collide and are parted by a face of one of them — the one wholly behind the face's
+  plane, the other wholly in front, as a beam bearing on a column's flange is — share no volume, and
+  the check now takes that from their corners instead of cutting them into cells to find it out. A
+  pair nothing parts, a bolt in a hole it fills, goes to the boolean as before. The frame's check on
+  one thread: 3.1 s to 1.8 s; 460 of its 469 colliding pairs only touch.
+- Two convex parts share one convex region at most, and GeoPreparedSolid3.Intersect now clips it out
+  directly — one part cut by each face plane of the other — instead of cutting cells by every plane of
+  both. It answers only where the region is plainly one, a clean closed body thicker than ten
+  tolerances; a touch, a sliver, or a face the polygon tolerance would lose goes to the general boolean
+  as before. The mesh of 80 crossing bars: 3.0 s to 0.04 s. On some convex pairs the general boolean at
+  the ordinary tolerance was plainly wrong — nothing shared by an octagonal prism and a block that share
+  eight thousand cubic units, by points counted — and the clipping gets those right.
+- What two parts share lies where their boxes overlap, so the parting face need only part the parts of
+  them inside that overlap: boxes meeting in a face, an edge or a corner settle it at once, as every
+  contact square to the axes does, and a beam framing into a column's web between the flanges is parted
+  by the web though the flanges reach past its plane. Where one part is convex the region narrows to the
+  inside of it as well, which parts such a beam turned askew. All 460 touching pairs of the frame are
+  now settled without the boolean, and its check allocates 343 MB rather than 748: 0.35 s to 0.21 s on
+  24 threads, where the parallel speed-up grew from 3 to 7 under the workstation garbage collector.
+
+Altogether, the median of three runs on 24 threads: the steel frame, preparing and checking, 9.7 s to
+2.0 s under the workstation garbage collector and 7.3 s to 0.65 s under the server one; the bar mesh
+3.0 s to 0.04 s; 2000 boxes 39 ms to 3 ms. Every pair and kind of clash found is the same; the gaps of
+31 bolts in their holes are now right (see FIXED), and the rest agree with volumes found by counting
+random points and gaps found by weighing every pair of triangles.
+
+## 5.1.0
+
+Rounding a corner no longer means rounding every corner by the same radius.
+
+- Fillet takes a list of radii, one per vertex, read the way the bulges are read: the entry at an
+  index belongs to the vertex at that index. A zero leaves that corner alone, and a list shorter
+  than the shape leaves the rest of it alone. A plate wanting forty at one corner, ten at the next
+  and a square corner after that is now one call.
+- TryFilletAt rounds one named corner and reports whether it had room, as TryChamferAt cuts one.
+- Where two neighbouring corners together ask for more of the edge between them than it is long,
+  the one taking more of it gives way. That rule was always there; with a radius per corner it
+  earns its keep, because a corner asking for 250 of a 300 edge yields to one asking for 20 rather
+  than winning by being reached first.
+- Everything rounding already knew still holds: a corner against a curve is rounded against it, and
+  an arc cut back keeps the circle it was cut from rather than being straightened.
+
+Nothing was removed or changed, so 5.0.0 code builds against this unaltered.
+
+## 5.0.0
+
+One package instead of four. GeometryHelper.CommonGeometry, GeometryHelper.PlaneGeometry,
+GeometryHelper.SolidGeometry and GeometryHelper.ArrangeAlgorithms are now GeometryHelper, one
+assembly. Keeping the two dimensions apart cost a machinery of shared source files and internal
+copies, and it stopped a shape in space from being handed to the plane algorithms at all.
+
+### WHAT TO CHANGE
+
+- Replace the four PackageReference entries with one on GeometryHelper.
+- The namespaces are shorter, and every type kept its name:
+
+  ```
+  GeometryHelper.CommonGeometry, .Datatype          -> GeometryHelper
+  GeometryHelper.CommonGeometry.Enums               -> GeometryHelper.Enums
+  GeometryHelper.PlaneGeometry.Geometry, .Solid...  -> GeometryHelper.Geometry
+  GeometryHelper.PlaneGeometry.Core, .Solid...Core  -> GeometryHelper.Core
+  GeometryHelper.SolidGeometry.Spatial              -> GeometryHelper.Spatial
+  the three .Extension namespaces                   -> GeometryHelper.Extension
+  GeometryHelper.ArrangeAlgorithms                  -> GeometryHelper.Arranging
+  ```
+
+  A program that worked in both dimensions imported two namespaces for shapes and two for
+  operations; it now imports one of each, and nothing collides, because every type already
+  carried a 2 or a 3.
+
+### WHAT IS THE SAME
+
+- Every type, every member, every overload and every tolerance rule. The merge moved code; it
+  did not change an answer: the 1,836 tests the four suites carried before it pass unchanged.
+  The four suites were merged as well, into one GeometryHelper.UnitTest holding a folder per
+  area, so one run covers the package.
+- Tolerance.Global is still one process-wide setting, and it now genuinely cannot be two.
+- The plane half still resolves regions with Clipper2 (Boost Software License), which remains
+  this package's only dependency; the solid half still uses its own winding-number solver, and
+  the suites still check the two against each other.
+
+### CUTTING CORNERS, AND CIRCLES AS POLYGONS
+
+- Corner2 chamfers a corner: one straight cut across it, measured back along each of the two edges
+  that meet there, as AutoCAD's CHAMFER does. Chamfer on a polygon gives a polygon and on a chain
+  gives a chain, because cutting a corner square adds no curvature, so the result goes straight on
+  into the region operations with nothing to convert. A chain keeps both of its end points.
+  TryChamferAt cuts one named corner and reports whether it had room.
+- A corner is left alone when its cut is longer than an edge beside it, when two neighbours
+  together ask for more than the edge between them is long (the one taking more of that edge is
+  dropped, which may leave room for the rest), or when the corner is straighter than
+  Tolerance.EqualAngleRad. What was skipped is written to GeometryHelperLog. Every cut is measured
+  on the shape as it came in, so the answer does not depend on which vertex the walk began at.
+- GeoCircle2, GeoCircle3, GeoArc2 and GeoArc3 cut themselves into straight pieces three ways: ToPolygon() takes the
+  automatic tolerance of 0.2 % of the radius, about fifty edges; ToPolygonByChordTolerance keeps
+  every edge within a distance of the circle; ToPolygonBySpacing puts no two vertices further apart
+  than asked along the circumference, spread evenly with no short edge left at the end; and
+  ToPolygon(count) gives exactly that many. ToPolyline does the same as an open chain with its
+  first point repeated at the end, and an arc gives a chain rather than a loop because it does not
+  close. The vertices lie on the circle, so the polygon is inscribed and encloses about 0.26 %
+  less at the automatic tolerance. GeoCircle2 had none of this; GeoCircle3 had only the count.
+- GeometryHelper.CadConvert now says so when an AutoCAD polyline carrying arcs is read as points:
+  the bulges were always dropped silently, which straightens the shape rather than rounding it.
+
+### ARCS
+
+The plane had no arc. A drawing is full of them, and everything that read one had to straighten it
+first, so a slot came back a rectangle and a rounded plate came back square.
+
+- GeoArc2 is a piece of a circle: a centre, a radius, the angle it starts at and the angle it
+  sweeps. The sweep is signed, so the arc knows which way round it goes and a half turn is told
+  from the rest of the circle left behind. FromThreePoints builds one through three points and
+  FromBulge from the number AutoCAD stores, and Bulge reads that number back, so a round trip
+  through a drawing is exact.
+- Core.Arc2 holds the operations, mirroring the ones for a segment: ProjectToArc, DistanceTo to a
+  point, a segment or another arc, IsPointOn, Locate, TryIntersectWith and GetIntersections,
+  TrySplitAt by parameter or by point. Translate, RotateBy and TransformBy move one; a
+  transformation that would make it an ellipse is refused rather than averaged, as elsewhere.
+- GeoArc3 is the same arc in its own plane, carrying a Normal. Its GetAabb is the box round the
+  arc itself rather than round the whole circle, and ProjectToArc2 brings it into the plane.
+- GeoArc2, GeoArc3, GeoCircle2 and GeoCircle3 all cut themselves into straight pieces the same
+  four ways, described below.
+
+### CHAINS THAT CURVE
+
+A GeoPolyline2 is straight by definition, and widening it would have made every shape in the
+library pay for arcs it does not have. The chains that may curve are their own types instead.
+
+- GeoEdge2 is one piece of a chain: two ends and a bulge, a straight segment until the bulge is
+  not zero. It measures along its arc, gives its chord either way, and refuses ToLine when it
+  curves and ToArc when it does not.
+- GeoPolylineArc2 is the open chain and GeoPolygonArc2 the closed loop, laid out the way a drawing
+  holds them: vertices, with the bulge of the edge leaving each one. Both build from a straight
+  GeoPolyline2 or GeoPolygon2 without losing anything, reverse with every bulge changing sign, and
+  compare two ways - Equals exactly and from the same starting vertex, IsEqualTo within a
+  tolerance and, for a loop, whatever vertex it starts at.
+- GeoEdge2, GeoPolylineArc2 and GeoPolygonArc2 carry Translate, RotateBy and TransformBy like every
+  other shape of the plane. A bulge measures an arc against its own chord, so moving, turning and
+  scaling evenly leave it alone; mirroring changes its sign, and an uneven scaling is refused
+  because the arc would be part of an ellipse.
+- GeoPolygonArc2 gives Area, SignedArea and IsClockwise exactly, counting the piece each arc adds
+  beyond its chord. It answers nothing else about what lies inside it: flatten it first.
+- A chain that may curve answers everything a straight one does, and answers it on the arcs:
+  DistanceTo, Locate, Contains, IsPointOn, GetClosestPointOnBoundary, GetIntersections,
+  CollidesWith, TrySplitBy, TrySplitAtDistance, SplitAtDistances, TryChamferAt, the whole
+  GetPointAtParameter family, and for a loop Centroid and IsSimple. They live in the Core classes
+  beside their straight counterparts - Distance2, Containment2, Intersection2, Collision2,
+  Projection2, Parametrization2, Splition2 - and are mirrored on the types themselves.
+- Locate on a curved loop is exact with no arc cut up anywhere in it: the straight loop through the
+  vertices, turned inside out once for every piece an arc cuts off its own chord that the point
+  lies in. That covers an arc bulging out, one bulging in, and one sweeping more than half a turn.
+- A cut inside an arc leaves two arcs of the same radius rather than two chords, so the pieces put
+  back end to end draw what went in. Cutting a loop gives open chains, and the run after the last
+  cut carries on through the vertex the loop happened to be held from.
+- Offset keeps the arcs, and is the one region operation that does not go through Clipper. It can
+  be done piece by piece - a segment moves sideways, an arc keeps its centre and changes its radius
+  by the same amount - so a fillet of R40 offset by 10 comes back R50 exactly. A corner that closes
+  up is trimmed to where the moved pieces cross; one that opens is bridged as OffsetJoin says, and
+  Round bridges it with a true arc. What tells the folded parts from the real ones is the one thing
+  an offset cannot break: every point of a valid offset stands exactly the offset distance from the
+  shape it came from, and anything nearer has been folded over. The suite checks it against the
+  straight offset through Clipper, which agrees to a part in a hundred thousand.
+- The four boolean operations do need flattening, because a boolean cannot be done piece by piece.
+  They take an optional chord tolerance and hand back GeoFace2, which says plainly that the arcs
+  are gone.
+- Miter, the default join, runs both pieces on until they meet, an arc reaching further round its
+  own circle rather than being cut across, which is what AutoCAD's OFFSET does at a corner. Where
+  the two would never meet, or meet further away than OffsetOptions.MiterLimit allows, it cuts
+  straight across instead.
+- GeoCoordinateSystem2 is the local coordinate system of the plane, the counterpart of
+  GeoCoordinateSystem3 in space: an origin and two orthonormal axes, with ToLocal and ToGlobal for
+  points and vectors and ToTransform to hand it over as a GeoTransform2. A transformation could
+  already say the same thing, but it may also scale, mirror or shear, and reading one backwards
+  means inverting a matrix; a frame is rigid by construction and reads backwards by turning the
+  axes round. GeoRectangle2, the rotated rectangle, now carries one and can be built from one, as
+  GeoObb3 already did in space.
+- GeoPolygon2 and GeoPolygon3 gained Reverse, which the chains already had. Which way a loop runs
+  is what tells its inside from its outside to anything reading winding, and it decides which way
+  round a pair of chamfer distances goes.
+- GeoBvh2 is the counterpart of GeoBvh3 in the plane: a bounding volume hierarchy over GeoEdge2, so
+  one index serves a straight chain and a curved one alike, with the arcs held as arcs. It answers
+  the nearest point, the distance to a point or to another index, where a segment crosses, and
+  whether two sets of edges meet. It measures to the edges rather than to the region they enclose.
+- Coverage can be measured on demand with coverlet; see the README for the command. It stands at
+  about 90 % of lines and 85 % of branches.
+- Flatten() turns a curved chain into the straight one the region operations read, cutting each arc
+  within 0.2 % of its radius, and Flatten(chordTolerance) within a distance you name. The chords
+  lie inside the arc, so a shape bulging outward encloses a little less once flattened and one
+  bulging inward a little more. Clipper, which resolves the booleans and the region offsets, knows
+  only straight edges, so this is the door arcs stop at - and it is a conversion you make, not one
+  the library makes quietly behind you.
+
+### ROUNDING CORNERS
+
+- Corner2.Fillet replaces a corner with an arc tangent to both edges, as AutoCAD's FILLET does.
+  Rounding creates curvature, so unlike Chamfer it cannot give back the kind of shape that went in:
+  it works on GeoPolylineArc2 and GeoPolygonArc2, and a rectangle filleted at every corner comes
+  back eight edges. A chain keeps both of its end points where they were.
+- Fillet also takes one radius per corner, as a list read the way the bulges are: the entry at an
+  index belongs to the vertex at that index, and a zero leaves that corner alone. TryFilletAt
+  rounds one named corner on its own, as TryChamferAt cuts one. Where two neighbours together ask
+  for more than the edge between them is long, the one taking more of it gives way, so a corner
+  asking for a large radius yields to a small one rather than the other way round.
+- Lengthen2.TryFilletCorner does the single corner between two segments and hands back the arc and
+  both trimmed segments. It finds the corner by extending the two, so they need not already meet,
+  and the order they are passed in does not change the answer.
+- Exactly enough is enough: a square of side one hundred filleted at fifty loses every straight
+  edge and comes back four quarter turns, which is a circle, and chamfered at fifty it comes back
+  the diamond through the four midpoints. Both used to lose a corner to the dust left by measuring
+  an edge, and a fillet that consumed a whole edge used to lose the next arc its bulge.
+- A corner is left alone for the reasons a chamfer is, and for one more: when either edge is
+  already an arc. A circle tangent to two curves has several answers and picking one is not this
+  method's business. What was skipped, and why, is written to GeometryHelperLog.
+
+### GEOTRANSFORM2
+
+The plane had no transformation at all: shapes could be translated and rotated and nothing else.
+GeoTransform2 is the 3x3 homogeneous matrix that fills the hole, built and read exactly as
+GeoTransform3 is, and applied on the left so that a.Multiply(b) means "apply b, then a".
+
+- Translation, Rotation about the origin or a point, Scaling uniform, per axis or about a point,
+  Mirror across the line a segment carries, and FromFrame, which places geometry built about the
+  origin and whose inverse reads a placed drawing back into local coordinates.
+- Multiply and the * operator combine them; GetDeterminant is the factor areas are multiplied by,
+  negative when the transformation reverses winding; Inverse and TryGetInverse undo one, judging
+  the determinant against the size of the transformation rather than against zero, so a drawing
+  scaled down by a thousandth still inverts cleanly.
+- Every shape of the plane carries TransformBy: points, vectors, segments, chains, polygons, faces
+  with their holes, circles and rectangles. A circle under a scaling that differs between the axes
+  would be an ellipse and a rectangle would be a parallelogram; both are refused rather than
+  answered with an averaged shape, as GeoTransform3 already refuses the same of a circle.
+
+### THE PLANE HALF CATCHES UP WITH THE SOLID ONE
+
+- GeoPolygon2 reports its measurements as properties, as every other shape in the library does:
+  GetArea(), GetSignedArea(), IsClockwise() and GetCentroid() are now Area, SignedArea,
+  IsClockwise and Centroid. GeoCircle2.Circumference is now Length, the name every other curve
+  uses. Both are renames; nothing about the answers changed.
+- GeoRectangle2 gained Area, which it had no way to report at all, and GeoPoint2 gained Origin.
+  GeoFace2 and GeoFace3 gained Centroid, the boundary's with the holes taken out.
+- Containment2.GetSide says which side of a segment a point lies on, through the new LineSide
+  (Left, Right, On) — the counterpart in the plane of PlaneSide in space — and is mirrored by
+  GeoPoint2.GetSideOf. Parallel2.IsCodirectional tells the two ways along a line apart, mirrored
+  by GeoVector2.IsCodirectionalTo. Projection2.ProjectToInfiniteLine is ProjectToLine without the
+  clamp to the segment.
+- GeoPolygon2, GeoPolyline2 and GeoFace2 gained IsEqualTo, the tolerance-aware comparison their
+  solid counterparts already had. A polygon is matched whatever vertex it starts at, a chain from
+  its start because a chain has ends, and a face hole for hole in whatever order they are held.
+- Merge2.JoinBackup is internal now. It was always the plain reading of joining kept to hold the
+  fast one against, never meant for drawings, and it no longer sits in the public surface.
+
+### WHAT THIS OPENS
+
+- PlanarMap carries flat geometry between the dimensions: a plate, a face or a chain lying in a
+  plane in space is laid out in two dimensions through a GeoCoordinateSystem3, worked on with the
+  whole 2D half of the library - offsetting, the booleans, splitting, containment with holes -
+  and put back where it came from. GetFrame on a polygon or a face gives a frame that turns with
+  the shape, so its plan view is the same drawing wherever it sits in the model. Flattening drops
+  the local Z, so ProjectTo... projects a point that is off the plane and TryToPoint2 refuses it.
+- Internally the same merge retired the plane-and-vector struct the offset engine used to carry,
+  which existed only because the two halves could not see each other's types. The engine now
+  works in GeoPoint2 and GeoVector2 like everything else.
