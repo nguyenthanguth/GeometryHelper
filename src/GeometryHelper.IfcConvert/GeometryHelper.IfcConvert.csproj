@@ -27,6 +27,7 @@
       - Added IfcConvertOptions.OnlyNames, the opposite of SkipNames: only products whose names match are converted, and the rest come back empty before any geometry is built. A 115 MB Tekla steel model read in 3.5 s for its main members, against about 17 minutes for every product. AddSkipNames and AddOnlyNames add names, trimmed and without blanks, and can be chained.
       - Breaking: IfcConvertOptions has a single, parameterless constructor. The constructor taking skip names and a tolerance was removed; use new IfcConvertOptions { Tolerance = ... }.AddSkipNames(...) instead.
       - Added IfcProductGeometry.TransformBy, which moves converted geometry without losing bodies: it rebuilds faces with the tolerance of the conversion, where GeoSolid3.TransformBy would throw on thin sliver faces.
+      - Geometry that products share is built once. An item with nothing to cut from it (a brep several beams point at, a representation map every bolt of a size maps) is converted once per file and settings and placed for every product, where each product used to have it built again in the geometry engine. Tekla writes whole models that way: 2,549 objects selected from one convert in 3.7 s instead of 80 s, and 2,711 products of a 116 MB model in 7.4 s instead of 3.6 minutes, the bodies byte for byte the same.
     </PackageReleaseNotes>
 
     <IsPackable>true</IsPackable>

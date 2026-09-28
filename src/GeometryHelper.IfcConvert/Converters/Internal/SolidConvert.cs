@@ -1,10 +1,15 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using GeometryHelper;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Core.Internal;
 using GeometryHelper.Geometry;
+using Xbim.Common;
 using Xbim.Common.Geometry;
 using Xbim.Ifc4.Interfaces;
 
@@ -20,6 +25,45 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
     /// </summary>
     internal static class SolidConvert
     {
+        /// <summary>
+        /// The items of each model built so far, by entity label and conversion settings, and how many were built.
+        /// </summary>
+        /// <remarks>
+        /// Held for as long as the model is: an IFC store dropped from the cache takes its items with it.
+        /// </remarks>
+        private static readonly ConditionalWeakTable<IModel, ModelItems> Items = new ConditionalWeakTable<IModel, ModelItems>();
+
+        /// <summary>
+        /// The items of one model built so far, and how many were built in the geometry engine.
+        /// </summary>
+        private sealed class ModelItems
+        {
+            internal readonly ConcurrentDictionary<string, Lazy<BuiltItem>> Built = new ConcurrentDictionary<string, Lazy<BuiltItem>>(StringComparer.Ordinal);
+
+            internal int BuildCount;
+        }
+
+        /// <summary>
+        /// The bodies of one item, in its own frame, and the warnings building it gave.
+        /// </summary>
+        private sealed class BuiltItem
+        {
+            internal BuiltItem(List<GeoSolid3> solids, List<string> warnings)
+            {
+                Solids = solids.ToArray();
+                Warnings = warnings.ToArray();
+            }
+
+            internal GeoSolid3[] Solids { get; }
+
+            internal string[] Warnings { get; }
+        }
+
+        /// <summary>
+        /// Gets how many items of a model with nothing to cut from them were built in the geometry engine.
+        /// </summary>
+        internal static int BuiltItemCount(IModel model) => model != null && Items.TryGetValue(model, out ModelItems items) ? items.BuildCount : 0;
+
         /// <summary>
         /// Reads the axis-aligned bounding box of an xBIM solid as a <see cref="GeoAabb3"/>.
         /// </summary>
@@ -211,19 +255,61 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         public static List<GeoSolid3> ToGeoSolids(this IIfcGeometricRepresentationItem item, IfcConvertOptions options,
             IReadOnlyList<IXbimSolid> cutters, out bool cutApplied, ICollection<string> warnings)
         {
-            List<GeoSolid3> solids = new List<GeoSolid3>();
             cutApplied = cutters == null || cutters.Count == 0;
 
             if (item == null)
             {
-                return solids;
+                return new List<GeoSolid3>();
             }
 
             options = MeshConvert.ResolveDeflection(options ?? new IfcConvertOptions(), item.Model);
+
+            // With nothing to cut from it, an item gives the same bodies under the same settings wherever it is placed,
+            // so one shared by many products — a brep two beams point at, a representation map every bolt of a size
+            // maps — is built once, and each use takes its bodies in the item's own frame for the caller to place.
+            // Tekla writes whole models that way: in one, 21,757 products place 2,541 breps between them.
+            if (cutApplied && item.Model != null)
+            {
+                ModelItems items = Items.GetValue(item.Model, _ => new ModelItems());
+                string key = item.EntityLabel.ToString(CultureInfo.InvariantCulture) + "|" + options.GetCacheKey();
+
+                // Lazy, so that threads asking for one item at once share one build.
+                BuiltItem built = items.Built.GetOrAdd(key, unused => new Lazy<BuiltItem>(() =>
+                {
+                    Interlocked.Increment(ref items.BuildCount);
+                    List<GeoSolid3> bodies = Build(item, options, null, out _, out List<string> messages);
+                    return new BuiltItem(bodies, messages);
+                })).Value;
+
+                AddWarnings(warnings, built.Warnings);
+                return new List<GeoSolid3>(built.Solids);
+            }
+
+            List<GeoSolid3> solids = Build(item, options, cutters, out cutApplied, out List<string> itemWarnings);
+            AddWarnings(warnings, itemWarnings);
+            return solids;
+        }
+
+        /// <summary>
+        /// Builds the bodies of an item in the geometry engine, first cutting the given opening solids from it.
+        /// </summary>
+        /// <param name="item">The IFC geometric representation item.</param>
+        /// <param name="options">The conversion options, deflection already resolved.</param>
+        /// <param name="cutters">Opening solids in the item's frame and model units, or null for none.</param>
+        /// <param name="cutApplied">true when there were no cutters or all of them were cut successfully.</param>
+        /// <param name="warnings">A message, prefixed with the item's entity label, for every problem met.</param>
+        /// <returns>The bodies of the item.</returns>
+        private static List<GeoSolid3> Build(IIfcGeometricRepresentationItem item, IfcConvertOptions options,
+            IReadOnlyList<IXbimSolid> cutters, out bool cutApplied, out List<string> warnings)
+        {
+            List<GeoSolid3> solids = new List<GeoSolid3>();
+            cutApplied = cutters == null || cutters.Count == 0;
+            warnings = new List<string>();
+
             IXbimGeometryEngine engine = IfcEngineContext.CurrentEngine;
 
             // Messages from the layers below are collected here and prefixed with the item they belong to.
-            List<string> itemWarnings = warnings == null ? null : new List<string>();
+            List<string> itemWarnings = new List<string>();
 
             try
             {
@@ -231,13 +317,13 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 {
                     if (geomObj == null)
                     {
-                        itemWarnings?.Add("The geometry engine could not build it.");
+                        itemWarnings.Add("The geometry engine could not build it.");
                     }
                     else if (!geomObj.IsValid)
                     {
                         // Reading the faces of an invalid shape (an open shell, say) raises an
                         // AccessViolationException inside the native engine, which is not always catchable.
-                        itemWarnings?.Add("The geometry engine reports the shape as invalid; it was skipped.");
+                        itemWarnings.Add("The geometry engine reports the shape as invalid; it was skipped.");
                     }
                     else if (cutApplied)
                     {
@@ -267,24 +353,37 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             catch (Exception ex)
             {
                 // Return whatever succeeded; invalid or degenerate representation items are skipped, not fatal.
-                itemWarnings?.Add($"Conversion failed: {ex.GetType().Name}: {ex.Message}");
+                itemWarnings.Add($"Conversion failed: {ex.GetType().Name}: {ex.Message}");
             }
 
-            if (itemWarnings != null)
+            if (solids.Count == 0 && itemWarnings.Count == 0 && cutApplied)
             {
-                if (solids.Count == 0 && itemWarnings.Count == 0 && cutApplied)
-                {
-                    itemWarnings.Add("It produced no solid.");
-                }
+                itemWarnings.Add("It produced no solid.");
+            }
 
-                string itemName = $"#{item.EntityLabel} {IfcTypeNames.GetName(item)}";
-                foreach (string message in itemWarnings)
-                {
-                    warnings.Add(itemName + ": " + message);
-                }
+            string itemName = $"#{item.EntityLabel} {IfcTypeNames.GetName(item)}";
+            foreach (string message in itemWarnings)
+            {
+                warnings.Add(itemName + ": " + message);
             }
 
             return solids;
+        }
+
+        /// <summary>
+        /// Adds messages to a list of warnings, when one is kept.
+        /// </summary>
+        private static void AddWarnings(ICollection<string> warnings, IEnumerable<string> messages)
+        {
+            if (warnings == null)
+            {
+                return;
+            }
+
+            foreach (string message in messages)
+            {
+                warnings.Add(message);
+            }
         }
     }
 }
