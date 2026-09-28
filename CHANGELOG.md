@@ -4,36 +4,6 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
-
-**FIXED.** A union or a difference with a bent bar in it could come out open, and a bar of a few hundred faces
-took too long to take part at all. Both bodies were cut by every face plane of both, and every plane of a bend runs
-on through the rest of the bar: thousands of cells, glued back together with faces that did not quite meet. They
-now cut one body only, as the intersection does, by the planes of the other that come near it: a union keeps the
-part of it beyond the other and the other whole, a difference keeps what is left of the body it cuts, or, cutting
-the body taken away, the other whole less the part within it. Where the whole body meets the cells their faces
-cancel by the area they share. Each body's openings are cut into it first, so the result still carries no openings
-of its own. On 1,687 random pairs of bent bars, stars, Ls and Is the eight results that came out open are closed,
-the 173 pairs with too many faces to try are now tried and come out right, and the scan runs in 20 s instead of
-50 s; a hook of 200 faces through a plate unites and subtracts in well under a second. One union and one
-difference in the scan now differ from the volume identities by three and two parts in a million, a third of a
-cubic unit on a hundred thousand, within what taking faces out of each other in the plane rounds to.
-
-**FIXED.** A cell the planes before had left in two pieces, the two ends of a bent bar with its middle taken
-out, was reported as crossed and left whole by a plane passing between the pieces, which crosses neither. The
-cut was then judged unclean, and an intersection cut the other body, or a union the old way. Each piece is now
-sorted to its own side of such a plane, or cut.
-
-**FIXED.** A face holds its holes wound the same way as its boundary, whichever way they are given. That is how
-the library measures them, by plain subtraction, but the plane winds a hole against its boundary, and faces lifted
-from it kept that winding: the booleans of flat shapes, the offsets of a face, anything laid out in a plane and put
-back. A body built of such faces added its holes to its volume instead of taking them away: a plate ten by ten by
-one with a two by two hole through it measured 98.67 instead of 96.
-
-**FIXED.** GeoSolid3.Centroid left out the holes in a body's faces, so a plate with its bolt holes cut in had its
-centroid where the plate without them has it: 49.78 instead of 49.65 for a hundred-square plate with a ten by ten
-hole near one corner.
-
 ## 6.0.0
 
 Three breaking changes. The first two have one reason, that a name and a tolerance were each saying
@@ -570,6 +540,36 @@ Altogether, the median of three runs on 24 threads: the steel frame, preparing a
 3.0 s to 0.04 s; 2000 boxes 39 ms to 3 ms. Every pair and kind of clash found is the same; the gaps of
 31 bolts in their holes are now right (see FIXED), and the rest agree with volumes found by counting
 random points and gaps found by weighing every pair of triangles.
+
+### FIXED. Found while 6.0.0 was being published, and released in it.
+
+**FIXED.** A union or a difference with a bent bar in it could come out open, and a bar of a few hundred faces
+took too long to take part at all. Both bodies were cut by every face plane of both, and every plane of a bend runs
+on through the rest of the bar: thousands of cells, glued back together with faces that did not quite meet. They
+now cut one body only, as the intersection does, by the planes of the other that come near it: a union keeps the
+part of it beyond the other and the other whole, a difference keeps what is left of the body it cuts, or, cutting
+the body taken away, the other whole less the part within it. Where the whole body meets the cells their faces
+cancel by the area they share. Each body's openings are cut into it first, so the result still carries no openings
+of its own. On 1,687 random pairs of bent bars, stars, Ls and Is the eight results that came out open are closed,
+the 173 pairs with too many faces to try are now tried and come out right, and the scan runs in 20 s instead of
+50 s; a hook of 200 faces through a plate unites and subtracts in well under a second. One union and one
+difference in the scan now differ from the volume identities by three and two parts in a million, a third of a
+cubic unit on a hundred thousand, within what taking faces out of each other in the plane rounds to.
+
+**FIXED.** A cell the planes before had left in two pieces, the two ends of a bent bar with its middle taken
+out, was reported as crossed and left whole by a plane passing between the pieces, which crosses neither. The
+cut was then judged unclean, and an intersection cut the other body, or a union the old way. Each piece is now
+sorted to its own side of such a plane, or cut.
+
+**FIXED.** A face holds its holes wound the same way as its boundary, whichever way they are given. That is how
+the library measures them, by plain subtraction, but the plane winds a hole against its boundary, and faces lifted
+from it kept that winding: the booleans of flat shapes, the offsets of a face, anything laid out in a plane and put
+back. A body built of such faces added its holes to its volume instead of taking them away: a plate ten by ten by
+one with a two by two hole through it measured 98.67 instead of 96.
+
+**FIXED.** GeoSolid3.Centroid left out the holes in a body's faces, so a plate with its bolt holes cut in had its
+centroid where the plate without them has it: 49.78 instead of 49.65 for a hundred-square plate with a ten by ten
+hole near one corner.
 
 ## 5.1.0
 
