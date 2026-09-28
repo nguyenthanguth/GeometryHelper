@@ -10,18 +10,11 @@ namespace GeometryHelper.Core
     /// Combines solids: the union of two bodies, the part they share, and one taken out of the other.
     /// <para>
     /// The method is the same one <c>Splition3</c> uses to cut a plate against a body, carried up a
-    /// dimension. For a union or a difference both bodies are divided by one shared set of planes — the
-    /// face planes of each of them together — which leaves cells that are each wholly inside or wholly
-    /// outside the other body, since the surface of a body never leaves the planes of its own faces. The
-    /// cells wanted for the operation are then glued back together: a face shared by two kept cells
-    /// appears twice, once each way round, and dropping both leaves exactly the outer skin.
-    /// </para>
-    /// <para>
-    /// Using one shared set of planes for both bodies rather than each against the other is what makes
-    /// the gluing work where they meet. Cut that way, the two sides of the interface are the same plane
-    /// carved by the same knives, so they come out as the same polygon and cancel. Cut each against the
-    /// other only, the two sides are subdivided differently and the interface survives as a wall inside
-    /// the result.
+    /// dimension. One body is divided by the planes of the other's faces that come near it, which leaves
+    /// cells that are each wholly inside or wholly outside the other body, since the surface of a body never
+    /// leaves the planes of its own faces. The cells wanted for the operation are then glued back together:
+    /// a face shared by two kept cells appears twice, once each way round, and dropping both leaves exactly
+    /// the outer skin.
     /// </para>
     /// <para>
     /// Dividing A by the planes of B already lays a face along every part of the surface of B that runs
@@ -30,10 +23,14 @@ namespace GeometryHelper.Core
     /// faces of B on top of them would describe the same surface twice.
     /// </para>
     /// <para>
-    /// An intersection needs no more than that, so it cuts one body only, by the planes of the other that
-    /// come near it and of its own openings. Its own outer faces bound it already, and cutting by them is
-    /// what took a bent bar apart into thousands of cells: every plane of a bend runs on through the rest of
-    /// the bar.
+    /// So every operation cuts one body only, the one fewer planes cut, and never by its own faces: they bound
+    /// it already, and cutting by them is what took a bent bar apart into thousands of cells, since every
+    /// plane of a bend runs on through the rest of the bar. A union keeps the part of the cut body beyond the
+    /// other and the other whole; a difference cutting the body taken away keeps the body taken from whole,
+    /// and the part of the other within it turned inside out. Where the whole body and the cells meet, their
+    /// faces lie back to back in one plane, cut differently, and cancel by the area they share. Where a plane
+    /// crosses a cell and leaves it whole, the other body is cut instead, and failing that both are cut by
+    /// every plane of both, as they once always were.
     /// </para>
     /// <para>
     /// Every operation reports <c>false</c> when the answer is nothing at all — two bodies that do not
@@ -42,11 +39,12 @@ namespace GeometryHelper.Core
     /// than as an exception or an empty body.
     /// </para>
     /// <para>
-    /// An opening on either body is honoured. Its face planes join the knives, so no cell straddles its
-    /// wall, and the cells filling it are dropped as not being material. The result carries the cavity as
-    /// real geometry rather than as an opening of its own: the wall between a cell that was kept and one
-    /// that was dropped is traversed once, so it survives the gluing. Two bodies too far apart to meet are
-    /// the exception — nothing is cut there, and each keeps the openings it came with.
+    /// An opening on either body is honoured. A union or a difference cuts the openings into both bodies
+    /// first (<see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/>), so their faces are where
+    /// their material ends; an intersection adds the planes of its own openings near the other to its knives,
+    /// so no cell straddles a wall, and drops the cells filling them as not being material. Either way the
+    /// result carries the cavity as real geometry rather than as an opening of its own. Two bodies too far
+    /// apart to meet are the exception — nothing is cut there, and each keeps the openings it came with.
     /// </para>
     /// </summary>
     public static partial class Boolean3
@@ -89,6 +87,17 @@ namespace GeometryHelper.Core
 
                 result = new GeoSolid3(apart, carved);
                 return true;
+            }
+
+            // One body cut, beyond the other, and the other whole.
+            if (TryCutOpenings(first, out GeoSolid3 a, tolerance) && TryCutOpenings(second, out GeoSolid3 b, tolerance))
+            {
+                bool? found = CombineCuttingOne(a, b, true, tolerance, out result);
+
+                if (found.HasValue)
+                {
+                    return found.Value;
+                }
             }
 
             List<GeoPlane3> planes = SharedPlanes(first, second, tolerance);
@@ -209,11 +218,92 @@ namespace GeometryHelper.Core
                 return true;
             }
 
+            // One body cut: the subject beyond the tool, or the subject whole less the tool within it.
+            if (TryCutOpenings(subject, out GeoSolid3 a, tolerance) && TryCutOpenings(tool, out GeoSolid3 b, tolerance))
+            {
+                bool? found = CombineCuttingOne(a, b, false, tolerance, out result);
+
+                if (found.HasValue)
+                {
+                    return found.Value;
+                }
+            }
+
             List<GeoPlane3> planes = SharedPlanes(subject, tool, tolerance);
 
             List<GeoFace3> kept = FacesOfCells(SplitIntoCells(subject, planes, tolerance), subject, tool, false, tolerance);
 
             return TryGlue(kept, tolerance, out result);
+        }
+
+        /// <summary>
+        /// Joins two bodies without openings, or takes the second out of the first, cutting one of them only.
+        /// </summary>
+        /// <param name="a">The first body; for a difference, the one material is taken from.</param>
+        /// <param name="b">The second body; for a difference, the one taken away.</param>
+        /// <param name="union">true for the union, false for <paramref name="a"/> less <paramref name="b"/>.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="result">The result, when there is one.</param>
+        /// <returns>
+        /// Whether anything is left, as the public methods report it; null when neither body could be cut cleanly,
+        /// for the caller to cut both by every plane of both instead.
+        /// </returns>
+        /// <remarks>
+        /// The body cut is the one fewer planes of the other come near, as for an intersection. A union keeps the
+        /// cells of it beyond the other, and the other whole. For a difference, cutting the body material is taken
+        /// from keeps its cells beyond the other; cutting the body taken away keeps the other whole and the cells
+        /// within it turned inside out, which are the walls of the cavity and take away the part of the whole
+        /// body's faces it covers. Where the whole body meets the cells, the two lie back to back in one plane,
+        /// each cut its own way, and <see cref="CancelBackToBack"/> takes from both the area they share.
+        /// </remarks>
+        private static bool? CombineCuttingOne(GeoSolid3 a, GeoSolid3 b, bool union, Tolerance tolerance, out GeoSolid3 result)
+        {
+            result = null;
+
+            List<GeoPlane3> cuttingA = PlanesNear(b, a.GetAabb(), tolerance);
+            List<GeoPlane3> cuttingB = PlanesNear(a, b.GetAabb(), tolerance);
+            bool aFirst = cuttingA.Count <= cuttingB.Count;
+
+            for (int attempt = 0; attempt < 2; attempt++)
+            {
+                bool cutA = aFirst == (attempt == 0);
+                List<GeoPlane3> knives = cutA ? cuttingA : cuttingB;
+
+                // The other way round only when it costs about the same: a bar's hundreds of planes would cut a
+                // beam into thousands of cells again.
+                if (attempt == 1 && knives.Count > 2 * (cutA ? cuttingB : cuttingA).Count + 16)
+                {
+                    break;
+                }
+
+                GeoSolid3 cut = cutA ? a : b;
+                GeoSolid3 whole = cutA ? b : a;
+                bool within = !union && !cutA;
+
+                List<GeoFace3> kept = FacesOfCells(SplitIntoCells(cut, knives, tolerance, out bool clean), cut, whole, within, tolerance);
+
+                if (!clean)
+                {
+                    continue;
+                }
+
+                if (within)
+                {
+                    for (int i = 0; i < kept.Count; i++)
+                    {
+                        kept[i] = kept[i].Flip();
+                    }
+                }
+
+                if (union || within)
+                {
+                    kept.AddRange(whole.Faces);
+                }
+
+                return TryGlue(kept, tolerance, out result);
+            }
+
+            return null;
         }
 
         #region Machinery
@@ -294,6 +384,16 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the distinct planes of the faces of a body, and of its openings, that come near a box.
+        /// </summary>
+        private static List<GeoPlane3> PlanesNear(GeoSolid3 solid, GeoAabb3 box, Tolerance tolerance)
+        {
+            var planes = new List<GeoPlane3>();
+            AddPlanesNear(solid, box, planes, tolerance);
+            return planes;
+        }
+
+        /// <summary>
         /// Adds to a list the planes not already in it of the faces of a body, and of its openings, that come near
         /// a box.
         /// </summary>
@@ -368,10 +468,29 @@ namespace GeometryHelper.Core
                         divided.Add(above);
                         divided.Add(below);
                     }
-                    else
+                    else if (!Crosses(cell, plane, tolerance))
                     {
                         divided.Add(cell);
-                        clean = clean && !Crosses(cell, plane, tolerance);
+                    }
+                    else
+                    {
+                        // A cell can be in pieces: a plane before took the middle out of a bent bar and left its two
+                        // ends as one cell. A plane passing between the pieces crosses none of them, so there is no rim
+                        // to cap and nothing to cut, though there are corners on both sides of it. Each piece goes to
+                        // its own side, or is cut; only a piece the plane crosses and cannot cut is left unclean.
+                        foreach (GeoSolid3 piece in Shells3.Split(cell, tolerance))
+                        {
+                            if (Splition3.TrySplitBy(piece, plane, out GeoSolid3 pieceAbove, out GeoSolid3 pieceBelow, tolerance))
+                            {
+                                divided.Add(pieceAbove);
+                                divided.Add(pieceBelow);
+                            }
+                            else
+                            {
+                                divided.Add(piece);
+                                clean = clean && !Crosses(piece, plane, tolerance);
+                            }
+                        }
                     }
                 }
 

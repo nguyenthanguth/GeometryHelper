@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A union or a difference with a bent bar in it could come out open, and a bar of a few hundred faces
+took too long to take part at all. Both bodies were cut by every face plane of both, and every plane of a bend runs
+on through the rest of the bar: thousands of cells, glued back together with faces that did not quite meet. They
+now cut one body only, as the intersection does, by the planes of the other that come near it: a union keeps the
+part of it beyond the other and the other whole, a difference keeps what is left of the body it cuts, or, cutting
+the body taken away, the other whole less the part within it. Where the whole body meets the cells their faces
+cancel by the area they share. Each body's openings are cut into it first, so the result still carries no openings
+of its own. On 1,687 random pairs of bent bars, stars, Ls and Is the eight results that came out open are closed,
+the 173 pairs with too many faces to try are now tried and come out right, and the scan runs in 20 s instead of
+50 s; a hook of 200 faces through a plate unites and subtracts in well under a second. One union and one
+difference in the scan now differ from the volume identities by three and two parts in a million, a third of a
+cubic unit on a hundred thousand, within what taking faces out of each other in the plane rounds to.
+
+**FIXED.** A cell the planes before had left in two pieces, the two ends of a bent bar with its middle taken
+out, was reported as crossed and left whole by a plane passing between the pieces, which crosses neither. The
+cut was then judged unclean, and an intersection cut the other body, or a union the old way. Each piece is now
+sorted to its own side of such a plane, or cut.
+
 **FIXED.** A face holds its holes wound the same way as its boundary, whichever way they are given. That is how
 the library measures them, by plain subtraction, but the plane winds a hole against its boundary, and faces lifted
 from it kept that winding: the booleans of flat shapes, the offsets of a face, anything laid out in a plane and put
