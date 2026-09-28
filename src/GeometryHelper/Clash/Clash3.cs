@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using GeometryHelper;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using GeometryHelper.Spatial;
 
@@ -26,6 +27,11 @@ namespace GeometryHelper.Clash
     /// order of the pairs' indexes, whatever order the threads finished in. A pair whose check throws is
     /// reported as <see cref="ClashKind.Unresolved"/>, with the error, and logged, so that one part the
     /// library cannot read does not cost the report for the rest of the model.
+    /// </para>
+    /// <para>
+    /// Reinforcement can be checked without building its bodies: a <see cref="ClashBar"/> is a centre line and a
+    /// radius, and a bar runs into a part where the part comes nearer its centre line than the radius. The two ways
+    /// stand side by side; see <see cref="Find(IReadOnlyList{ClashBar}, IReadOnlyList{GeoPreparedSolid3}, ClashOptions, Tolerance)"/>.
     /// </para>
     /// </remarks>
     public static class Clash3
@@ -154,6 +160,349 @@ namespace GeometryHelper.Clash
 
         #endregion
 
+        #region Bars by their centre lines
+
+        /// <summary>
+        /// Checks every bar against every part, reading the bars by their centre lines, using the default options and
+        /// tolerance.
+        /// </summary>
+        public static ClashResult[] Find(IReadOnlyList<ClashBar> bars, IReadOnlyList<GeoSolid3> parts)
+            => Find(bars, parts, ClashOptions.Default, Tolerance.Global);
+
+        /// <summary>
+        /// Checks every bar against every part, reading the bars by their centre lines, using the default tolerance.
+        /// </summary>
+        public static ClashResult[] Find(IReadOnlyList<ClashBar> bars, IReadOnlyList<GeoSolid3> parts, ClashOptions options)
+            => Find(bars, parts, options, Tolerance.Global);
+
+        /// <summary>
+        /// Checks every bar against every part, reading the bars by their centre lines, within a tolerance.
+        /// </summary>
+        /// <param name="bars">The bars.</param>
+        /// <param name="parts">The parts, such as the steel the bars pass.</param>
+        /// <param name="options">What to look for, and how many threads to use.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// One result per pair that clashes, in the order of their indexes, <see cref="ClashResult.First"/> indexing the
+        /// bars and <see cref="ClashResult.Second"/> the parts.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the bars, the parts, one of either, or the options are null.</exception>
+        public static ClashResult[] Find(IReadOnlyList<ClashBar> bars, IReadOnlyList<GeoSolid3> parts, ClashOptions options, Tolerance tolerance)
+        {
+            ClashBar[] checkedBars = Checked(bars, nameof(bars));
+            return Find(checkedBars, Prepare(parts, nameof(parts), options, tolerance), options, tolerance);
+        }
+
+        /// <summary>
+        /// Checks every bar against every prepared part, reading the bars by their centre lines, using the default
+        /// options and tolerance.
+        /// </summary>
+        public static ClashResult[] Find(IReadOnlyList<ClashBar> bars, IReadOnlyList<GeoPreparedSolid3> parts)
+            => Find(bars, parts, ClashOptions.Default, Tolerance.Global);
+
+        /// <summary>
+        /// Checks every bar against every prepared part, reading the bars by their centre lines, using the default
+        /// tolerance.
+        /// </summary>
+        public static ClashResult[] Find(IReadOnlyList<ClashBar> bars, IReadOnlyList<GeoPreparedSolid3> parts, ClashOptions options)
+            => Find(bars, parts, options, Tolerance.Global);
+
+        /// <summary>
+        /// Checks every bar against every prepared part, reading the bars by their centre lines, within a tolerance.
+        /// </summary>
+        /// <param name="bars">The bars.</param>
+        /// <param name="parts">The parts, already prepared: the same parts can be checked against bodies and against bars.</param>
+        /// <param name="options">What to look for, and how many threads to use.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// One result per pair that clashes, in the order of their indexes, <see cref="ClashResult.First"/> indexing the
+        /// bars and <see cref="ClashResult.Second"/> the parts.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the bars, the parts, one of either, or the options are null.</exception>
+        /// <remarks>
+        /// <para>
+        /// A bar runs into a part where its centre line runs inside the part, or comes nearer the part's surface than
+        /// the radius; it touches where it comes exactly the radius away, and comes too near where it comes within the
+        /// clearance of that. Openings are honoured, as for bodies: a bar through a hole it clears is no clash.
+        /// </para>
+        /// <para>
+        /// What a clash between bodies measures as a volume, a bar measures as a depth and a length: how far the part
+        /// reaches into the bar (<see cref="ClashResult.Depth"/>) and how much of the centre line runs inside it
+        /// (<see cref="ClashResult.LengthInside"/>). No body is built, so <see cref="ClashResult.Overlaps"/> is empty
+        /// and <see cref="ClashResult.Volume"/> nought, and <see cref="ClashOptions.MinimumVolume"/> does not apply;
+        /// <see cref="ClashOptions.MinimumDepth"/> does. The gap of a bar too near a part runs from the bar's surface.
+        /// </para>
+        /// <para>
+        /// The ends are read rounded (see <see cref="ClashBar"/>), so right at an end a part up to a radius beyond it
+        /// is found to clash.
+        /// </para>
+        /// </remarks>
+        public static ClashResult[] Find(IReadOnlyList<ClashBar> bars, IReadOnlyList<GeoPreparedSolid3> parts, ClashOptions options, Tolerance tolerance)
+        {
+            ClashBar[] checkedBars = Checked(bars, nameof(bars));
+            GeoPreparedSolid3[] checkedParts = Checked(parts, nameof(parts));
+
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            var barBoxes = new GeoAabb3[checkedBars.Length];
+
+            for (int i = 0; i < barBoxes.Length; i++)
+            {
+                barBoxes[i] = checkedBars[i].Box;
+            }
+
+            List<(int, int)> pairs = SweepBoxes(barBoxes, Boxes(checkedParts), false, options.Clearance + tolerance.EqualPoint);
+            var found = new ClashResult[pairs.Count];
+
+            Parallel.For(0, pairs.Count, Threads(options), k =>
+            {
+                (int i, int j) = pairs[k];
+                found[k] = CheckBar(i, checkedBars[i], j, checkedParts[j], options, tolerance);
+            });
+
+            return Ordered(found);
+        }
+
+        private static ClashBar[] Checked(IReadOnlyList<ClashBar> bars, string name)
+        {
+            if (bars == null)
+            {
+                throw new ArgumentNullException(name);
+            }
+
+            var copy = new ClashBar[bars.Count];
+
+            for (int i = 0; i < copy.Length; i++)
+            {
+                copy[i] = bars[i] ?? throw new ArgumentNullException(name, "Bar " + i + " is null.");
+            }
+
+            return copy;
+        }
+
+        /// <summary>
+        /// Checks one bar against one part by the bar's centre line.
+        /// </summary>
+        private static ClashResult CheckBar(int i, ClashBar bar, int j, GeoPreparedSolid3 part, ClashOptions options, Tolerance tolerance)
+        {
+            try
+            {
+                double radius = bar.Radius;
+                double reach = radius + options.Clearance + tolerance.EqualPoint;
+                GeoPoint3[] axis = bar.Points;
+
+                // Where the centre line runs inside the part: each chord cut where it crosses the surface, and each piece
+                // judged by its middle. A chord whose box, grown by the reach, misses the part's box is neither inside nor
+                // near it.
+                var inside = new List<(GeoPoint3 From, GeoPoint3 To)>();
+                double lengthInside = 0.0;
+
+                for (int k = 0; k + 1 < axis.Length; k++)
+                {
+                    GeoPoint3 from = axis[k];
+                    GeoPoint3 to = axis[k + 1];
+                    double length = from.DistanceTo(to);
+
+                    if (length <= tolerance.EqualPoint || !Near(from, to, reach, part.Box, tolerance))
+                    {
+                        continue;
+                    }
+
+                    var ray = new GeoRay3(from, to);
+                    var stops = new List<double> { 0.0 };
+
+                    foreach (GeoPoint3 crossing in part.GetIntersections(ray, tolerance))
+                    {
+                        double at = ray.GetDistanceAtPoint(crossing);
+
+                        if (at > tolerance.EqualPoint && at < length - tolerance.EqualPoint)
+                        {
+                            stops.Add(at);
+                        }
+                    }
+
+                    stops.Add(length);
+
+                    for (int s = 0; s + 1 < stops.Count; s++)
+                    {
+                        if (stops[s + 1] - stops[s] <= tolerance.EqualPoint)
+                        {
+                            continue;
+                        }
+
+                        GeoPoint3 middle = ray.GetPointAtDistance((stops[s] + stops[s + 1]) * 0.5);
+
+                        if (part.Locate(middle, tolerance) == PointLocation.Inside)
+                        {
+                            inside.Add((ray.GetPointAtDistance(stops[s]), ray.GetPointAtDistance(stops[s + 1])));
+                            lengthInside += stops[s + 1] - stops[s];
+                        }
+                    }
+                }
+
+                if (lengthInside > tolerance.EqualPoint)
+                {
+                    return Graded(ClashResult.BarHard(i, j, LongestMiddle(inside), DepthWithin(inside, part, radius, tolerance), lengthInside), options, false);
+                }
+
+                // The centre line stays outside: its nearest approach to the surface, measured a piece at a time, each
+                // piece a few radii long so that the box it is judged by is close round it.
+                bool any = false;
+                GeoLine3 nearest = default(GeoLine3);
+                double best = reach;
+                double step = Math.Max(8.0 * radius, tolerance.EqualPoint);
+
+                for (int k = 0; k + 1 < axis.Length; k++)
+                {
+                    GeoPoint3 from = axis[k];
+                    GeoPoint3 to = axis[k + 1];
+                    double length = from.DistanceTo(to);
+
+                    if (length <= tolerance.EqualPoint || !Near(from, to, best, part.Box, tolerance))
+                    {
+                        continue;
+                    }
+
+                    int pieces = Math.Max(1, (int)Math.Ceiling(length / step));
+                    GeoPoint3 start = from;
+
+                    for (int p = 1; p <= pieces; p++)
+                    {
+                        GeoPoint3 end = p == pieces ? to : Along(from, to, (double)p / pieces);
+
+                        if (part.Index.TryGetShortestLineTo(new GeoLine3(start, end), best, tolerance, out GeoLine3 line))
+                        {
+                            best = line.Length;
+                            nearest = line;
+                            any = true;
+                        }
+
+                        start = end;
+                    }
+                }
+
+                if (!any)
+                {
+                    return null;
+                }
+
+                double distance = nearest.Length;
+                GeoPoint3 onPart = nearest.EndPoint;
+                GeoPoint3 onBar = distance > tolerance.EqualPoint
+                    ? nearest.StartPoint.Add(nearest.StartPoint.GetVectorTo(onPart).Multiply(radius / distance))
+                    : nearest.StartPoint;
+
+                if (distance < radius - tolerance.EqualPoint)
+                {
+                    // The part reaches into the bar: from its nearest point, inside the bar, out to the bar's surface.
+                    return Graded(ClashResult.BarHard(i, j, Midway(onPart, onBar), radius - distance, 0.0), options, false);
+                }
+
+                if (distance <= radius + tolerance.EqualPoint)
+                {
+                    return options.IncludeTouching ? ClashResult.BarTouch(i, j, onPart) : null;
+                }
+
+                if (options.Clearance > 0.0 && distance - radius <= options.Clearance)
+                {
+                    return ClashResult.Near(i, j, new GeoLine3(onBar, onPart));
+                }
+
+                return null;
+            }
+            catch (Exception exception) when (!(exception is OutOfMemoryException))
+            {
+                GeometryHelperLog.Warn("Clash check: bar " + i + " and part " + j + " could not be checked and are reported unresolved.", exception);
+
+                return ClashResult.Unresolved(i, j, Middle(bar.Box, part.Box), exception);
+            }
+        }
+
+        /// <summary>
+        /// Whether a chord, grown by a reach, can come near a box.
+        /// </summary>
+        private static bool Near(GeoPoint3 from, GeoPoint3 to, double reach, GeoAabb3 box, Tolerance tolerance)
+            => GeoAabb3.FromPoints(new[] { from, to }).Expand(reach).CollidesWith(box, tolerance);
+
+        /// <summary>
+        /// How deep a part reaches into a bar whose centre line runs inside it: the radius, and as far again as the centre
+        /// line runs beneath the surface, at most the diameter.
+        /// </summary>
+        /// <remarks>
+        /// How far beneath the surface the centre line runs is measured along each piece inside, at both its ends and at
+        /// points an eighth of a radius apart between them, at most 4096 spans to a piece, and the measuring stops once it
+        /// passes the radius: the depth can be no more than the diameter. A distance to the surface changes no faster than
+        /// the point moves, so between two points it can exceed what they measure by a sixteenth of a radius at most; where
+        /// the centre line turns inside the part, the turn is the end of a piece, and measured as it is.
+        /// </remarks>
+        private static double DepthWithin(List<(GeoPoint3 From, GeoPoint3 To)> inside, GeoPreparedSolid3 part, double radius, Tolerance tolerance)
+        {
+            double deepest = 0.0;
+
+            foreach ((GeoPoint3 from, GeoPoint3 to) in inside)
+            {
+                int spans = (int)Math.Min(4096.0, Math.Max(1.0, Math.Ceiling(from.DistanceTo(to) / (0.125 * radius))));
+
+                for (int s = 0; s <= spans && deepest < radius; s++)
+                {
+                    // To the surface: the body itself calls a point inside it nought away.
+                    deepest = Math.Max(deepest, part.Index.DistanceTo(Along(from, to, (double)s / spans), tolerance));
+                }
+
+                if (deepest >= radius)
+                {
+                    break;
+                }
+            }
+
+            return Math.Min(2.0 * radius, radius + deepest);
+        }
+
+        /// <summary>
+        /// The middle of the longest piece of a centre line inside a part.
+        /// </summary>
+        private static GeoPoint3 LongestMiddle(List<(GeoPoint3 From, GeoPoint3 To)> inside)
+        {
+            (GeoPoint3 From, GeoPoint3 To) longest = inside[0];
+
+            foreach ((GeoPoint3 From, GeoPoint3 To) piece in inside)
+            {
+                if (piece.From.DistanceTo(piece.To) > longest.From.DistanceTo(longest.To))
+                {
+                    longest = piece;
+                }
+            }
+
+            return Midway(longest.From, longest.To);
+        }
+
+        private static GeoPoint3 Along(GeoPoint3 from, GeoPoint3 to, double fraction)
+            => new GeoPoint3(from.X + (to.X - from.X) * fraction, from.Y + (to.Y - from.Y) * fraction, from.Z + (to.Z - from.Z) * fraction);
+
+        private static GeoPoint3 Midway(GeoPoint3 a, GeoPoint3 b) => Along(a, b, 0.5);
+
+        /// <summary>
+        /// A hard clash the options take as touching when it is too shallow, or for bodies too small, reported as
+        /// touching when touching is asked for and not at all otherwise.
+        /// </summary>
+        private static ClashResult Graded(ClashResult hard, ClashOptions options, bool measuresVolume)
+        {
+            bool tooShallow = options.MinimumDepth > 0.0 && hard.Depth < options.MinimumDepth;
+            bool tooSmall = measuresVolume && options.MinimumVolume > 0.0 && hard.Volume < options.MinimumVolume;
+
+            if (!tooShallow && !tooSmall)
+            {
+                return hard;
+            }
+
+            return options.IncludeTouching ? ClashResult.Shallow(hard) : null;
+        }
+
+        #endregion
+
         #region Running the check
 
         private static GeoPreparedSolid3[] Prepare(IReadOnlyList<GeoSolid3> parts, string name, ClashOptions options, Tolerance tolerance)
@@ -204,7 +553,7 @@ namespace GeometryHelper.Clash
 
         private static ClashResult[] Run(GeoPreparedSolid3[] first, GeoPreparedSolid3[] second, bool oneSet, ClashOptions options, Tolerance tolerance)
         {
-            List<(int, int)> pairs = SweepBoxes(first, second, oneSet, options.Clearance + tolerance.EqualPoint);
+            List<(int, int)> pairs = SweepBoxes(Boxes(first), Boxes(second), oneSet, options.Clearance + tolerance.EqualPoint);
             var found = new ClashResult[pairs.Count];
 
             Parallel.For(0, pairs.Count, Threads(options), k =>
@@ -213,6 +562,26 @@ namespace GeometryHelper.Clash
                 found[k] = Check(i, first[i], j, second[j], options, tolerance);
             });
 
+            return Ordered(found);
+        }
+
+        private static GeoAabb3[] Boxes(GeoPreparedSolid3[] parts)
+        {
+            var boxes = new GeoAabb3[parts.Length];
+
+            for (int i = 0; i < boxes.Length; i++)
+            {
+                boxes[i] = parts[i].Box;
+            }
+
+            return boxes;
+        }
+
+        /// <summary>
+        /// The results found, in the order of the pairs' indexes, whatever order the threads finished in.
+        /// </summary>
+        private static ClashResult[] Ordered(ClashResult[] found)
+        {
             var results = new List<ClashResult>();
 
             foreach (ClashResult result in found)
@@ -235,16 +604,16 @@ namespace GeometryHelper.Clash
         /// Sorted by their low X, a box can only meet the boxes still open when it starts — those whose high X
         /// has not been passed — so each is compared with a handful rather than with every other.
         /// </remarks>
-        private static List<(int, int)> SweepBoxes(GeoPreparedSolid3[] first, GeoPreparedSolid3[] second, bool oneSet, double reach)
+        private static List<(int, int)> SweepBoxes(GeoAabb3[] first, GeoAabb3[] second, bool oneSet, double reach)
         {
             // Both sets swept together, each entry knowing which set it is from; one set is swept against itself.
             var entries = new List<(GeoAabb3 Box, int Index, bool FromFirst)>();
 
             for (int i = 0; i < first.Length; i++)
             {
-                if (!first[i].Box.IsEmpty)
+                if (!first[i].IsEmpty)
                 {
-                    entries.Add((first[i].Box, i, true));
+                    entries.Add((first[i], i, true));
                 }
             }
 
@@ -252,9 +621,9 @@ namespace GeometryHelper.Clash
             {
                 for (int j = 0; j < second.Length; j++)
                 {
-                    if (!second[j].Box.IsEmpty)
+                    if (!second[j].IsEmpty)
                     {
-                        entries.Add((second[j].Box, j, false));
+                        entries.Add((second[j], j, false));
                     }
                 }
             }
@@ -318,7 +687,7 @@ namespace GeometryHelper.Clash
 
                     if (overlaps.Length > 0)
                     {
-                        return ClashResult.Hard(i, j, overlaps);
+                        return Graded(ClashResult.Hard(i, j, overlaps, tolerance), options, true);
                     }
 
                     if (!options.IncludeTouching)

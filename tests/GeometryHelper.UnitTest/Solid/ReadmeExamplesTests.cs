@@ -1228,6 +1228,60 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal((0, 0, ClashKind.Clearance), (near.First, near.Second, near.Kind));
         }
         [Fact]
+        public void HowDeepAClashRuns()
+        {
+            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
+                => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+
+            GeoSolid3 flange = Box(0, 0, 0, 100, 100, 10);
+            GeoSolid3 graze = Box(20, 40, 9.5, 80, 50, 20);      // half a millimetre into the flange, 60 long
+            GeoSolid3 through = Box(40, 60, -20, 55, 75, 30);    // a pin through it
+
+            ClashResult[] every = Clash3.Find(new[] { flange }, new[] { graze, through });
+            Assert.Equal(0.5, every[0].Depth, 6);
+            Assert.Equal(300.0, every[0].Volume, 6);             // grows with the length; the depth does not
+            Assert.Equal(10.0, every[1].Depth, 6);               // as deep as the thinner of the two
+
+            var options = new ClashOptions(clearance: 25.0, minimumDepth: 2.0, minimumVolume: 1000.0);
+
+            ClashResult[] counted = Clash3.Find(new[] { flange }, new[] { graze, through }, options);
+            Assert.Equal(ClashKind.Touch, counted[0].Kind);
+            Assert.Equal(0.5, counted[0].Depth, 6);
+            Assert.Equal(300.0, counted[0].Volume, 6);
+            Assert.Single(counted[0].Overlaps);
+            Assert.Equal(ClashKind.Hard, counted[1].Kind);       // 10 deep, 2250 in volume: both enough
+        }
+        [Fact]
+        public void ReinforcementByItsCentreLine()
+        {
+            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
+                => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+
+            var parts = new List<GeoSolid3>
+            {
+                Box(0, 0, 0, 200, 200, 50),          // a footing
+                Box(50, 50, 50, 150, 150, 500),      // a column standing on it
+                Box(-10, 90, 300, 210, 110, 320),    // a beam through the column
+                Box(250, 0, 0, 260, 10, 10),         // a bracket twenty clear of the footing
+            };
+
+            GeoPolylineArc3 centreLine = new GeoPolyline3(
+                new GeoPoint3(-100, 100, 150), new GeoPoint3(100, 100, 150), new GeoPoint3(100, 100, -100)).Fillet(40.0);
+            var bar = new ClashBar(centreLine, radius: 8.0);
+
+            ClashResult[] clashes = Clash3.Find(new[] { bar }, parts, new ClashOptions(clearance: 25.0));
+
+            Assert.Equal(new[] { (0, 0, ClashKind.Hard), (0, 1, ClashKind.Hard) }, clashes.Select(c => (c.First, c.Second, c.Kind)));
+            Assert.All(clashes, clash => Assert.Equal(16.0, clash.Depth, 9));
+            Assert.All(clashes, clash => Assert.Empty(clash.Overlaps));
+            Assert.Equal(50.0, clashes[0].LengthInside, 9);
+
+            // In the column: 10 along the top leg, the quarter turn of 40, and 60 down the leg to the footing, the
+            // turn followed by chords a little shorter than it.
+            double inColumn = 10.0 + 20.0 * Math.PI + 60.0;
+            Assert.InRange(clashes[1].LengthInside, inColumn - 0.01, inColumn);
+        }
+        [Fact]
         public void MakingBodies()
         {
             var placement = new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis);

@@ -472,6 +472,90 @@ namespace GeometryHelper.Spatial
         }
 
         /// <summary>
+        /// Gets the shortest segment from a segment to the mesh when it is shorter than a reach.
+        /// </summary>
+        /// <param name="segment">The segment the answer leaves from.</param>
+        /// <param name="reach">How short the answer has to be; <see cref="double.PositiveInfinity"/> for any.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="line">
+        /// The shortest segment leaving <paramref name="segment"/> and landing on a triangle of the mesh, the one
+        /// <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoTriangle3, Tolerance)"/> gives for the nearest triangle;
+        /// <c>default</c> when the method returns false.
+        /// </param>
+        /// <returns>false when the mesh is empty, or no triangle comes nearer the segment than the reach.</returns>
+        /// <remarks>
+        /// The nearer child is opened first, as for a point. A box is judged by how far it is from the box of the
+        /// segment, which bounds how far it is from the segment itself, so a caller measuring a long run does better
+        /// to measure it in pieces a few times as long as they are thick.
+        /// </remarks>
+        internal bool TryGetShortestLineTo(GeoLine3 segment, double reach, Tolerance tolerance, out GeoLine3 line)
+        {
+            line = default(GeoLine3);
+
+            if (_rootCount == 0)
+            {
+                return false;
+            }
+
+            GeoAabb3 box = GeoAabb3.FromPoints(new[] { segment.StartPoint, segment.EndPoint });
+            double nearest = reach;
+            bool found = false;
+
+            Stack<int> pending = new Stack<int>();
+            pending.Push(0);
+
+            while (pending.Count > 0)
+            {
+                Node node = _nodes[pending.Pop()];
+
+                if (!(node.Bounds.DistanceTo(box) < nearest))
+                {
+                    continue;
+                }
+
+                if (node.Left < 0)
+                {
+                    for (int i = node.Start; i < node.Start + node.Count; i++)
+                    {
+                        int t = _order[i];
+
+                        if (!(_triangleBounds[t].DistanceTo(box) < nearest))
+                        {
+                            continue;
+                        }
+
+                        GeoLine3 candidate = Projection3.GetShortestLineTo(segment, _triangles[t], tolerance);
+                        double length = candidate.Length;
+
+                        if (length < nearest)
+                        {
+                            nearest = length;
+                            line = candidate;
+                            found = true;
+                        }
+                    }
+
+                    continue;
+                }
+
+                int near = node.Left;
+                int far = node.Right;
+
+                if (_nodes[far].Bounds.DistanceTo(box) < _nodes[near].Bounds.DistanceTo(box))
+                {
+                    int swap = near;
+                    near = far;
+                    far = swap;
+                }
+
+                pending.Push(far);
+                pending.Push(near);
+            }
+
+            return found;
+        }
+
+        /// <summary>
         /// Walks both trees at once, the nearest pair of boxes first, and measures the pairs of triangles under
         /// every pair of boxes that could still hold a nearer pair than the best found so far.
         /// </summary>

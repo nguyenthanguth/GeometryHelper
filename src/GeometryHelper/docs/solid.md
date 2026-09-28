@@ -1093,6 +1093,49 @@ foreach (var (a, b) in pairs)
 - A part checked against many others is prepared once with `Prepare()`, below; `CollidesWith` between two
   large meshes builds an index on its own once they are big enough to be worth it, but throws it away again.
 
+### How deep a clash runs
+
+`clash.Depth` says how deep two parts run into each other: the least thickness of the region they share, the
+smallest side of the least box round it, and of the deepest region where they share more than one. A bar
+grazing a flange by half a millimetre is half a millimetre deep however long the graze, where its volume grows
+with the length; a bar through a plate is as deep as the thinner of the two. It is measured when first asked
+for. A report that should not count modelling slack can say how deep, or how large, an overlap has to be:
+
+```csharp
+var options = new ClashOptions(clearance: 25.0, minimumDepth: 2.0, minimumVolume: 1000.0);
+```
+
+A shallower or smaller overlap is reported as `Touch`, keeping its `Overlaps`, `Volume` and `Depth`, or not at
+all when touching is not asked for. Both are nought unless given, and every overlap is hard.
+
+### Reinforcement by its centre line
+
+A bar need not be built as a body to be checked. `ClashBar` is its centre line and its radius, and it runs into
+a part where the part comes nearer the centre line than the radius:
+
+```csharp
+GeoPolylineArc3 centreLine = new GeoPolyline3(
+    new GeoPoint3(-100, 100, 150), new GeoPoint3(100, 100, 150), new GeoPoint3(100, 100, -100)).Fillet(40.0);
+var bar = new ClashBar(centreLine, radius: 8.0);
+
+ClashResult[] clashes = Clash3.Find(new[] { bar }, parts, new ClashOptions(clearance: 25.0));
+// clash.Depth: how far the part reaches into the bar; clash.LengthInside: how much of the centre line runs inside
+```
+
+Among the parts above, the bar bends down through the column into the footing: two hard clashes, each the
+diameter deep, its centre line 50 inside the footing. It is found exactly on the straight runs and within the
+chord tolerance on the bends (a thousandth of the radius unless given), with no body built and no boolean run,
+and the same prepared parts can be checked against bars and bodies alike. What bodies measure as a volume, a bar
+measures as a depth and a length: `Overlaps` stays empty and `Volume` nought, so `minimumVolume` does not apply
+to it, while `minimumDepth` does. Three things read differently from the same bar built with `GeoSolid3.Pipe`:
+
+- **The ends are rounded.** A ball rolled along the centre line reaches a radius past each end, where the bar
+  ends flat, so a part up to a radius beyond an end is found to clash: the check errs on the side of reporting.
+- **A plate thinner than the bar reads as the radius and half the plate.** Two bodies read the least thickness
+  of what they share, the plate's own; by its centre line, the bar is cut through however thin the plate.
+- **The bar is round.** A body built to a chord tolerance lies up to that far inside the bar, so its gaps come
+  out a little wider and its depths a little shallower.
+
 ## A body asked many questions
 
 `Prepare()` does once what the body's own questions do every time they are asked: it cuts the openings in,

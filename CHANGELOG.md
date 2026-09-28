@@ -4,6 +4,37 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**NEW.** How deep a clash runs, and a way to leave the shallow ones out. `ClashResult.Depth` is the least
+thickness of the region two parts share, the smallest side of the least box round it, and of the deepest region
+where they share more than one: a bar grazing a flange by half a millimetre is half a millimetre deep however
+long the graze, where its volume grows with the length, and a bar through a plate is as deep as the thinner of
+the two. It is measured when first asked for, so a report that never asks pays nothing for it. `ClashOptions`
+takes a `minimumDepth` and a `minimumVolume`, both nought unless given: a hard clash shallower or smaller than
+them is reported as `Touch`, keeping its overlaps, volume and depth, or left out when touching is not asked for.
+The constructor of 6.0.0, `ClashOptions(clearance, includeTouching, maxDegreeOfParallelism)`, stays as it was,
+so code built against it runs unchanged; a call naming fewer arguments, as `new ClashOptions(clearance: 25.0)`,
+compiles as before and gets the same answers.
+
+**NEW.** Reinforcement checked by its centre line, beside checking it as bodies, which is unchanged. A
+`ClashBar` is a bar's centre line, bends as arcs, and its radius, and `Clash3.Find(bars, parts, ...)` checks bars
+against parts, as bodies or prepared, with no body built for any bar and no boolean run: a bar runs into a part
+where the part comes nearer its centre line than its radius, touches it at exactly the radius, and is too near
+within the clearance, the gap measured from the bar's surface. It is exact on the straight runs and within the
+chord tolerance on the bends, a thousandth of the radius unless given, and openings are honoured. Each hard clash
+says how far the part reaches into the bar, `Depth`, and how much of the centre line runs inside it,
+`LengthInside`. Where the centre line stays outside, the depth is the radius less its nearest approach, exactly;
+where it runs inside, the radius and as far again as it runs beneath the part's surface, at most the diameter, to
+within a sixteenth of the radius. `Overlaps` stays empty and `Volume` nought, so `minimumVolume` does not apply
+to a bar, and `minimumDepth` does. Three things read differently from the bar built as a body: the ends are read
+rounded, a radius past where the bar ends flat, so the check errs on the side of reporting there; a plate thinner
+than the bar reads as the radius and half the plate, where two bodies read the plate's own thickness, since the
+plate cuts the bar through however thin it is; and the bar is round, where the body lies up to its chord
+tolerance inside it. On a Tekla model, 32 bars against 11,393 IFC bodies found the same 28 hard clashes and 9
+near misses both ways, gaps within 0.01 mm and depths within 0.8 mm of each other, in a quarter to a third of the
+time.
+
 ## 6.0.0
 
 Three breaking changes. The first two have one reason, that a name and a tolerance were each saying
