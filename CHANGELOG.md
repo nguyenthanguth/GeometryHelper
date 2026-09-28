@@ -4,6 +4,18 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**FIXED.** A face holds its holes wound the same way as its boundary, whichever way they are given. That is how
+the library measures them, by plain subtraction, but the plane winds a hole against its boundary, and faces lifted
+from it kept that winding: the booleans of flat shapes, the offsets of a face, anything laid out in a plane and put
+back. A body built of such faces added its holes to its volume instead of taking them away: a plate ten by ten by
+one with a two by two hole through it measured 98.67 instead of 96.
+
+**FIXED.** GeoSolid3.Centroid left out the holes in a body's faces, so a plate with its bolt holes cut in had its
+centroid where the plate without them has it: 49.78 instead of 49.65 for a hundred-square plate with a ten by ten
+hole near one corner.
+
 ## 6.0.0
 
 Three breaking changes. The first two have one reason, that a name and a tolerance were each saying

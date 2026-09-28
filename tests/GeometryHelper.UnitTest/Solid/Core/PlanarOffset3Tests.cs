@@ -352,7 +352,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(24 * 24 - 6 * 6, grown.Area, 8);
             Assert.Single(grown.Holes);
             Assert.True(grown.Normal.IsCodirectionalTo(face.Normal));
-            Assert.True(grown.Holes[0].Normal.IsCodirectionalTo(face.Normal.Negate()));
+            // Worked out in the plane, where a hole runs against its boundary; held in space the way every face
+            // holds its holes, as the boundary runs.
+            Assert.True(grown.Holes[0].Normal.IsCodirectionalTo(face.Normal));
 
             Assert.Equal(16 * 16 - 14 * 14, face.Offset(-2.0).Single().Area, 8);
             Assert.Empty(face.Offset(6.0).Single().Holes);

@@ -348,13 +348,25 @@ namespace GeometryHelper.Geometry
 
                 foreach (GeoFace3 face in _faces)
                 {
-                    foreach (GeoTriangle3 triangle in face.Triangulate())
+                    Add(face.Triangulate(), 1.0);
+
+                    // A hole in a face is material that is not there, and is wound as the boundary is, so
+                    // it is taken away as the volume takes it away.
+                    foreach (GeoPolygon3 hole in face.Holes)
+                    {
+                        Add(hole.Triangulate(), -1.0);
+                    }
+                }
+
+                void Add(GeoTriangle3[] triangles, double sign)
+                {
+                    foreach (GeoTriangle3 triangle in triangles)
                     {
                         GeoVector3 a = apex.GetVectorTo(triangle.A);
                         GeoVector3 b = apex.GetVectorTo(triangle.B);
                         GeoVector3 c = apex.GetVectorTo(triangle.C);
 
-                        double volume = a.TripleProduct(b, c) / 6.0;
+                        double volume = sign * a.TripleProduct(b, c) / 6.0;
 
                         // The fourth vertex of each tetrahedron is the apex, which sits at the origin of
                         // these vectors, so it adds nothing and the centroid is a quarter of the way

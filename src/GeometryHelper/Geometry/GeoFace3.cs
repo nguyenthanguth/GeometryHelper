@@ -24,8 +24,14 @@ namespace GeometryHelper.Geometry
         public GeoPolygon3 Boundary { get; }
 
         /// <summary>
-        /// Gets the read-only list of holes cut out of the face.
+        /// Gets the read-only list of holes cut out of the face, each wound the same way as the boundary.
         /// </summary>
+        /// <remarks>
+        /// A hole given the other way round is turned at construction. The library holds holes that way so that
+        /// area and volume come out by plain subtraction; the plane, and the booleans and offsets done in it, wind
+        /// a hole against its boundary, and a face lifted from them kept that winding, so a body built of such
+        /// faces added its holes to its volume instead of taking them away.
+        /// </remarks>
         public IReadOnlyList<GeoPolygon3> Holes => _holes;
 
         /// <summary>
@@ -88,7 +94,7 @@ namespace GeometryHelper.Geometry
                         throw new ArgumentException("Every hole must lie on the plane of the boundary.", nameof(holes));
                     }
 
-                    kept.Add(hole);
+                    kept.Add(hole.Normal.DotProduct(boundary.Normal) < 0.0 ? hole.Flip() : hole);
                 }
             }
 
