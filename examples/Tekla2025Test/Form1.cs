@@ -28,5 +28,14 @@ namespace Tekla2025Test
         {
             new RebarIfcClashCheck().Run();
         }
+
+        /// <summary>
+        /// Checks the selected reinforcement against the selected IFC objects by the bars' centre lines, with no body
+        /// built for any bar: <see cref="RebarIfcClashBarCheck"/>.
+        /// </summary>
+        private void clashBarCheckButton_Click(object sender, EventArgs e)
+        {
+            new RebarIfcClashBarCheck().Run();
+        }
     }
 }

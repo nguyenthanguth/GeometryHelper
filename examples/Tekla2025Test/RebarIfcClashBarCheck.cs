@@ -14,22 +14,20 @@ using Tekla.Structures.Model;
 namespace Tekla2025Test
 {
     /// <summary>
-    /// Checks the reinforcement selected in Tekla Structures against the selected IFC objects, all in the current work
-    /// plane, and lists every clash found, with the IFC member it is with, in a <see cref="ClashReportForm"/>: under
-    /// what was found, which pairs of members clash and how long each stage took, and ready to draw a clash and zoom
-    /// to it. The "Clash check: selected rebar vs IFC" button of <see cref="Form1"/> runs it.
+    /// Checks the reinforcement selected in Tekla Structures against the selected IFC objects by the bars' centre
+    /// lines and radii (<see cref="ClashBar"/>), with no body built for any bar, all in the current work plane, and
+    /// lists every clash found, with the IFC member it is with, in a <see cref="ClashReportForm"/>. It is
+    /// <see cref="RebarIfcClashCheck"/> stage for stage, with the bars read instead of built, so that the two can be
+    /// timed side by side. The "Clash check by centre line: selected rebar vs IFC" button of <see cref="Form1"/> runs
+    /// it.
     /// </summary>
-    internal sealed class RebarIfcClashCheck
+    internal sealed class RebarIfcClashBarCheck
     {
         /// <summary>
-        /// How near, in millimetres, a bar may come to an IFC body before the pair is reported.
+        /// How near, in millimetres, a bar may come to an IFC body before the pair is reported, measured from the bar's
+        /// surface. Keep it the same as in <see cref="RebarIfcClashCheck"/> to time the two alike.
         /// </summary>
-        private const double Clearance = 0;
-
-        /// <summary>
-        /// How far, in millimetres, the flat sides of a bar's body may stray from its round section.
-        /// </summary>
-        private const double BarChordTolerance = 0.1;
+        private const double Clearance = 0.0;
 
         /// <summary>
         /// How many pairs of clashing members the summary lists; every clash has a row of its own in the report window.
@@ -79,22 +77,19 @@ namespace Tekla2025Test
 
                 if (reinforcements.Count == 0 || referenceObjects.Count == 0)
                 {
-                    MessageBox.Show("Select reinforcement and the reference objects to check it against.", "Clash check");
+                    MessageBox.Show("Select reinforcement and the reference objects to check it against.", "Clash check by centre line");
                     return;
                 }
 
-                // No work plane is set. Tekla gives the bars in the current one, ToIfcGeometries gives the IFC bodies in
-                // it and the report window draws and zooms in it, and the check finds the same clashes in any plane.
-
                 // Every bar as the model view shows it (hooks and laps worked out, and moved off itself where a
-                // stirrup's hooks would run through it), as a round body of the bar's own diameter, and the
-                // reinforcement it belongs to. Asking Tekla for the geometries and building the bodies take turns, so
-                // each is timed on its own.
-                var bars = new List<GeoSolid3>();
+                // stirrup's hooks would run through it), by its centre line, bends as arcs, and its own radius, and the
+                // reinforcement it belongs to; no body is built. Asking Tekla for the geometries and reading them take
+                // turns, so each is timed on its own.
+                var bars = new List<ClashBar>();
                 var barOwners = new List<Reinforcement>();
-                int unbuilt = 0;
+                int unread = 0;
                 var asking = new Stopwatch();
-                var building = new Stopwatch();
+                var reading = new Stopwatch();
                 foreach (Reinforcement reinforcement in reinforcements)
                 {
                     asking.Start();
@@ -105,31 +100,31 @@ namespace Tekla2025Test
                         continue;
                     }
 
-                    building.Start();
+                    reading.Start();
                     foreach (RebarGeometry geometry in geometries.OfType<RebarGeometry>())
                     {
                         try
                         {
-                            bars.Add(GeoSolid3.Pipe(geometry.ToGeoPolylineArc3(), geometry.ToBarRadius(), BarChordTolerance));
+                            bars.Add(new ClashBar(geometry.ToGeoPolylineArc3(), geometry.ToBarRadius()));
                             barOwners.Add(reinforcement);
                         }
                         catch (Exception error) when (error is ArgumentException || error is InvalidOperationException)
                         {
-                            // One bar with no length, or turning back on itself, should not cost the rest.
-                            unbuilt++;
+                            // One bar with no length or no radius should not cost the rest.
+                            unread++;
                         }
                     }
-                    building.Stop();
+                    reading.Stop();
                 }
 
                 stages.Add(("Reading bar geometries from Tekla", asking.Elapsed));
-                stages.Add(("Building bar bodies", building.Elapsed));
+                stages.Add(("Reading the bars by their centre lines", reading.Elapsed));
                 lap.Restart();
 
                 // The IFC products, each with the bodies it is made of, every body known by its product so that a clash
                 // can say which member it is with: the same work as ToGeoSolids, which gives the bodies alone. Their
-                // openings are left uncut here (ApplyVoids = false) for speed, so a bar through a hole in a web is
-                // reported; set it to true when openings matter.
+                // openings are left uncut here (ApplyVoids = false) for speed, as in RebarIfcClashCheck, so a bar
+                // through a hole in a web is reported; set it to true when openings matter.
                 IReadOnlyList<IfcProductGeometry> products = referenceObjects.ToIfcGeometries(new IfcConvertOptions { ApplyVoids = false });
                 var bodies = new List<GeoSolid3>();
                 var bodyOwners = new List<IfcProductGeometry>();
@@ -144,14 +139,15 @@ namespace Tekla2025Test
 
                 Lap("Reading IFC bodies (IFC file and conversion)");
 
-                // One set against the other: First indexes the bars, Second the IFC bodies. Clash3.Find prepares every
-                // part itself (meshes and indexes) on all cores, so this stage times preparing and checking together.
+                // The bars against the IFC bodies: First indexes the bars, Second the IFC bodies. Clash3.Find prepares the
+                // IFC bodies itself (meshes and indexes) on all cores, so this stage times preparing and checking
+                // together; a bar read by its centre line needs no mesh or index of its own.
                 ClashResult[] clashes = Clash3.Find(bars, bodies, new ClashOptions(clearance: Clearance));
-                Lap("Preparing the parts and checking the pairs (Clash3.Find)");
+                Lap("Preparing the IFC bodies and checking the pairs (Clash3.Find)");
 
-                string notBuilt = unbuilt > 0 ? $" ({unbuilt} could not be built)" : string.Empty;
+                string notRead = unread > 0 ? $" ({unread} could not be read)" : string.Empty;
                 string found =
-                    $"{bars.Count} bar(s){notBuilt}, {bars.Sum(bar => bar.Faces.Count)} faces, of {reinforcements.Count} reinforcement(s), " +
+                    $"{bars.Count} bar(s){notRead} of {reinforcements.Count} reinforcement(s), by centre line, " +
                     $"against {bodies.Count} IFC body(ies), {bodies.Sum(body => body.Faces.Count)} faces, " +
                     $"of {products.Count} IFC product(s) from {referenceObjects.Count} reference object(s)." +
                     Environment.NewLine +
@@ -162,12 +158,12 @@ namespace Tekla2025Test
                 // use, and draws a clash and zooms to it when asked.
                 string summary = found + Environment.NewLine + Environment.NewLine + Members(clashes, barOwners, bodyOwners) +
                     Environment.NewLine + Environment.NewLine + Timings(stages, total.Elapsed);
-                new ClashReportForm("Clash check", summary, clashes, barOwners, bodyOwners).Show();
+                new ClashReportForm("Clash check by centre line", summary, clashes, barOwners, bodyOwners).Show();
             }
             catch (Exception ex)
             {
                 Lap("Until it failed");
-                MessageBox.Show(Timings(stages, total.Elapsed) + Environment.NewLine + Environment.NewLine + ex, "Clash check failed");
+                MessageBox.Show(Timings(stages, total.Elapsed) + Environment.NewLine + Environment.NewLine + ex, "Clash check by centre line failed");
             }
         }
 
@@ -217,7 +213,7 @@ namespace Tekla2025Test
 
                 if (hard.Length > 0)
                 {
-                    what.Add($"{hard.Length} hard, {hard.Sum(clash => clash.Volume):0} mm3");
+                    what.Add($"{hard.Length} hard, the deepest {hard.Max(clash => clash.Depth):0.0} mm");
                 }
 
                 if (touching > 0)
