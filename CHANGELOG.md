@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 7.0.0
 
 **BREAKING.** `ArrangeItem.Offset` only sets: it writes `OffsetTop` and `OffsetBottom` both, and holds nothing of
 its own, so code that reads it no longer compiles. `OffsetTop` and `OffsetBottom` are what placement reads, plain

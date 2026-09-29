@@ -19,6 +19,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 7.0.0
+      - Nothing in GeometryHelper.IfcConvert changed: it is released at 7.0.0 with GeometryHelper, whose label
+        placement changed in ways that break code reading ArrangeItem.Offset.
+
       NEW IN 6.3.0
       - Nothing in GeometryHelper.IfcConvert changed: it is released at 6.3.0 with GeometryHelper, whose label
         placement takes a gap of its own for each side of a leader.

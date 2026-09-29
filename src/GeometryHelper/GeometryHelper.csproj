@@ -14,6 +14,22 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
+      NEW IN 7.0.0
+
+      BREAKING: code that reads ArrangeItem.Offset, or treats OffsetTop / OffsetBottom as nullable, has to change.
+      - ArrangeItem.Offset only sets: it writes OffsetTop and OffsetBottom both. The sides are plain doubles, 50
+        each unless set. Set after a side, Offset overwrites it; code that sets Offset first, or only, places every
+        label where 6.3.0 did.
+      - NEW: ArrangeItem.Side (ArrangeSide.Both / Top / Bottom) keeps a label to one side of its leader; Top is the
+        side facing up in the drawing, the left of a vertical leader. With no free place there, the label is left
+        on its first place on that side and reported not placed.
+      - FIXED, label placement: a label with a gap of its own per side no longer goes to the wider side; rows are
+        tried nearest first; a vertical leader is judged by the tolerance's angle; the second pass keeps clear of
+        the regions of every item; MaxBacktrackSteps counts steps back only, and bounded backtracking and
+        constraint satisfaction search in a loop; MaximumCandidates caps every candidate; gaps refuse NaN and
+        infinity; a gap of double.MaxValue no longer makes Arranger.Run throw. Labels with the same gap on both
+        sides are placed as in 6.2.0 and 6.3.0. Details in CHANGELOG.md.
+
       NEW IN 6.3.0
 
       Nothing breaks: code built against 6.2.0 runs unchanged.
