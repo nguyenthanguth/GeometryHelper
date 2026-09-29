@@ -14,6 +14,13 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
+      NEW IN 6.3.0
+
+      Nothing breaks: code built against 6.2.0 runs unchanged.
+      - ArrangeItem.OffsetTop and OffsetBottom: a gap of its own for each side of a label's leader, the side that
+        faces up in the drawing and the side that faces down, whichever way the leader runs. A side left unset
+        takes Offset, and with neither set every candidate and every result is what it was.
+
       NEW IN 6.2.0
 
       Nothing in GeometryHelper itself changed: it is released at 6.2.0 with GeometryHelper.IfcConvert and

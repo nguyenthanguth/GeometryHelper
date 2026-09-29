@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 6.3.0
 
 **NEW.** A gap for each side of a label's leader. `ArrangeItem.OffsetTop` is the least gap between the label and
 the leader on the side of the leader that faces up in the drawing, and `OffsetBottom` on the side that faces

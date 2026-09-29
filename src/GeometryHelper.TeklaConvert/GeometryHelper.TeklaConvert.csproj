@@ -29,6 +29,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 6.3.0
+      - Nothing in GeometryHelper.TeklaConvert changed: it is released at 6.3.0 with GeometryHelper, whose label
+        placement takes a gap of its own for each side of a leader.
+
       NEW IN 6.2.0
       - A reference model read whole (ReferenceModelConvert.ToGeoSolids / ToIfcGeometries) is converted and
         carried into the work plane on every core at once: three Tekla reference models of about 21,000
