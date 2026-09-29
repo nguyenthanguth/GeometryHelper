@@ -176,7 +176,17 @@ namespace GeometryHelper.Core
         /// </remarks>
         private static double Signed(double reach, PointLocation where)
         {
-            return where == PointLocation.Inside ? -reach : reach;
+            // Nought on the boundary, as the rule says: a point Locate calls on it is within the tolerance of it,
+            // and reporting the last bit of that reach would put the answer at odds with Locate.
+            switch (where)
+            {
+                case PointLocation.Inside:
+                    return -reach;
+                case PointLocation.OnSide:
+                    return 0.0;
+                default:
+                    return reach;
+            }
         }
     }
 }

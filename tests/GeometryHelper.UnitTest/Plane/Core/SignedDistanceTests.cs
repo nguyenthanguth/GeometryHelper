@@ -19,6 +19,21 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private static readonly Tolerance Tight = new Tolerance(1E-9, 1E-9);
 
+        [Fact]
+        public void APointWithinTheToleranceOfTheBoundaryIsNoughtAway()
+        {
+            // A thousandth off an edge, at a tolerance of a hundredth, Locate calls a point on the boundary, and the
+            // sign follows Locate: nought there, not the thousandth.
+            var tolerance = new Tolerance(0.01, 0.01);
+            var justOff = new GeoPoint2(50, 100.001);
+            var justIn = new GeoPoint2(50, 99.999);
+
+            Assert.Equal(PointLocation.OnSide, Square().Locate(justOff, tolerance));
+            Assert.Equal(0.0, Square().SignedDistanceTo(justOff, tolerance));
+            Assert.Equal(0.0, Square().SignedDistanceTo(justIn, tolerance));
+            Assert.Equal(0.0, Plate().SignedDistanceTo(justOff, tolerance));
+        }
+
         private static GeoCircle2 Circle() => new GeoCircle2(new GeoPoint2(0, 0), 30.0);
 
         private static GeoRectangle2 Plate() => new GeoRectangle2(0, 0, 100, 100);

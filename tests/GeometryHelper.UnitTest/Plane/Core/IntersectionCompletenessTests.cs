@@ -23,7 +23,11 @@ namespace GeometryHelper.UnitTest.Plane
     /// </summary>
     public class IntersectionCompletenessTests
     {
-        private static readonly Tolerance Tol = Tolerance.Global;
+        // The steps and the run a crossing has to be sustained for are set against a tolerance band of a
+        // ten-thousandth on shapes some ten across. At the default hundredth, a segment grazing a corner at the
+        // shallowest slope these lattice points allow stays inside the band for some thirty steps and reads as a
+        // passage; the band these counts were chosen for is the one they are run at.
+        private static readonly Tolerance Tol = new Tolerance(1E-4, 1E-4, Tolerance.DefaultEqualAngleRad, 1E-4);
 
         private const int Steps = 2000;
         private const int Sustained = 8;

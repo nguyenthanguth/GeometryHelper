@@ -444,7 +444,10 @@ namespace GeometryHelper.Core
 
             GeoPoint3 origin = GeoPoint3.Origin.Add(n1.Multiply(c1)).Add(n2.Multiply(c2));
 
-            intersection = new GeoRay3(origin, direction);
+            // The angle has been judged above, by the shape's reach when it has one. The ray would judge the sine
+            // again as a length, against the vector tolerance, and refuse planes half a degree apart that the test
+            // above has just found crossing, so it is given the direction already of unit length.
+            intersection = new GeoRay3(origin, direction.Divide(sine));
             return true;
         }
 

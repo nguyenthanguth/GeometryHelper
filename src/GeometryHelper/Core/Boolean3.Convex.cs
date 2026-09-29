@@ -104,6 +104,11 @@ namespace GeometryHelper.Core
         {
             shared = null;
 
+            // Clipped and closed within one tolerance, as the general boolean is; see ForWork and FlatForWork.
+            tolerance = ForWork(tolerance);
+            first = FlatForWork(first, tolerance);
+            second = FlatForWork(second, tolerance);
+
             double on = tolerance.EqualPlanar;
             var rings = new List<List<GeoPoint3>>();
 

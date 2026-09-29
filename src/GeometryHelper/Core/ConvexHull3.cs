@@ -167,7 +167,10 @@ namespace GeometryHelper.Core
                 }
             }
 
-            hull = Merge3.CoplanarFaces(new GeoSolid3(triangles), tolerance);
+            // Merged no more loosely than the points were taken on: a point left out lies within the point tolerance
+            // of the triangles, and triangles merged within a wider planar one could lay the face that far past it,
+            // so that the hull no longer held a point it was built from.
+            hull = Merge3.CoplanarFaces(new GeoSolid3(triangles), Boolean3.ForWork(tolerance));
             return true;
         }
 

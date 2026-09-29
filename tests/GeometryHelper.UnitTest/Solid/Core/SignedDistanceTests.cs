@@ -28,6 +28,27 @@ namespace GeometryHelper.UnitTest.Solid
         });
 
         [Fact]
+        public void APointWithinTheToleranceOfTheSurfaceIsNoughtAway()
+        {
+            // A thousandth off a face, at a tolerance of a hundredth, Locate calls a point on the surface, and the
+            // sign follows Locate: nought there, not the thousandth. The prepared body answered so already and the
+            // body gave the thousandth; the two parted once the band was wide enough for a random point to land in.
+            var tolerance = new Tolerance(0.01, 0.01);
+            var justOff = new GeoPoint3(50, 50, 100.001);
+            var justIn = new GeoPoint3(50, 50, 99.999);
+            GeoSolid3 cube = Cube();
+
+            Assert.Equal(PointLocation.OnSide, cube.Locate(justOff, tolerance));
+            Assert.Equal(PointLocation.OnSide, cube.Locate(justIn, tolerance));
+
+            Assert.Equal(0.0, cube.SignedDistanceTo(justOff, tolerance));
+            Assert.Equal(0.0, cube.SignedDistanceTo(justIn, tolerance));
+            Assert.Equal(0.0, cube.Prepare().SignedDistanceTo(justOff, tolerance));
+            Assert.Equal(0.0, Box().ToObb().SignedDistanceTo(justOff, tolerance));
+            Assert.Equal(0.0, Box().SignedDistanceTo(justOff, tolerance));
+        }
+
+        [Fact]
         public void ThePlainNumbersAreWhatTheModelSays()
         {
             GeoSolid3 cube = Cube();

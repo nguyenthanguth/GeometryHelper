@@ -201,14 +201,16 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>
-        /// Taking one plate out of another so that only a corner a hundredth across is left gives that corner. The
+        /// Taking one plate out of another so that only a corner a tenth across is left gives that corner. The
         /// piece is under the area a polygon refuses at the ordinary tolerance, and lifting it back out of the plane
         /// threw, taking with it any union of two bodies whose gluing met such a sliver.
         /// </summary>
         [Fact]
         public void TakingAPlateOutOfAnotherThatLeavesACornerSliverGivesTheSliver()
         {
-            foreach (double leg in new[] { 0.01, 0.003 })
+            // Both corners thicker than the default point tolerance of a hundredth, which a thinner sliver is dropped
+            // at by design, and both under its hundredth as an area.
+            foreach (double leg in new[] { 0.1, 0.05 })
             {
                 var square = new GeoFace3(Plate(0, 0, 1));
                 var allButTheCorner = new GeoFace3(new GeoPolygon3(

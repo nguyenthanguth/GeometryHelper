@@ -288,10 +288,11 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>
-        /// A plane taking a corner a few thousandths deep off a cube still cuts it. The three faces meeting at the
-        /// corner each leave a sliver past the plane, and the cap closing the corner is as small, all under the
-        /// area a polygon refuses at the ordinary tolerance. Refused, the corner's half had no faces at all and the
-        /// cube came back uncut; inside a boolean, such a sliver left a cell whole across the other body.
+        /// A plane taking a corner a few hundredths deep off a cube, just past the planar tolerance, still cuts it.
+        /// The three faces meeting at the corner each leave a sliver past the plane, and the cap closing the corner
+        /// is as small, all under the area a polygon refuses at the ordinary tolerance. Refused, the corner's half
+        /// had no faces at all and the cube came back uncut; inside a boolean, such a sliver left a cell whole
+        /// across the other body.
         /// </summary>
         [Fact]
         public void APlaneTakingACornerOffJustPastIt_StillCuts()
@@ -301,7 +302,9 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
                 new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0)
             }, 10.0);
-            double depth = 0.003;
+            // Past the default planar tolerance of five hundredths, with slivers some a tenth long and under the
+            // hundredth a polygon refuses as an area.
+            double depth = 0.06;
             GeoVector3 across = new GeoVector3(1, 1, 1).Normalize();
             var plane = new GeoPlane3(GeoPoint3.Origin.Add(across.Multiply(depth)), across);
 

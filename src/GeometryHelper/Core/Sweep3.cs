@@ -146,9 +146,12 @@ namespace GeometryHelper.Core
 
             var directions = new GeoVector3[points.Count - 1];
 
+            // Neighbouring points are further apart than the point tolerance of this sweep, so every step has a
+            // length to divide by; Normalize would judge it against the default tolerance instead.
             for (int i = 0; i < directions.Length; i++)
             {
-                directions[i] = points[i].GetVectorTo(points[i + 1]).Normalize();
+                GeoVector3 step = points[i].GetVectorTo(points[i + 1]);
+                directions[i] = step.Divide(step.Length);
             }
 
             GeoVector3 y = StartUp(directions[0], up, tolerance);
@@ -179,8 +182,11 @@ namespace GeometryHelper.Core
                 sections.Add(Section(points[i], x, y, corners, mitre, into));
 
                 // The frame turns with the path about the axis of the bend and nothing else, so the profile
-                // does not twist along it.
-                GeoVector3 axis = into.CrossProduct(outOf).Normalize();
+                // does not twist along it. The turn is more than straight on, so the cross product of the two
+                // unit directions, the sine of the turn, has a length to divide by: Normalize would read that sine
+                // as a length against the vector tolerance and refuse a gentle bend.
+                GeoVector3 turn = into.CrossProduct(outOf);
+                GeoVector3 axis = turn.Divide(turn.Length);
                 double angle = Math.Acos(Math.Max(-1.0, Math.Min(1.0, cosine)));
 
                 x = Rotate(x, axis, angle);

@@ -295,7 +295,12 @@ namespace GeometryHelper.Core
         {
             Segment first = segments[members[0]];
             GeoPoint3 origin = first.Start;
-            GeoVector3 axis = first.Start.GetVectorTo(first.End).Normalize();
+
+            // Every member shares a stretch longer than the point tolerance with another, so it has a length to
+            // divide by. Normalize would judge that length against the default tolerance instead of this one, and
+            // refuse a segment a boolean run tighter than the default is right to keep.
+            GeoVector3 along = first.Start.GetVectorTo(first.End);
+            GeoVector3 axis = along.Divide(along.Length);
 
             var stops = new List<double>();
 
@@ -375,7 +380,12 @@ namespace GeometryHelper.Core
         {
             Segment first = segments[members[0]];
             GeoPoint3 origin = first.Start;
-            GeoVector3 axis = first.Start.GetVectorTo(first.End).Normalize();
+
+            // Every member shares a stretch longer than the point tolerance with another, so it has a length to
+            // divide by. Normalize would judge that length against the default tolerance instead of this one, and
+            // refuse a segment a boolean run tighter than the default is right to keep.
+            GeoVector3 along = first.Start.GetVectorTo(first.End);
+            GeoVector3 axis = along.Divide(along.Length);
 
             // Every end point along the line, as a distance from the origin; between two neighbouring ones the
             // same faces meet all the way along, so each stretch is settled once.

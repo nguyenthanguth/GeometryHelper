@@ -78,16 +78,18 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static bool TryCutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance)
         {
-            GeoSolid3 gross = new GeoSolid3(solid.Faces);
-
             if (openings.Count == 0)
             {
-                material = solid.Openings.Count == 0 ? solid : gross;
+                material = solid.Openings.Count == 0 ? solid : new GeoSolid3(solid.Faces);
                 return true;
             }
 
-            // The body carrying only the openings being cut, so that a cell is judged against exactly those.
-            GeoSolid3 owner = new GeoSolid3(solid.Faces, openings);
+            // The body carrying only the openings being cut, so that a cell is judged against exactly those, and
+            // both as the cut works on them; see ForWork and FlatForWork.
+            tolerance = ForWork(tolerance);
+            GeoSolid3 owner = FlatForWork(new GeoSolid3(solid.Faces, openings), tolerance);
+            GeoSolid3 gross = new GeoSolid3(owner.Faces);
+            openings = owner.Openings;
 
             List<GeoSolid3> cells = new List<GeoSolid3> { gross };
 

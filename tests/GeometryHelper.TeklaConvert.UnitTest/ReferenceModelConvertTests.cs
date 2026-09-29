@@ -345,8 +345,9 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [Fact]
         public void TransformGeometry_ABodyWithASliverFace_IsKeptWhole()
         {
-            // A 100 mm cube whose top carries a sliver triangle of 5e-5 mm2, which the conversion keeps: it builds
-            // polygons with an area threshold of EqualPoint squared (1e-8 mm2) rather than EqualVector (1e-4).
+            // A 100 mm cube whose top carries a sliver triangle of 0.0075 mm2, wider than the point tolerance, which the
+            // conversion keeps: it builds polygons with an area threshold of EqualPoint squared (1e-4 mm2 by default)
+            // rather than EqualVector (1e-2).
             // GeoSolid3.TransformBy checks against Tolerance.Global again and threw on the whole body, which cost
             // 3 of 500 beams of a real Tekla model read with ApplyVoids = true.
             GeoSolid3 box = SliverBox();
@@ -390,15 +391,15 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             Assert.True(box.Max.IsEqualTo(max, new Tolerance(1e-6, 1e-6)), $"max {box.Max} is not {max}");
         }
 
-        // A 100 mm cube whose top is split into a sliver triangle 100 mm long and 1e-6 mm wide, built as the
-        // conversion builds it, and the rest. Faces wound so that their normals point out of the body.
+        // A 100 mm cube whose top is split into a sliver triangle at a corner, 1 mm long and 0.015 mm wide, built as
+        // the conversion builds it, and the rest. Faces wound so that their normals point out of the body.
         private static GeoSolid3 SliverBox()
         {
             Tolerance construction = new Tolerance(Tolerance.DefaultEqualPoint, Tolerance.DefaultEqualPoint * Tolerance.DefaultEqualPoint);
 
             GeoPoint3 b0 = new GeoPoint3(0, 0, 0), b1 = new GeoPoint3(100, 0, 0), b2 = new GeoPoint3(100, 100, 0), b3 = new GeoPoint3(0, 100, 0);
             GeoPoint3 t0 = new GeoPoint3(0, 0, 100), t1 = new GeoPoint3(100, 0, 100), t2 = new GeoPoint3(100, 100, 100), t3 = new GeoPoint3(0, 100, 100);
-            GeoPoint3 m = new GeoPoint3(50, 1e-6, 100);
+            GeoPoint3 a = new GeoPoint3(1, 0, 100), m = new GeoPoint3(0.5, 0.015, 100);
 
             return new GeoSolid3(new[]
             {
@@ -407,8 +408,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                 new GeoFace3(new GeoPolygon3(b1, b2, t2, t1)),
                 new GeoFace3(new GeoPolygon3(b2, b3, t3, t2)),
                 new GeoFace3(new GeoPolygon3(b3, b0, t0, t3)),
-                new GeoFace3(new GeoPolygon3(new[] { t0, t1, m }, construction)),
-                new GeoFace3(new GeoPolygon3(t0, m, t1, t2, t3)),
+                new GeoFace3(new GeoPolygon3(new[] { t0, a, m }, construction)),
+                new GeoFace3(new GeoPolygon3(t0, m, a, t1, t2, t3)),
             });
         }
 

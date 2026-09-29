@@ -9,6 +9,14 @@ namespace GeometryHelper.IfcConvert.UnitTest
     {
         private const string Guid = "0000000000000000000002";
 
+        /// <summary>
+        /// The default tolerance in metres. Tolerances are in the output unit, and the default suits millimetres: read as
+        /// metres, its hundredth would be ten millimetres, more than a bolt hole.
+        /// </summary>
+        private static readonly GeometryHelper.Tolerance InMetres = new GeometryHelper.Tolerance(
+            GeometryHelper.Tolerance.DefaultEqualPoint * 1E-3, GeometryHelper.Tolerance.DefaultEqualVector * 1E-3,
+            GeometryHelper.Tolerance.DefaultEqualAngleRad, GeometryHelper.Tolerance.DefaultEqualPlanar * 1E-3);
+
         private static string Member(string profileAndSolid) => IfcTestFile.CommonHeader() + profileAndSolid + @"
 #22=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#21));
 #23=IFCPRODUCTDEFINITIONSHAPE($,$,(#22));
@@ -74,7 +82,13 @@ namespace GeometryHelper.IfcConvert.UnitTest
             {
                 Assert.Equal("MILLIMETRE", model.OriginalLengthUnit);
 
-                var solid = model.GetSolid(Guid, new IfcConvertOptions { TargetUnit = unit });
+                var options = new IfcConvertOptions { TargetUnit = unit };
+                if (unit == LengthUnit.Meters)
+                {
+                    options.Tolerance = InMetres;
+                }
+
+                var solid = model.GetSolid(Guid, options);
                 Assert.NotNull(solid);
                 Assert.True(solid.IsClosed(), "solid is not closed");
 
@@ -98,7 +112,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
         {
             IfcTestFile.Run(MillimetreFlatBar, model =>
             {
-                var solid = model.GetSolid(Guid, new IfcConvertOptions { TargetUnit = LengthUnit.Meters });
+                var solid = model.GetSolid(Guid, new IfcConvertOptions { TargetUnit = LengthUnit.Meters, Tolerance = InMetres });
                 Assert.NotNull(solid);
                 Assert.Equal(6, solid.Faces.Count);
                 Assert.True(solid.IsClosed(), "solid is not closed");

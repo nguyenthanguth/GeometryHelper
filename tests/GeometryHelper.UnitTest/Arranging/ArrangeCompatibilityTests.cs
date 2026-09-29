@@ -18,10 +18,14 @@ namespace GeometryHelper.UnitTest.Arranging
     /// <remarks>
     /// The hashes were taken from a build of 5eea18b, the 6.2.0 release. The scenes keep to what later fixes left
     /// alone on purpose: caps that do not bind, one list of regions shared by every item, searches within their
-    /// step budget.
+    /// step budget. They run at the default tolerance 6.2.0 had, a ten-thousandth: at the default of a hundredth
+    /// since, force-directed placement reads boxes a hundredth apart as touching and settles some labels elsewhere,
+    /// which is the change of default rather than of the placement.
     /// </remarks>
     public class ArrangeCompatibilityTests : ArrangeTestKit
     {
+        private static readonly Tolerance ToleranceOf620 = new Tolerance(1E-4, 1E-4, Tolerance.DefaultEqualAngleRad, 1E-4);
+
         private const string CandidatesOf620 = "bb1ebe4fae6b325b8c65ebd6d1ff4f7de447164b16afce6614d790aee4ffcd42";
 
         private static readonly Dictionary<ArrangeAlgorithmType, string> ResultsOf620 = new Dictionary<ArrangeAlgorithmType, string>
@@ -77,13 +81,14 @@ namespace GeometryHelper.UnitTest.Arranging
         public void TheResults_AreThoseOf620(ArrangeAlgorithmType algorithm)
         {
             var text = new StringBuilder();
-            Append(text, Arranger.Run(Crowd(lifted: false), new ArrangeOptions { Algorithm = algorithm, RowGap = 5.0 }));
-            Append(text, Arranger.Run(Crowd(lifted: true), new ArrangeOptions { Algorithm = algorithm, RowGap = 5.0 }));
+            Append(text, Arranger.Run(Crowd(lifted: false), new ArrangeOptions { Algorithm = algorithm, RowGap = 5.0, Tolerance = ToleranceOf620 }));
+            Append(text, Arranger.Run(Crowd(lifted: true), new ArrangeOptions { Algorithm = algorithm, RowGap = 5.0, Tolerance = ToleranceOf620 }));
 
             for (int seed = 1; seed <= 6; seed++)
             {
                 List<ArrangeItem> scene = Sheet(seed, out ArrangeOptions options);
                 options.Algorithm = algorithm;
+                options.Tolerance = ToleranceOf620;
                 Append(text, Arranger.Run(scene, options));
             }
 

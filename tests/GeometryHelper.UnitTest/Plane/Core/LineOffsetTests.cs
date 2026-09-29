@@ -200,10 +200,11 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void IsDegenerate_FollowsTheTolerance()
         {
+            // Under the default hundredth, five thousandths is no length and a tenth is; under a whole unit, a tenth is not.
             Assert.True(new GeoLine2(1, 1, 1, 1).IsDegenerate());
-            Assert.True(new GeoLine2(1, 1, 1.00005, 1).IsDegenerate());
-            Assert.False(new GeoLine2(1, 1, 1.001, 1).IsDegenerate());
-            Assert.True(new GeoLine2(1, 1, 1.001, 1).IsDegenerate(new Tolerance(0.01, 0.01)));
+            Assert.True(new GeoLine2(1, 1, 1.005, 1).IsDegenerate());
+            Assert.False(new GeoLine2(1, 1, 1.1, 1).IsDegenerate());
+            Assert.True(new GeoLine2(1, 1, 1.1, 1).IsDegenerate(new Tolerance(1.0, 1.0)));
         }
 
         [Fact]

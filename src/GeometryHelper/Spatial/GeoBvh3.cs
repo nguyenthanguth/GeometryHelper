@@ -327,6 +327,75 @@ namespace GeometryHelper.Spatial
         }
 
         /// <summary>
+        /// Counts where a ray crosses the mesh, unless a crossing lands so near the rim of its triangle that the
+        /// count cannot be trusted.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="tolerance">The tolerance the crossings are found within.</param>
+        /// <param name="rim">How near the rim of its triangle a crossing may not land.</param>
+        /// <param name="crossings">The number of crossings when the method returns true; nought otherwise.</param>
+        /// <returns>false when a crossing lands within <paramref name="rim"/> of the rim of its triangle.</returns>
+        /// <remarks>
+        /// A triangle holds a point up to the point tolerance beyond its rim. A ray through an edge two triangles
+        /// share is counted by both, and one leaving a body past an edge, at a shallow angle to the face beyond, is
+        /// counted by that face as well a little further along: 0.19 further, on a block a ray left 0.2 degrees off
+        /// its next face. Neither can be told from two real crossings by where they land on the ray; they are told
+        /// by where they land on their triangles.
+        /// </remarks>
+        internal bool TryCountCrossings(GeoRay3 ray, Tolerance tolerance, double rim, out int crossings)
+        {
+            crossings = 0;
+
+            if (_rootCount == 0)
+            {
+                return true;
+            }
+
+            Stack<int> pending = new Stack<int>();
+            pending.Push(0);
+
+            while (pending.Count > 0)
+            {
+                Node node = _nodes[pending.Pop()];
+
+                if (!RayHitsBox(ray, node.Bounds, tolerance))
+                {
+                    continue;
+                }
+
+                if (node.Left < 0)
+                {
+                    for (int i = node.Start; i < node.Start + node.Count; i++)
+                    {
+                        GeoTriangle3 triangle = _triangles[_order[i]];
+
+                        if (!Intersection3.TryIntersectWith(ray, triangle, out GeoPoint3 hit, tolerance))
+                        {
+                            continue;
+                        }
+
+                        if (new GeoLine3(triangle.A, triangle.B).DistanceTo(hit) <= rim ||
+                            new GeoLine3(triangle.B, triangle.C).DistanceTo(hit) <= rim ||
+                            new GeoLine3(triangle.C, triangle.A).DistanceTo(hit) <= rim)
+                        {
+                            crossings = 0;
+                            return false;
+                        }
+
+                        crossings++;
+                    }
+
+                    continue;
+                }
+
+                pending.Push(node.Left);
+                pending.Push(node.Right);
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Gets the point of the mesh closest to a target point, using the default tolerance.
         /// </summary>
         public GeoPoint3 GetClosestPoint(GeoPoint3 point) => GetClosestPoint(point, Tolerance.Global);

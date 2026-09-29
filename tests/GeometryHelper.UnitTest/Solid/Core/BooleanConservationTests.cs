@@ -100,9 +100,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(cases > 100, $"only {cases} usable cases");
 
             // Slivers thinner than the tolerance are dropped by design, so the accounting is allowed to
-            // move at that scale and no further. Before the outline walk was taught to handle a vertex
-            // several edges meet at, this reached 13 on a body of 336.
-            Assert.True(worst < 1E-3, $"worst drift was {worst}");
+            // move at that scale, the point tolerance over an area of some ten, and no further. Before the
+            // outline walk was taught to handle a vertex several edges meet at, this reached 13 on a body of 336.
+            Assert.True(worst < 10 * Tolerance.Global.EqualPoint, $"worst drift was {worst}");
         }
 
         [Fact]

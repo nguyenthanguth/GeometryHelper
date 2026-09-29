@@ -482,9 +482,12 @@ namespace GeometryHelper.Core
                 new GeoVector3(-0.6666666666666666, 0.3333333333333333, 0.6666666666666666)
             };
 
-            // A crossing landing this close to the rim of a face is what makes the parity unreliable. The
-            // band is wider than the point tolerance so that a graze is caught rather than counted.
-            double grazeBand = tolerance.EqualPoint * 100.0;
+            // A crossing landing this close to the rim of a face is what makes the parity unreliable: a face
+            // holds a point up to the point tolerance beyond its rim, so a crossing that near an edge can be
+            // counted by the face beyond it as well. Twice the tolerance catches that. A band much wider refuses
+            // ordinary crossings of narrow faces instead: at a hundred times a tolerance of a hundredth, every
+            // crossing of the millimetre-wide faces round a bolt landed in it, and every ray came back refused.
+            double grazeBand = tolerance.EqualPoint * 2.0;
 
             foreach (GeoVector3 direction in directions)
             {

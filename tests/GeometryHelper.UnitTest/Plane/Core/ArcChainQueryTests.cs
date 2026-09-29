@@ -117,9 +117,9 @@ namespace GeometryHelper.UnitTest.Plane
             var chords = new GeoPolygon2(slot.Vertices.ToArray());
             Assert.Equal(30.0, Distance2.DistanceTo(chords, outside), 8);
 
-            // A point on the arc is on the loop, and one a hair off it is not.
+            // A point on the arc is on the loop, and one five hundredths off it, past the default hundredth, is not.
             Assert.True(Containment2.IsPointOn(slot, new GeoPoint2(225, 25)));
-            Assert.False(Containment2.IsPointOn(slot, new GeoPoint2(225.001, 25)));
+            Assert.False(Containment2.IsPointOn(slot, new GeoPoint2(225.05, 25)));
 
             // And the distance to something else is measured the same way.
             var bar = new GeoLine2(new GeoPoint2(240, -100), new GeoPoint2(240, 100));

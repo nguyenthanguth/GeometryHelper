@@ -255,14 +255,16 @@ namespace GeometryHelper.UnitTest.Plane
         #region Scale Invariance Regression
 
         [Theory]
-        [InlineData(1e-3)]
+        [InlineData(1e-1)]
         [InlineData(1.0)]
         [InlineData(1e3)]
         [InlineData(1e6)]
         public void LineLine_PerpendicularCross_IsFoundAtEveryScale(double scale)
         {
             // The same configuration scaled up and down must give the same answer. Comparing the raw
-            // cross product against a length tolerance used to make the small versions report no hit.
+            // cross product against a length tolerance used to make the small versions report no hit. The
+            // smallest is a hundred times the default point tolerance, as short as a segment can be and
+            // still be a segment by a clear margin.
             var horizontal = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10 * scale, 0));
             var vertical = new GeoLine2(new GeoPoint2(5 * scale, -5 * scale), new GeoPoint2(5 * scale, 5 * scale));
 

@@ -132,6 +132,24 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void APathTurningUnderHalfADegreeIsSweptWhole()
+        {
+            // Two straight runs of a metre, the second turned 0.3 degrees off the first, as the bar of a wide curve
+            // is drawn: the sine of the turn, 0.005, is under the default vector tolerance, and the bend was refused
+            // as having no axis to turn about.
+            double turn = 0.3 * Math.PI / 180.0;
+            var path = new GeoPolyline3(
+                new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0), new GeoPoint3(1000 + 1000 * Math.Cos(turn), 1000 * Math.Sin(turn), 0));
+            GeoSolid3 bar = GeoSolid3.Pipe(path, 8, 0.1);
+            int sides = Tessellation.SegmentsForChordTolerance(8, 2 * Math.PI, 0.1);
+
+            Assert.True(bar.IsClosed());
+
+            // With the section centred on the path, the mitre adds outside the bend what it takes from inside.
+            Assert.Equal(RegularArea(sides, 8) * 2000, bar.Volume, 3);
+        }
+
+        [Fact]
         public void AMitredCornerKeepsTheVolumeOfThePathLength()
         {
             // With the section centred on the path, the wedge a mitre adds outside a bend is the wedge it takes

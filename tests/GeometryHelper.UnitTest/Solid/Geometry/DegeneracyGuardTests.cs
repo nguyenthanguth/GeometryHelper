@@ -79,12 +79,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TryGetInverse_WithALooserTolerance_RefusesMore()
         {
-            // Axes tilted enough to give a determinant of about 1e-3: sound under the default tolerance,
-            // collapsed under a coarse one.
+            // Axes tilted enough to give a determinant of about 5e-2: sound under the default tolerance of a
+            // hundredth, collapsed under a coarse one of a tenth.
             GeoTransform3 tilted = FromAxes(
                 new GeoVector3(1, 0, 0),
                 new GeoVector3(0, 1, 0),
-                new GeoVector3(0.6, 0.8, 1E-3));
+                new GeoVector3(0.6, 0.8, 5E-2));
 
             Assert.True(tilted.TryGetInverse(out _, Tolerance.Global));
             Assert.False(tilted.TryGetInverse(out _, new Tolerance(1E-1, 1E-1)));

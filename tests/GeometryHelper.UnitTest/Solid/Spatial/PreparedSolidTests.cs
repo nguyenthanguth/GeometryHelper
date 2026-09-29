@@ -52,6 +52,43 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(10, plate.Material.Faces.Count);
         }
 
+        /// <summary>
+        /// A point well inside a turned block is inside the prepared block too. A ray from it leaves the block near an
+        /// edge at a shallow angle to the face beyond, and that face, which holds a point up to the tolerance past its
+        /// rim, took the ray a little further on as well: two crossings apart along the ray, read as two faces of the
+        /// body, and the point came out outside. They are told apart by where they land on their triangles.
+        /// </summary>
+        [Fact]
+        public void APointInsideATurnedBlockIsInsideThePreparedBlockToo()
+        {
+            var block = new GeoSolid3(new[]
+            {
+                Face(-18.613655394218284, -45.939572033089149, 4.9079073220571363, -26.579187396095953, -26.741965246386197, -4.9410618417792254, 34.040098640504972, -3.6195412815219496, -8.8977865481281544, 42.005630642382641, -22.8171480682249, 0.95118261570820728),
+                Face(-24.298775227431165, -22.395040804968172, 55.398841773006296, 36.320510809169761, 0.72738315989607472, 51.442117066657374, 28.354978807292092, 19.924989946599027, 41.593147902821009, -32.264307229308834, -3.1974340182652234, 45.549872609169938),
+                Face(-18.613655394218284, -45.939572033089149, 4.9079073220571363, 42.005630642382641, -22.8171480682249, 0.95118261570820728, 36.320510809169761, 0.72738315989607472, 51.442117066657374, -24.298775227431165, -22.395040804968172, 55.398841773006296),
+                Face(34.040098640504972, -3.6195412815219496, -8.8977865481281544, -26.579187396095953, -26.741965246386197, -4.9410618417792254, -32.264307229308834, -3.1974340182652234, 45.549872609169938, 28.354978807292092, 19.924989946599027, 41.593147902821009),
+                Face(42.005630642382641, -22.8171480682249, 0.95118261570820728, 34.040098640504972, -3.6195412815219496, -8.8977865481281544, 28.354978807292092, 19.924989946599027, 41.593147902821009, 36.320510809169761, 0.72738315989607472, 51.442117066657374),
+                Face(-26.579187396095953, -26.741965246386197, -4.9410618417792254, -18.613655394218284, -45.939572033089149, 4.9079073220571363, -24.298775227431165, -22.395040804968172, 55.398841773006296, -32.264307229308834, -3.1974340182652234, 45.549872609169938)
+            });
+            // A millimetre and a third inside.
+            var point = new GeoPoint3(6.1005820907312369, -5.773486415592167, 12.704989168937304);
+
+            Assert.Equal(PointLocation.Inside, block.Locate(point));
+            Assert.Equal(PointLocation.Inside, block.Prepare().Locate(point));
+        }
+
+        private static GeoFace3 Face(params double[] xyz)
+        {
+            var corners = new List<GeoPoint3>();
+
+            for (int i = 0; i < xyz.Length; i += 3)
+            {
+                corners.Add(new GeoPoint3(xyz[i], xyz[i + 1], xyz[i + 2]));
+            }
+
+            return new GeoFace3(new GeoPolygon3(corners));
+        }
+
         [Fact]
         public void PointsAreAnsweredAsTheBodyAnswersThem()
         {
@@ -72,7 +109,18 @@ namespace GeometryHelper.UnitTest.Solid
                     Assert.Equal(body.Locate(point), prepared.Locate(point));
                     Assert.Equal(body.DistanceTo(point), prepared.DistanceTo(point), 9);
                     Assert.Equal(body.SignedDistanceTo(point), prepared.SignedDistanceTo(point), 9);
-                    Assert.Equal(Math.Abs(body.SignedDistanceTo(point)), prepared.GetClosestPointOnBoundary(point).DistanceTo(point), 9);
+
+                    // Off the surface the magnitude is the reach to the nearest point of it. On it, within the
+                    // tolerance, the sign is nought and that point is no further than the tolerance.
+                    double reach = prepared.GetClosestPointOnBoundary(point).DistanceTo(point);
+                    if (body.Locate(point) == PointLocation.OnSide)
+                    {
+                        Assert.True(reach <= Tolerance.Global.EqualPoint, $"{point} is on the surface and {reach} from it");
+                    }
+                    else
+                    {
+                        Assert.Equal(Math.Abs(body.SignedDistanceTo(point)), reach, 9);
+                    }
                 }
             }
         }

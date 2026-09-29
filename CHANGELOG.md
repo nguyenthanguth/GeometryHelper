@@ -27,6 +27,36 @@ where it took `ToTransform().Inverse()` before, and the matrix is read straight 
 inverted. A frame given in the coordinates of another nests by multiplying, the outer one read into first:
 `ToCoordinateSystem(inner) * ToCoordinateSystem(outer)`.
 
+**BREAKING.** The default tolerance is set for a model in millimetres: `Tolerance.DefaultEqualPoint` and
+`DefaultEqualVector` are 1E-2, `DefaultEqualPlanar` 5E-2, all three 1E-4 before, and `DefaultEqualAngleRad` is
+still a degree; `Tolerance.Global` starts from them, and `new Tolerance(point, vector)` takes the planar one.
+Points a hundredth apart are now one point, a vector shorter than a hundredth has no direction, a loop of less
+than a hundredth of a square unit is no polygon, and a face may stand five hundredths out of flat. Tekla
+Structures' own cuts leave faces so: at 1E-4 `TryToGeoSolid3` dropped such a face without a word, the top of a
+notched concrete beam 0.04 mm out at one corner, and the beam came out open, with no section and a fifth too
+little volume. What turns on the tolerance turns with it: offsets and booleans merge corners a hundredth apart,
+force-directed label placement reads boxes a hundredth apart as touching and settles some labels elsewhere (the
+other algorithms place every label as 6.2.0 did), and geometry in metres wants a tolerance a thousand times
+smaller, `new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 5E-5)`, which `IfcConvertOptions` for output
+in metres now has to be given.
+
+**FIXED.** What the wider tolerance brought out. `Locate` on a solid took any crossing within a hundred point
+tolerances of a face's rim for a graze and cast again, a millimetre at the new default, so every crossing of the
+millimetre-wide faces round a bolt, a bar or a turned profile was refused and a point on their axis came out
+outside; the band is twice the point tolerance. A prepared solid took two crossings near each other along a ray
+for a seam and any others for real surface, but a ray leaving a body past an edge, at a shallow angle to the
+face beyond, is held by that face too a little further on, and a point well inside a turned block came out
+outside; each crossing is now judged by where it lands on its triangle, as the body's own count judges it. The
+booleans cut and glue within one tolerance: a planar threshold wider than the point one left cells standing
+past a cutting plane by more than the glue closes, and unions and differences of bent bars came out open. They
+work with the planar threshold no wider than the point one, after splitting any face flat only to the wider
+threshold into triangles on its own corners, so a face of a Tekla cut still closes; the convex clipping behind
+clash volumes does the same, and so does the merge of a convex hull, which had left points it was built from
+outside it. `SignedDistanceTo` gave the last bit of distance for a point `Locate` calls on the surface, where
+the rule it documents, and the prepared solid, say nought. Sweeps, the joining of pieces after a cut and the
+line where two planes meet judged lengths and sines they had just found against the default vector tolerance
+instead of their own: a bar bent under half a degree threw, and so did a boolean run tighter than the default.
+
 ## 7.0.0
 
 **BREAKING.** `ArrangeItem.Offset` only sets: it writes `OffsetTop` and `OffsetBottom` both, and holds nothing of

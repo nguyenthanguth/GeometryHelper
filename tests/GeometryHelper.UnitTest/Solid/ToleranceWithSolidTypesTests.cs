@@ -25,23 +25,20 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void WideningTheGlobalToleranceChangesWhatCountsAsEqual()
         {
-            Tolerance original = Tolerance.Global;
+            // Five hundredths apart: beyond the default hundredth, within a tenth. The wider tolerance is a scope on
+            // this thread, which the overloads without a tolerance read as the global one; setting the process-wide
+            // value would change it under every test running beside this one.
+            GeoPoint3 a = GeoPoint3.Origin;
+            GeoPoint3 b = new GeoPoint3(0.05, 0.0, 0.0);
 
-            try
+            Assert.False(a.IsEqualTo(b));
+
+            using (Tolerance.Use(new Tolerance(0.1, 0.1)))
             {
-                GeoPoint3 a = GeoPoint3.Origin;
-                GeoPoint3 b = new GeoPoint3(0.01, 0.0, 0.0);
-
-                Assert.False(a.IsEqualTo(b));
-
-                Tolerance.Global = new Tolerance(0.1, 0.1);
-
                 Assert.True(a.IsEqualTo(b));
             }
-            finally
-            {
-                Tolerance.Global = original;
-            }
+
+            Assert.False(a.IsEqualTo(b));
         }
 
         [Fact]

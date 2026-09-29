@@ -315,8 +315,8 @@ namespace GeometryHelper.Core
         /// as its point and planar tolerances allow.
         /// </summary>
         /// <remarks>
-        /// A polygon refuses an area below the vector tolerance read as an area: 1e-4 by default, a triangle a
-        /// hundredth of a millimetre across. A plane passing a few thousandths from a corner of a body leaves a
+        /// A polygon refuses an area below the vector tolerance read as an area: 1e-2 by default, a triangle some
+        /// fifteen hundredths of a millimetre across. A plane passing a few thousandths from a corner of a body leaves a
         /// sliver that small on each face meeting at it, and the pieces of a surface rejoined can close a loop
         /// as thin. Refused, the surface has a hole there. A cut that loses one does not close and fails, leaving
         /// the body whole across the plane — two blocks sharing sixty were found to share nothing that way — and

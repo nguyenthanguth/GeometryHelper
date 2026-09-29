@@ -58,7 +58,8 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="result">The converted body when the method returns true.</param>
         /// <param name="tolerance">
         /// The tolerance; its planar threshold decides how far from flat a face may be before it is
-        /// refused. Tekla models in millimetres over large coordinates, so this usually wants widening.
+        /// refused. The default, five hundredths of a millimetre, lets through the faces Tekla's own cuts
+        /// leave a little out of flat; much narrower, such a face is refused and leaves a hole in the body.
         /// </param>
         /// <returns>false when too little survived to make a body of at least four faces.</returns>
         /// <remarks>

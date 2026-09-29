@@ -18,6 +18,13 @@ namespace GeometryHelper.UnitTest.Plane
     /// </summary>
     public class PolygonOffsetTests
     {
+        /// <summary>
+        /// The tolerance the exactness checks here run at. These shapes are a few units across, where the default
+        /// of a hundredth is a thousandth of their size and merges corners the solvers keep apart; a ten-thousandth
+        /// is that hundredth in a model a hundred times larger, the size the default is set for.
+        /// </summary>
+        private static readonly Tolerance Fine = new Tolerance(1E-4, 1E-4, Tolerance.DefaultEqualAngleRad, 1E-4);
+
         private static GeoPolygon2 P(params double[] xy)
         {
             var points = new GeoPoint2[xy.Length / 2];
@@ -68,24 +75,27 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Square_WithEachJoin_HasTheAreaTheFormulaGives()
         {
-            const double d = 2.0;
+            using (Tolerance.Use(Fine))
+            {
+                const double d = 2.0;
 
-            // Sharp: every side moves out by d.
-            Assert.Equal(14.0 * 14.0, Square.Offset(d, OffsetJoin.Miter)[0].Area, 9);
+                // Sharp: every side moves out by d.
+                Assert.Equal(14.0 * 14.0, Square.Offset(d, OffsetJoin.Miter)[0].Area, 9);
 
-            // Chamfer: each quarter-turn corner adds 2 d^2 tan(22.5 deg) rather than d^2.
-            double chamfer = 100 + 40 * d + 4 * 2 * d * d * Math.Tan(Math.PI / 8);
-            Assert.Equal(chamfer, Square.Offset(d, OffsetJoin.Chamfer)[0].Area, 9);
+                // Chamfer: each quarter-turn corner adds 2 d^2 tan(22.5 deg) rather than d^2.
+                double chamfer = 100 + 40 * d + 4 * 2 * d * d * Math.Tan(Math.PI / 8);
+                Assert.Equal(chamfer, Square.Offset(d, OffsetJoin.Chamfer)[0].Area, 9);
 
-            // Round: Steiner's formula, approached from below by chords no farther than the arc tolerance.
-            double exact = 100 + 40 * d + Math.PI * d * d;
-            double round = Square.Offset(d, OffsetJoin.Round)[0].Area;
-            Assert.True(round < exact);
-            Assert.True(exact - round < 4 * (Math.PI / 2 * d) * OffsetOptions.AutomaticArcToleranceRatio * d, $"round area {round} too far below {exact}");
+                // Round: Steiner's formula, approached from below by chords no farther than the arc tolerance.
+                double exact = 100 + 40 * d + Math.PI * d * d;
+                double round = Square.Offset(d, OffsetJoin.Round)[0].Area;
+                Assert.True(round < exact);
+                Assert.True(exact - round < 4 * (Math.PI / 2 * d) * OffsetOptions.AutomaticArcToleranceRatio * d, $"round area {round} too far below {exact}");
 
-            // A finer arc tolerance gets closer.
-            double fine = Square.Offset(d, new OffsetOptions(OffsetJoin.Round, arcTolerance: 1e-6))[0].Area;
-            Assert.True(exact - fine < 1e-4);
+                // A finer arc tolerance gets closer.
+                double fine = Square.Offset(d, new OffsetOptions(OffsetJoin.Round, arcTolerance: 1e-6))[0].Area;
+                Assert.True(exact - fine < 1e-4);
+            }
         }
 
         [Fact]
@@ -212,30 +222,33 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void CombWithTeethNarrowerThanTheOffset_MatchesClipper()
         {
-            // Found by fuzzing against Clipper: teeth narrower than twice the distance, shrunk away. Where a
-            // tooth is shorter across than the offset, the offset edges of its two sides pass each other without
-            // crossing, and only the detour through each original corner keeps the base's outline right.
-            var comb = P(0, 0, 12.556810211975506, 0, 12.556810211975506, 1,
-                         12.346807620649603, 1, 12.346807620649603, 5.422796114544755, 11.030278669032398, 5.422796114544755,
-                         11.030278669032398, 1, 9.675089881091886, 1, 9.675089881091886, 6.886248821339686,
-                         9.400917458069006, 6.886248821339686, 9.400917458069006, 1, 8.00142274857565, 1,
-                         8.00142274857565, 3.632585188668494, 7.289240777813476, 3.632585188668494, 7.289240777813476, 1,
-                         6.227419358178703, 1, 6.227419358178703, 7.821611514697602, 5.277756546427383, 7.821611514697602,
-                         5.277756546427383, 1, 4.161423784103907, 1, 4.161423784103907, 6.20141693353719,
-                         3.7245509831349137, 6.20141693353719, 3.7245509831349137, 1, 2.459634663052687, 1,
-                         2.459634663052687, 8.855549968711822, 2.1069624506435183, 8.855549968711822, 2.1069624506435183, 1,
-                         0.6055348466641897, 1, 0.6055348466641897, 4.003288449255418, 0, 4.003288449255418,
-                         0, 1);
-
-            foreach (double d in new[] { -0.3, 0.3, -0.12 })
+            using (Tolerance.Use(Fine))
             {
-                GeoPolygon2[] round = comb.Offset(d, new OffsetOptions(OffsetJoin.Round, arcTolerance: 0.001));
-                PathsD expectedRound = Oracle(new[] { comb }, d, JoinType.Round, Clipper2Lib.FillRule.NonZero, 0.001);
-                Assert.True(XorArea(ToPaths(round), expectedRound) < 0.002 * (round.Sum(p => p.Length) + 1.0), $"round offset {d} differs from Clipper");
+                // Found by fuzzing against Clipper: teeth narrower than twice the distance, shrunk away. Where a
+                // tooth is shorter across than the offset, the offset edges of its two sides pass each other without
+                // crossing, and only the detour through each original corner keeps the base's outline right.
+                var comb = P(0, 0, 12.556810211975506, 0, 12.556810211975506, 1,
+                             12.346807620649603, 1, 12.346807620649603, 5.422796114544755, 11.030278669032398, 5.422796114544755,
+                             11.030278669032398, 1, 9.675089881091886, 1, 9.675089881091886, 6.886248821339686,
+                             9.400917458069006, 6.886248821339686, 9.400917458069006, 1, 8.00142274857565, 1,
+                             8.00142274857565, 3.632585188668494, 7.289240777813476, 3.632585188668494, 7.289240777813476, 1,
+                             6.227419358178703, 1, 6.227419358178703, 7.821611514697602, 5.277756546427383, 7.821611514697602,
+                             5.277756546427383, 1, 4.161423784103907, 1, 4.161423784103907, 6.20141693353719,
+                             3.7245509831349137, 6.20141693353719, 3.7245509831349137, 1, 2.459634663052687, 1,
+                             2.459634663052687, 8.855549968711822, 2.1069624506435183, 8.855549968711822, 2.1069624506435183, 1,
+                             0.6055348466641897, 1, 0.6055348466641897, 4.003288449255418, 0, 4.003288449255418,
+                             0, 1);
 
-                GeoPolygon2[] sharp = comb.Offset(d, SharpAlways);
-                PathsD expectedSharp = Oracle(new[] { comb }, d, JoinType.Miter, Clipper2Lib.FillRule.NonZero);
-                Assert.True(XorArea(ToPaths(sharp), expectedSharp) < 1e-5, $"sharp offset {d} differs from Clipper");
+                foreach (double d in new[] { -0.3, 0.3, -0.12 })
+                {
+                    GeoPolygon2[] round = comb.Offset(d, new OffsetOptions(OffsetJoin.Round, arcTolerance: 0.001));
+                    PathsD expectedRound = Oracle(new[] { comb }, d, JoinType.Round, Clipper2Lib.FillRule.NonZero, 0.001);
+                    Assert.True(XorArea(ToPaths(round), expectedRound) < 0.002 * (round.Sum(p => p.Length) + 1.0), $"round offset {d} differs from Clipper");
+
+                    GeoPolygon2[] sharp = comb.Offset(d, SharpAlways);
+                    PathsD expectedSharp = Oracle(new[] { comb }, d, JoinType.Miter, Clipper2Lib.FillRule.NonZero);
+                    Assert.True(XorArea(ToPaths(sharp), expectedSharp) < 1e-5, $"sharp offset {d} differs from Clipper");
+                }
             }
         }
 
@@ -471,15 +484,18 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void EveryResult_IsSimple()
         {
-            foreach (GeoPolygon2 star in RandomStars(43, 60))
+            using (Tolerance.Use(Fine))
             {
-                foreach (double d in new[] { 0.7, -0.7, 2.5, -2.5 })
+                foreach (GeoPolygon2 star in RandomStars(43, 60))
                 {
-                    foreach (OffsetJoin join in new[] { OffsetJoin.Miter, OffsetJoin.Round, OffsetJoin.Chamfer })
+                    foreach (double d in new[] { 0.7, -0.7, 2.5, -2.5 })
                     {
-                        foreach (GeoPolygon2 loop in star.Offset(d, join))
+                        foreach (OffsetJoin join in new[] { OffsetJoin.Miter, OffsetJoin.Round, OffsetJoin.Chamfer })
                         {
-                            Assert.True(loop.IsSimple(), $"offset {d} {join} of a star gave a loop that is not simple");
+                            foreach (GeoPolygon2 loop in star.Offset(d, join))
+                            {
+                                Assert.True(loop.IsSimple(), $"offset {d} {join} of a star gave a loop that is not simple");
+                            }
                         }
                     }
                 }
@@ -543,23 +559,26 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(OffsetJoin.Chamfer, JoinType.Square)]
         public void RandomStars_MatchClipperExactly(OffsetJoin ours, JoinType theirs)
         {
-            var options = new OffsetOptions(ours, double.PositiveInfinity);
-            int compared = 0;
-
-            foreach (GeoPolygon2 star in RandomStars(2026, 120))
+            using (Tolerance.Use(Fine))
             {
-                foreach (double d in new[] { 0.3, -0.3, 1.7, -1.7, 4.0, -4.0 })
+                var options = new OffsetOptions(ours, double.PositiveInfinity);
+                int compared = 0;
+
+                foreach (GeoPolygon2 star in RandomStars(2026, 120))
                 {
-                    GeoPolygon2[] result = star.Offset(d, options);
-                    PathsD expected = Oracle(new[] { star }, d, theirs, Clipper2Lib.FillRule.NonZero);
+                    foreach (double d in new[] { 0.3, -0.3, 1.7, -1.7, 4.0, -4.0 })
+                    {
+                        GeoPolygon2[] result = star.Offset(d, options);
+                        PathsD expected = Oracle(new[] { star }, d, theirs, Clipper2Lib.FillRule.NonZero);
 
-                    double xor = XorArea(ToPaths(result), expected);
-                    Assert.True(xor < 1e-5 * (1 + Math.Abs(ClipperArea(expected))), $"star {compared}: offset {d} differs from Clipper by area {xor}");
-                    compared++;
+                        double xor = XorArea(ToPaths(result), expected);
+                        Assert.True(xor < 1e-5 * (1 + Math.Abs(ClipperArea(expected))), $"star {compared}: offset {d} differs from Clipper by area {xor}");
+                        compared++;
+                    }
                 }
-            }
 
-            Assert.Equal(720, compared);
+                Assert.Equal(720, compared);
+            }
         }
 
         [Fact]

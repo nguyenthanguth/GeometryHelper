@@ -19,14 +19,14 @@ namespace GeometryHelper
     public readonly struct Tolerance : IEquatable<Tolerance>
     {
         /// <summary>
-        /// Default tolerance when comparing points.
+        /// Default tolerance when comparing points: a hundredth of a millimetre in a model in millimetres.
         /// </summary>
-        public const double DefaultEqualPoint = 1E-4;
+        public const double DefaultEqualPoint = 1E-2;
 
         /// <summary>
         /// Default tolerance when comparing vectors.
         /// </summary>
-        public const double DefaultEqualVector = 1E-4;
+        public const double DefaultEqualVector = 1E-2;
 
         /// <summary>
         /// Default tolerance when comparing angles for parallelism / perpendicularity, in radians (1 degree in radians).
@@ -34,9 +34,15 @@ namespace GeometryHelper
         public const double DefaultEqualAngleRad = Math.PI / 180.0;
 
         /// <summary>
-        /// Default distance threshold for deciding whether a set of points lies on a common plane.
+        /// Default distance threshold for deciding whether a set of points lies on a common plane: five hundredths of a
+        /// millimetre in a model in millimetres.
         /// </summary>
-        public const double DefaultEqualPlanar = 1E-4;
+        /// <remarks>
+        /// A modeller's own cuts leave faces a little off flat: a concrete beam Tekla Structures cut a notch into came
+        /// with the top face beside the notch 0.04 mm out. A face refused as not flat is a hole in the body it belongs to,
+        /// and a body with a hole gives no section and the wrong volume, so the default lets such a face through.
+        /// </remarks>
+        public const double DefaultEqualPlanar = 0.05;
 
         /// <summary>
         /// The process-wide setting, held whole so that it is swapped in one step: a tolerance is several
@@ -89,9 +95,9 @@ namespace GeometryHelper
         /// <returns>The scope; disposing it puts back whatever this thread used before.</returns>
         /// <remarks>
         /// <code>
-        /// using (Tolerance.Use(new Tolerance(1E-3, 1E-3)))
+        /// using (Tolerance.Use(new Tolerance(1E-1, 1E-1)))
         /// {
-        ///     plate.CollidesWith(bolt);   // within a thousandth, on this thread only
+        ///     plate.CollidesWith(bolt);   // within a tenth, on this thread only
         /// }
         /// </code>
         /// Scopes nest: each one disposed puts back the one it replaced. The scope belongs to the thread that

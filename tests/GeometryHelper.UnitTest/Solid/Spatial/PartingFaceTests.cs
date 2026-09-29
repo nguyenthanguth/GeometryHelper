@@ -50,8 +50,15 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void WherePartedTheBooleanFindsNoSharedVolumeEither()
         {
+            // The gaps are counted in the rounding the corners are allowed, a thousandth of the point tolerance: far
+            // below it, at it, and ten to ten thousand times past it, into the other block and out of it.
             var rng = new Random(8);
-            double[] gaps = { 0.0, 0.0, 0.0, 1E-9, -1E-9, 1E-7, -1E-7, -1E-6, -1E-5, -1E-4, -1E-3, -0.5, 1E-3 };
+            double rounding = 1E-3 * Tol.EqualPoint;
+            double[] gaps =
+            {
+                0.0, 0.0, 0.0, 1E-2 * rounding, -1E-2 * rounding, rounding, -rounding,
+                -10 * rounding, -100 * rounding, -1E3 * rounding, -1E4 * rounding, -0.5, 1E4 * rounding,
+            };
             int parted = 0, notParted = 0;
 
             for (int k = 0; k < 260; k++)
@@ -74,13 +81,13 @@ namespace GeometryHelper.UnitTest.Solid
                 }
 
                 // Lying against each other, or apart, as the corners say to the last bit: always parted.
-                if (Math.Abs(gap) <= 1E-9 || gap > 0)
+                if (Math.Abs(gap) <= 1E-2 * rounding || gap > 0)
                 {
                     Assert.True(isParted, $"not parted at {gap}");
                 }
 
                 // Square on and in by more than rounding: the boolean decides.
-                if (gap <= -1E-6 && !tipped)
+                if (gap <= -10 * rounding && !tipped)
                 {
                     Assert.False(isParted, $"parted at {gap}");
                 }

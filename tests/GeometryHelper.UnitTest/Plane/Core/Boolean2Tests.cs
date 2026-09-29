@@ -16,6 +16,13 @@ namespace GeometryHelper.UnitTest.Plane
     /// </summary>
     public class Boolean2Tests
     {
+        /// <summary>
+        /// The tolerance the exactness checks here run at. These shapes are a few units across, where the default
+        /// of a hundredth is a thousandth of their size and merges corners the solvers keep apart; a ten-thousandth
+        /// is that hundredth in a model a hundred times larger, the size the default is set for.
+        /// </summary>
+        private static readonly Tolerance Fine = new Tolerance(1E-4, 1E-4, Tolerance.DefaultEqualAngleRad, 1E-4);
+
         private static GeoPolygon2 P(params double[] xy)
         {
             var points = new GeoPoint2[xy.Length / 2];
@@ -245,24 +252,27 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void RandomPairs_SatisfyTheAreaIdentities()
         {
-            var rng = new Random(314);
-            GeoPolygon2[] stars = RandomStars(rng, 200, 12).ToArray();
-
-            for (int k = 0; k + 1 < stars.Length; k += 2)
+            using (Tolerance.Use(Fine))
             {
-                GeoPolygon2 a = stars[k];
-                GeoPolygon2 b = stars[k + 1];
+                var rng = new Random(314);
+                GeoPolygon2[] stars = RandomStars(rng, 200, 12).ToArray();
 
-                double union = Area(a.Union(b));
-                double both = Area(a.Intersect(b));
-                double aOnly = Area(a.Subtract(b));
-                double bOnly = Area(b.Subtract(a));
-                double either = Area(a.Xor(b));
+                for (int k = 0; k + 1 < stars.Length; k += 2)
+                {
+                    GeoPolygon2 a = stars[k];
+                    GeoPolygon2 b = stars[k + 1];
 
-                Assert.Equal(a.Area + b.Area, union + both, 6);
-                Assert.Equal(a.Area, aOnly + both, 6);
-                Assert.Equal(b.Area, bOnly + both, 6);
-                Assert.Equal(union - both, either, 6);
+                    double union = Area(a.Union(b));
+                    double both = Area(a.Intersect(b));
+                    double aOnly = Area(a.Subtract(b));
+                    double bOnly = Area(b.Subtract(a));
+                    double either = Area(a.Xor(b));
+
+                    Assert.Equal(a.Area + b.Area, union + both, 6);
+                    Assert.Equal(a.Area, aOnly + both, 6);
+                    Assert.Equal(b.Area, bOnly + both, 6);
+                    Assert.Equal(union - both, either, 6);
+                }
             }
         }
 
@@ -283,8 +293,10 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     var p = new GeoPoint2(rng.NextDouble() * 30 - 10, rng.NextDouble() * 30 - 10);
 
-                    // Points on or next to an outline could go either way; the rest must agree exactly.
-                    if (a.GetClosestPointOnBoundary(p).DistanceTo(p) < 1e-6 || b.GetClosestPointOnBoundary(p).DistanceTo(p) < 1e-6)
+                    // Points on or next to an outline could go either way: within the point tolerance of one, a
+                    // point is on it, held by the shape and by any result bounded there. The rest must agree exactly.
+                    double band = 2 * Tolerance.Global.EqualPoint;
+                    if (a.GetClosestPointOnBoundary(p).DistanceTo(p) < band || b.GetClosestPointOnBoundary(p).DistanceTo(p) < band)
                     {
                         continue;
                     }
@@ -304,17 +316,20 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void EveryResult_IsSimpleAndWoundTheStandardWay()
         {
-            var rng = new Random(99);
-            GeoPolygon2[] stars = RandomStars(rng, 80, 8).ToArray();
-
-            for (int k = 0; k + 1 < stars.Length; k += 2)
+            using (Tolerance.Use(Fine))
             {
-                foreach (GeoFace2 face in stars[k].Union(stars[k + 1]).Concat(stars[k].Subtract(stars[k + 1])).Concat(stars[k].Xor(stars[k + 1])))
+                var rng = new Random(99);
+                GeoPolygon2[] stars = RandomStars(rng, 80, 8).ToArray();
+
+                for (int k = 0; k + 1 < stars.Length; k += 2)
                 {
-                    Assert.True(face.Boundary.IsSimple());
-                    Assert.False(face.Boundary.IsClockwise);
-                    Assert.All(face.Holes, hole => Assert.True(hole.IsClockwise));
-                    Assert.All(face.Holes, hole => Assert.True(hole.IsSimple()));
+                    foreach (GeoFace2 face in stars[k].Union(stars[k + 1]).Concat(stars[k].Subtract(stars[k + 1])).Concat(stars[k].Xor(stars[k + 1])))
+                    {
+                        Assert.True(face.Boundary.IsSimple());
+                        Assert.False(face.Boundary.IsClockwise);
+                        Assert.All(face.Holes, hole => Assert.True(hole.IsClockwise));
+                        Assert.All(face.Holes, hole => Assert.True(hole.IsSimple()));
+                    }
                 }
             }
         }

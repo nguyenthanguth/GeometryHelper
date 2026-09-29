@@ -169,12 +169,15 @@ the transformation itself collapses, such as a body scaled down to nothing, is l
 using System;
 using System.Collections.Generic;
 using System.IO;
+using GeometryHelper;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Models;
 using GeometryHelper.Geometry;
 
 string[] ifcFiles = { @"C:\Models\Building-A.ifc", @"C:\Models\Building-B.ifc" };
-var options = new IfcConvertOptions { TargetUnit = LengthUnit.Meters };
+// Tolerances are in the output unit, and the default suits millimetres: in metres, a thousand times smaller.
+var metres = new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 5E-5);
+var options = new IfcConvertOptions { TargetUnit = LengthUnit.Meters, Tolerance = metres };
 
 foreach (string ifcFile in ifcFiles)
 {
@@ -218,7 +221,7 @@ foreach (string ifcFile in ifcFiles)
     }
 
     // 4. Retrieve all solids of a specific IFC type (e.g. IfcWall, IfcBeam, IfcColumn)
-    var optionsWithVoids = new IfcConvertOptions { TargetUnit = LengthUnit.Meters, ApplyVoids = true };
+    var optionsWithVoids = new IfcConvertOptions { TargetUnit = LengthUnit.Meters, Tolerance = metres, ApplyVoids = true };
     IReadOnlyList<GeoSolid3> wallSolids = model.GetSolidsByType("IfcWall", optionsWithVoids);
     Console.WriteLine($"Loaded {wallSolids.Count} wall solids with voids subtracted.");
 }

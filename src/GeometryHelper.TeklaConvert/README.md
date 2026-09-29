@@ -112,13 +112,11 @@ using GeometryHelper.Geometry;
 using GeometryHelper.TeklaConvert;
 using TSG = Tekla.Structures.Geometry3d;
 
-var tolerance = new Tolerance(1E-2, 1E-4);
-
 // Tekla to GeometryHelper
 GeoPoint3 point = new TSG.Point(1000, 2000, 3000).ToGeoPoint3();
 GeoLine3 line = segment.ToGeoLine3();
 
-if (teklaSolid.TryToGeoSolid3(out GeoSolid3 body, tolerance))
+if (teklaSolid.TryToGeoSolid3(out GeoSolid3 body))
 {
     double volume = body.Volume;
     body.TrySubtract(otherBody, out GeoSolid3 remainder);
@@ -242,7 +240,8 @@ so what `Part.GetSolid()` or `ToGeoSolids()` returned is drawn where it came fro
 | `DrawToTekla()` on a `GeoPolyline3` | The polyline |
 | `DrawToTekla()` on a `GeoPolygon3` | The closed polygon |
 | `DrawToTekla()` on a `GeoFace3` | Its outer boundary in red and every hole in white |
-| `DrawToTekla()` on a `GeoSolid3` or a sequence of them | Every face: boundaries in red, holes in white |
+| `DrawToTekla()` on a `GeoSolid3` or a sequence of them | Every face: boundaries in red, holes in white |
+
 | `DrawToTekla()` on a `GeoArc3` or a `GeoCircle3` | The curve, cut into straight pieces within 0.2 % of its radius |
 
 - Colours (`ControlObjectColorEnum`) and the line type (`ControlObjectLineType`, solid when left out) can be
@@ -341,9 +340,10 @@ body that only looks right measures wrong later and says nothing about why.
 - A face that cannot be made sense of is skipped rather than thrown on, which leaves the body no longer
   closed — so ask `IsClosed()` before trusting a volume.
 
-Tekla models in millimetres with coordinates that can run to hundreds of thousands, and a face of a
-twelve metre member is rarely flat to the last decimal. The default `EqualPlanar` is often too tight for
-that, so pass a `Tolerance` suited to the model rather than relying on the default.
+Tekla models in millimetres with coordinates that can run to hundreds of thousands, and its own cuts leave
+faces a little out of flat: the top face of a notched beam came 0.04 mm out at one corner. The default
+tolerance is set for that, a hundredth of a millimetre for points and five hundredths for flatness, so a
+Tekla model reads whole without one; pass a `Tolerance` only where a model needs something else.
 
 ## Licence
 

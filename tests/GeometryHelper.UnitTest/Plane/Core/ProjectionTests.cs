@@ -539,8 +539,8 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void GetShortestLineTo_EndpointSlack_IsScaleInvariant()
         {
-            // The slack is a distance, so on a 100000 unit segment it may only reach 1E-4 past the end,
-            // not a proportion of the length. Applied unscaled it would swallow a gap of a whole unit and
+            // The slack is a distance, so on a 100000 unit segment it may only reach the point tolerance past the
+            // end, not a proportion of the length. Applied unscaled it would swallow a gap of a whole unit and
             // call these two touching.
             var veryLong = new GeoLine2(0.0, 0.0, 100000.0, 0.0);
             var pastTheEnd = new GeoLine2(100001.0, -5.0, 100001.0, 5.0);
@@ -549,19 +549,19 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(1.0, Projection2.GetShortestLineTo(pastTheEnd, veryLong).Length, 9);
             Assert.Equal(1.0, Distance2.DistanceTo(veryLong, pastTheEnd), 9);
 
-            // The same shape of configuration a thousand times smaller: the gap is still the same
-            // fraction of the length and is still measured rather than absorbed.
-            var shorter = new GeoLine2(0.0, 0.0, 100.0, 0.0);
-            var pastItsEnd = new GeoLine2(100.001, -5.0, 100.001, 5.0);
+            // The same shape of configuration ten times smaller: the gap is still the same fraction of the
+            // length, still ten times the default tolerance, and is still measured rather than absorbed.
+            var shorter = new GeoLine2(0.0, 0.0, 10000.0, 0.0);
+            var pastItsEnd = new GeoLine2(10000.1, -5.0, 10000.1, 5.0);
 
-            Assert.Equal(0.001, Projection2.GetShortestLineTo(shorter, pastItsEnd).Length, 9);
-            Assert.Equal(0.001, Distance2.DistanceTo(shorter, pastItsEnd), 9);
+            Assert.Equal(0.1, Projection2.GetShortestLineTo(shorter, pastItsEnd).Length, 9);
+            Assert.Equal(0.1, Distance2.DistanceTo(shorter, pastItsEnd), 9);
 
             // What does get absorbed is the same absolute gap at either scale, because that is what the
             // tolerance actually measures.
             double within = Tolerance.Global.EqualPoint * 0.5;
             Assert.Equal(0.0, Projection2.GetShortestLineTo(veryLong, new GeoLine2(100000.0 + within, -5.0, 100000.0 + within, 5.0)).Length, 9);
-            Assert.Equal(0.0, Projection2.GetShortestLineTo(shorter, new GeoLine2(100.0 + within, -5.0, 100.0 + within, 5.0)).Length, 9);
+            Assert.Equal(0.0, Projection2.GetShortestLineTo(shorter, new GeoLine2(10000.0 + within, -5.0, 10000.0 + within, 5.0)).Length, 9);
         }
 
         #region Closest Segment Helpers

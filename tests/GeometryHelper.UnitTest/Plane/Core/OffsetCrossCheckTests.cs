@@ -17,6 +17,13 @@ namespace GeometryHelper.UnitTest.Plane
     /// </summary>
     public class OffsetCrossCheckTests
     {
+        /// <summary>
+        /// The tolerance the exactness checks here run at. These shapes are a few units across, where the default
+        /// of a hundredth is a thousandth of their size and merges corners the solvers keep apart; a ten-thousandth
+        /// is that hundredth in a model a hundred times larger, the size the default is set for.
+        /// </summary>
+        private static readonly Tolerance Fine = new Tolerance(1E-4, 1E-4, Tolerance.DefaultEqualAngleRad, 1E-4);
+
         private const double Snap = 1e-6;
 
         private static GeoPolygon2 P(params double[] xy)
@@ -136,22 +143,25 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(OffsetJoin.Round)]
         public void ClipperAndTheInHouseSolver_DrawTheSameOffsets(OffsetJoin join)
         {
-            var options = new OffsetOptions(join, 4.0, 0.002);
-            int compared = 0;
-
-            foreach (GeoPolygon2 shape in Shapes(17, 150))
+            using (Tolerance.Use(Fine))
             {
-                foreach (double d in new[] { 0.3, -0.3, 1.2, -1.2, 3.0 })
+                var options = new OffsetOptions(join, 4.0, 0.002);
+                int compared = 0;
+
+                foreach (GeoPolygon2 shape in Shapes(17, 150))
                 {
-                    GeoPolygon2[] ours = shape.Offset(d, options);
-                    double xor = XorArea(ToPaths(ours), InHouseOffset(shape, d, options));
+                    foreach (double d in new[] { 0.3, -0.3, 1.2, -1.2, 3.0 })
+                    {
+                        GeoPolygon2[] ours = shape.Offset(d, options);
+                        double xor = XorArea(ToPaths(ours), InHouseOffset(shape, d, options));
 
-                    Assert.True(xor < 1e-6, $"{join} offset {d} of shape {compared}: the two solvers differ by area {xor}");
-                    compared++;
+                        Assert.True(xor < 1e-6, $"{join} offset {d} of shape {compared}: the two solvers differ by area {xor}");
+                        compared++;
+                    }
                 }
-            }
 
-            Assert.True(compared >= 700);
+                Assert.True(compared >= 700);
+            }
         }
     }
 }

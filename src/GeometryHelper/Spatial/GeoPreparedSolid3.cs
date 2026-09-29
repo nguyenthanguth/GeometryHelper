@@ -111,9 +111,9 @@ namespace GeometryHelper.Spatial
         /// </summary>
         /// <remarks>
         /// A ray is cast through the index and its crossings counted, as <c>Containment3</c> counts them face by
-        /// face. Two crossings landing together mean the ray ran through a seam of the mesh — an edge or a corner
-        /// the index names once per triangle — and the ray is cast again in another direction; should every
-        /// direction land on a seam, the body's own test decides.
+        /// face. A crossing landing near the rim of its triangle may be a seam of the mesh — an edge or a corner the
+        /// index names once per triangle — or the face beyond an edge the ray leaves past at a shallow angle, and the
+        /// ray is cast again in another direction; should every direction land so, the body's own test decides.
         /// </remarks>
         public PointLocation Locate(GeoPoint3 point, Tolerance tolerance)
         {
@@ -127,22 +127,16 @@ namespace GeometryHelper.Spatial
                 return PointLocation.OnSide;
             }
 
-            double seam = tolerance.EqualPoint * 100.0;
+            // A crossing near the rim of its triangle may be counted twice, or once too often; see TryCountCrossings.
+            // Twice the point tolerance catches every such crossing, since a triangle holds a point no further than
+            // the tolerance beyond its rim, and still leaves most of any triangle clear.
+            double rim = tolerance.EqualPoint * 2.0;
 
             foreach (GeoVector3 direction in RayDirections)
             {
-                var ray = new GeoRay3(point, direction);
-                List<double> reaches = Reaches(ray, tolerance);
-                bool clean = true;
-
-                for (int i = 1; i < reaches.Count && clean; i++)
+                if (Index.TryCountCrossings(new GeoRay3(point, direction), tolerance, rim, out int crossings))
                 {
-                    clean = reaches[i] - reaches[i - 1] > seam;
-                }
-
-                if (clean)
-                {
-                    return reaches.Count % 2 == 1 ? PointLocation.Inside : PointLocation.OutSide;
+                    return crossings % 2 == 1 ? PointLocation.Inside : PointLocation.OutSide;
                 }
             }
 

@@ -253,8 +253,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void IsParallel_IsScaleIndependent()
         {
-            // Both magnitudes stay above EqualVector, so neither counts as a zero vector.
-            var small = new GeoVector2(1e-2, 0);
+            // Both magnitudes stay well above EqualVector, a hundredth by default, so neither counts as a zero
+            // vector, and they are eight orders of magnitude apart.
+            var small = new GeoVector2(1.0, 0);
             var large = new GeoVector2(1e8, 0);
 
             Assert.True(Parallel2.IsParallel(small, large));

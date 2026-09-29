@@ -89,6 +89,10 @@ namespace GeometryHelper.Core
                 return true;
             }
 
+            tolerance = ForWork(tolerance);
+            first = FlatForWork(first, tolerance);
+            second = FlatForWork(second, tolerance);
+
             // One body cut, beyond the other, and the other whole.
             if (TryCutOpenings(first, out GeoSolid3 a, tolerance) && TryCutOpenings(second, out GeoSolid3 b, tolerance))
             {
@@ -143,6 +147,10 @@ namespace GeometryHelper.Core
             {
                 return false;
             }
+
+            tolerance = ForWork(tolerance);
+            first = FlatForWork(first, tolerance);
+            second = FlatForWork(second, tolerance);
 
             List<GeoPlane3> cuttingFirst = KnivesFor(first, second, tolerance);
             List<GeoPlane3> cuttingSecond = KnivesFor(second, first, tolerance);
@@ -217,6 +225,10 @@ namespace GeometryHelper.Core
                 result = subject;
                 return true;
             }
+
+            tolerance = ForWork(tolerance);
+            subject = FlatForWork(subject, tolerance);
+            tool = FlatForWork(tool, tolerance);
 
             // One body cut: the subject beyond the tool, or the subject whole less the tool within it.
             if (TryCutOpenings(subject, out GeoSolid3 a, tolerance) && TryCutOpenings(tool, out GeoSolid3 b, tolerance))
@@ -322,6 +334,135 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(second));
             }
+        }
+
+        /// <summary>
+        /// Gets the tolerance a boolean cuts and glues within: the one given, with a planar threshold no wider than
+        /// the point one.
+        /// </summary>
+        /// <remarks>
+        /// The cut and the glue have to agree. A plane is taken to leave a cell whole when no corner of the cell
+        /// stands off it by more than the planar tolerance, so the cell can stand past it by as much, and the glue
+        /// matches corners within the point tolerance. A planar tolerance wider than the point one leaves more
+        /// than the glue can close: two faces of a bent bar half a degree apart, whose far corners come within
+        /// five hundredths of each other's planes, came out open at a planar tolerance of five hundredths and a
+        /// point tolerance of one.
+        /// </remarks>
+        internal static Tolerance ForWork(Tolerance tolerance)
+        {
+            return tolerance.EqualPlanar <= tolerance.EqualPoint
+                ? tolerance
+                : new Tolerance(tolerance.EqualPoint, tolerance.EqualVector, tolerance.EqualAngleRad, tolerance.EqualPoint);
+        }
+
+        /// <summary>
+        /// Gets a body as a boolean works on it: every face flat within the planar tolerance of the work.
+        /// </summary>
+        /// <remarks>
+        /// A face can be flat only to the wider planar tolerance a caller allowed: a modeller's cut leaves some a
+        /// few hundredths out, as Tekla Structures left the top face of a notched beam 0.04 mm out at one corner.
+        /// Cut at the tighter tolerance of the work, a piece of such a face is refused as not flat and leaves a
+        /// hole. It is split into triangles on its own corners first instead, each exactly flat, which keeps the
+        /// body closed and moves nothing. A body with every face flat enough comes back as it is.
+        /// </remarks>
+        internal static GeoSolid3 FlatForWork(GeoSolid3 solid, Tolerance work)
+        {
+            List<GeoFace3> faces = null;
+
+            for (int i = 0; i < solid.Faces.Count; i++)
+            {
+                GeoFace3 face = solid.Faces[i];
+
+                if (IsFlatWithin(face, work.EqualPlanar))
+                {
+                    faces?.Add(face);
+                    continue;
+                }
+
+                if (faces == null)
+                {
+                    faces = new List<GeoFace3>(solid.Faces.Count + 4);
+
+                    for (int j = 0; j < i; j++)
+                    {
+                        faces.Add(solid.Faces[j]);
+                    }
+                }
+
+                if (!EarClipping.TryTriangulate(face, work, out GeoTriangle3[] triangles))
+                {
+                    // Nothing better to offer: the face goes in as it is, and the cut does what it can with it.
+                    faces.Add(face);
+                    continue;
+                }
+
+                foreach (GeoTriangle3 triangle in triangles)
+                {
+                    try
+                    {
+                        faces.Add(triangle.ToFace3(work));
+                    }
+                    catch (ArgumentException)
+                    {
+                        // A triangle with no area covers nothing, and its neighbours meet along its edges without it.
+                    }
+                }
+            }
+
+            List<GeoSolid3> openings = null;
+
+            for (int i = 0; i < solid.Openings.Count; i++)
+            {
+                GeoSolid3 flat = FlatForWork(solid.Openings[i], work);
+
+                if (openings == null && !ReferenceEquals(flat, solid.Openings[i]))
+                {
+                    openings = new List<GeoSolid3>(solid.Openings.Count);
+
+                    for (int j = 0; j < i; j++)
+                    {
+                        openings.Add(solid.Openings[j]);
+                    }
+                }
+
+                openings?.Add(flat);
+            }
+
+            if (faces == null && openings == null)
+            {
+                return solid;
+            }
+
+            return new GeoSolid3(faces ?? new List<GeoFace3>(solid.Faces), openings ?? new List<GeoSolid3>(solid.Openings));
+        }
+
+        /// <summary>
+        /// Determines whether every corner of a face, holes and all, lies within a distance of its plane.
+        /// </summary>
+        private static bool IsFlatWithin(GeoFace3 face, double planar)
+        {
+            GeoPlane3 plane = face.GetPlane();
+
+            foreach (GeoPoint3 corner in face.Boundary.Vertices)
+            {
+                if (Math.Abs(plane.SignedDistanceTo(corner)) > planar)
+                {
+                    return false;
+                }
+            }
+
+            foreach (GeoPolygon3 hole in face.Holes)
+            {
+                foreach (GeoPoint3 corner in hole.Vertices)
+                {
+                    if (Math.Abs(plane.SignedDistanceTo(corner)) > planar)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

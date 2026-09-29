@@ -18,11 +18,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ParallelismIsScaleInvariant()
         {
-            GeoVector3 small = new GeoVector3(1E-2, 0.0, 0.0);
-            GeoVector3 large = new GeoVector3(1E6, 0.0, 0.0);
+            GeoVector3 small = new GeoVector3(1.0, 0.0, 0.0);
+            GeoVector3 large = new GeoVector3(1E8, 0.0, 0.0);
 
-            // Both are longer than the vector tolerance of 1E-4, so neither counts as degenerate and the
-            // answer must not depend on the difference of eight orders of magnitude between them.
+            // Both are well longer than the vector tolerance of a hundredth, so neither counts as degenerate and
+            // the answer must not depend on the difference of eight orders of magnitude between them.
             Assert.True(Parallel3.IsParallel(small, large));
             Assert.True(Parallel3.IsParallel(large, small));
         }

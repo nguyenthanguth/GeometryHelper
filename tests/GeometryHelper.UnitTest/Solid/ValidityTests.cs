@@ -100,11 +100,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AToleranceScopeHoldsOnThisThreadUntilItIsDisposed()
         {
+            // Five hundredths apart: beyond the default hundredth, within the loose tenth.
             Tolerance before = Tolerance.Global;
-            var loose = new Tolerance(1E-3, 1E-3);
-            var looser = new Tolerance(1E-2, 1E-2);
+            var loose = new Tolerance(1E-1, 1E-1);
+            var looser = new Tolerance(1.0, 1.0);
             var a = new GeoPoint3(0, 0, 0);
-            var b = new GeoPoint3(5E-4, 0, 0);
+            var b = new GeoPoint3(5E-2, 0, 0);
 
             Assert.False(a.IsEqualTo(b));
 
