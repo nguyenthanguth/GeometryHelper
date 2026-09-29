@@ -4,6 +4,17 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**NEW.** A gap for each side of a label's leader. `ArrangeItem.OffsetTop` is the least gap between the label and
+the leader on the side of the leader that faces up in the drawing, and `OffsetBottom` on the side that faces
+down, each taking `Offset` when left unset, as both are unless set: a dimension text can sit close above its line
+and keep well clear below it. Which side faces up does not depend on which way the leader was drawn, and a
+vertical leader has its top on the left, where the text of a vertical dimension stands. The candidates every
+algorithm chooses among, the reach the obstacles are gathered within, and the copy the second pass runs on all
+follow both. With neither set, every candidate and every result is the one 6.2.0 gives: compared byte for byte
+over 128 candidate lists and ten runs of the five algorithms, the second pass included.
+
 ## 6.2.0
 
 Nothing in GeometryHelper itself changed: it is released at 6.2.0 with the rest of the set. GeometryHelper.IfcConvert

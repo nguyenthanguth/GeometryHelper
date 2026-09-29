@@ -158,6 +158,8 @@ namespace GeometryHelper.Arranging
                     Box = item.Box,
                     Leader = item.Leader,
                     Offset = item.Offset,
+                    OffsetTop = item.OffsetTop,
+                    OffsetBottom = item.OffsetBottom,
                     BlockPolygons = blocks,
                     BlockLines = Array.Empty<GeoLine2>(),
                 };

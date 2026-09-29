@@ -208,18 +208,19 @@ namespace GeometryHelper.Arranging.Algorithms
                 return false;
             }
 
-            double maximumOffset = layout.BaseOffset
-                                   + Math.Max(0, options.PerpendicularLevels - 1) * (layout.Height + options.RowGap);
+            // Out to the last row on each side, each side from its own first row.
+            double rise = Math.Max(0, options.PerpendicularLevels - 1) * (layout.Height + options.RowGap);
 
             GeoVector2 alongMax = layout.Direction * layout.MaximumShift;
-            GeoVector2 acrossMax = layout.Perpendicular * maximumOffset;
+            GeoVector2 acrossPositive = layout.Perpendicular * (layout.PositiveOffset + rise);
+            GeoVector2 acrossNegative = layout.Perpendicular * -(layout.NegativeOffset + rise);
 
             var corners = new[]
             {
-                layout.Anchor + acrossMax + alongMax,
-                layout.Anchor + acrossMax - alongMax,
-                layout.Anchor - acrossMax + alongMax,
-                layout.Anchor - acrossMax - alongMax,
+                layout.Anchor + acrossPositive + alongMax,
+                layout.Anchor + acrossPositive - alongMax,
+                layout.Anchor + acrossNegative + alongMax,
+                layout.Anchor + acrossNegative - alongMax,
             };
 
             // Create bounding box enclosing the 4 outer corners and expand it by NeighbourMargin for safety

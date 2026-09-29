@@ -14,16 +14,18 @@ namespace GeometryHelper.Arranging
         /// <param name="direction">The longitudinal direction axis of the path.</param>
         /// <param name="perpendicular">The perpendicular direction axis of the path.</param>
         /// <param name="height">The actual height of the label.</param>
-        /// <param name="baseOffset">The base perpendicular offset from the path.</param>
+        /// <param name="positiveOffset">How far from the path the centre of the first row lies on the side the perpendicular points to.</param>
+        /// <param name="negativeOffset">How far from the path the centre of the first row lies on the other side.</param>
         /// <param name="maximumShift">The maximum longitudinal shift distance.</param>
         internal Layout(GeoPoint2 anchor, GeoVector2 direction, GeoVector2 perpendicular,
-            double height, double baseOffset, double maximumShift)
+            double height, double positiveOffset, double negativeOffset, double maximumShift)
         {
             Anchor = anchor;
             Direction = direction;
             Perpendicular = perpendicular;
             Height = height;
-            BaseOffset = baseOffset;
+            PositiveOffset = positiveOffset;
+            NegativeOffset = negativeOffset;
             MaximumShift = maximumShift;
         }
 
@@ -35,8 +37,10 @@ namespace GeometryHelper.Arranging
         internal GeoVector2 Perpendicular { get; }
         /// <summary>Gets the actual height of the label.</summary>
         internal double Height { get; }
-        /// <summary>Gets the base perpendicular offset from the path.</summary>
-        internal double BaseOffset { get; }
+        /// <summary>Gets how far from the path the centre of the first row lies on the side <see cref="Perpendicular"/> points to.</summary>
+        internal double PositiveOffset { get; }
+        /// <summary>Gets how far from the path the centre of the first row lies on the other side.</summary>
+        internal double NegativeOffset { get; }
         /// <summary>Gets the maximum longitudinal shift distance.</summary>
         internal double MaximumShift { get; }
     }

@@ -116,8 +116,9 @@ namespace GeometryHelper.Arranging.Algorithms
             // All default values (ArrangeItem.Offset, LongitudinalOvershootRatio) indicate that labels should stay close
             // to the guide segment, so translation magnitude is the primary criteria.
             //
-            // Clearance is still useful to break ties: symmetric candidate generator makes equidistant positions
-            // (top/bottom of guide segment, forward/backward slides) tie exactly very frequently.
+            // Clearance is still useful to break ties: with the same gap on both sides of the guide segment, the candidate
+            // generator makes equidistant positions (top/bottom of guide segment, forward/backward slides) tie exactly very
+            // frequently.
             candidates = candidates
                 .OrderBy(c => c.translation.Length)
                 .ThenByDescending(c => c.clearance)

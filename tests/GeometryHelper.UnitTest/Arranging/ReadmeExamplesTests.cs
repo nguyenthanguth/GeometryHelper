@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper.Geometry;
 using Xunit;
 using GeometryHelper.Arranging;
@@ -87,6 +88,34 @@ namespace GeometryHelper.UnitTest.Arranging
             double smallGap = smallTextLabel.Box.Translate(results[0].Translation).DistanceTo(leader);
             double largeGap = largeTextLabel.Box.Translate(results[1].Translation).DistanceTo(leader);
             Assert.True(largeGap > smallGap);
+        }
+    
+
+        [Fact]
+        public void QuickStart_AGapForEachSide()
+        {
+            var leader = new GeoLine2(0.0, 0.0, 2000.0, 0.0);
+
+            var dimensionText = new ArrangeItem
+            {
+                Box = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
+                Leader = leader,
+                Offset = 50.0,
+                OffsetTop = 20.0,
+                OffsetBottom = 300.0
+            };
+
+            List<GeoPoint2> points = dimensionText.GetPlacePoints(new ArrangeOptions());
+
+            // Half the label's height (500) plus the gap of each side: 520 above, 800 below.
+            Assert.True(points.Where(p => p.Y > 0.0).All(p => p.Y >= 520.0 - 1e-9));
+            Assert.True(points.Where(p => p.Y < 0.0).All(p => p.Y <= -800.0 + 1e-9));
+            Assert.Contains(points, p => p.IsEqualTo(new GeoPoint2(1000.0, 520.0)));
+            Assert.Contains(points, p => p.IsEqualTo(new GeoPoint2(1000.0, -800.0)));
+
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { dimensionText })[0];
+            Assert.True(result.Placed);
+            Assert.Equal(520.0, (dimensionText.Box.Center + result.Translation).Y, 9);
         }
     }
 }

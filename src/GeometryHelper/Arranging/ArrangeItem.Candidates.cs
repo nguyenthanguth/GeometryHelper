@@ -58,14 +58,17 @@ namespace GeometryHelper.Arranging
                 step = layout.Height;
             }
 
-            // Iterate through each perpendicular distance level (each label row)
+            // Iterate through each perpendicular distance level (each label row), a row on either side of the leader,
+            // each side from its own first row.
             for (int level = 0; level < options.PerpendicularLevels; level++)
             {
-                double offset = layout.BaseOffset + level * (layout.Height + options.RowGap);
+                double rise = level * (layout.Height + options.RowGap);
+                GeoVector2 positive = layout.Perpendicular * (layout.PositiveOffset + rise);
+                GeoVector2 negative = layout.Perpendicular * -(layout.NegativeOffset + rise);
 
-                // Pure perpendicular shift (no longitudinal shift): right and left sides
-                yield return layout.Anchor + layout.Perpendicular * offset;
-                yield return layout.Anchor + layout.Perpendicular * -offset;
+                // Pure perpendicular shift (no longitudinal shift): the side the perpendicular points to, then the other
+                yield return layout.Anchor + positive;
+                yield return layout.Anchor + negative;
                 produced += 2;
 
                 double shift = step;
@@ -73,14 +76,14 @@ namespace GeometryHelper.Arranging
                 // Slide label longitudinally in both directions (forward and backward) parallel to object direction
                 while (shift <= layout.MaximumShift && produced < options.MaximumCandidates)
                 {
-                    // Top/Right row - backward shift
-                    yield return layout.Anchor + layout.Perpendicular * offset - layout.Direction * shift;
-                    // Bottom/Left row - backward shift
-                    yield return layout.Anchor + layout.Perpendicular * -offset - layout.Direction * shift;
-                    // Top/Right row - forward shift
-                    yield return layout.Anchor + layout.Perpendicular * offset + layout.Direction * shift;
-                    // Bottom/Left row - forward shift
-                    yield return layout.Anchor + layout.Perpendicular * -offset + layout.Direction * shift;
+                    // Perpendicular side - backward shift
+                    yield return layout.Anchor + positive - layout.Direction * shift;
+                    // Other side - backward shift
+                    yield return layout.Anchor + negative - layout.Direction * shift;
+                    // Perpendicular side - forward shift
+                    yield return layout.Anchor + positive + layout.Direction * shift;
+                    // Other side - forward shift
+                    yield return layout.Anchor + negative + layout.Direction * shift;
 
                     produced += 4;
                     shift += step;
@@ -154,16 +157,24 @@ namespace GeometryHelper.Arranging
                 return false;
             }
 
-            // STEP 4: Set up the complete Layout structure
+            // STEP 4: The first row on each side: half the label height plus the gap of that side. The perpendicular
+            // points up in the drawing (towards greater Y), or, the leader vertical, to the left (towards smaller X):
+            // that side is the top, whichever way the leader runs.
+            double equal = options.Tolerance.EqualVector;
+            bool perpendicularIsTop = perpendicular.Y > equal || (Math.Abs(perpendicular.Y) <= equal && perpendicular.X < 0.0);
+            double top = height * 0.5 + (OffsetTop ?? Offset);
+            double bottom = height * 0.5 + (OffsetBottom ?? Offset);
+
+            // STEP 5: Set up the complete Layout structure
             layout = new Layout(
                 Leader.MidPoint, // Anchor point (midpoint of the leader)
                 direction,        // Local longitudinal axis
                 perpendicular,    // Local perpendicular axis
                 height,           // Actual label height along perpendicular axis
 
-                // BaseOffset: Minimum perpendicular distance from the path to the center of the first label row,
-                // which equals half the label height plus this label's unique offset margin (Offset)
-                height * 0.5 + Offset,
+                // The first row on the side the perpendicular points to, and on the other side.
+                perpendicularIsTop ? top : bottom,
+                perpendicularIsTop ? bottom : top,
 
                 // MaximumShift: Maximum allowable longitudinal shift distance along the path,
                 // which equals half the path length plus a portion of the label width overshooting the ends (LongitudinalOvershootRatio)

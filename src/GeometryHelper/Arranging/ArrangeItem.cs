@@ -26,14 +26,33 @@ namespace GeometryHelper.Arranging
         public GeoLine2 Leader { get; set; }
 
         /// <summary>
-        /// Gets or sets the least gap between the edge of the label and the leader; 50 unless set. The first row of
-        /// candidates lies half the height of the label plus this from the leader.
+        /// Gets or sets the least gap between the edge of the label and the leader, on both sides of it; 50 unless set.
+        /// The first row of candidates lies half the height of the label plus this from the leader. A side given its own
+        /// gap, <see cref="OffsetTop"/> or <see cref="OffsetBottom"/>, takes that instead.
         /// <para>
         /// It belongs to the label rather than to <see cref="ArrangeOptions"/> because labels differ: a large text may
         /// have to stand further off than a small one.
         /// </para>
         /// </summary>
         public double Offset { get; set; } = 50.0;
+
+        /// <summary>
+        /// Gets or sets the least gap between the edge of the label and the leader on the side of the leader that faces
+        /// up in the drawing, towards greater Y; null, the default, takes <see cref="Offset"/>.
+        /// </summary>
+        /// <remarks>
+        /// Which side faces up does not depend on which way the leader runs: one drawn from right to left has the same
+        /// top as one drawn from left to right. A vertical leader has its top on the left, towards smaller X, where the
+        /// text of a vertical dimension stands.
+        /// </remarks>
+        public double? OffsetTop { get; set; }
+
+        /// <summary>
+        /// Gets or sets the least gap between the edge of the label and the leader on the side of the leader that faces
+        /// down in the drawing, towards smaller Y, and for a vertical leader the right; null, the default, takes
+        /// <see cref="Offset"/>.
+        /// </summary>
+        public double? OffsetBottom { get; set; }
 
         /// <summary>
         /// Gets or sets the regions the label must not overlap; empty unless set, and null reads as empty.
