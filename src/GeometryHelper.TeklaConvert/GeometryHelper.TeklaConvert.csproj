@@ -29,6 +29,12 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 6.2.0
+      - A reference model read whole (ReferenceModelConvert.ToGeoSolids / ToIfcGeometries) is converted and
+        carried into the work plane on every core at once: three Tekla reference models of about 21,000
+        products each came back in 28 s instead of 85 s, the bodies the same. The bodies of one brep come back
+        in one order (GeometryHelper.IfcConvert).
+
       Converts geometry between Tekla Structures and GeometryHelper, both ways: points, vectors, line
       segments, geometric planes, coordinate systems, bounding boxes, transformation matrices, and the
       faces and loops of a Tekla solid.

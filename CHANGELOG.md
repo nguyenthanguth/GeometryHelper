@@ -4,6 +4,14 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## 6.2.0
+
+Nothing in GeometryHelper itself changed: it is released at 6.2.0 with the rest of the set. GeometryHelper.IfcConvert
+and GeometryHelper.TeklaConvert read a whole IFC model on every core at once (`IfcStoreCache.GetAllGeometries`, and
+`ReferenceModelConvert.ToGeoSolids` / `ToIfcGeometries`): three Tekla reference models of about 21,000 products
+each came back in 28 s instead of 85 s. They also give the bodies of one brep back in one order, where the geometry
+engine's order changed from one reading of a file to the next. Their notes are in their packages.
+
 ## 6.1.0
 
 **NEW.** How deep a clash runs, and a way to leave the shallow ones out. `ClashResult.Depth` is the least

@@ -14,6 +14,11 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
+      NEW IN 6.2.0
+
+      Nothing in GeometryHelper itself changed: it is released at 6.2.0 with GeometryHelper.IfcConvert and
+      GeometryHelper.TeklaConvert, which read a whole IFC model on every core at once.
+
       NEW IN 6.1.0
 
       Nothing breaks: code built against 6.0.0 runs unchanged.
