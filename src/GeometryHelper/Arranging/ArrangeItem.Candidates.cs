@@ -210,8 +210,8 @@ namespace GeometryHelper.Arranging
             double sine = Math.Abs(perpendicular.Y);
             bool vertical = sine <= options.Tolerance.EqualAngleSin && sine < Math.Abs(perpendicular.X);
             bool perpendicularIsTop = vertical ? perpendicular.X < 0.0 : perpendicular.Y > 0.0;
-            double top = height * 0.5 + (OffsetTop ?? Offset);
-            double bottom = height * 0.5 + (OffsetBottom ?? Offset);
+            double top = height * 0.5 + OffsetTop;
+            double bottom = height * 0.5 + OffsetBottom;
 
             // STEP 5: Set up the complete Layout structure
             layout = new Layout(

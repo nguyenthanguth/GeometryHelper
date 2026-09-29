@@ -9,20 +9,34 @@ namespace GeometryHelper.UnitTest.Arranging
 {
     /// <summary>
     /// <see cref="ArrangeItem.OffsetTop"/> and <see cref="ArrangeItem.OffsetBottom"/>: the gap on the side of the leader
-    /// that faces up in the drawing and on the side that faces down, each taking <see cref="ArrangeItem.Offset"/> when
-    /// not set. The label is 20 wide and 10 high, so across a horizontal leader it stands half of 10 plus the gap off.
+    /// that faces up in the drawing and on the side that faces down, 50 each unless set, and both set at once by
+    /// <see cref="ArrangeItem.Offset"/>. The label is 20 wide and 10 high, so across a horizontal leader it stands half
+    /// of 10 plus the gap off.
     /// </summary>
     public class ArrangeSideOffsetTests : ArrangeTestKit
     {
+        // A label with both sides set to the offset, then either side given its own gap where one is given.
         private static ArrangeItem Label(GeoLine2 leader, double? top, double? bottom, double offset = 12.0)
-            => new ArrangeItem
+        {
+            var label = new ArrangeItem
             {
                 Leader = leader,
                 Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
                 Offset = offset,
-                OffsetTop = top,
-                OffsetBottom = bottom,
             };
+
+            if (top.HasValue)
+            {
+                label.OffsetTop = top.Value;
+            }
+
+            if (bottom.HasValue)
+            {
+                label.OffsetBottom = bottom.Value;
+            }
+
+            return label;
+        }
 
         /// <summary>
         /// The label of the guide's example: 2000 by 1000 on a leader 2000 long, 20 off above it and 300 below, or the
@@ -33,7 +47,6 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 Box = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
                 Leader = reversed ? new GeoLine2(2000.0, 0.0, 0.0, 0.0) : new GeoLine2(0.0, 0.0, 2000.0, 0.0),
-                Offset = 50.0,
                 OffsetTop = topNear ? 20.0 : 300.0,
                 OffsetBottom = topNear ? 300.0 : 20.0,
             };
@@ -489,35 +502,61 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.Throws<ArgumentOutOfRangeException>(() => label.OffsetTop = gap);
             Assert.Throws<ArgumentOutOfRangeException>(() => label.OffsetBottom = gap);
 
-            // What was refused left the gaps as they were.
-            Assert.Equal(50.0, label.Offset);
-            Assert.Null(label.OffsetTop);
-            Assert.Null(label.OffsetBottom);
+            // What was refused left the gaps as they were, both of them for the offset.
+            Assert.Equal(50.0, label.OffsetTop);
+            Assert.Equal(50.0, label.OffsetBottom);
         }
 
         [Fact]
-        public void TheGaps_TakeAnyFiniteNumber_AndTheSidesTakeNull()
+        public void TheGaps_TakeAnyFiniteNumber()
         {
-            var label = new ArrangeItem { Offset = -3.0, OffsetTop = double.MaxValue, OffsetBottom = -1e9 };
+            var label = new ArrangeItem { OffsetTop = double.MaxValue, OffsetBottom = -1e9 };
 
-            Assert.Equal(-3.0, label.Offset);
             Assert.Equal(double.MaxValue, label.OffsetTop);
             Assert.Equal(-1e9, label.OffsetBottom);
 
-            label.OffsetTop = null;
-            label.OffsetBottom = null;
-            Assert.Null(label.OffsetTop);
-            Assert.Null(label.OffsetBottom);
+            label.Offset = -3.0;
+            Assert.Equal(-3.0, label.OffsetTop);
+            Assert.Equal(-3.0, label.OffsetBottom);
         }
 
         [Fact]
-        public void TheSideGapsStartUnset()
+        public void TheSides_StartAt50()
         {
             var label = new ArrangeItem();
 
-            Assert.Null(label.OffsetTop);
-            Assert.Null(label.OffsetBottom);
-            Assert.Equal(50.0, label.Offset);
+            Assert.Equal(50.0, label.OffsetTop);
+            Assert.Equal(50.0, label.OffsetBottom);
+        }
+
+        /// <summary>
+        /// The offset sets both sides and holds nothing of its own: a side set after it keeps its own gap, and set after
+        /// a side, it overwrites that side too.
+        /// </summary>
+        [Fact]
+        public void TheOffset_SetsBothSides()
+        {
+            var label = new ArrangeItem { OffsetTop = 20.0, OffsetBottom = 300.0 };
+            label.Offset = 12.0;
+            Assert.Equal(12.0, label.OffsetTop);
+            Assert.Equal(12.0, label.OffsetBottom);
+
+            var own = new ArrangeItem { Offset = 50.0, OffsetTop = 20.0 };
+            Assert.Equal(20.0, own.OffsetTop);
+            Assert.Equal(50.0, own.OffsetBottom);
+
+            var overwritten = new ArrangeItem { OffsetTop = 20.0, Offset = 50.0 };
+            Assert.Equal(50.0, overwritten.OffsetTop);
+            Assert.Equal(50.0, overwritten.OffsetBottom);
+        }
+
+        [Fact]
+        public void TheOffset_CanBeSetButNotRead()
+        {
+            var offset = typeof(ArrangeItem).GetProperty(nameof(ArrangeItem.Offset));
+
+            Assert.True(offset.CanWrite);
+            Assert.False(offset.CanRead);
         }
     }
 }

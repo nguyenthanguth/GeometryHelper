@@ -169,7 +169,7 @@ namespace GeometryHelper.Arranging.Algorithms
             // Previously this was sorted purely by descending clearance, meaning it always tried the FURTHEST position first and
             // almost always stopped there. Measured consequence: average distance from label to guide segment was 2405
             // compared to 550 for Greedy — every label was thrown to the outermost perpendicular level even if closer spots were empty.
-            // All default values (ArrangeItem.Offset, LongitudinalOvershootRatio) indicate that labels should stay close
+            // All default values (ArrangeItem.OffsetTop and OffsetBottom, LongitudinalOvershootRatio) indicate that labels should stay close
             // to the guide segment, so translation magnitude is the primary criteria.
             //
             // Clearance is still useful to break ties: with the same gap on both sides of the guide segment, the candidate

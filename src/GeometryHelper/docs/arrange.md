@@ -102,28 +102,31 @@ ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { smallTextLabel, l
 ```
 
 A label can stand one gap off above its leader and another below it. `OffsetTop` is the gap on the side of the
-leader that faces up in the drawing, `OffsetBottom` the gap on the side that faces down, and a side left unset
-takes `Offset`. Which side faces up does not depend on which way the leader was drawn, and a vertical leader,
-to within the angle of the options' `Tolerance`, has its top on the left, where the text of a vertical dimension
-stands. Every gap has to be a finite number:
+leader that faces up in the drawing and `OffsetBottom` the gap on the side that faces down, 50 each unless set.
+Which side faces up does not depend on which way the leader was drawn, and a vertical leader, to within the angle
+of the options' `Tolerance`, has its top on the left, where the text of a vertical dimension stands. Every gap has
+to be a finite number:
 
 ```csharp
 var dimensionText = new ArrangeItem
 {
     Box          = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
     Leader       = leader,
-    Offset       = 50.0,   // both sides, where a side has no gap of its own
     OffsetTop    = 20.0,   // above the leader: close to it
     OffsetBottom = 300.0   // below it: well clear
 };
 ```
+
+`Offset` sets both sides at once. It only sets, holding nothing of its own, so it cannot be read, and set after a
+side it overwrites that side too: `new ArrangeItem { Offset = 50.0, OffsetTop = 20.0 }` stands 20 off above and
+50 below, `new ArrangeItem { OffsetTop = 20.0, Offset = 50.0 }` 50 off on both sides.
 
 ## Candidate Positions Generation
 
 All 5 algorithms share the same set of discrete candidate positions, expanding from the midpoint of the leader;
 `ArrangeItem.GetPlacePoints(options)` lists them:
 
-- **Perpendicular Translation** — each level in `PerpendicularLevels` creates a row of labels on either side of the leader. The first row on each side lies half the label height plus the gap of that side off the leader: `OffsetTop` above, `OffsetBottom` below, each `Offset` unless set. Each subsequent level adds the label height plus `RowGap`.
+- **Perpendicular Translation** — each level in `PerpendicularLevels` creates a row of labels on either side of the leader. The first row on each side lies half the label height plus the gap of that side off the leader: `OffsetTop` above, `OffsetBottom` below. Each subsequent level adds the label height plus `RowGap`.
 - **Longitudinal Sliding** — in each row, the label slides parallel to the leader in both directions, up to a maximum of half the leader's length plus `LongitudinalOvershootRatio` times the label width.
 
 The rows of both sides come nearest first, each straight across the middle of the leader and then a step back
@@ -152,9 +155,9 @@ The algorithms only differ in how they **select** from this candidate set.
 |---|---|---|
 | `Box` | — | The label's box, the rectangle that is moved |
 | `Leader` | — | The segment the label belongs to; its midpoint is the origin of the candidate positions |
-| `Offset` | 50.0 | The least gap between the label's edge and the leader, on both sides unless a side has its own; a finite number |
-| `OffsetTop` | null (`Offset`) | The gap on the side of the leader that faces up in the drawing; the left of a vertical leader |
-| `OffsetBottom` | null (`Offset`) | The gap on the side that faces down; the right of a vertical leader |
+| `Offset` | — | Sets `OffsetTop` and `OffsetBottom` both at once; it can be set, not read |
+| `OffsetTop` | 50.0 | The least gap between the label's edge and the leader on the side that faces up in the drawing; the left of a vertical leader; a finite number |
+| `OffsetBottom` | 50.0 | The least gap on the side that faces down; the right of a vertical leader; a finite number |
 | `BlockPolygons` | empty | Regions the label must not overlap |
 | `BlockLines` | empty | Segments the label must not overlap; lifted in the second pass, and a label left across one is not `Placed` |
 

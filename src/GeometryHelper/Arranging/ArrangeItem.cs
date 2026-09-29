@@ -16,9 +16,8 @@ namespace GeometryHelper.Arranging
     {
         private const string GapMessage = "A gap has to be a finite number.";
 
-        private double _offset = 50.0;
-        private double? _offsetTop;
-        private double? _offsetBottom;
+        private double _offsetTop = 50.0;
+        private double _offsetBottom = 50.0;
 
         /// <summary>
         /// Gets or sets the box of the label: the rectangle that is moved.
@@ -32,28 +31,34 @@ namespace GeometryHelper.Arranging
         public GeoLine2 Leader { get; set; }
 
         /// <summary>
-        /// Gets or sets the least gap between the edge of the label and the leader, on both sides of it; 50 unless set.
-        /// The first row of candidates lies half the height of the label plus this from the leader. A side given its own
-        /// gap, <see cref="OffsetTop"/> or <see cref="OffsetBottom"/>, takes that instead.
+        /// Sets the least gap between the edge of the label and the leader on both sides of it at once:
+        /// <see cref="OffsetTop"/> and <see cref="OffsetBottom"/> both take the value. It only sets, and holds nothing of
+        /// its own, so it cannot be read; the sides are what placement reads.
         /// <para>
-        /// It belongs to the label rather than to <see cref="ArrangeOptions"/> because labels differ: a large text may
-        /// have to stand further off than a small one.
+        /// The gaps belong to the label rather than to <see cref="ArrangeOptions"/> because labels differ: a large text
+        /// may have to stand further off than a small one.
         /// </para>
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">The value is NaN or infinite.</exception>
+        /// <remarks>
+        /// Setting it overwrites both sides, whatever they held. To give a side a gap of its own as well, set that side
+        /// after it: <c>new ArrangeItem { Offset = 50.0, OffsetTop = 20.0 }</c> stands 20 off above and 50 below, where
+        /// <c>new ArrangeItem { OffsetTop = 20.0, Offset = 50.0 }</c> stands 50 off on both sides.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">The value is NaN or infinite; neither side is changed.</exception>
         public double Offset
         {
-            get => _offset;
             set
             {
                 Guard.Finite(value, nameof(value), GapMessage);
-                _offset = value;
+                _offsetTop = value;
+                _offsetBottom = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the least gap between the edge of the label and the leader on the side of the leader that faces
-        /// up in the drawing, towards greater Y; null, the default, takes <see cref="Offset"/>.
+        /// up in the drawing, towards greater Y; 50 unless set, here or through <see cref="Offset"/>. The first row of
+        /// candidates on that side lies half the height of the label plus this from the leader.
         /// </summary>
         /// <remarks>
         /// Which side faces up does not depend on which way the leader runs: one drawn from right to left has the same
@@ -62,36 +67,28 @@ namespace GeometryHelper.Arranging
         /// vertical dimension stands.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">The value is NaN or infinite.</exception>
-        public double? OffsetTop
+        public double OffsetTop
         {
             get => _offsetTop;
             set
             {
-                if (value.HasValue)
-                {
-                    Guard.Finite(value.Value, nameof(value), GapMessage);
-                }
-
+                Guard.Finite(value, nameof(value), GapMessage);
                 _offsetTop = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the least gap between the edge of the label and the leader on the side of the leader that faces
-        /// down in the drawing, towards smaller Y, and for a vertical leader the right; null, the default, takes
+        /// down in the drawing, towards smaller Y, and for a vertical leader the right; 50 unless set, here or through
         /// <see cref="Offset"/>.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">The value is NaN or infinite.</exception>
-        public double? OffsetBottom
+        public double OffsetBottom
         {
             get => _offsetBottom;
             set
             {
-                if (value.HasValue)
-                {
-                    Guard.Finite(value.Value, nameof(value), GapMessage);
-                }
-
+                Guard.Finite(value, nameof(value), GapMessage);
                 _offsetBottom = value;
             }
         }

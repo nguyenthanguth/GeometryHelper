@@ -6,10 +6,18 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
-Label placement, put right after a review of 6.3.0. A label that gives neither side of its leader a gap of its own
-is placed as before, save where a fix below says otherwise: its candidates and results are those of 6.2.0 and
-6.3.0, compared byte for byte over 825 candidate lists and 105 runs of the five algorithms, the second pass
-included, and a test now holds them to what a build of 6.2.0 gives.
+**BREAKING.** `ArrangeItem.Offset` only sets: it writes `OffsetTop` and `OffsetBottom` both, and holds nothing of
+its own, so code that reads it no longer compiles. `OffsetTop` and `OffsetBottom` are what placement reads, plain
+`double`s, 50 each unless set, where they were `double?` taking `Offset` when null; code that set them to null, or
+read them as nullable, has to change. Set after a side, `Offset` overwrites that side too, so of
+`new ArrangeItem { OffsetTop = 20.0, Offset = 50.0 }` both sides are 50, where in 6.3.0 the top was 20 whatever
+the order. Code that sets `Offset` first, or only, places every label where 6.3.0 did: compared byte for byte over
+1,560 lines of candidates and runs, gaps of each side's own among them.
+
+Label placement, put right after a review of 6.3.0. A label with the same gap on both sides of its leader is
+placed as before, save where a fix below says otherwise: its candidates and results are those of 6.2.0 and 6.3.0,
+compared byte for byte over 825 candidate lists and 105 runs of the five algorithms, the second pass included, and
+a test now holds them to what a build of 6.2.0 gives.
 
 **FIXED.** A label given a gap of its own on each side went to the side with the wider gap, the one it was to keep
 further from. The rows of the two sides were tried level by level, the leader's left first, so a leader drawn the
@@ -44,8 +52,8 @@ slides, so every row still gave its two places straight across: a cap of 1 gave 
 two million.
 
 **FIXED.** `Offset`, `OffsetTop` and `OffsetBottom` refuse NaN and infinity with `ArgumentOutOfRangeException`, as
-the rest of the library refuses sizes and distances that are not finite numbers; a side can still be left unset.
-An infinite gap made candidates of NaN, and a side's NaN turned the obstacles of the other side off.
+the rest of the library refuses sizes and distances that are not finite numbers. An infinite gap made candidates
+of NaN, and a side's NaN turned the obstacles of the other side off.
 
 **FIXED.** A gap as wide as a number goes, `double.MaxValue` on one side as a "never", made `Arranger.Run` throw:
 the second pass made a region of a label moved so far off that the corners of its box ran together. Such a box is

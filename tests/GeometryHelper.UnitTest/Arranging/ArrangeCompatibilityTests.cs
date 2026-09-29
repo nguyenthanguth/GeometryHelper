@@ -11,9 +11,9 @@ using Xunit;
 namespace GeometryHelper.UnitTest.Arranging
 {
     /// <summary>
-    /// What 6.2.0 gave for labels that give neither side of their leader a gap of its own: the candidates and the
-    /// results of a spread of scenes, written out to the last bit and hashed. Every release since promises the same,
-    /// so any change to where such a label goes, or to the order its candidates come in, shows up here.
+    /// What 6.2.0 gave for labels with the same gap on both sides of their leader: the candidates and the results of a
+    /// spread of scenes, written out to the last bit and hashed. Every release since promises the same, so any change
+    /// to where such a label goes, or to the order its candidates come in, shows up here.
     /// </summary>
     /// <remarks>
     /// The hashes were taken from a build of 5eea18b, the 6.2.0 release. The scenes keep to what later fixes left

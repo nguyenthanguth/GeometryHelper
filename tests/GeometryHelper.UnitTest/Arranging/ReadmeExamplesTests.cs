@@ -100,7 +100,6 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 Box = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
                 Leader = leader,
-                Offset = 50.0,
                 OffsetTop = 20.0,
                 OffsetBottom = 300.0
             };

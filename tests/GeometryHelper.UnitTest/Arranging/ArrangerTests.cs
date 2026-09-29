@@ -77,7 +77,7 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             List<ArrangeItem> items = Crowd();
 
-            // Some labels have a gap of their own on a side, the others leave both to the offset.
+            // Some labels have a gap of their own on each side, the others keep the offset of the crowd on both.
             for (int i = 0; i < items.Count; i += 2)
             {
                 items[i].OffsetTop = 3.0;
@@ -88,7 +88,6 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 item.Box,
                 item.Leader,
-                item.Offset,
                 item.OffsetTop,
                 item.OffsetBottom,
                 Polygons = item.BlockPolygons,
@@ -106,7 +105,6 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 Assert.Equal(before[i].Box, items[i].Box);
                 Assert.Equal(before[i].Leader, items[i].Leader);
-                Assert.Equal(before[i].Offset, items[i].Offset);
                 Assert.Equal(before[i].OffsetTop, items[i].OffsetTop);
                 Assert.Equal(before[i].OffsetBottom, items[i].OffsetBottom);
                 Assert.Same(before[i].Polygons, items[i].BlockPolygons);
