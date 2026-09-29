@@ -107,6 +107,64 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(place.Inverse().Transform(new GeoPoint2(100, 51)).IsEqualTo(new GeoPoint2(1, 0), Tight));
         }
 
+        // Far from the drawing's origin and turned, as a view on a large sheet is.
+        private static GeoCoordinateSystem2 FarAndTurned() => new GeoCoordinateSystem2(new GeoPoint2(84000, -29500), new GeoVector2(3, 4));
+
+        [Fact]
+        public void ToCoordinateSystem_ReadsPointsAndVectorsAsToLocalDoes()
+        {
+            GeoCoordinateSystem2 frame = FarAndTurned();
+            GeoTransform2 toLocal = GeoTransform2.ToCoordinateSystem(frame);
+
+            foreach (GeoPoint2 point in new[] { frame.Origin, new GeoPoint2(84120, -29410), GeoPoint2.Origin })
+            {
+                Assert.True(toLocal.Transform(point).IsEqualTo(frame.ToLocal(point), Tight));
+            }
+
+            var vector = new GeoVector2(-5, 2);
+
+            Assert.True(toLocal.Transform(vector).IsEqualTo(frame.ToLocal(vector), Tight));
+        }
+
+        [Fact]
+        public void ToCoordinateSystem_UndoesFromCoordinateSystem()
+        {
+            GeoCoordinateSystem2 frame = FarAndTurned();
+            GeoTransform2 toLocal = GeoTransform2.ToCoordinateSystem(frame);
+            GeoTransform2 toWorld = GeoTransform2.FromCoordinateSystem(frame);
+
+            Assert.True((toLocal * toWorld).IsEqualTo(GeoTransform2.Identity, Tight));
+            Assert.True((toWorld * toLocal).IsEqualTo(GeoTransform2.Identity, Tight));
+            Assert.True(toLocal.IsEqualTo(toWorld.Inverse(), Tight));
+
+            // A frame is rigid and never mirrored, so reading into it keeps the winding.
+            Assert.Equal(1.0, toLocal.GetDeterminant(), 12);
+            Assert.True(GeoTransform2.ToCoordinateSystem(GeoCoordinateSystem2.Global).IsEqualTo(GeoTransform2.Identity, Tight));
+        }
+
+        [Fact]
+        public void ToCoordinateSystem_ReadsAPlacedDrawingBack()
+        {
+            var frame = new GeoCoordinateSystem2(new GeoPoint2(84000, -29500), 0.4);
+            GeoPolygon2 drawn = Square();
+            var plate = new GeoRectangle2(new GeoPoint2(2, 1), 4, 2, 0.3);
+
+            GeoPolygon2 read = drawn.TransformBy(frame.ToTransform()).TransformBy(GeoTransform2.ToCoordinateSystem(frame));
+            GeoRectangle2 readPlate = plate.TransformBy(frame.ToTransform()).TransformBy(GeoTransform2.ToCoordinateSystem(frame));
+
+            Assert.Equal(drawn.VertexCount, read.VertexCount);
+            for (int i = 0; i < drawn.VertexCount; i++)
+            {
+                Assert.True(read[i].IsEqualTo(drawn[i], Tight));
+            }
+
+            Assert.Equal(drawn.IsClockwise, read.IsClockwise);
+            Assert.True(readPlate.Center.IsEqualTo(plate.Center, Tight));
+            Assert.Equal(plate.Width, readPlate.Width, 9);
+            Assert.Equal(plate.Height, readPlate.Height, 9);
+            Assert.Equal(plate.AngleRad, readPlate.AngleRad, 9);
+        }
+
         [Fact]
         public void Multiply_AppliesTheRightHandSideFirst()
         {

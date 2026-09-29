@@ -183,6 +183,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the transformation that takes local coordinates to world coordinates.
         /// </summary>
+        /// <remarks><see cref="GeoTransform3.ToCoordinateSystem(GeoCoordinateSystem3)"/> takes them back.</remarks>
         public GeoTransform3 ToTransform() => GeoTransform3.FromCoordinateSystem(this);
 
         #region Equality

@@ -139,6 +139,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the system as the transformation that places geometry built about the origin.
         /// </summary>
+        /// <remarks><see cref="GeoTransform2.ToCoordinateSystem"/> is the reverse, the system read backwards.</remarks>
         public GeoTransform2 ToTransform() => GeoTransform2.FromCoordinateSystem(this);
 
         /// <summary>

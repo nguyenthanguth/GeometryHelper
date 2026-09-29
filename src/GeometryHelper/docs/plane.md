@@ -760,7 +760,9 @@ loop, since it does not close.
 `GeoCoordinateSystem2` is where a drawing sits, the counterpart of `GeoCoordinateSystem3` in space. A
 transformation can say the same thing, and `ToTransform()` hands it over in that form, but a
 transformation may also scale, mirror or shear, and reading one backwards means inverting a matrix. A
-frame is rigid by construction, and reading it backwards is turning the axes round.
+frame is rigid by construction, and reading it backwards is turning the axes round:
+`GeoTransform2.ToCoordinateSystem(frame)` does that as a transformation, for a whole shape through
+`TransformBy`.
 
 ```csharp
 var frame = new GeoCoordinateSystem2(origin, xAxis);   // or (origin, angleRad)
@@ -768,6 +770,7 @@ var frame = new GeoCoordinateSystem2(origin, xAxis);   // or (origin, angleRad)
 frame.ToGlobal(local);                                 // place geometry built about the origin
 frame.ToLocal(world);                                  // read it back, no matrix inverted
 frame.ToTransform();                                   // the same placement as a GeoTransform2
+GeoTransform2.ToCoordinateSystem(frame);               // and the reading back, for whole shapes
 
 plate.CoordinateSystem.ToLocal(point);                 // a rotated rectangle carries its own frame
 new GeoRectangle2(frame, 80.0, 40.0);                  // and can be built from one

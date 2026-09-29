@@ -9,6 +9,14 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class GeoTransform3Tests
     {
+        private static readonly Tolerance Tight = new Tolerance(1E-9, 1E-9);
+
+        // Far from the world origin, as a Tekla model in millimetres is, and turned about every axis.
+        private static GeoCoordinateSystem3 FarAndTurned() => new GeoCoordinateSystem3(
+            new GeoPoint3(152000.0, -87500.0, 4300.0),
+            new GeoVector3(1.0, 2.0, 3.0),
+            new GeoVector3(3.0, -1.0, 0.5));
+
         #region Coordinate system
 
         [Fact]
@@ -90,6 +98,79 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(GeoCoordinateSystem3.Global.ToLocal(point).IsEqualTo(point));
             Assert.True(GeoCoordinateSystem3.Global.ToTransform().IsIdentity());
+            Assert.True(GeoTransform3.ToCoordinateSystem(GeoCoordinateSystem3.Global).IsIdentity());
+        }
+
+        [Fact]
+        public void ToCoordinateSystemReadsPointsAndVectorsAsToLocalDoes()
+        {
+            GeoCoordinateSystem3 system = FarAndTurned();
+            GeoTransform3 toLocal = GeoTransform3.ToCoordinateSystem(system);
+
+            foreach (GeoPoint3 point in new[] { system.Origin, new GeoPoint3(152350.0, -87020.0, 4125.0), GeoPoint3.Origin })
+            {
+                Assert.True(toLocal.Transform(point).IsEqualTo(system.ToLocal(point), Tight));
+            }
+
+            GeoVector3 vector = new GeoVector3(-4.0, 5.0, 6.0);
+
+            Assert.True(toLocal.Transform(vector).IsEqualTo(system.ToLocal(vector), Tight));
+        }
+
+        [Fact]
+        public void ToCoordinateSystemUndoesFromCoordinateSystem()
+        {
+            GeoCoordinateSystem3 system = FarAndTurned();
+            GeoTransform3 toLocal = GeoTransform3.ToCoordinateSystem(system);
+            GeoTransform3 toWorld = GeoTransform3.FromCoordinateSystem(system);
+
+            Assert.True((toLocal * toWorld).IsIdentity(Tight));
+            Assert.True((toWorld * toLocal).IsIdentity(Tight));
+            Assert.True(toLocal.IsEqualTo(toWorld.Inverse(), Tight));
+
+            // A frame is rigid and right-handed, so reading into it turns nothing inside out.
+            Assert.Equal(1.0, toLocal.GetDeterminant(), 9);
+        }
+
+        [Fact]
+        public void ToCoordinateSystemTakesAWholeShapeIntoTheFrame()
+        {
+            // The face of a wall, drawn in the wall's own frame and placed in the model: read back into the
+            // frame, it lies flat again with the corners it was drawn with.
+            GeoCoordinateSystem3 wall = new GeoCoordinateSystem3(
+                new GeoPoint3(25000.0, 12000.0, 3000.0), new GeoVector3(1.0, 1.0, 0.0), GeoVector3.ZAxis);
+            GeoPolygon3 drawn = new GeoPolygon3(
+                new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(6000.0, 0.0, 0.0),
+                new GeoPoint3(6000.0, 3000.0, 0.0), new GeoPoint3(0.0, 3000.0, 0.0));
+
+            GeoPolygon3 placed = drawn.TransformBy(GeoTransform3.FromCoordinateSystem(wall));
+            GeoPolygon3 read = placed.TransformBy(GeoTransform3.ToCoordinateSystem(wall));
+
+            Assert.Equal(drawn.VertexCount, read.VertexCount);
+            for (int i = 0; i < drawn.VertexCount; i++)
+            {
+                Assert.True(read[i].IsEqualTo(drawn[i], Tight));
+            }
+        }
+
+        [Fact]
+        public void FramesInsideFramesNestByMultiplying()
+        {
+            // An opening framed in its wall's coordinates, and the wall framed in the model's.
+            GeoCoordinateSystem3 wall = new GeoCoordinateSystem3(
+                new GeoPoint3(5000.0, -2000.0, 300.0), new GeoVector3(1.0, 1.0, 0.0), new GeoVector3(-1.0, 1.0, 1.0));
+            GeoCoordinateSystem3 openingInWall = new GeoCoordinateSystem3(
+                new GeoPoint3(1200.0, 800.0, 0.0), new GeoVector3(0.0, 1.0, 0.0), new GeoVector3(-1.0, 0.0, 0.0));
+            GeoCoordinateSystem3 openingInWorld = openingInWall.TransformBy(GeoTransform3.FromCoordinateSystem(wall));
+
+            // The wall is read into first, so it stands on the right.
+            GeoTransform3 nested = GeoTransform3.ToCoordinateSystem(openingInWall) * GeoTransform3.ToCoordinateSystem(wall);
+
+            Assert.True(nested.IsEqualTo(GeoTransform3.ToCoordinateSystem(openingInWorld), Tight));
+
+            GeoPoint3 point = new GeoPoint3(6100.0, -700.0, 950.0);
+
+            Assert.True(nested.Transform(point).IsEqualTo(openingInWorld.ToLocal(point), Tight));
         }
 
         #endregion

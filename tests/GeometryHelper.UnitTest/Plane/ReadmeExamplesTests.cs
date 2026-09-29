@@ -858,6 +858,7 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.True(frame.ToLocal(world).IsEqualTo(local));
             Assert.True(frame.ToTransform().Transform(local).IsEqualTo(world));
+            Assert.True(GeoTransform2.ToCoordinateSystem(frame).Transform(world).IsEqualTo(local));
 
             var plate = new GeoRectangle2(new GeoPoint2(100, 50), 80, 40, Math.PI / 6.0);
             var point = new GeoPoint2(120, 60);
@@ -869,6 +870,10 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
 
             Assert.NotEqual(square.IsClockwise, square.Reverse().IsClockwise);
+
+            // "and the reading back, for whole shapes"
+            GeoPolygon2 placed = square.TransformBy(frame.ToTransform());
+            Assert.True(placed.TransformBy(GeoTransform2.ToCoordinateSystem(frame)).IsEqualTo(square));
         }
         [Fact]
         public void OneRadiusPerCorner_EverySampleHolds()

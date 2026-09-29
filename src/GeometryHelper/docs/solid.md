@@ -1343,6 +1343,17 @@ var point = new GeoPoint3(3, -7, 11);
 frame.ToGlobal(frame.ToLocal(point)).IsEqualTo(point);  // true
 ```
 
+`ToLocal` and `ToGlobal` take points and vectors. A whole shape goes through `TransformBy`:
+`GeoTransform3.ToCoordinateSystem(frame)` takes it into the frame, to be worked on in local coordinates,
+and `GeoTransform3.FromCoordinateSystem(frame)` puts the result back; neither inverts a matrix. A frame
+given in the coordinates of another nests by multiplying, the outer one read into first:
+`ToCoordinateSystem(inner) * ToCoordinateSystem(outer)`.
+
+```csharp
+GeoPolygon3 inFrame = outline.TransformBy(GeoTransform3.ToCoordinateSystem(frame));
+GeoPolygon3 back = inFrame.TransformBy(GeoTransform3.FromCoordinateSystem(frame));
+```
+
 `GeoTransform3` is a 4x4 matrix applied on the left, so `a.Multiply(b)` means "apply b, then a". A plane
 normal is carried by the inverse transpose rather than by the matrix itself, so it stays perpendicular to
 the surface even under a non-uniform scaling.

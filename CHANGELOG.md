@@ -20,6 +20,13 @@ placed is inside the usable area of its sheet and clear of every other; every bo
 `LargestGroupsFirst` and `FillEarlierSheets` trade the order of the groups for fewer sheets: a thousand boxes of
 up to a fifth of an A1 sheet take 17 sheets in their order, 14 with both, as few as their area allows.
 
+**NEW.** `GeoTransform3.ToCoordinateSystem` and `GeoTransform2.ToCoordinateSystem`, the reverse of
+`FromCoordinateSystem`: the transformation that takes world coordinates into the local coordinates of a
+coordinate system. A whole shape now goes into a frame through `TransformBy` as a point goes through `ToLocal`,
+where it took `ToTransform().Inverse()` before, and the matrix is read straight off the axes rather than
+inverted. A frame given in the coordinates of another nests by multiplying, the outer one read into first:
+`ToCoordinateSystem(inner) * ToCoordinateSystem(outer)`.
+
 ## 7.0.0
 
 **BREAKING.** `ArrangeItem.Offset` only sets: it writes `OffsetTop` and `OffsetBottom` both, and holds nothing of

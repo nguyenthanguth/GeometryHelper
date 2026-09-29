@@ -256,6 +256,7 @@ namespace GeometryHelper.Geometry
         /// Creates the transformation that takes local coordinates of a coordinate system into world
         /// coordinates.
         /// </summary>
+        /// <remarks><see cref="ToCoordinateSystem(GeoCoordinateSystem3)"/> is the reverse.</remarks>
         public static GeoTransform3 FromCoordinateSystem(GeoCoordinateSystem3 system)
         {
             GeoTransform3 t = new GeoTransform3();
@@ -263,6 +264,37 @@ namespace GeometryHelper.Geometry
             t._m[0, 0] = system.XAxis.X; t._m[0, 1] = system.YAxis.X; t._m[0, 2] = system.ZAxis.X; t._m[0, 3] = system.Origin.X;
             t._m[1, 0] = system.XAxis.Y; t._m[1, 1] = system.YAxis.Y; t._m[1, 2] = system.ZAxis.Y; t._m[1, 3] = system.Origin.Y;
             t._m[2, 0] = system.XAxis.Z; t._m[2, 1] = system.YAxis.Z; t._m[2, 2] = system.ZAxis.Z; t._m[2, 3] = system.Origin.Z;
+
+            return t;
+        }
+
+        /// <summary>
+        /// Creates the transformation that takes world coordinates into the local coordinates of a
+        /// coordinate system, the reverse of <see cref="FromCoordinateSystem(GeoCoordinateSystem3)"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// It does for a whole shape what <see cref="GeoCoordinateSystem3.ToLocal(GeoPoint3)"/> does for a point:
+        /// take the shape into the frame through <c>TransformBy</c>, work on it in local coordinates, and put the
+        /// result back with <see cref="FromCoordinateSystem(GeoCoordinateSystem3)"/>. A frame given in the local
+        /// coordinates of another nests by multiplying, the outer one read into first:
+        /// <c>ToCoordinateSystem(inner) * ToCoordinateSystem(outer)</c>.
+        /// </para>
+        /// <para>
+        /// A coordinate system is rigid, so nothing is inverted: its axes become the rows as they stand, and only
+        /// the translation, the origin read along each axis, is worked out. Inverting the placement with
+        /// <see cref="Inverse()"/> reaches the same matrix the long way, through cofactors and a division by the
+        /// determinant.
+        /// </para>
+        /// </remarks>
+        public static GeoTransform3 ToCoordinateSystem(GeoCoordinateSystem3 system)
+        {
+            GeoTransform3 t = new GeoTransform3();
+            GeoVector3 origin = system.Origin.ToVector();
+
+            t._m[0, 0] = system.XAxis.X; t._m[0, 1] = system.XAxis.Y; t._m[0, 2] = system.XAxis.Z; t._m[0, 3] = -system.XAxis.DotProduct(origin);
+            t._m[1, 0] = system.YAxis.X; t._m[1, 1] = system.YAxis.Y; t._m[1, 2] = system.YAxis.Z; t._m[1, 3] = -system.YAxis.DotProduct(origin);
+            t._m[2, 0] = system.ZAxis.X; t._m[2, 1] = system.ZAxis.Y; t._m[2, 2] = system.ZAxis.Z; t._m[2, 3] = -system.ZAxis.DotProduct(origin);
 
             return t;
         }

@@ -439,6 +439,16 @@ namespace GeometryHelper.UnitTest.Solid
             var point = new GeoPoint3(3, -7, 11);
 
             Assert.True(frame.ToGlobal(frame.ToLocal(point)).IsEqualTo(point));
+
+            // A whole shape goes into the frame and back through TransformBy.
+            var outline = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0), new GeoPoint3(4, 0, 0), new GeoPoint3(4, 3, 1), new GeoPoint3(0, 3, 1));
+
+            GeoPolygon3 inFrame = outline.TransformBy(GeoTransform3.ToCoordinateSystem(frame));
+            GeoPolygon3 back = inFrame.TransformBy(GeoTransform3.FromCoordinateSystem(frame));
+
+            Assert.True(inFrame[2].IsEqualTo(frame.ToLocal(outline[2])));
+            Assert.True(back.IsEqualTo(outline));
         }
 
         [Fact]

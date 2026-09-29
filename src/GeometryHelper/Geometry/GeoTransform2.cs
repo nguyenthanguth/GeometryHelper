@@ -221,13 +221,34 @@ namespace GeometryHelper.Geometry
         /// system.
         /// </summary>
         /// <param name="system">The system to place it in.</param>
-        /// <returns>The transformation; its inverse reads placed geometry back into that system.</returns>
+        /// <returns>The transformation; <see cref="ToCoordinateSystem"/> reads placed geometry back into that system.</returns>
         /// <remarks>
-        /// The counterpart of <see cref="GeoTransform3.FromCoordinateSystem"/> in the plane. For reading
-        /// points back and forth, <see cref="GeoCoordinateSystem2.ToLocal(GeoPoint2)"/> is cheaper than
-        /// inverting what this gives.
+        /// The counterpart of <see cref="GeoTransform3.FromCoordinateSystem"/> in the plane. Reading back needs
+        /// no inverse: <see cref="ToCoordinateSystem"/> gives it for whole shapes, and
+        /// <see cref="GeoCoordinateSystem2.ToLocal(GeoPoint2)"/> for a single point.
         /// </remarks>
         public static GeoTransform2 FromCoordinateSystem(GeoCoordinateSystem2 system) => FromFrame(system.Origin, system.XAxis);
+
+        /// <summary>
+        /// Gets the transformation that reads geometry of the drawing in a local coordinate system, the
+        /// reverse of <see cref="FromCoordinateSystem"/>.
+        /// </summary>
+        /// <param name="system">The system to read it in.</param>
+        /// <returns>The transformation; <see cref="FromCoordinateSystem"/> puts what it reads back.</returns>
+        /// <remarks>
+        /// The counterpart of <see cref="GeoTransform3.ToCoordinateSystem"/> in the plane: for a whole shape,
+        /// through <c>TransformBy</c>, what <see cref="GeoCoordinateSystem2.ToLocal(GeoPoint2)"/> is for a point.
+        /// A frame is rigid, so its axes become the rows as they stand and nothing is inverted.
+        /// </remarks>
+        public static GeoTransform2 ToCoordinateSystem(GeoCoordinateSystem2 system)
+        {
+            GeoTransform2 t = new GeoTransform2();
+            GeoVector2 origin = new GeoVector2(system.Origin.X, system.Origin.Y);
+
+            t._m[0, 0] = system.XAxis.X; t._m[0, 1] = system.XAxis.Y; t._m[0, 2] = -system.XAxis.DotProduct(origin);
+            t._m[1, 0] = system.YAxis.X; t._m[1, 1] = system.YAxis.Y; t._m[1, 2] = -system.YAxis.DotProduct(origin);
+            return t;
+        }
 
         #endregion
 
