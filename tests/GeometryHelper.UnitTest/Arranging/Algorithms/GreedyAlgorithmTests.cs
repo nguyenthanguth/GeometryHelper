@@ -7,7 +7,7 @@ using GeometryHelper.Arranging;
 
 namespace GeometryHelper.UnitTest.Arranging
 {
-    public class GreedyAlgorithmTests
+    public class GreedyAlgorithmTests : ArrangeTestKit
     {
         /// <summary>Shared configuration for tests below, small dimensions for easy manual calculation.</summary>
         private static ArrangeOptions GreedyOptions(int perpendicularLevels = 3)
@@ -18,26 +18,6 @@ namespace GeometryHelper.UnitTest.Arranging
                 RowGap = 5.0,
                 PerpendicularLevels = perpendicularLevels
             };
-        }
-
-        /// <summary>20x10 label initially placed at the midpoint of the guide segment.</summary>
-        private static ArrangeItem LabelOn(GeoLine2 leader)
-        {
-            return new ArrangeItem
-            {
-                Leader = leader,
-                Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
-                Offset = 5.0
-            };
-        }
-
-        private static GeoRectangle2 MovedBox(ArrangeItem arrange, GeoVector2 translation)
-        {
-            return new GeoRectangle2(
-                arrange.Box.Center + translation,
-                arrange.Box.Width,
-                arrange.Box.Height,
-                arrange.Box.AngleRad);
         }
 
         [Fact]

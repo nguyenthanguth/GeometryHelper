@@ -41,11 +41,31 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.True(results[1].Placed);
         }
 
+        /// <summary>
+        /// Labels far apart, each going to its candidate nearest to where it stands, which needs no going back. Every
+        /// label counted as a step, and with more labels than steps the search gave up and handed the labels to the
+        /// greedy algorithm, which takes the first place free.
+        /// </summary>
+        [Theory]
+        [InlineData(20, 10)]
+        [InlineData(20, 0)]
+        public void Arrange_ConstraintSatisfaction_PlacesMoreLabelsThanItHasStepsBack(int count, int steps)
+        {
+            var options = new ArrangeOptions
+            {
+                Algorithm = ArrangeAlgorithmType.ConstraintSatisfaction,
+                RowGap = 5.0,
+                PerpendicularLevels = 3,
+                MaxBacktrackSteps = steps
+            };
+            ArrangeTestKit.AssertEachGoesToItsNearestCandidate(ArrangeTestKit.LabelsApart(count), options);
+        }
+
         [Fact]
         public void Arrange_UnsolvableGraph_ReturnsBestEffort()
         {
             var leaderLine = new GeoLine2(0.0, 0.0, 10.0, 0.0);
-            
+
             // 3 labels competing for a small area with very few candidates -> definitely triggers failure
             var a1 = new ArrangeItem { Box = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0), Leader = leaderLine };
             var a2 = new ArrangeItem { Box = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0), Leader = leaderLine };

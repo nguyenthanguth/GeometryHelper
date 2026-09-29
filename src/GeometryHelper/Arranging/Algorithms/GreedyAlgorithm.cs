@@ -54,14 +54,14 @@ namespace GeometryHelper.Arranging.Algorithms
 
             GeoVector2 chosen = GeoVector2.Zero;
             GeoVector2 firstCandidate = GeoVector2.Zero;
-            double bestClearance = -1.0;
+            double bestClearance = double.NegativeInfinity;
             int freeSeen = 0;
             bool hasCandidate = false;
 
             // Iterate through search positions to find empty candidates
-            foreach (GeoPoint2 candidate in item.EnumeratePlacePoints(options))
+            foreach (Candidate candidate in item.EnumerateCandidates(options))
             {
-                GeoVector2 translation = centre.GetVectorTo(candidate);
+                GeoVector2 translation = centre.GetVectorTo(candidate.Centre);
 
                 // Save the first candidate as a fallback option if all positions collide
                 if (!hasCandidate)
@@ -81,7 +81,12 @@ namespace GeometryHelper.Arranging.Algorithms
                 // Measure clearance to all surrounding obstacles to evaluate openness.
                 // Among the first group of empty positions, select the one with the maximum clearance.
                 // Strict comparison ensures that in case of a tie, the candidate found earlier — i.e., higher priority — still wins.
-                double clearance = PlacementHeuristics.MeasureClearance(nearby, moved);
+                //
+                // Clearance counts beyond what the side of the place asks for over the other side, its Surplus. A label's
+                // own leader is often among what it keeps clear of, and then each place in the first row of a side is
+                // that side's gap clear of it: counted as measured, the side with the wider gap, the one the label is to
+                // keep further off, always won. Where both sides have the same gap, nothing is taken off.
+                double clearance = PlacementHeuristics.MeasureClearance(nearby, moved) - candidate.Surplus;
 
                 if (clearance > bestClearance)
                 {

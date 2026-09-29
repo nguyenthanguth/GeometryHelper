@@ -14,6 +14,12 @@ namespace GeometryHelper.Arranging
     /// </remarks>
     public sealed partial class ArrangeItem
     {
+        private const string GapMessage = "A gap has to be a finite number.";
+
+        private double _offset = 50.0;
+        private double? _offsetTop;
+        private double? _offsetBottom;
+
         /// <summary>
         /// Gets or sets the box of the label: the rectangle that is moved.
         /// </summary>
@@ -34,7 +40,16 @@ namespace GeometryHelper.Arranging
         /// have to stand further off than a small one.
         /// </para>
         /// </summary>
-        public double Offset { get; set; } = 50.0;
+        /// <exception cref="ArgumentOutOfRangeException">The value is NaN or infinite.</exception>
+        public double Offset
+        {
+            get => _offset;
+            set
+            {
+                Guard.Finite(value, nameof(value), GapMessage);
+                _offset = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the least gap between the edge of the label and the leader on the side of the leader that faces
@@ -42,17 +57,44 @@ namespace GeometryHelper.Arranging
         /// </summary>
         /// <remarks>
         /// Which side faces up does not depend on which way the leader runs: one drawn from right to left has the same
-        /// top as one drawn from left to right. A vertical leader has its top on the left, towards smaller X, where the
-        /// text of a vertical dimension stands.
+        /// top as one drawn from left to right. A vertical leader, to within the angle of the options'
+        /// <see cref="ArrangeOptions.Tolerance"/>, has its top on the left, towards smaller X, where the text of a
+        /// vertical dimension stands.
         /// </remarks>
-        public double? OffsetTop { get; set; }
+        /// <exception cref="ArgumentOutOfRangeException">The value is NaN or infinite.</exception>
+        public double? OffsetTop
+        {
+            get => _offsetTop;
+            set
+            {
+                if (value.HasValue)
+                {
+                    Guard.Finite(value.Value, nameof(value), GapMessage);
+                }
+
+                _offsetTop = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the least gap between the edge of the label and the leader on the side of the leader that faces
         /// down in the drawing, towards smaller Y, and for a vertical leader the right; null, the default, takes
         /// <see cref="Offset"/>.
         /// </summary>
-        public double? OffsetBottom { get; set; }
+        /// <exception cref="ArgumentOutOfRangeException">The value is NaN or infinite.</exception>
+        public double? OffsetBottom
+        {
+            get => _offsetBottom;
+            set
+            {
+                if (value.HasValue)
+                {
+                    Guard.Finite(value.Value, nameof(value), GapMessage);
+                }
+
+                _offsetBottom = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the regions the label must not overlap; empty unless set, and null reads as empty.
@@ -72,5 +114,20 @@ namespace GeometryHelper.Arranging
         /// placed by then, and if it ends up across one it is reported not <see cref="ArrangeResult.Placed"/>.
         /// </remarks>
         public IReadOnlyList<GeoLine2> BlockLines { get; set; } = Array.Empty<GeoLine2>();
+
+        /// <summary>
+        /// Makes a copy of the label that keeps clear of other blocks, as the second pass of a run tries it. Every other
+        /// property comes along as it stands, one added later included.
+        /// </summary>
+        /// <param name="polygons">The regions the copy keeps clear of.</param>
+        /// <param name="lines">The segments the copy keeps clear of.</param>
+        /// <returns>The copy.</returns>
+        internal ArrangeItem WithBlocks(IReadOnlyList<GeoPolygon2> polygons, IReadOnlyList<GeoLine2> lines)
+        {
+            var copy = (ArrangeItem)MemberwiseClone();
+            copy.BlockPolygons = polygons;
+            copy.BlockLines = lines;
+            return copy;
+        }
     }
 }

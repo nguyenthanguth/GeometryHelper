@@ -11,46 +11,8 @@ namespace GeometryHelper.UnitTest.Arranging
     /// Extended integration tests covering boundary conditions, rotated coordinates,
     /// obstacle collision scenarios, and relaxation pass correctness across ALL algorithms.
     /// </summary>
-    public class ArrangeExtendedTests
+    public class ArrangeExtendedTests : ArrangeTestKit
     {
-        public static IEnumerable<object[]> AllAlgorithms()
-        {
-            yield return new object[] { ArrangeAlgorithmType.Greedy };
-            yield return new object[] { ArrangeAlgorithmType.BoundedBacktracking };
-            yield return new object[] { ArrangeAlgorithmType.SimulatedAnnealing };
-            yield return new object[] { ArrangeAlgorithmType.ForceDirected };
-            yield return new object[] { ArrangeAlgorithmType.ConstraintSatisfaction };
-        }
-
-        private static ArrangeOptions OptionsFor(ArrangeAlgorithmType algorithm)
-        {
-            return new ArrangeOptions
-            {
-                Algorithm = algorithm,
-                RowGap = 5.0,
-                PerpendicularLevels = 3
-            };
-        }
-
-        private static ArrangeItem LabelOn(GeoLine2 leader, double width = 20.0, double height = 10.0)
-        {
-            return new ArrangeItem
-            {
-                Leader = leader,
-                Box = new GeoRectangle2(leader.MidPoint, width, height),
-                Offset = 5.0
-            };
-        }
-
-        private static GeoRectangle2 MovedBox(ArrangeItem arrange, GeoVector2 translation)
-        {
-            return new GeoRectangle2(
-                arrange.Box.Center + translation,
-                arrange.Box.Width,
-                arrange.Box.Height,
-                arrange.Box.AngleRad);
-        }
-
         // ------------------------------------------------------------------
         // 1. Boundary Option Tests
         // ------------------------------------------------------------------

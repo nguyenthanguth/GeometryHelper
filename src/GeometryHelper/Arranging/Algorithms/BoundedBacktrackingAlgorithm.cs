@@ -12,14 +12,9 @@ namespace GeometryHelper.Arranging.Algorithms
     internal class BoundedBacktrackingAlgorithm : IArrangeAlgorithm
     {
         /// <summary>
-        /// Tracks the number of backtracking steps taken during search.
+        /// The steps back the search has taken: the times it took up a label it had placed, to move it on.
         /// </summary>
         private int _stepsCount;
-
-        /// <summary>
-        /// Indicates whether the search process has timed out.
-        /// </summary>
-        private bool _isTimeout;
 
         /// <summary>
         /// Arranges the labels using a bounded backtracking algorithm.
@@ -39,10 +34,9 @@ namespace GeometryHelper.Arranging.Algorithms
             var sortedTranslations = new GeoVector2[sortedItems.Count];
 
             _stepsCount = 0;
-            _isTimeout = false;
 
-            // STEP 3: Run the recursive backtracking algorithm
-            bool success = Backtrack(0, sortedItems, occupied, sortedTranslations, options);
+            // STEP 3: Run the backtracking search
+            bool success = Search(sortedItems, occupied, sortedTranslations, options);
 
             // STEP 4: If backtracking fails completely (no collision-free configuration is found),
             // fallback to the Greedy solution to ensure all labels still have a visible position.
@@ -63,30 +57,96 @@ namespace GeometryHelper.Arranging.Algorithms
         }
 
         /// <summary>
-        /// Recursive backtracking function to place the label at the specified index.
+        /// Places the labels in turn, each at the first of its free places that leaves a place for every label after it.
+        /// When a label finds no free place, the search goes back to the label before it and moves that one on to its
+        /// next place, as far back as it has to.
         /// </summary>
-        private bool Backtrack(int index, IReadOnlyList<ArrangeItem> sortedItems, List<Obstacle> occupied, GeoVector2[] translations, ArrangeOptions options)
+        /// <remarks>
+        /// A loop over the labels rather than a call for each: a call for each label went as deep as there were labels,
+        /// and on some hosts a few hundred of them ran the stack dry.
+        /// </remarks>
+        /// <returns>True when every label has a place; false when there is none for some label, or the steps ran out.</returns>
+        private bool Search(IReadOnlyList<ArrangeItem> sortedItems, List<Obstacle> occupied, GeoVector2[] translations, ArrangeOptions options)
         {
-            // Recursion base case: All labels have been successfully placed
-            if (index >= sortedItems.Count)
-            {
-                return true;
-            }
+            int count = sortedItems.Count;
 
-            _stepsCount++;
-            if (_stepsCount > options.MaxBacktrackSteps)
-            {
-                _isTimeout = true;
-                return false;
-            }
+            // The free places of each label as they stood when the search came to it, in the order it tries them, and the
+            // next of them to try. Null for a label that cannot be arranged: it stays where it is, and has no other place.
+            var places = new List<GeoVector2>[count];
+            var next = new int[count];
 
-            ArrangeItem item = sortedItems[index];
+            int index = 0;
+            bool arriving = true;
+            while (true)
+            {
+                if (arriving)
+                {
+                    // Every label has its place.
+                    if (index >= count)
+                    {
+                        return true;
+                    }
+
+                    places[index] = GetFreePlaces(sortedItems[index], occupied, options);
+                    next[index] = 0;
+
+                    if (places[index] == null)
+                    {
+                        // Cannot form layout for this label: leave it in place and proceed.
+                        // Arranger, judging the final layout, will see it was never arranged.
+                        translations[index] = GeoVector2.Zero;
+                        index++;
+                        continue;
+                    }
+                }
+
+                List<GeoVector2> free = places[index];
+                if (free != null && next[index] < free.Count)
+                {
+                    // Place the label at its next free place, which stands as an obstacle for the labels after it.
+                    GeoVector2 translation = free[next[index]++];
+                    translations[index] = translation;
+                    occupied.Add(new Obstacle(sortedItems[index].Box.Translate(translation)));
+
+                    index++;
+                    arriving = true;
+                    continue;
+                }
+
+                // No place left for this label: back to the one before it, whose place is taken up again, so that it can
+                // move on to its next. A label that was never arranged has no other place, and the search goes on back.
+                if (index == 0)
+                {
+                    return false;
+                }
+
+                index--;
+                arriving = false;
+                if (places[index] != null)
+                {
+                    // A step back, and only that counts: placing a label costs none, so a search that never has to go
+                    // back is never cut short, however many labels there are. Each label counting as a step, a run of
+                    // more labels than steps gave up every time and fell back to the greedy algorithm.
+                    _stepsCount++;
+                    if (_stepsCount > options.MaxBacktrackSteps)
+                    {
+                        return false;
+                    }
+
+                    occupied.RemoveAt(occupied.Count - 1);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the places of a label that overlap none of the obstacles, nearest first; null when the label cannot form
+        /// a layout.
+        /// </summary>
+        private static List<GeoVector2> GetFreePlaces(ArrangeItem item, List<Obstacle> occupied, ArrangeOptions options)
+        {
             if (!PlacementHeuristics.TryGetCandidateBounds(item, options, out Bounds region))
             {
-                // Cannot form layout for this label: leave it in place and proceed.
-                // Arranger, judging the final layout, will see it was never arranged.
-                translations[index] = GeoVector2.Zero;
-                return Backtrack(index + 1, sortedItems, occupied, translations, options);
+                return null;
             }
 
             GeoPoint2 centre = item.Box.Center;
@@ -94,17 +154,13 @@ namespace GeometryHelper.Arranging.Algorithms
             // Fast filtering of nearby obstacles
             List<Obstacle> nearby = occupied.Where(obstacle => region.Overlaps(obstacle.Box)).ToList();
 
-            // Get list of empty (collision-free) candidates
-            var candidates = new List<(GeoVector2 translation, double clearance)>();
+            var free = new List<GeoVector2>();
             foreach (GeoPoint2 candidate in item.EnumeratePlacePoints(options))
             {
                 GeoVector2 translation = centre.GetVectorTo(candidate);
-                GeoRectangle2 moved = item.Box.Translate(translation);
-
-                if (!Obstacle.AnyCollides(nearby, moved, options.Tolerance))
+                if (!Obstacle.AnyCollides(nearby, item.Box.Translate(translation), options.Tolerance))
                 {
-                    double clearance = PlacementHeuristics.MeasureClearance(nearby, moved);
-                    candidates.Add((translation, clearance));
+                    free.Add(translation);
                 }
             }
 
@@ -118,38 +174,33 @@ namespace GeometryHelper.Arranging.Algorithms
             //
             // Clearance is still useful to break ties: with the same gap on both sides of the guide segment, the candidate
             // generator makes equidistant positions (top/bottom of guide segment, forward/backward slides) tie exactly very
-            // frequently.
-            candidates = candidates
-                .OrderBy(c => c.translation.Length)
-                .ThenByDescending(c => c.clearance)
-                .ToList();
-
-            // Try placing the label into each potential empty candidate
-            foreach (var option in candidates)
+            // frequently. It is measured for the places in a tie only, as it decides nothing else: measuring it for every
+            // free place cost several times the rest of the search.
+            List<GeoVector2> sorted = free.OrderBy(t => t.Length).ToList();
+            for (int start = 0; start < sorted.Count;)
             {
-                translations[index] = option.translation;
-
-                // Add the newly placed label box as a temporary obstacle for subsequent recursion levels
-                GeoRectangle2 moved = item.Box.Translate(option.translation);
-                var obs = new Obstacle(moved);
-                occupied.Add(obs);
-
-                // Recursion to the next level
-                if (Backtrack(index + 1, sortedItems, occupied, translations, options))
+                double length = sorted[start].Length;
+                int end = start + 1;
+                while (end < sorted.Count && sorted[end].Length.CompareTo(length) == 0)
                 {
-                    return true;
+                    end++;
                 }
 
-                // If the next recursion level fails, remove the obstacle (Backtrack) and try the next candidate
-                occupied.RemoveAt(occupied.Count - 1);
-
-                if (_isTimeout)
+                if (end - start > 1)
                 {
-                    return false;
+                    List<GeoVector2> tie = sorted.GetRange(start, end - start)
+                        .OrderByDescending(t => PlacementHeuristics.MeasureClearance(nearby, item.Box.Translate(t)))
+                        .ToList();
+                    for (int k = 0; k < tie.Count; k++)
+                    {
+                        sorted[start + k] = tie[k];
+                    }
                 }
+
+                start = end;
             }
 
-            return false;
+            return sorted;
         }
     }
 }

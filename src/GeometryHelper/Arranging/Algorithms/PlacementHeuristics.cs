@@ -150,17 +150,12 @@ namespace GeometryHelper.Arranging.Algorithms
                 return 0;
             }
 
-            double step = layout.MaximumShift / 20.0;
-            if (step < 0.1)
-            {
-                step = layout.Height;
-            }
-
-            // Each level has 2 middle positions plus 4 positions for each longitudinal shift step.
-            long shiftsPerLevel = (long)Math.Floor(layout.MaximumShift / step);
+            // Each level has 2 middle positions plus 4 positions for each longitudinal shift step, and no more than the
+            // cap in all.
+            long shiftsPerLevel = (long)Math.Floor(layout.MaximumShift / layout.SlideStep);
             long total = (2L + 4L * shiftsPerLevel) * Math.Max(0, options.PerpendicularLevels);
 
-            return (int)Math.Min(total, options.MaximumCandidates);
+            return (int)Math.Min(total, Math.Max(0, options.MaximumCandidates));
         }
 
         /// <summary>
@@ -208,22 +203,29 @@ namespace GeometryHelper.Arranging.Algorithms
                 return false;
             }
 
-            // Out to the last row on each side, each side from its own first row.
-            double rise = Math.Max(0, options.PerpendicularLevels - 1) * (layout.Height + options.RowGap);
+            // The rows of a side run on from its first in equal steps, so each lies between the first and the last of
+            // its side: those four rows, each at both ends of its slide, hold every candidate. The last rows alone
+            // do not: a gap negative enough takes the rows of one side across the leader and past those of the other,
+            // and a gap between rows negative enough brings each further row back towards the leader.
+            int last = Math.Max(0, options.PerpendicularLevels - 1);
 
             GeoVector2 alongMax = layout.Direction * layout.MaximumShift;
-            GeoVector2 acrossPositive = layout.Perpendicular * (layout.PositiveOffset + rise);
-            GeoVector2 acrossNegative = layout.Perpendicular * -(layout.NegativeOffset + rise);
-
-            var corners = new[]
+            GeoVector2[] rows =
             {
-                layout.Anchor + acrossPositive + alongMax,
-                layout.Anchor + acrossPositive - alongMax,
-                layout.Anchor + acrossNegative + alongMax,
-                layout.Anchor + acrossNegative - alongMax,
+                layout.GetRow(true, last, options.RowGap),
+                layout.GetRow(false, last, options.RowGap),
+                layout.GetRow(true, 0, options.RowGap),
+                layout.GetRow(false, 0, options.RowGap),
             };
 
-            // Create bounding box enclosing the 4 outer corners and expand it by NeighbourMargin for safety
+            var corners = new List<GeoPoint2>(2 * rows.Length);
+            foreach (GeoVector2 across in rows)
+            {
+                corners.Add(layout.Anchor + across + alongMax);
+                corners.Add(layout.Anchor + across - alongMax);
+            }
+
+            // Create bounding box enclosing the outer corners and expand it by NeighbourMargin for safety
             bounds = Bounds.Around(corners).Expand(item.GetBoxSpan() + options.NeighbourMargin);
             return true;
         }

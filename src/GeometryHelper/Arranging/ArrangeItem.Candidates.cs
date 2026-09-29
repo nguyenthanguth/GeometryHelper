@@ -20,8 +20,17 @@ namespace GeometryHelper.Arranging
         /// Gets the positions the centre of the label is tried at: rows on either side of the leader, each sliding
         /// along it. Every algorithm chooses among these.
         /// </summary>
+        /// <remarks>
+        /// The rows come nearest first, each straight across the middle of the leader and then a step back and a step
+        /// forward along it in turn, further each time. Two rows as far off, one on each side, as every pair is when
+        /// both sides have the same gap, are tried together, place by place, the side the perpendicular of the leader
+        /// points to first.
+        /// </remarks>
         /// <param name="options">The options setting the rows and how far they slide.</param>
-        /// <returns>The candidate centres, nearest row first; empty when the label cannot be arranged.</returns>
+        /// <returns>
+        /// The candidate centres, nearest row first, no more than <see cref="ArrangeOptions.MaximumCandidates"/> of them;
+        /// empty when the label cannot be arranged.
+        /// </returns>
         /// <exception cref="ArgumentNullException"><paramref name="options"/> is null.</exception>
         public List<GeoPoint2> GetPlacePoints(ArrangeOptions options)
         {
@@ -34,59 +43,95 @@ namespace GeometryHelper.Arranging
         }
 
         /// <summary>
-        /// Enumerates candidate translation center points for the label layout.
-        /// The point expansion process starts from the path segment midpoint (Anchor):
-        /// - Perpendicular offset to create different label rows.
-        /// - Longitudinal shift along the parallel path direction.
+        /// Enumerates the positions the centre of the label is tried at, as <see cref="GetPlacePoints(ArrangeOptions)"/>
+        /// lists them.
         /// </summary>
         /// <param name="options">The arrangement options.</param>
         /// <returns>An enumerable of candidate points.</returns>
         internal IEnumerable<GeoPoint2> EnumeratePlacePoints(ArrangeOptions options)
+        {
+            return EnumerateCandidates(options).Select(candidate => candidate.Centre);
+        }
+
+        /// <summary>
+        /// Enumerates the candidates of the label, each with how much further off its side asks the label to stand.
+        /// </summary>
+        /// <param name="options">The arrangement options.</param>
+        /// <returns>An enumerable of candidates.</returns>
+        internal IEnumerable<Candidate> EnumerateCandidates(ArrangeOptions options)
+        {
+            // No more than MaximumCandidates, however many rows and slides there are. The cap is also what stops a slide
+            // step of next to nothing from going on for ever.
+            return EnumerateEveryCandidate(options).Take(Math.Max(0, options.MaximumCandidates));
+        }
+
+        /// <summary>
+        /// Enumerates every candidate of the label, with no cap on how many.
+        /// </summary>
+        private IEnumerable<Candidate> EnumerateEveryCandidate(ArrangeOptions options)
         {
             if (!TryGetLayout(options, out Layout layout))
             {
                 yield break;
             }
 
-            int produced = 0;
+            double step = layout.SlideStep;
+            int levels = options.PerpendicularLevels;
 
-            // Calculate dynamic longitudinal shift step based on 5% of maximum shift.
-            // Enforce a minimum protection threshold of 0.1 to avoid zero steps causing infinite loops.
-            double step = layout.MaximumShift / 20.0;
-            if (step < 0.1)
+            // What the first row of the side with the wider gap stands further off than that of the other; nought on
+            // both sides when they stand as far off.
+            double positiveSurplus = Math.Max(0.0, layout.PositiveOffset - layout.NegativeOffset);
+            double negativeSurplus = Math.Max(0.0, layout.NegativeOffset - layout.PositiveOffset);
+
+            // The next row on each side. Of the two, the nearer is tried first, and two as far off together, place by
+            // place. Taking the rows level by level instead, as when both sides always stood as far off, tried the first
+            // row of the far side before the second of the near one.
+            int positive = 0;
+            int negative = 0;
+            while (positive < levels || negative < levels)
             {
-                step = layout.Height;
-            }
-
-            // Iterate through each perpendicular distance level (each label row), a row on either side of the leader,
-            // each side from its own first row.
-            for (int level = 0; level < options.PerpendicularLevels; level++)
-            {
-                double rise = level * (layout.Height + options.RowGap);
-                GeoVector2 positive = layout.Perpendicular * (layout.PositiveOffset + rise);
-                GeoVector2 negative = layout.Perpendicular * -(layout.NegativeOffset + rise);
-
-                // Pure perpendicular shift (no longitudinal shift): the side the perpendicular points to, then the other
-                yield return layout.Anchor + positive;
-                yield return layout.Anchor + negative;
-                produced += 2;
-
-                double shift = step;
-
-                // Slide label longitudinally in both directions (forward and backward) parallel to object direction
-                while (shift <= layout.MaximumShift && produced < options.MaximumCandidates)
+                bool takePositive = positive < levels;
+                bool takeNegative = negative < levels;
+                if (takePositive && takeNegative)
                 {
-                    // Perpendicular side - backward shift
-                    yield return layout.Anchor + positive - layout.Direction * shift;
-                    // Other side - backward shift
-                    yield return layout.Anchor + negative - layout.Direction * shift;
-                    // Perpendicular side - forward shift
-                    yield return layout.Anchor + positive + layout.Direction * shift;
-                    // Other side - forward shift
-                    yield return layout.Anchor + negative + layout.Direction * shift;
+                    double upOffset = layout.GetRowOffset(true, positive, options.RowGap);
+                    double downOffset = layout.GetRowOffset(false, negative, options.RowGap);
+                    takePositive = !(downOffset < upOffset);
+                    takeNegative = !(upOffset < downOffset);
+                }
 
-                    produced += 4;
-                    shift += step;
+                if (takePositive && takeNegative)
+                {
+                    GeoVector2 up = layout.GetRow(true, positive++, options.RowGap);
+                    GeoVector2 down = layout.GetRow(false, negative++, options.RowGap);
+
+                    // Straight across, the side the perpendicular points to first, then sliding along the leader, a step
+                    // back and a step forward in turn, the same side first each time.
+                    yield return new Candidate(layout.Anchor + up, positiveSurplus);
+                    yield return new Candidate(layout.Anchor + down, negativeSurplus);
+
+                    for (double shift = step; shift <= layout.MaximumShift; shift += step)
+                    {
+                        yield return new Candidate(layout.Anchor + up - layout.Direction * shift, positiveSurplus);
+                        yield return new Candidate(layout.Anchor + down - layout.Direction * shift, negativeSurplus);
+                        yield return new Candidate(layout.Anchor + up + layout.Direction * shift, positiveSurplus);
+                        yield return new Candidate(layout.Anchor + down + layout.Direction * shift, negativeSurplus);
+                    }
+                }
+                else
+                {
+                    bool side = takePositive;
+                    GeoVector2 across = layout.GetRow(side, side ? positive++ : negative++, options.RowGap);
+                    double surplus = side ? positiveSurplus : negativeSurplus;
+
+                    // A row on its own: straight across, then a step back and a step forward in turn.
+                    yield return new Candidate(layout.Anchor + across, surplus);
+
+                    for (double shift = step; shift <= layout.MaximumShift; shift += step)
+                    {
+                        yield return new Candidate(layout.Anchor + across - layout.Direction * shift, surplus);
+                        yield return new Candidate(layout.Anchor + across + layout.Direction * shift, surplus);
+                    }
                 }
             }
         }
@@ -159,9 +204,12 @@ namespace GeometryHelper.Arranging
 
             // STEP 4: The first row on each side: half the label height plus the gap of that side. The perpendicular
             // points up in the drawing (towards greater Y), or, the leader vertical, to the left (towards smaller X):
-            // that side is the top, whichever way the leader runs.
-            double equal = options.Tolerance.EqualVector;
-            bool perpendicularIsTop = perpendicular.Y > equal || (Math.Abs(perpendicular.Y) <= equal && perpendicular.X < 0.0);
+            // that side is the top, whichever way the leader runs. Vertical is to within the tolerance's angle, and
+            // nearer vertical than level whatever that angle: the component of a unit vector is the sine of an angle,
+            // which the tolerance of vectors, a length, is no measure of.
+            double sine = Math.Abs(perpendicular.Y);
+            bool vertical = sine <= options.Tolerance.EqualAngleSin && sine < Math.Abs(perpendicular.X);
+            bool perpendicularIsTop = vertical ? perpendicular.X < 0.0 : perpendicular.Y > 0.0;
             double top = height * 0.5 + (OffsetTop ?? Offset);
             double bottom = height * 0.5 + (OffsetBottom ?? Offset);
 

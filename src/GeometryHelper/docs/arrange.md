@@ -103,8 +103,9 @@ ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { smallTextLabel, l
 
 A label can stand one gap off above its leader and another below it. `OffsetTop` is the gap on the side of the
 leader that faces up in the drawing, `OffsetBottom` the gap on the side that faces down, and a side left unset
-takes `Offset`. Which side faces up does not depend on which way the leader was drawn, and a vertical leader
-has its top on the left, where the text of a vertical dimension stands:
+takes `Offset`. Which side faces up does not depend on which way the leader was drawn, and a vertical leader,
+to within the angle of the options' `Tolerance`, has its top on the left, where the text of a vertical dimension
+stands. Every gap has to be a finite number:
 
 ```csharp
 var dimensionText = new ArrangeItem
@@ -125,19 +126,23 @@ All 5 algorithms share the same set of discrete candidate positions, expanding f
 - **Perpendicular Translation** — each level in `PerpendicularLevels` creates a row of labels on either side of the leader. The first row on each side lies half the label height plus the gap of that side off the leader: `OffsetTop` above, `OffsetBottom` below, each `Offset` unless set. Each subsequent level adds the label height plus `RowGap`.
 - **Longitudinal Sliding** — in each row, the label slides parallel to the leader in both directions, up to a maximum of half the leader's length plus `LongitudinalOvershootRatio` times the label width.
 
+The rows of both sides come nearest first, each straight across the middle of the leader and then a step back
+and a step forward along it in turn. Two rows as far off, one on each side, as every pair is when both sides have
+the same gap, are tried together, place by place. A label has no more than `MaximumCandidates` candidates in all.
+
 The algorithms only differ in how they **select** from this candidate set.
 
 ## Five Algorithms
 
 | `ArrangeAlgorithmType` | Selection Strategy | Trade-off |
 |---|---|---|
-| `Greedy` (default) | Sequentially places labels, prioritizing the most constrained ones; selects the most open spot in the first group of free candidates | Fastest, reproducible results, but prone to local optima |
-| `BoundedBacktracking` | Same as Greedy, but backtracks when subsequent labels are stuck, bounded by `MaxBacktrackSteps` | Higher clean placement rate, slower on crowded drawings |
+| `Greedy` (default) | Sequentially places labels, prioritizing the most constrained ones; selects the most open spot in the first group of free candidates, the wider gap of a side not counted as open | Fastest, reproducible results, but prone to local optima |
+| `BoundedBacktracking` | Same as Greedy, but tries the nearest free spot first and backtracks when subsequent labels are stuck, bounded by `MaxBacktrackSteps` | Higher clean placement rate, slower on crowded drawings |
 | `SimulatedAnnealing` | Global optimization based on a collision-penalty energy function, gradually cooling down | Best for extremely crowded drawings, CPU-heavy |
 | `ForceDirected` | Simulates spring and repulsive forces, then maps to the nearest discrete candidate | Distributes labels evenly and naturally |
 | `ConstraintSatisfaction` | CSP with MRV heuristic and forward checking | Most rigorous, potential combinatorial explosion with large number of labels |
 
-`BoundedBacktracking` and `ConstraintSatisfaction` automatically fallback to `Greedy` if no collision-free solution is found, ensuring every label always has a display position.
+`BoundedBacktracking` and `ConstraintSatisfaction` automatically fallback to `Greedy` if no collision-free solution is found, or their steps back run out, ensuring every label always has a display position.
 
 `SimulatedAnnealing` uses a fixed seed, so its results are reproducible between runs.
 
@@ -147,7 +152,7 @@ The algorithms only differ in how they **select** from this candidate set.
 |---|---|---|
 | `Box` | — | The label's box, the rectangle that is moved |
 | `Leader` | — | The segment the label belongs to; its midpoint is the origin of the candidate positions |
-| `Offset` | 50.0 | The least gap between the label's edge and the leader, on both sides unless a side has its own |
+| `Offset` | 50.0 | The least gap between the label's edge and the leader, on both sides unless a side has its own; a finite number |
 | `OffsetTop` | null (`Offset`) | The gap on the side of the leader that faces up in the drawing; the left of a vertical leader |
 | `OffsetBottom` | null (`Offset`) | The gap on the side that faces down; the right of a vertical leader |
 | `BlockPolygons` | empty | Regions the label must not overlap |
@@ -167,10 +172,11 @@ the blocks of every item, and a block given to many items is tested once.
 | `MinimumBoxSize` | 10.0 | Labels smaller than this size are ignored |
 | `MinimumMoveDistance` | 0.1 | Translations smaller than this threshold are rounded to zero |
 | `NeighbourMargin` | 50.0 | Expanded margin when filtering nearby obstacles |
+| `MaximumCandidates` | 10000 | The most candidate positions a label has |
 | `PlaceMostConstrainedFirst` | true | Place labels with fewer options first |
 | `PlaceFromInsideOut` | true | Prioritize labels close to the area centroid |
 | `LookAheadCandidates` | 3 | Number of free positions considered before selection |
-| `MaxBacktrackSteps` | 1000 | Cap on the number of backtracking steps |
+| `MaxBacktrackSteps` | 1000 | The most steps back `BoundedBacktracking` and `ConstraintSatisfaction` take before falling back to `Greedy`; placing a label takes none |
 | `AnnealingInitialTemperature` | 100.0 | Initial temperature for the Simulated Annealing algorithm |
 | `AnnealingCoolingRate` | 0.95 | Cooling rate for the Simulated Annealing algorithm |
 | `ForceIterations` | 100 | Number of force simulation iterations for the Force-Directed algorithm |

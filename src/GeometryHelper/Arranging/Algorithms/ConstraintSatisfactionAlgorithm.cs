@@ -43,14 +43,9 @@ namespace GeometryHelper.Arranging.Algorithms
         }
 
         /// <summary>
-        /// Tracks the number of backtracking steps taken during search.
+        /// The steps back the search has taken: the times it went back to a variable it had given a value, to try the next.
         /// </summary>
         private int _backtrackSteps;
-
-        /// <summary>
-        /// Indicates whether the search process has timed out.
-        /// </summary>
-        private bool _isTimeout;
 
         /// <summary>
         /// Arranges the labels using a constraint satisfaction algorithm.
@@ -99,7 +94,6 @@ namespace GeometryHelper.Arranging.Algorithms
             }
 
             _backtrackSteps = 0;
-            _isTimeout = false;
 
             // STEP 3: Solve the constraint satisfaction problem
             bool success = SolveCSP(variables, options);
@@ -125,45 +119,101 @@ namespace GeometryHelper.Arranging.Algorithms
         }
 
         /// <summary>
-        /// Recursively solves CSP using MRV heuristics and Forward Checking pruning.
+        /// A variable being tried, and where its trying stands: the values it had to try, which of them is next, and the
+        /// domains of every variable as they stood before it was first given one.
         /// </summary>
+        private sealed class Attempt
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="Attempt"/> class.
+            /// </summary>
+            /// <param name="variable">The variable tried.</param>
+            /// <param name="domains">The domains of every variable, by original index, before the variable was tried.</param>
+            public Attempt(CSPVariable variable, Dictionary<int, List<GeoVector2>> domains)
+            {
+                Variable = variable;
+                Values = variable.Domain;
+                Domains = domains;
+            }
+
+            /// <summary>Gets the variable tried.</summary>
+            public CSPVariable Variable { get; }
+
+            /// <summary>Gets the values the variable had to try, its domain when its trying began.</summary>
+            public List<GeoVector2> Values { get; }
+
+            /// <summary>Gets the domains of every variable, by original index, as they stood before the variable was tried.</summary>
+            public Dictionary<int, List<GeoVector2>> Domains { get; }
+
+            /// <summary>Gets or sets which of <see cref="Values"/> is tried next.</summary>
+            public int Next { get; set; }
+        }
+
+        /// <summary>
+        /// Solves CSP using MRV heuristics and Forward Checking pruning.
+        /// </summary>
+        /// <remarks>
+        /// A loop over a stack of the variables being tried rather than a call for each: a call for each went as deep
+        /// as there were labels, and on some hosts a few hundred of them ran the stack dry.
+        /// </remarks>
         private bool SolveCSP(List<CSPVariable> variables, ArrangeOptions options)
         {
-            // Check assignment count
-            var unassigned = variables.Where(v => !v.IsAssigned).ToList();
-            if (unassigned.Count == 0)
+            var attempts = new Stack<Attempt>();
+            bool choosing = true;
+
+            while (true)
             {
-                return true;
-            }
+                if (choosing)
+                {
+                    // Check assignment count
+                    var unassigned = variables.Where(v => !v.IsAssigned).ToList();
+                    if (unassigned.Count == 0)
+                    {
+                        return true;
+                    }
 
-            _backtrackSteps++;
-            if (_backtrackSteps > options.MaxBacktrackSteps)
-            {
-                _isTimeout = true;
-                return false;
-            }
+                    // HEURISTIC MRV: Select the unassigned variable with the smallest domain size
+                    CSPVariable currentVar = unassigned.OrderBy(v => v.Domain.Count).First();
 
-            // HEURISTIC MRV: Select the unassigned variable with the smallest domain size
-            CSPVariable currentVar = unassigned.OrderBy(v => v.Domain.Count).First();
+                    if (currentVar.Domain.Count == 0)
+                    {
+                        // Stuck: Unassigned variable has no valid candidates left. Back to the variable tried last.
+                        if (!Retreat(attempts, variables, options))
+                        {
+                            return false;
+                        }
 
-            if (currentVar.Domain.Count == 0)
-            {
-                // Stuck: Unassigned variable has no valid candidates left
-                return false;
-            }
+                        choosing = false;
+                        continue;
+                    }
 
-            // Store backups of domains to restore during backtracking
-            var domainsBackup = variables.ToDictionary(v => v.OriginalIndex, v => v.Domain.ToList());
+                    // Store backups of domains to restore during backtracking
+                    attempts.Push(new Attempt(currentVar, variables.ToDictionary(v => v.OriginalIndex, v => v.Domain.ToList())));
+                }
 
-            // Try each translation value in the current variable's domain
-            foreach (GeoVector2 val in currentVar.Domain)
-            {
-                currentVar.AssignedValue = val;
-                currentVar.IsAssigned = true;
+                Attempt attempt = attempts.Peek();
+                if (attempt.Next >= attempt.Values.Count)
+                {
+                    // Every value of this variable failed: back to the variable tried before it.
+                    attempts.Pop();
+                    if (!Retreat(attempts, variables, options))
+                    {
+                        return false;
+                    }
+
+                    choosing = false;
+                    continue;
+                }
+
+                // Try the next translation value in the current variable's domain
+                GeoVector2 val = attempt.Values[attempt.Next++];
+                CSPVariable current = attempt.Variable;
+                current.AssignedValue = val;
+                current.IsAssigned = true;
 
                 // FORWARD CHECKING: Filter the domains of other unassigned variables
                 bool forwardCheckOk = true;
-                GeoRectangle2 currentRect = currentVar.Item.Box.Translate(val);
+                GeoRectangle2 currentRect = current.Item.Box.Translate(val);
 
                 foreach (var otherVar in variables.Where(v => !v.IsAssigned))
                 {
@@ -191,27 +241,54 @@ namespace GeometryHelper.Arranging.Algorithms
 
                 if (forwardCheckOk)
                 {
-                    // Recursively assign the next variable
-                    if (SolveCSP(variables, options))
-                    {
-                        return true;
-                    }
+                    // Assign the next variable
+                    choosing = true;
+                    continue;
                 }
 
-                // BACKTRACK: Restore the previous domain states
-                currentVar.IsAssigned = false;
-                foreach (var v in variables)
-                {
-                    v.Domain = domainsBackup[v.OriginalIndex].ToList();
-                }
+                // BACKTRACK: Restore the previous domain states, and try the next value
+                Restore(attempt, variables);
+                choosing = false;
+            }
+        }
 
-                if (_isTimeout)
-                {
-                    return false;
-                }
+        /// <summary>
+        /// Goes back to the variable tried last, after the variables after it found no values: undoes its value, so that
+        /// it tries its next.
+        /// </summary>
+        /// <remarks>
+        /// A step back, and only that counts: giving a variable a value costs none, so a search that never has to go
+        /// back is never cut short, however many labels there are. Each value given counting as a step, a run of more
+        /// labels than steps gave up every time and fell back to the greedy algorithm.
+        /// </remarks>
+        /// <returns>False when no variable is left to go back to, or the steps back have run out.</returns>
+        private bool Retreat(Stack<Attempt> attempts, List<CSPVariable> variables, ArrangeOptions options)
+        {
+            if (attempts.Count == 0)
+            {
+                return false;
             }
 
-            return false;
+            _backtrackSteps++;
+            if (_backtrackSteps > options.MaxBacktrackSteps)
+            {
+                return false;
+            }
+
+            Restore(attempts.Peek(), variables);
+            return true;
+        }
+
+        /// <summary>
+        /// Undoes the value of the variable tried, and the domains of every variable back to what they were before it.
+        /// </summary>
+        private static void Restore(Attempt attempt, List<CSPVariable> variables)
+        {
+            attempt.Variable.IsAssigned = false;
+            foreach (var v in variables)
+            {
+                v.Domain = attempt.Domains[v.OriginalIndex].ToList();
+            }
         }
     }
 }

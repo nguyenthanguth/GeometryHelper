@@ -89,7 +89,7 @@ namespace GeometryHelper.UnitTest.Arranging
             double largeGap = largeTextLabel.Box.Translate(results[1].Translation).DistanceTo(leader);
             Assert.True(largeGap > smallGap);
         }
-    
+
 
         [Fact]
         public void QuickStart_AGapForEachSide()

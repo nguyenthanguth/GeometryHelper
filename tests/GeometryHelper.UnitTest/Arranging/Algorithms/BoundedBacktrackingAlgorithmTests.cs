@@ -99,7 +99,7 @@ namespace GeometryHelper.UnitTest.Arranging
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, options)[0];
             var moved = new GeoRectangle2(label.Box.Center + result.Translation, 20.0, 10.0);
 
-            // There is only one label, so it must lie at the closest level: BaseOffset = 5 + 5 = 10.
+            // There is only one label, so it must lie at the closest level: half the height plus Offset = 5 + 5 = 10.
             // The outermost level would give |Y| = 10 + 2 * (10 + 5) = 40.
             Assert.Equal(10.0, Math.Abs(moved.Center.Y), 6);
             Assert.True(result.Placed);
@@ -141,11 +141,33 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.True(results.Count(x => x.Placed) >= 2);
         }
 
+        /// <summary>
+        /// Labels far apart on leaders of their own, each box above and to the right of its leader's middle. Each goes to
+        /// its candidate nearest to where it stands, which needs no going back, so the budget of steps back does not
+        /// come into it. Every label counted as a step, and with more labels than steps the search gave up and handed
+        /// the labels to the greedy algorithm, which takes the first place free.
+        /// </summary>
+        [Theory]
+        [InlineData(20, 10)]
+        [InlineData(20, 0)]
+        [InlineData(3000, 1000)]
+        public void Arrange_Run_BoundedBacktracking_PlacesMoreLabelsThanItHasStepsBack(int count, int steps)
+        {
+            var options = new ArrangeOptions
+            {
+                Algorithm = ArrangeAlgorithmType.BoundedBacktracking,
+                RowGap = 5.0,
+                PerpendicularLevels = 3,
+                MaxBacktrackSteps = steps
+            };
+            ArrangeTestKit.AssertEachGoesToItsNearestCandidate(ArrangeTestKit.LabelsApart(count), options);
+        }
+
         [Fact]
         public void Arrange_Run_BoundedBacktracking_RespectsMaxBacktrackSteps()
         {
-            // Budget equal to 0 forces the algorithm to give up immediately and fallback to Greedy,
-            // but the returned result must still be valid and not empty or throwing errors.
+            // A budget of nought lets the search go back no step. These two share a leader, and each finds a place
+            // without going back, but whatever the budget the result must be valid, not empty and not throwing.
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var a = new ArrangeItem { Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0), Leader = leader, Offset = 5.0 };
             var b = new ArrangeItem { Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0), Leader = leader, Offset = 5.0 };

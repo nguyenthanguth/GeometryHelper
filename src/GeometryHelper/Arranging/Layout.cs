@@ -43,5 +43,40 @@ namespace GeometryHelper.Arranging
         internal double NegativeOffset { get; }
         /// <summary>Gets the maximum longitudinal shift distance.</summary>
         internal double MaximumShift { get; }
+
+        /// <summary>
+        /// Gets how far each slide along the leader steps: a twentieth of <see cref="MaximumShift"/>, or the height of
+        /// the label where that comes to less than 0.1, so that a reach of next to nothing cannot step by next to nothing.
+        /// </summary>
+        internal double SlideStep
+        {
+            get
+            {
+                double step = MaximumShift / 20.0;
+                return step < 0.1 ? Height : step;
+            }
+        }
+
+        /// <summary>
+        /// Gets how far from the leader the centre of a row lies: the first row of its side, then the height of the label
+        /// and the gap between rows for each row beyond.
+        /// </summary>
+        /// <param name="positiveSide">True for the side <see cref="Perpendicular"/> points to, false for the other.</param>
+        /// <param name="level">The row, counted from nought, the first.</param>
+        /// <param name="rowGap">The gap between rows.</param>
+        internal double GetRowOffset(bool positiveSide, int level, double rowGap)
+            => (positiveSide ? PositiveOffset : NegativeOffset) + level * (Height + rowGap);
+
+        /// <summary>
+        /// Gets the way from <see cref="Anchor"/> straight across the leader to the centre of a row.
+        /// </summary>
+        /// <param name="positiveSide">True for the side <see cref="Perpendicular"/> points to, false for the other.</param>
+        /// <param name="level">The row, counted from nought, the first.</param>
+        /// <param name="rowGap">The gap between rows.</param>
+        internal GeoVector2 GetRow(bool positiveSide, int level, double rowGap)
+        {
+            double offset = GetRowOffset(positiveSide, level, rowGap);
+            return positiveSide ? Perpendicular * offset : Perpendicular * -offset;
+        }
     }
 }

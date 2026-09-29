@@ -31,6 +31,7 @@ namespace GeometryHelper.Arranging.Algorithms
             var staticObstacles = Obstacle.CollectStatic(items);
             var anchors = new GeoPoint2[items.Count];
             var positions = new GeoPoint2[items.Count];
+            var escapes = new GeoVector2[items.Count];
 
             // STEP 1: Record initial default positions (Anchors)
             for (int i = 0; i < items.Count; i++)
@@ -40,6 +41,7 @@ namespace GeometryHelper.Arranging.Algorithms
 
                 anchors[i] = item.Box.Center;
                 positions[i] = item.Box.Center;
+                escapes[i] = GetEscape(item, options);
             }
 
             // STEP 2: Run continuous physical force simulation
@@ -118,7 +120,7 @@ namespace GeometryHelper.Arranging.Algorithms
 
                         if (!closest.GetVectorTo(positions[i]).TryGetNormal(out GeoVector2 pushDir))
                         {
-                            pushDir = GeoVector2.XAxis;
+                            pushDir = escapes[i];
                         }
 
                         double pushMagnitude = 200000.0 / (dist * dist);
@@ -198,6 +200,31 @@ namespace GeometryHelper.Arranging.Algorithms
             }
 
             return translations;
+        }
+
+        /// <summary>
+        /// Gets the way a label is pushed off what it sits right on, where the push has no way of its own: a label
+        /// centred on its own leader, among what it keeps clear of, is pushed to the side of the leader with the smaller
+        /// gap. Where both sides have the same gap, or the label cannot be arranged, it is pushed along +X.
+        /// </summary>
+        /// <remarks>
+        /// Always along +X, a label on a leader whose sides had different gaps was pushed off to whichever side +X
+        /// falls on, the right of a vertical leader, and then went to the candidate nearest to where the push left it,
+        /// on that side, however wide its gap.
+        /// </remarks>
+        private static GeoVector2 GetEscape(ArrangeItem item, ArrangeOptions options)
+        {
+            if (!item.TryGetLayout(options, out Layout layout))
+            {
+                return GeoVector2.XAxis;
+            }
+
+            if (layout.PositiveOffset < layout.NegativeOffset)
+            {
+                return layout.Perpendicular;
+            }
+
+            return layout.NegativeOffset < layout.PositiveOffset ? -layout.Perpendicular : GeoVector2.XAxis;
         }
 
         /// <summary>

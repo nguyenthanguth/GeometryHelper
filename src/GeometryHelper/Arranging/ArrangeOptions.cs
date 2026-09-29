@@ -89,8 +89,15 @@ namespace GeometryHelper.Arranging
         public bool PlaceFromInsideOut { get; set; } = true;
 
         /// <summary>
-        /// Maximum backtracking steps for the Bounded Backtracking algorithm.
+        /// The most steps back the two searching algorithms, bounded backtracking and constraint satisfaction, may take:
+        /// each time a search takes up a label it has placed, to try it elsewhere, because a label after it found no
+        /// place. Once they run out, the search gives up and the greedy algorithm places the labels.
         /// </summary>
+        /// <remarks>
+        /// Placing a label costs no step, so a search that never has to go back is never cut short, however many labels
+        /// there are. Until 6.3.0 every label placed counted as a step, and a run of more labels than steps always gave
+        /// up and was placed by the greedy algorithm.
+        /// </remarks>
         public int MaxBacktrackSteps { get; set; } = 1000;
 
         /// <summary>

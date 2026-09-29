@@ -12,23 +12,8 @@ namespace GeometryHelper.UnitTest.Arranging
     /// <summary>
     /// What a run promises about what it is given and what it gives back, apart from where the labels end up.
     /// </summary>
-    public class ArrangerTests
+    public class ArrangerTests : ArrangeTestKit
     {
-        public static IEnumerable<object[]> AllAlgorithms()
-        {
-            return Enum.GetValues(typeof(ArrangeAlgorithmType)).Cast<ArrangeAlgorithmType>().Select(a => new object[] { a });
-        }
-
-        private static ArrangeItem LabelOn(GeoLine2 leader)
-        {
-            return new ArrangeItem
-            {
-                Leader = leader,
-                Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0),
-                Offset = 5.0
-            };
-        }
-
         private static ArrangeOptions OneRow(ArrangeAlgorithmType algorithm)
         {
             return new ArrangeOptions { Algorithm = algorithm, RowGap = 5.0, PerpendicularLevels = 1 };
@@ -91,11 +76,21 @@ namespace GeometryHelper.UnitTest.Arranging
         public void ARunLeavesTheItemsAsItFoundThem(ArrangeAlgorithmType algorithm)
         {
             List<ArrangeItem> items = Crowd();
+
+            // Some labels have a gap of their own on a side, the others leave both to the offset.
+            for (int i = 0; i < items.Count; i += 2)
+            {
+                items[i].OffsetTop = 3.0;
+                items[i].OffsetBottom = 7.0;
+            }
+
             var before = items.Select(item => new
             {
                 item.Box,
                 item.Leader,
                 item.Offset,
+                item.OffsetTop,
+                item.OffsetBottom,
                 Polygons = item.BlockPolygons,
                 PolygonsHeld = item.BlockPolygons.ToArray(),
                 Lines = item.BlockLines,
@@ -112,6 +107,8 @@ namespace GeometryHelper.UnitTest.Arranging
                 Assert.Equal(before[i].Box, items[i].Box);
                 Assert.Equal(before[i].Leader, items[i].Leader);
                 Assert.Equal(before[i].Offset, items[i].Offset);
+                Assert.Equal(before[i].OffsetTop, items[i].OffsetTop);
+                Assert.Equal(before[i].OffsetBottom, items[i].OffsetBottom);
                 Assert.Same(before[i].Polygons, items[i].BlockPolygons);
                 Assert.Equal(before[i].PolygonsHeld, items[i].BlockPolygons);
                 Assert.Same(before[i].Lines, items[i].BlockLines);
@@ -170,6 +167,50 @@ namespace GeometryHelper.UnitTest.Arranging
             // Each moves to one of its own candidates.
             Assert.Contains(first.GetPlacePoints(), p => p.IsEqualTo(first.Box.Center + results[0].Translation));
             Assert.Contains(second.GetPlacePoints(), p => p.IsEqualTo(second.Box.Center + results[2].Translation));
+        }
+
+        /// <summary>
+        /// A region is kept clear of by every label, whichever item it is given to. The second pass gathered the regions
+        /// of the labels it tried again only, so a region given to a label the first pass placed was lost: here the
+        /// middle label, pushed off its clear place in the first pass by the third, which fell back onto it, went back
+        /// onto the region in the second.
+        /// </summary>
+        [Theory]
+        [InlineData(ArrangeAlgorithmType.Greedy)]
+        [InlineData(ArrangeAlgorithmType.BoundedBacktracking)]
+        [InlineData(ArrangeAlgorithmType.ConstraintSatisfaction)]
+        public void TheSecondPassKeepsClearOfTheRegionsOfEveryItem(ArrangeAlgorithmType algorithm)
+        {
+            var region = new GeoPolygon2(new GeoPoint2(-100.0, 1.0), new GeoPoint2(200.0, 1.0), new GeoPoint2(200.0, 30.0), new GeoPoint2(-100.0, 30.0));
+            var options = new ArrangeOptions
+            {
+                Algorithm = algorithm,
+                PerpendicularLevels = 1,
+                PlaceMostConstrainedFirst = false,
+                PlaceFromInsideOut = false,
+            };
+
+            List<ArrangeItem> Scene(bool regionOnTheMiddleLabelToo)
+            {
+                ArrangeItem owner = LabelOn(new GeoLine2(1000.0, 0.0, 1100.0, 0.0));
+                owner.BlockPolygons = new[] { region };
+                ArrangeItem middle = LabelOn(new GeoLine2(0.0, 0.0, 100.0, 0.0));
+                if (regionOnTheMiddleLabelToo)
+                {
+                    middle.BlockPolygons = new[] { region };
+                }
+
+                ArrangeItem stuck = LabelOn(new GeoLine2(101.0, -1.0, 1.0, -1.0));
+                stuck.BlockLines = new[] { new GeoLine2(-200.0, -15.5, 300.0, -15.5) };
+                return new List<ArrangeItem> { owner, middle, stuck };
+            }
+
+            ArrangeResult[] results = Arranger.Run(Scene(regionOnTheMiddleLabelToo: false), options);
+
+            // Clear below the leader, 5 + 5 off, clear of the region above it.
+            Assert.True(results[1].Placed, $"{algorithm}: {results[1]}");
+            Assert.True(results[1].Translation.IsEqualTo(new GeoVector2(0.0, -10.0)), $"{algorithm}: {results[1]}");
+            Assert.Equal(Arranger.Run(Scene(regionOnTheMiddleLabelToo: true), options), results);
         }
 
         [Fact]

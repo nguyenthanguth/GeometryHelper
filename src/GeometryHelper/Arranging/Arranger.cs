@@ -107,28 +107,24 @@ namespace GeometryHelper.Arranging
         /// </summary>
         /// <returns>False when every label was placed, so that there was nothing to try again.</returns>
         /// <remarks>
+        /// <para>
         /// The labels are tried as copies carrying the relaxed blocks. Lending the items themselves the relaxed blocks
         /// and handing their own back afterwards lost them for good when an item was listed twice, the second loan
         /// taking the first for the label's own, and showed the loan to anything reading the items meanwhile.
+        /// </para>
+        /// <para>
+        /// Every copy carries the regions of every item, as every label keeps clear of them. The copies are arranged
+        /// among themselves, so a region given only to an item the first pass placed was lost when each copy carried
+        /// its own item's regions alone.
+        /// </para>
         /// </remarks>
         private static bool Relax(IReadOnlyList<ArrangeItem> items, GeoVector2[] translations, bool[] placed,
             IArrangeAlgorithm algorithm, ArrangeOptions options)
         {
             var failed = new List<int>();
-            var settled = new List<GeoPolygon2>();
-
             for (int i = 0; i < items.Count; i++)
             {
-                if (items[i] == null)
-                {
-                    continue;
-                }
-
-                if (placed[i])
-                {
-                    settled.Add(new GeoPolygon2(items[i].Box.Translate(translations[i]).GetVertices()));
-                }
-                else
+                if (items[i] != null && !placed[i])
                 {
                     failed.Add(i);
                 }
@@ -139,30 +135,41 @@ namespace GeometryHelper.Arranging
                 return false;
             }
 
+            var settled = new List<GeoPolygon2>();
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (items[i] != null && placed[i] && TryGetRegion(items[i].Box.Translate(translations[i]), out GeoPolygon2 region))
+                {
+                    settled.Add(region);
+                }
+            }
+
+            // Lifted: the block lines. Kept: the block polygons of every item, each once, and every label the first
+            // pass placed. One list for every copy.
+            var blocks = new List<GeoPolygon2>();
+            var seen = new HashSet<GeoPolygon2>();
+            foreach (ArrangeItem item in items)
+            {
+                if (item?.BlockPolygons == null)
+                {
+                    continue;
+                }
+
+                foreach (GeoPolygon2 polygon in item.BlockPolygons)
+                {
+                    if (polygon != null && seen.Add(polygon))
+                    {
+                        blocks.Add(polygon);
+                    }
+                }
+            }
+
+            blocks.AddRange(settled);
+
             var relaxed = new ArrangeItem[failed.Count];
             for (int k = 0; k < failed.Count; k++)
             {
-                ArrangeItem item = items[failed[k]];
-
-                // Lifted: the block lines. Kept: the block polygons, and every label the first pass placed.
-                var blocks = new List<GeoPolygon2>();
-                if (item.BlockPolygons != null)
-                {
-                    blocks.AddRange(item.BlockPolygons);
-                }
-
-                blocks.AddRange(settled);
-
-                relaxed[k] = new ArrangeItem
-                {
-                    Box = item.Box,
-                    Leader = item.Leader,
-                    Offset = item.Offset,
-                    OffsetTop = item.OffsetTop,
-                    OffsetBottom = item.OffsetBottom,
-                    BlockPolygons = blocks,
-                    BlockLines = Array.Empty<GeoLine2>(),
-                };
+                relaxed[k] = items[failed[k]].WithBlocks(blocks, Array.Empty<GeoLine2>());
             }
 
             GeoVector2[] second = algorithm.Arrange(relaxed, options);
@@ -171,6 +178,32 @@ namespace GeometryHelper.Arranging
                 translations[failed[k]] = second[k];
             }
 
+            return true;
+        }
+
+        /// <summary>
+        /// Makes the region a placed label takes up, for the second pass to keep clear of.
+        /// </summary>
+        /// <returns>
+        /// False for a box two of whose corners run together, which makes no region: one moved so far off that the
+        /// numbers no longer tell its corners apart, as a gap as wide as a number goes takes it, or one smaller than
+        /// the global tolerance of points. Judging the final layout still sees it.
+        /// </returns>
+        private static bool TryGetRegion(GeoRectangle2 box, out GeoPolygon2 region)
+        {
+            GeoPoint2[] corners = box.GetVertices();
+            for (int i = 0; i < corners.Length; i++)
+            {
+                // A polygon drops each corner that falls on the one before it, the first coming after the last: a box
+                // that loses one is no box.
+                if (corners[i].IsEqualTo(corners[(i + 1) % corners.Length]))
+                {
+                    region = null;
+                    return false;
+                }
+            }
+
+            region = new GeoPolygon2(corners);
             return true;
         }
 

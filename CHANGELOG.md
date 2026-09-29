@@ -4,6 +4,56 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+Label placement, put right after a review of 6.3.0. A label that gives neither side of its leader a gap of its own
+is placed as before, save where a fix below says otherwise: its candidates and results are those of 6.2.0 and
+6.3.0, compared byte for byte over 825 candidate lists and 105 runs of the five algorithms, the second pass
+included, and a test now holds them to what a build of 6.2.0 gives.
+
+**FIXED.** A label given a gap of its own on each side went to the side with the wider gap, the one it was to keep
+further from. The rows of the two sides were tried level by level, the leader's left first, so a leader drawn the
+other way, greedy placement in open space, and every fallback to a label's first candidate went to whichever side
+that happened to be. And greedy placement, which keeps the freest of its first few free places, found each place
+in the first row of a side that side's gap clear of the label's own leader, which is among what a label keeps
+clear of whenever every leader of a drawing is handed to every label, as both example applications do. The rows
+of both sides are now tried nearest first, as `GetPlacePoints` always said, two as far off together as before;
+greedy placement counts the room beyond what the wider gap of a side asks for; and the force-directed algorithm
+pushes a label sitting right on its own leader towards the side with the smaller gap, where it pushed it along
++X, off to the right of a vertical leader.
+
+**FIXED.** Which side of a leader is its top no longer rests on the tolerance of vectors, which is a length: a
+leader is vertical, with its top on the left, within the tolerance's `EqualAngleRad` of vertical. With
+`EqualVector` at 1, a horizontal leader passed for a vertical one, and its two gaps swapped with the way it was
+drawn. A leader within a degree of vertical, the default, now has its top on the left whichever way it leans.
+
+**FIXED.** The second pass of a run kept clear of the regions of the labels it tried again, and of no others: a
+region given only to a label the first pass placed was lost, and a label could go back onto it. Every label keeps
+clear of the regions of every item in both passes, as documented.
+
+**FIXED.** `MaxBacktrackSteps` counts steps back and nothing else. Bounded backtracking and constraint satisfaction
+counted every label placed as a step, so a run of more labels than steps did the whole search, gave up, and was
+placed by the greedy algorithm; and they went a call deeper for each label, which on some hosts ran the stack dry
+at a few hundred labels. Both now search in a loop, and a search that never has to go back is never cut short.
+Wherever 6.3.0 did not run out of steps they give the results it gave, compared with its recursive searches over
+8,000 runs of crowded scenes. Bounded backtracking also measures clearance only where it breaks a tie, which is
+all it decides.
+
+**FIXED.** `MaximumCandidates` caps the candidates of a label. It was checked only before each group of four
+slides, so every row still gave its two places straight across: a cap of 1 gave 6 candidates, and a million rows
+two million.
+
+**FIXED.** `Offset`, `OffsetTop` and `OffsetBottom` refuse NaN and infinity with `ArgumentOutOfRangeException`, as
+the rest of the library refuses sizes and distances that are not finite numbers; a side can still be left unset.
+An infinite gap made candidates of NaN, and a side's NaN turned the obstacles of the other side off.
+
+**FIXED.** A gap as wide as a number goes, `double.MaxValue` on one side as a "never", made `Arranger.Run` throw:
+the second pass made a region of a label moved so far off that the corners of its box ran together. Such a box is
+left out of the regions of the second pass, and with the nearer rows tried first it is only reached when nothing
+nearer is free. And the reach the obstacles of a label are gathered within takes in the first row of each side as
+well as the last, so a gap negative enough to take the rows of one side across the leader and past those of the
+other no longer leaves out the obstacles over them.
+
 ## 6.3.0
 
 **NEW.** A gap for each side of a label's leader. `ArrangeItem.OffsetTop` is the least gap between the label and
