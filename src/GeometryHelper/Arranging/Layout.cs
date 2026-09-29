@@ -17,8 +17,10 @@ namespace GeometryHelper.Arranging
         /// <param name="positiveOffset">How far from the path the centre of the first row lies on the side the perpendicular points to.</param>
         /// <param name="negativeOffset">How far from the path the centre of the first row lies on the other side.</param>
         /// <param name="maximumShift">The maximum longitudinal shift distance.</param>
+        /// <param name="positiveOpen">Whether the label may stand on the side the perpendicular points to.</param>
+        /// <param name="negativeOpen">Whether the label may stand on the other side.</param>
         internal Layout(GeoPoint2 anchor, GeoVector2 direction, GeoVector2 perpendicular,
-            double height, double positiveOffset, double negativeOffset, double maximumShift)
+            double height, double positiveOffset, double negativeOffset, double maximumShift, bool positiveOpen, bool negativeOpen)
         {
             Anchor = anchor;
             Direction = direction;
@@ -27,6 +29,8 @@ namespace GeometryHelper.Arranging
             PositiveOffset = positiveOffset;
             NegativeOffset = negativeOffset;
             MaximumShift = maximumShift;
+            PositiveOpen = positiveOpen;
+            NegativeOpen = negativeOpen;
         }
 
         /// <summary>Gets the anchor point on the path segment.</summary>
@@ -43,6 +47,10 @@ namespace GeometryHelper.Arranging
         internal double NegativeOffset { get; }
         /// <summary>Gets the maximum longitudinal shift distance.</summary>
         internal double MaximumShift { get; }
+        /// <summary>Gets whether the label may stand on the side <see cref="Perpendicular"/> points to.</summary>
+        internal bool PositiveOpen { get; }
+        /// <summary>Gets whether the label may stand on the other side.</summary>
+        internal bool NegativeOpen { get; }
 
         /// <summary>
         /// Gets how far each slide along the leader steps: a twentieth of <see cref="MaximumShift"/>, or the height of

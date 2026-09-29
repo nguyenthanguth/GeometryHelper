@@ -18,6 +18,7 @@ namespace GeometryHelper.Arranging
 
         private double _offsetTop = 50.0;
         private double _offsetBottom = 50.0;
+        private ArrangeSide _side = ArrangeSide.Both;
 
         /// <summary>
         /// Gets or sets the box of the label: the rectangle that is moved.
@@ -90,6 +91,36 @@ namespace GeometryHelper.Arranging
             {
                 Guard.Finite(value, nameof(value), GapMessage);
                 _offsetBottom = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets which side of the leader the label may stand on; <see cref="ArrangeSide.Both"/> unless set.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// On <see cref="ArrangeSide.Top"/> or <see cref="ArrangeSide.Bottom"/> the label is tried on the rows of that
+        /// side alone, the side <see cref="OffsetTop"/> or <see cref="OffsetBottom"/> is the gap of. With no free place
+        /// there, it is left on the first of them and reported not <see cref="ArrangeResult.Placed"/>, however free the
+        /// other side.
+        /// </para>
+        /// <para>
+        /// A gap as wide as it goes on the other side only makes that side the last one tried: the label still goes
+        /// there when the near side is full.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">The value is not one of <see cref="ArrangeSide"/>.</exception>
+        public ArrangeSide Side
+        {
+            get => _side;
+            set
+            {
+                if (value != ArrangeSide.Both && value != ArrangeSide.Top && value != ArrangeSide.Bottom)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown side of a leader.");
+                }
+
+                _side = value;
             }
         }
 

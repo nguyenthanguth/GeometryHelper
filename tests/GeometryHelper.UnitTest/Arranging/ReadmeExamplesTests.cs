@@ -90,7 +90,6 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.True(largeGap > smallGap);
         }
 
-
         [Fact]
         public void QuickStart_AGapForEachSide()
         {
@@ -115,6 +114,32 @@ namespace GeometryHelper.UnitTest.Arranging
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { dimensionText })[0];
             Assert.True(result.Placed);
             Assert.Equal(520.0, (dimensionText.Box.Center + result.Translation).Y, 9);
+        }
+
+        [Fact]
+        public void QuickStart_OneSideOnly()
+        {
+            var leader = new GeoLine2(0.0, 0.0, 2000.0, 0.0);
+
+            var levelMark = new ArrangeItem
+            {
+                Box       = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
+                Leader    = leader,
+                OffsetTop = 20.0,
+                Side      = ArrangeSide.Top   // above the leader, never below it
+            };
+
+            // Every candidate above the leader, the first row 500 + 20 off.
+            Assert.All(levelMark.GetPlacePoints(), p => Assert.True(p.Y >= 520.0 - 1e-9));
+
+            // Walled in above, it is left on the first of its places there, free as it is below.
+            levelMark.BlockPolygons = new[]
+            {
+                new GeoPolygon2(new GeoPoint2(-5000.0, 1.0), new GeoPoint2(7000.0, 1.0), new GeoPoint2(7000.0, 5000.0), new GeoPoint2(-5000.0, 5000.0))
+            };
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { levelMark })[0];
+            Assert.False(result.Placed);
+            Assert.Equal(520.0, (levelMark.Box.Center + result.Translation).Y, 9);
         }
     }
 }

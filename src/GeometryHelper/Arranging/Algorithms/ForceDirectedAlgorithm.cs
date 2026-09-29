@@ -204,8 +204,9 @@ namespace GeometryHelper.Arranging.Algorithms
 
         /// <summary>
         /// Gets the way a label is pushed off what it sits right on, where the push has no way of its own: a label
-        /// centred on its own leader, among what it keeps clear of, is pushed to the side of the leader with the smaller
-        /// gap. Where both sides have the same gap, or the label cannot be arranged, it is pushed along +X.
+        /// centred on its own leader, among what it keeps clear of, is pushed to the side of the leader it is kept to, or
+        /// else the side with the smaller gap. Where both sides are open and have the same gap, or the label cannot be
+        /// arranged, it is pushed along +X.
         /// </summary>
         /// <remarks>
         /// Always along +X, a label on a leader whose sides had different gaps was pushed off to whichever side +X
@@ -217,6 +218,16 @@ namespace GeometryHelper.Arranging.Algorithms
             if (!item.TryGetLayout(options, out Layout layout))
             {
                 return GeoVector2.XAxis;
+            }
+
+            if (!layout.NegativeOpen)
+            {
+                return layout.Perpendicular;
+            }
+
+            if (!layout.PositiveOpen)
+            {
+                return -layout.Perpendicular;
             }
 
             if (layout.PositiveOffset < layout.NegativeOffset)

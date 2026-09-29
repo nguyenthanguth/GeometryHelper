@@ -121,12 +121,30 @@ var dimensionText = new ArrangeItem
 side it overwrites that side too: `new ArrangeItem { Offset = 50.0, OffsetTop = 20.0 }` stands 20 off above and
 50 below, `new ArrangeItem { OffsetTop = 20.0, Offset = 50.0 }` 50 off on both sides.
 
+`Side` keeps a label to one side of its leader: `ArrangeSide.Top`, the side that faces up, the left of a vertical
+leader; `ArrangeSide.Bottom`, the side that faces down; or `ArrangeSide.Both`, the default, either. Kept to one
+side, the label is tried on the rows of that side alone, and with no free place there it is left on the first of
+them and reported not `Placed`, however free the other side:
+
+```csharp
+var levelMark = new ArrangeItem
+{
+    Box       = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
+    Leader    = leader,
+    OffsetTop = 20.0,
+    Side      = ArrangeSide.Top   // above the leader, never below it
+};
+```
+
+A gap as wide as it goes on the other side is not the same thing: it only makes that side the last one tried, and
+the label still goes there when the near side is full.
+
 ## Candidate Positions Generation
 
 All 5 algorithms share the same set of discrete candidate positions, expanding from the midpoint of the leader;
 `ArrangeItem.GetPlacePoints(options)` lists them:
 
-- **Perpendicular Translation** — each level in `PerpendicularLevels` creates a row of labels on either side of the leader. The first row on each side lies half the label height plus the gap of that side off the leader: `OffsetTop` above, `OffsetBottom` below. Each subsequent level adds the label height plus `RowGap`.
+- **Perpendicular Translation** — each level in `PerpendicularLevels` creates a row of labels on either side of the leader, or on the one side `Side` keeps the label to. The first row on each side lies half the label height plus the gap of that side off the leader: `OffsetTop` above, `OffsetBottom` below. Each subsequent level adds the label height plus `RowGap`.
 - **Longitudinal Sliding** — in each row, the label slides parallel to the leader in both directions, up to a maximum of half the leader's length plus `LongitudinalOvershootRatio` times the label width.
 
 The rows of both sides come nearest first, each straight across the middle of the leader and then a step back
@@ -158,6 +176,7 @@ The algorithms only differ in how they **select** from this candidate set.
 | `Offset` | — | Sets `OffsetTop` and `OffsetBottom` both at once; it can be set, not read |
 | `OffsetTop` | 50.0 | The least gap between the label's edge and the leader on the side that faces up in the drawing; the left of a vertical leader; a finite number |
 | `OffsetBottom` | 50.0 | The least gap on the side that faces down; the right of a vertical leader; a finite number |
+| `Side` | `Both` | Which side of the leader the label may stand on: `Both`, `Top` (the left of a vertical leader) or `Bottom` |
 | `BlockPolygons` | empty | Regions the label must not overlap |
 | `BlockLines` | empty | Segments the label must not overlap; lifted in the second pass, and a label left across one is not `Placed` |
 

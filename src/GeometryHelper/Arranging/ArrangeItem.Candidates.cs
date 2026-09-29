@@ -17,8 +17,8 @@ namespace GeometryHelper.Arranging
         }
 
         /// <summary>
-        /// Gets the positions the centre of the label is tried at: rows on either side of the leader, each sliding
-        /// along it. Every algorithm chooses among these.
+        /// Gets the positions the centre of the label is tried at: rows on either side of the leader, or on the one side
+        /// <see cref="Side"/> keeps the label to, each sliding along it. Every algorithm chooses among these.
         /// </summary>
         /// <remarks>
         /// The rows come nearest first, each straight across the middle of the leader and then a step back and a step
@@ -76,22 +76,26 @@ namespace GeometryHelper.Arranging
             }
 
             double step = layout.SlideStep;
-            int levels = options.PerpendicularLevels;
+            // The rows of each side, none on a side the label is kept off.
+            int positiveLevels = layout.PositiveOpen ? options.PerpendicularLevels : 0;
+            int negativeLevels = layout.NegativeOpen ? options.PerpendicularLevels : 0;
 
             // What the first row of the side with the wider gap stands further off than that of the other; nought on
-            // both sides when they stand as far off.
-            double positiveSurplus = Math.Max(0.0, layout.PositiveOffset - layout.NegativeOffset);
-            double negativeSurplus = Math.Max(0.0, layout.NegativeOffset - layout.PositiveOffset);
+            // both sides when they stand as far off, and on a side the label is kept to, with no other to be weighed
+            // against.
+            bool bothOpen = layout.PositiveOpen && layout.NegativeOpen;
+            double positiveSurplus = bothOpen ? Math.Max(0.0, layout.PositiveOffset - layout.NegativeOffset) : 0.0;
+            double negativeSurplus = bothOpen ? Math.Max(0.0, layout.NegativeOffset - layout.PositiveOffset) : 0.0;
 
             // The next row on each side. Of the two, the nearer is tried first, and two as far off together, place by
             // place. Taking the rows level by level instead, as when both sides always stood as far off, tried the first
             // row of the far side before the second of the near one.
             int positive = 0;
             int negative = 0;
-            while (positive < levels || negative < levels)
+            while (positive < positiveLevels || negative < negativeLevels)
             {
-                bool takePositive = positive < levels;
-                bool takeNegative = negative < levels;
+                bool takePositive = positive < positiveLevels;
+                bool takeNegative = negative < negativeLevels;
                 if (takePositive && takeNegative)
                 {
                     double upOffset = layout.GetRowOffset(true, positive, options.RowGap);
@@ -226,7 +230,11 @@ namespace GeometryHelper.Arranging
 
                 // MaximumShift: Maximum allowable longitudinal shift distance along the path,
                 // which equals half the path length plus a portion of the label width overshooting the ends (LongitudinalOvershootRatio)
-                Leader.Length * 0.5 + width * options.LongitudinalOvershootRatio);
+                Leader.Length * 0.5 + width * options.LongitudinalOvershootRatio,
+
+                // Whether the label may stand on the side the perpendicular points to, and on the other side.
+                perpendicularIsTop ? Side != ArrangeSide.Bottom : Side != ArrangeSide.Top,
+                perpendicularIsTop ? Side != ArrangeSide.Top : Side != ArrangeSide.Bottom);
 
             return true;
         }

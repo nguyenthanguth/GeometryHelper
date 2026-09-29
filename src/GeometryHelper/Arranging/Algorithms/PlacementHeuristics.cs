@@ -150,10 +150,11 @@ namespace GeometryHelper.Arranging.Algorithms
                 return 0;
             }
 
-            // Each level has 2 middle positions plus 4 positions for each longitudinal shift step, and no more than the
-            // cap in all.
+            // Each level has a row on each open side, each row a middle position plus 2 for each longitudinal shift
+            // step, and no more than the cap in all.
             long shiftsPerLevel = (long)Math.Floor(layout.MaximumShift / layout.SlideStep);
-            long total = (2L + 4L * shiftsPerLevel) * Math.Max(0, options.PerpendicularLevels);
+            long sides = (layout.PositiveOpen ? 1L : 0L) + (layout.NegativeOpen ? 1L : 0L);
+            long total = sides * (1L + 2L * shiftsPerLevel) * Math.Max(0, options.PerpendicularLevels);
 
             return (int)Math.Min(total, Math.Max(0, options.MaximumCandidates));
         }
@@ -209,16 +210,30 @@ namespace GeometryHelper.Arranging.Algorithms
             // and a gap between rows negative enough brings each further row back towards the leader.
             int last = Math.Max(0, options.PerpendicularLevels - 1);
 
+            // A side the label is kept off has no candidates, and is not reached into.
             GeoVector2 alongMax = layout.Direction * layout.MaximumShift;
-            GeoVector2[] rows =
+            var rows = new List<GeoVector2>(4);
+            if (layout.PositiveOpen)
             {
-                layout.GetRow(true, last, options.RowGap),
-                layout.GetRow(false, last, options.RowGap),
-                layout.GetRow(true, 0, options.RowGap),
-                layout.GetRow(false, 0, options.RowGap),
-            };
+                rows.Add(layout.GetRow(true, last, options.RowGap));
+            }
 
-            var corners = new List<GeoPoint2>(2 * rows.Length);
+            if (layout.NegativeOpen)
+            {
+                rows.Add(layout.GetRow(false, last, options.RowGap));
+            }
+
+            if (layout.PositiveOpen)
+            {
+                rows.Add(layout.GetRow(true, 0, options.RowGap));
+            }
+
+            if (layout.NegativeOpen)
+            {
+                rows.Add(layout.GetRow(false, 0, options.RowGap));
+            }
+
+            var corners = new List<GeoPoint2>(2 * rows.Count);
             foreach (GeoVector2 across in rows)
             {
                 corners.Add(layout.Anchor + across + alongMax);

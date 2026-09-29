@@ -14,6 +14,14 @@ read them as nullable, has to change. Set after a side, `Offset` overwrites that
 the order. Code that sets `Offset` first, or only, places every label where 6.3.0 did: compared byte for byte over
 1,560 lines of candidates and runs, gaps of each side's own among them.
 
+**NEW.** `ArrangeItem.Side` keeps a label to one side of its leader: `ArrangeSide.Top`, the side that faces up in
+the drawing and the left of a vertical leader, the side of `OffsetTop`; `ArrangeSide.Bottom`, the side of
+`OffsetBottom`; or `ArrangeSide.Both`, the default, either, as before. Kept to one side, a label is tried on the
+rows of that side alone, the reach its obstacles are gathered within is that side's, and with no free place there
+it is left on the first of them and reported not `Placed`, however free the other side; the second pass keeps the
+side too. A gap as wide as it goes on the other side was the nearest to this before, and it only made that side
+the last one tried. With `Both`, every candidate and every result is what it was, over the same 1,560 lines.
+
 Label placement, put right after a review of 6.3.0. A label with the same gap on both sides of its leader is
 placed as before, save where a fix below says otherwise: its candidates and results are those of 6.2.0 and 6.3.0,
 compared byte for byte over 825 candidate lists and 105 runs of the five algorithms, the second pass included, and
