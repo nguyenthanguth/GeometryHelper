@@ -50,6 +50,7 @@ beam.TryTrimTo(wall, LineEnd.End, out GeoLine3 cut);      // (0,0,0) -> (2500,0,
 | `GeometryHelper.Spatial` | `GeoBvh2` and `GeoBvh3`, the bounding volume hierarchies for large chains and meshes |
 | `GeometryHelper.Extension` | turning raw point lists into geometry |
 | `GeometryHelper.Arranging` | label placement: `Arranger`, `ArrangeItem`, `ArrangeResult`, `ArrangeOptions`, five algorithms |
+| `GeometryHelper.Packing` | boxes onto sheets of paper: `SheetPacker`, `Sheet`, `PackOptions`, `PackResult` |
 
 Every operation is reachable both ways: the static form names the larger shape first, and the instance
 form sits on whichever of the two reads better where you are calling from.
@@ -74,6 +75,7 @@ The whole of it, searchable, with every type and member: [https://nguyenthanguth
 | [Geometry in the plane](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/plane.md) | points to polygons and faces; extending, trimming, offsetting, combining regions |
 | [Geometry in space](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |
 | [Label placement](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/arrange.md) | five algorithms behind one entry point |
+| [Packing boxes onto sheets](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/packing.md) | drawing views onto A0 to A4 sheets or sheets of a size of their own, a new sheet when one is full |
 
 ## Coverage
 

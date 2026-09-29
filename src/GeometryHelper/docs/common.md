@@ -5,7 +5,7 @@ enumerations, `OffsetOptions`, and `GeometryHelperLog`. They sit at the root of 
 namespace, so one `using GeometryHelper;` brings them all in.
 
 They know nothing about any particular shape, which is why one `Tolerance` and one `Angle` serve
-[the plane](plane.md), [space](solid.md) and [label placement](arrange.md) alike.
+[the plane](plane.md), [space](solid.md), [label placement](arrange.md) and [packing](packing.md) alike.
 
 ## Tolerance
 

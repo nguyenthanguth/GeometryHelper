@@ -4,6 +4,22 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**NEW.** Boxes onto sheets of paper: `GeometryHelper.Packing`. `SheetPacker.Pack` takes boxes as `GeoRectangle2`,
+in groups of those that belong together, and a `Sheet`: A0 to A4, landscape unless turned, or a size of its own
+(`Sheet.Custom`), a `Scale`, `OffsetLeft`, `OffsetRight`, `OffsetTop` and `OffsetBottom` round its edges in
+millimetres on paper, and an `Origin`, its lower left corner, which `PlaceCorner` can set from any corner or the
+middle. Each group is packed as one block, laid out afresh as close together as its boxes go or kept as it
+stands (`GroupLayout`), `Spacing` between its boxes and `GroupSpacing` between groups; a group too large for one
+sheet is split, in its order, over as many as it takes. The blocks go onto the sheet from its upper left corner,
+by the maximal rectangles method, and when it is full a new sheet is begun beside it, on the side `NewSheet`
+names, `SheetSpacing` apart. The boxes are only moved: each comes back with the sheet it goes on, its
+`Translation`, which moves any point of what it stands for, and its `ViewBox`, the box moved. A box reported
+placed is inside the usable area of its sheet and clear of every other; every box that fits a sheet is placed.
+`LargestGroupsFirst` and `FillEarlierSheets` trade the order of the groups for fewer sheets: a thousand boxes of
+up to a fifth of an A1 sheet take 17 sheets in their order, 14 with both, as few as their area allows.
+
 ## 7.0.0
 
 **BREAKING.** `ArrangeItem.Offset` only sets: it writes `OffsetTop` and `OffsetBottom` both, and holds nothing of
