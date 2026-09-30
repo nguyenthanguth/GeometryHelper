@@ -124,7 +124,9 @@ namespace GeometryHelper.Geometry
 
             GeoPlane3 carrier = new GeoPlane3(loop[0], normal);
 
-            if (!carrier.ContainsAll(loop, tolerance))
+            // Three corners share a plane whatever they are, so only a longer loop is measured against one. Measured, three
+            // stand off the plane through them by rounding, which a planar tolerance of nought refuses.
+            if (loop.Length > 3 && !carrier.ContainsAll(loop, tolerance))
             {
                 throw new ArgumentException("A polygon must be flat; these vertices do not share a plane.", nameof(vertices));
             }

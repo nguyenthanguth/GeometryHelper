@@ -64,6 +64,23 @@ is a struct, and one made without a constructor, like `default(Tolerance)`, has 
 an exact match is equal and a face out of flat by rounding alone is refused: the notched Tekla beam, read so,
 lost five of its 26 faces and came out open.
 
+**NEW.** `GeoFace3.FromLoops` reads a face from loops of corners that need not lie flat, as a modeller gives the
+faces of a body: one face, holes and all, where they lie flat within the planar tolerance, and otherwise triangles
+on the corners themselves, wound as the boundary is, covering the boundary less its holes. Each triangle is exactly
+flat and keeps the edges the face shares with its neighbours, so a body read that way is as closed as it was given
+and no corner moves; a hole off the plane of its boundary is kept too, and a hole with no area is left out. Read
+so, the notched Tekla beam closes with the volume of its concrete even at `new Tolerance()`.
+
+**FIXED.** The surface triangulation of a face with holes fell back to the fan, laid over the holes, when two holes
+bridged into the outline reached the same corner of it: the corner then stands in the loop twice, and the second
+bridge ran from the copy opening away from its hole, across the first. The side of that beam, with its three
+openings, met it, so whatever reads a body's surface as triangles — a prepared solid, a clash, an index, an OBJ
+export — took its openings for material. A bridge now leaves from the copy opening toward its hole.
+
+**FIXED.** A polygon of three corners was refused as not flat at a planar tolerance of nought: how far the corners
+stand from the plane through them comes out as rounding, not nought. Three corners share a plane whatever they are,
+so only a longer loop is measured against one.
+
 ## 7.0.0
 
 **BREAKING.** `ArrangeItem.Offset` only sets: it writes `OffsetTop` and `OffsetBottom` both, and holds nothing of

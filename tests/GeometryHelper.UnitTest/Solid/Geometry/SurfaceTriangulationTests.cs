@@ -123,6 +123,33 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void TriangulateSurface_OnAFaceWithTwoHolesBridgedToOneCorner_LeavesThemOpen()
+        {
+            // The side of a notched concrete beam Tekla Structures gave, with its three openings. The first two holes
+            // bridged into the outline both reach the same corner of it, which then stands in the loop twice; the second
+            // bridge ran from the copy opening away from its hole, across the first bridge, and with the loop crossing
+            // itself no ear could be clipped. The face fell back to the fan, laid over all three openings.
+            GeoPoint3[][] loops = Common.DefaultToleranceTests.Loops()[19];
+            var face = new GeoFace3(new GeoPolygon3(loops[0]), System.Linq.Enumerable.Select(System.Linq.Enumerable.Skip(loops, 1), hole => new GeoPolygon3(hole)));
+
+            GeoTriangle3[] triangles = face.TriangulateSurface(Tolerance.Default);
+
+            Assert.Equal(3, face.Holes.Count);
+            double meshed = 0.0;
+            foreach (GeoTriangle3 triangle in triangles)
+            {
+                meshed += triangle.Area;
+
+                foreach (GeoPolygon3 hole in face.Holes)
+                {
+                    Assert.False(triangle.Contains(hole.Centroid, Tolerance.Default), "a triangle is laid over an opening");
+                }
+            }
+
+            Assert.InRange(meshed, face.Area * 0.99999, face.Area * 1.00001);
+        }
+
+        [Fact]
         public void TriangulateSurface_OnConvexFace_StillCoversIt()
         {
             GeoFace3 face = new GeoFace3(new GeoPolygon3(

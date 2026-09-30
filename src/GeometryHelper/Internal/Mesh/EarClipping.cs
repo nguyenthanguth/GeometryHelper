@@ -22,6 +22,10 @@ namespace GeometryHelper.Core
     /// rather than inventing points — so the triangles are carried back to 3D by looking the originals up
     /// rather than by mapping coordinates back, and no round-trip error is introduced.
     /// </para>
+    /// <para>
+    /// The same works on loops of corners a little out of flat, seen from a frame of their own: the triangles are
+    /// built on the corners themselves, so each is flat, and that is how <see cref="Loops3"/> keeps such a face.
+    /// </para>
     /// </summary>
     internal static class EarClipping
     {
@@ -62,9 +66,35 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            GeoCoordinateSystem3 frame = new GeoCoordinateSystem3(face.GetPlane());
+            var holes = new IReadOnlyList<GeoPoint3>[face.Holes.Count];
 
-            List<Node> outer = Project(face.Boundary.Vertices, frame);
+            for (int i = 0; i < holes.Length; i++)
+            {
+                holes[i] = face.Holes[i].Vertices;
+            }
+
+            return TryTriangulate(face.Boundary.Vertices, holes, new GeoCoordinateSystem3(face.GetPlane()), tolerance, out triangles);
+        }
+
+        /// <summary>
+        /// Triangulates loops of corners as they are seen from a frame, into triangles on the corners themselves.
+        /// </summary>
+        /// <param name="boundary">The corners of the outer loop, in order.</param>
+        /// <param name="holes">The corners of each hole, in order, wound either way.</param>
+        /// <param name="frame">The frame the loops are seen in; the triangles face along its Z axis.</param>
+        /// <param name="tolerance">The tolerance deciding what counts as a degenerate triangle.</param>
+        /// <param name="triangles">The triangles covering the loops.</param>
+        /// <returns>false when the loops, as seen from the frame, could not be reduced; see the face overload.</returns>
+        /// <remarks>
+        /// The loops need not lie flat. How far a corner stands off the frame's plane is dropped, so loops a little out
+        /// of flat are split as their outline on that plane is, and each triangle, being three of the corners, is flat
+        /// whatever the loops are.
+        /// </remarks>
+        public static bool TryTriangulate(IReadOnlyList<GeoPoint3> boundary, IReadOnlyList<IReadOnlyList<GeoPoint3>> holes, GeoCoordinateSystem3 frame, Tolerance tolerance, out GeoTriangle3[] triangles)
+        {
+            triangles = null;
+
+            List<Node> outer = Project(boundary, frame);
 
             if (outer.Count < 3)
             {
@@ -79,11 +109,11 @@ namespace GeometryHelper.Core
                 outer.Reverse();
             }
 
-            List<List<Node>> holes = new List<List<Node>>();
+            List<List<Node>> rings = new List<List<Node>>();
 
-            foreach (GeoPolygon3 hole in face.Holes)
+            foreach (IReadOnlyList<GeoPoint3> hole in holes)
             {
-                List<Node> ring = Project(hole.Vertices, frame);
+                List<Node> ring = Project(hole, frame);
 
                 if (ring.Count < 3)
                 {
@@ -97,10 +127,10 @@ namespace GeometryHelper.Core
                     ring.Reverse();
                 }
 
-                holes.Add(ring);
+                rings.Add(ring);
             }
 
-            if (holes.Count > 0 && !TryBridgeHoles(outer, holes, out outer))
+            if (rings.Count > 0 && !TryBridgeHoles(outer, rings, out outer))
             {
                 return false;
             }
@@ -119,9 +149,9 @@ namespace GeometryHelper.Core
             {
                 GeoPoint3 local = frame.ToLocal(vertex);
 
-                // The local Z is dropped rather than checked. Coplanarity was settled when the polygon and
-                // the face were built, and what little is left of it is the deviation those constructors
-                // already accepted.
+                // The local Z is dropped rather than checked. For a face, coplanarity was settled when the
+                // polygon and the face were built, and what little is left of it is the deviation those
+                // constructors already accepted; loops out of flat are split as they are seen from the frame.
                 nodes.Add(new Node(local.X, local.Y, vertex));
             }
 
@@ -258,6 +288,7 @@ namespace GeometryHelper.Core
                 : (edgeIndex + 1) % outer.Count;
 
             target = ResolveBlockingReflex(outer, origin, closestX, target);
+            target = CopyOpeningToward(outer, target, origin);
 
             List<Node> bridged = new List<Node>(outer.Count + hole.Count + 2);
 
@@ -283,6 +314,55 @@ namespace GeometryHelper.Core
 
             merged = bridged;
             return true;
+        }
+
+        /// <summary>
+        /// Picks, among the copies of the vertex a bridge is to reach, the one that opens toward the hole.
+        /// </summary>
+        /// <remarks>
+        /// A vertex an earlier bridge reached stands in the loop twice, once on each side of that bridge, and each copy
+        /// opens onto its own part of the face. A second bridge to the same vertex has to leave from the copy that opens
+        /// toward its hole: from the other, it runs across the first bridge, the loop crosses itself, and no ear can be
+        /// clipped from it. The side of a notched beam met this, two of its three openings bridged to one corner of the
+        /// web, and the face fell back to the fan, laid over its openings.
+        /// </remarks>
+        private static int CopyOpeningToward(List<Node> loop, int target, Node toward)
+        {
+            Node corner = loop[target];
+
+            if (Opens(loop, target, toward))
+            {
+                return target;
+            }
+
+            for (int i = 0; i < loop.Count; i++)
+            {
+                if (i != target && loop[i].X == corner.X && loop[i].Y == corner.Y && Opens(loop, i, toward))
+                {
+                    return i;
+                }
+            }
+
+            return target;
+        }
+
+        /// <summary>
+        /// Determines whether a point lies within the corner of the loop at a vertex, on the side the face is.
+        /// </summary>
+        private static bool Opens(List<Node> loop, int index, Node toward)
+        {
+            Node previous = loop[(index - 1 + loop.Count) % loop.Count];
+            Node current = loop[index];
+            Node next = loop[(index + 1) % loop.Count];
+
+            // The loop runs counter-clockwise, so the face is on the left of the edge leaving the vertex and on the left
+            // of the edge arriving; a convex corner is where both hold, a reflex one where either does.
+            bool leftOfLeaving = Cross(current, next, toward) >= 0.0;
+            bool leftOfArriving = Cross(previous, current, toward) >= 0.0;
+
+            return Cross(previous, current, next) > 0.0
+                ? leftOfLeaving && leftOfArriving
+                : leftOfLeaving || leftOfArriving;
         }
 
         /// <summary>

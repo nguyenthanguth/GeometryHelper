@@ -58,7 +58,7 @@ namespace GeometryHelper.UnitTest.Common
         /// <summary>
         /// Where the reference line of the beam starts: at the middle of its width, on its top.
         /// </summary>
-        private static readonly GeoPoint3 Start = new GeoPoint3(18223.422337105654, -25934.768136094648, 6000.0);
+        internal static readonly GeoPoint3 Start = new GeoPoint3(18223.422337105654, -25934.768136094648, 6000.0);
 
         [Fact]
         public void AFaceTeklaLeftAHairOffFlatIsStillAFace()
@@ -96,9 +96,12 @@ namespace GeometryHelper.UnitTest.Common
             Assert.InRange(cut.Area, web * 0.99999, web * 1.00001);
         }
 
-        private static List<GeoFace3> Faces()
+        /// <summary>
+        /// The loops of each face as Tekla gave them, corners and nothing more: the boundary first, then the holes.
+        /// </summary>
+        internal static List<GeoPoint3[][]> Loops()
         {
-            var faces = new List<GeoFace3>();
+            var faces = new List<GeoPoint3[][]>();
 
             foreach (string line in NotchedBeam.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
             {
@@ -107,14 +110,22 @@ namespace GeometryHelper.UnitTest.Common
                     continue;
                 }
 
-                GeoPolygon3[] loops = line.Split('|').Select(Loop).ToArray();
-                faces.Add(new GeoFace3(loops[0], loops.Skip(1)));
+                faces.Add(line.Split('|').Select(Corners).ToArray());
             }
 
             return faces;
         }
 
-        private static GeoPolygon3 Loop(string coordinates)
+        private static List<GeoFace3> Faces()
+        {
+            return Loops()
+                .Select(loops => new GeoFace3(new GeoPolygon3(loops[0]), loops.Skip(1).Select(hole => new GeoPolygon3(hole))))
+                .ToList();
+        }
+
+        private static GeoPolygon3 Loop(string coordinates) => new GeoPolygon3(Corners(coordinates));
+
+        private static GeoPoint3[] Corners(string coordinates)
         {
             double[] values = coordinates
                 .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
@@ -127,7 +138,7 @@ namespace GeometryHelper.UnitTest.Common
                 corners.Add(new GeoPoint3(values[i], values[i + 1], values[i + 2]));
             }
 
-            return new GeoPolygon3(corners);
+            return corners.ToArray();
         }
     }
 }

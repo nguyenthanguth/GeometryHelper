@@ -99,7 +99,22 @@ new GeoPolygon3(
 
 How flat is flat enough is `Tolerance.EqualPlanar`, which is separate from `EqualPoint` because
 coplanarity is measured far from the reference point: a polygon several metres across turns a hundredth
-of a degree of tilt into a deviation of nearly a millimetre.
+of a degree of tilt into a deviation of nearly a millimetre. Three corners are flat whatever the
+tolerance, since they always share a plane.
+
+The faces of a body a modeller gives as loops of corners can still come out of flat: Tekla Structures
+left the top face beside a notch in a beam 0.04 mm low at one corner. Refused, such a face is a hole in
+the body, which then has no section and the wrong volume. `GeoFace3.FromLoops` reads a face from its
+loops of corners: one face, holes and all, where they lie flat, and otherwise triangles on the corners
+themselves, which keep every edge the face shares with its neighbours, so the body stays as closed as it
+was given and no corner moves. A hole off the plane of its boundary is kept the same way.
+
+```csharp
+// One corner 1 mm up: out of flat at the default tolerance, so two triangles on these four corners.
+GeoFace3[] faces = GeoFace3.FromLoops(
+    new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 1), new GeoPoint3(0, 100, 0) },
+    holes: null);
+```
 
 Self-intersection is a different matter and is *not* checked on the way in, because the check costs more
 than building the polygon does. `polygon.IsSimple()` runs it when you want it: no edge crossing or

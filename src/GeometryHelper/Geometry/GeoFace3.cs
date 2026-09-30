@@ -113,6 +113,42 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Makes the faces that cover a boundary less its holes, from loops of corners that need not lie flat, using the
+        /// default tolerance.
+        /// </summary>
+        /// <param name="boundary">The corners of the outer loop, in order.</param>
+        /// <param name="holes">The corners of each hole, in order and wound either way; null is read as none.</param>
+        /// <returns>The faces; see <see cref="FromLoops(IEnumerable{GeoPoint3}, IEnumerable{IEnumerable{GeoPoint3}}, Tolerance)"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="boundary"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a hole is null.</exception>
+        public static GeoFace3[] FromLoops(IEnumerable<GeoPoint3> boundary, IEnumerable<IEnumerable<GeoPoint3>> holes)
+            => FromLoops(boundary, holes, Tolerance.Global);
+
+        /// <summary>
+        /// Makes the faces that cover a boundary less its holes, from loops of corners that need not lie flat, within a
+        /// tolerance.
+        /// </summary>
+        /// <param name="boundary">The corners of the outer loop, in order.</param>
+        /// <param name="holes">The corners of each hole, in order and wound either way; null is read as none.</param>
+        /// <param name="tolerance">The tolerance deciding which corners are one, which loops enclose an area, and which lie flat.</param>
+        /// <returns>
+        /// One face, holes and all, as the constructors would make it, when every loop lies flat on the plane of the
+        /// boundary within the planar tolerance. Otherwise triangles on the corners themselves, wound as the boundary is,
+        /// covering the boundary less its holes. None when the boundary encloses no area, or when, seen along its normal,
+        /// it crosses itself or a hole reaches out of it.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="boundary"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a hole is null.</exception>
+        /// <remarks>
+        /// This is the way to read the faces of a body a modeller gives as loops of corners. A face can come a little out
+        /// of flat, as a face Tekla Structures cuts can, and a polygon refuses it; left out, it is a hole in the body. Split
+        /// into triangles on the corners it came with, each exactly flat, it keeps every edge it shares with its neighbours,
+        /// so the body is as closed as it was given, and no corner moves. A hole enclosing no area is left out.
+        /// </remarks>
+        public static GeoFace3[] FromLoops(IEnumerable<GeoPoint3> boundary, IEnumerable<IEnumerable<GeoPoint3>> holes, Tolerance tolerance)
+            => Loops3.ToFaces(boundary, holes, tolerance);
+
+        /// <summary>
         /// Creates a copy of this face.
         /// </summary>
         public GeoFace3 Clone()

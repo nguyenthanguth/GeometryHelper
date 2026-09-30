@@ -57,6 +57,26 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void ThreeCornersAreFlatWhateverTheTolerance()
+        {
+            // Three corners share a plane whatever they are. At a planar tolerance of nought, how far they stand from the
+            // plane measured through them came out as rounding, not nought, and corners far from the origin, where a
+            // model in millimetres has them, were refused as not flat.
+            var none = new Tolerance();
+            var random = new Random(7);
+
+            for (int i = 0; i < 1000; i++)
+            {
+                GeoPoint3[] corners = { Near(random), Near(random), Near(random) };
+
+                Assert.Equal(3, new GeoPolygon3(corners, none).VertexCount);
+            }
+        }
+
+        private static GeoPoint3 Near(Random random)
+            => new GeoPoint3(24000.0 + random.NextDouble() * 1000.0, -26000.0 + random.NextDouble() * 1000.0, 3000.0 + random.NextDouble() * 1000.0);
+
+        [Fact]
         public void NonCoplanarVerticesAreRefused()
         {
             Assert.Throws<ArgumentException>(() => new GeoPolygon3(
