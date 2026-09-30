@@ -29,6 +29,13 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 8.0.0
+      - TryToGeoSolid3 reads each face with the new FaceConvert.TryReadFaces: a face out of flat, or with a hole off
+        its plane, comes as triangles on the corners Tekla gave, where it was refused or lost its hole and left the
+        body open. A solid Tekla holds closed comes out closed whatever the tolerance. TryReadFace reads as before.
+      - From GeometryHelper 8.0.0: the default tolerance is a hundredth of a millimetre for points and for flatness.
+      - Reference models read as GeometryHelper.IfcConvert 8.0.0 reads them.
+
       NEW IN 7.0.0
       - Nothing in GeometryHelper.TeklaConvert changed: it is released at 7.0.0 with GeometryHelper, whose label
         placement changed in ways that break code reading ArrangeItem.Offset.

@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 8.0.0
 
 **NEW.** Boxes onto sheets of paper: `GeometryHelper.Packing`. `SheetPacker.Pack` takes boxes as `GeoRectangle2`,
 in groups of those that belong together, and a `Sheet`: A0 to A4, landscape unless turned, or a size of its own

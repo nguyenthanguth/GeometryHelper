@@ -19,6 +19,16 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 8.0.0
+      - BREAKING, from GeometryHelper 8.0.0: the default tolerance is 1E-2 in the output unit, set for millimetres.
+        Output in metres needs IfcConvertOptions.Tolerance = new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad,
+        1E-5).
+      - A planar face is read from its loops with GeoFace3.FromLoops: a face out of flat, or a hole off its face's
+        plane, comes as triangles on the corners the file gives, where a hole was dropped, without a word when out
+        of flat, and left the body open. Placing a body keeps a face that lands off flat the same way.
+      - The GeoSolid3 boolean openings fall back to no longer throws out of a product, which took a whole model
+        read at once with it; an opening that cannot be cut is left uncut with a warning.
+
       NEW IN 7.0.0
       - Nothing in GeometryHelper.IfcConvert changed: it is released at 7.0.0 with GeometryHelper, whose label
         placement changed in ways that break code reading ArrangeItem.Offset.

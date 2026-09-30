@@ -14,6 +14,28 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
+      NEW IN 8.0.0
+
+      BREAKING: the default tolerance is set for a model in millimetres.
+      - Tolerance.DefaultEqualPoint, DefaultEqualVector and DefaultEqualPlanar are 1E-2, all three 1E-4 before:
+        points a hundredth apart are one point, a vector shorter than a hundredth has no direction, and a face may
+        stand a hundredth out of flat. Offsets, booleans and force-directed label placement merge what lies a
+        hundredth apart. Geometry in metres wants a tolerance of its own:
+        new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 1E-5).
+      - TransformBy on GeoPolygon3, GeoFace3 and GeoSolid3 carries polygons over as they are under a move that
+        keeps every length; a stretch, shear or projection is still checked.
+      - NEW: GeometryHelper.Packing: SheetPacker.Pack lays boxes onto A0 to A4 or custom sheets.
+      - NEW: GeoTransform3.ToCoordinateSystem and GeoTransform2.ToCoordinateSystem.
+      - NEW: Tolerance.Default, the four defaults together; new Tolerance() has every threshold at 0.
+      - NEW: GeoFace3.FromLoops reads a face from loops of corners out of flat, as triangles on its own corners, so
+        a body a modeller gives with faces out of flat stays closed.
+      - FIXED, solids: Locate on thin faces; prepared solids at shallow crossings; booleans of bent bars, of bodies
+        far from the origin and of faces lying back to back no longer throw or come out open where another way of
+        cutting closes them, and the booleans that try return false with a warning in the log instead of throwing;
+        IsClosed with a short edge beside a long one; the surface triangulation of a face with two holes bridged to
+        one corner; a polygon of three corners at a planar tolerance of nought; SignedDistanceTo on the surface.
+        Details in CHANGELOG.md.
+
       NEW IN 7.0.0
 
       BREAKING: code that reads ArrangeItem.Offset, or treats OffsetTop / OffsetBottom as nullable, has to change.
