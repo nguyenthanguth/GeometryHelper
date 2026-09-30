@@ -26,12 +26,12 @@ namespace GeometryHelper
         /// <summary>
         /// Default tolerance when comparing points: a hundredth of a millimetre in a model in millimetres.
         /// </summary>
-        public const double DefaultEqualPoint = 1E-2;
+        public const double DefaultEqualPoint = 0.01;
 
         /// <summary>
         /// Default tolerance when comparing vectors.
         /// </summary>
-        public const double DefaultEqualVector = 1E-2;
+        public const double DefaultEqualVector = 0.01;
 
         /// <summary>
         /// Default tolerance when comparing angles for parallelism / perpendicularity, in radians (1 degree in radians).
@@ -50,7 +50,7 @@ namespace GeometryHelper
         /// conversions keep it as triangles on its own corners (<see cref="Geometry.GeoFace3.FromLoops(System.Collections.Generic.IEnumerable{Geometry.GeoPoint3}, System.Collections.Generic.IEnumerable{System.Collections.Generic.IEnumerable{Geometry.GeoPoint3}}, Tolerance)"/>),
         /// so the body stays closed and nothing is taken as flat that is not.
         /// </remarks>
-        public const double DefaultEqualPlanar = 1E-2;
+        public const double DefaultEqualPlanar = 0.01;
 
         /// <summary>
         /// Gets the default tolerance: <see cref="DefaultEqualPoint"/>, <see cref="DefaultEqualVector"/>,
