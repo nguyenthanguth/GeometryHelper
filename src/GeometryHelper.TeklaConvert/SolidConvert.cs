@@ -12,7 +12,8 @@ namespace GeometryHelper.TeklaConvert
     /// <para>
     /// The two descriptions line up almost exactly. Tekla walks a solid as faces, and each face as loops:
     /// the first loop is its outer edge and any further loop is a hole. That is what a
-    /// <see cref="GeoFace3"/> is, so the shape of the conversion is a walk rather than a rebuild.
+    /// <see cref="GeoFace3"/> is, so the shape of the conversion is a walk rather than a rebuild. They part
+    /// only over flatness: a face Tekla gives out of flat comes as triangles on its own corners.
     /// </para>
     /// <para>
     /// What has to be checked rather than trusted is orientation. GeometryHelper reads volume and
@@ -57,16 +58,18 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="solid">The Tekla solid to read.</param>
         /// <param name="result">The converted body when the method returns true.</param>
         /// <param name="tolerance">
-        /// The tolerance; its planar threshold decides how far from flat a face may be before it is
-        /// refused. The default, five hundredths of a millimetre, lets through the faces Tekla's own cuts
-        /// leave a little out of flat; much narrower, such a face is refused and leaves a hole in the body.
+        /// The tolerance; its planar threshold decides how far from flat a face may be and still come as
+        /// one face. The default, five hundredths of a millimetre, takes the faces Tekla's own cuts leave a
+        /// little out of flat whole; a face further out comes as triangles on its own corners.
         /// </param>
         /// <returns>false when too little survived to make a body of at least four faces.</returns>
         /// <remarks>
-        /// Faces that cannot be made sense of — fewer than three distinct vertices, all of them in a line,
-        /// or not flat within the tolerance — are skipped rather than throwing, because one bad face in a
-        /// large model should not cost the whole conversion. The result is then no longer closed, which is
-        /// what <see cref="GeoSolid3.IsClosed()"/> is for: ask it before trusting a volume.
+        /// Each face is read with <see cref="FaceConvert.TryReadFaces(TSS.Face, Tolerance, out GeoFace3[])"/>: one
+        /// face where it lies flat, and triangles on the corners Tekla gave where it does not or where a hole
+        /// stands off its plane, so a solid Tekla holds closed comes out closed, whatever the tolerance. Only a
+        /// face with no area — fewer than three distinct corners, or all of them in a line — is skipped rather
+        /// than thrown on, because one bad face in a large model should not cost the whole conversion; ask
+        /// <see cref="GeoSolid3.IsClosed()"/> before trusting a volume.
         /// </remarks>
         public static bool TryToGeoSolid3(this TSS.ISolid solid, out GeoSolid3 result, Tolerance tolerance)
         {
@@ -75,26 +78,30 @@ namespace GeometryHelper.TeklaConvert
                 throw new ArgumentNullException(nameof(solid));
             }
 
-            result = null;
-
             List<GeoFace3> faces = new List<GeoFace3>();
 
             TSS.FaceEnumerator faceEnumerator = solid.GetFaceEnumerator();
 
             while (faceEnumerator.MoveNext())
             {
-                TSS.Face face = faceEnumerator.Current as TSS.Face;
-
-                if (face == null)
+                if (faceEnumerator.Current is TSS.Face face && face.TryReadFaces(tolerance, out GeoFace3[] converted))
                 {
-                    continue;
-                }
-
-                if (face.TryReadFace(tolerance, out GeoFace3 converted))
-                {
-                    faces.Add(converted);
+                    faces.AddRange(converted);
                 }
             }
+
+            return TryAssemble(faces, out result);
+        }
+
+        /// <summary>
+        /// Makes a body of the faces read from a Tekla solid, turned inside out if the whole surface came in reversed.
+        /// </summary>
+        /// <param name="faces">The faces, each turned to agree with the normal Tekla gave it.</param>
+        /// <param name="result">The body when the method returns true.</param>
+        /// <returns>false when fewer than four faces were read.</returns>
+        internal static bool TryAssemble(List<GeoFace3> faces, out GeoSolid3 result)
+        {
+            result = null;
 
             if (faces.Count < 4)
             {

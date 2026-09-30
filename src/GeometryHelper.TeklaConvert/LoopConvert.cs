@@ -35,19 +35,7 @@ namespace GeometryHelper.TeklaConvert
 
             result = null;
 
-            List<GeoPoint3> vertices = new List<GeoPoint3>();
-
-            TSS.VertexEnumerator vertexEnumerator = loop.GetVertexEnumerator();
-
-            while (vertexEnumerator.MoveNext())
-            {
-                TSG.Point point = vertexEnumerator.Current as TSG.Point;
-
-                if (point != null)
-                {
-                    vertices.Add(point.ToGeoPoint3());
-                }
-            }
+            List<GeoPoint3> vertices = loop.ReadCorners();
 
             if (vertices.Count < 3)
             {
@@ -66,6 +54,28 @@ namespace GeometryHelper.TeklaConvert
                 // Too few distinct vertices, all of them in a line, or not flat enough to be a polygon.
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Reads the corners of a Tekla loop, in the order Tekla walks them.
+        /// </summary>
+        internal static List<GeoPoint3> ReadCorners(this TSS.Loop loop)
+        {
+            List<GeoPoint3> vertices = new List<GeoPoint3>();
+
+            TSS.VertexEnumerator vertexEnumerator = loop.GetVertexEnumerator();
+
+            while (vertexEnumerator.MoveNext())
+            {
+                TSG.Point point = vertexEnumerator.Current as TSG.Point;
+
+                if (point != null)
+                {
+                    vertices.Add(point.ToGeoPoint3());
+                }
+            }
+
+            return vertices;
         }
     }
 }

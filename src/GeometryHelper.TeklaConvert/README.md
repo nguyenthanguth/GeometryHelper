@@ -337,13 +337,17 @@ body that only looks right measures wrong later and says nothing about why.
 - Each face is turned to agree with the normal Tekla gives it, and the finished body is turned inside
   out if its signed volume says the whole surface arrived reversed. Without that, volume still measures
   the same but every containment query answers backwards.
-- A face that cannot be made sense of is skipped rather than thrown on, which leaves the body no longer
-  closed — so ask `IsClosed()` before trusting a volume.
+- A face out of flat, and a face with a hole off its plane, come as triangles on the corners Tekla gave
+  (`FaceConvert.TryReadFaces`, built on `GeoFace3.FromLoops`). The triangles keep every edge the face
+  shares with its neighbours, so a solid Tekla holds closed comes out closed, whatever the tolerance.
+- A face with no area is skipped rather than thrown on, which leaves the body no longer closed — so ask
+  `IsClosed()` before trusting a volume.
 
 Tekla models in millimetres with coordinates that can run to hundreds of thousands, and its own cuts leave
 faces a little out of flat: the top face of a notched beam came 0.04 mm out at one corner. The default
 tolerance is set for that, a hundredth of a millimetre for points and five hundredths for flatness, so a
-Tekla model reads whole without one; pass a `Tolerance` only where a model needs something else.
+Tekla model reads with such faces whole, and a face further out comes as triangles rather than a hole;
+pass a `Tolerance` only where a model needs something else.
 
 ## Licence
 

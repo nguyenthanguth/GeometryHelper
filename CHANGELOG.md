@@ -81,6 +81,12 @@ export — took its openings for material. A bridge now leaves from the copy ope
 stand from the plane through them comes out as rounding, not nought. Three corners share a plane whatever they are,
 so only a longer loop is measured against one.
 
+**CHANGED.** In GeometryHelper.TeklaConvert, `TryToGeoSolid3` reads each face of a Tekla solid with the new
+`FaceConvert.TryReadFaces`, built on `GeoFace3.FromLoops`: a face out of flat, or with a hole off its plane, comes as
+triangles on the corners Tekla gave, turned to face the way Tekla says, where it was refused, or lost its hole, and
+left the body open. A solid Tekla holds closed now comes out closed whatever the tolerance; only a face with no area
+is still left out. `FaceConvert.TryReadFace`, one face or none, reads as before.
+
 ## 7.0.0
 
 **BREAKING.** `ArrangeItem.Offset` only sets: it writes `OffsetTop` and `OffsetBottom` both, and holds nothing of
