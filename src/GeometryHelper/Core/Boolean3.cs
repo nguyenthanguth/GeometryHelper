@@ -64,7 +64,7 @@ namespace GeometryHelper.Core
         /// <param name="second">The second body.</param>
         /// <param name="result">The combined body.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>false when the two could not be combined into a closed body.</returns>
+        /// <returns>false when the two could not be combined into a closed body, which is logged.</returns>
         /// <remarks>
         /// Two bodies that do not touch still combine: the result is one solid carrying both shells, which
         /// measures and answers containment correctly because each shell is closed and wound outwards.
@@ -73,6 +73,18 @@ namespace GeometryHelper.Core
         {
             Guard(first, second);
 
+            try
+            {
+                return Unite(first, second, out result, tolerance);
+            }
+            catch (Exception exception) when (IsUnworkable(exception))
+            {
+                return Unworkable("union", exception, out result);
+            }
+        }
+
+        private static bool Unite(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance)
+        {
             result = null;
 
             if (!first.GetAabb().CollidesWith(second.GetAabb(), tolerance))
@@ -94,6 +106,8 @@ namespace GeometryHelper.Core
             second = FlatForWork(second, tolerance);
 
             // One body cut, beyond the other, and the other whole.
+            GeoSolid3 openCut = null;
+
             if (TryCutOpenings(first, out GeoSolid3 a, tolerance) && TryCutOpenings(second, out GeoSolid3 b, tolerance))
             {
                 bool? found = CombineCuttingOne(a, b, true, tolerance, out result);
@@ -102,6 +116,8 @@ namespace GeometryHelper.Core
                 {
                     return found.Value;
                 }
+
+                openCut = result;
             }
 
             List<GeoPlane3> planes = SharedPlanes(first, second, tolerance);
@@ -114,7 +130,7 @@ namespace GeometryHelper.Core
 
             kept.AddRange(FacesOfCells(SplitIntoCells(second, planes, tolerance), second, first, false, tolerance));
 
-            return TryGlue(kept, tolerance, out result);
+            return GlueOrKeep(kept, openCut, tolerance, out result);
         }
 
         /// <summary>
@@ -128,7 +144,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the part two solids have in common, within a tolerance.
         /// </summary>
-        /// <returns>false when the two bodies share no volume.</returns>
+        /// <returns>false when the two bodies share no volume, or when it cannot be worked out, which is logged.</returns>
         /// <remarks>
         /// Only one body is cut, and only by the planes of the other that come near it and of its own openings:
         /// those are what leave every cell wholly inside or wholly outside the other, and wholly material or wholly
@@ -141,6 +157,18 @@ namespace GeometryHelper.Core
         {
             Guard(first, second);
 
+            try
+            {
+                return Share(first, second, out result, tolerance);
+            }
+            catch (Exception exception) when (IsUnworkable(exception))
+            {
+                return Unworkable("intersection", exception, out result);
+            }
+        }
+
+        private static bool Share(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance)
+        {
             result = null;
 
             if (!first.GetAabb().CollidesWith(second.GetAabb(), tolerance))
@@ -162,13 +190,14 @@ namespace GeometryHelper.Core
             List<GeoPlane3> otherKnives = firstIsCut ? cuttingSecond : cuttingFirst;
 
             List<GeoFace3> kept = CellsInside(cut, other, knives, tolerance, out bool clean);
+            bool otherWayAffordable = otherKnives.Count <= 2 * knives.Count + 16;
 
             // A plane can still cross a cell and leave it whole where the cut does not close — a body running
             // through itself, say — and the cell is then judged by one point for both sides of the plane. Cut the
             // other way, the trouble falls elsewhere, so the other body is cut before that is settled for, when that
             // costs about the same: a bar's hundreds of planes would cut a beam into thousands of cells again.
             // Slivers were the common cause, and the cut keeps those now; see LoopAssembly.ForPieces.
-            if (!clean && otherKnives.Count <= 2 * knives.Count + 16)
+            if (!clean && otherWayAffordable)
             {
                 List<GeoFace3> otherWay = CellsInside(other, cut, otherKnives, tolerance, out bool otherClean);
 
@@ -178,7 +207,21 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return TryGlue(kept, tolerance, out result);
+            if (!TryGlue(kept, tolerance, out result))
+            {
+                return false;
+            }
+
+            // Cut cleanly and still open, two closed bodies can close cut the other way round, as a difference can;
+            // see CombineCuttingOne.
+            if (clean && otherWayAffordable && !result.IsClosed(tolerance) && first.IsClosed(tolerance) && second.IsClosed(tolerance)
+                && TryGlue(CellsInside(other, cut, otherKnives, tolerance, out bool closedClean), tolerance, out GeoSolid3 otherResult)
+                && closedClean && otherResult.IsClosed(tolerance))
+            {
+                result = otherResult;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -207,7 +250,10 @@ namespace GeometryHelper.Core
         /// <param name="tool">The body to remove.</param>
         /// <param name="result">What is left of the subject.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>false when nothing is left, because the tool swallowed the subject whole.</returns>
+        /// <returns>
+        /// false when nothing is left, because the tool swallowed the subject whole, or when it cannot be worked out,
+        /// which is logged.
+        /// </returns>
         /// <remarks>
         /// The walls of the cavity are not taken from the tool; they are already there. Dividing the
         /// subject by the planes of the tool lays a face along every part of the surface of the tool that
@@ -218,6 +264,18 @@ namespace GeometryHelper.Core
         {
             Guard(subject, tool);
 
+            try
+            {
+                return TakeAway(subject, tool, out result, tolerance);
+            }
+            catch (Exception exception) when (IsUnworkable(exception))
+            {
+                return Unworkable("difference", exception, out result);
+            }
+        }
+
+        private static bool TakeAway(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance)
+        {
             result = null;
 
             if (!subject.GetAabb().CollidesWith(tool.GetAabb(), tolerance))
@@ -231,6 +289,8 @@ namespace GeometryHelper.Core
             tool = FlatForWork(tool, tolerance);
 
             // One body cut: the subject beyond the tool, or the subject whole less the tool within it.
+            GeoSolid3 openCut = null;
+
             if (TryCutOpenings(subject, out GeoSolid3 a, tolerance) && TryCutOpenings(tool, out GeoSolid3 b, tolerance))
             {
                 bool? found = CombineCuttingOne(a, b, false, tolerance, out result);
@@ -239,13 +299,30 @@ namespace GeometryHelper.Core
                 {
                     return found.Value;
                 }
+
+                openCut = result;
             }
 
             List<GeoPlane3> planes = SharedPlanes(subject, tool, tolerance);
 
             List<GeoFace3> kept = FacesOfCells(SplitIntoCells(subject, planes, tolerance), subject, tool, false, tolerance);
 
-            return TryGlue(kept, tolerance, out result);
+            return GlueOrKeep(kept, openCut, tolerance, out result);
+        }
+
+        /// <summary>
+        /// Glues the cells of both bodies cut by every plane of both, unless that does no better than an open result
+        /// already found by cutting one of them, which is then kept, as it was before cutting both was tried.
+        /// </summary>
+        private static bool GlueOrKeep(List<GeoFace3> kept, GeoSolid3 openCut, Tolerance tolerance, out GeoSolid3 result)
+        {
+            if (TryGlue(kept, tolerance, out result) && (openCut == null || result.IsClosed(tolerance)))
+            {
+                return true;
+            }
+
+            result = openCut;
+            return openCut != null;
         }
 
         /// <summary>
@@ -257,8 +334,9 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="result">The result, when there is one.</param>
         /// <returns>
-        /// Whether anything is left, as the public methods report it; null when neither body could be cut cleanly,
-        /// for the caller to cut both by every plane of both instead.
+        /// Whether anything is left, as the public methods report it; null when neither body could be cut cleanly, or
+        /// two closed bodies came out open whichever was cut, for the caller to cut both by every plane of both
+        /// instead. An open result found on the way is then left in <paramref name="result"/>.
         /// </returns>
         /// <remarks>
         /// The body cut is the one fewer planes of the other come near, as for an intersection. A union keeps the
@@ -275,6 +353,7 @@ namespace GeometryHelper.Core
             List<GeoPlane3> cuttingA = PlanesNear(b, a.GetAabb(), tolerance);
             List<GeoPlane3> cuttingB = PlanesNear(a, b.GetAabb(), tolerance);
             bool aFirst = cuttingA.Count <= cuttingB.Count;
+            GeoSolid3 open = null;
 
             for (int attempt = 0; attempt < 2; attempt++)
             {
@@ -312,13 +391,49 @@ namespace GeometryHelper.Core
                     kept.AddRange(whole.Faces);
                 }
 
-                return TryGlue(kept, tolerance, out result);
+                if (!TryGlue(kept, tolerance, out result))
+                {
+                    return false;
+                }
+
+                // Cut cleanly and still open, two closed bodies can close cut the other way round, or both cut: a beam
+                // turned a hundredth of a degree off the axes, less an opening, came out open with the beam cut and
+                // closed with the opening cut. The open one is kept in case nothing does better.
+                if (result.IsClosed(tolerance) || !a.IsClosed(tolerance) || !b.IsClosed(tolerance))
+                {
+                    return true;
+                }
+
+                open = open ?? result;
             }
 
+            result = open;
             return null;
         }
 
         #region Machinery
+
+        /// <summary>
+        /// Whether an exception is one a boolean that cannot be worked out throws: a shape the work built refused by its
+        /// constructor, or a direction asked of a vector with none. A boolean that tries says so by returning false.
+        /// </summary>
+        /// <remarks>
+        /// Thrown out of a boolean, one of these took down whatever asked for it: the conversion of a whole IFC model,
+        /// when the GeoSolid3 boolean cut the openings of one beam in it. The known causes are fixed; this keeps an
+        /// unknown one to the boolean it happens in, and says so in the log.
+        /// </remarks>
+        internal static bool IsUnworkable(Exception exception)
+            => exception is ArgumentException || exception is InvalidOperationException;
+
+        /// <summary>
+        /// Reports a boolean that could not be worked out: false, nothing made, and a warning with what was thrown.
+        /// </summary>
+        private static bool Unworkable(string operation, Exception exception, out GeoSolid3 result)
+        {
+            GeometryHelperLog.Warn($"A solid {operation} could not be worked out and is reported as not made.", exception);
+            result = null;
+            return false;
+        }
 
         /// <summary>
         /// Rejects null arguments for every operation in one place.
@@ -780,7 +895,7 @@ namespace GeometryHelper.Core
         /// the inward normal. The step shrinks on each round because a body can be thinner in one place
         /// than the first step assumes, and a step that overshoots comes out the far side.
         /// </remarks>
-        private static bool TryGetInteriorPoint(GeoSolid3 solid, Tolerance tolerance, out GeoPoint3 point)
+        internal static bool TryGetInteriorPoint(GeoSolid3 solid, Tolerance tolerance, out GeoPoint3 point)
         {
             point = GeoPoint3.Origin;
 
@@ -810,7 +925,10 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    GeoPoint3 candidate = triangle.Centroid.Subtract(triangle.Normal.Multiply(reach * fraction));
+                    // The direction from the area the tolerance just let through: the triangle's own Normal is found at
+                    // the default tolerance, and threw for a triangle finer than that but not than this one.
+                    GeoVector3 area = triangle.GetAreaVector();
+                    GeoPoint3 candidate = triangle.Centroid.Subtract(area.Multiply(reach * fraction / area.Length));
 
                     if (Containment3.Locate(solid, candidate, tolerance) == PointLocation.Inside)
                     {
@@ -927,6 +1045,11 @@ namespace GeometryHelper.Core
         /// Whatever two faces lying back to back share is inside the body however it was cut, so it goes from
         /// both, and what is left of either is boundary.
         /// </para>
+        /// <para>
+        /// Two faces lie back to back when either lies in the plane of the other, and each is cut in its own plane,
+        /// the other laid out in it (<see cref="SubtractLaidOut"/>): a small face a hair out of a long one's plane
+        /// lies in it, but the long one's far end stands off the small one's by more than the tolerance.
+        /// </para>
         /// </remarks>
         internal static List<GeoFace3> CancelBackToBack(List<GeoFace3> faces, Tolerance tolerance)
         {
@@ -964,10 +1087,18 @@ namespace GeometryHelper.Core
                 {
                     int i = Math.Min(first, order[b]), j = Math.Max(first, order[b]);
 
-                    if (normals[i].DotProduct(normals[j]) >= 0.0
-                        || !boxes[i].CollidesWith(boxes[j], tolerance)
-                        || !LiesIn(planes[i], faces[j], tolerance)
-                        || AreaOf(Intersect(faces[i], faces[j], tolerance)) <= speck)
+                    if (normals[i].DotProduct(normals[j]) >= 0.0 || !boxes[i].CollidesWith(boxes[j], tolerance))
+                    {
+                        continue;
+                    }
+
+                    // Asked both ways round: a small face a hair out of a long one's plane lies in it, while the long
+                    // one's far end stands off the small one's, and asked one way the pair was found or missed by which
+                    // of the two came first. What they share is measured in the plane of the one the other lies in.
+                    bool jInI = LiesIn(planes[i], faces[j], tolerance);
+
+                    if (!jInI && !LiesIn(planes[j], faces[i], tolerance)
+                        || AreaOf(jInI ? Intersect(faces[i], faces[j], tolerance) : Intersect(faces[j], faces[i], tolerance)) <= speck)
                     {
                         continue;
                     }
@@ -1008,7 +1139,7 @@ namespace GeometryHelper.Core
 
                     foreach (GeoFace3 piece in left)
                     {
-                        rest.AddRange(Subtract(piece, faces[j], tolerance));
+                        rest.AddRange(SubtractLaidOut(piece, faces[j], tolerance));
                     }
 
                     left = rest;

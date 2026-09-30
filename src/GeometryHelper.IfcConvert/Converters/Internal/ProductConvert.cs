@@ -498,13 +498,22 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 GeoSolid3 currentSolid = solid;
                 foreach (GeoSolid3 openingSolid in openingSolids)
                 {
-                    if (currentSolid.TrySubtract(openingSolid, out GeoSolid3 cut, options.Tolerance))
+                    try
                     {
-                        currentSolid = cut;
+                        if (currentSolid.TrySubtract(openingSolid, out GeoSolid3 cut, options.Tolerance))
+                        {
+                            currentSolid = cut;
+                        }
+                        else
+                        {
+                            warnings.Add("An opening could not be subtracted by the GeoSolid3 boolean.");
+                        }
                     }
-                    else
+                    catch (Exception ex) when (!(ex is OutOfMemoryException))
                     {
-                        warnings.Add("An opening could not be subtracted by the GeoSolid3 boolean.");
+                        // An opening that throws is left uncut rather than failing the product, and with it every product
+                        // of a whole model read at once: one beam's openings took a whole IFC file down that way.
+                        warnings.Add($"An opening could not be subtracted by the GeoSolid3 boolean: {ex.GetType().Name}: {ex.Message}");
                     }
                 }
                 cutSolids.Add(currentSolid);

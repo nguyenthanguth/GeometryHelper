@@ -93,6 +93,32 @@ round it open and the hole counted in the volume; a face out of flat went to the
 comes as triangles on the corners the file gives, and the body closes with its holes open. The engine's mesh, and
 then the boundary alone with a warning, remain for loops that cannot be split.
 
+**FIXED.** `TrySubtract`, `TryIntersect` and `TryUnion` threw `ArgumentException` ("The two shapes lie in different
+planes") instead of returning. Gluing the cells of a boolean took from each other the faces lying back to back, found
+by one lying in the plane of the other, but a small face a hair out of a long one's plane lies in it while the long
+one's far end stands millimetres off the small one's, and taking the long face from the small one was refused. A steel
+beam of a Tekla IFC export, 665 m from the origin and turned a hundredth of a degree off the axes, threw so on seven of
+its sixteen openings cut in turn, as IfcConvert cuts them when the geometry engine cannot. The pair is now found when
+either face lies in the other's plane, and each is cut in its own plane with the other laid out in it. The search for
+a point inside a body, at a tolerance finer than the default, also threw ("Cannot normalize a zero-length vector"): it
+took the direction of a triangle at the default tolerance.
+
+**FIXED.** A difference, union or intersection of two closed bodies could come out open where cutting the other of
+the two, or both, closes it: ten of the beam's openings left it open. The boolean now tries the other way round, and
+then cutting both, before it settles for an open result; the beam comes out closed from fourteen of its sixteen
+openings, and with all sixteen cut within 90 mm3 of the geometry engine's 25 137 804. The fifteenth still leaves a seam
+where two faces of the web run a hundredth of a millimetre apart, the point tolerance itself.
+
+**FIXED.** `IsClosed` called a closed body open when a short edge a hair out of true lay beside a long one: the two
+were matched along the short edge's own direction, carried the length of the long one, where a thousandth became
+three tenths. They are matched along the longer.
+
+**CHANGED.** The solid booleans that try (`TryUnion`, `TryIntersect`, `TrySubtract`, and the cutting of openings behind
+queries on a body with them) no longer throw when a shape cannot be worked out: they return false and write a warning
+with what was thrown to `GeometryHelperLog`. Thrown out of the GeoSolid3 boolean IfcConvert falls back to for openings,
+such an exception took the reading of a whole IFC model with it; IfcConvert now also leaves an opening that throws
+uncut, with a warning, rather than losing the product.
+
 ## 7.0.0
 
 **BREAKING.** `ArrangeItem.Offset` only sets: it writes `OffsetTop` and `OffsetBottom` both, and holds nothing of

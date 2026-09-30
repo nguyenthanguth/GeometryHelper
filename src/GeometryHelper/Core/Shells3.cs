@@ -293,7 +293,17 @@ namespace GeometryHelper.Core
         /// </summary>
         private static bool EvenAlong(List<Segment> segments, List<int> members, Tolerance tolerance)
         {
+            // Along the longest of them, whose direction is the truest; see Overlap.
             Segment first = segments[members[0]];
+
+            foreach (int m in members)
+            {
+                if (segments[m].Start.GetVectorTo(segments[m].End).LengthSquared > first.Start.GetVectorTo(first.End).LengthSquared)
+                {
+                    first = segments[m];
+                }
+            }
+
             GeoPoint3 origin = first.Start;
 
             // Every member shares a stretch longer than the point tolerance with another, so it has a length to
@@ -348,6 +358,14 @@ namespace GeometryHelper.Core
         /// </summary>
         private static bool Overlap(Segment a, Segment b, Tolerance tolerance)
         {
+            // Measured along the longer of the two: the direction of a short edge, carried out along a long one, strays
+            // by more than the tolerance where the long one does not. An edge a millimetre long a thousandth out of
+            // true was read as off the line of the 300 mm edge beside it, and a closed body was called open.
+            if (b.Start.GetVectorTo(b.End).LengthSquared > a.Start.GetVectorTo(a.End).LengthSquared)
+            {
+                (a, b) = (b, a);
+            }
+
             GeoVector3 along = a.Start.GetVectorTo(a.End);
             double length = along.Length;
             GeoVector3 unit = along.Divide(length);

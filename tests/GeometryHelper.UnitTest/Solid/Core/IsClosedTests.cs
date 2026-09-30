@@ -50,6 +50,30 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void AShortEdgeAHairOutOfTrueBesideALongOneIsClosed()
+        {
+            // A block 300 high whose left side is two faces, the lower 299 high and a strip of 1 above it, their shared
+            // corner at the front a thousandth out of true; the front face keeps its left edge whole. The strip's edge was
+            // matched along its own direction, carried the 300 of the front's edge, where the thousandth became three
+            // tenths and read as off that line, and the block was called open.
+            GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
+            GeoPoint3 corner = P(-0.001, 0, 299);
+            var block = new GeoSolid3(new List<GeoFace3>
+            {
+                Face(P(0, 0, 0), P(0, 100, 0), P(100, 100, 0), P(100, 0, 0)),         // bottom
+                Face(P(0, 0, 300), P(100, 0, 300), P(100, 100, 300), P(0, 100, 300)), // top
+                Face(P(0, 0, 0), P(100, 0, 0), P(100, 0, 300), P(0, 0, 300)),         // front: its left edge whole
+                Face(P(0, 100, 0), P(0, 100, 300), P(100, 100, 300), P(100, 100, 0)), // back
+                Face(P(100, 0, 0), P(100, 100, 0), P(100, 100, 300), P(100, 0, 300)), // right
+                Face(P(0, 0, 0), corner, P(0, 100, 299), P(0, 100, 0)),               // left, the lower face
+                Face(corner, P(0, 0, 300), P(0, 100, 300), P(0, 100, 299)),           // left, the strip above it
+            });
+
+            Assert.True(block.IsClosed());
+            Assert.InRange(block.Volume, 3000000.0 - 100.0, 3000000.0 + 100.0);
+        }
+
+        [Fact]
         public void TwoBlocksMeetingAlongAnEdgeAreClosed()
         {
             var two = new GeoSolid3(Box(0, 0, 0, 100, 100, 100).Faces.Concat(Box(100, 100, 0, 200, 200, 100).Faces));

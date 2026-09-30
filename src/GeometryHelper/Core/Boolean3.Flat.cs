@@ -468,6 +468,21 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Takes one face from another lying back to back with it, in the plane of the first: the second is laid out in
+        /// that plane whether or not all of it lies there.
+        /// </summary>
+        /// <remarks>
+        /// For the gluing of a boolean (<see cref="CancelBackToBack"/>), which pairs two faces when either lies in the plane
+        /// of the other. A small face a hair out of a long one's plane lies in it, but the long one's far end can stand
+        /// millimetres off the small one's, and taking the long face from the small one was refused as lying in another
+        /// plane, which threw out the whole boolean. Near the small face, where anything is taken from it, the two planes
+        /// are one within the tolerance, so the long face laid out in the small one's plane takes away what it should, and
+        /// what is left of the small face stays where it was.
+        /// </remarks>
+        internal static GeoFace3[] SubtractLaidOut(GeoFace3 face, GeoFace3 tool, Tolerance tolerance)
+            => Combine(Combination.Subtract, PlanarMap.FrameOf(face), face, tool, tolerance);
+
+        /// <summary>
         /// The frame to work the two shapes out in, refusing a second shape that lies in another plane.
         /// </summary>
         private static GeoCoordinateSystem3 FlatFrame(GeoFace3 first, GeoFace3 second, Tolerance tolerance, string name)

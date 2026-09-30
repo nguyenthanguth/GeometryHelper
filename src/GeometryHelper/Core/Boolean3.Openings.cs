@@ -71,7 +71,7 @@ namespace GeometryHelper.Core
         /// <param name="openings">The openings to cut; the others are not carried over.</param>
         /// <param name="material">The body with those openings cut into it.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true when some material is left; otherwise, false.</returns>
+        /// <returns>true when some material is left; otherwise, or when the cut cannot be worked out, which is logged, false.</returns>
         /// <remarks>
         /// For a question asked near a probe, only the openings whose box meets the probe's box can change the
         /// answer, so there is no reason to pay for the rest. The caller is the one who knows which those are.
@@ -84,6 +84,18 @@ namespace GeometryHelper.Core
                 return true;
             }
 
+            try
+            {
+                return CutOpenings(solid, openings, out material, tolerance);
+            }
+            catch (Exception exception) when (IsUnworkable(exception))
+            {
+                return Unworkable("cut of openings", exception, out material);
+            }
+        }
+
+        private static bool CutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance)
+        {
             // The body carrying only the openings being cut, so that a cell is judged against exactly those, and
             // both as the cut works on them; see ForWork and FlatForWork.
             tolerance = ForWork(tolerance);
