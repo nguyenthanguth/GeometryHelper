@@ -30,6 +30,7 @@
         {
             this.clashCheckButton = new System.Windows.Forms.Button();
             this.clashBarCheckButton = new System.Windows.Forms.Button();
+            this.sectionButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // clashCheckButton
@@ -53,12 +54,24 @@
             this.clashBarCheckButton.Text = "Clash check by centre line: selected rebar vs IFC";
             this.clashBarCheckButton.UseVisualStyleBackColor = true;
             this.clashBarCheckButton.Click += new System.EventHandler(this.clashBarCheckButton_Click);
-            // 
+            //
+            // sectionButton
+            //
+            this.sectionButton.AutoSize = true;
+            this.sectionButton.Location = new System.Drawing.Point(167, 206);
+            this.sectionButton.Name = "sectionButton";
+            this.sectionButton.Size = new System.Drawing.Size(125, 39);
+            this.sectionButton.TabIndex = 2;
+            this.sectionButton.Text = "Section by 3 points: selected parts and IFC";
+            this.sectionButton.UseVisualStyleBackColor = true;
+            this.sectionButton.Click += new System.EventHandler(this.sectionButton_Click);
+            //
             // Form1
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(492, 257);
+            this.ClientSize = new System.Drawing.Size(492, 308);
+            this.Controls.Add(this.sectionButton);
             this.Controls.Add(this.clashBarCheckButton);
             this.Controls.Add(this.clashCheckButton);
             this.Name = "Form1";
@@ -73,6 +86,7 @@
 
         private System.Windows.Forms.Button clashCheckButton;
         private System.Windows.Forms.Button clashBarCheckButton;
+        private System.Windows.Forms.Button sectionButton;
     }
 }
 

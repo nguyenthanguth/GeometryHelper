@@ -12,6 +12,11 @@ namespace Tekla2025Test
     {
         private readonly Model model;
 
+        /// <summary>
+        /// Kept for the life of the window, so that each run takes out what the last one drew.
+        /// </summary>
+        private readonly PlaneSection planeSection = new PlaneSection();
+
         public Form1()
         {
             InitializeComponent();
@@ -36,6 +41,35 @@ namespace Tekla2025Test
         private void clashBarCheckButton_Click(object sender, EventArgs e)
         {
             new RebarIfcClashBarCheck().Run();
+        }
+
+        /// <summary>
+        /// Cuts the selected parts and IFC objects by a plane through three picked points and draws the sections:
+        /// <see cref="PlaneSection"/>.
+        /// </summary>
+        private void sectionButton_Click(object sender, EventArgs e)
+        {
+            planeSection.Run();
+        }
+
+        /// <summary>
+        /// Takes the sections drawn out of the model as the window closes, leaving the model as it was found.
+        /// </summary>
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            try
+            {
+                if (planeSection.RemoveDrawn() > 0)
+                {
+                    model.CommitChanges();
+                }
+            }
+            catch (Exception)
+            {
+                // Tekla Structures went first, and took the model with it.
+            }
+
+            base.OnFormClosed(e);
         }
     }
 }
