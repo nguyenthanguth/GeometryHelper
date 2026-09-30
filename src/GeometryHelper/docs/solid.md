@@ -107,7 +107,8 @@ left the top face beside a notch in a beam 0.04 mm low at one corner. Refused, s
 the body, which then has no section and the wrong volume. `GeoFace3.FromLoops` reads a face from its
 loops of corners: one face, holes and all, where they lie flat, and otherwise triangles on the corners
 themselves, which keep every edge the face shares with its neighbours, so the body stays as closed as it
-was given and no corner moves. A hole off the plane of its boundary is kept the same way.
+was given and no corner moves. A hole off the plane of its boundary is kept the same way. The Tekla
+and IFC conversions read faces through it.
 
 ```csharp
 // One corner 1 mm up: out of flat at the default tolerance, so two triangles on these four corners.

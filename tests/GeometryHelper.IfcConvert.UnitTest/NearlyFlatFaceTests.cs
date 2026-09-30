@@ -1,4 +1,5 @@
 using System.Linq;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Models;
@@ -54,6 +55,86 @@ namespace GeometryHelper.IfcConvert.UnitTest
 #72=IFCLOCALPLACEMENT($,#8);
 #73=IFCPLATE('0000000000000000000S01',$,'GUSSET',$,$,#72,#71,$,$);
 ";
+
+        // A plate 200 x 200 x 20 with a 40 x 40 hole through it, one corner of the hole's top rim written 0.3 mm out each
+        // way: the hole of the top face stands off the face's plane, and the two walls of the hole meeting there are out
+        // of flat, six times what the default tolerance lets a face stray.
+        private static readonly string PlateWithAHoleCornerOut = IfcTestFile.CommonHeader(".MILLI.,.METRE.") + @"
+#20=IFCCARTESIANPOINT((0.,0.,0.));
+#21=IFCCARTESIANPOINT((200.,0.,0.));
+#22=IFCCARTESIANPOINT((200.,200.,0.));
+#23=IFCCARTESIANPOINT((0.,200.,0.));
+#24=IFCCARTESIANPOINT((0.,0.,20.));
+#25=IFCCARTESIANPOINT((200.,0.,20.));
+#26=IFCCARTESIANPOINT((200.,200.,20.));
+#27=IFCCARTESIANPOINT((0.,200.,20.));
+#28=IFCCARTESIANPOINT((80.,80.,0.));
+#29=IFCCARTESIANPOINT((120.,80.,0.));
+#30=IFCCARTESIANPOINT((120.,120.,0.));
+#31=IFCCARTESIANPOINT((80.,120.,0.));
+#32=IFCCARTESIANPOINT((80.,80.,20.));
+#33=IFCCARTESIANPOINT((120.,80.,20.));
+#34=IFCCARTESIANPOINT((120.3,120.3,20.3));
+#35=IFCCARTESIANPOINT((80.,120.,20.));
+#40=IFCPOLYLOOP((#20,#23,#22,#21));
+#41=IFCPOLYLOOP((#28,#29,#30,#31));
+#42=IFCPOLYLOOP((#24,#25,#26,#27));
+#43=IFCPOLYLOOP((#32,#35,#34,#33));
+#44=IFCPOLYLOOP((#20,#21,#25,#24));
+#45=IFCPOLYLOOP((#21,#22,#26,#25));
+#46=IFCPOLYLOOP((#22,#23,#27,#26));
+#47=IFCPOLYLOOP((#23,#20,#24,#27));
+#48=IFCPOLYLOOP((#28,#32,#33,#29));
+#49=IFCPOLYLOOP((#29,#33,#34,#30));
+#50=IFCPOLYLOOP((#30,#34,#35,#31));
+#51=IFCPOLYLOOP((#31,#35,#32,#28));
+#60=IFCFACEOUTERBOUND(#40,.T.);
+#61=IFCFACEBOUND(#41,.T.);
+#62=IFCFACEOUTERBOUND(#42,.T.);
+#63=IFCFACEBOUND(#43,.T.);
+#64=IFCFACEOUTERBOUND(#44,.T.);
+#65=IFCFACEOUTERBOUND(#45,.T.);
+#66=IFCFACEOUTERBOUND(#46,.T.);
+#67=IFCFACEOUTERBOUND(#47,.T.);
+#68=IFCFACEOUTERBOUND(#48,.T.);
+#69=IFCFACEOUTERBOUND(#49,.T.);
+#70=IFCFACEOUTERBOUND(#50,.T.);
+#71=IFCFACEOUTERBOUND(#51,.T.);
+#80=IFCFACE((#60,#61));
+#81=IFCFACE((#62,#63));
+#82=IFCFACE((#64));
+#83=IFCFACE((#65));
+#84=IFCFACE((#66));
+#85=IFCFACE((#67));
+#86=IFCFACE((#68));
+#87=IFCFACE((#69));
+#88=IFCFACE((#70));
+#89=IFCFACE((#71));
+#90=IFCCLOSEDSHELL((#80,#81,#82,#83,#84,#85,#86,#87,#88,#89));
+#91=IFCFACETEDBREP(#90);
+#92=IFCSHAPEREPRESENTATION(#11,'Body','Brep',(#91));
+#93=IFCPRODUCTDEFINITIONSHAPE($,$,(#92));
+#94=IFCLOCALPLACEMENT($,#8);
+#95=IFCPLATE('0000000000000000000P01',$,'PLATE',$,$,#94,#93,$,$);
+";
+
+        [Fact]
+        public void APlateWithACornerOfItsHoleOutOfFlat_ComesOutClosedWithItsHole()
+        {
+            IfcTestFile.Run(PlateWithAHoleCornerOut, model =>
+            {
+                IfcProductGeometry plate = model.GetGeometry("0000000000000000000P01", new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters });
+
+                Assert.DoesNotContain(plate.Warnings, warning => warning.Contains("could not be read") || warning.Contains("dropped"));
+                GeoSolid3 body = Assert.Single(plate.Solids);
+                Assert.True(body.IsClosed());
+
+                double full = (200.0 * 200.0 - 40.0 * 40.0) * 20.0;
+                Assert.InRange(body.Volume, full * 0.99, full * 1.01);
+                Assert.Equal(PointLocation.OutSide, body.Locate(new GeoPoint3(100, 100, 10)));
+                Assert.Equal(PointLocation.Inside, body.Locate(new GeoPoint3(40, 40, 10)));
+            });
+        }
 
         [Fact]
         public void AStripWithOneCornerRoundedTheOtherWay_ComesOutClosed()

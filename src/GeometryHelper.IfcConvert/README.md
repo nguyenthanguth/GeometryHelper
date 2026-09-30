@@ -56,7 +56,9 @@ stored wound like their boundary, as `GeoSolid3` expects.
 ## Planar vs Curved Geometry
 
 A solid whose faces and edges are all planar and straight is read face by face: outer loops and hole
-loops become `GeoPolygon3` rings. A solid with any curved face **or curved edge** (round columns,
+loops become `GeoPolygon3` rings. A face that strays out of flat, or a hole off its face's plane, as
+rounding in the file leaves some, comes as triangles on its own corners (`GeoFace3.FromLoops`), which
+keep every edge it shares with its neighbours, so the body stays closed and its holes stay open. A solid with any curved face **or curved edge** (round columns,
 tubes, a plate with a bolt hole) is triangulated as a whole by the geometry engine, so shared edges
 are subdivided once and the mesh is watertight. Reading it face by face would collapse circular
 loops to their vertices and drop the hole.

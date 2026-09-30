@@ -87,6 +87,12 @@ triangles on the corners Tekla gave, turned to face the way Tekla says, where it
 left the body open. A solid Tekla holds closed now comes out closed whatever the tolerance; only a face with no area
 is still left out. `FaceConvert.TryReadFace`, one face or none, reads as before.
 
+**CHANGED.** In GeometryHelper.IfcConvert, a planar face is read from its loops with `GeoFace3.FromLoops`. A hole out
+of flat was dropped without a word, and a hole off its face's plane dropped with a warning, and either left the walls
+round it open and the hole counted in the volume; a face out of flat went to the geometry engine's mesh. Each now
+comes as triangles on the corners the file gives, and the body closes with its holes open. The engine's mesh, and
+then the boundary alone with a warning, remain for loops that cannot be split.
+
 ## 7.0.0
 
 **BREAKING.** `ArrangeItem.Offset` only sets: it writes `OffsetTop` and `OffsetBottom` both, and holds nothing of
