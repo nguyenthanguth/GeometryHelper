@@ -94,6 +94,45 @@ namespace GeometryHelper.UnitTest.Common
         }
 
         [Fact]
+        public void DefaultHoldsTheFourDefaults()
+        {
+            Tolerance tolerance = Tolerance.Default;
+
+            Assert.Equal(Tolerance.DefaultEqualPoint, tolerance.EqualPoint);
+            Assert.Equal(Tolerance.DefaultEqualVector, tolerance.EqualVector);
+            Assert.Equal(Tolerance.DefaultEqualAngleRad, tolerance.EqualAngleRad);
+            Assert.Equal(Tolerance.DefaultEqualPlanar, tolerance.EqualPlanar);
+        }
+
+        [Fact]
+        public void DefaultDoesNotFollowTheToleranceInUse()
+        {
+            var defaults = new Tolerance(
+                Tolerance.DefaultEqualPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, Tolerance.DefaultEqualPlanar);
+
+            using (Tolerance.Use(new Tolerance(0.5, 0.5)))
+            {
+                Assert.Equal(defaults, Tolerance.Default);
+                Assert.NotEqual(Tolerance.Default, Tolerance.Global);
+            }
+        }
+
+        [Fact]
+        public void AToleranceMadeWithoutAConstructorHasEveryThresholdAtNought()
+        {
+            // Tolerance is a struct, so new Tolerance() runs none of its constructors: it is default(Tolerance), not
+            // the defaults.
+            var unset = new Tolerance();
+
+            Assert.Equal(default(Tolerance), unset);
+            Assert.Equal(0.0, unset.EqualPoint);
+            Assert.Equal(0.0, unset.EqualVector);
+            Assert.Equal(0.0, unset.EqualAngleRad);
+            Assert.Equal(0.0, unset.EqualPlanar);
+            Assert.NotEqual(Tolerance.Default, unset);
+        }
+
+        [Fact]
         public void PlanarThresholdFollowsThePointThresholdOnTheThreeArgumentConstructor()
         {
             Tolerance tolerance = new Tolerance(0.5, 0.25, 0.1);

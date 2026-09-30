@@ -27,6 +27,13 @@ flat, that face was a hole in the beam, which then gave no section and a fifth t
 Geometry in metres wants the defaults a thousand times smaller, and a tolerance of its own:
 `new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 5E-5)`.
 
+`Tolerance.Default` is the four defaults together. `Tolerance.Global` starts as it, and it stays the
+defaults whatever `Tolerance.Global` is set to. `new Tolerance()` is not the defaults: `Tolerance` is a
+struct, and a struct made without one of its constructors, as `new Tolerance()` and
+`default(Tolerance)` are, has every threshold at 0. Then only an exact match is equal, and a face out
+of flat by rounding alone is refused; the notched beam, read so, lost five of its 26 faces and came
+out open.
+
 `EqualPlanar` is separate from `EqualPoint` because coplanarity is measured far from the reference
 point. A face twelve metres long that is tilted by a hundredth of a degree deviates by about two
 millimetres at its far end — far more than `EqualPoint` allows, yet still flat enough to work with.

@@ -15,6 +15,11 @@ namespace GeometryHelper
     /// <see cref="Global"/> is one setting shared by both libraries. Changing it for a drawing in the
     /// plane changes it for a model in space as well.
     /// </para>
+    /// <para>
+    /// Make one with a constructor, or take <see cref="Default"/> or <see cref="Global"/>. <c>new Tolerance()</c> is
+    /// not the default tolerance: like <c>default(Tolerance)</c> it runs no constructor and has every threshold at 0,
+    /// under which only an exact match is equal and a face out of flat by rounding alone is refused.
+    /// </para>
     /// </summary>
     public readonly struct Tolerance : IEquatable<Tolerance>
     {
@@ -45,6 +50,17 @@ namespace GeometryHelper
         public const double DefaultEqualPlanar = 0.05;
 
         /// <summary>
+        /// Gets the default tolerance: <see cref="DefaultEqualPoint"/>, <see cref="DefaultEqualVector"/>,
+        /// <see cref="DefaultEqualAngleRad"/> and <see cref="DefaultEqualPlanar"/> together.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="Global"/> starts as this tolerance, and this stays the defaults whatever <see cref="Global"/> is
+        /// set to or a scope opened with <see cref="Use(Tolerance)"/> makes it. <c>new Tolerance()</c> is not it: that
+        /// has every threshold at 0.
+        /// </remarks>
+        public static Tolerance Default => new Tolerance(DefaultEqualPoint, DefaultEqualVector, DefaultEqualAngleRad, DefaultEqualPlanar);
+
+        /// <summary>
         /// The process-wide setting, held whole so that it is swapped in one step: a tolerance is several
         /// numbers, and a struct written while another thread reads it can be read half old and half new.
         /// </summary>
@@ -58,14 +74,13 @@ namespace GeometryHelper
             }
         }
 
-        private static volatile Held _global = new Held(
-            new Tolerance(DefaultEqualPoint, DefaultEqualVector, DefaultEqualAngleRad, DefaultEqualPlanar));
+        private static volatile Held _global = new Held(Default);
 
         [ThreadStatic]
         private static Held _scoped;
 
         /// <summary>
-        /// Tolerance applied for overloads without explicit tolerance.
+        /// Tolerance applied for overloads without explicit tolerance. It starts as <see cref="Default"/>.
         /// </summary>
         /// <remarks>
         /// <para>

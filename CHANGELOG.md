@@ -57,6 +57,13 @@ the rule it documents, and the prepared solid, say nought. Sweeps, the joining o
 line where two planes meet judged lengths and sines they had just found against the default vector tolerance
 instead of their own: a bar bent under half a degree threw, and so did a boolean run tighter than the default.
 
+**NEW.** `Tolerance.Default`, the four defaults together: `DefaultEqualPoint`, `DefaultEqualVector`,
+`DefaultEqualAngleRad` and `DefaultEqualPlanar`. `Tolerance.Global` starts as it, and it stays the defaults
+whatever `Global` is set to or a scope makes it. `new Tolerance()` reads as the defaults and is not: `Tolerance`
+is a struct, and one made without a constructor, like `default(Tolerance)`, has every threshold at 0. Then only
+an exact match is equal and a face out of flat by rounding alone is refused: the notched Tekla beam, read so,
+lost five of its 26 faces and came out open.
+
 ## 7.0.0
 
 **BREAKING.** `ArrangeItem.Offset` only sets: it writes `OffsetTop` and `OffsetBottom` both, and holds nothing of
