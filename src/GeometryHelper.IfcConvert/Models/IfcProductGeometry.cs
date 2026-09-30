@@ -140,9 +140,11 @@ namespace GeometryHelper.IfcConvert.Models
         /// Use it rather than <see cref="GeoSolid3.TransformBy"/> on each body. Conversion builds faces with a finer
         /// area threshold than <see cref="Tolerance.Global"/> (EqualPoint squared rather than EqualVector), so the
         /// thin sliver faces a triangulated or cut body can carry are valid here, while
-        /// <see cref="GeoSolid3.TransformBy"/>, which checks every face against <see cref="Tolerance.Global"/> again,
-        /// throws on the whole body. This method rebuilds the faces with the tolerance of the conversion, and leaves
-        /// out only what the transformation itself collapses, saying so in <see cref="Warnings"/>.
+        /// <see cref="GeoSolid3.TransformBy"/>, given a transformation that stretches or shears, checks every face
+        /// against <see cref="Tolerance.Global"/> again and throws on the whole body; a move that keeps every length it
+        /// carries over as it is. This method rebuilds the faces with the tolerance of the conversion, keeps a face
+        /// that lands a rounding off flat as triangles on its own corners, and leaves out only what the transformation
+        /// itself collapses, saying so in <see cref="Warnings"/>.
         /// </para>
         /// </summary>
         /// <param name="transform">The transformation, applied after <see cref="Placement"/>.</param>
@@ -168,8 +170,8 @@ namespace GeometryHelper.IfcConvert.Models
             {
                 try
                 {
-                    GeoSolid3 moved = ProductConvert.Transform(_solids[i], transform, tol);
-                    lostFaces += _solids[i].Faces.Count - moved.Faces.Count;
+                    GeoSolid3 moved = ProductConvert.Transform(_solids[i], transform, tol, out int lost);
+                    lostFaces += lost;
                     solids.Add(moved);
                 }
                 catch (ArgumentException ex)

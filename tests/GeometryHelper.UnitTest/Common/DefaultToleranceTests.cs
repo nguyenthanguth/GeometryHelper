@@ -11,8 +11,10 @@ namespace GeometryHelper.UnitTest.Common
     /// The default tolerance against faces as a model really gives them: a concrete beam 3000*400 and 30 m long, with a
     /// notch in its top, one in its bottom and three openings through its web, read from Tekla Structures 2025. Tekla
     /// gave the top face beside the top notch with one corner 0.04 mm below the other three, and at a planar tolerance
-    /// of 1E-4 that face was refused, leaving the body open: no section, and a volume a fifth short. Everything here
-    /// reads the default tolerance.
+    /// of 1E-4 that face was refused, leaving the body open: no section, and a volume a fifth short. At the default
+    /// hundredth it is no polygon either, and it is read, as the conversions read every face, through
+    /// <see cref="GeoFace3.FromLoops(IEnumerable{GeoPoint3}, IEnumerable{IEnumerable{GeoPoint3}})"/>: as two triangles on
+    /// its own corners. Everything here reads the default tolerance.
     /// </summary>
     public class DefaultToleranceTests
     {
@@ -61,12 +63,18 @@ namespace GeometryHelper.UnitTest.Common
         internal static readonly GeoPoint3 Start = new GeoPoint3(18223.422337105654, -25934.768136094648, 6000.0);
 
         [Fact]
-        public void AFaceTeklaLeftAHairOffFlatIsStillAFace()
+        public void AFaceTeklaLeftAHairOffFlatComesAsTwoTrianglesOnItsCorners()
         {
-            GeoPolygon3 top = Loop(TopBesideTheNotch);
+            GeoPoint3[] corners = Corners(TopBesideTheNotch);
 
-            Assert.True(top.Normal.IsCodirectionalTo(GeoVector3.ZAxis));
-            Assert.InRange(top.Area, 16530.18 * 400.0 * 0.99999, 16530.18 * 400.0 * 1.00001);
+            Assert.Throws<ArgumentException>(() => Loop(TopBesideTheNotch));
+
+            GeoFace3[] top = GeoFace3.FromLoops(corners, null);
+
+            Assert.Equal(2, top.Length);
+            Assert.All(top, triangle => Assert.True(triangle.Normal.IsCodirectionalTo(GeoVector3.ZAxis)));
+            Assert.All(top.SelectMany(triangle => triangle.Boundary.Vertices), corner => Assert.Contains(corner, corners));
+            Assert.InRange(top.Sum(triangle => triangle.Area), 16530.18 * 400.0 * 0.99999, 16530.18 * 400.0 * 1.00001);
         }
 
         [Fact]
@@ -74,7 +82,8 @@ namespace GeometryHelper.UnitTest.Common
         {
             var beam = new GeoSolid3(Faces());
 
-            Assert.Equal(26, beam.Faces.Count);
+            // Its 26 faces, the one Tekla left out of flat as two triangles.
+            Assert.Equal(27, beam.Faces.Count);
             Assert.True(beam.IsClosed());
 
             // 30 m of 3000 x 400, less two notches and three openings, each 600 x 800 through the 400.
@@ -118,9 +127,7 @@ namespace GeometryHelper.UnitTest.Common
 
         private static List<GeoFace3> Faces()
         {
-            return Loops()
-                .Select(loops => new GeoFace3(new GeoPolygon3(loops[0]), loops.Skip(1).Select(hole => new GeoPolygon3(hole))))
-                .ToList();
+            return Loops().SelectMany(loops => GeoFace3.FromLoops(loops[0], loops.Skip(1))).ToList();
         }
 
         private static GeoPolygon3 Loop(string coordinates) => new GeoPolygon3(Corners(coordinates));

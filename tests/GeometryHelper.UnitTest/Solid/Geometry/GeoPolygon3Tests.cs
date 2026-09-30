@@ -73,6 +73,44 @@ namespace GeometryHelper.UnitTest.Solid
             }
         }
 
+        /// <summary>
+        /// A face of a steel girder in an IFC file, as read in the girder's own frame: one corner a hundredth below the
+        /// other seven, flat at the default planar tolerance with nothing to spare.
+        /// </summary>
+        internal static readonly GeoPoint3[] GirderFace =
+        {
+            new GeoPoint3(7989.99999991793, 20, 189.99), new GeoPoint3(7954.99999991793, 20, 190),
+            new GeoPoint3(257.000004518777, 19.99999999959249, 190), new GeoPoint3(257.00003389886115, 149.999999999622, 190),
+            new GeoPoint3(7954.99999991793, 150, 190), new GeoPoint3(7989.99999991793, 150, 190),
+            new GeoPoint3(7992.99999991793, 150, 190), new GeoPoint3(7992.99999991793, 20, 190),
+        };
+
+        /// <summary>
+        /// Where the girder stands: some 600 m out.
+        /// </summary>
+        internal static readonly GeoVector3 GirderPlace = new GeoVector3(195703.959999986, 580442.140000014, -15100);
+
+        [Fact]
+        public void APolygonAtTheEdgeOfFlatIsMovedWholeHoweverFar()
+        {
+            // Moved to where the girder stands, rounding put the low corner a hair past the planar tolerance, and the
+            // face was refused, and the body with it. A move that keeps every length keeps the polygon as flat as it was.
+            var face = new GeoPolygon3(GirderFace, Tolerance.Default);
+
+            foreach (GeoTransform3 move in new[]
+            {
+                GeoTransform3.Translation(GirderPlace),
+                GeoTransform3.Translation(GirderPlace) * GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(0.2, -0.3, 1.0), 0.7),
+            })
+            {
+                GeoPolygon3 placed = face.TransformBy(move);
+
+                Assert.Equal(8, placed.VertexCount);
+                Assert.Equal(face.Area, placed.Area, 6);
+                Assert.Equal(move.Transform(GirderFace[0]), placed[0]);
+            }
+        }
+
         private static GeoPoint3 Near(Random random)
             => new GeoPoint3(24000.0 + random.NextDouble() * 1000.0, -26000.0 + random.NextDouble() * 1000.0, 3000.0 + random.NextDouble() * 1000.0);
 

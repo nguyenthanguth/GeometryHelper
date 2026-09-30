@@ -420,8 +420,20 @@ namespace GeometryHelper.Geometry
                 moved[i] = transform.Transform(_vertices[i]);
             }
 
-            // The public constructor revalidates, which is what is wanted here: a projection onto a plane
-            // can collapse the polygon to a line, and a scaling can merge vertices, and both should be
+            // A move that keeps every length — a turn, a shift, a mirror — keeps the polygon as flat as it was and
+            // its area whole, so it is carried over rather than measured again: measured again, a polygon at the
+            // very edge of the planar tolerance, as a modeller's cut leaves one, could land a rounding past it at
+            // its new place and be refused, and the body it belongs to with it. A girder's face a hundredth off
+            // flat was, moved 600 m out.
+            if (transform.KeepsLengths())
+            {
+                GeoVector3 area = Newell.GetAreaVector(moved);
+
+                return new GeoPolygon3(moved, area.Divide(area.Length), Area);
+            }
+
+            // Anything else the public constructor revalidates, which is what is wanted there: a projection onto a
+            // plane can collapse the polygon to a line, and a scaling can merge vertices, and both should be
             // reported rather than carried forward as a polygon with a stale normal.
             return new GeoPolygon3(moved);
         }

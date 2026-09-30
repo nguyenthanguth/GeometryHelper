@@ -138,11 +138,12 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
-        public void TheNotchedBeamAtTheDefaultToleranceIsItsTwentySixFacesWhole()
+        public void TheNotchedBeamAtTheDefaultToleranceIsItsFacesWholeButTheOneOutOfFlat()
         {
             List<GeoFace3> faces = DefaultToleranceTests.Loops().SelectMany(loops => GeoFace3.FromLoops(loops[0], loops.Skip(1), Default)).ToList();
 
-            Assert.Equal(26, faces.Count);
+            // 25 faces whole, and the top beside the notch, 0.04 mm out, as two triangles.
+            Assert.Equal(27, faces.Count);
             // The three openings run through the web, so each side face has all three as holes.
             Assert.Equal(6, faces.Sum(face => face.Holes.Count));
             Assert.True(new GeoSolid3(faces).IsClosed(Default));
@@ -177,7 +178,7 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void WithoutAToleranceTheOneInUseDecidesWhatIsFlat()
         {
-            // A corner 0.2 up: a tenth off the plane, flat within half a millimetre and not within five hundredths.
+            // A corner 0.2 up: a tenth off the plane, flat within half a millimetre and not within the default hundredth.
             GeoPoint3[] quad = { P(0, 0, 0), P(100, 0, 0), P(100, 100, 0.2), P(0, 100, 0) };
 
             using (Tolerance.Use(new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.5)))

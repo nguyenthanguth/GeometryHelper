@@ -27,11 +27,22 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <returns>A new transformed <see cref="GeoSolid3"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="solid"/> or <paramref name="transform"/> is null.</exception>
         public static GeoSolid3 Transform(this GeoSolid3 solid, GeoTransform3 transform, Tolerance? tolerance = null)
+            => Transform(solid, transform, tolerance, out _);
+
+        /// <summary>
+        /// Transforms a <see cref="GeoSolid3"/>, counting the faces the transformation left nothing of.
+        /// </summary>
+        /// <param name="solid">The solid to transform.</param>
+        /// <param name="transform">The transformation matrix.</param>
+        /// <param name="tolerance">Geometric tolerance (defaults to <see cref="Tolerance.Global"/>).</param>
+        /// <param name="lost">How many faces were left out, having nothing left with an area.</param>
+        internal static GeoSolid3 Transform(this GeoSolid3 solid, GeoTransform3 transform, Tolerance? tolerance, out int lost)
         {
             if (solid == null) throw new ArgumentNullException(nameof(solid));
             if (transform == null) throw new ArgumentNullException(nameof(transform));
 
             Tolerance tol = (tolerance ?? Tolerance.Global).ForConstruction();
+            lost = 0;
 
             List<GeoFace3> transformedFaces = new List<GeoFace3>(solid.Faces.Count);
             foreach (GeoFace3 face in solid.Faces)
@@ -39,6 +50,18 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 if (TryTransformFace(face, transform, tol, out GeoFace3 tf))
                 {
                     transformedFaces.Add(tf);
+                    continue;
+                }
+
+                // A face flat with nothing to spare can land a rounding off flat where it is placed: a girder's face with
+                // one corner a hundredth low did, 600 m out, and was left out, and the girder came out open. It is kept as
+                // a face is read, as triangles on its own corners; only one with no area left at all is left out.
+                GeoFace3[] pieces = TransformLoops(face, transform, tol);
+                transformedFaces.AddRange(pieces);
+
+                if (pieces.Length == 0)
+                {
+                    lost++;
                 }
             }
 
@@ -105,6 +128,28 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 }
                 return true;
             }
+        }
+
+        /// <summary>
+        /// Transforms a face from its loops of corners, as a face is read: one face where it lands flat, triangles on its
+        /// own corners where it does not, none where nothing with an area is left.
+        /// </summary>
+        private static GeoFace3[] TransformLoops(GeoFace3 face, GeoTransform3 transform, Tolerance tolerance)
+        {
+            GeoFace3[] pieces = GeoFace3.FromLoops(
+                face.Boundary.Vertices.Select(v => transform.Transform(v)),
+                face.Holes.Select(hole => hole.Vertices.Select(v => transform.Transform(v))),
+                tolerance);
+
+            if (transform.GetDeterminant() < 0.0)
+            {
+                for (int i = 0; i < pieces.Length; i++)
+                {
+                    pieces[i] = pieces[i].Flip();
+                }
+            }
+
+            return pieces;
         }
 
         private static bool TryTransformPolygon(GeoPolygon3 polygon, GeoTransform3 transform, Tolerance tolerance, out GeoPolygon3 result)
@@ -326,8 +371,7 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// </summary>
         private static GeoSolid3 TransformChecked(GeoSolid3 solid, GeoTransform3 transform, IfcConvertOptions options, List<string> warnings)
         {
-            GeoSolid3 moved = solid.Transform(transform, options.Tolerance);
-            int lost = solid.Faces.Count - moved.Faces.Count;
+            GeoSolid3 moved = solid.Transform(transform, options.Tolerance, out int lost);
             if (lost > 0)
             {
                 warnings?.Add($"{lost} face(s) degenerated when the solid was placed and were left out.");

@@ -358,6 +358,32 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Determines whether the transformation keeps every length: a turn, a shift or a mirror, and nothing that
+        /// stretches, shears or flattens.
+        /// </summary>
+        /// <remarks>
+        /// Judged on the matrix to the rounding of a matrix built from axes, not against a tolerance: this asks what kind
+        /// of transformation it is, not whether two shapes are alike.
+        /// </remarks>
+        internal bool KeepsLengths()
+        {
+            for (int a = 0; a < 3; a++)
+            {
+                for (int b = a; b < 3; b++)
+                {
+                    double dot = _m[0, a] * _m[0, b] + _m[1, a] * _m[1, b] + _m[2, a] * _m[2, b];
+
+                    if (Math.Abs(dot - (a == b ? 1.0 : 0.0)) > 1E-9)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Gets the transformation that undoes this one, using the default tolerance.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the transformation is not invertible.</exception>

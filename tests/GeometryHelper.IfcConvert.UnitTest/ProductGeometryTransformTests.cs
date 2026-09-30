@@ -25,9 +25,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
             GeoSolid3 box = SliverBox();
             IfcProductGeometry product = new IfcProductGeometry(Guid, "GIRDER", "IfcBeam", new[] { box });
 
-            // GeoSolid3.TransformBy checks every face against Tolerance.Global again, and the sliver fails it: the
-            // whole body is lost. 3 of 500 beams of a real Tekla model with openings cut carried such a face.
-            Assert.Throws<ArgumentException>(() => box.TransformBy(Move));
+            // GeoSolid3.TransformBy checked every face against Tolerance.Global again, and the sliver failed it: the
+            // whole body was lost. 3 of 500 beams of a real Tekla model with openings cut carried such a face. A move
+            // that keeps every length now carries the faces over as they are, so it keeps the body too.
+            Assert.Equal(box.Faces.Count, box.TransformBy(Move).Faces.Count);
 
             IfcProductGeometry moved = product.TransformBy(Move);
 
@@ -35,6 +36,33 @@ namespace GeometryHelper.IfcConvert.UnitTest
             Assert.Equal(box.Faces.Count, body.Faces.Count);
             Assert.Equal(1e6, body.GetSignedVolume(), 3);
             Assert.Empty(moved.Warnings);
+        }
+
+        [Fact]
+        public void TransformBy_AFaceAtTheEdgeOfFlat_IsKeptAndTheBodyStaysClosed()
+        {
+            // A face of a steel girder of a Tekla IFC, one corner a hundredth below the other seven: flat at the default
+            // planar tolerance with nothing to spare. Placed 600 m out, the conversion rebuilt it where it landed, the
+            // low corner came a rounding past the tolerance, and the face was left out: the girder came out open.
+            GeoPoint3[] corners =
+            {
+                new GeoPoint3(7989.99999991793, 20, 189.99), new GeoPoint3(7954.99999991793, 20, 190),
+                new GeoPoint3(257.000004518777, 19.99999999959249, 190), new GeoPoint3(257.00003389886115, 149.999999999622, 190),
+                new GeoPoint3(7954.99999991793, 150, 190), new GeoPoint3(7989.99999991793, 150, 190),
+                new GeoPoint3(7992.99999991793, 150, 190), new GeoPoint3(7992.99999991793, 20, 190),
+            };
+            GeoSolid3 plate = GeoSolid3.Extrude(new GeoFace3(new GeoPolygon3(corners, Tolerance.Default)), new GeoVector3(0, 0, 10), Tolerance.Default);
+            IfcProductGeometry product = new IfcProductGeometry(Guid, "GIRDER", "IfcBeam", new[] { plate });
+
+            IfcProductGeometry moved = product.TransformBy(GeoTransform3.Translation(new GeoVector3(195703.959999986, 580442.140000014, -15100)), Tolerance.Default);
+
+            GeoSolid3 body = Assert.Single(moved.Solids);
+            Assert.True(body.IsClosed(Tolerance.Default));
+            Assert.Empty(moved.Warnings);
+
+            // The two faces the corner lies in come as triangles on their corners where the plate had them as one face
+            // each: the dip of a hundredth over a square metre is all that can differ.
+            Assert.InRange(body.Volume, plate.Volume * 0.999, plate.Volume * 1.001);
         }
 
         [Fact]

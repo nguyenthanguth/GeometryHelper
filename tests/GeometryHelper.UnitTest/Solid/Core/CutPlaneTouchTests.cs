@@ -302,8 +302,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
                 new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0)
             }, 10.0);
-            // Past the default planar tolerance of five hundredths, with slivers some a tenth long and under the
-            // hundredth a polygon refuses as an area.
+            // Past the default planar tolerance of a hundredth, with slivers some a tenth long and under the hundredth
+            // a polygon refuses as an area.
             double depth = 0.06;
             GeoVector3 across = new GeoVector3(1, 1, 1).Normalize();
             var plane = new GeoPlane3(GeoPoint3.Origin.Add(across.Multiply(depth)), across);

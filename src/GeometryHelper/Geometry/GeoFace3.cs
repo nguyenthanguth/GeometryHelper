@@ -262,7 +262,22 @@ namespace GeometryHelper.Geometry
                 moved[i] = _holes[i].TransformBy(transform);
             }
 
-            return new GeoFace3(Boundary.TransformBy(transform), moved);
+            // A move that keeps every length keeps the holes on the boundary's plane as they were; asked again, one at
+            // the edge of the tolerance could land past it. See GeoPolygon3.TransformBy.
+            return transform.KeepsLengths()
+                ? new GeoFace3(Boundary.TransformBy(transform), moved, Area)
+                : new GeoFace3(Boundary.TransformBy(transform), moved);
+        }
+
+        /// <summary>
+        /// Initializes a face from a boundary and holes already known to lie in one plane and to be wound alike, and the
+        /// area they leave.
+        /// </summary>
+        private GeoFace3(GeoPolygon3 boundary, GeoPolygon3[] holes, double area)
+        {
+            Boundary = boundary;
+            _holes = holes;
+            Area = area;
         }
 
         #region Queries

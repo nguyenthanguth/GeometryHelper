@@ -348,11 +348,12 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             // A 100 mm cube whose top carries a sliver triangle of 0.0075 mm2, wider than the point tolerance, which the
             // conversion keeps: it builds polygons with an area threshold of EqualPoint squared (1e-4 mm2 by default)
             // rather than EqualVector (1e-2).
-            // GeoSolid3.TransformBy checks against Tolerance.Global again and threw on the whole body, which cost
-            // 3 of 500 beams of a real Tekla model read with ApplyVoids = true.
+            // GeoSolid3.TransformBy checked against Tolerance.Global again and threw on the whole body, which cost
+            // 3 of 500 beams of a real Tekla model read with ApplyVoids = true. A move that keeps every length now
+            // carries the faces over as they are.
             GeoSolid3 box = SliverBox();
             IfcProductGeometry original = new IfcProductGeometry("1eLFzR00fm8Z4tDJ0qCJ0m", "GIRDER", "IfcBeam", new[] { box });
-            Assert.Throws<ArgumentException>(() => box.TransformBy(GeoTransform3.Identity));
+            Assert.Equal(box.Faces.Count, box.TransformBy(GeoTransform3.Identity).Faces.Count);
 
             IfcConvertOptions options = ReferenceModelConvert.CreateOptions(1.0, null, false);
             GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(12000, 34000, 5000)) * GeoTransform3.RotationZ(Math.PI / 6.0);

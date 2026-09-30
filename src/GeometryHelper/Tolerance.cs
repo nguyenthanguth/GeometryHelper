@@ -39,15 +39,18 @@ namespace GeometryHelper
         public const double DefaultEqualAngleRad = Math.PI / 180.0;
 
         /// <summary>
-        /// Default distance threshold for deciding whether a set of points lies on a common plane: five hundredths of a
-        /// millimetre in a model in millimetres.
+        /// Default distance threshold for deciding whether a set of points lies on a common plane: a hundredth of a
+        /// millimetre in a model in millimetres, the same as <see cref="DefaultEqualPoint"/>.
         /// </summary>
         /// <remarks>
-        /// A modeller's own cuts leave faces a little off flat: a concrete beam Tekla Structures cut a notch into came
-        /// with the top face beside the notch 0.04 mm out. A face refused as not flat is a hole in the body it belongs to,
-        /// and a body with a hole gives no section and the wrong volume, so the default lets such a face through.
+        /// As wide as the point threshold, a point that counts as one with another counts as on every plane that other
+        /// is on, and the booleans cut and glue within the planar threshold they are given rather than a narrower one. A
+        /// modeller's own cuts leave faces further out of flat: a concrete beam Tekla Structures cut a notch into came with
+        /// the top face beside the notch 0.04 mm out. Such a face is no polygon at this threshold, but the Tekla and IFC
+        /// conversions keep it as triangles on its own corners (<see cref="Geometry.GeoFace3.FromLoops(System.Collections.Generic.IEnumerable{Geometry.GeoPoint3}, System.Collections.Generic.IEnumerable{System.Collections.Generic.IEnumerable{Geometry.GeoPoint3}}, Tolerance)"/>),
+        /// so the body stays closed and nothing is taken as flat that is not.
         /// </remarks>
-        public const double DefaultEqualPlanar = 0.05;
+        public const double DefaultEqualPlanar = 1E-2;
 
         /// <summary>
         /// Gets the default tolerance: <see cref="DefaultEqualPoint"/>, <see cref="DefaultEqualVector"/>,

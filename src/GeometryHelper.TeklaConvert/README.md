@@ -345,9 +345,9 @@ body that only looks right measures wrong later and says nothing about why.
 
 Tekla models in millimetres with coordinates that can run to hundreds of thousands, and its own cuts leave
 faces a little out of flat: the top face of a notched beam came 0.04 mm out at one corner. The default
-tolerance is set for that, a hundredth of a millimetre for points and five hundredths for flatness, so a
-Tekla model reads with such faces whole, and a face further out comes as triangles rather than a hole;
-pass a `Tolerance` only where a model needs something else.
+tolerance is a hundredth of a millimetre for points and for flatness; a face further out of flat than that
+comes as triangles on its own corners rather than a hole, so a Tekla model reads whole without a tolerance
+of its own; pass a `Tolerance` only where a model needs something else.
 
 ## Licence
 

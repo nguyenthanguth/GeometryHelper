@@ -18,14 +18,16 @@ compares coordinates with `==`.
 | `EqualPoint` | `1E-2` | Distance below which two points are the same point. |
 | `EqualVector` | `1E-2` | Difference below which two vectors are the same vector; also the length below which a vector has no direction, and the area below which a loop is no polygon. |
 | `EqualAngleRad` | 1° | Angular difference for parallel and perpendicular tests. |
-| `EqualPlanar` | `5E-2` | Distance from a plane below which a point counts as lying on it. |
+| `EqualPlanar` | `1E-2` | Distance from a plane below which a point counts as lying on it. |
 
-**The defaults suit a model in millimetres:** a hundredth of a millimetre for points, and five
-hundredths for flatness, which lets through the faces a modeller's own cuts leave a little out of
-flat. Tekla Structures left the top face of a notched beam 0.04 mm out at one corner; refused as not
-flat, that face was a hole in the beam, which then gave no section and a fifth too little volume.
+**The defaults suit a model in millimetres:** a hundredth of a millimetre for points and for
+flatness alike, so a point that is one with another is on every plane that other is on. A modeller's
+own cuts leave faces further out of flat than that: Tekla Structures left the top face of a notched
+beam 0.04 mm out at one corner. Refused as not flat, such a face was a hole in the beam, which then
+gave no section and a fifth too little volume; the Tekla and IFC conversions read it instead as
+triangles on its own corners (`GeoFace3.FromLoops`, see [space](solid.md)), and the beam closes.
 Geometry in metres wants the defaults a thousand times smaller, and a tolerance of its own:
-`new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 5E-5)`.
+`new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 1E-5)`.
 
 `Tolerance.Default` is the four defaults together. `Tolerance.Global` starts as it, and it stays the
 defaults whatever `Tolerance.Global` is set to. `new Tolerance()` is not the defaults: `Tolerance` is a
@@ -38,8 +40,8 @@ out open.
 point. A face twelve metres long that is tilted by a hundredth of a degree deviates by about two
 millimetres at its far end — far more than `EqualPoint` allows, yet still flat enough to work with.
 Only the solid half of the library uses it. A boolean cuts and glues within a planar threshold no
-wider than `EqualPoint`, so that the glue closes whatever a cut leaves, and first splits a face that
-is flat only to the wider `EqualPlanar` into triangles on its own corners.
+wider than `EqualPoint`, so that the glue closes whatever a cut leaves: given a wider `EqualPlanar`,
+it first splits a face that is flat only to that into triangles on its own corners.
 
 **Whether two things cross is not a question of angle.** `EqualAngleRad` answers `IsParallelTo` and
 `IsPerpendicularTo`, which are about directions. Where two members cross is a point, and two members
@@ -51,7 +53,7 @@ still go by the angle.
 
 ```csharp
 // One setting for both libraries: here, for a model in metres.
-Tolerance.Global = new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 5E-5);
+Tolerance.Global = new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 1E-5);
 
 // Or pass one explicitly, which is what to do when a single operation needs to be looser or
 // tighter than the rest of the program.

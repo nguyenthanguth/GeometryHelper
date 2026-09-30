@@ -158,9 +158,11 @@ IfcProductGeometry placed = geometry.TransformBy(transform, options.Tolerance);
 
 The conversion builds faces with a finer area threshold than `Tolerance.Global` (`EqualPoint` squared rather than
 `EqualVector`), so a triangulated or cut body can carry thin sliver faces that are valid there.
-`GeoSolid3.TransformBy` checks every face against `Tolerance.Global` again and throws on the whole body: on a
-115 MB Tekla IFC, 3 of 500 beams read with `ApplyVoids = true` were lost that way. `TransformBy` rebuilds the
-faces with the tolerance of the conversion, so pass the `Tolerance` of the options the product was read with
+`GeoSolid3.TransformBy`, given a transformation that stretches or shears, checks every face against
+`Tolerance.Global` again and throws on the whole body (a move that keeps every length it carries over as it is): on
+a 115 MB Tekla IFC, 3 of 500 beams read with `ApplyVoids = true` were once lost that way. `TransformBy` rebuilds the
+faces with the tolerance of the conversion, and keeps a face that lands a rounding off flat as triangles on its own
+corners, so pass the `Tolerance` of the options the product was read with
 (the default is `Tolerance.Global`, as in the options). It returns a copy: bodies, open surfaces and `Placement`
 are carried, the GlobalId, name, type, tag and warnings are kept, and the cached geometry is left unchanged. What
 the transformation itself collapses, such as a body scaled down to nothing, is left out and added to `Warnings`.
@@ -178,7 +180,7 @@ using GeometryHelper.Geometry;
 
 string[] ifcFiles = { @"C:\Models\Building-A.ifc", @"C:\Models\Building-B.ifc" };
 // Tolerances are in the output unit, and the default suits millimetres: in metres, a thousand times smaller.
-var metres = new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 5E-5);
+var metres = new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 1E-5);
 var options = new IfcConvertOptions { TargetUnit = LengthUnit.Meters, Tolerance = metres };
 
 foreach (string ifcFile in ifcFiles)

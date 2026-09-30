@@ -28,16 +28,17 @@ inverted. A frame given in the coordinates of another nests by multiplying, the 
 `ToCoordinateSystem(inner) * ToCoordinateSystem(outer)`.
 
 **BREAKING.** The default tolerance is set for a model in millimetres: `Tolerance.DefaultEqualPoint` and
-`DefaultEqualVector` are 1E-2, `DefaultEqualPlanar` 5E-2, all three 1E-4 before, and `DefaultEqualAngleRad` is
+`DefaultEqualVector` and `DefaultEqualPlanar` are 1E-2, all three 1E-4 before, and `DefaultEqualAngleRad` is
 still a degree; `Tolerance.Global` starts from them, and `new Tolerance(point, vector)` takes the planar one.
 Points a hundredth apart are now one point, a vector shorter than a hundredth has no direction, a loop of less
-than a hundredth of a square unit is no polygon, and a face may stand five hundredths out of flat. Tekla
-Structures' own cuts leave faces so: at 1E-4 `TryToGeoSolid3` dropped such a face without a word, the top of a
+than a hundredth of a square unit is no polygon, and a face may stand a hundredth out of flat. Tekla Structures'
+own cuts leave faces further out: at 1E-4 `TryToGeoSolid3` dropped such a face without a word, the top of a
 notched concrete beam 0.04 mm out at one corner, and the beam came out open, with no section and a fifth too
-little volume. What turns on the tolerance turns with it: offsets and booleans merge corners a hundredth apart,
+little volume; it now reads such a face as triangles on its own corners (see `GeoFace3.FromLoops` below), and
+the planar threshold stays as narrow as the point one. What turns on the tolerance turns with it: offsets and booleans merge corners a hundredth apart,
 force-directed label placement reads boxes a hundredth apart as touching and settles some labels elsewhere (the
 other algorithms place every label as 6.2.0 did), and geometry in metres wants a tolerance a thousand times
-smaller, `new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 5E-5)`, which `IfcConvertOptions` for output
+smaller, `new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 1E-5)`, which `IfcConvertOptions` for output
 in metres now has to be given.
 
 **FIXED.** What the wider tolerance brought out. `Locate` on a solid took any crossing within a hundred point
@@ -118,6 +119,17 @@ queries on a body with them) no longer throw when a shape cannot be worked out: 
 with what was thrown to `GeometryHelperLog`. Thrown out of the GeoSolid3 boolean IfcConvert falls back to for openings,
 such an exception took the reading of a whole IFC model with it; IfcConvert now also leaves an opening that throws
 uncut, with a warning, rather than losing the product.
+
+**CHANGED.** `TransformBy` on `GeoPolygon3`, `GeoFace3` and `GeoSolid3` carries a polygon over as it is when the
+transformation keeps every length, a turn, a shift or a mirror, instead of building it again and checking it against
+`Tolerance.Global`. Checked again, a polygon at the very edge of the planar tolerance could land a rounding past it and
+be refused, and the whole body with it: a girder's face with one corner a hundredth low was, moved 600 m out. A
+stretch, a shear or a projection is still checked, and still throws where it collapses a polygon; a sliver face a body
+read from IFC carries no longer makes a plain move of that body throw.
+
+**FIXED.** In GeometryHelper.IfcConvert, placing a body rebuilds its faces where they land, and a face flat with
+nothing to spare, as the girder's was, could land off flat and was left out, leaving the body open. It is kept as a
+face is read, as triangles on its own corners, and only a face with nothing of an area left is counted as left out.
 
 ## 7.0.0
 
