@@ -15,6 +15,7 @@ dotnet add package GeometryHelper
 |---|---|
 | [Shared types](../src/GeometryHelper/docs/common.md) | `Tolerance`, `Angle`, the enumerations, `OffsetOptions`, `GeometryHelperLog` |
 | [Geometry in the plane](../src/GeometryHelper/docs/plane.md) | points to polygons and faces; arcs, offsetting, combining regions |
+| [Meshing the plane](../src/GeometryHelper/docs/mesh.md) | triangles, grids of panels or tiles with joints and alignment, strips and convex pieces, edge to edge |
 | [Geometry in space](../src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |
 | [Label placement](../src/GeometryHelper/docs/arrange.md) | five algorithms behind one entry point |
 | [Packing boxes onto sheets](../src/GeometryHelper/docs/packing.md) | drawing views onto A0 to A4 sheets or sheets of a size of their own, a new sheet when one is full |

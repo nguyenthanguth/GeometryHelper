@@ -2,6 +2,8 @@
   href: common.md
 - name: Geometry in the plane
   href: plane.md
+- name: Meshing the plane
+  href: mesh.md
 - name: Geometry in space
   href: solid.md
 - name: Label placement

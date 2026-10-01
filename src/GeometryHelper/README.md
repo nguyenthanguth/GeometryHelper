@@ -46,10 +46,11 @@ beam.TryTrimTo(wall, LineEnd.End, out GeoLine3 cut);      // (0,0,0) -> (2500,0,
 | `GeometryHelper` | `Tolerance`, `Angle`, `OffsetOptions`, `GeometryHelperLog` |
 | `GeometryHelper.Enums` | `PointLocation`, `PlaneSide`, `LineSide`, `LineEnd`, `LineExtension`, `OffsetJoin` |
 | `GeometryHelper.Geometry` | 30 immutable shapes: `GeoPoint2` … `GeoFace2` in the plane, `GeoPoint3` … `GeoSolid3` in space, arcs and the chains that carry them, and a transformation and a local coordinate system for each dimension |
-| `GeometryHelper.Core` | 28 operation classes, each dimension mirroring the other: `Boolean2`/`Boolean3`, `Offset2`/`Offset3`, `Distance2`/`Distance3`, … plus `Arc2`, `Corner2` for chamfering and rounding, and `PlanarMap`, which carries flat shapes between the two |
+| `GeometryHelper.Core` | 34 operation classes, each dimension mirroring the other: `Boolean2`/`Boolean3`, `Offset2`/`Offset3`, `Distance2`/`Distance3`, … plus `Arc2`, `Corner2` for chamfering and rounding, and `PlanarMap`, which carries flat shapes between the two |
 | `GeometryHelper.Spatial` | `GeoBvh2` and `GeoBvh3`, the bounding volume hierarchies for large chains and meshes |
 | `GeometryHelper.Extension` | turning raw point lists into geometry |
 | `GeometryHelper.Arranging` | label placement: `Arranger`, `ArrangeItem`, `ArrangeResult`, `ArrangeOptions`, five algorithms |
+| `GeometryHelper.Meshing` | closed shapes of the plane broken into triangles, grids, strips or convex pieces: `GeoMesh2`, `Mesh2`, `MeshKind`, `MeshOptions`, `GridAlignment` |
 | `GeometryHelper.Packing` | boxes onto sheets of paper: `SheetPacker`, `Sheet`, `PackOptions`, `PackResult` |
 
 Every operation is reachable both ways: the static form names the larger shape first, and the instance
@@ -73,6 +74,7 @@ The whole of it, searchable, with every type and member: [https://nguyenthanguth
 |---|---|
 | [Shared types](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/common.md) | `Tolerance`, `Angle`, the enumerations, `OffsetOptions`, `GeometryHelperLog` |
 | [Geometry in the plane](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/plane.md) | points to polygons and faces; extending, trimming, offsetting, combining regions |
+| [Meshing the plane](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/mesh.md) | triangles, grids of panels or tiles with joints and alignment, strips and convex pieces, edge to edge |
 | [Geometry in space](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |
 | [Label placement](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/arrange.md) | five algorithms behind one entry point |
 | [Packing boxes onto sheets](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/packing.md) | drawing views onto A0 to A4 sheets or sheets of a size of their own, a new sheet when one is full |

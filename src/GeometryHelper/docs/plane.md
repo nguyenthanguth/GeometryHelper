@@ -13,8 +13,9 @@ measured with the same [shared types](common.md).
 
 | Namespace | Holds |
 |---|---|
-| `GeometryHelper.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoPolyline2`, `GeoPolygon2`, `GeoFace2`, `GeoCircle2`, `GeoRectangle2`, `GeoTransform2` |
-| `GeometryHelper.Core` | `Boolean2`, `Collision2`, `Containment2`, `Corner2`, `Distance2`, `Intersection2`, `Lengthen2`, `Merge2`, `Offset2`, `Parallel2`, `Parametrization2`, `Projection2`, `Splition2`, `PlanarMap` |
+| `GeometryHelper.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoPolyline2`, `GeoPolygon2`, `GeoFace2`, `GeoCircle2`, `GeoRectangle2`, `GeoTriangle2`, `GeoTransform2` |
+| `GeometryHelper.Core` | `Boolean2`, `Collision2`, `Containment2`, `Corner2`, `Distance2`, `Intersection2`, `Lengthen2`, `Merge2`, `Offset2`, `Parallel2`, `Parametrization2`, `Projection2`, `Splition2`, `Triangle2`, `PlanarMap` |
+| `GeometryHelper.Meshing` | `GeoMesh2`, `Mesh2`, `MeshKind`, `MeshOptions`, `GridAlignment`: see [meshing the plane](mesh.md) |
 | `GeometryHelper.Extension` | `EnumerableExtension` |
 | `GeometryHelper` | `Tolerance`, `Angle`, `OffsetOptions`, `GeometryHelperLog` |
 | `GeometryHelper.Enums` | `PointLocation`, `LineSide`, `LineEnd`, `LineExtension`, `OffsetJoin` |
@@ -24,7 +25,7 @@ imports one namespace and nothing collides.
 
 ## Geometric Types
 
-`GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoArc2`, `GeoCircle2`, `GeoRectangle2` (rotated rectangle — OBB), `GeoPolygon2`, `GeoFace2` (a polygon with holes), `GeoPolyline2`, and the chains that may curve: `GeoEdge2`, `GeoPolylineArc2`, `GeoPolygonArc2`.
+`GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoArc2`, `GeoCircle2`, `GeoRectangle2` (rotated rectangle — OBB), `GeoTriangle2`, `GeoPolygon2`, `GeoFace2` (a polygon with holes), `GeoPolyline2`, and the chains that may curve: `GeoEdge2`, `GeoPolylineArc2`, `GeoPolygonArc2`.
 
 ### Regions and curves
 
@@ -429,6 +430,28 @@ GeoFace2[] floor = Boolean2.Union(tiles);
 ```
 
 Region operations, the booleans and the offsets alike, are resolved by [Clipper2](https://github.com/AngusJohnson/Clipper2), which this package references. It works on integers, so an answer never depends on rounding luck; the library lays the shapes out in a frame at the first of them before rounding, and gives every vertex of the answer its full precision back afterwards, so a square offset by 2 ends exactly on 2. Vertices closer than the point tolerance are merged, and slivers thinner than it are dropped.
+
+## Triangles and meshes
+
+`GeoTriangle2` is the triangle of the plane, as `GeoTriangle3` is the triangle of space. It has its signed area and
+winding, perimeter, centroid and angles, its circumcircle and incircle, barycentric coordinates, and where a point is.
+It stands in the matrix of the plane as `GeoRectangle2` does, every shape asking it the questions it asks any other, and
+answers them as the polygon of its corners does. A triangle whose corners stand on each other answers as the segment it
+is.
+
+```csharp
+var t = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(0, 3));
+
+double area = t.Area;                                   // 6
+PointLocation where = t.Locate(new GeoPoint2(1, 1));    // Inside
+double off = t.DistanceTo(new GeoPoint2(4, 3));         // 2.4, to the long side
+t.TryGetCircumcircle(out GeoCircle2 circle);            // centre (2, 1.5), radius 2.5
+```
+
+`TriangulateSurface` on `GeoPolygon2`, `GeoFace2`, `GeoPolygonArc2`, `GeoRectangle2` and `GeoCircle2` breaks the shape
+into triangles that lie within its material, holes left open, all counter-clockwise. `ToMesh` breaks it into the faces
+of a `GeoMesh2` instead: triangles, the cells of a grid as formwork panels or tiles are laid, strips, or convex pieces.
+[Meshing the plane](mesh.md) tells how.
 
 ## Cutting corners
 

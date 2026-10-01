@@ -387,6 +387,23 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
+        public void TrianglesAndMeshes_EverySampleHolds()
+        {
+            var t = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(0, 3));
+
+            double area = t.Area;                                   // 6
+            PointLocation where = t.Locate(new GeoPoint2(1, 1));    // Inside
+            double off = t.DistanceTo(new GeoPoint2(4, 3));         // 2.4, to the long side
+            t.TryGetCircumcircle(out GeoCircle2 circle);            // centre (2, 1.5), radius 2.5
+
+            Assert.Equal(6.0, area, 12);
+            Assert.Equal(PointLocation.Inside, where);
+            Assert.Equal(2.4, off, 12);
+            Assert.True(circle.Center.IsEqualTo(new GeoPoint2(2, 1.5), new Tolerance(1E-12, 1E-12)));
+            Assert.Equal(2.5, circle.Radius, 12);
+        }
+
+        [Fact]
         public void CombiningRegions_EverySampleHolds()
         {
             var a = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));

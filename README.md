@@ -16,7 +16,7 @@ Tekla version.
 
 | Package | What it is | NuGet |
 |---|---|---|
-| [GeometryHelper](src/GeometryHelper/README.md) | The geometry itself: 2D and 3D shapes, every operation over them, the label placement algorithms, and the packing of boxes onto sheets. Five guides: [shared types](src/GeometryHelper/docs/common.md), [the plane](src/GeometryHelper/docs/plane.md), [space](src/GeometryHelper/docs/solid.md), [label placement](src/GeometryHelper/docs/arrange.md), [packing boxes onto sheets](src/GeometryHelper/docs/packing.md) | [![v](https://img.shields.io/nuget/v/GeometryHelper.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper/) |
+| [GeometryHelper](src/GeometryHelper/README.md) | The geometry itself: 2D and 3D shapes, every operation over them, meshing the plane into triangles, grids, strips and convex pieces, the label placement algorithms, and the packing of boxes onto sheets. Six guides: [shared types](src/GeometryHelper/docs/common.md), [the plane](src/GeometryHelper/docs/plane.md), [meshing the plane](src/GeometryHelper/docs/mesh.md), [space](src/GeometryHelper/docs/solid.md), [label placement](src/GeometryHelper/docs/arrange.md), [packing boxes onto sheets](src/GeometryHelper/docs/packing.md) | [![v](https://img.shields.io/nuget/v/GeometryHelper.svg?style=flat-square&label=)](https://www.nuget.org/packages/GeometryHelper/) |
 
 Up to and including 4.0.0 this shipped as four packages — `GeometryHelper.CommonGeometry`,
 `GeometryHelper.PlaneGeometry`, `GeometryHelper.SolidGeometry` and `GeometryHelper.ArrangeAlgorithms`.
