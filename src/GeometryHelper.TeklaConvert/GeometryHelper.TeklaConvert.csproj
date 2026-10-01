@@ -29,6 +29,11 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 9.0.2
+      - Nothing in GeometryHelper.TeklaConvert itself changed: it is released at 9.0.2 with GeometryHelper, which
+        meshes the faces of bodies read with TryToGeoSolid3 round every hole, a slab's pits among them, where it laid
+        the fan of a face's boundary across them.
+
       NEW IN 9.0.1
       - Nothing in GeometryHelper.TeklaConvert itself changed: it is released at 9.0.1 with GeometryHelper, whose
         solid booleans no longer take material from a body another only touches, the way slabs read with

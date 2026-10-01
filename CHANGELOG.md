@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 9.0.2
 
 **FIXED.** `GeoFace3.TriangulateSurface`, which `GeoSolid3.Triangulate` and `TriangulateSurface` and everything meshing
 a body build on, handed a face back as the fan of its boundary, laid across every hole, whenever ear clipping gave up on

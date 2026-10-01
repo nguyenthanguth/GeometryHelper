@@ -19,6 +19,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 9.0.2
+      - Nothing in GeometryHelper.IfcConvert itself changed: it is released at 9.0.2 with GeometryHelper, whose surface
+        meshes of faces with holes no longer lay triangles across the holes.
+
       NEW IN 9.0.1
       - Nothing in GeometryHelper.IfcConvert itself changed: it is released at 9.0.1 with GeometryHelper, whose solid
         booleans it cuts openings with when the geometry engine cannot. They no longer take material from a body that

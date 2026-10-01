@@ -14,6 +14,18 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
+      NEW IN 9.0.2
+
+      FIXED: surface meshes of faces with holes, GeoFace3.TriangulateSurface and all built on it: GeoSolid3.Triangulate
+      and TriangulateSurface, GetMassProperties, the clash check, GeoBvh3, distances, rays, collisions, the OBJ export.
+      - A face ear clipping gave up on came back as the fan of its boundary, laid across every hole. It gave up on holes
+        in a row a hair out of line, as the pits of slabs from Tekla Structures stand, and on holes a rib of 2 mm or
+        less apart; both are clipped now. Such slabs had their centroid put up to 14.5 mm off.
+      - A face whose holes touch each other or its boundary could be meshed across a hole and taken as right. Such a
+        face is cut into strips at its corners now, its material read as the booleans read it.
+      - No face is meshed as a fan any more. Of 5 750 random faces with holes, 9.0.1 meshed 4 766 wrong; none now.
+      Volume, Centroid, SurfaceArea and the booleans do not mesh faces and were right. Details in CHANGELOG.md.
+
       NEW IN 9.0.1
 
       FIXED: booleans of bodies lying within a few hundredths of a millimetre of each other, as slabs drawn side by
