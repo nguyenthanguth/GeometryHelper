@@ -291,6 +291,45 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Breaks the loop into triangles that each lie within it, each arc cut finely enough that it strays no further
+        /// than the automatic share of its radius, using the default tolerance.
+        /// </summary>
+        /// <returns>The triangles covering the flattened loop, counter-clockwise; none when it encloses no area.</returns>
+        public GeoTriangle2[] TriangulateSurface() => TriangulateSurface(0.0, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the loop into triangles that each lie within it, each arc cut finely enough that it strays no further
+        /// than the automatic share of its radius, within a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance deciding what counts as no area, and how near two edges may come.</param>
+        /// <returns>The triangles covering the flattened loop, counter-clockwise; none when it encloses no area.</returns>
+        public GeoTriangle2[] TriangulateSurface(Tolerance tolerance) => TriangulateSurface(0.0, tolerance);
+
+        /// <summary>
+        /// Breaks the loop into triangles that each lie within it, each arc cut so that it strays no further than a chord
+        /// tolerance, using the default tolerance.
+        /// </summary>
+        /// <param name="chordTolerance">The largest gap allowed between a piece and the arc it replaces, in drawing units. Zero picks the automatic share of each radius.</param>
+        /// <returns>The triangles covering the flattened loop, counter-clockwise; none when it encloses no area.</returns>
+        public GeoTriangle2[] TriangulateSurface(double chordTolerance) => TriangulateSurface(chordTolerance, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the loop into triangles that each lie within it, each arc cut so that it strays no further than a chord
+        /// tolerance, within a tolerance.
+        /// </summary>
+        /// <param name="chordTolerance">The largest gap allowed between a piece and the arc it replaces, in drawing units. Zero picks the automatic share of each radius.</param>
+        /// <param name="tolerance">The tolerance deciding what counts as no area, and how near two edges may come.</param>
+        /// <returns>The triangles covering the flattened loop, counter-clockwise; none when it encloses no area.</returns>
+        /// <remarks>
+        /// The loop is flattened as <see cref="Flatten(double)"/> flattens it, and the corners the arcs are cut at lie on
+        /// the arcs, so a loop bulging outward is covered a little short of its arcs and one bulging inward a little past
+        /// them, by no more than the chord tolerance.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance is negative or not a number.</exception>
+        public GeoTriangle2[] TriangulateSurface(double chordTolerance, Tolerance tolerance)
+            => Triangulation2.Triangulate(new GeoFace2(Flatten(chordTolerance)), tolerance);
+
+        /// <summary>
         /// Gets the loop running the other way round.
         /// </summary>
         public GeoPolygonArc2 Reverse()

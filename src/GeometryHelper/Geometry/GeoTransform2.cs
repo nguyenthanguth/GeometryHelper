@@ -524,6 +524,17 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Transforms a triangle, corner by corner.
+        /// </summary>
+        /// <param name="triangle">The triangle to transform.</param>
+        /// <returns>
+        /// The triangle the transformation makes of it. Any affine map takes a triangle to a triangle, so nothing is
+        /// refused; a mirror or a negative scaling reverses the winding.
+        /// </returns>
+        public GeoTriangle2 Transform(GeoTriangle2 triangle)
+            => new GeoTriangle2(Transform(triangle.A), Transform(triangle.B), Transform(triangle.C));
+
+        /// <summary>
         /// Transforms a sequence of points.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the sequence is null.</exception>

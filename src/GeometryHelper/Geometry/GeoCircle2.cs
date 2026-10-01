@@ -271,6 +271,57 @@ namespace GeometryHelper.Geometry
         public GeoPolygon2 ToPolygon() => ToPolygonByChordTolerance(0.0);
 
         /// <summary>
+        /// Breaks the disc into triangles fanned from its center, as many as <see cref="ToPolygon()"/> has edges, using
+        /// the default tolerance.
+        /// </summary>
+        /// <returns>The triangles, counter-clockwise; none when the radius is nought.</returns>
+        public GeoTriangle2[] TriangulateSurface() => TriangulateSurface(0.0, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the disc into triangles fanned from its center, as many as <see cref="ToPolygon()"/> has edges, within
+        /// a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance deciding what counts as no area.</param>
+        /// <returns>The triangles, counter-clockwise; none when the disc has no area within the tolerance.</returns>
+        public GeoTriangle2[] TriangulateSurface(Tolerance tolerance) => TriangulateSurface(0.0, tolerance);
+
+        /// <summary>
+        /// Breaks the disc into triangles fanned from its center, the rim cut so that it strays from the circle no
+        /// further than a chord tolerance, using the default tolerance.
+        /// </summary>
+        /// <param name="chordTolerance">The largest gap allowed between a chord and the circle, in drawing units. Zero picks the automatic share of the radius.</param>
+        /// <returns>The triangles, counter-clockwise; none when the radius is nought.</returns>
+        public GeoTriangle2[] TriangulateSurface(double chordTolerance) => TriangulateSurface(chordTolerance, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the disc into triangles fanned from its center, the rim cut so that it strays from the circle no
+        /// further than a chord tolerance, within a tolerance.
+        /// </summary>
+        /// <param name="chordTolerance">The largest gap allowed between a chord and the circle, in drawing units. Zero picks the automatic share of the radius.</param>
+        /// <param name="tolerance">The tolerance deciding what counts as no area.</param>
+        /// <returns>The triangles, counter-clockwise; none when the disc has no area within the tolerance.</returns>
+        /// <remarks>
+        /// Fanned from the center, every triangle is the same narrow isosceles one, which clipping the rim's polygon from
+        /// its own corners does not give: it fans the rim from one corner of it into slivers of every width. The rim's
+        /// corners are those of <see cref="ToPolygonByChordTolerance(double)"/>, so the triangles cover the polygon it
+        /// gives, which lies within the circle.
+        /// </remarks>
+        public GeoTriangle2[] TriangulateSurface(double chordTolerance, Tolerance tolerance)
+        {
+            if (tolerance == null)
+            {
+                throw new ArgumentNullException(nameof(tolerance));
+            }
+
+            if (!(Radius > 0.0))
+            {
+                return Array.Empty<GeoTriangle2>();
+            }
+
+            return Triangulation2.Fan(Center, ToPolygonByChordTolerance(chordTolerance).Vertices, tolerance);
+        }
+
+        /// <summary>
         /// Approximates the circle as a polygon that strays no further from it than a chord tolerance.
         /// </summary>
         /// <param name="chordTolerance">The largest gap allowed between an edge and the circle, in drawing units. Zero picks the automatic share of the radius.</param>

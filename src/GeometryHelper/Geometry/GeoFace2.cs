@@ -356,6 +356,34 @@ namespace GeometryHelper.Geometry
         public override string ToString() => $"GeoFace2[Area:{Area:0.###}, Holes:{_holes.Length}]";
 
         /// <summary>
+        /// Breaks the face into triangles that each lie within its material, holes left open, using the default
+        /// tolerance.
+        /// </summary>
+        /// <returns>The triangles covering the material, counter-clockwise; none when nothing is left of it.</returns>
+        public GeoTriangle2[] TriangulateSurface() => TriangulateSurface(Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the face into triangles that each lie within its material, holes left open, within a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance deciding what counts as no area, and how near two rings may come.</param>
+        /// <returns>
+        /// The triangles covering the material, counter-clockwise whichever way the face runs; none when nothing is left
+        /// of it.
+        /// </returns>
+        /// <remarks>
+        /// A hole is never covered over: holes that touch or overlap are taken together, and one reaching past the
+        /// boundary takes away only what it covers. A hole enclosing no area takes nothing away.
+        /// <para>
+        /// The triangles keep the shape's own corners while its rings stand apart, as
+        /// <see cref="GeoFace3.TriangulateSurface(Tolerance)"/> keeps them, a concave boundary followed rather than spanned.
+        /// Rings that come within the point tolerance of each other, or cross, are read as the booleans read them and cut
+        /// into strips at their corners instead: those triangles still lie within the material, but meet its edges at
+        /// points of their own as well.
+        /// </para>
+        /// </remarks>
+        public GeoTriangle2[] TriangulateSurface(Tolerance tolerance) => Triangulation2.Triangulate(this, tolerance);
+
+        /// <summary>
         /// Puts this face of the plane back into space, holes and all, on the plane of a frame.
         /// </summary>
         /// <param name="frame">The frame it was laid out in.</param>

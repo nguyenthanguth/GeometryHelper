@@ -116,6 +116,36 @@ namespace GeometryHelper.Geometry
         public GeoRectangle2 Clone() => new GeoRectangle2(Center, Width, Height, AngleRad);
 
         /// <summary>
+        /// Breaks the rectangle into two triangles, along the diagonal from its lower left corner, using the default
+        /// tolerance.
+        /// </summary>
+        /// <returns>The two triangles, counter-clockwise; none when the rectangle has no area.</returns>
+        public GeoTriangle2[] TriangulateSurface() => TriangulateSurface(Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the rectangle into two triangles, along the diagonal from its lower left corner, within a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance deciding what counts as no area.</param>
+        /// <returns>The two triangles, counter-clockwise; none when the rectangle has no area within the tolerance.</returns>
+        public GeoTriangle2[] TriangulateSurface(Tolerance tolerance)
+        {
+            if (tolerance == null)
+            {
+                throw new ArgumentNullException(nameof(tolerance));
+            }
+
+            var lower = new GeoTriangle2(LowerLeft, LowerRight, UpperRight);
+            var upper = new GeoTriangle2(LowerLeft, UpperRight, UpperLeft);
+
+            if (lower.IsDegenerate(tolerance) || upper.IsDegenerate(tolerance))
+            {
+                return Array.Empty<GeoTriangle2>();
+            }
+
+            return new[] { lower.IsClockwise ? lower.Reverse() : lower, upper.IsClockwise ? upper.Reverse() : upper };
+        }
+
+        /// <summary>
         /// Converts this rectangle into a solid 2D GeoPolygon2.
         /// </summary>
         /// <returns>A new GeoPolygon2 instance representing this rectangle.</returns>

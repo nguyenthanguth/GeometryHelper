@@ -4,6 +4,18 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**NEW.** `GeoTriangle2`, the triangle of the plane, as `GeoTriangle3` is the triangle of space: its signed area and
+winding, perimeter, centroid, angles, circumcircle and incircle, barycentric coordinates, where a point is, moves and
+transforms, and its way into space and back (`ToTriangle3`, `GeoTriangle3.ProjectToTriangle2`, `PlanarMap`).
+
+**NEW.** `TriangulateSurface` on `GeoPolygon2`, `GeoFace2`, `GeoPolygonArc2`, `GeoRectangle2` and `GeoCircle2`
+breaks the shape into `GeoTriangle2`s that each lie within its material, holes left open, all running
+counter-clockwise. The plane meshes as `GeoFace3.TriangulateSurface` meshes a face of space, on the shape's own corners
+while its rings stand apart and cut into strips where they touch; a loop with arcs is flattened by a chord tolerance
+first, a disc is fanned from its center, and a polygon crossing itself is covered where `MakeValid` says it covers.
+
 ## 9.0.2
 
 **FIXED.** `GeoFace3.TriangulateSurface`, which `GeoSolid3.Triangulate` and `TriangulateSurface` and everything meshing

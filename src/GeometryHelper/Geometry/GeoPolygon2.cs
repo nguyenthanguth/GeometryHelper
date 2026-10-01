@@ -192,6 +192,33 @@ namespace GeometryHelper.Geometry
         public GeoFace2[] MakeValid(Tolerance tolerance) => Boolean2.MakeValid(this, tolerance);
 
         /// <summary>
+        /// Breaks the polygon into triangles that each lie within it, using the default tolerance.
+        /// </summary>
+        /// <returns>The triangles covering the polygon, counter-clockwise; none when it encloses no area.</returns>
+        public GeoTriangle2[] TriangulateSurface() => TriangulateSurface(Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the polygon into triangles that each lie within it, within a tolerance.
+        /// </summary>
+        /// <param name="tolerance">The tolerance deciding what counts as no area, and how near two edges may come.</param>
+        /// <returns>
+        /// The triangles covering the polygon, counter-clockwise whichever way the polygon runs; none when it encloses no
+        /// area within the tolerance.
+        /// </returns>
+        /// <remarks>
+        /// A polygon that crosses itself is covered where <see cref="MakeValid()"/> says it covers, under the even-odd
+        /// rule.
+        /// <para>
+        /// The triangles keep the shape's own corners while its rings stand apart, as
+        /// <see cref="GeoFace3.TriangulateSurface(Tolerance)"/> keeps them, a concave boundary followed rather than spanned.
+        /// Rings that come within the point tolerance of each other, or cross, are read as the booleans read them and cut
+        /// into strips at their corners instead: those triangles still lie within the material, but meet its edges at
+        /// points of their own as well.
+        /// </para>
+        /// </remarks>
+        public GeoTriangle2[] TriangulateSurface(Tolerance tolerance) => Triangulation2.Triangulate(new GeoFace2(this), tolerance);
+
+        /// <summary>
         /// Gets a value indicating whether the vertices of the polygon run clockwise.
         /// </summary>
         public bool IsClockwise => SignedArea < 0.0;

@@ -176,6 +176,13 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentException">Thrown when the triangle encloses no area.</exception>
         public GeoFace3 ToFace3(Tolerance tolerance) => new GeoFace3(ToPolygon3(tolerance), null, tolerance);
 
+        /// <summary>
+        /// Lays this triangle out in a frame, dropping each vertex's distance from the plane of that frame.
+        /// </summary>
+        /// <param name="frame">The frame to lay it out in.</param>
+        /// <returns>The triangle in the plane of the frame.</returns>
+        public GeoTriangle2 ProjectToTriangle2(GeoCoordinateSystem3 frame) => PlanarMap.ProjectToTriangle2(frame, this);
+
 
         /// <summary>
         /// Moves the triangle by a vector.

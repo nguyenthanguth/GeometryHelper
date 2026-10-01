@@ -297,6 +297,28 @@ namespace GeometryHelper.Core
             return new GeoFace3(ToPolygon3(frame, face.Boundary), holes);
         }
 
+        /// <summary>
+        /// Lays a triangle out in a frame, dropping each vertex's distance from the plane of that frame.
+        /// </summary>
+        /// <param name="frame">The frame to lay it out in.</param>
+        /// <param name="triangle">The triangle in space.</param>
+        /// <returns>The triangle in the plane of the frame, running the way it runs seen from the frame's Z axis.</returns>
+        public static GeoTriangle2 ProjectToTriangle2(GeoCoordinateSystem3 frame, GeoTriangle3 triangle)
+        {
+            return new GeoTriangle2(ProjectToPoint2(frame, triangle.A), ProjectToPoint2(frame, triangle.B), ProjectToPoint2(frame, triangle.C));
+        }
+
+        /// <summary>
+        /// Puts a triangle of the plane back into space.
+        /// </summary>
+        /// <param name="frame">The frame it was laid out in.</param>
+        /// <param name="triangle">The triangle in the plane.</param>
+        /// <returns>The triangle in space, on the plane of the frame.</returns>
+        public static GeoTriangle3 ToTriangle3(GeoCoordinateSystem3 frame, GeoTriangle2 triangle)
+        {
+            return new GeoTriangle3(ToPoint3(frame, triangle.A), ToPoint3(frame, triangle.B), ToPoint3(frame, triangle.C));
+        }
+
         #endregion
 
         #region Helpers

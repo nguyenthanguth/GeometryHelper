@@ -512,6 +512,64 @@ namespace GeometryHelper.Core
 
         #endregion
 
+        #region Triangles
+
+        /// <summary>
+        /// Classifies the location of a point relative to a triangle using default tolerance.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="point">The target point.</param>
+        /// <returns>PointLocation.Inside, PointLocation.OnSide, or PointLocation.OutSide.</returns>
+        public static PointLocation Locate(GeoTriangle2 triangle, GeoPoint2 point) => Locate(triangle, point, Tolerance.Global);
+
+        /// <summary>
+        /// Classifies the location of a point relative to a triangle within tolerance.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="point">The target point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>PointLocation.Inside, PointLocation.OnSide, or PointLocation.OutSide.</returns>
+        /// <remarks>
+        /// A point within the point tolerance of an edge is on it. Any other point is inside when it lies on the same
+        /// side of all three edges, so a triangle has the same inside whichever way it runs. A triangle of no area has
+        /// no inside at all: a point is on its edges or outside it.
+        /// </remarks>
+        public static PointLocation Locate(GeoTriangle2 triangle, GeoPoint2 point, Tolerance tolerance)
+        {
+            if (IsPointOn(new GeoLine2(triangle.A, triangle.B), point, tolerance) ||
+                IsPointOn(new GeoLine2(triangle.B, triangle.C), point, tolerance) ||
+                IsPointOn(new GeoLine2(triangle.C, triangle.A), point, tolerance))
+            {
+                return PointLocation.OnSide;
+            }
+
+            double ab = SideOf(triangle.A, triangle.B, point);
+            double bc = SideOf(triangle.B, triangle.C, point);
+            double ca = SideOf(triangle.C, triangle.A, point);
+
+            bool inside = (ab > 0.0 && bc > 0.0 && ca > 0.0) || (ab < 0.0 && bc < 0.0 && ca < 0.0);
+            return inside ? PointLocation.Inside : PointLocation.OutSide;
+        }
+
+        /// <summary>
+        /// Checks whether a triangle contains a point using default tolerance (accepts points on the edges).
+        /// </summary>
+        public static bool Contains(GeoTriangle2 triangle, GeoPoint2 point) => Contains(triangle, point, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether a triangle contains a point within tolerance (accepts points on the edges).
+        /// </summary>
+        public static bool Contains(GeoTriangle2 triangle, GeoPoint2 point, Tolerance tolerance)
+            => Locate(triangle, point, tolerance) != PointLocation.OutSide;
+
+        /// <summary>
+        /// Twice the signed area of the corner a, b, point: positive when the point lies to the left of a to b.
+        /// </summary>
+        private static double SideOf(GeoPoint2 a, GeoPoint2 b, GeoPoint2 point)
+            => (b.X - a.X) * (point.Y - a.Y) - (b.Y - a.Y) * (point.X - a.X);
+
+        #endregion
+
         #region Contains Shapes
 
         /// <summary>
