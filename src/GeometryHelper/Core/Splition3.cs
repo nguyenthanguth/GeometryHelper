@@ -661,7 +661,7 @@ namespace GeometryHelper.Core
             foreach (IReadOnlyList<GeoPoint3> source in LoopAssembly.EnumerateMaterialRings(face))
             {
                 BuildCutRing(source, cutter, tolerance, out List<GeoPoint3> points, out List<int> sides);
-                ResolveTouches(sides, wantedSide);
+                ResolveTouches(sides, wantedSide, points, face.Normal, cutter.Normal);
                 ringPoints.Add(points);
                 ringSides.Add(sides);
             }
@@ -907,17 +907,29 @@ namespace GeometryHelper.Core
         /// for the same reason, since the whole run is one visit to the plane.
         /// </para>
         /// <para>
-        /// Which end of such a run is the crossing depends on which side is being built, which is why this
-        /// is done once per side rather than once per face. Where a boundary edge lies along the cut, the
-        /// two halves meet the plane over different stretches of it: cutting an L along the plane of its
-        /// own notch, the piece on one side reaches the far end of that edge while the piece on the other
-        /// stops at the near end. Picking one end for both would leave the other half with a spur of zero
-        /// width running out to a vertex that is not on it.
+        /// Where a run crosses, the stretch it lies along is boundary of the side whose material it borders, and
+        /// that is what decides which end of it is the crossing: the end the other side leaves the plane from.
+        /// Cutting an L along the plane of its own notch, the piece the notch edge borders runs along that edge
+        /// to its far end, and the piece on the other side stops at the near end, which is where the two meet.
+        /// Picking the end the other way round would leave the other half with a spur of zero width running out
+        /// to a vertex that is not on it.
+        /// </para>
+        /// <para>
+        /// It is the same end for both sides, so the two pieces of a face share their crossings, pair them the
+        /// same way, and meet along the same edges. Picked by the side being built instead, the piece the run
+        /// borders stepped over it straight from the other end, which is the same line only while the run lies
+        /// exactly in the plane. A run within the tolerance of it is not: a notch edge within a thousandth of a
+        /// millimetre of the plane, at the end of a cut seventy metres long, left a sliver nine ten-thousandths
+        /// across between the pieces of a slab's faces, which belonged to neither half, and the two halves were ten
+        /// thousand cubic millimetres short of the slab.
         /// </para>
         /// </remarks>
         /// <param name="sides">The side of each ring entry; anything that is not a crossing is rewritten in place.</param>
         /// <param name="wantedSide">The side the piece being built lies on.</param>
-        private static void ResolveTouches(List<int> sides, int wantedSide)
+        /// <param name="points">The ring the sides are of, walked with the material on its left.</param>
+        /// <param name="faceNormal">The normal of the face the ring bounds, which fixes what its left is.</param>
+        /// <param name="cutterNormal">The normal of the cutting plane, pointing to the side 1 stands for.</param>
+        private static void ResolveTouches(List<int> sides, int wantedSide, List<GeoPoint3> points, GeoVector3 faceNormal, GeoVector3 cutterNormal)
         {
             int count = sides.Count;
             int start = -1;
@@ -980,10 +992,10 @@ namespace GeometryHelper.Core
                         sides[(start + offset + k) % count] = before;
                     }
                 }
-                else if (wantedSide == after)
+                else if (BordersSide(points, (start + offset) % count, (start + offset + length - 1) % count, faceNormal, cutterNormal, wantedSide == before ? after : before) == before)
                 {
-                    // A crossing, and the piece being built lies beyond the run. It therefore begins where
-                    // the run ends, and the rest of the run is boundary belonging to the other side.
+                    // A crossing, and the run is boundary of the side before it: the piece before the run runs
+                    // along it to its far end, and the piece beyond begins there.
                     for (int k = 0; k < length - 1; k++)
                     {
                         sides[(start + offset + k) % count] = before;
@@ -991,8 +1003,8 @@ namespace GeometryHelper.Core
                 }
                 else
                 {
-                    // A crossing, and the piece being built lies before the run. It therefore ends where
-                    // the run begins.
+                    // A crossing, and the run is boundary of the side beyond it: the piece before the run ends
+                    // where it begins, and the piece beyond runs along it from there.
                     for (int k = 1; k < length; k++)
                     {
                         sides[(start + offset + k) % count] = after;
@@ -1001,6 +1013,31 @@ namespace GeometryHelper.Core
 
                 offset += length;
             }
+        }
+
+        /// <summary>
+        /// Gets the side of a cutting plane whose material a run of ring entries lying on the plane borders.
+        /// </summary>
+        /// <param name="points">The ring, walked with the material on its left.</param>
+        /// <param name="first">Where the run begins.</param>
+        /// <param name="last">Where it ends.</param>
+        /// <param name="faceNormal">The normal of the face the ring bounds.</param>
+        /// <param name="cutterNormal">The normal of the cutting plane.</param>
+        /// <param name="fallback">The side to answer for a run with no length to judge by.</param>
+        /// <returns>1 for the side the cutter normal points to, -1 for the other.</returns>
+        private static int BordersSide(List<GeoPoint3> points, int first, int last, GeoVector3 faceNormal, GeoVector3 cutterNormal, int fallback)
+        {
+            GeoVector3 along = points[first].GetVectorTo(points[last]);
+
+            // The material lies on the left of the walk: the face normal crossed with the way the run goes.
+            double toward = faceNormal.CrossProduct(along).DotProduct(cutterNormal);
+
+            if (Math.Abs(toward) <= 1E-12 * along.Length || along.Length == 0.0)
+            {
+                return fallback;
+            }
+
+            return toward > 0.0 ? 1 : -1;
         }
 
         /// <summary>

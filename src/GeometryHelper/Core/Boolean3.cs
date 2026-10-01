@@ -110,7 +110,7 @@ namespace GeometryHelper.Core
 
             if (TryCutOpenings(first, out GeoSolid3 a, tolerance) && TryCutOpenings(second, out GeoSolid3 b, tolerance))
             {
-                bool? found = CombineCuttingOne(a, b, true, tolerance, out result);
+                bool? found = CombineCuttingOne(a, b, true, tolerance, out result, out _);
 
                 if (found.HasValue)
                 {
@@ -284,6 +284,7 @@ namespace GeometryHelper.Core
                 return true;
             }
 
+            GeoSolid3 given = subject;
             tolerance = ForWork(tolerance);
             subject = FlatForWork(subject, tolerance);
             tool = FlatForWork(tool, tolerance);
@@ -293,7 +294,15 @@ namespace GeometryHelper.Core
 
             if (TryCutOpenings(subject, out GeoSolid3 a, tolerance) && TryCutOpenings(tool, out GeoSolid3 b, tolerance))
             {
-                bool? found = CombineCuttingOne(a, b, false, tolerance, out result);
+                bool? found = CombineCuttingOne(a, b, false, tolerance, out result, out bool untouched);
+
+                if (untouched)
+                {
+                    // A tool with no material within the subject's takes none of it, as one too far away to meet it
+                    // takes none.
+                    result = given;
+                    return true;
+                }
 
                 if (found.HasValue)
                 {
@@ -333,6 +342,11 @@ namespace GeometryHelper.Core
         /// <param name="union">true for the union, false for <paramref name="a"/> less <paramref name="b"/>.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="result">The result, when there is one.</param>
+        /// <param name="untouched">
+        /// For a difference, true when a clean cut found no material of either body within the other: the second takes
+        /// nothing from the first, and <paramref name="result"/> is left null for the caller to hand the first back as
+        /// it came.
+        /// </param>
         /// <returns>
         /// Whether anything is left, as the public methods report it; null when neither body could be cut cleanly, or
         /// two closed bodies came out open whichever was cut, for the caller to cut both by every plane of both
@@ -345,10 +359,17 @@ namespace GeometryHelper.Core
         /// within it turned inside out, which are the walls of the cavity and take away the part of the whole
         /// body's faces it covers. Where the whole body meets the cells, the two lie back to back in one plane,
         /// each cut its own way, and <see cref="CancelBackToBack"/> takes from both the area they share.
+        /// <para>
+        /// A difference that finds nothing of the one body within the other takes nothing, and is not glued back
+        /// together from the cells at all. Glued, it gave back only what the cutting rounded: two slabs side by side
+        /// within a hundredth of a millimetre of each other, the larger cut along seventy metres by planes of the
+        /// smaller a few thousandths off its own faces, came back twenty thousand cubic millimetres larger than it was.
+        /// </para>
         /// </remarks>
-        private static bool? CombineCuttingOne(GeoSolid3 a, GeoSolid3 b, bool union, Tolerance tolerance, out GeoSolid3 result)
+        private static bool? CombineCuttingOne(GeoSolid3 a, GeoSolid3 b, bool union, Tolerance tolerance, out GeoSolid3 result, out bool untouched)
         {
             result = null;
+            untouched = false;
 
             List<GeoPlane3> cuttingA = PlanesNear(b, a.GetAabb(), tolerance);
             List<GeoPlane3> cuttingB = PlanesNear(a, b.GetAabb(), tolerance);
@@ -371,11 +392,17 @@ namespace GeometryHelper.Core
                 GeoSolid3 whole = cutA ? b : a;
                 bool within = !union && !cutA;
 
-                List<GeoFace3> kept = FacesOfCells(SplitIntoCells(cut, knives, tolerance, out bool clean), cut, whole, within, tolerance);
+                List<GeoFace3> kept = FacesOfCells(SplitIntoCells(cut, knives, tolerance, out bool clean), cut, whole, within, tolerance, out bool anyInside);
 
                 if (!clean)
                 {
                     continue;
+                }
+
+                if (!union && !anyInside)
+                {
+                    untouched = true;
+                    return true;
                 }
 
                 if (within)
@@ -744,7 +771,7 @@ namespace GeometryHelper.Core
                             else
                             {
                                 divided.Add(piece);
-                                clean = clean && !Crosses(piece, plane, tolerance);
+                                clean = clean && (!Crosses(piece, plane, tolerance) || IsSliver(piece, tolerance));
                             }
                         }
                     }
@@ -755,6 +782,20 @@ namespace GeometryHelper.Core
 
             return OnePieceEach(cells, tolerance);
         }
+
+        /// <summary>
+        /// Checks whether a piece is thinner than twice the point tolerance, so that no point of it is further than that
+        /// from its skin.
+        /// </summary>
+        /// <remarks>
+        /// A plane crossing such a piece may leave nothing on one side wide enough to be a polygon, and fail to cut it.
+        /// That leaves it no worse judged than it is anyway, by the middle of its thickness; a cut counted unclean for it
+        /// was thrown away whole. A slab cut by the planes of its neighbour kept a wedge a hundredth of a millimetre at
+        /// its widest, three metres long, which two planes crossed and could not cut, and the difference went on to cut
+        /// both slabs by every plane of both: sixteen seconds, and sixty-nine thousand cubic millimetres more than the
+        /// two share; the other way round, it came out open.
+        /// </remarks>
+        private static bool IsSliver(GeoSolid3 piece, Tolerance tolerance) => !TryGetInteriorPoint(piece, tolerance, out _);
 
         /// <summary>
         /// Checks whether a plane has corners of a body beyond the tolerance on both sides of it.
@@ -835,8 +876,22 @@ namespace GeometryHelper.Core
         /// <param name="wantInside">true to keep the cells within that body, false to keep those beyond it.</param>
         /// <param name="tolerance">The tolerance.</param>
         private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance)
+            => FacesOfCells(cells, owner, against, wantInside, tolerance, out _);
+
+        /// <summary>
+        /// Collects the faces of the cells that are material of their own body and lie on the wanted side of another
+        /// one, saying whether any of that material lies within the other.
+        /// </summary>
+        /// <param name="cells">The cells to sort.</param>
+        /// <param name="owner">The body the cells were cut from.</param>
+        /// <param name="against">The body deciding inside from outside.</param>
+        /// <param name="wantInside">true to keep the cells within that body, false to keep those beyond it.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="anyInside">Whether a cell of material lies within <paramref name="against"/>.</param>
+        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance, out bool anyInside)
         {
             List<GeoFace3> faces = new List<GeoFace3>();
+            anyInside = false;
 
             foreach (GeoSolid3 cell in cells)
             {
@@ -846,6 +901,7 @@ namespace GeometryHelper.Core
                 }
 
                 bool within = Containment3.Locate(against, sample, tolerance) == PointLocation.Inside;
+                anyInside |= within;
 
                 if (within == wantInside)
                 {
@@ -871,7 +927,11 @@ namespace GeometryHelper.Core
         /// </remarks>
         private static bool IsMaterial(GeoSolid3 cell, GeoSolid3 owner, Tolerance tolerance, out GeoPoint3 sample)
         {
-            if (!TryGetInteriorPoint(cell, tolerance, out sample))
+            // A cell thinner than twice the point tolerance has no point further than that from its own skin, so the
+            // search finds none in it; it is material all the same, and the middle of its thickness places it. Taken
+            // for empty, a sliver a plane left along a face took its share of the body away with it: of two slabs
+            // side by side, a difference took thirty-eight thousand cubic millimetres more than the two share.
+            if (!TryGetInteriorPoint(cell, tolerance, out sample) && !TryGetMidpointOfThinBody(cell, tolerance, out sample))
             {
                 return false;
             }
@@ -883,7 +943,17 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            return Containment3.Locate(owner, sample, tolerance) == PointLocation.Inside;
+            // Only an opening takes material away. Asked of the whole body, the middle of a sliver along its skin lies
+            // within the tolerance of a face and reads as on it rather than in it.
+            foreach (GeoSolid3 opening in owner.Openings)
+            {
+                if (Containment3.Locate(opening, sample, tolerance) == PointLocation.Inside)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -935,6 +1005,81 @@ namespace GeometryHelper.Core
                         point = candidate;
                         return true;
                     }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Finds a point inside a body too thin for <see cref="TryGetInteriorPoint"/> to find one: the middle of its
+        /// thickness under the middle of one of its largest surface triangles.
+        /// </summary>
+        /// <remarks>
+        /// A ray from inside a triangle of a closed skin, run along the inward normal, is in the body from the triangle to
+        /// where it next meets the skin, so halfway there it is as deep in the body as that ray goes. The point is checked
+        /// all the same, within a tolerance a quarter of that depth: a skin wound the wrong way somewhere sends the ray out
+        /// of the body instead.
+        /// </remarks>
+        internal static bool TryGetMidpointOfThinBody(GeoSolid3 solid, Tolerance tolerance, out GeoPoint3 point)
+        {
+            point = GeoPoint3.Origin;
+
+            GeoTriangle3[] mesh = solid.Triangulate(tolerance);
+            var areas = new double[mesh.Length];
+            var order = new int[mesh.Length];
+
+            for (int i = 0; i < mesh.Length; i++)
+            {
+                areas[i] = -mesh[i].GetAreaVector().Length;
+                order[i] = i;
+            }
+
+            Array.Sort(areas, order);
+
+            // The skin itself is where the ray starts; a crossing that near it is the ray leaving its own triangle.
+            double start = 1E-9 * (1.0 + solid.GetAabb().Diagonal.Length);
+
+            for (int k = 0; k < Math.Min(order.Length, 8); k++)
+            {
+                GeoTriangle3 triangle = mesh[order[k]];
+                GeoVector3 area = triangle.GetAreaVector();
+
+                if (area.Length <= 0.0)
+                {
+                    continue;
+                }
+
+                GeoVector3 inward = area.Multiply(-1.0 / area.Length);
+                var ray = new GeoRay3(triangle.Centroid, inward);
+                double depth = double.MaxValue;
+
+                foreach (GeoFace3 face in solid.Faces)
+                {
+                    if (face.TryIntersectWith(ray, out GeoPoint3 hit, tolerance))
+                    {
+                        double along = triangle.Centroid.GetVectorTo(hit).DotProduct(inward);
+
+                        if (along > start && along < depth)
+                        {
+                            depth = along;
+                        }
+                    }
+                }
+
+                if (depth == double.MaxValue)
+                {
+                    continue;
+                }
+
+                GeoPoint3 candidate = triangle.Centroid.Add(inward.Multiply(depth / 2.0));
+                double fine = depth / 4.0;
+                var within = new Tolerance(fine, Math.Min(tolerance.EqualVector, fine), tolerance.EqualAngleRad, fine);
+
+                if (Containment3.Locate(solid, candidate, within) == PointLocation.Inside)
+                {
+                    point = candidate;
+                    return true;
                 }
             }
 

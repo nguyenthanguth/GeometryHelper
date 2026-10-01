@@ -344,7 +344,7 @@ namespace GeometryHelper.Core
 
                 // Walking a run can come out either way round depending on where it started, and a piece
                 // that reports the opposite normal to its parent would break every downstream test.
-                return piece.Normal.IsCodirectionalTo(orientation, tolerance) ? piece : piece.Flip();
+                return piece.Normal.DotProduct(orientation) >= 0.0 ? piece : piece.Flip();
             }
             catch (ArgumentException)
             {

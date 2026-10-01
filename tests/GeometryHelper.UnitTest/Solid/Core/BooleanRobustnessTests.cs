@@ -33,12 +33,10 @@ namespace GeometryHelper.UnitTest.Solid
                 // What the opening takes away is what the two have in common.
                 Assert.InRange(beam.Volume - rest.Volume, common - 5E-5 * beam.Volume, common + 5E-5 * beam.Volume);
 
-                // The fifteenth leaves a seam where two faces of the web run a hundredth of a millimetre apart, the
-                // point tolerance itself, and the sixteenth is cut from that; up to there the beam stays closed.
-                if (k < 14)
-                {
-                    Assert.True(rest.IsClosed(tolerance), $"open after opening {k}");
-                }
+                // The fifteenth left a seam where two faces of the web run a hundredth of a millimetre apart, the point
+                // tolerance itself, and the sixteenth was cut from that; slivers thinner than twice the tolerance are
+                // kept and judged by their middle now, and the beam stays closed throughout.
+                Assert.True(rest.IsClosed(tolerance), $"open after opening {k}");
 
                 beam = rest;
             }

@@ -4,6 +4,51 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**FIXED.** `TrySubtract` took material from a body the other only touched, and gave some bodies back larger than they
+were, where two lie within a few hundredths of a millimetre of each other: slabs drawn side by side in a Tekla
+Structures model, whose shared faces stand a thousandth to a few hundredths apart and turned a fraction of a
+microradian. Of 207 concrete slabs whose net volume was taken by subtracting the slabs they meet, nine came out
+between 35 and 114 696 mm3 off Tekla's, where `TryIntersect` found the two sharing nothing, and what a difference took
+was not what the two had in common, seven times over at worst. With the ten more slabs they meet, the 217 make 864
+pairs whose boxes meet: 240 broke V(A) − V(A − B) = V(A ∩ B) by more than a cubic millimetre, 231 took volume from a
+pair sharing none, 104 came out larger; now 850 touch only and come back as they were, none takes anything from a
+pair sharing nothing, none comes out larger, and 8 break it, by at most 8 676 mm3 against an overlap of 31.5
+million, the glue of a difference still closing within the tolerance rather than exactly. A difference that finds nothing of the one body within the other now
+hands the first back as it came, as it does a body too far away to meet, rather than gluing it back from the cells the
+other's planes cut it into. Slabs a few hundredths into each other do share that much, and a difference takes it;
+Tekla Structures' own cuts take nothing for such an overlap, and the booleans within a tolerance of 0.05 take nothing
+for it either: of the 217 slabs, two pairs then share anything.
+
+**FIXED.** A cell thinner than twice the point tolerance has no point further than that from its skin, and was taken
+for empty: a plane of the tool 0.0165 inside a face of the body cut a sliver off its whole length, and the difference
+took the sliver away with the tool, 38 000 mm3 of a slab beyond the other. Such a cell is placed by the middle of
+its thickness, and is material; one that thin within the other body counts as touching it.
+
+**FIXED.** A piece of a cut was turned over when it stood more than the angle tolerance off the way it was to face. A
+cap three hundredths across with a corner on the plane only within the tolerance stands degrees off it, and the half it
+closed had its cap facing into it, and a volume that depended on where it was measured from. Only a piece facing the
+other way is turned now.
+
+**FIXED.** Cutting a face along an edge of it lying within the tolerance of the plane, its two pieces stepped across
+that edge from different ends, which is the same line only while the edge lies exactly in the plane: a slab's face cut
+seventy metres along by a plane within a thousandth of its notch edge lost a sliver of 32 mm2 between its pieces, and
+the two halves of the slab ten thousand cubic millimetres. Both pieces cross at the same end now, and the one the edge
+borders runs along it.
+
+**FIXED.** A plane crossing a wedge thinner than twice the tolerance, where nothing on one side is wide enough to be a
+polygon, counted as a cut that failed, and a boolean threw the whole cut away and cut both bodies by every plane of
+both: for two slabs that took sixteen seconds and came out 69 000 mm3 off, and the other way round open. Such a wedge
+is left whole and judged by its middle.
+
+**FIXED.** Separating a body into its pieces, as `Boolean3.SplitShells` and the booleans do, dropped a closed piece
+thinner on average than the tolerance that no other piece held, taking it for a sheet of no thickness: the slivers a
+plane leaves along a slab's face went with it, seventy thousand cubic millimetres of one. It is a piece of its own now.
+With this and the slivers above kept, the steel beam of the Tekla IFC export that came out open from the fifteenth of
+its sixteen openings cut in turn, where two faces of its web run a hundredth of a millimetre apart, stays closed
+through all sixteen, and ends 60 mm3 from the geometry engine's 25 137 804 where it ended 150 from it.
+
 ## 9.0.0
 
 Nothing in GeometryHelper itself changed: it is released at 9.0.0 with GeometryHelper.TeklaConvert.

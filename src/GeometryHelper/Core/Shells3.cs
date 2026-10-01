@@ -566,8 +566,11 @@ namespace GeometryHelper.Core
                 }
             }
 
-            // A sheet goes with the smallest piece holding it; one that no piece holds encloses nothing and
-            // stands nowhere in the material, so there is nothing to give it to.
+            // A sheet goes with the smallest piece holding it. One that no piece holds and that cannot close, a
+            // lone face or two back to back, stands nowhere in the material, so there is nothing to give it to;
+            // one that can is a sliver of material thinner than the tolerance, and is a piece of its own. Dropped,
+            // the slivers a plane left along the face of a slab, two hundredths of a millimetre at their thickest
+            // and tens of metres long, took seventy thousand cubic millimetres of it away.
             foreach (List<GeoFace3> sheet in sheets)
             {
                 GeoPoint3 witness = sheet[0].Centroid;
@@ -588,6 +591,10 @@ namespace GeometryHelper.Core
                 if (home >= 0)
                 {
                     solids[home].AddRange(sheet);
+                }
+                else if (sheet.Count >= 4)
+                {
+                    solids.Add(new List<GeoFace3>(sheet));
                 }
             }
 
