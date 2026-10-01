@@ -46,6 +46,16 @@ last digit is worth a hundredth. A polygon a tenth of a millimetre across there 
 wrong winding, a strip of 0.9 mm2 as 0.8984375, and the centroid of a triangle 0.3 mm across 110 km off. They are taken
 from the first vertex now, as the planar internals already took theirs, and `GeoFace2.Area` with them.
 
+**CHANGED.** The package depends on no other package. Clipper2 2.0.0, which resolves the regions of the plane, is
+compiled in from its source, `src/GeometryHelper/Clipper2Lib`, instead of referenced as the Clipper2 package, so that
+it can be mended here. Its types are internal: they are not part of GeometryHelper, and a project that references the
+Clipper2 package as well sees that one only. A project that used Clipper2 through GeometryHelper's dependency
+references the Clipper2 package itself now. Built into GeometryHelper, it gives the IL of the package, but for one
+delegate the newer compiler keeps instead of making it on each call, so every answer is the same. Its licence and
+those of the code it carries are in `THIRD-PARTY-NOTICES.txt` in the package. Clipper2's own tests run with the suite;
+test 16 of its polygons, which Clipper2 2.0.0 fails upstream as well (#1067, fixed there after the release), is
+skipped.
+
 ## 9.0.2
 
 **FIXED.** `GeoFace3.TriangulateSurface`, which `GeoSolid3.Triangulate` and `TriangulateSurface` and everything meshing

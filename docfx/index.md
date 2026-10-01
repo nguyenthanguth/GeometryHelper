@@ -59,5 +59,6 @@ GeoFace2[] pierced = slot.Subtract(opening);
 | [GeometryHelper.TeklaConvert.2020](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2020/) · [2025](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2025/) · [2026](https://www.nuget.org/packages/GeometryHelper.TeklaConvert.2026/) | both ways with Tekla Structures, one package per version |
 | [GeometryHelper.IfcConvert](https://www.nuget.org/packages/GeometryHelper.IfcConvert/) | IFC models into solids, through xBIM |
 
-The library targets `netstandard2.0` and its only dependency is
-[Clipper2](https://github.com/AngusJohnson/Clipper2) (Boost Software License).
+The library targets `netstandard2.0` and depends on no other package.
+[Clipper2](https://github.com/AngusJohnson/Clipper2) (Boost Software License), which resolves its regions in
+the plane, is compiled in.

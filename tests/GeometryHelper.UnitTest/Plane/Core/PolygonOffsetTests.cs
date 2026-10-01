@@ -549,16 +549,26 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static double ClipperArea(PathsD paths) => Clipper.Area(paths);
 
+        // Clipper2's types are internal to the library, so a public test takes our join and asks for Clipper's here.
+        private static JoinType ClipperJoin(OffsetJoin join) => join switch
+        {
+            OffsetJoin.Miter => JoinType.Miter,
+            OffsetJoin.Chamfer => JoinType.Square,
+            OffsetJoin.Round => JoinType.Round,
+            _ => throw new ArgumentOutOfRangeException(nameof(join)),
+        };
+
         private static double XorArea(PathsD a, PathsD b)
         {
             return Math.Abs(Clipper.Area(Clipper.Xor(a, b, Clipper2Lib.FillRule.NonZero, 8)));
         }
 
         [Theory]
-        [InlineData(OffsetJoin.Miter, JoinType.Miter)]
-        [InlineData(OffsetJoin.Chamfer, JoinType.Square)]
-        public void RandomStars_MatchClipperExactly(OffsetJoin ours, JoinType theirs)
+        [InlineData(OffsetJoin.Miter)]
+        [InlineData(OffsetJoin.Chamfer)]
+        public void RandomStars_MatchClipperExactly(OffsetJoin ours)
         {
+            JoinType theirs = ClipperJoin(ours);
             using (Tolerance.Use(Fine))
             {
                 var options = new OffsetOptions(ours, double.PositiveInfinity);

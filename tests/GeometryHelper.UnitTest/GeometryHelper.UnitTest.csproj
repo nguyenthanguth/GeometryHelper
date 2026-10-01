@@ -25,15 +25,17 @@
     <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
   </PropertyGroup>
 
-  <!-- Clipper2 is what the library resolves regions in the plane with; the tests also call it directly, as
-       an independent second opinion: shapes it inflates and measures are what the library's own answers,
-       and the solid half's winding-number solver, are compared against. -->
-  <ItemGroup>
-    <PackageReference Include="Clipper2" Version="2.0.0" />
-  </ItemGroup>
-
+  <!-- Clipper2 is what the library resolves regions in the plane with, compiled into it from
+       src/GeometryHelper/Clipper2Lib. The tests also call that copy directly, through InternalsVisibleTo, as
+       a second opinion: shapes it inflates and measures are what the library's own answers, and the solid
+       half's winding-number solver, are compared against. -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+  </ItemGroup>
+
+  <!-- Clipper2's own tests, under Clipper2Lib\, read their cases from these files of the Clipper2 repository. -->
+  <ItemGroup>
+    <None Update="Clipper2Lib\Data\*.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

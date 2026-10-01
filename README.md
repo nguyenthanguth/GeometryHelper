@@ -36,7 +36,7 @@ and bundles customized xBIM assemblies and native x64 engines directly in the pa
 ## How they fit together
 
 ```
-GeometryHelper ── Clipper2
+GeometryHelper   (Clipper2 compiled in)
    │
 GeometryHelper.IfcConvert   ── IFC (xBIM)
    └── GeometryHelper.TeklaConvert ── Tekla Structures
@@ -46,9 +46,11 @@ GeometryHelper.CadConvert   ── AutoCAD
 One direction, no cycles. Every bridge is built on `GeometryHelper` and none of them knows about
 another, except that the Tekla bridge reads IFC reference models through the IFC one.
 
-`GeometryHelper` references [Clipper2](https://github.com/AngusJohnson/Clipper2), which resolves offsets
-and boolean regions in the plane on integers, so an answer never depends on rounding luck. It flows
-through to whatever uses the package. The solid half does the same work with its own winding-number
+`GeometryHelper` carries [Clipper2](https://github.com/AngusJohnson/Clipper2) 2.0.0, compiled in from its
+source in [src/GeometryHelper/Clipper2Lib](src/GeometryHelper/Clipper2Lib/README.md), where it can be mended.
+It resolves offsets and boolean regions in the plane on integers, so an answer never depends on rounding
+luck. Its types are internal, so the package depends on nothing and a project that also references the
+Clipper2 package sees that one only. The solid half does the same work with its own winding-number
 solver, and the test suite checks the two against each other.
 
 ## Which one do you need

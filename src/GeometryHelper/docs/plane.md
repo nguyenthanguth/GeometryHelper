@@ -429,7 +429,7 @@ GeoFace2[] slab = Boolean2.Subtract(outline, openings);
 GeoFace2[] floor = Boolean2.Union(tiles);
 ```
 
-Region operations, the booleans and the offsets alike, are resolved by [Clipper2](https://github.com/AngusJohnson/Clipper2), which this package references. It works on integers, so an answer never depends on rounding luck; the library lays the shapes out in a frame at the first of them before rounding, and gives every vertex of the answer its full precision back afterwards, so a square offset by 2 ends exactly on 2. Vertices closer than the point tolerance are merged, and slivers thinner than it are dropped.
+Region operations, the booleans and the offsets alike, are resolved by [Clipper2](https://github.com/AngusJohnson/Clipper2), which this package carries compiled in. It works on integers, so an answer never depends on rounding luck; the library lays the shapes out in a frame at the first of them before rounding, and gives every vertex of the answer its full precision back afterwards, so a square offset by 2 ends exactly on 2. Vertices closer than the point tolerance are merged, and slivers thinner than it are dropped.
 
 ## Triangles and meshes
 
@@ -931,4 +931,4 @@ dotnet test  tests/GeometryHelper.UnitTest/GeometryHelper.UnitTest.csproj
 
 ## Licence
 
-MIT. Clipper2, which this package references, is under the Boost Software License 1.0.
+MIT. Clipper2, which this package carries compiled in, is under the Boost Software License 1.0.

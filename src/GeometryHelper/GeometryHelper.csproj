@@ -184,14 +184,14 @@
 
   <!-- Clipper2 (Angus Johnson, Boost Software License) resolves regions in the plane: the booleans of
        Boolean2 and the raw loops an offset builds. It works on integers, so its answers do not depend on
-       rounding luck. The solid half keeps its own winding-number solver, under Internal\Planar. -->
-  <ItemGroup>
-    <PackageReference Include="Clipper2" Version="2.0.0" />
-  </ItemGroup>
-
+       rounding luck. The solid half keeps its own winding-number solver, under Internal\Planar.
+       Clipper2 2.0.0 is compiled in from Clipper2Lib\, internal, rather than referenced as a package; the
+       README there says where it comes from and what was changed. Its licences go into the package in
+       THIRD-PARTY-NOTICES.txt. -->
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="icon.png" Pack="true" PackagePath="\" />
+    <None Include="THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
