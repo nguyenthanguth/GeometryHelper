@@ -226,6 +226,39 @@ namespace GeometryHelper.Geometry
         public GeoTriangle2[] TriangulateSurface(Tolerance tolerance) => Triangulation2.Triangulate(new GeoFace2(this), tolerance);
 
         /// <summary>
+        /// Breaks the polygon into faces of a kind, using the default tolerance. A grid needs the size of its cells, which
+        /// <see cref="ToMesh(Meshing.MeshOptions)"/> takes.
+        /// </summary>
+        /// <param name="kind">The kind of faces.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the polygon into faces as the options say, using the default tolerance.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the polygon into faces as the options say, within a tolerance: triangles, the cells of a grid, strips or
+        /// convex pieces, each a simple polygon with no hole, counter-clockwise, meeting its neighbours edge to edge.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options are null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a grid's cell is no larger than the point tolerance, or the grid would lay more cells over the shape
+        /// than a mesh may have.
+        /// </exception>
+        /// <remarks>
+        /// A polygon crossing itself is read as <see cref="MakeValid()"/> reads it.
+        /// </remarks>
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh2.ToMesh(this, options, tolerance);
+
+        /// <summary>
         /// Gets a value indicating whether the vertices of the polygon run clockwise.
         /// </summary>
         public bool IsClockwise => SignedArea < 0.0;

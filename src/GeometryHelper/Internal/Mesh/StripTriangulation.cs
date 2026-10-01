@@ -84,7 +84,38 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
-            var frame = new GeoCoordinateSystem3(face.GetPlane());
+            var triangles = new List<GeoTriangle3>();
+
+            foreach (GeoPoint3[] piece in Trapezoids(face, new GeoCoordinateSystem3(face.GetPlane()), tolerance))
+            {
+                Emit(triangles, piece[0], piece[1], piece[2], tolerance);
+                Emit(triangles, piece[0], piece[2], piece[3], tolerance);
+            }
+
+            return triangles.ToArray();
+        }
+
+        /// <summary>
+        /// Cuts the material of a face into the pieces between its edges, strip by strip across a frame laid in its plane.
+        /// </summary>
+        /// <param name="face">The face to cut up.</param>
+        /// <param name="frame">
+        /// A frame whose XY plane is the face's: the strip lines run along its Y axis, one through every corner, so the
+        /// pieces have their parallel sides that way.
+        /// </param>
+        /// <param name="tolerance">The tolerance the region is resolved within.</param>
+        /// <returns>
+        /// Each piece as its four corners in turn, counter-clockwise about the frame's Z axis: along the lower edge from
+        /// the strip line it starts at to the one it ends at, then back along the upper edge. Two of them stand on each
+        /// other where a piece comes to a point at one end.
+        /// </returns>
+        public static List<GeoPoint3[]> Trapezoids(GeoFace3 face, GeoCoordinateSystem3 frame, Tolerance tolerance)
+        {
+            if (face == null)
+            {
+                throw new ArgumentNullException(nameof(face));
+            }
+
             GeoPoint3 first = frame.ToLocal(face.Boundary[0]);
             var origin = new GeoPoint2(first.X, first.Y);
             var corners = new Dictionary<(double, double), GeoPoint3>();
@@ -205,7 +236,7 @@ namespace GeometryHelper.Core
                 return new GeoPoint3(a.X + t * (b.X - a.X), a.Y + t * (b.Y - a.Y), a.Z + t * (b.Z - a.Z));
             }
 
-            var triangles = new List<GeoTriangle3>();
+            var pieces = new List<GeoPoint3[]>();
             var open = new Dictionary<(int, int), (Edge Lower, Edge Upper, double Start)>();
             var active = new List<Edge>();
             var pairs = new HashSet<(int, int)>();
@@ -213,13 +244,7 @@ namespace GeometryHelper.Core
 
             void Close((Edge Lower, Edge Upper, double Start) piece, double end)
             {
-                GeoPoint3 lowerStart = Lift(piece.Lower, piece.Start);
-                GeoPoint3 lowerEnd = Lift(piece.Lower, end);
-                GeoPoint3 upperEnd = Lift(piece.Upper, end);
-                GeoPoint3 upperStart = Lift(piece.Upper, piece.Start);
-
-                Emit(triangles, lowerStart, lowerEnd, upperEnd, tolerance);
-                Emit(triangles, lowerStart, upperEnd, upperStart, tolerance);
+                pieces.Add(new[] { Lift(piece.Lower, piece.Start), Lift(piece.Lower, end), Lift(piece.Upper, end), Lift(piece.Upper, piece.Start) });
             }
 
             for (int k = 0; k + 1 < lines.Count; k++)
@@ -277,7 +302,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return triangles.ToArray();
+            return pieces;
         }
 
         /// <summary>

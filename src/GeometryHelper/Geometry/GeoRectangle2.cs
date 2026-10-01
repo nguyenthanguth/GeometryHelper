@@ -146,6 +146,52 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Breaks the rectangle into faces of a kind, using the default tolerance. A grid needs the size of its cells, which
+        /// <see cref="ToMesh(Meshing.MeshOptions)"/> takes.
+        /// </summary>
+        /// <param name="kind">The kind of faces.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the rectangle into faces as the options say, using the default tolerance.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the rectangle into faces as the options say, within a tolerance: triangles, the cells of a grid, strips or
+        /// convex pieces, each a simple polygon with no hole, counter-clockwise, meeting its neighbours edge to edge.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options are null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a grid's cell is no larger than the point tolerance, or the grid would lay more cells over the shape
+        /// than a mesh may have.
+        /// </exception>
+        /// <remarks>
+        /// A grid and strips run along its own width unless the options give an angle, and a grid starting at its lower
+        /// left corner lays its cells from there.
+        /// </remarks>
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh2.ToMesh(this, options, tolerance);
+
+        /// <summary>
+        /// Divides the rectangle into equal rectangles along its own sides.
+        /// </summary>
+        /// <param name="columns">How many across its width.</param>
+        /// <param name="rows">How many across its height.</param>
+        /// <returns>
+        /// The rectangles, turned as this one is, row by row from its lower side and each row from its left: the one at
+        /// column <c>c</c> and row <c>r</c> is at index <c>r * columns + c</c>.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the columns or the rows are fewer than one.</exception>
+        public GeoRectangle2[] Divide(int columns, int rows) => Meshing.Mesh2.Divide(this, columns, rows);
+
+        /// <summary>
         /// Converts this rectangle into a solid 2D GeoPolygon2.
         /// </summary>
         /// <returns>A new GeoPolygon2 instance representing this rectangle.</returns>

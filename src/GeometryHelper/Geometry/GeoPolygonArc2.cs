@@ -333,6 +333,39 @@ namespace GeometryHelper.Geometry
             => Triangulation2.Triangulate(new GeoFace2(Flatten(chordTolerance)), tolerance);
 
         /// <summary>
+        /// Breaks the loop into faces of a kind, using the default tolerance. A grid needs the size of its cells, which
+        /// <see cref="ToMesh(Meshing.MeshOptions)"/> takes.
+        /// </summary>
+        /// <param name="kind">The kind of faces.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the loop into faces as the options say, using the default tolerance.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the loop into faces as the options say, within a tolerance: triangles, the cells of a grid, strips or
+        /// convex pieces, each a simple polygon with no hole, counter-clockwise, meeting its neighbours edge to edge.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options are null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a grid's cell is no larger than the point tolerance, or the grid would lay more cells over the shape
+        /// than a mesh may have.
+        /// </exception>
+        /// <remarks>
+        /// Each arc is flattened first, by the options' chord tolerance, as <see cref="Flatten(double)"/> flattens it.
+        /// </remarks>
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh2.ToMesh(this, options, tolerance);
+
+        /// <summary>
         /// Gets the loop running the other way round.
         /// </summary>
         public GeoPolygonArc2 Reverse()

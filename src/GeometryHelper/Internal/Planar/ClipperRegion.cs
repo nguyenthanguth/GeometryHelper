@@ -108,6 +108,116 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Combines two regions as <see cref="Execute"/> does, but hands the loops back as Clipper2 gives them once their
+        /// vertices have their full precision back: a loop running through a vertex twice is split there, and the loops are
+        /// grouped, but nothing is merged within a tolerance and no thin loop left out. Pieces cut from one region side by
+        /// side then keep the very points where they meet, as a mesh of them needs; only a point repeated in a row, a point
+        /// standing on a straight run within rounding, and a loop enclosing nothing at all go.
+        /// </summary>
+        public static List<LoopGroup> ExecuteExact(
+            ClipType clipType,
+            IEnumerable<IReadOnlyList<GeoPoint2>> subject,
+            IEnumerable<IReadOnlyList<GeoPoint2>> clip,
+            Clipper2Lib.FillRule rule,
+            int precision)
+        {
+            List<IReadOnlyList<GeoPoint2>> inputs = new List<IReadOnlyList<GeoPoint2>>(subject);
+            ClipperD clipper = new ClipperD(precision) { PreserveCollinear = false };
+            clipper.AddSubject(ToPaths(inputs));
+
+            List<IReadOnlyList<GeoPoint2>> clipLoops = new List<IReadOnlyList<GeoPoint2>>(clip);
+            clipper.AddClip(ToPaths(clipLoops));
+            inputs.AddRange(clipLoops);
+
+            PathsD solution = new PathsD();
+            clipper.Execute(clipType, rule, solution);
+
+            // Clipper2 crosses two long edges in its integers a few steps of its grid off where they cross: a cell's side
+            // and an edge running a metre past it were crossed four steps off, and the cell beside it, whose crossing was
+            // restored, then met it at a point of its own. Every crossing is restored from further off here, so that
+            // pieces side by side come back with the same one.
+            ExactPoints exact = new ExactPoints(inputs, precision, 16.0);
+            List<List<GeoPoint2>> loops = new List<List<GeoPoint2>>();
+
+            foreach (PathD path in solution)
+            {
+                foreach (List<GeoPoint2> piece in SplitAtRepeats(path))
+                {
+                    List<GeoPoint2> restored = exact.Restore(piece);
+                    List<GeoPoint2> kept = new List<GeoPoint2>(restored.Count);
+
+                    foreach (GeoPoint2 point in restored)
+                    {
+                        if (kept.Count == 0 || !kept[kept.Count - 1].Equals(point))
+                        {
+                            kept.Add(point);
+                        }
+                    }
+
+                    while (kept.Count > 1 && kept[kept.Count - 1].Equals(kept[0]))
+                    {
+                        kept.RemoveAt(kept.Count - 1);
+                    }
+
+                    DropStraight(kept, 16.0 * Math.Pow(10.0, -precision));
+
+                    if (kept.Count >= 3 && LoopTools.SignedArea(kept) != 0.0)
+                    {
+                        loops.Add(kept);
+                    }
+                }
+            }
+
+            return LoopTools.Group(loops);
+        }
+
+        /// <summary>
+        /// Drops the points of a loop that stand on the line between their neighbours, within a distance.
+        /// </summary>
+        /// <remarks>
+        /// Where edges of the two regions run along each other, Clipper2 can split the edge across from where they end, and
+        /// hand the split back as a point of its own, rounded to its grid: a cell laid along the side of a rectangle came
+        /// back with a corner halfway along its other side. Such a point is no crossing and no input vertex, so nothing
+        /// gives it its digits back, and the pieces either side of that side would meet at it only in part. A point the
+        /// pieces beside need is put back on the side by the mesh that joins them.
+        /// </remarks>
+        private static void DropStraight(List<GeoPoint2> loop, double within)
+        {
+            bool dropped = true;
+
+            while (dropped && loop.Count > 3)
+            {
+                dropped = false;
+
+                for (int i = 0; i < loop.Count && loop.Count > 3; i++)
+                {
+                    GeoPoint2 previous = loop[(i + loop.Count - 1) % loop.Count];
+                    GeoPoint2 point = loop[i];
+                    GeoPoint2 next = loop[(i + 1) % loop.Count];
+                    double dx = next.X - previous.X;
+                    double dy = next.Y - previous.Y;
+                    double length = Math.Sqrt(dx * dx + dy * dy);
+
+                    if (!(length > 0.0))
+                    {
+                        continue;
+                    }
+
+                    // On the chord between its neighbours, and between them along it rather than past either.
+                    double off = Math.Abs((point.X - previous.X) * dy - (point.Y - previous.Y) * dx) / length;
+                    double along = ((point.X - previous.X) * dx + (point.Y - previous.Y) * dy) / (length * length);
+
+                    if (off <= within && along > 0.0 && along < 1.0)
+                    {
+                        loop.RemoveAt(i);
+                        dropped = true;
+                        i--;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Resolves loops under a fill rule and returns every boundary loop of the result, flat, with collinear
         /// points kept, so that each edge still lies along the input edge it came from. The vertices get their
         /// full precision back, but nothing is merged or dropped.
@@ -370,15 +480,22 @@ namespace GeometryHelper.Core
             private const int CellsAcross = 64;
 
             private readonly double _grid;
+            private readonly double _steps;
             private readonly double _cell;
             private readonly Dictionary<(long, long), List<GeoPoint2>> _vertices = new Dictionary<(long, long), List<GeoPoint2>>();
             private readonly Dictionary<(long, long), List<int>> _edgeCells = new Dictionary<(long, long), List<int>>();
             private readonly List<GeoPoint2> _from = new List<GeoPoint2>();
             private readonly List<GeoPoint2> _to = new List<GeoPoint2>();
 
-            public ExactPoints(IEnumerable<IReadOnlyList<GeoPoint2>> loops, int precision)
+            /// <param name="loops">The loops handed to Clipper2.</param>
+            /// <param name="precision">The decimal places it rounded to.</param>
+            /// <param name="steps">
+            /// How many steps of its grid a crossing it computed may stand off the crossing of the two edges it came from.
+            /// </param>
+            public ExactPoints(IEnumerable<IReadOnlyList<GeoPoint2>> loops, int precision, double steps = 4.0)
             {
                 _grid = Math.Pow(10.0, -precision);
+                _steps = steps;
                 double extent = Extent(loops);
                 _cell = Math.Max(extent * 2.0 / CellsAcross, _grid * 16.0);
 
@@ -458,7 +575,7 @@ namespace GeometryHelper.Core
                     return rounded;
                 }
 
-                double reach = 4.0 * _grid;
+                double reach = _steps * _grid;
                 List<int> close = new List<int>();
 
                 foreach (int id in candidates)
@@ -541,7 +658,7 @@ namespace GeometryHelper.Core
                 _from.Add(a);
                 _to.Add(b);
 
-                double margin = 4.0 * _grid;
+                double margin = _steps * _grid;
                 long x0 = (long)Math.Floor((Math.Min(a.X, b.X) - margin) / _cell);
                 long x1 = (long)Math.Floor((Math.Max(a.X, b.X) + margin) / _cell);
                 long y0 = (long)Math.Floor((Math.Min(a.Y, b.Y) - margin) / _cell);

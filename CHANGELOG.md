@@ -22,6 +22,24 @@ counter-clockwise. The plane meshes as `GeoFace3.TriangulateSurface` meshes a fa
 while its rings stand apart and cut into strips where they touch; a loop with arcs is flattened by a chord tolerance
 first, a disc is fanned from its center, and a polygon crossing itself is covered where `MakeValid` says it covers.
 
+**NEW.** `GeometryHelper.Meshing`. `ToMesh` on `GeoPolygon2`, `GeoFace2`, `GeoPolygonArc2`, `GeoRectangle2` and
+`GeoCircle2` breaks the shape into a `GeoMesh2`, whose faces are simple polygons with no hole, counter-clockwise, sharing
+their corners and meeting edge to edge, of the kind `MeshKind` names:
+- `Triangles`, on the shape's own corners, as `TriangulateSurface` gives them;
+- `Grid`, the cells of a regular grid, as panels of formwork or tiles are laid: whole where the material holds them, cut
+  to the boundary and the holes where they cross them, and split through the middle of a hole one holds whole. The cells
+  stand a joint apart, with none at the boundary; along each axis the grid starts at the shape's first side or ends at
+  its far one, or puts a cell or a joint on its middle, or has a cell start at an origin; it turns by an angle, and runs
+  along a rectangle's own sides. `IsWhole` tells the whole cells from the cut ones;
+- `Strips`, trapezoids along a direction, cut at every corner;
+- `Convex`, convex pieces, few of them: the triangles merged as Hertel and Mehlhorn merge them, no more than four times
+  as many as the fewest there could be.
+
+`MeshOptions` holds the kind and the grid's settings, `Mesh2` does the work, and `GeoMesh2` gives the vertices, the
+faces as indices and as polygons, the area, the edges, the boundary, a face's neighbours and the triangles of the faces,
+and moves and transforms. `GeoRectangle2.Divide(columns, rows)` divides a rectangle into equal rectangles. 300 000
+random faces with holes touching each other and the boundary, meshed every way, are held to all of it.
+
 **FIXED.** `GeoPolygon2.SignedArea`, `Area`, `IsClockwise` and `Centroid`, and `GeoPolygonArc2.SignedArea` and `Area`,
 summed their shoelace from the origin, where the products of coordinates seven kilometres out are near 5E13 and their
 last digit is worth a hundredth. A polygon a tenth of a millimetre across there came out with no area at all, or the

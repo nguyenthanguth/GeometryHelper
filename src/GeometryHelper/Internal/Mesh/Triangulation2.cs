@@ -26,6 +26,28 @@ namespace GeometryHelper.Core
         /// <returns>The triangles, counter-clockwise; none when the face encloses no area within the tolerance.</returns>
         public static GeoTriangle2[] Triangulate(GeoFace2 face, Tolerance tolerance)
         {
+            var triangles = new List<GeoTriangle2>();
+
+            foreach (GeoFace3 lifted in Lift(face, tolerance))
+            {
+                foreach (GeoTriangle3 meshed in lifted.TriangulateSurface(tolerance))
+                {
+                    var triangle = new GeoTriangle2(Drop(meshed.A), Drop(meshed.B), Drop(meshed.C));
+                    triangles.Add(triangle.IsClockwise ? triangle.Reverse() : triangle);
+                }
+            }
+
+            return triangles.ToArray();
+        }
+
+        /// <summary>
+        /// Lays the material of a face on the plane z = 0 of space, as the faces of space its rings make there: the face
+        /// itself, or, when a ring crosses itself, the faces its region resolves into, or none when it encloses no area.
+        /// </summary>
+        /// <param name="face">The face to lay out.</param>
+        /// <param name="tolerance">The tolerance deciding what counts as no area at all.</param>
+        public static List<GeoFace3> Lift(GeoFace2 face, Tolerance tolerance)
+        {
             if (face == null)
             {
                 throw new ArgumentNullException(nameof(face));
@@ -38,7 +60,7 @@ namespace GeometryHelper.Core
 
             if (!TryLift(face.Boundary, tolerance, out GeoPolygon3 boundary))
             {
-                return CrossesItself(face.Boundary, tolerance) ? TriangulateResolved(face, tolerance) : Array.Empty<GeoTriangle2>();
+                return CrossesItself(face.Boundary, tolerance) ? LiftResolved(face, tolerance) : new List<GeoFace3>();
             }
 
             var holes = new List<GeoPolygon3>(face.Holes.Count);
@@ -51,13 +73,13 @@ namespace GeometryHelper.Core
                 }
                 else if (CrossesItself(hole, tolerance))
                 {
-                    return TriangulateResolved(face, tolerance);
+                    return LiftResolved(face, tolerance);
                 }
 
                 // Otherwise the hole encloses nothing, and takes nothing away.
             }
 
-            return TriangulateLifted(boundary, holes, tolerance);
+            return new List<GeoFace3> { new GeoFace3(boundary, holes, tolerance) };
         }
 
         /// <summary>
@@ -71,10 +93,10 @@ namespace GeometryHelper.Core
         private static bool CrossesItself(GeoPolygon2 loop, Tolerance tolerance) => loop.VertexCount > 3 && !loop.IsSimple(tolerance);
 
         /// <summary>
-        /// Triangulates a face whose rings cross themselves by resolving its region first, as the booleans read it, into
+        /// Lays out a face whose rings cross themselves by resolving its region first, as the booleans read it, into
         /// faces whose rings neither cross nor overlap.
         /// </summary>
-        private static GeoTriangle2[] TriangulateResolved(GeoFace2 face, Tolerance tolerance)
+        private static List<GeoFace3> LiftResolved(GeoFace2 face, Tolerance tolerance)
         {
             GeoPoint2 origin = face.Boundary[0];
             var points = new List<GeoPoint2>(face.Boundary.Vertices);
@@ -86,7 +108,7 @@ namespace GeometryHelper.Core
 
             int precision = ClipperRegion.GetPrecision(ClipperRegion.Extent(points, origin));
             List<LoopGroup> groups = ClipperRegion.Resolve(ClipperRegion.RegionOf(face, origin, precision, tolerance), Clipper2Lib.FillRule.Positive, precision, tolerance);
-            var triangles = new List<GeoTriangle2>();
+            var faces = new List<GeoFace3>();
 
             foreach (GeoFace2 piece in ClipperRegion.ToFaces(groups, origin, false))
             {
@@ -105,27 +127,10 @@ namespace GeometryHelper.Core
                     }
                 }
 
-                triangles.AddRange(TriangulateLifted(boundary, holes, tolerance));
+                faces.Add(new GeoFace3(boundary, holes, tolerance));
             }
 
-            return triangles.ToArray();
-        }
-
-        /// <summary>
-        /// Triangulates rings laid on the plane z = 0 as a face of space, and brings the triangles down, counter-clockwise.
-        /// </summary>
-        private static GeoTriangle2[] TriangulateLifted(GeoPolygon3 boundary, List<GeoPolygon3> holes, Tolerance tolerance)
-        {
-            GeoTriangle3[] meshed = new GeoFace3(boundary, holes, tolerance).TriangulateSurface(tolerance);
-            var triangles = new GeoTriangle2[meshed.Length];
-
-            for (int i = 0; i < meshed.Length; i++)
-            {
-                var triangle = new GeoTriangle2(Drop(meshed[i].A), Drop(meshed[i].B), Drop(meshed[i].C));
-                triangles[i] = triangle.IsClockwise ? triangle.Reverse() : triangle;
-            }
-
-            return triangles;
+            return faces;
         }
 
         /// <summary>
@@ -185,7 +190,7 @@ namespace GeometryHelper.Core
             return true;
         }
 
-        private static GeoPoint2 Drop(GeoPoint3 point) => new GeoPoint2(point.X, point.Y);
+        public static GeoPoint2 Drop(GeoPoint3 point) => new GeoPoint2(point.X, point.Y);
 
         /// <summary>
         /// Fans a loop that is known to be convex from a point inside it, keeping the triangles of any area.
