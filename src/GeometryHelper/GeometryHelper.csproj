@@ -14,6 +14,11 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
+      NEW IN 9.0.0
+
+      Nothing in GeometryHelper changed: it is released at 9.0.0 with GeometryHelper.TeklaConvert, which removes
+      FaceConvert.TryReadFace and LoopConvert.TryReadLoop.
+
       NEW IN 8.0.0
 
       BREAKING: the default tolerance is set for a model in millimetres.

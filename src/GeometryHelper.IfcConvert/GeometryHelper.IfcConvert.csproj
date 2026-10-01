@@ -19,6 +19,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 9.0.0
+      - Nothing in GeometryHelper.IfcConvert changed: it is released at 9.0.0 with GeometryHelper.TeklaConvert, which
+        removes FaceConvert.TryReadFace and LoopConvert.TryReadLoop.
+
       NEW IN 8.0.0
       - BREAKING, from GeometryHelper 8.0.0: the default tolerance is 1E-2 in the output unit, set for millimetres.
         Output in metres needs IfcConvertOptions.Tolerance = new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad,

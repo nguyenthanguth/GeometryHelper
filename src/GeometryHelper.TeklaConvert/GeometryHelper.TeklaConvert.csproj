@@ -29,6 +29,12 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 9.0.0
+      - BREAKING: FaceConvert.TryReadFace and LoopConvert.TryReadLoop are removed; read a Tekla face with
+        FaceConvert.TryReadFaces. Each read one face, or one polygon, or nothing: a face out of flat came back as
+        nothing and a hole off its plane was dropped, so a body put together from them was open where Tekla holds it
+        closed. TryReadFaces gives the triangles on the face's own corners instead, and TryToGeoSolid3 reads with it.
+
       NEW IN 8.0.0
       - TryToGeoSolid3 reads each face with the new FaceConvert.TryReadFaces: a face out of flat, or with a hole off
         its plane, comes as triangles on the corners Tekla gave, where it was refused or lost its hole and left the

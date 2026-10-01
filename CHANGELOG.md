@@ -4,7 +4,9 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 9.0.0
+
+Nothing in GeometryHelper itself changed: it is released at 9.0.0 with GeometryHelper.TeklaConvert.
 
 **BREAKING.** In GeometryHelper.TeklaConvert, `FaceConvert.TryReadFace` and `LoopConvert.TryReadLoop` are removed:
 read a Tekla face with `FaceConvert.TryReadFaces`. Each read one face, or one polygon, or nothing, and a face out of
