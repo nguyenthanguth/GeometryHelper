@@ -47,7 +47,7 @@ wrong winding, a strip of 0.9 mm2 as 0.8984375, and the centroid of a triangle 0
 from the first vertex now, as the planar internals already took theirs, and `GeoFace2.Area` with them.
 
 **CHANGED.** The package depends on no other package. The clipping engine of Clipper2 2.0.0, which resolves the
-regions of the plane, is compiled in from its source, `src/GeometryHelper/Clipper2Lib`, instead of referenced as the
+regions of the plane, is compiled in from its source, `src/GeometryHelper/Clipper`, instead of referenced as the
 Clipper2 package, so that it can be mended here. Only what GeometryHelper calls is kept: the core, the engine, the
 static functions and the pools; the offset, rectangle clipping, Minkowski sums, the triangulation and the borrowed
 `System.HashCode` are left out. Its types are internal: they are not part of GeometryHelper, and a project that

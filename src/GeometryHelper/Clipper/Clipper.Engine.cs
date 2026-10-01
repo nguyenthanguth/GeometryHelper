@@ -7,11 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-#if USINGZ
-namespace Clipper2ZLib
-#else
 namespace Clipper2Lib
-#endif
 {
 
   // Vertex: a pre-clipping data structure. It is used to separate polygons
@@ -366,13 +362,6 @@ namespace Clipper2Lib
     public bool PreserveCollinear { get; set; }
     public bool ReverseSolution { get; set; }
 
-#if USINGZ
-    public delegate void ZCallback64(Point64 bot1, Point64 top1,
-        Point64 bot2, Point64 top2, ref Point64 intersectPt);
-
-    public long DefaultZ { get; set; }
-    protected ZCallback64? _zCallback;
-#endif
     public ClipperBase()
     {
       _minimaList = new List<LocalMinima>();
@@ -386,49 +375,6 @@ namespace Clipper2Lib
       _freeActives = new Stack<Active>();
       PreserveCollinear = true;
     }
-
-#if USINGZ
-    private bool XYCoordsEqual(Point64 pt1, Point64 pt2)
-    {
-      return (pt1.X == pt2.X && pt1.Y == pt2.Y);
-    }
-    
-    private void SetZ(Active e1, Active e2, ref Point64 intersectPt)
-    {
-      if (_zCallback == null) return;
-
-      // prioritize subject vertices over clip vertices
-      // and pass the subject vertices before clip vertices in the callback
-      if (GetPolyType(e1) == PathType.Subject)
-      {
-        if (XYCoordsEqual(intersectPt, e1.bot))
-          intersectPt = new Point64(intersectPt.X, intersectPt.Y, e1.bot.Z);
-        else if (XYCoordsEqual(intersectPt, e1.top))
-          intersectPt = new Point64(intersectPt.X, intersectPt.Y, e1.top.Z);
-        else if (XYCoordsEqual(intersectPt, e2.bot))
-          intersectPt = new Point64(intersectPt.X, intersectPt.Y, e2.bot.Z);
-        else if (XYCoordsEqual(intersectPt, e2.top))
-          intersectPt = new Point64(intersectPt.X, intersectPt.Y, e2.top.Z);
-        else
-          intersectPt = new Point64(intersectPt.X, intersectPt.Y, DefaultZ);
-        _zCallback(e1.bot, e1.top, e2.bot, e2.top, ref intersectPt);
-      }
-      else
-      {
-        if (XYCoordsEqual(intersectPt, e2.bot))
-          intersectPt = new Point64(intersectPt.X, intersectPt.Y, e2.bot.Z);
-        else if (XYCoordsEqual(intersectPt, e2.top))
-          intersectPt = new Point64(intersectPt.X, intersectPt.Y, e2.top.Z);
-        else if (XYCoordsEqual(intersectPt, e1.bot))
-          intersectPt = new Point64(intersectPt.X, intersectPt.Y, e1.bot.Z);
-        else if (XYCoordsEqual(intersectPt, e1.top))
-          intersectPt = new Point64(intersectPt.X, intersectPt.Y, e1.top.Z);
-        else
-          intersectPt = new Point64(intersectPt.X, intersectPt.Y, DefaultZ);
-        _zCallback(e2.bot, e2.top, e1.bot, e1.top, ref intersectPt);
-      }
-    }
-#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsOdd(int val)
@@ -1571,9 +1517,6 @@ namespace Clipper2Lib
         if (IsHotEdge(ae1))
         {
           resultOp = AddOutPt(ae1, pt);
-#if USINGZ
-          SetZ(ae1, ae2, ref resultOp.pt);
-#endif
           if (IsFront(ae1))
             ae1.outrec!.frontEdge = null;
           else
@@ -1603,9 +1546,6 @@ namespace Clipper2Lib
         else
           resultOp = StartOpenPath(ae1, pt);
 
-#if USINGZ
-        SetZ(ae1, ae2, ref resultOp.pt);
-#endif
         return;
       }
 
@@ -1679,10 +1619,6 @@ namespace Clipper2Lib
             (ae1.localMin.polytype != ae2.localMin.polytype && _cliptype != ClipType.Xor))
         {
           resultOp = AddLocalMaxPoly(ae1, ae2, pt);
-#if USINGZ
-          if (resultOp != null)
-            SetZ(ae1, ae2, ref resultOp.pt);
-#endif
         }
         else if (IsFront(ae1) || (ae1.outrec == ae2.outrec))
         {
@@ -1690,26 +1626,13 @@ namespace Clipper2Lib
           // it's sensible to split polygons that only touch at
           // a common vertex (not at common edges).
           resultOp = AddLocalMaxPoly(ae1, ae2, pt);
-#if USINGZ
-          OutPt op2 = AddLocalMinPoly(ae1, ae2, pt);
-          if (resultOp != null)
-            SetZ(ae1, ae2, ref resultOp.pt);
-          SetZ(ae1, ae2, ref op2.pt);
-#else
           AddLocalMinPoly(ae1, ae2, pt);
-#endif
         }
         else
         {
           // can't treat as maxima & minima
           resultOp = AddOutPt(ae1, pt);
-#if USINGZ
-          OutPt op2 = AddOutPt(ae2, pt);
-          SetZ(ae1, ae2, ref resultOp.pt);
-          SetZ(ae1, ae2, ref op2.pt);
-#else
           AddOutPt(ae2, pt);
-#endif
           SwapOutrecs(ae1, ae2);
         }
       }
@@ -1718,17 +1641,11 @@ namespace Clipper2Lib
       else if (IsHotEdge(ae1))
       {
         resultOp = AddOutPt(ae1, pt);
-#if USINGZ
-        SetZ(ae1, ae2, ref resultOp.pt);
-#endif
         SwapOutrecs(ae1, ae2);
       }
       else if (IsHotEdge(ae2))
       {
         resultOp = AddOutPt(ae2, pt);
-#if USINGZ
-        SetZ(ae1, ae2, ref resultOp.pt);
-#endif
         SwapOutrecs(ae1, ae2);
       }
 
@@ -1755,9 +1672,6 @@ namespace Clipper2Lib
         if (!IsSamePolyType(ae1, ae2))
         {
           resultOp = AddLocalMinPoly(ae1, ae2, pt);
-#if USINGZ
-          SetZ(ae1, ae2, ref resultOp.pt);
-#endif
         }
         else if (oldE1WindCount == 1 && oldE2WindCount == 1)
         {
@@ -1787,9 +1701,6 @@ namespace Clipper2Lib
               resultOp = AddLocalMinPoly(ae1, ae2, pt);
               break;
           }
-#if USINGZ
-          if (resultOp != null) SetZ(ae1, ae2, ref resultOp.pt);
-#endif
         }
       }
     }
@@ -2171,11 +2082,7 @@ private void DoHorizontal(Active horz)
 
       if (IsHotEdge(horz))
       {
-#if USINGZ
-        OutPt op = AddOutPt(horz, new Point64(horz.curX, Y, horz.bot.Z));
-#else
         OutPt op = AddOutPt(horz, new Point64(horz.curX, Y));
-#endif
         AddToHorzSegList(op);
       }
 
@@ -2884,11 +2791,6 @@ private void DoHorizontal(Active horz)
       InternalClipper.GetLineIntersectPt(
           prevOp.pt, splitOp.pt, splitOp.next.pt, nextNextOp.pt, out Point64 ip);
 
-#if USINGZ
-      if (_zCallback != null)
-        _zCallback(prevOp.pt, splitOp.pt, splitOp.next.pt, nextNextOp.pt, ref ip);
-#endif
-
       double area1 = Area(prevOp);
       double absArea1 = Math.Abs(area1);
       
@@ -3261,13 +3163,6 @@ private void DoHorizontal(Active horz)
       return Execute(clipType, fillRule, polytree, new Paths64());
     }
 
-#if USINGZ
-    public ZCallback64? ZCallback {
-      get { return this._zCallback; }
-      set { this._zCallback = value; } 
-    }
-#endif
-
   } // Clipper64 class
 
   internal class ClipperD : ClipperBase
@@ -3277,21 +3172,6 @@ private void DoHorizontal(Active horz)
     private readonly double _scale;
     private readonly double _invScale;
 
-#if USINGZ
-    public delegate void ZCallbackD(PointD bot1, PointD top1,
-        PointD bot2, PointD top2, ref PointD intersectPt);
-
-    public ZCallbackD? ZCallback { get; set; }
-
-    private void CheckZCallback()
-    {
-      if (ZCallback != null)
-        _zCallback = ZCB;
-      else
-        _zCallback = null;
-    }
-#endif
-
     public ClipperD(int roundingDecimalPrecision = 2)
     {
       if (roundingDecimalPrecision < -8 || roundingDecimalPrecision > 8)
@@ -3299,26 +3179,6 @@ private void DoHorizontal(Active horz)
       _scale = Math.Pow(10, roundingDecimalPrecision);
       _invScale = 1 / _scale;
     }
-
-#if USINGZ
-    private void ZCB(Point64 bot1, Point64 top1,
-        Point64 bot2, Point64 top2, ref Point64 intersectPt)
-    {
-      // de-scale (x & y)
-      // temporarily convert integers to their initial float values
-      // this will slow clipping marginally but will make it much easier
-      // to understand the coordinates passed to the callback function
-      PointD tmp = Clipper.ScalePointD(intersectPt, _invScale);
-      //do the callback
-      ZCallback?.Invoke(
-        Clipper.ScalePointD(bot1, _invScale),
-        Clipper.ScalePointD(top1, _invScale),
-        Clipper.ScalePointD(bot2, _invScale),
-        Clipper.ScalePointD(top2, _invScale), ref tmp);
-      intersectPt = new Point64(intersectPt.X,
-          intersectPt.Y, tmp.z);
-    }
-#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddPath(PathD path, PathType polytype, bool isOpen = false)
@@ -3372,9 +3232,6 @@ private void DoHorizontal(Active horz)
         PathsD solutionClosed, PathsD solutionOpen)
     {
       Paths64 solClosed64 = new Paths64(), solOpen64 = new Paths64();
-#if USINGZ
-      CheckZCallback();
-#endif
 
       bool success = true;
       solutionClosed.Clear();
@@ -3414,9 +3271,6 @@ private void DoHorizontal(Active horz)
       openPaths.Clear();
       _using_polytree = true;
       (polytree as PolyPathD).Scale = _scale;
-#if USINGZ
-      CheckZCallback();
-#endif
       Paths64 oPaths = new Paths64();
       bool success = true;
       try

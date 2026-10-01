@@ -1,9 +1,10 @@
-# Clipper2Lib
+# Clipper
 
 The clipping engine of [Clipper2](https://github.com/AngusJohnson/Clipper2), by Angus Johnson, compiled into
 GeometryHelper from source and kept here as part of GeometryHelper's own code, to be mended here.
 `Internal/Planar/ClipperRegion.cs` resolves every region of the plane with it: the booleans of `Boolean2`, the raw loops
 an offset builds, and the pieces of a mesh. GeometryHelper calls `ClipperD` alone, and this folder holds what that needs.
+Its namespace is still upstream's, `Clipper2Lib`.
 
 ## Where it comes from
 
@@ -41,9 +42,10 @@ These, and nothing else:
 6. The doc comments of `PooledList.cs` are plain comments, so that none of Clipper2's text reaches GeometryHelper's XML
    documentation.
 7. LF line endings and no byte order mark, as every file in this repository.
-
-The namespace stays `Clipper2Lib`. The Z variant (`USINGZ`, namespace `Clipper2ZLib`) is not compiled: GeometryHelper
-does not define the symbol.
+8. The Z variant is gone: every `#if USINGZ` branch, the namespace `Clipper2ZLib` it named and the note on it at the
+   top of `Clipper.cs` are removed and every `#else` branch kept, and the six signatures and calls the branches split
+   across lines are joined again. GeometryHelper never defined `USINGZ`, so the code compiled is the same.
+9. The folder is `Clipper` rather than upstream's `Clipper2Lib`.
 
 Compiled into GeometryHelper, what is kept gives the IL of the package again, but for the visibility of the 24 types,
 the two hash codes, and one delegate. GeometryHelper is built with the latest C#, whose compiler, from C# 11 on, keeps
@@ -55,7 +57,7 @@ brought up to date with upstream.
 
 ## Its own tests
 
-Clipper2's C# tests (`CSharp/Tests/Tests1`) run with GeometryHelper's, in `tests/GeometryHelper.UnitTest/Clipper2Lib`,
+Clipper2's C# tests (`CSharp/Tests/Tests1`) run with GeometryHelper's, in `tests/GeometryHelper.UnitTest/Clipper`,
 moved from MSTest to xUnit, with the cases they read from `Tests/` of the Clipper2 repository; the test of the offset
 went with the offset. Clipper2 2.0.0 fails one of them upstream as well: test 16 of `Polygons.txt`, a triangle less a
 triangle that cuts it in two, comes back as one piece where two are stored. `TestClosedPath16` holds that case,

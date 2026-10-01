@@ -9,6 +9,6 @@ namespace Clipper2Lib.UnitTests
     /// </summary>
     internal static class TestFile
     {
-        public static string Of(string name) => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Clipper2Lib", "Data", name);
+        public static string Of(string name) => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Clipper", "Data", name);
     }
 }

@@ -1,17 +1,13 @@
 // From the test utilities of Clipper2 2.0.0 by Angus Johnson (https://github.com/AngusJohnson/Clipper2),
 // changed for GeometryHelper's tests. Copyright (c) Angus Johnson 2010-2022.
-// Boost Software License 1.0, in src/GeometryHelper/Clipper2Lib/LICENSE.
+// Boost Software License 1.0, in src/GeometryHelper/Clipper/LICENSE.
 
 #nullable enable
 using System;
 using System.IO;
 using System.Diagnostics;
 
-#if USINGZ
-namespace Clipper2ZLib
-#else
 namespace Clipper2Lib
-#endif
 {
 
   internal static class ClipperFileIO

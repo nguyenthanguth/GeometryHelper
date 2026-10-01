@@ -26,7 +26,7 @@
   </PropertyGroup>
 
   <!-- Clipper2's clipping engine is what the library resolves regions in the plane with, compiled into it from
-       src/GeometryHelper/Clipper2Lib; tests reach that copy through InternalsVisibleTo. The copy has no
+       src/GeometryHelper/Clipper; tests reach that copy through InternalsVisibleTo. The copy has no
        offset, so the tests that compare the library's own offsets with Clipper2's, as an independent second
        opinion, take the Clipper2 package instead, under the alias Clipper2Package
        (extern alias Clipper2Package; using Clipper2Package::Clipper2Lib;) so that the two never mix. -->
@@ -38,9 +38,9 @@
     <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
   </ItemGroup>
 
-  <!-- Clipper2's own tests, under Clipper2Lib\, read their cases from these files of the Clipper2 repository. -->
+  <!-- Clipper2's own tests, under Clipper\, read their cases from these files of the Clipper2 repository. -->
   <ItemGroup>
-    <None Update="Clipper2Lib\Data\*.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Clipper\Data\*.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
