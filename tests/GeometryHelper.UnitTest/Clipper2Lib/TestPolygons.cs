@@ -89,11 +89,13 @@ namespace Clipper2Lib.UnitTests
         }
 
         /// <summary>
-        /// Test 16 of Polygons.txt, a triangle less a triangle that cuts it in two, the two pieces meeting at a point
-        /// between grid points. Clipper2 2.0.0 fails it with upstream's own tests as well: one piece of 396 where two
-        /// of 376 are stored. Upstream fixed FixSelfIntersects for it after the release (4da1564, #1067).
+        /// Test 16 of Polygons.txt, a triangle less a triangle that cuts it in two. Clipper2 2.0.0 fails it with
+        /// upstream's own tests as well: on integers it runs the edge of the upper piece on down to the corner of the
+        /// lower one, (-110, -174), and gives one piece of 396 where two of 376 are stored. Upstream changed
+        /// FixSelfIntersects for it after the release (4da1564, #1067); this copy does not take the change, which puts
+        /// the union of TestCasesFoundHere 1.2 % over its area.
         /// </summary>
-        [Fact(Skip = "Clipper2 2.0.0 joins the two pieces of test 16 into one; fixed upstream in 4da1564 (#1067), not in this copy.")]
+        [Fact(Skip = "Clipper2 2.0.0 joins the two pieces of test 16 into one. Upstream's fix, 4da1564 (#1067), is not taken: it puts the union of TestCasesFoundHere 1.2 % over.")]
         public void TestClosedPath16()
         {
             Clipper64 c64 = new();

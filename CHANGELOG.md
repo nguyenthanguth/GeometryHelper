@@ -53,8 +53,9 @@ Clipper2 package as well sees that one only. A project that used Clipper2 throug
 references the Clipper2 package itself now. Built into GeometryHelper, it gives the IL of the package, but for one
 delegate the newer compiler keeps instead of making it on each call, so every answer is the same. Its licence and
 those of the code it carries are in `THIRD-PARTY-NOTICES.txt` in the package. Clipper2's own tests run with the suite;
-test 16 of its polygons, which Clipper2 2.0.0 fails upstream as well (#1067, fixed there after the release), is
-skipped.
+test 16 of its polygons, which Clipper2 2.0.0 fails upstream as well (#1067), is skipped. Upstream's later change for
+it is not taken: it mends that case and puts the union of loops crossing themselves that `TestCasesFoundHere` holds
+1.2 % over its area, while it changed none of 40 000 random cases at four and six decimals.
 
 ## 9.0.2
 

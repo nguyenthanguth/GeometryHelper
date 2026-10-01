@@ -50,7 +50,8 @@ brought up to date with upstream.
 Clipper2's C# tests (`CSharp/Tests/Tests1`) run with GeometryHelper's, in `tests/GeometryHelper.UnitTest/Clipper2Lib`,
 moved from MSTest to xUnit, with the cases they read from `Tests/` of the Clipper2 repository. Clipper2 2.0.0 fails one
 of them upstream as well: test 16 of `Polygons.txt`, a triangle less a triangle that cuts it in two, comes back as one
-piece where two are stored. `TestClosedPath16` holds that case and is skipped until the fix below is brought in.
+piece where two are stored. `TestClosedPath16` holds that case, skipped. `TestCasesFoundHere` holds a case found here,
+a union 2.0.0 gives within 0.09 % of its area, against the fix below.
 
 ## Bringing it up to date
 
@@ -64,6 +65,13 @@ Upstream has fixed the C# library twice since 2.0.0, and neither fix is in this 
 (#1052, #1055, #1056), and [`4da1564`](https://github.com/AngusJohnson/Clipper2/commit/4da1564) of 22 February 2026,
 `FixSelfIntersects` in `Clipper.Engine.cs` (#1067), which mends test 16. GeometryHelper calls `ClipperD` only, and every
 closed path it hands back passes through `FixSelfIntersects`; it does not call the triangulation.
+
+`4da1564` is not taken as it stands. On 20 000 random cases of loops crossing themselves and each other, on integers from
+0 to 1 000, it changes 172 answers: 61 come nearer the area resolved a millionth finer, 92 go further from it, and the
+union of `TestCasesFoundHere` goes from 0.09 % short to 1.2 % over. On integers from 0 to 40 it changes 656 of 20 000,
+191 nearer and 413 further. At six decimals it changes none of 20 000, nor any of 20 000 cells cut as the grid mesh cuts
+them; at two decimals it splits one path in two in 2 of 20 000. GeometryHelper's tests, and 100 000 random meshes, pass
+with it and without it.
 
 ## Licence
 
