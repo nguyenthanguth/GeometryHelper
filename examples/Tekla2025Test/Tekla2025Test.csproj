@@ -79,6 +79,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BodyDraw.cs" />
     <Compile Include="ClashReportForm.cs">
       <SubType>Form</SubType>
     </Compile>

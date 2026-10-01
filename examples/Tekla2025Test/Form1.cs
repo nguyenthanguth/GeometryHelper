@@ -17,6 +17,8 @@ namespace Tekla2025Test
         /// </summary>
         private readonly PlaneSection planeSection = new PlaneSection();
 
+        private readonly BodyDraw bodyDraw = new BodyDraw();
+
         public Form1()
         {
             InitializeComponent();
@@ -53,13 +55,33 @@ namespace Tekla2025Test
         }
 
         /// <summary>
-        /// Takes the sections drawn out of the model as the window closes, leaving the model as it was found.
+        /// Draws every face of the selected parts and IFC objects as GeoSolid3 reads them: <see cref="BodyDraw.DrawFaces"/>.
+        /// </summary>
+        private void drawBodiesButton_Click(object sender, EventArgs e)
+        {
+            bodyDraw.DrawFaces();
+        }
+
+        /// <summary>
+        /// Draws every triangle of the selected parts and IFC objects, as GeoSolid3.Triangulate breaks them up:
+        /// <see cref="BodyDraw.DrawTriangles"/>.
+        /// </summary>
+        private void drawTrianglesButton_Click(object sender, EventArgs e)
+        {
+            bodyDraw.DrawTriangles();
+        }
+
+        /// <summary>
+        /// Takes the sections and bodies drawn out of the model as the window closes, leaving the model as it was found.
         /// </summary>
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             try
             {
-                if (planeSection.RemoveDrawn() > 0)
+                // Both run, whatever the first returns.
+                int removed = planeSection.RemoveDrawn();
+                removed += bodyDraw.RemoveDrawn();
+                if (removed > 0)
                 {
                     model.CommitChanges();
                 }

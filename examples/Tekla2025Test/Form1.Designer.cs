@@ -31,6 +31,8 @@
             this.clashCheckButton = new System.Windows.Forms.Button();
             this.clashBarCheckButton = new System.Windows.Forms.Button();
             this.sectionButton = new System.Windows.Forms.Button();
+            this.drawBodiesButton = new System.Windows.Forms.Button();
+            this.drawTrianglesButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // clashCheckButton
@@ -66,11 +68,35 @@
             this.sectionButton.UseVisualStyleBackColor = true;
             this.sectionButton.Click += new System.EventHandler(this.sectionButton_Click);
             //
+            // drawBodiesButton
+            //
+            this.drawBodiesButton.AutoSize = true;
+            this.drawBodiesButton.Location = new System.Drawing.Point(167, 257);
+            this.drawBodiesButton.Name = "drawBodiesButton";
+            this.drawBodiesButton.Size = new System.Drawing.Size(125, 39);
+            this.drawBodiesButton.TabIndex = 3;
+            this.drawBodiesButton.Text = "Draw selected as GeoSolid3";
+            this.drawBodiesButton.UseVisualStyleBackColor = true;
+            this.drawBodiesButton.Click += new System.EventHandler(this.drawBodiesButton_Click);
+            //
+            // drawTrianglesButton
+            //
+            this.drawTrianglesButton.AutoSize = true;
+            this.drawTrianglesButton.Location = new System.Drawing.Point(167, 308);
+            this.drawTrianglesButton.Name = "drawTrianglesButton";
+            this.drawTrianglesButton.Size = new System.Drawing.Size(125, 39);
+            this.drawTrianglesButton.TabIndex = 4;
+            this.drawTrianglesButton.Text = "Draw selected as GeoSolid3 triangles";
+            this.drawTrianglesButton.UseVisualStyleBackColor = true;
+            this.drawTrianglesButton.Click += new System.EventHandler(this.drawTrianglesButton_Click);
+            //
             // Form1
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(492, 308);
+            this.ClientSize = new System.Drawing.Size(492, 410);
+            this.Controls.Add(this.drawTrianglesButton);
+            this.Controls.Add(this.drawBodiesButton);
             this.Controls.Add(this.sectionButton);
             this.Controls.Add(this.clashBarCheckButton);
             this.Controls.Add(this.clashCheckButton);
@@ -87,6 +113,8 @@
         private System.Windows.Forms.Button clashCheckButton;
         private System.Windows.Forms.Button clashBarCheckButton;
         private System.Windows.Forms.Button sectionButton;
+        private System.Windows.Forms.Button drawBodiesButton;
+        private System.Windows.Forms.Button drawTrianglesButton;
     }
 }
 
