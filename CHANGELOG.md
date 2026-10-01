@@ -4,6 +4,14 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**BREAKING.** In GeometryHelper.TeklaConvert, `FaceConvert.TryReadFace` and `LoopConvert.TryReadLoop` are removed:
+read a Tekla face with `FaceConvert.TryReadFaces`. Each read one face, or one polygon, or nothing, and a face out of
+flat came back as nothing, its hole off its plane was dropped, so a body put together from them was open where Tekla
+holds it closed. One face cannot hold a face out of flat without moving its corners off the edges it shares;
+`TryReadFaces` gives the triangles on its own corners instead, and is what `TryToGeoSolid3` has read with since 8.0.0.
+
 ## 8.0.0
 
 **NEW.** Boxes onto sheets of paper: `GeometryHelper.Packing`. `SheetPacker.Pack` takes boxes as `GeoRectangle2`,

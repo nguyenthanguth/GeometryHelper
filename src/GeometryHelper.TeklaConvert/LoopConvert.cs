@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using GeometryHelper;
 using GeometryHelper.Geometry;
 using TSG = Tekla.Structures.Geometry3d;
 using TSS = Tekla.Structures.Solid;
@@ -8,54 +6,15 @@ using TSS = Tekla.Structures.Solid;
 namespace GeometryHelper.TeklaConvert
 {
     /// <summary>
-    /// Provides extension methods to convert loops from Tekla Structures Solids to GeometryHelper.
+    /// Reads the loops of Tekla Structures Solids.
     /// </summary>
-    public static class LoopConvert
+    /// <remarks>
+    /// A loop is read as corners, not as a polygon: a loop out of flat has no polygon that keeps its corners, and one
+    /// that moved them would no longer meet the faces beside it. <see cref="FaceConvert.TryReadFaces(TSS.Face, Tolerance, out GeoFace3[])"/>
+    /// makes faces of them.
+    /// </remarks>
+    internal static class LoopConvert
     {
-        /// <summary>
-        /// Converts one loop of a Tekla face into a polygon facing a given way.
-        /// </summary>
-        /// <param name="loop">The Tekla loop to convert.</param>
-        /// <param name="outward">The target normal direction of the face containing this loop.</param>
-        /// <param name="tolerance">The tolerance for planar flatness and co-directional checking.</param>
-        /// <param name="result">The converted <see cref="GeoPolygon3"/> when the method returns true.</param>
-        /// <returns>true if the loop was successfully read; false otherwise.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="loop"/> is null.</exception>
-        /// <remarks>
-        /// Tekla does not promise which way round a loop is walked, so the polygon is turned to agree with
-        /// the face normal rather than assumed to already. Holes are turned the same way as the boundary,
-        /// which is the convention this library keeps so that area and volume come out by subtraction.
-        /// </remarks>
-        public static bool TryReadLoop(this TSS.Loop loop, GeoVector3 outward, Tolerance tolerance, out GeoPolygon3 result)
-        {
-            if (loop == null)
-            {
-                throw new ArgumentNullException(nameof(loop));
-            }
-
-            result = null;
-
-            List<GeoPoint3> vertices = loop.ReadCorners();
-
-            if (vertices.Count < 3)
-            {
-                return false;
-            }
-
-            try
-            {
-                GeoPolygon3 polygon = new GeoPolygon3(vertices, tolerance);
-
-                result = polygon.Normal.IsCodirectionalTo(outward, tolerance) ? polygon : polygon.Flip();
-                return true;
-            }
-            catch (ArgumentException)
-            {
-                // Too few distinct vertices, all of them in a line, or not flat enough to be a polygon.
-                return false;
-            }
-        }
-
         /// <summary>
         /// Reads the corners of a Tekla loop, in the order Tekla walks them.
         /// </summary>
