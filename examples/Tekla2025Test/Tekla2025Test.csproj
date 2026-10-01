@@ -47,12 +47,6 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
-    <!-- GeometryHelper resolves regions with Clipper2. This project predates PackageReference, so
-         the assembly is referenced from the restored package rather than flowing in on its own. -->
-    <Reference Include="Clipper2Lib">
-      <HintPath>$(UserProfile)\.nuget\packages\clipper2\2.0.0\lib\netstandard2.0\Clipper2Lib.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Tekla.Structures">
       <HintPath>D:\Tekla\Structures\2025.0\bin\Tekla.Structures.dll</HintPath>
     </Reference>
