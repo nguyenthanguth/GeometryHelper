@@ -29,6 +29,11 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 9.0.1
+      - Nothing in GeometryHelper.TeklaConvert itself changed: it is released at 9.0.1 with GeometryHelper, whose
+        solid booleans no longer take material from a body another only touches, the way slabs read with
+        TryToGeoSolid3 meet, nor give it back larger than it was.
+
       NEW IN 9.0.0
       - BREAKING: FaceConvert.TryReadFace and LoopConvert.TryReadLoop are removed; read a Tekla face with
         FaceConvert.TryReadFaces. Each read one face, or one polygon, or nothing: a face out of flat came back as

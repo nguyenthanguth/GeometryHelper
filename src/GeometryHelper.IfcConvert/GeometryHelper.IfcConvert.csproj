@@ -19,6 +19,11 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 9.0.1
+      - Nothing in GeometryHelper.IfcConvert itself changed: it is released at 9.0.1 with GeometryHelper, whose solid
+        booleans it cuts openings with when the geometry engine cannot. They no longer take material from a body that
+        an opening only touches, nor lose slivers thinner than the tolerance.
+
       NEW IN 9.0.0
       - Nothing in GeometryHelper.IfcConvert changed: it is released at 9.0.0 with GeometryHelper.TeklaConvert, which
         removes FaceConvert.TryReadFace and LoopConvert.TryReadLoop.

@@ -14,6 +14,20 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
+      NEW IN 9.0.1
+
+      FIXED: booleans of bodies lying within a few hundredths of a millimetre of each other, as slabs drawn side by
+      side in a Tekla Structures model do.
+      - TrySubtract no longer takes material from a body the other only touches, nor gives a body back larger than it
+        was: a difference that finds nothing of the one body within the other hands the first back as it came.
+      - A sliver thinner than twice the point tolerance is material, placed by the middle of its thickness, where it
+        was taken for empty; a closed piece that thin is a piece of its own when a body is split into its pieces
+        (Boolean3.SplitShells, and the booleans).
+      - A narrow cap of a cut keeps the side it faces; the two pieces of a face cut along an edge within the tolerance
+        of the plane meet along one line; a wedge too thin to cut no longer throws the whole cut away.
+      Of 864 pairs of concrete slabs whose boxes meet, 240 broke V(A) - V(A - B) = V(A ^ B) by more than 1 mm3 and 8
+      do now; 850 that only touch come back as they were. Details in CHANGELOG.md.
+
       NEW IN 9.0.0
 
       Nothing in GeometryHelper changed: it is released at 9.0.0 with GeometryHelper.TeklaConvert, which removes

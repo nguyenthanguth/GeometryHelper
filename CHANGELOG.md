@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 9.0.1
 
 **FIXED.** `TrySubtract` took material from a body the other only touched, and gave some bodies back larger than they
 were, where two lie within a few hundredths of a millimetre of each other: slabs drawn side by side in a Tekla
