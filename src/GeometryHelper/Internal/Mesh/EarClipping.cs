@@ -55,9 +55,40 @@ namespace GeometryHelper.Core
         /// <returns>
         /// false when the loop could not be reduced — a self-intersecting boundary, or a hole that
         /// reaches outside the face. The caller is expected to fall back rather than to treat this as an
-        /// error, since a fan is still the right answer for the signed sums.
+        /// error.
         /// </returns>
         public static bool TryTriangulate(GeoFace3 face, Tolerance tolerance, out GeoTriangle3[] triangles)
+        {
+            return TryTriangulate(face, tolerance, false, out triangles);
+        }
+
+        /// <summary>
+        /// Triangulates a face for a mesh of its surface, refusing where the triangles might not all lie within it.
+        /// </summary>
+        /// <param name="face">The face to break up.</param>
+        /// <param name="tolerance">The tolerance deciding what counts as a degenerate triangle, and how near two rings may come.</param>
+        /// <param name="triangles">The triangles covering the face, wound to share its normal.</param>
+        /// <returns>
+        /// false when the loop could not be reduced, as <see cref="TryTriangulate(GeoFace3, Tolerance, out GeoTriangle3[])"/>
+        /// returns, and also when two rings of the face come within the point tolerance of each other, or a ring of itself
+        /// apart from where its edges meet.
+        /// </returns>
+        /// <remarks>
+        /// The clipping holds only while the loop it reduces is simple, and a loop joined from rings that touch is not. A
+        /// hole whose edge lay along the boundary was bridged along that edge, the loop doubled back on itself there, and
+        /// the clipping, which only ever cuts off a corner turning the right way, was left with a last triangle turning the
+        /// wrong way, laid across the notch of an L. Triangular holes meeting at their corners left a triangle across one
+        /// of them. The sums of the areas came out right both times, so nothing showed. A triangle wound backwards still
+        /// adds up, and the face keeps its own corners, which is what <see cref="Loops3"/> and the booleans need of the
+        /// clipping; a mesh standing for the surface needs every triangle within the material, so such a face is refused
+        /// here instead.
+        /// </remarks>
+        public static bool TryTriangulateSurface(GeoFace3 face, Tolerance tolerance, out GeoTriangle3[] triangles)
+        {
+            return TryTriangulate(face, tolerance, true, out triangles);
+        }
+
+        private static bool TryTriangulate(GeoFace3 face, Tolerance tolerance, bool surface, out GeoTriangle3[] triangles)
         {
             triangles = null;
 
@@ -73,7 +104,7 @@ namespace GeometryHelper.Core
                 holes[i] = face.Holes[i].Vertices;
             }
 
-            return TryTriangulate(face.Boundary.Vertices, holes, new GeoCoordinateSystem3(face.GetPlane()), tolerance, out triangles);
+            return TryTriangulate(face.Boundary.Vertices, holes, new GeoCoordinateSystem3(face.GetPlane()), tolerance, surface, out triangles);
         }
 
         /// <summary>
@@ -91,6 +122,11 @@ namespace GeometryHelper.Core
         /// whatever the loops are.
         /// </remarks>
         public static bool TryTriangulate(IReadOnlyList<GeoPoint3> boundary, IReadOnlyList<IReadOnlyList<GeoPoint3>> holes, GeoCoordinateSystem3 frame, Tolerance tolerance, out GeoTriangle3[] triangles)
+        {
+            return TryTriangulate(boundary, holes, frame, tolerance, false, out triangles);
+        }
+
+        private static bool TryTriangulate(IReadOnlyList<GeoPoint3> boundary, IReadOnlyList<IReadOnlyList<GeoPoint3>> holes, GeoCoordinateSystem3 frame, Tolerance tolerance, bool surface, out GeoTriangle3[] triangles)
         {
             triangles = null;
 
@@ -130,7 +166,12 @@ namespace GeometryHelper.Core
                 rings.Add(ring);
             }
 
-            if (rings.Count > 0 && !TryBridgeHoles(outer, rings, out outer))
+            if (surface && RingsMeet(outer, rings, tolerance.EqualPoint))
+            {
+                return false;
+            }
+
+            if (rings.Count > 0 && !TryBridgeHoles(outer, rings, tolerance.EqualPoint, out outer))
             {
                 return false;
             }
@@ -176,6 +217,113 @@ namespace GeometryHelper.Core
             return total;
         }
 
+        #region Rings apart
+
+        /// <summary>
+        /// One edge of a ring, for <see cref="RingsMeet"/>: its ends, and where it stands in which ring.
+        /// </summary>
+        private struct RingEdge
+        {
+            public Node A;
+            public Node B;
+            public int Ring;
+            public int Index;
+            public int Count;
+            public double MinX;
+            public double MaxX;
+        }
+
+        /// <summary>
+        /// Determines whether two edges of the rings come within a distance of each other, two edges of one ring meeting
+        /// at a corner excepted.
+        /// </summary>
+        /// <remarks>
+        /// The edges are taken left to right, each against those whose span across begins before its own ends, so that
+        /// only edges near each other are measured.
+        /// </remarks>
+        private static bool RingsMeet(List<Node> outer, List<List<Node>> holes, double distance)
+        {
+            var edges = new List<RingEdge>();
+
+            void Add(List<Node> ring, int index)
+            {
+                for (int i = 0; i < ring.Count; i++)
+                {
+                    Node a = ring[i];
+                    Node b = ring[(i + 1) % ring.Count];
+                    edges.Add(new RingEdge { A = a, B = b, Ring = index, Index = i, Count = ring.Count, MinX = Math.Min(a.X, b.X), MaxX = Math.Max(a.X, b.X) });
+                }
+            }
+
+            Add(outer, 0);
+
+            for (int h = 0; h < holes.Count; h++)
+            {
+                Add(holes[h], h + 1);
+            }
+
+            edges.Sort((left, right) => left.MinX.CompareTo(right.MinX));
+
+            for (int i = 0; i < edges.Count; i++)
+            {
+                RingEdge e = edges[i];
+                double minY = Math.Min(e.A.Y, e.B.Y) - distance;
+                double maxY = Math.Max(e.A.Y, e.B.Y) + distance;
+
+                for (int j = i + 1; j < edges.Count && edges[j].MinX <= e.MaxX + distance; j++)
+                {
+                    RingEdge f = edges[j];
+
+                    if (Math.Max(f.A.Y, f.B.Y) < minY || Math.Min(f.A.Y, f.B.Y) > maxY)
+                    {
+                        continue;
+                    }
+
+                    if (e.Ring == f.Ring && (Math.Abs(e.Index - f.Index) == 1 || Math.Abs(e.Index - f.Index) == e.Count - 1))
+                    {
+                        continue;
+                    }
+
+                    if (SegmentsWithin(e.A, e.B, f.A, f.B, distance))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether two segments cross or come within a distance of each other.
+        /// </summary>
+        private static bool SegmentsWithin(Node a, Node b, Node c, Node d, double distance)
+        {
+            double d1 = Cross(a, b, c), d2 = Cross(a, b, d), d3 = Cross(c, d, a), d4 = Cross(c, d, b);
+
+            if (((d1 > 0.0 && d2 < 0.0) || (d1 < 0.0 && d2 > 0.0)) && ((d3 > 0.0 && d4 < 0.0) || (d3 < 0.0 && d4 > 0.0)))
+            {
+                return true;
+            }
+
+            return ToSegment(a, c, d) <= distance || ToSegment(b, c, d) <= distance || ToSegment(c, a, b) <= distance || ToSegment(d, a, b) <= distance;
+        }
+
+        /// <summary>
+        /// Gets the distance from a point to a segment.
+        /// </summary>
+        private static double ToSegment(Node point, Node a, Node b)
+        {
+            double ex = b.X - a.X, ey = b.Y - a.Y;
+            double lengthSquared = ex * ex + ey * ey;
+            double t = lengthSquared > 0.0 ? ((point.X - a.X) * ex + (point.Y - a.Y) * ey) / lengthSquared : 0.0;
+            t = Math.Max(0.0, Math.Min(1.0, t));
+            double dx = a.X + t * ex - point.X, dy = a.Y + t * ey - point.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+
+        #endregion
+
         #region Holes
 
         /// <summary>
@@ -192,7 +340,7 @@ namespace GeometryHelper.Core
         /// been dealt with already.
         /// </para>
         /// </remarks>
-        private static bool TryBridgeHoles(List<Node> outer, List<List<Node>> holes, out List<Node> merged)
+        private static bool TryBridgeHoles(List<Node> outer, List<List<Node>> holes, double pointEpsilon, out List<Node> merged)
         {
             merged = outer;
 
@@ -200,7 +348,7 @@ namespace GeometryHelper.Core
 
             foreach (List<Node> hole in holes)
             {
-                if (!TryBridgeHole(merged, hole, out merged))
+                if (!TryBridgeHole(merged, hole, pointEpsilon, out merged))
                 {
                     return false;
                 }
@@ -237,7 +385,7 @@ namespace GeometryHelper.Core
         /// reflex corner of the loop can stand between the two and be cut through, so those are checked
         /// and the one turning least away from the ray is used instead.
         /// </remarks>
-        private static bool TryBridgeHole(List<Node> outer, List<Node> hole, out List<Node> merged)
+        private static bool TryBridgeHole(List<Node> outer, List<Node> hole, double pointEpsilon, out List<Node> merged)
         {
             merged = outer;
 
@@ -288,6 +436,7 @@ namespace GeometryHelper.Core
                 : (edgeIndex + 1) % outer.Count;
 
             target = ResolveBlockingReflex(outer, origin, closestX, target);
+            target = NearestInTheWay(outer, origin, target, pointEpsilon);
             target = CopyOpeningToward(outer, target, origin);
 
             List<Node> bridged = new List<Node>(outer.Count + hole.Count + 2);
@@ -429,6 +578,61 @@ namespace GeometryHelper.Core
             return best;
         }
 
+        /// <summary>
+        /// Walks back from the corner a bridge is to reach to the nearest corner lying within the tolerance of the bridge,
+        /// which is the one it meets first.
+        /// </summary>
+        /// <remarks>
+        /// Corners in a line with the bridge, as the corners of holes in a row are, turn about as little off the ray as each
+        /// other, and of corners a hair off that line the far one turns least: the same rise over a longer run. A bridge to
+        /// it ran along the edge of the near hole, the loop touched itself there, and no ear could be clipped from it. The
+        /// pits of a slab, their edges along a row 4.66E-8 out of line, failed so, and the face was meshed as the fan of its
+        /// outline, laid across every pit.
+        /// </remarks>
+        private static int NearestInTheWay(List<Node> loop, Node origin, int target, double pointEpsilon)
+        {
+            while (true)
+            {
+                Node end = loop[target];
+                double ex = end.X - origin.X, ey = end.Y - origin.Y;
+                double length = Math.Sqrt(ex * ex + ey * ey);
+
+                if (length <= pointEpsilon)
+                {
+                    return target;
+                }
+
+                // Short of it by more than the tolerance, and with none by more than rounding: read with no tolerance, a copy
+                // of the corner that an earlier bridge left measured a hair short of the corner itself, and the walk went from
+                // one copy to the other for ever.
+                int nearer = -1;
+                double nearest = length - Math.Max(pointEpsilon, length * 1E-12);
+
+                for (int i = 0; i < loop.Count; i++)
+                {
+                    double px = loop[i].X - origin.X, py = loop[i].Y - origin.Y;
+                    double along = (px * ex + py * ey) / length;
+
+                    // Between the hole and the corner, short of it by more than the tolerance, within it of the line, and
+                    // with its corner open toward the hole, so that a bridge can reach it.
+                    if (along <= 0.0 || along >= nearest || Math.Abs(px * ey - py * ex) / length > pointEpsilon || !Opens(loop, i, origin))
+                    {
+                        continue;
+                    }
+
+                    nearest = along;
+                    nearer = i;
+                }
+
+                if (nearer < 0)
+                {
+                    return target;
+                }
+
+                target = nearer;
+            }
+        }
+
         #endregion
 
         #region Clipping
@@ -449,6 +653,18 @@ namespace GeometryHelper.Core
         /// standing on one of its own corners — the doubled ends of a hole's bridge — or no ear next to a
         /// bridge would ever be accepted.
         /// </para>
+        /// <para>
+        /// On an edge means within the point tolerance of it, measured from that edge, while another ear can be found:
+        /// an ear passing a corner closer than that would leave a triangle thinner than the tolerance, which on loops out
+        /// of flat, seen from a frame of their own, can stand up across the loop. When none can be found, within a
+        /// millionth of the tolerance, the reach of rounding: a corner that close outside an ear is passed by, not cut
+        /// through. Read as the point tolerance times the width of the face, as an area, and with nothing to fall back
+        /// to, a corner a tenth of a millimetre outside an edge 100 mm long blocked it on a plate a metre across, and
+        /// along a rib a millimetre wide between two holes every corner across the rib blocked every ear: none was
+        /// clipped, and the plate fell back to the fan of its outline, laid across every hole. So it went with a corner
+        /// on the line of an ear with no width, three corners a hair out of a row: read by area, it lay on all three
+        /// edges of every such ear along a needle of a hole.
+        /// </para>
         /// </remarks>
         private static bool TryClip(List<Node> loop, Tolerance tolerance, out GeoTriangle3[] triangles)
         {
@@ -457,10 +673,16 @@ namespace GeometryHelper.Core
             List<GeoTriangle3> result = new List<GeoTriangle3>(Math.Max(1, loop.Count - 2));
             List<Node> working = new List<Node>(loop);
 
-            // The containment test is a cross product, so its natural scale is an area: a length tolerance
-            // across the width of the face. Deriving it from the face rather than fixing it keeps the test
-            // behaving the same on a model in millimetres and one in metres.
+            // What is left once no ear can be found is measured as an area: a length tolerance across the width of the
+            // face. Deriving it from the face rather than fixing it keeps the test behaving the same on a model in
+            // millimetres and one in metres.
             double areaEpsilon = tolerance.EqualPoint * Extent(working);
+
+            // How near an ear's edge a corner blocks it: within the point tolerance while another ear can be found, within
+            // rounding when none can.
+            double near = tolerance.EqualPoint;
+            double rounding = tolerance.EqualPoint * 1E-6;
+            double blocking = near;
 
             int guard = working.Count;
 
@@ -482,7 +704,7 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    if (!IsEar(working, previousIndex, i, nextIndex, areaEpsilon, tolerance.EqualPoint))
+                    if (!IsEar(working, previousIndex, i, nextIndex, blocking, tolerance.EqualPoint))
                     {
                         continue;
                     }
@@ -492,7 +714,14 @@ namespace GeometryHelper.Core
 
                     clipped = true;
                     guard = working.Count;
+                    blocking = near;
                     break;
+                }
+
+                if (!clipped && blocking > rounding)
+                {
+                    blocking = rounding;
+                    continue;
                 }
 
                 if (!clipped)
@@ -551,7 +780,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a convex corner is an ear, that is whether its triangle is empty, its edges included.
         /// </summary>
-        private static bool IsEar(List<Node> loop, int previousIndex, int index, int nextIndex, double areaEpsilon, double pointEpsilon)
+        private static bool IsEar(List<Node> loop, int previousIndex, int index, int nextIndex, double blocking, double pointEpsilon)
         {
             Node a = loop[previousIndex];
             Node b = loop[index];
@@ -579,7 +808,7 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                if (InOrOnTriangle(a, b, c, current, areaEpsilon))
+                if (InOrOnTriangle(a, b, c, current, blocking))
                 {
                     return false;
                 }
@@ -619,13 +848,22 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Checks whether a point lies inside a counter-clockwise triangle or on its edges, within an area tolerance.
+        /// Checks whether a point lies inside a counter-clockwise triangle or within a distance of its edges.
         /// </summary>
-        private static bool InOrOnTriangle(Node a, Node b, Node c, Node point, double areaEpsilon)
+        private static bool InOrOnTriangle(Node a, Node b, Node c, Node point, double distance)
         {
-            return Cross(a, b, point) >= -areaEpsilon
-                && Cross(b, c, point) >= -areaEpsilon
-                && Cross(c, a, point) >= -areaEpsilon;
+            return Cross(a, b, point) >= -distance * Length(a, b)
+                && Cross(b, c, point) >= -distance * Length(b, c)
+                && Cross(c, a, point) >= -distance * Length(c, a);
+        }
+
+        /// <summary>
+        /// Gets the distance between two nodes.
+        /// </summary>
+        private static double Length(Node a, Node b)
+        {
+            double dx = b.X - a.X, dy = b.Y - a.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
         }
 
         /// <summary>

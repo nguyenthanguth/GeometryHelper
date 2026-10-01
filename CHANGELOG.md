@@ -4,6 +4,33 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**FIXED.** `GeoFace3.TriangulateSurface`, which `GeoSolid3.Triangulate` and `TriangulateSurface` and everything meshing
+a body build on, handed a face back as the fan of its boundary, laid across every hole, whenever ear clipping gave up on
+it, and the clipping gave up on faces it should have met. A hole in a row whose edges lie a hair out of line, as the pits
+of slabs drawn in Tekla Structures stand 4.66E-8 mm out, was bridged to the far corner of the next hole, along that
+hole's edge, and the loop then touched itself: a slab's bottom face of 1 836 m2 was meshed as 5 391 m2, and four of 217
+slabs were meshed with their pits covered. Holes a rib of two millimetres or less apart were not got round either, a
+corner counting as on the edge of an ear within the point tolerance times the width of the whole face: a tenth of a
+millimetre from an edge 100 mm long, on a plate a metre across. A hole is bridged to the nearest corner in the way now,
+and a corner blocks an ear within the point tolerance of one of its edges while another ear can be found, within
+rounding when none can. The mass properties of such a slab put its centroid up to 14.5 mm off the middle of its
+thickness, its volume right only because the faces in question lay level, and the clash check, `GeoBvh3`, distances,
+rays, collisions, projections and the OBJ export met material across the holes. `Volume`, `Centroid` and `SurfaceArea`
+do not mesh faces and were right, as were the booleans.
+
+**FIXED.** A face whose holes touch each other or its boundary could be meshed wrong and handed back as right. Ear
+clipping joins every hole into one loop with the boundary, and where two rings touch, the loop doubles back on itself:
+an L whose hole stood against the side of its notch was meshed a third larger than it is, across the notch, and
+triangular holes meeting at their corners had a triangle laid across one of them. A face whose rings come within the
+point tolerance of each other, or that ear clipping cannot reduce, is cut into strips at its corners instead. Its
+material is read as the booleans read it, holes that touch or overlap taken together and one reaching past the boundary
+taking away only what it covers, and the triangles keep the face's own corners and meet its edges where the strip lines
+cross them. No face is meshed as a fan any more. Of 5 750 random faces with holes in rows a hair out of line, ribs down
+to 0.05 mm, holes against each other and against concave boundaries, corners up to 1E-5 off their plane and far from the
+origin, 9.0.1 meshed 4 766 wrong; none is now.
+
 ## 9.0.1
 
 **FIXED.** `TrySubtract` took material from a body the other only touched, and gave some bodies back larger than they

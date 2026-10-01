@@ -224,17 +224,24 @@ namespace GeometryHelper.Geometry
         /// inside the face, a hole is left empty rather than covered over, and a concave boundary is
         /// followed rather than spanned.
         /// <para>
-        /// A face whose boundary crosses itself, or whose holes reach outside it, has no such
-        /// triangulation. Rather than refusing, the fan is returned so that the caller still gets the
-        /// triangles the signed sums are built on; such a face is outside what this type promises to
-        /// handle in the first place.
+        /// The triangles are clipped from the face's own corners while its rings stand apart. A face whose
+        /// rings come within the point tolerance of each other (holes sharing an edge, a hole against the
+        /// boundary) or cross, or whose loop the clipping cannot reduce, is cut into strips at its corners
+        /// instead, its material read as the booleans read it: holes that touch or overlap are taken
+        /// together, and one reaching past the boundary takes away only what it covers. Those triangles
+        /// still lie within the material and leave every hole open, but they meet the face's edges at
+        /// points of their own as well as at its corners. A face with nothing left of it gives none.
+        /// </para>
+        /// <para>
+        /// Such a face used to be handed back as the fan of its boundary, laid across every hole: a slab
+        /// whose pits the clipping could not get round was meshed as 5 391 m2 for its 1 836.
         /// </para>
         /// </remarks>
         public GeoTriangle3[] TriangulateSurface(Tolerance tolerance)
         {
-            return EarClipping.TryTriangulate(this, tolerance, out GeoTriangle3[] triangles)
+            return EarClipping.TryTriangulateSurface(this, tolerance, out GeoTriangle3[] triangles)
                 ? triangles
-                : Boundary.Triangulate();
+                : StripTriangulation.Triangulate(this, tolerance);
         }
 
         /// <summary>

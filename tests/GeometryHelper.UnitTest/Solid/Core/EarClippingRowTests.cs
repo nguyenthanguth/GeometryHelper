@@ -42,6 +42,32 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(face.Area, triangles.Sum(t => t.Area), 9);
         }
 
+        [Theory]
+        [InlineData(0.0)]
+        [InlineData(1E-9)]
+        [InlineData(-1E-9)]
+        [InlineData(1E-8)]
+        [InlineData(1E-7)]
+        public void AHoleWithANeedleRunningOnFromItsPointIsMeshedRoundIt(double hair)
+        {
+            // A wedge three millimetres across and a needle of no width running on from its point, which is what is left
+            // where a round pit of a slab touches the edge of the pits beside it, in a face 60 m across. Every ear along the
+            // needle has its corners in a row, and tested by area the corners further along the row lay on all three of its
+            // edges, so none was clipped, and the face fell back to the fan of its outline, laid across the hole. A needle a
+            // hair out of line is meshed the same.
+            var frame = new GeoCoordinateSystem3(new GeoPlane3(GeoPoint3.Origin, GeoVector3.ZAxis));
+            GeoPoint3 P(double x, double y) => frame.ToGlobal(new GeoPoint3(x, y, 0));
+            Tolerance tolerance = Tolerance.Default;
+            var face = new GeoFace3(
+                new GeoPolygon3(new[] { P(30000, -30000), P(30000, 30000), P(-30000, 30000), P(-30000, -30000) }, tolerance),
+                new[] { new GeoPolygon3(new[] { P(3, 70), P(0, 0), P(hair, 400), P(0, 0), P(3, -70) }, tolerance) },
+                tolerance);
+
+            Assert.True(EarClipping.TryTriangulate(face, tolerance, out GeoTriangle3[] triangles));
+            Assert.InRange(triangles.Sum(t => t.Area), face.Area * (1 - 1E-12), face.Area * (1 + 1E-12));
+            Assert.InRange(face.TriangulateSurface(tolerance).Sum(t => t.Area), face.Area * (1 - 1E-12), face.Area * (1 + 1E-12));
+        }
+
         [Fact]
         public void APlateWithItsOpeningsCutInIsMeshedRoundTheHoles()
         {
