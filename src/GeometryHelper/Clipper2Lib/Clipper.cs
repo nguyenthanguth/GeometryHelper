@@ -1,15 +1,5 @@
-/*******************************************************************************
-* Author    :  Angus Johnson                                                   *
-* Date      :  14 December 2025                                                *
-* Website   :  https://www.angusj.com                                          *
-* Copyright :  Angus Johnson 2010-2025                                         *
-* Purpose   :  This module contains simple functions that will likely cover    *
-*              most polygon boolean and offsetting needs, while also avoiding  *
-*              the inherent complexities of the other modules.                 *
-* Thanks    :  Special thanks to Thong Nguyen, Guus Kuiper, Phil Stopford,     *
-*           :  and Daniel Gosnell for their invaluable assistance with C#.     *
-* License   :  https://www.boost.org/LICENSE_1_0.txt                           *
-*******************************************************************************/
+// From Clipper2 2.0.0 by Angus Johnson (https://github.com/AngusJohnson/Clipper2), changed for GeometryHelper.
+// Copyright (c) Angus Johnson 2010-2025. Boost Software License 1.0, in LICENSE beside this file.
 
 #nullable enable
 using System;
@@ -139,112 +129,6 @@ namespace Clipper2Lib
       if (clip != null)
         c.AddPaths(clip, PathType.Clip);
       c.Execute(clipType, fillRule, polytree);
-    }
-
-    public static Paths64 InflatePaths(Paths64 paths, double delta, JoinType joinType,
-      EndType endType, double miterLimit = 2.0, double arcTolerance = 0.0)
-    {
-      ClipperOffset co = new ClipperOffset(miterLimit, arcTolerance);
-      co.AddPaths(paths, joinType, endType);
-      Paths64 solution = new Paths64();
-      co.Execute(delta, solution);
-      return solution;
-    }
-
-    public static PathsD InflatePaths(PathsD paths, double delta, JoinType joinType,
-      EndType endType, double miterLimit = 2.0, int precision = 2, double arcTolerance = 0.0)
-    {
-      InternalClipper.CheckPrecision(precision);
-      double scale = Math.Pow(10, precision);
-      Paths64 tmp = ScalePaths64(paths, scale);
-      ClipperOffset co = new ClipperOffset(miterLimit, scale * arcTolerance);
-      co.AddPaths(tmp, joinType, endType);
-      co.Execute(delta * scale, tmp); // reuse 'tmp' to receive (scaled) solution
-      return ScalePathsD(tmp, 1 / scale);
-    }
-
-    public static Paths64 RectClip(Rect64 rect, Paths64 paths)
-    {
-      if (rect.IsEmpty() || paths.Count == 0) return new Paths64();
-      RectClip64 rc = new RectClip64(rect);
-      return rc.Execute(paths);
-    }
-
-    public static Paths64 RectClip(Rect64 rect, Path64 path)
-    {
-      if (rect.IsEmpty() || path.Count == 0) return new Paths64();
-      Paths64 tmp = new Paths64 { path };
-      return RectClip(rect, tmp);
-    }
-    
-    public static PathsD RectClip(RectD rect, PathsD paths, int precision = 2)
-    {
-      InternalClipper.CheckPrecision(precision);
-      if (rect.IsEmpty() || paths.Count == 0) return new PathsD();
-      double scale = Math.Pow(10, precision);
-      Rect64 r = ScaleRect(rect, scale);
-      Paths64 tmpPath = ScalePaths64(paths, scale);
-      RectClip64 rc = new RectClip64(r);
-      tmpPath = rc.Execute(tmpPath);
-      return ScalePathsD(tmpPath, 1 / scale);
-    }
-
-    public static PathsD RectClip(RectD rect, PathD path, int precision = 2)
-    {
-      if (rect.IsEmpty() || path.Count == 0) return new PathsD();
-      PathsD tmp = new PathsD { path };
-      return RectClip(rect, tmp, precision);
-    }
-    public static Paths64 RectClipLines(Rect64 rect, Paths64 paths)
-    {
-      if (rect.IsEmpty() || paths.Count == 0) return new Paths64();
-      RectClipLines64 rc = new RectClipLines64(rect);
-      return rc.Execute(paths);
-    }
-
-    public static Paths64 RectClipLines(Rect64 rect, Path64 path)
-    {
-      if (rect.IsEmpty() || path.Count == 0) return new Paths64();
-      Paths64 tmp = new Paths64 { path };
-      return RectClipLines(rect, tmp);
-    }
-
-    public static PathsD RectClipLines(RectD rect, 
-      PathsD paths, int precision = 2)
-    {
-      InternalClipper.CheckPrecision(precision);
-      if (rect.IsEmpty() || paths.Count == 0) return new PathsD();
-      double scale = Math.Pow(10, precision);
-      Rect64 r = ScaleRect(rect, scale);
-      Paths64 tmpPath = ScalePaths64(paths, scale);
-      RectClipLines64 rc = new RectClipLines64(r);
-      tmpPath = rc.Execute(tmpPath);
-      return ScalePathsD(tmpPath, 1 / scale);
-    }
-    public static PathsD RectClipLines(RectD rect, PathD path, int precision = 2)
-    {
-      if (rect.IsEmpty() || path.Count == 0) return new PathsD();
-      PathsD tmp = new PathsD { path };
-      return RectClipLines(rect, tmp, precision);
-    }
-    public static Paths64 MinkowskiSum(Path64 pattern, Path64 path, bool isClosed)
-    {
-      return Minkowski.Sum(pattern, path, isClosed);
-    }
-
-    public static PathsD MinkowskiSum(PathD pattern, PathD path, bool isClosed)
-    {
-      return Minkowski.Sum(pattern, path, isClosed);
-    }
-
-    public static Paths64 MinkowskiDiff(Path64 pattern, Path64 path, bool isClosed)
-    {
-      return Minkowski.Diff(pattern, path, isClosed);
-    }
-
-    public static PathsD MinkowskiDiff(PathD pattern, PathD path, bool isClosed)
-    {
-      return Minkowski.Diff(pattern, path, isClosed);
     }
 
     public static double Area(Path64 path)
@@ -1239,29 +1123,6 @@ namespace Clipper2Lib
       foreach (PolyPathD child in polytree) { ShowPolyPathStructure(child, 1); }
     }
 
-    public static TriangulateResult Triangulate(Paths64 pp, out Paths64 solution, bool useDelaunay = true)
-    {
-      Delaunay d = new Delaunay(useDelaunay);
-      return d.Execute(pp, out solution);
-    }
-
-    public static TriangulateResult Triangulate(PathsD pp, int decPlaces, out PathsD solution, bool useDelaunay = true)
-    {
-      double scale;
-      if (decPlaces <= 0) scale = 1.0;
-      else if (decPlaces > 8) scale = Math.Pow(10.0, 8.0);
-      else scale = Math.Pow(10.0, decPlaces);
-
-      Paths64 pp64 = Clipper.ScalePaths64(pp, scale);
-
-      Delaunay d = new Delaunay(useDelaunay);
-      TriangulateResult result = d.Execute(pp64, out Paths64 sol64);
-      if (result == TriangulateResult.success)
-        solution = Clipper.ScalePathsD(sol64, 1.0 / scale);
-      else
-        solution = new PathsD();
-      return result;
-    }
 
   } // Clipper
 } // namespace

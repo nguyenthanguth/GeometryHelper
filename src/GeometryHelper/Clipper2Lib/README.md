@@ -1,8 +1,9 @@
 # Clipper2Lib
 
-The C# library of [Clipper2](https://github.com/AngusJohnson/Clipper2), by Angus Johnson, compiled into
-GeometryHelper from source instead of referenced as a package. `Internal/Planar/ClipperRegion.cs` resolves every region
-of the plane with it: the booleans of `Boolean2`, the raw loops an offset builds, and the pieces of a mesh.
+The clipping engine of [Clipper2](https://github.com/AngusJohnson/Clipper2), by Angus Johnson, compiled into
+GeometryHelper from source and kept here as part of GeometryHelper's own code, to be mended here.
+`Internal/Planar/ClipperRegion.cs` resolves every region of the plane with it: the booleans of `Boolean2`, the raw loops
+an offset builds, and the pieces of a mesh. GeometryHelper calls `ClipperD` alone, and this folder holds what that needs.
 
 ## Where it comes from
 
@@ -15,32 +16,39 @@ its own, that commit gives the IL of the `Clipper2` 2.0.0 package on nuget.org, 
 |---|---|
 | `Clipper.Core.cs` | points, paths, rectangles, `ClipType`, `FillRule`, `InternalClipper` |
 | `Clipper.Engine.cs` | the sweep that clips: `ClipperBase`, `Clipper64`, `ClipperD`, `PolyTree64`, `PolyTreeD` |
-| `Clipper.cs` | the static `Clipper` front: `Union`, `Intersect`, `InflatePaths`, `Area`, `SimplifyPaths` and the rest |
-| `Clipper.Offset.cs` | `ClipperOffset` |
-| `Clipper.RectClip.cs` | `RectClip64`, `RectClipLines64` |
-| `Clipper.Minkowski.cs` | Minkowski sum and difference |
-| `Clipper.Triangulation.cs` | constrained Delaunay triangulation (beta upstream) |
-| `HashCode.cs` | `System.HashCode` for .NET Standard 2.0 |
+| `Clipper.cs` | the static `Clipper` front: `Union`, `Intersect`, `Area`, `SimplifyPaths`, scaling and the rest |
 | `PooledList.cs` | the pools the engine reuses its objects from |
 
 ## Changes from upstream
 
 These, and nothing else:
 
-1. Every type declared directly in the namespace is `internal` instead of `public` (33 types). They are not part of
+1. Left out: the offset (`Clipper.Offset.cs`), rectangle clipping (`Clipper.RectClip.cs`), Minkowski sums
+   (`Clipper.Minkowski.cs`) and the triangulation (`Clipper.Triangulation.cs`), none of which GeometryHelper calls, and
+   the 16 functions of `Clipper.cs` that only called them: `InflatePaths`, `RectClip`, `RectClipLines`,
+   `MinkowskiSum`, `MinkowskiDiff` and `Triangulate`.
+2. Left out: `HashCode.cs`, the .NET Foundation's `System.HashCode` that upstream carries for .NET Standard 2.0.
+   `Point64.GetHashCode` and `PointD.GetHashCode` combine their two coordinates themselves. Nothing hashes a point:
+   the engine keeps no hashed collection, and GeometryHelper none of Clipper's types.
+3. Every type declared directly in the namespace is `internal` instead of `public` (24 types). They are not part of
    GeometryHelper's API, and a project that references both GeometryHelper and the Clipper2 package sees one
    `Clipper2Lib` only. Members keep their `public`.
-2. `#nullable enable` at the top of `Clipper.Offset.cs`, `Clipper.Triangulation.cs`, `HashCode.cs` and
-   `PooledList.cs`. Upstream turns nullable reference types on in its project file, GeometryHelper does not.
-3. LF line endings and no byte order mark, as every file in this repository.
+4. `#nullable enable` at the top of `PooledList.cs`. Upstream turns nullable reference types on in its project file,
+   GeometryHelper does not.
+5. Each file opens with two lines saying where it comes from, its copyright and its licence, in place of upstream's
+   banner of author, date, website, purpose and thanks. The copyright line and the licence stay: the Boost licence asks
+   both of every copy of the source.
+6. The doc comments of `PooledList.cs` are plain comments, so that none of Clipper2's text reaches GeometryHelper's XML
+   documentation.
+7. LF line endings and no byte order mark, as every file in this repository.
 
 The namespace stays `Clipper2Lib`. The Z variant (`USINGZ`, namespace `Clipper2ZLib`) is not compiled: GeometryHelper
 does not define the symbol.
 
-Compiled into GeometryHelper, the library gives the IL of the package again, but for the visibility of the 33 types
-and one delegate. GeometryHelper is built with the latest C#, whose compiler, from C# 11 on, keeps the `Comparison`
-that `ClipperBase.ConvertHorzSegsToJoins` sorts with in a static field instead of making a new one on each call
-(upstream builds with C# 8). `HorzSegSort` is static and holds no state, so the sort is the same.
+Compiled into GeometryHelper, what is kept gives the IL of the package again, but for the visibility of the 24 types,
+the two hash codes, and one delegate. GeometryHelper is built with the latest C#, whose compiler, from C# 11 on, keeps
+the `Comparison` that `ClipperBase.ConvertHorzSegsToJoins` sorts with in a static field instead of making a new one on
+each call (upstream builds with C# 8). `HorzSegSort` is static and holds no state, so the sort is the same.
 
 When you change a file here, add the change to the list above, so that it is carried over when the folder is next
 brought up to date with upstream.
@@ -48,23 +56,28 @@ brought up to date with upstream.
 ## Its own tests
 
 Clipper2's C# tests (`CSharp/Tests/Tests1`) run with GeometryHelper's, in `tests/GeometryHelper.UnitTest/Clipper2Lib`,
-moved from MSTest to xUnit, with the cases they read from `Tests/` of the Clipper2 repository. Clipper2 2.0.0 fails one
-of them upstream as well: test 16 of `Polygons.txt`, a triangle less a triangle that cuts it in two, comes back as one
-piece where two are stored. `TestClosedPath16` holds that case, skipped. `TestCasesFoundHere` holds a case found here,
-a union 2.0.0 gives within 0.09 % of its area, against the fix below.
+moved from MSTest to xUnit, with the cases they read from `Tests/` of the Clipper2 repository; the test of the offset
+went with the offset. Clipper2 2.0.0 fails one of them upstream as well: test 16 of `Polygons.txt`, a triangle less a
+triangle that cuts it in two, comes back as one piece where two are stored. `TestClosedPath16` holds that case,
+skipped. `TestCasesFoundHere` holds a case found here, a union 2.0.0 gives within 0.09 % of its area, against the fix
+below.
+
+The tests that compare GeometryHelper's own offsets with Clipper2's take the Clipper2 package, under the alias
+`Clipper2Package`, as this copy has no offset.
 
 ## Bringing it up to date
 
-1. Copy the `.cs` files of `CSharp/Clipper2Lib` at the new commit over these.
+1. Copy `Clipper.Core.cs`, `Clipper.Engine.cs`, `Clipper.cs` and `PooledList.cs` of `CSharp/Clipper2Lib` at the new
+   commit over these, and leave the other files of that folder out.
 2. Make the changes above again.
 3. Run the tests, Clipper2's own among them.
 4. Write the commit here.
 
-Upstream has fixed the C# library twice since 2.0.0, and neither fix is in this copy:
-[`6a36be1`](https://github.com/AngusJohnson/Clipper2/commit/6a36be1) of 16 January 2026, in `Clipper.Triangulation.cs`
-(#1052, #1055, #1056), and [`4da1564`](https://github.com/AngusJohnson/Clipper2/commit/4da1564) of 22 February 2026,
-`FixSelfIntersects` in `Clipper.Engine.cs` (#1067), which mends test 16. GeometryHelper calls `ClipperD` only, and every
-closed path it hands back passes through `FixSelfIntersects`; it does not call the triangulation.
+Upstream has fixed the C# library twice since 2.0.0: [`6a36be1`](https://github.com/AngusJohnson/Clipper2/commit/6a36be1)
+of 16 January 2026, in `Clipper.Triangulation.cs` (#1052, #1055, #1056), which this copy leaves out, and
+[`4da1564`](https://github.com/AngusJohnson/Clipper2/commit/4da1564) of 22 February 2026, `FixSelfIntersects` in
+`Clipper.Engine.cs` (#1067), which mends test 16. Every closed path `ClipperD` hands back passes through
+`FixSelfIntersects`.
 
 `4da1564` is not taken as it stands. On 20 000 random cases of loops crossing themselves and each other, on integers from
 0 to 1 000, it changes 172 answers: 61 come nearer the area resolved a millionth finer, 92 go further from it, and the
@@ -75,5 +88,7 @@ with it and without it.
 
 ## Licence
 
-Boost Software License 1.0, in [LICENSE](LICENSE). `HashCode.cs` is the .NET Foundation's `System.HashCode` under the
-MIT licence, with Yann Collet's xxHash32 under the BSD 2-Clause licence. Its notices are at the top of the file.
+Boost Software License 1.0, in [LICENSE](LICENSE), with the copyright of Angus Johnson at the top of each file. The
+licence asks both of every copy of the source, and nothing of compiled code alone. GeometryHelper's package carries this
+folder compiled and without its source (its files are left out of the sources embedded in the DLL, see `EmbeddedFiles`
+in `GeometryHelper.csproj`), so the package needs no notice of it.

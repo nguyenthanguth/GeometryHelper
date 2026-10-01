@@ -1,10 +1,6 @@
-/*******************************************************************************
-* Author    :  Angus Johnson                                                   *
-* Date      :  16 September 2022                                               *
-* Website   :  https://www.angusj.com                                          *
-* Copyright :  Angus Johnson 2010-2022                                         *
-* License   :  https://www.boost.org/LICENSE_1_0.txt                           *
-*******************************************************************************/
+// From the test utilities of Clipper2 2.0.0 by Angus Johnson (https://github.com/AngusJohnson/Clipper2),
+// changed for GeometryHelper's tests. Copyright (c) Angus Johnson 2010-2022.
+// Boost Software License 1.0, in src/GeometryHelper/Clipper2Lib/LICENSE.
 
 #nullable enable
 using System;

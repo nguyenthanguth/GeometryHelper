@@ -1,13 +1,5 @@
-/*******************************************************************************
-* Author    :  Angus Johnson                                                   *
-* Date      :  7 October 2025                                                 *
-* Website   :  http://www.angusj.com                                           *
-* Copyright :  Angus Johnson 2010-2025                                         *
-* Purpose   :  A pool of reusable vertex objects.                    *
-* Thanks    :  Special thanks to Thong Nguyen, Guus Kuiper, Phil Stopford,     *
-*           :  and Daniel Gosnell for their invaluable assistance with C#.     *
-* License   :  http://www.boost.org/LICENSE_1_0.txt                            *
-*******************************************************************************/
+// From Clipper2 2.0.0 by Angus Johnson (https://github.com/AngusJohnson/Clipper2), changed for GeometryHelper.
+// Copyright (c) Angus Johnson 2010-2025. Boost Software License 1.0, in LICENSE beside this file.
 
 #nullable enable
 using System;
@@ -21,9 +13,7 @@ namespace Clipper2ZLib
 namespace Clipper2Lib
 #endif
 {
-  /// <summary>
-  /// A pool of reusable Vertex objects
-  /// </summary>
+  // A pool of reusable Vertex objects
   internal class VertexPoolList : PooledList<Vertex>
   {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -49,9 +39,7 @@ namespace Clipper2Lib
     }
   }
 
-  /// <summary>
-  /// A pool of reusable OutPt objects
-  /// </summary>
+  // A pool of reusable OutPt objects
   internal class OutPtPoolList : PooledList<OutPt>
   {
     public static bool UseOutPtPool = true;
@@ -81,9 +69,7 @@ namespace Clipper2Lib
     }
   }
 
-  /// <summary>
-  /// A pool of reusable OutRec objects
-  /// </summary>
+  // A pool of reusable OutRec objects
   internal class OutRecPoolList : PooledList<OutRec>
   {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -138,9 +124,7 @@ namespace Clipper2Lib
     }
   }
 
-  /// <summary>
-  /// A pool of reusable HorzJoin objects
-  /// </summary>
+  // A pool of reusable HorzJoin objects
   internal class HorzJoinPoolList : PooledList<HorzJoin>
   {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -164,11 +148,9 @@ namespace Clipper2Lib
     }
   }
 
-  /// <summary>
-  /// A List that pools objects added to it for reuse.
-  /// Indexing, growing and enumeration implementation is identical to <see cref="System.Collections.Generic.List{T}"/>.
-  /// The pooled list reuses allocated reference objects. Operations are limited to read, add and clear.
-  /// </summary>
+  // A List that pools objects added to it for reuse.
+  // Indexing, growing and enumeration implementation is identical to System.Collections.Generic.List<T>.
+  // The pooled list reuses allocated reference objects. Operations are limited to read, add and clear.
   internal abstract class PooledList<T> : IReadOnlyList<T> where T : class
   {
     private const int DefaultCapacity = 4;

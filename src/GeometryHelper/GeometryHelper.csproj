@@ -175,9 +175,10 @@
       chamfers, fillets and GeoTransform2. Both in full in the same file.
     </PackageReleaseNotes>
 
-    <!-- 3. Embed source code and Debug symbols into DLL to support F12 original code viewing -->
+    <!-- 3. Embed source code and Debug symbols into DLL to support F12 original code viewing. Every source but
+         those under Clipper2Lib\ is embedded (EmbeddedFiles, below), so that the package carries Clipper2 as
+         compiled code only. -->
     <DebugType>embedded</DebugType>
-    <EmbedAllSources>true</EmbedAllSources>
     <GenerateDependencyFile>false</GenerateDependencyFile>
 
   </PropertyGroup>
@@ -185,13 +186,18 @@
   <!-- Clipper2 (Angus Johnson, Boost Software License) resolves regions in the plane: the booleans of
        Boolean2 and the raw loops an offset builds. It works on integers, so its answers do not depend on
        rounding luck. The solid half keeps its own winding-number solver, under Internal\Planar.
-       Clipper2 2.0.0 is compiled in from Clipper2Lib\, internal, rather than referenced as a package; the
-       README there says where it comes from and what was changed. Its licences go into the package in
-       THIRD-PARTY-NOTICES.txt. -->
+       Its clipping engine, from Clipper2 2.0.0, is compiled in from Clipper2Lib\, internal, rather than
+       referenced as a package; the README there says where it comes from and what was changed. The package
+       carries it as compiled code only, of which the Boost licence asks no notice; its source here keeps the
+       copyright line at the top of each file and the LICENSE beside them. -->
+  <ItemGroup>
+    <EmbeddedFiles Include="@(Compile)" />
+    <EmbeddedFiles Remove="Clipper2Lib\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="icon.png" Pack="true" PackagePath="\" />
-    <None Include="THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

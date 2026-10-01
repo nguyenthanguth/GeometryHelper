@@ -1,11 +1,5 @@
-/*******************************************************************************
-* Author    :  Angus Johnson                                                   *
-* Date      :  12 December 2025                                                *
-* Website   :  https://www.angusj.com                                          *
-* Copyright :  Angus Johnson 2010-2025                                         *
-* Purpose   :  Core structures and functions for the Clipper Library           *
-* License   :  https://www.boost.org/LICENSE_1_0.txt                           *
-*******************************************************************************/
+// From Clipper2 2.0.0 by Angus Johnson (https://github.com/AngusJohnson/Clipper2), changed for GeometryHelper.
+// Copyright (c) Angus Johnson 2010-2025. Boost Software License 1.0, in LICENSE beside this file.
 
 #nullable enable
 using System;
@@ -135,7 +129,7 @@ namespace Clipper2Lib
 
     public readonly override int GetHashCode()
     {
-      return HashCode.Combine(X, Y); //#599
+      unchecked { return (X.GetHashCode() * 397) ^ Y.GetHashCode(); }
     }
 
   }
@@ -241,7 +235,7 @@ namespace Clipper2Lib
 
     public readonly override int GetHashCode()
     {
-      return HashCode.Combine(x, y); //#599
+      unchecked { return (x.GetHashCode() * 397) ^ y.GetHashCode(); }
     }
 
   }

@@ -1,7 +1,9 @@
+extern alias Clipper2Package;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Clipper2Lib;
+using Clipper2Package::Clipper2Lib;
 using GeometryHelper;
 using GeometryHelper.Enums;
 using GeometryHelper.Core;
@@ -194,7 +196,7 @@ namespace GeometryHelper.UnitTest.Plane
                 foreach ((OffsetJoin ours, JoinType theirs) in new[] { (OffsetJoin.Miter, JoinType.Miter), (OffsetJoin.Chamfer, JoinType.Square) })
                 {
                     GeoPolygon2[] result = notched.Offset(d, new OffsetOptions(ours, double.PositiveInfinity));
-                    PathsD expected = Oracle(new[] { notched }, d, theirs, Clipper2Lib.FillRule.NonZero);
+                    PathsD expected = Oracle(new[] { notched }, d, theirs, FillRule.NonZero);
 
                     Assert.True(XorArea(ToPaths(result), expected) < 1e-6, $"offset {d} {ours} differs from Clipper");
                     Assert.All(result, loop => Assert.True(loop.IsSimple()));
@@ -242,11 +244,11 @@ namespace GeometryHelper.UnitTest.Plane
                 foreach (double d in new[] { -0.3, 0.3, -0.12 })
                 {
                     GeoPolygon2[] round = comb.Offset(d, new OffsetOptions(OffsetJoin.Round, arcTolerance: 0.001));
-                    PathsD expectedRound = Oracle(new[] { comb }, d, JoinType.Round, Clipper2Lib.FillRule.NonZero, 0.001);
+                    PathsD expectedRound = Oracle(new[] { comb }, d, JoinType.Round, FillRule.NonZero, 0.001);
                     Assert.True(XorArea(ToPaths(round), expectedRound) < 0.002 * (round.Sum(p => p.Length) + 1.0), $"round offset {d} differs from Clipper");
 
                     GeoPolygon2[] sharp = comb.Offset(d, SharpAlways);
-                    PathsD expectedSharp = Oracle(new[] { comb }, d, JoinType.Miter, Clipper2Lib.FillRule.NonZero);
+                    PathsD expectedSharp = Oracle(new[] { comb }, d, JoinType.Miter, FillRule.NonZero);
                     Assert.True(XorArea(ToPaths(sharp), expectedSharp) < 1e-5, $"sharp offset {d} differs from Clipper");
                 }
             }
@@ -322,7 +324,7 @@ namespace GeometryHelper.UnitTest.Plane
             // Two triangles touching at (5, 5), grown into one region.
             GeoPolygon2[] grown = bow.Offset(1.0, SharpAlways);
             Assert.Single(grown);
-            Assert.Equal(ClipperArea(Oracle(new[] { bow }, 1.0, JoinType.Miter, Clipper2Lib.FillRule.EvenOdd)), grown.Sum(g => g.SignedArea), 6);
+            Assert.Equal(ClipperArea(Oracle(new[] { bow }, 1.0, JoinType.Miter, FillRule.EvenOdd)), grown.Sum(g => g.SignedArea), 6);
         }
 
         [Fact]
@@ -539,7 +541,7 @@ namespace GeometryHelper.UnitTest.Plane
             return paths;
         }
 
-        private static PathsD Oracle(IEnumerable<GeoPolygon2> polygons, double d, JoinType join, Clipper2Lib.FillRule rule, double arcTolerance = 0.0)
+        private static PathsD Oracle(IEnumerable<GeoPolygon2> polygons, double d, JoinType join, FillRule rule, double arcTolerance = 0.0)
         {
             // Clipper inflates a set of paths as the region they fill, so the input is first reduced to that
             // region under the rule our own offset reads it with.
@@ -549,26 +551,16 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static double ClipperArea(PathsD paths) => Clipper.Area(paths);
 
-        // Clipper2's types are internal to the library, so a public test takes our join and asks for Clipper's here.
-        private static JoinType ClipperJoin(OffsetJoin join) => join switch
-        {
-            OffsetJoin.Miter => JoinType.Miter,
-            OffsetJoin.Chamfer => JoinType.Square,
-            OffsetJoin.Round => JoinType.Round,
-            _ => throw new ArgumentOutOfRangeException(nameof(join)),
-        };
-
         private static double XorArea(PathsD a, PathsD b)
         {
-            return Math.Abs(Clipper.Area(Clipper.Xor(a, b, Clipper2Lib.FillRule.NonZero, 8)));
+            return Math.Abs(Clipper.Area(Clipper.Xor(a, b, FillRule.NonZero, 8)));
         }
 
         [Theory]
-        [InlineData(OffsetJoin.Miter)]
-        [InlineData(OffsetJoin.Chamfer)]
-        public void RandomStars_MatchClipperExactly(OffsetJoin ours)
+        [InlineData(OffsetJoin.Miter, JoinType.Miter)]
+        [InlineData(OffsetJoin.Chamfer, JoinType.Square)]
+        public void RandomStars_MatchClipperExactly(OffsetJoin ours, JoinType theirs)
         {
-            JoinType theirs = ClipperJoin(ours);
             using (Tolerance.Use(Fine))
             {
                 var options = new OffsetOptions(ours, double.PositiveInfinity);
@@ -579,7 +571,7 @@ namespace GeometryHelper.UnitTest.Plane
                     foreach (double d in new[] { 0.3, -0.3, 1.7, -1.7, 4.0, -4.0 })
                     {
                         GeoPolygon2[] result = star.Offset(d, options);
-                        PathsD expected = Oracle(new[] { star }, d, theirs, Clipper2Lib.FillRule.NonZero);
+                        PathsD expected = Oracle(new[] { star }, d, theirs, FillRule.NonZero);
 
                         double xor = XorArea(ToPaths(result), expected);
                         Assert.True(xor < 1e-5 * (1 + Math.Abs(ClipperArea(expected))), $"star {compared}: offset {d} differs from Clipper by area {xor}");
@@ -602,7 +594,7 @@ namespace GeometryHelper.UnitTest.Plane
                 foreach (double d in new[] { 0.5, -0.5, 2.0, -2.0 })
                 {
                     GeoPolygon2[] result = star.Offset(d, options);
-                    PathsD expected = Oracle(new[] { star }, d, JoinType.Round, Clipper2Lib.FillRule.NonZero, arcTolerance);
+                    PathsD expected = Oracle(new[] { star }, d, JoinType.Round, FillRule.NonZero, arcTolerance);
 
                     // Both draw the arcs as chords within the tolerance, placed differently; the gap between
                     // them is bounded by the tolerance along the length of the outline.
@@ -630,7 +622,7 @@ namespace GeometryHelper.UnitTest.Plane
                     rects.Add(new PathD(new[] { new PointD(x, y), new PointD(x + w, y), new PointD(x + w, y + h), new PointD(x, y + h) }));
                 }
 
-                PathsD region = Clipper.Union(rects, new PathsD(), Clipper2Lib.FillRule.NonZero, 8);
+                PathsD region = Clipper.Union(rects, new PathsD(), FillRule.NonZero, 8);
 
                 // Build faces from the region: each outer loop with the holes inside it.
                 List<GeoFace2> faces = ToFaces(region);
@@ -650,7 +642,7 @@ namespace GeometryHelper.UnitTest.Plane
                     }
 
                     // Faces are offset one at a time, so growing faces may overlap; union them before comparing.
-                    PathsD merged = Clipper.Union(ToPaths(ours), new PathsD(), Clipper2Lib.FillRule.NonZero, 8);
+                    PathsD merged = Clipper.Union(ToPaths(ours), new PathsD(), FillRule.NonZero, 8);
                     double xor = XorArea(merged, expected);
                     Assert.True(xor < 1e-5, $"case {t}, offset {d}: differs from Clipper by area {xor}");
                     compared++;

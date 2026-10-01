@@ -99,6 +99,5 @@ Warnings are errors in CI, and every public member is documented, so a missing X
 
 ## Licence
 
-MIT. [Clipper2](https://github.com/AngusJohnson/Clipper2), which is compiled into this package and
-resolves regions in the plane, is under the Boost Software License 1.0. Its notices, and those of the code
-it carries, are in `THIRD-PARTY-NOTICES.txt` in the package.
+MIT. The clipping engine of [Clipper2](https://github.com/AngusJohnson/Clipper2), by Angus Johnson, which
+is compiled into this package and resolves regions in the plane, is under the Boost Software License 1.0.

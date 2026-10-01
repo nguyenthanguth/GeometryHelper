@@ -1,7 +1,9 @@
+extern alias Clipper2Package;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Clipper2Lib;
+using Clipper2Package::Clipper2Lib;
 using GeometryHelper;
 using GeometryHelper.Enums;
 using GeometryHelper.Core;
@@ -213,22 +215,12 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static double XorArea(PathsD a, PathsD b) => Math.Abs(Clipper.Area(Clipper.Xor(a, b, FillRule.NonZero, 8)));
 
-        // Clipper2's types are internal to the library, so a public test takes our join and asks for Clipper's here.
-        private static JoinType ClipperJoin(OffsetJoin join) => join switch
-        {
-            OffsetJoin.Miter => JoinType.Miter,
-            OffsetJoin.Chamfer => JoinType.Square,
-            OffsetJoin.Round => JoinType.Round,
-            _ => throw new ArgumentOutOfRangeException(nameof(join)),
-        };
-
         [Theory]
-        [InlineData(OffsetJoin.Miter)]
-        [InlineData(OffsetJoin.Chamfer)]
-        [InlineData(OffsetJoin.Round)]
-        public void RandomStarsInRandomPlanes_MatchClipper(OffsetJoin ours)
+        [InlineData(OffsetJoin.Miter, JoinType.Miter)]
+        [InlineData(OffsetJoin.Chamfer, JoinType.Square)]
+        [InlineData(OffsetJoin.Round, JoinType.Round)]
+        public void RandomStarsInRandomPlanes_MatchClipper(OffsetJoin ours, JoinType theirs)
         {
-            JoinType theirs = ClipperJoin(ours);
             using (Tolerance.Use(Fine))
             {
                 var options = new OffsetOptions(ours, double.PositiveInfinity, 0.0005);
