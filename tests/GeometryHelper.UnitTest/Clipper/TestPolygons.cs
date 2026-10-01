@@ -1,8 +1,9 @@
 #nullable enable
 using System;
+using GeometryHelper.Clipper;
 using Xunit;
 
-namespace Clipper2Lib.UnitTests
+namespace GeometryHelper.UnitTest.Clipper
 {
     /// <summary>
     /// Clipper2's own test of closed paths (CSharp/Tests/Tests1/Tests/TestPolygons.cs of 2.0.0), from MSTest to xUnit:
@@ -40,7 +41,7 @@ namespace Clipper2Lib.UnitTests
                 c64.AddClip(clip);
                 c64.Execute(clipType, fillrule, solution, solution_open);
                 int measuredCount = solution.Count;
-                long measuredArea = (long)Clipper.Area(solution);
+                long measuredArea = (long)Clipper2.Area(solution);
                 int countDiff = storedCount > 0 ? Math.Abs(storedCount - measuredCount) : 0;
                 long areaDiff = storedArea > 0 ? Math.Abs(storedArea - measuredArea) : 0;
                 double areaDiffRatio = storedArea <= 0 ? 0 : (double)areaDiff / storedArea;
@@ -110,7 +111,7 @@ namespace Clipper2Lib.UnitTests
             c64.AddOpenSubject(subj_open);
             c64.AddClip(clip);
             c64.Execute(clipType, fillrule, solution, solution_open);
-            long measuredArea = (long)Clipper.Area(solution);
+            long measuredArea = (long)Clipper2.Area(solution);
 
             Assert.Equal(storedCount, solution.Count);
             Assert.True(Math.Abs(storedArea - measuredArea) <= 0.075 * storedArea, $"area {measuredArea}, {storedArea} stored");

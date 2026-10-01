@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Clipper2Lib;
+using GeometryHelper.Clipper;
 using GeometryHelper;
 using GeometryHelper.Geometry;
 using GeometryHelper.Internal.Planar;
@@ -120,7 +120,7 @@ namespace GeometryHelper.Core
 
                 // Half a cell past the row each way, so that the band's own sides come near none of its cells.
                 List<GeoPoint2> band = grid.Loop(uMin - width, uMax + width, y0 - 0.5 * height, y1 + 0.5 * height);
-                List<LoopGroup> banded = ClipperRegion.ExecuteExact(ClipType.Intersection, region, new[] { band }, Clipper2Lib.FillRule.Positive, precision);
+                List<LoopGroup> banded = ClipperRegion.ExecuteExact(ClipType.Intersection, region, new[] { band }, Clipper.FillRule.Positive, precision);
 
                 if (banded.Count == 0)
                 {
@@ -455,7 +455,7 @@ namespace GeometryHelper.Core
 
             public void Cut(List<List<GeoPoint2>> strip, List<GeoPoint2> cell, double x0, double x1, double y0, double y1)
             {
-                List<LoopGroup> pieces = ClipperRegion.ExecuteExact(ClipType.Intersection, strip, new[] { cell }, Clipper2Lib.FillRule.Positive, _precision);
+                List<LoopGroup> pieces = ClipperRegion.ExecuteExact(ClipType.Intersection, strip, new[] { cell }, Clipper.FillRule.Positive, _precision);
 
                 // An edge that only came near, or ran along a side, or cut off no more than the tolerance, leaves the cell
                 // whole; it keeps the shape the cutting gave it, which stays within the material and meets its neighbours.
@@ -521,7 +521,7 @@ namespace GeometryHelper.Core
                     {
                         List<GeoPoint2> half = _grid.Loop(low, high, y0 - _height, y1 + _height);
 
-                        foreach (LoopGroup part in ClipperRegion.ExecuteExact(ClipType.Intersection, loops, new[] { half }, Clipper2Lib.FillRule.Positive, _precision))
+                        foreach (LoopGroup part in ClipperRegion.ExecuteExact(ClipType.Intersection, loops, new[] { half }, Clipper.FillRule.Positive, _precision))
                         {
                             pending.Push(part);
                         }

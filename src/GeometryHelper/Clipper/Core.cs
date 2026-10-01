@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Clipper2Lib
+namespace GeometryHelper.Clipper
 {
   internal struct Point64
   {
@@ -661,7 +661,7 @@ namespace Clipper2Lib
     public static Rect64 GetBounds(Path64 path)
     {
       if (path.Count == 0) return new Rect64();
-      Rect64 result = Clipper.InvalidRect64;
+      Rect64 result = Clipper2.InvalidRect64;
       foreach (Point64 pt in path)
       {
         if (pt.X < result.left) result.left = pt.X;

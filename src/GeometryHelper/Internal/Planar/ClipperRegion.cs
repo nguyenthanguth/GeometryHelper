@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Clipper2Lib;
+using GeometryHelper.Clipper;
 using GeometryHelper;
 using GeometryHelper.Geometry;
 using GeometryHelper.Internal.Planar;
@@ -57,7 +57,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Resolves a region given by loops under a fill rule and groups the result.
         /// </summary>
-        public static List<LoopGroup> Resolve(IEnumerable<IReadOnlyList<GeoPoint2>> loops, Clipper2Lib.FillRule rule, int precision, Tolerance tolerance)
+        public static List<LoopGroup> Resolve(IEnumerable<IReadOnlyList<GeoPoint2>> loops, Clipper.FillRule rule, int precision, Tolerance tolerance)
         {
             return Execute(ClipType.Union, loops, null, rule, precision, tolerance);
         }
@@ -69,7 +69,7 @@ namespace GeometryHelper.Core
             ClipType clipType,
             IEnumerable<IReadOnlyList<GeoPoint2>> subject,
             IEnumerable<IReadOnlyList<GeoPoint2>> clip,
-            Clipper2Lib.FillRule rule,
+            Clipper.FillRule rule,
             int precision,
             Tolerance tolerance)
         {
@@ -118,7 +118,7 @@ namespace GeometryHelper.Core
             ClipType clipType,
             IEnumerable<IReadOnlyList<GeoPoint2>> subject,
             IEnumerable<IReadOnlyList<GeoPoint2>> clip,
-            Clipper2Lib.FillRule rule,
+            Clipper.FillRule rule,
             int precision)
         {
             List<IReadOnlyList<GeoPoint2>> inputs = new List<IReadOnlyList<GeoPoint2>>(subject);
@@ -222,7 +222,7 @@ namespace GeometryHelper.Core
         /// points kept, so that each edge still lies along the input edge it came from. The vertices get their
         /// full precision back, but nothing is merged or dropped.
         /// </summary>
-        public static List<List<GeoPoint2>> ResolveOutline(IEnumerable<IReadOnlyList<GeoPoint2>> loops, Clipper2Lib.FillRule rule, int precision)
+        public static List<List<GeoPoint2>> ResolveOutline(IEnumerable<IReadOnlyList<GeoPoint2>> loops, Clipper.FillRule rule, int precision)
         {
             List<IReadOnlyList<GeoPoint2>> inputs = new List<IReadOnlyList<GeoPoint2>>(loops);
             ClipperD clipper = new ClipperD(precision) { PreserveCollinear = true };
@@ -257,7 +257,7 @@ namespace GeometryHelper.Core
         /// </summary>
         public static List<List<GeoPoint2>> RegionOf(GeoPolygon2 polygon, GeoPoint2 origin, int precision, Tolerance tolerance)
         {
-            return Flatten(Resolve(new[] { ToLocal(polygon.Vertices, origin) }, Clipper2Lib.FillRule.EvenOdd, precision, tolerance));
+            return Flatten(Resolve(new[] { ToLocal(polygon.Vertices, origin) }, Clipper.FillRule.EvenOdd, precision, tolerance));
         }
 
         /// <summary>

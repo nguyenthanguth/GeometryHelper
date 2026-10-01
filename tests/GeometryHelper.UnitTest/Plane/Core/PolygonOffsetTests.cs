@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Clipper2Package::Clipper2Lib;
+using ClipperPackage = Clipper2Package::Clipper2Lib.Clipper;
 using GeometryHelper;
 using GeometryHelper.Enums;
 using GeometryHelper.Core;
@@ -545,15 +546,15 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Clipper inflates a set of paths as the region they fill, so the input is first reduced to that
             // region under the rule our own offset reads it with.
-            PathsD region = Clipper.Union(ToPaths(polygons), new PathsD(), rule, 8);
-            return Clipper.InflatePaths(region, d, join, EndType.Polygon, 1e9, 8, arcTolerance);
+            PathsD region = ClipperPackage.Union(ToPaths(polygons), new PathsD(), rule, 8);
+            return ClipperPackage.InflatePaths(region, d, join, EndType.Polygon, 1e9, 8, arcTolerance);
         }
 
-        private static double ClipperArea(PathsD paths) => Clipper.Area(paths);
+        private static double ClipperArea(PathsD paths) => ClipperPackage.Area(paths);
 
         private static double XorArea(PathsD a, PathsD b)
         {
-            return Math.Abs(Clipper.Area(Clipper.Xor(a, b, FillRule.NonZero, 8)));
+            return Math.Abs(ClipperPackage.Area(ClipperPackage.Xor(a, b, FillRule.NonZero, 8)));
         }
 
         [Theory]
@@ -622,14 +623,14 @@ namespace GeometryHelper.UnitTest.Plane
                     rects.Add(new PathD(new[] { new PointD(x, y), new PointD(x + w, y), new PointD(x + w, y + h), new PointD(x, y + h) }));
                 }
 
-                PathsD region = Clipper.Union(rects, new PathsD(), FillRule.NonZero, 8);
+                PathsD region = ClipperPackage.Union(rects, new PathsD(), FillRule.NonZero, 8);
 
                 // Build faces from the region: each outer loop with the holes inside it.
                 List<GeoFace2> faces = ToFaces(region);
 
                 foreach (double d in new[] { 0.5, -0.5, 1.0, -1.0, 2.25 })
                 {
-                    PathsD expected = Clipper.InflatePaths(region, d, JoinType.Miter, EndType.Polygon, 1e9, 8);
+                    PathsD expected = ClipperPackage.InflatePaths(region, d, JoinType.Miter, EndType.Polygon, 1e9, 8);
                     var ours = new List<GeoPolygon2>();
 
                     foreach (GeoFace2 face in faces)
@@ -642,7 +643,7 @@ namespace GeometryHelper.UnitTest.Plane
                     }
 
                     // Faces are offset one at a time, so growing faces may overlap; union them before comparing.
-                    PathsD merged = Clipper.Union(ToPaths(ours), new PathsD(), FillRule.NonZero, 8);
+                    PathsD merged = ClipperPackage.Union(ToPaths(ours), new PathsD(), FillRule.NonZero, 8);
                     double xor = XorArea(merged, expected);
                     Assert.True(xor < 1e-5, $"case {t}, offset {d}: differs from Clipper by area {xor}");
                     compared++;
@@ -656,8 +657,8 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static List<GeoFace2> ToFaces(PathsD region)
         {
-            var outers = region.Where(Clipper.IsPositive).Select(p => new GeoPolygon2(p.Select(q => new GeoPoint2(q.x, q.y)))).ToList();
-            var holes = region.Where(p => !Clipper.IsPositive(p)).Select(p => new GeoPolygon2(p.Select(q => new GeoPoint2(q.x, q.y)))).ToList();
+            var outers = region.Where(ClipperPackage.IsPositive).Select(p => new GeoPolygon2(p.Select(q => new GeoPoint2(q.x, q.y)))).ToList();
+            var holes = region.Where(p => !ClipperPackage.IsPositive(p)).Select(p => new GeoPolygon2(p.Select(q => new GeoPoint2(q.x, q.y)))).ToList();
             var faces = new List<GeoFace2>();
 
             foreach (GeoPolygon2 outer in outers)

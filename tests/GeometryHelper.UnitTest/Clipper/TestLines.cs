@@ -1,8 +1,9 @@
 #nullable enable
 using System;
+using GeometryHelper.Clipper;
 using Xunit;
 
-namespace Clipper2Lib.UnitTests
+namespace GeometryHelper.UnitTest.Clipper
 {
     /// <summary>
     /// Clipper2's own test of open paths (CSharp/Tests/Tests1/Tests/TestLines.cs of 2.0.0), from MSTest to xUnit:
@@ -31,7 +32,7 @@ namespace Clipper2Lib.UnitTests
 
                 if (area > 0)
                 {
-                    double area2 = Clipper.Area(solution);
+                    double area2 = Clipper2.Area(solution);
                     double a = area / area2;
                     Assert.True(a > 0.995 && a < 1.005,
                       string.Format("Incorrect area in test {0}", i));

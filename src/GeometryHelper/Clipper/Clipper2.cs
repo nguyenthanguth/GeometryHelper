@@ -6,22 +6,43 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Clipper2Lib
+namespace GeometryHelper.Clipper
 {
 
-  internal static class Clipper
+  /// <summary>
+  /// The front of the clipping engine in the plane: booleans of regions read by a fill rule, areas, bounds, scaling and
+  /// conversion between integer and floating-point paths, simplification and where a point lies. Paths of integers
+  /// (Path64) are worked on as they are; paths of doubles (PathD) are rounded to a number of decimal places first,
+  /// worked on as integers, and scaled back.
+  /// </summary>
+  internal static class Clipper2
   {
     private static Rect64 invalidRect64 = new Rect64(false);
+    /// <summary>
+    /// A rectangle around nothing, its left and top at long.MaxValue and its right and bottom at long.MinValue, so that
+    /// the first point it grows by becomes its bounds.
+    /// </summary>
     public static Rect64 InvalidRect64 => invalidRect64;
 
     private static RectD invalidRectD = new RectD(false);
+    /// <summary>
+    /// A rectangle around nothing, its left and top at double.MaxValue and its right and bottom at -double.MaxValue, so
+    /// that the first point it grows by becomes its bounds.
+    /// </summary>
     public static RectD InvalidRectD => invalidRectD;
 
+    /// <summary>
+    /// The region the subject and the clip both cover, each read by the fill rule.
+    /// </summary>
     public static Paths64 Intersect(Paths64 subject, Paths64 clip, FillRule fillRule)
     {
       return BooleanOp(ClipType.Intersection, subject, clip, fillRule);
     }
 
+    /// <summary>
+    /// The region the subject and the clip both cover, each read by the fill rule, with the coordinates rounded to
+    /// <c>precision</c> decimal places, from -8 to 8, the answer scaled back.
+    /// </summary>
     public static PathsD Intersect(PathsD subject, PathsD clip, 
       FillRule fillRule, int precision = 2)
     {
@@ -29,21 +50,35 @@ namespace Clipper2Lib
         subject, clip, fillRule, precision);
     }
 
+    /// <summary>
+    /// The region the paths cover, read by the fill rule, as paths that neither cross nor overlap.
+    /// </summary>
     public static Paths64 Union(Paths64 subject, FillRule fillRule)
     {
       return BooleanOp(ClipType.Union, subject, null, fillRule);
     }
 
+    /// <summary>
+    /// The region the subject or the clip covers, each read by the fill rule.
+    /// </summary>
     public static Paths64 Union(Paths64 subject, Paths64 clip, FillRule fillRule)
     {
       return BooleanOp(ClipType.Union, subject, clip, fillRule);
     }
 
+    /// <summary>
+    /// The region the paths cover, read by the fill rule, as paths that neither cross nor overlap, with the coordinates
+    /// rounded to two decimal places, the answer scaled back.
+    /// </summary>
     public static PathsD Union(PathsD subject, FillRule fillRule)
     {
       return BooleanOp(ClipType.Union, subject, null, fillRule);
     }
 
+    /// <summary>
+    /// The region the subject or the clip covers, each read by the fill rule, with the coordinates rounded to
+    /// <c>precision</c> decimal places, from -8 to 8, the answer scaled back.
+    /// </summary>
     public static PathsD Union(PathsD subject, PathsD clip, 
       FillRule fillRule, int precision = 2)
     {
@@ -51,11 +86,18 @@ namespace Clipper2Lib
         subject, clip, fillRule, precision);
     }
 
+    /// <summary>
+    /// The part of the subject's region outside the clip's, each read by the fill rule.
+    /// </summary>
     public static Paths64 Difference(Paths64 subject, Paths64 clip, FillRule fillRule)
     {
       return BooleanOp(ClipType.Difference, subject, clip, fillRule);
     }
 
+    /// <summary>
+    /// The part of the subject's region outside the clip's, each read by the fill rule, with the coordinates rounded to
+    /// <c>precision</c> decimal places, from -8 to 8, the answer scaled back.
+    /// </summary>
     public static PathsD Difference(PathsD subject, PathsD clip, 
       FillRule fillRule, int precision = 2)
     {
@@ -63,11 +105,18 @@ namespace Clipper2Lib
         subject, clip, fillRule, precision);
     }
 
+    /// <summary>
+    /// The parts that only one of the subject and the clip covers, each read by the fill rule.
+    /// </summary>
     public static Paths64 Xor(Paths64 subject, Paths64 clip, FillRule fillRule)
     {
       return BooleanOp(ClipType.Xor, subject, clip, fillRule);
     }
 
+    /// <summary>
+    /// The parts that only one of the subject and the clip covers, each read by the fill rule, with the coordinates
+    /// rounded to <c>precision</c> decimal places, from -8 to 8, the answer scaled back.
+    /// </summary>
     public static PathsD Xor(PathsD subject, PathsD clip, 
       FillRule fillRule, int precision = 2)
     {
@@ -75,6 +124,10 @@ namespace Clipper2Lib
         subject, clip, fillRule, precision);
     }
 
+    /// <summary>
+    /// Runs the operation on integer paths and gives the closed paths of the answer, outers counter-clockwise with Y up
+    /// and holes clockwise. Nothing comes back without a subject; the clip may be missing.
+    /// </summary>
     public static Paths64 BooleanOp(ClipType clipType,
       Paths64? subject, Paths64? clip, FillRule fillRule)
     {
@@ -88,6 +141,10 @@ namespace Clipper2Lib
       return solution;
     }
 
+    /// <summary>
+    /// Runs the operation on integer paths into a tree, each hole nested in the outer it lies in and each island in its
+    /// hole. Nothing is added without a subject; the clip may be missing.
+    /// </summary>
     public static void BooleanOp(ClipType clipType,
       Paths64? subject, Paths64? clip, 
       PolyTree64 polytree, FillRule fillRule)
@@ -100,6 +157,11 @@ namespace Clipper2Lib
       c.Execute(clipType, fillRule, polytree);
     }
 
+    /// <summary>
+    /// Runs the operation and gives the closed paths of the answer, outers counter-clockwise with Y up and holes
+    /// clockwise, with the coordinates rounded to <c>precision</c> decimal places, from -8 to 8, the answer scaled
+    /// back. The clip may be missing.
+    /// </summary>
     public static PathsD BooleanOp(ClipType clipType, PathsD subject, PathsD? clip, 
       FillRule fillRule, int precision = 2)
     {
@@ -112,6 +174,11 @@ namespace Clipper2Lib
       return solution;
     }
 
+    /// <summary>
+    /// Runs the operation into a tree, each hole nested in the outer it lies in and each island in its hole, with the
+    /// coordinates rounded to <c>precision</c> decimal places, from -8 to 8, the answer scaled back. Nothing is added
+    /// without a subject; the clip may be missing.
+    /// </summary>
     public static void BooleanOp(ClipType clipType,
       PathsD? subject, PathsD? clip,
       PolyTreeD polytree, FillRule fillRule, int precision = 2)
@@ -124,6 +191,10 @@ namespace Clipper2Lib
       c.Execute(clipType, fillRule, polytree);
     }
 
+    /// <summary>
+    /// The signed area of a closed path by the shoelace formula: positive when it runs counter-clockwise with Y up,
+    /// negative when clockwise, nought with fewer than three points.
+    /// </summary>
     public static double Area(Path64 path)
     {
       // https://en.wikipedia.org/wiki/Shoelace_formula
@@ -139,6 +210,9 @@ namespace Clipper2Lib
       return a * 0.5;
     }
 
+    /// <summary>
+    /// The sum of the signed areas of the paths, so that holes, wound the other way, count against their outers.
+    /// </summary>
     public static double Area(Paths64 paths)
     {
       double a = 0.0;
@@ -147,6 +221,10 @@ namespace Clipper2Lib
       return a;
     }
 
+    /// <summary>
+    /// The signed area of a closed path by the shoelace formula: positive when it runs counter-clockwise with Y up,
+    /// negative when clockwise, nought with fewer than three points.
+    /// </summary>
     public static double Area(PathD path)
     {
       double a = 0.0;
@@ -161,6 +239,9 @@ namespace Clipper2Lib
       return a * 0.5;
     }
 
+    /// <summary>
+    /// The sum of the signed areas of the paths, so that holes, wound the other way, count against their outers.
+    /// </summary>
     public static double Area(PathsD paths)
     {
       double a = 0.0;
@@ -169,18 +250,27 @@ namespace Clipper2Lib
       return a;
     }
 
+    /// <summary>
+    /// Whether the signed area of the path is nought or more: it runs counter-clockwise with Y up, or encloses nothing.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsPositive(Path64 poly)
     {
       return Area(poly) >= 0;
     }
 
+    /// <summary>
+    /// Whether the signed area of the path is nought or more: it runs counter-clockwise with Y up, or encloses nothing.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsPositive(PathD poly)
     {
       return Area(poly) >= 0;
     }
 
+    /// <summary>
+    /// The points of the path as text, each as x,y and a space, and a line break at the end.
+    /// </summary>
     public static string Path64ToString(Path64 path)
     {
       string result = "";
@@ -188,6 +278,9 @@ namespace Clipper2Lib
         result += pt.ToString();
       return result + '\n';
     }
+    /// <summary>
+    /// The paths as text, a line for each.
+    /// </summary>
     public static string Paths64ToString(Paths64 paths)
     {
       string result = "";
@@ -195,6 +288,9 @@ namespace Clipper2Lib
         result += Path64ToString(path);
       return result;
     }
+    /// <summary>
+    /// The points of the path as text, each as x,y and a space, and a line break at the end.
+    /// </summary>
     public static string PathDToString(PathD path)
     {
       string result = "";
@@ -202,6 +298,9 @@ namespace Clipper2Lib
         result += pt.ToString();
       return result + '\n';
     }
+    /// <summary>
+    /// The paths as text, a line for each.
+    /// </summary>
     public static string PathsDToString(PathsD paths)
     {
       string result = "";
@@ -209,6 +308,9 @@ namespace Clipper2Lib
         result += PathDToString(path);
       return result;
     }
+    /// <summary>
+    /// A copy of the path moved by dx along X and dy along Y, as TranslatePath moves it.
+    /// </summary>
     public static Path64 OffsetPath(Path64 path, long dx, long dy)
     {
       Path64 result = new Path64(path.Count);
@@ -217,6 +319,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// The point with its coordinates multiplied by the scale and rounded half away from nought.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Point64 ScalePoint64(Point64 pt, double scale)
     {
@@ -228,6 +333,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// The integer point multiplied by the scale, as a point of doubles.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PointD ScalePointD(Point64 pt, double scale)
     {
@@ -240,6 +348,9 @@ namespace Clipper2Lib
     }
 
 
+    /// <summary>
+    /// The rectangle multiplied by the scale, its edges cut down to integers toward nought rather than rounded.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rect64 ScaleRect(RectD rec, double scale)
     {
@@ -253,6 +364,10 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// The path multiplied by the scale, each point rounded half away from nought. A scale of one gives back the same
+    /// path, not a copy.
+    /// </summary>
     public static Path64 ScalePath(Path64 path, double scale)
     {
       if (InternalClipper.IsAlmostZero(scale - 1)) return path;
@@ -262,6 +377,10 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Each path multiplied by the scale, each point rounded half away from nought. A scale of one gives back the same
+    /// paths, not a copy.
+    /// </summary>
     public static Paths64 ScalePaths(Paths64 paths, double scale)
     {
       if (InternalClipper.IsAlmostZero(scale - 1)) return paths;
@@ -271,6 +390,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// The path multiplied by the scale. A scale of one gives back the same path, not a copy.
+    /// </summary>
     public static PathD ScalePath(PathD path, double scale)
     {
       if (InternalClipper.IsAlmostZero(scale - 1)) return path;
@@ -280,6 +402,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Each path multiplied by the scale. A scale of one gives back the same paths, not a copy.
+    /// </summary>
     public static PathsD ScalePaths(PathsD paths, double scale)
     {
       if (InternalClipper.IsAlmostZero(scale - 1)) return paths;
@@ -289,7 +414,10 @@ namespace Clipper2Lib
       return result;
     }
 
-    // Unlike ScalePath, both ScalePath64 & ScalePathD also involve type conversion
+    /// <summary>
+    /// A path of doubles made a path of integers: each point multiplied by the scale and rounded half away from nought.
+    /// This is the way a path of doubles reaches the engine.
+    /// </summary>
     public static Path64 ScalePath64(PathD path, double scale)
     {
       int cnt = path.Count;
@@ -299,6 +427,9 @@ namespace Clipper2Lib
       return res;
     }
 
+    /// <summary>
+    /// Paths of doubles made paths of integers: each point multiplied by the scale and rounded half away from nought.
+    /// </summary>
     public static Paths64 ScalePaths64(PathsD paths, double scale)
     {
       int cnt = paths.Count;
@@ -308,6 +439,10 @@ namespace Clipper2Lib
       return res;
     }
 
+    /// <summary>
+    /// A path of integers made a path of doubles, each point multiplied by the scale. This is the way the engine's
+    /// answer comes back as doubles.
+    /// </summary>
     public static PathD ScalePathD(Path64 path, double scale)
     {
       int cnt = path.Count;
@@ -317,6 +452,9 @@ namespace Clipper2Lib
       return res;
     }
 
+    /// <summary>
+    /// Paths of integers made paths of doubles, each point multiplied by the scale.
+    /// </summary>
     public static PathsD ScalePathsD(Paths64 paths, double scale)
     {
       int cnt = paths.Count;
@@ -326,7 +464,9 @@ namespace Clipper2Lib
       return res;
     }
 
-    // The static functions Path64 and PathD convert path types without scaling
+    /// <summary>
+    /// A path of doubles made a path of integers without scaling, each coordinate rounded half away from nought.
+    /// </summary>
     public static Path64 Path64(PathD path)
     {
       Path64 result = new Path64(path.Count);
@@ -335,6 +475,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Paths of doubles made paths of integers without scaling, each coordinate rounded half away from nought.
+    /// </summary>
     public static Paths64 Paths64(PathsD paths)
     {
       Paths64 result = new Paths64(paths.Count);
@@ -343,6 +486,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Paths of integers made paths of doubles without scaling.
+    /// </summary>
     public static PathsD PathsD(Paths64 paths)
     {
       PathsD result = new PathsD(paths.Count);
@@ -351,6 +497,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// A path of integers made a path of doubles without scaling.
+    /// </summary>
     public static PathD PathD(Path64 path)
     {
       PathD result = new PathD(path.Count);
@@ -359,6 +508,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// A copy of the path moved by dx along X and dy along Y.
+    /// </summary>
     public static Path64 TranslatePath(Path64 path, long dx, long dy)
     {
       Path64 result = new Path64(path.Count);
@@ -367,6 +519,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Copies of the paths, each moved by dx along X and dy along Y.
+    /// </summary>
     public static Paths64 TranslatePaths(Paths64 paths, long dx, long dy)
     {
       Paths64 result = new Paths64(paths.Count);
@@ -375,6 +530,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// A copy of the path moved by dx along X and dy along Y.
+    /// </summary>
     public static PathD TranslatePath(PathD path, double dx, double dy)
     {
       PathD result = new PathD(path.Count);
@@ -383,6 +541,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Copies of the paths, each moved by dx along X and dy along Y.
+    /// </summary>
     public static PathsD TranslatePaths(PathsD paths, double dx, double dy)
     {
       PathsD result = new PathsD(paths.Count);
@@ -391,6 +552,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// A copy of the path with its points in the opposite order, which turns its winding round.
+    /// </summary>
     public static Path64 ReversePath(Path64 path)
     {
       Path64 result = new Path64(path);
@@ -398,6 +562,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// A copy of the path with its points in the opposite order, which turns its winding round.
+    /// </summary>
     public static PathD ReversePath(PathD path)
     {
       PathD result = new PathD(path);
@@ -405,6 +572,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Copies of the paths, each with its points in the opposite order.
+    /// </summary>
     public static Paths64 ReversePaths(Paths64 paths)
     {
       Paths64 result = new Paths64(paths.Count);
@@ -414,6 +584,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Copies of the paths, each with its points in the opposite order.
+    /// </summary>
     public static PathsD ReversePaths(PathsD paths)
     {
       PathsD result = new PathsD(paths.Count);
@@ -422,6 +595,10 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// The smallest axis-aligned rectangle holding every point of the path, its top the smallest Y and its bottom the
+    /// largest. A path with no points gives the empty rectangle at the origin.
+    /// </summary>
     public static Rect64 GetBounds(Path64 path)
     {
       Rect64 result = InvalidRect64;
@@ -435,6 +612,10 @@ namespace Clipper2Lib
       return result.left == long.MaxValue ? new Rect64() : result;
     }
 
+    /// <summary>
+    /// The smallest axis-aligned rectangle holding every point of the paths, its top the smallest Y and its bottom the
+    /// largest. Paths with no points give the empty rectangle at the origin.
+    /// </summary>
     public static Rect64 GetBounds(Paths64 paths)
     {
       Rect64 result = InvalidRect64;
@@ -449,6 +630,10 @@ namespace Clipper2Lib
       return result.left == long.MaxValue ? new Rect64() : result;
     }
 
+    /// <summary>
+    /// The smallest axis-aligned rectangle holding every point of the path, its top the smallest Y and its bottom the
+    /// largest. A path with no points gives the empty rectangle at the origin.
+    /// </summary>
     public static RectD GetBounds(PathD path)
     {
       RectD result = InvalidRectD;
@@ -462,6 +647,10 @@ namespace Clipper2Lib
       return Math.Abs(result.left - double.MaxValue) < InternalClipper.floatingPointTolerance ? new RectD() : result;
     }
 
+    /// <summary>
+    /// The smallest axis-aligned rectangle holding every point of the paths, its top the smallest Y and its bottom the
+    /// largest. Paths with no points give the empty rectangle at the origin.
+    /// </summary>
     public static RectD GetBounds(PathsD paths)
     {
       RectD result = InvalidRectD;
@@ -476,6 +665,10 @@ namespace Clipper2Lib
       return Math.Abs(result.left - double.MaxValue) < InternalClipper.floatingPointTolerance ? new RectD() : result;
     }
 
+    /// <summary>
+    /// A path from coordinates given in turn, x and y of the first point, then of the second, and so on. A last value
+    /// without its pair is left out.
+    /// </summary>
     public static Path64 MakePath(int[] arr)
     {
       int len = arr.Length / 2;
@@ -485,6 +678,10 @@ namespace Clipper2Lib
       return p;
     }
 
+    /// <summary>
+    /// A path from coordinates given in turn, x and y of the first point, then of the second, and so on. A last value
+    /// without its pair is left out.
+    /// </summary>
     public static Path64 MakePath(long[] arr)
     {
       int len = arr.Length / 2;
@@ -494,6 +691,10 @@ namespace Clipper2Lib
       return p;
     }
 
+    /// <summary>
+    /// A path from coordinates given in turn, x and y of the first point, then of the second, and so on. A last value
+    /// without its pair is left out.
+    /// </summary>
     public static PathD MakePath(double[] arr)
     {
       int len = arr.Length / 2;
@@ -504,36 +705,55 @@ namespace Clipper2Lib
     }
 
 
+    /// <summary>
+    /// The value times itself.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double Sqr(double val)
     {
       return val * val;
     }
 
+    /// <summary>
+    /// The value times itself, worked out in doubles so that it cannot overflow.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double Sqr(long val)
     {
       return (double) val * (double) val;
     }
 
+    /// <summary>
+    /// The square of the distance between two points.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double DistanceSqr(Point64 pt1, Point64 pt2)
     {
       return Sqr(pt1.X - pt2.X) + Sqr(pt1.Y - pt2.Y);
     }
 
+    /// <summary>
+    /// The point halfway between two points, its coordinates halved by integer division, toward nought.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Point64 MidPoint(Point64 pt1, Point64 pt2)
     {
       return new Point64((pt1.X + pt2.X) / 2, (pt1.Y + pt2.Y) / 2);
     }
 
+    /// <summary>
+    /// The point halfway between two points.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PointD MidPoint(PointD pt1, PointD pt2)
     {
       return new PointD((pt1.x + pt2.x) / 2, (pt1.y + pt2.y) / 2);
     }
 
+    /// <summary>
+    /// Grows the rectangle by dx on its left and on its right and by dy on its top and on its bottom; negative values
+    /// shrink it.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void InflateRect(ref Rect64 rec, int dx, int dy)
     {
@@ -543,6 +763,10 @@ namespace Clipper2Lib
       rec.bottom += dy;
     }
 
+    /// <summary>
+    /// Grows the rectangle by dx on its left and on its right and by dy on its top and on its bottom; negative values
+    /// shrink it.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void InflateRect(ref RectD rec, double dx, double dy)
     {
@@ -552,12 +776,19 @@ namespace Clipper2Lib
       rec.bottom += dy;
     }
 
+    /// <summary>
+    /// Whether two points lie nearer each other than the square root of distanceSqrd.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool PointsNearEqual(PointD pt1, PointD pt2, double distanceSqrd)
     {
       return Sqr(pt1.x - pt2.x) + Sqr(pt1.y - pt2.y) < distanceSqrd;
     }
 
+    /// <summary>
+    /// A copy of the path without the points that lie nearer than the square root of minEdgeLenSqrd to the point kept
+    /// before them. Of a closed path, the last point goes too when it lies that near the first.
+    /// </summary>
     public static PathD StripNearDuplicates(PathD path,
         double minEdgeLenSqrd, bool isClosedPath)
     {
@@ -581,6 +812,10 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// A copy of the path without the points equal to the point before them. Of a closed path, the last point goes too
+    /// when it equals the first.
+    /// </summary>
     public static Path64 StripDuplicates(Path64 path, bool isClosedPath)
     {
       int cnt = path.Count;
@@ -599,6 +834,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Adds the polygon of a node of the tree, when it has one, and then those of all the nodes below it, to the paths.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AddPolyNodeToPaths(PolyPath64 polyPath, Paths64 paths)
     {
@@ -608,6 +846,10 @@ namespace Clipper2Lib
         AddPolyNodeToPaths((PolyPath64) polyPath._childs[i], paths);
     }
 
+    /// <summary>
+    /// The polygons of a tree as a flat list of paths, each outer before the holes in it and each hole before the
+    /// islands in it.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Paths64 PolyTreeToPaths64(PolyTree64 polyTree)
     {
@@ -617,6 +859,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Adds the polygon of a node of the tree, when it has one, and then those of all the nodes below it, to the paths.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddPolyNodeToPathsD(PolyPathD polyPath, PathsD paths)
     {
@@ -626,6 +871,10 @@ namespace Clipper2Lib
         AddPolyNodeToPathsD((PolyPathD) polyPath._childs[i], paths);
     }
 
+    /// <summary>
+    /// The polygons of a tree as a flat list of paths, each outer before the holes in it and each hole before the
+    /// islands in it.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PathsD PolyTreeToPathsD(PolyTreeD polyTree)
     {
@@ -640,6 +889,10 @@ namespace Clipper2Lib
     }
 
 
+    /// <summary>
+    /// The square of the distance from a point to the whole line through two others; nought when the two are the same
+    /// point.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double PerpendicDistFromLineSqrd(PointD pt, PointD line1, PointD line2)
     {
@@ -651,6 +904,10 @@ namespace Clipper2Lib
       return Sqr(a * d - c * b) / (c * c + d * d);
     }
 
+    /// <summary>
+    /// The square of the distance from a point to the whole line through two others, worked out in doubles; nought when
+    /// the two are the same point.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double PerpendicDistFromLineSqrd(Point64 pt, Point64 line1, Point64 line2)
     {
@@ -662,6 +919,11 @@ namespace Clipper2Lib
       return Sqr(a * d - c * b) / (c * c + d * d);
     }
 
+    /// <summary>
+    /// One step of Ramer-Douglas-Peucker between two points kept: when the point between them furthest from the line
+    /// through them lies further than the square root of epsSqrd, it is marked kept and both sides of it are worked on
+    /// the same way. Points at the end that repeat the point at the beginning are marked dropped.
+    /// </summary>
     internal static void RDP(Path64 path, int begin, int end, double epsSqrd, List<bool> flags)
     {
       while (true)
@@ -691,6 +953,11 @@ namespace Clipper2Lib
       }
     }
 
+    /// <summary>
+    /// The path simplified by Ramer-Douglas-Peucker: its first and last points are kept, and every point dropped lies
+    /// within epsilon of the line through the points kept either side of it. A path of fewer than five points comes
+    /// back as it is.
+    /// </summary>
     public static Path64 RamerDouglasPeucker(Path64 path, double epsilon)
     {
       int len = path.Count;
@@ -703,6 +970,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Each path simplified by Ramer-Douglas-Peucker, as for a single path.
+    /// </summary>
     public static Paths64 RamerDouglasPeucker(Paths64 paths, double epsilon)
     {
       Paths64 result = new Paths64(paths.Count);
@@ -711,6 +981,11 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// One step of Ramer-Douglas-Peucker between two points kept: when the point between them furthest from the line
+    /// through them lies further than the square root of epsSqrd, it is marked kept and both sides of it are worked on
+    /// the same way. Points at the end that repeat the point at the beginning are marked dropped.
+    /// </summary>
     internal static void RDP(PathD path, int begin, int end, double epsSqrd, List<bool> flags)
     {
       while (true)
@@ -740,6 +1015,11 @@ namespace Clipper2Lib
       }
     }
 
+    /// <summary>
+    /// The path simplified by Ramer-Douglas-Peucker: its first and last points are kept, and every point dropped lies
+    /// within epsilon of the line through the points kept either side of it. A path of fewer than five points comes
+    /// back as it is.
+    /// </summary>
     public static PathD RamerDouglasPeucker(PathD path, double epsilon)
     {
       int len = path.Count;
@@ -752,6 +1032,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Each path simplified by Ramer-Douglas-Peucker, as for a single path.
+    /// </summary>
     public static PathsD RamerDouglasPeucker(PathsD paths, double epsilon)
     {
       PathsD result = new PathsD(paths.Count);
@@ -761,6 +1044,9 @@ namespace Clipper2Lib
     }
 
 
+    /// <summary>
+    /// The index of the first point after current that is not flagged removed, going round to the start after high.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetNext(int current, int high, ref bool[] flags)
     {
@@ -772,6 +1058,9 @@ namespace Clipper2Lib
       return current;
     }
 
+    /// <summary>
+    /// The index of the first point before current that is not flagged removed, going round to high before the start.
+    /// </summary>
     private static int GetPrior(int current, int high, ref bool[] flags)
     {
       if (current == 0) current = high;
@@ -783,7 +1072,12 @@ namespace Clipper2Lib
       return current;
     }
 
-      public static Path64 SimplifyPath(Path64 path,
+    /// <summary>
+    /// The path without the vertices that lie within epsilon of the line through their neighbours, removed one at a
+    /// time, of two such neighbours the one nearer its line first, and the neighbours measured again after each. The
+    /// ends of an open path stay; a path of fewer than four points comes back as it is.
+    /// </summary>
+    public static Path64 SimplifyPath(Path64 path,
       double epsilon, bool isClosedPath = true)
     {
       int len = path.Count, high = len - 1;
@@ -849,6 +1143,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Each path simplified as SimplifyPath simplifies one.
+    /// </summary>
     public static Paths64 SimplifyPaths(Paths64 paths,
       double epsilon, bool isClosedPaths = true)
     {
@@ -858,6 +1155,11 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// The path without the vertices that lie within epsilon of the line through their neighbours, removed one at a
+    /// time, of two such neighbours the one nearer its line first, and the neighbours measured again after each. The
+    /// ends of an open path stay; a path of fewer than four points comes back as it is.
+    /// </summary>
     public static PathD SimplifyPath(PathD path,
       double epsilon, bool isClosedPath = true)
     {
@@ -922,6 +1224,9 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Each path simplified as SimplifyPath simplifies one.
+    /// </summary>
     public static PathsD SimplifyPaths(PathsD paths,
       double epsilon, bool isClosedPath = true)
     {
@@ -931,6 +1236,11 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// A copy of the path without the vertices that lie on the line through their neighbours, those where it turns
+    /// straight back included. A closed path is trimmed across its start as well, and comes back empty with fewer than
+    /// three vertices left; an open path keeps its ends.
+    /// </summary>
     public static Path64 TrimCollinear(Path64 path, bool isOpen = false)
     {
       int len = path.Count;
@@ -976,6 +1286,10 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// A copy of the path without the vertices that lie on the line through their neighbours, as for a path of
+    /// integers, with the coordinates rounded to <c>precision</c> decimal places, from -8 to 8, the answer scaled back.
+    /// </summary>
     public static PathD TrimCollinear(PathD path, int precision, bool isOpen = false)
     {
       InternalClipper.CheckPrecision(precision);
@@ -985,11 +1299,19 @@ namespace Clipper2Lib
       return ScalePathD(p, 1 / scale);
     }
 
+    /// <summary>
+    /// Where a point lies against a polygon read by the even-odd rule: inside, outside or on its boundary. A polygon of
+    /// fewer than three points has nothing inside.
+    /// </summary>
     public static PointInPolygonResult PointInPolygon(Point64 pt, Path64 polygon)
     {
       return InternalClipper.PointInPolygon(pt, polygon);
     }
 
+    /// <summary>
+    /// Where a point lies against a polygon read by the even-odd rule, inside, outside or on its boundary, with the
+    /// point and the polygon rounded to <c>precision</c> decimal places, from -8 to 8.
+    /// </summary>
     public static PointInPolygonResult PointInPolygon(PointD pt, 
       PathD polygon, int precision = 2)
     {
@@ -1000,6 +1322,12 @@ namespace Clipper2Lib
       return InternalClipper.PointInPolygon(p, path);
     }
 
+    /// <summary>
+    /// A polygon of <c>steps</c> points on the ellipse of the radii about the center, counter-clockwise with Y up from
+    /// the point at radiusX along X, rounded to integers. A radiusY of nought or less takes radiusX, for a circle;
+    /// steps of two or fewer take pi times the square root of the mean radius, rounded up. Nothing for a radiusX of
+    /// nought or less.
+    /// </summary>
     public static Path64 Ellipse(Point64 center,
       double radiusX, double radiusY = 0, int steps = 0)
     {
@@ -1022,6 +1350,11 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// A polygon of <c>steps</c> points on the ellipse of the radii about the center, counter-clockwise with Y up from
+    /// the point at radiusX along X. A radiusY of nought or less takes radiusX, for a circle; steps of two or fewer
+    /// take pi times the square root of the mean radius, rounded up. Nothing for a radiusX of nought or less.
+    /// </summary>
     public static PathD Ellipse(PointD center,
       double radiusX, double radiusY = 0, int steps = 0)
     {
@@ -1044,6 +1377,10 @@ namespace Clipper2Lib
       return result;
     }
 
+    /// <summary>
+    /// Writes a node of the tree to the console, Outer or Hole with the number of its children, indented by its level,
+    /// and then its children a level deeper.
+    /// </summary>
     private static void ShowPolyPathStructure(PolyPath64 pp, int level)
     {
       string spaces = new string(' ', level * 2);
@@ -1059,12 +1396,19 @@ namespace Clipper2Lib
       }
     }
 
+    /// <summary>
+    /// Writes the nesting of a tree to the console, a line for each node indented by its depth, for debugging.
+    /// </summary>
     public static void ShowPolyTreeStructure(PolyTree64 polytree)
     {
       Console.WriteLine("Polytree Root");
       foreach (PolyPath64 child in polytree) { ShowPolyPathStructure(child, 1); }
     }
 
+    /// <summary>
+    /// Writes a node of the tree to the console, Outer or Hole with the number of its children, indented by its level,
+    /// and then its children a level deeper.
+    /// </summary>
     private static void ShowPolyPathStructure(PolyPathD pp, int level)
     {
       string spaces = new string(' ', level * 2);
@@ -1080,6 +1424,9 @@ namespace Clipper2Lib
       }
     }
 
+    /// <summary>
+    /// Writes the nesting of a tree to the console, a line for each node indented by its depth, for debugging.
+    /// </summary>
     public static void ShowPolyTreeStructure(PolyTreeD polytree)
     {
       Console.WriteLine("Polytree Root");
@@ -1087,5 +1434,5 @@ namespace Clipper2Lib
     }
 
 
-  } // Clipper
+  } // Clipper2
 } // namespace

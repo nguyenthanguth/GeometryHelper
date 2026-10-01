@@ -1,8 +1,9 @@
 #nullable enable
 using System;
+using GeometryHelper.Clipper;
 using Xunit;
 
-namespace Clipper2Lib.UnitTests
+namespace GeometryHelper.UnitTest.Clipper
 {
     /// <summary>
     /// Cases found here rather than upstream: the area Clipper2 gives on integer input, held against the area of the same
@@ -21,12 +22,12 @@ namespace Clipper2Lib.UnitTests
         {
             Paths64 subject = new()
             {
-                Clipper.MakePath(new int[] { 70, 512, 971, 11, 813, 61, 453, 155, 592, 19, 995, 425, 711, 571, 954, 133, 957, 984, 906, 835, 211, 641 }),
+                Clipper2.MakePath(new int[] { 70, 512, 971, 11, 813, 61, 453, 155, 592, 19, 995, 425, 711, 571, 954, 133, 957, 984, 906, 835, 211, 641 }),
             };
             Paths64 clip = new()
             {
-                Clipper.MakePath(new int[] { 664, 429, 84, 124, 943, 942, 402, 430, 373, 234, 874, 479 }),
-                Clipper.MakePath(new int[] { 533, 504, 672, 874, 347, 570, 617, 749 }),
+                Clipper2.MakePath(new int[] { 664, 429, 84, 124, 943, 942, 402, 430, 373, 234, 874, 479 }),
+                Clipper2.MakePath(new int[] { 533, 504, 672, 874, 347, 570, 617, 749 }),
             };
             Clipper64 c64 = new() { PreserveCollinear = false };
             c64.AddSubject(subject);
@@ -35,7 +36,7 @@ namespace Clipper2Lib.UnitTests
             c64.Execute(ClipType.Union, FillRule.EvenOdd, solution);
 
             const double exact = 395137.7;
-            double area = Clipper.Area(solution);
+            double area = Clipper2.Area(solution);
             Assert.True(Math.Abs(area - exact) < 0.005 * exact, $"area {area}, {exact} exactly");
         }
     }

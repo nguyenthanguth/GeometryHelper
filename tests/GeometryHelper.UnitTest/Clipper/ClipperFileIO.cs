@@ -6,8 +6,9 @@
 using System;
 using System.IO;
 using System.Diagnostics;
+using GeometryHelper.Clipper;
 
-namespace Clipper2Lib
+namespace GeometryHelper.UnitTest.Clipper
 {
 
   internal static class ClipperFileIO

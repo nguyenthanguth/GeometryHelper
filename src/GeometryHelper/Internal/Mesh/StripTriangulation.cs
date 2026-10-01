@@ -150,7 +150,7 @@ namespace GeometryHelper.Core
 
             int precision = ClipperRegion.GetPrecision(ClipperRegion.Extent(points, origin));
             List<List<GeoPoint2>> region = ClipperRegion.RegionOf(new GeoFace2(boundary, holes), origin, precision, tolerance);
-            List<List<GeoPoint2>> loops = ClipperRegion.ResolveOutline(region, Clipper2Lib.FillRule.Positive, precision);
+            List<List<GeoPoint2>> loops = ClipperRegion.ResolveOutline(region, Clipper.FillRule.Positive, precision);
 
             // A strip line through every corner, corners within rounding of each other across standing on one: a side of
             // the face across the plane, its ends a hair apart once laid out in it, would otherwise leave a strip no wider

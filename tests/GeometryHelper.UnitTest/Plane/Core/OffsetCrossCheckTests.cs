@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Clipper2Lib;
 using GeometryHelper;
+using GeometryHelper.Clipper;
 using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using GeometryHelper.Internal.Planar;
@@ -86,7 +86,7 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static double XorArea(PathsD a, PathsD b)
         {
-            return Math.Abs(Clipper.Area(Clipper.Xor(a, b, Clipper2Lib.FillRule.NonZero, 8)));
+            return Math.Abs(Clipper2.Area(Clipper2.Xor(a, b, GeometryHelper.Clipper.FillRule.NonZero, 8)));
         }
 
         private static IEnumerable<GeoPolygon2> Shapes(int seed, int count)

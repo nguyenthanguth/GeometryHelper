@@ -107,7 +107,7 @@ namespace GeometryHelper.Core
             }
 
             int precision = ClipperRegion.GetPrecision(ClipperRegion.Extent(points, origin));
-            List<LoopGroup> groups = ClipperRegion.Resolve(ClipperRegion.RegionOf(face, origin, precision, tolerance), Clipper2Lib.FillRule.Positive, precision, tolerance);
+            List<LoopGroup> groups = ClipperRegion.Resolve(ClipperRegion.RegionOf(face, origin, precision, tolerance), Clipper.FillRule.Positive, precision, tolerance);
             var faces = new List<GeoFace3>();
 
             foreach (GeoFace2 piece in ClipperRegion.ToFaces(groups, origin, false))

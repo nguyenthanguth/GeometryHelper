@@ -1,8 +1,9 @@
 #nullable enable
 using System.Linq;
+using GeometryHelper.Clipper;
 using Xunit;
 
-namespace Clipper2Lib.UnitTests
+namespace GeometryHelper.UnitTest.Clipper
 {
     /// <summary>
     /// Clipper2's own tests of the polytree (CSharp/Tests/Tests1/Tests/TestPolytree.cs of 2.0.0), from MSTest to
@@ -12,7 +13,7 @@ namespace Clipper2Lib.UnitTests
     {
         private static void PolyPathContainsPoint(PolyPath64 pp, Point64 pt, ref int counter)
         {
-            if (Clipper.PointInPolygon(pt, pp.Polygon!) != PointInPolygonResult.IsOutside)
+            if (Clipper2.PointInPolygon(pt, pp.Polygon!) != PointInPolygonResult.IsOutside)
             {
                 if (pp.IsHole) --counter; else ++counter;
             }
@@ -40,7 +41,7 @@ namespace Clipper2Lib.UnitTests
             foreach (PolyPath64 child in pp.Cast<PolyPath64>())
             {
                 foreach (Point64 pt in child.Polygon!)
-                    if (Clipper.PointInPolygon(pt, pp.Polygon!) == PointInPolygonResult.IsOutside)
+                    if (Clipper2.PointInPolygon(pt, pp.Polygon!) == PointInPolygonResult.IsOutside)
                         return false;
                 if (child.Count > 0 && !PolyPathFullyContainsChildren(child))
                     return false;
@@ -85,7 +86,7 @@ namespace Clipper2Lib.UnitTests
             {
                 foreach (Path64 path in subject)
                 {
-                    Assert.True(Clipper.PointInPolygon(pt, path) == PointInPolygonResult.IsOutside,
+                    Assert.True(Clipper2.PointInPolygon(pt, path) == PointInPolygonResult.IsOutside,
                       "outside point of interest found inside subject");
                 }
             }
@@ -103,7 +104,7 @@ namespace Clipper2Lib.UnitTests
                 int poi_inside_counter = 0;
                 foreach (Path64 path in subject)
                 {
-                    if (Clipper.PointInPolygon(pt, path) == PointInPolygonResult.IsInside)
+                    if (Clipper2.PointInPolygon(pt, path) == PointInPolygonResult.IsInside)
                         poi_inside_counter++;
                 }
                 Assert.True(poi_inside_counter == 1,
@@ -115,8 +116,8 @@ namespace Clipper2Lib.UnitTests
             clipper.AddClip(clip);
             clipper.Execute(cliptype, fillrule, solutionTree, solution_open);
 
-            Paths64 solutionPaths = Clipper.PolyTreeToPaths64(solutionTree);
-            double a1 = Clipper.Area(solutionPaths), a2 = solutionTree.Area();
+            Paths64 solutionPaths = Clipper2.PolyTreeToPaths64(solutionTree);
+            double a1 = Clipper2.Area(solutionPaths), a2 = solutionTree.Area();
 
             Assert.True(a1 > 330000,
               string.Format("solution has wrong area - value expected: 331,052; value returned; {0} ", a1));
@@ -141,14 +142,14 @@ namespace Clipper2Lib.UnitTests
         {
             Paths64 subject = new()
             {
-                Clipper.MakePath(new int[] {1588700, -8717600,
+                Clipper2.MakePath(new int[] {1588700, -8717600,
                 1616200, -8474800, 1588700, -8474800 }),
-                Clipper.MakePath(new int[] { 13583800,-15601600,
+                Clipper2.MakePath(new int[] { 13583800,-15601600,
                 13582800,-15508500, 13555300,-15508500, 13555500,-15182200,
                 13010900,-15185400 }),
-                Clipper.MakePath(new int[] { 956700, -3092300, 1152600,
+                Clipper2.MakePath(new int[] { 956700, -3092300, 1152600,
                 3147400, 25600, 3151700 }),
-                Clipper.MakePath(new int[] {
+                Clipper2.MakePath(new int[] {
                 22575900,-16604000, 31286800,-12171900,
                 31110200,4882800, 30996200,4826300, 30414400,5447400, 30260000,5391500,
                 29662200,5805400, 28844500,5337900, 28435000,5789300, 27721400,5026400,
@@ -166,8 +167,8 @@ namespace Clipper2Lib.UnitTests
                 13555300,-15508500, 13582800,-15508500, 13583100,-15154700,
                 1588700,-8822800, 1588700,-8379900, 1588700,-8474800, 1616200,-8474800,
                 1003900,-630100, 1253300,-12284500, 12983400,-16239900}),
-                Clipper.MakePath(new int[] { 198200, 12149800, 1010600, 12149800, 1011500, 11859600 }),
-                Clipper.MakePath(new int[] { 21996700, -7432000, 22096700, -7432000, 22096700, -7332000 })
+                Clipper2.MakePath(new int[] { 198200, 12149800, 1010600, 12149800, 1011500, 11859600 }),
+                Clipper2.MakePath(new int[] { 21996700, -7432000, 22096700, -7432000, 22096700, -7332000 })
             };
             PolyTree64 solutionTree = new();
 

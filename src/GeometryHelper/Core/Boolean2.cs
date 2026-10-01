@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Clipper2Lib;
+using GeometryHelper.Clipper;
 using GeometryHelper;
 using GeometryHelper.Geometry;
 using GeometryHelper.Internal.Planar;
@@ -363,7 +363,7 @@ namespace GeometryHelper.Core
 
             // Every operand's loops wind once round its own region, so the positive rule reads the subjects, and
             // separately the clips, as the union of their regions however they overlap.
-            List<LoopGroup> groups = ClipperRegion.Execute(clipType, subjectLoops, clipLoops, Clipper2Lib.FillRule.Positive, precision, tolerance);
+            List<LoopGroup> groups = ClipperRegion.Execute(clipType, subjectLoops, clipLoops, Clipper.FillRule.Positive, precision, tolerance);
             return ClipperRegion.ToFaces(groups, origin, false);
         }
 
@@ -399,7 +399,7 @@ namespace GeometryHelper.Core
             GeoPoint2 origin = polygon[0];
             int precision = ClipperRegion.GetPrecision(ClipperRegion.Extent(polygon.Vertices, origin));
             List<LoopGroup> groups = ClipperRegion.Resolve(
-                new[] { ClipperRegion.ToLocal(polygon.Vertices, origin) }, Clipper2Lib.FillRule.EvenOdd, precision, tolerance);
+                new[] { ClipperRegion.ToLocal(polygon.Vertices, origin) }, Clipper.FillRule.EvenOdd, precision, tolerance);
 
             return ClipperRegion.ToFaces(groups, origin, false);
         }

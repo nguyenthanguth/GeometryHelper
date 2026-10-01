@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Clipper2Package::Clipper2Lib;
+using ClipperPackage = Clipper2Package::Clipper2Lib.Clipper;
 using GeometryHelper;
 using GeometryHelper.Enums;
 using GeometryHelper.Core;
@@ -213,7 +214,7 @@ namespace GeometryHelper.UnitTest.Solid
             return paths;
         }
 
-        private static double XorArea(PathsD a, PathsD b) => Math.Abs(Clipper.Area(Clipper.Xor(a, b, FillRule.NonZero, 8)));
+        private static double XorArea(PathsD a, PathsD b) => Math.Abs(ClipperPackage.Area(ClipperPackage.Xor(a, b, FillRule.NonZero, 8)));
 
         [Theory]
         [InlineData(OffsetJoin.Miter, JoinType.Miter)]
@@ -234,7 +235,7 @@ namespace GeometryHelper.UnitTest.Solid
                     foreach (double d in new[] { 0.4, -0.4, 2.0, -2.0 })
                     {
                         GeoPolygon3[] result = star.Offset(d, options);
-                        PathsD expected = Clipper.InflatePaths(local, d, theirs, EndType.Polygon, 1e9, 8, 0.0005);
+                        PathsD expected = ClipperPackage.InflatePaths(local, d, theirs, EndType.Polygon, 1e9, 8, 0.0005);
 
                         foreach (GeoPolygon3 loop in result)
                         {
@@ -318,11 +319,11 @@ namespace GeometryHelper.UnitTest.Solid
                 foreach (double d in new[] { -0.3, 0.3, -0.12 })
                 {
                     GeoPolygon3[] round = comb.Offset(d, new OffsetOptions(OffsetJoin.Round, arcTolerance: 0.001));
-                    PathsD expectedRound = Clipper.InflatePaths(local, d, JoinType.Round, EndType.Polygon, 1e9, 8, 0.001);
+                    PathsD expectedRound = ClipperPackage.InflatePaths(local, d, JoinType.Round, EndType.Polygon, 1e9, 8, 0.001);
                     Assert.True(XorArea(Local(Flat, round), expectedRound) < 0.002 * (round.Sum(p => p.Length) + 1.0), $"round offset {d} differs from Clipper");
 
                     GeoPolygon3[] sharp = comb.Offset(d, SharpAlways);
-                    PathsD expectedSharp = Clipper.InflatePaths(local, d, JoinType.Miter, EndType.Polygon, 1e9, 8, 0.0);
+                    PathsD expectedSharp = ClipperPackage.InflatePaths(local, d, JoinType.Miter, EndType.Polygon, 1e9, 8, 0.0);
                     Assert.True(XorArea(Local(Flat, sharp), expectedSharp) < 1e-5, $"sharp offset {d} differs from Clipper");
                 }
             }

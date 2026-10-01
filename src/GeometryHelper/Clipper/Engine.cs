@@ -7,7 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Clipper2Lib
+namespace GeometryHelper.Clipper
 {
 
   // Vertex: a pre-clipping data structure. It is used to separate polygons
@@ -2328,7 +2328,7 @@ private void DoHorizontal(Active horz)
 
       if (checkCurrX)
       {
-        if (Clipper.PerpendicDistFromLineSqrd(pt, prev.bot, prev.top) > 0.25) return;
+        if (Clipper2.PerpendicDistFromLineSqrd(pt, prev.bot, prev.top) > 0.25) return;
       }
       else if (e.curX != prev.curX) return;
       if (!InternalClipper.IsCollinear(e.top, pt, prev.top)) return;
@@ -2357,7 +2357,7 @@ private void DoHorizontal(Active horz)
 
       if (checkCurrX)
       {
-        if (Clipper.PerpendicDistFromLineSqrd(pt, next.bot, next.top) > 0.25) return;
+        if (Clipper2.PerpendicDistFromLineSqrd(pt, next.bot, next.top) > 0.25) return;
       }
       else if (e.curX != next.curX) return;
       if (!InternalClipper.IsCollinear(e.top, pt, next.top)) return;
@@ -3056,7 +3056,7 @@ private void DoHorizontal(Active horz)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rect64 GetBounds()
     {
-      Rect64 bounds = Clipper.InvalidRect64;
+      Rect64 bounds = Clipper2.InvalidRect64;
       foreach (Vertex t in _vertexList)
       {
         Vertex v = t;
@@ -3183,13 +3183,13 @@ private void DoHorizontal(Active horz)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddPath(PathD path, PathType polytype, bool isOpen = false)
     {
-      base.AddPath(Clipper.ScalePath64(path, _scale), polytype, isOpen);
+      base.AddPath(Clipper2.ScalePath64(path, _scale), polytype, isOpen);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddPaths(PathsD paths, PathType polytype, bool isOpen = false)
     {
-      base.AddPaths(Clipper.ScalePaths64(paths, _scale), polytype, isOpen);
+      base.AddPaths(Clipper2.ScalePaths64(paths, _scale), polytype, isOpen);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3251,10 +3251,10 @@ private void DoHorizontal(Active horz)
 
       solutionClosed.EnsureCapacity(solClosed64.Count);
       foreach (Path64 path in solClosed64)
-        solutionClosed.Add(Clipper.ScalePathD(path, _invScale));
+        solutionClosed.Add(Clipper2.ScalePathD(path, _invScale));
       solutionOpen.EnsureCapacity(solOpen64.Count);
       foreach (Path64 path in solOpen64)
-        solutionOpen.Add(Clipper.ScalePathD(path, _invScale));
+        solutionOpen.Add(Clipper2.ScalePathD(path, _invScale));
 
       return true;
     }
@@ -3287,7 +3287,7 @@ private void DoHorizontal(Active horz)
       if (oPaths.Count <= 0) return true;
       openPaths.EnsureCapacity(oPaths.Count);
       foreach (Path64 path in oPaths)
-        openPaths.Add(Clipper.ScalePathD(path, _invScale));
+        openPaths.Add(Clipper2.ScalePathD(path, _invScale));
 
       return true;
     }
@@ -3441,7 +3441,7 @@ internal class PolyPath64 : PolyPathBase
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Area()
     {
-      double result = Polygon == null ? 0 : Clipper.Area(Polygon);
+      double result = Polygon == null ? 0 : Clipper2.Area(Polygon);
       foreach (PolyPathBase polyPathBase in _childs)
       {
         PolyPath64 child = (PolyPath64) polyPathBase;
@@ -3462,7 +3462,7 @@ internal class PolyPath64 : PolyPathBase
     {
       PolyPathBase newChild = new PolyPathD(this);
       (newChild as PolyPathD)!.Scale = Scale;
-      (newChild as PolyPathD)!.Polygon = Clipper.ScalePathD(p, 1 / Scale);
+      (newChild as PolyPathD)!.Polygon = Clipper2.ScalePathD(p, 1 / Scale);
       _childs.Add(newChild);
       return newChild;
     }
@@ -3490,7 +3490,7 @@ internal class PolyPath64 : PolyPathBase
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Area()
     {
-      double result = Polygon == null ? 0 : Clipper.Area(Polygon);
+      double result = Polygon == null ? 0 : Clipper2.Area(Polygon);
       foreach (PolyPathBase polyPathBase in _childs)
       {
         PolyPathD child = (PolyPathD) polyPathBase;

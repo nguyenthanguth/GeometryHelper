@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace Clipper2Lib.UnitTests
+namespace GeometryHelper.UnitTest.Clipper
 {
     /// <summary>
     /// Where Clipper2's own tests find their cases. Upstream they are read from Tests\ at the root of the Clipper2

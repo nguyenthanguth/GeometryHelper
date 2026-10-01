@@ -277,7 +277,7 @@ namespace GeometryHelper.Core
 
             // The material: inside the boundary and outside every hole, resolved into clean loops first, so
             // that holes overlapping each other or the boundary are offset as the outline they actually leave.
-            List<LoopGroup> material = ClipperRegion.Resolve(ClipperRegion.RegionOf(face, origin, precision, tolerance), Clipper2Lib.FillRule.Positive, precision, tolerance);
+            List<LoopGroup> material = ClipperRegion.Resolve(ClipperRegion.RegionOf(face, origin, precision, tolerance), Clipper.FillRule.Positive, precision, tolerance);
             List<LoopGroup> groups = OffsetRegion(ClipperRegion.Flatten(material), distance, options, tolerance);
 
             return ClipperRegion.ToFaces(groups, origin, face.Boundary.SignedArea < 0.0);
@@ -475,7 +475,7 @@ namespace GeometryHelper.Core
 
             // Sharp corners can reach far out, so the rounding grid is chosen from the raw loops themselves.
             int precision = ClipperRegion.GetPrecision(ClipperRegion.Extent(raw));
-            return ClipperRegion.Resolve(raw, Clipper2Lib.FillRule.Positive, precision, tolerance);
+            return ClipperRegion.Resolve(raw, Clipper.FillRule.Positive, precision, tolerance);
         }
 
         /// <summary>
@@ -529,7 +529,7 @@ namespace GeometryHelper.Core
 
             List<List<GeoPoint2>> runs = new List<List<GeoPoint2>>();
 
-            foreach (List<GeoPoint2> loop in ClipperRegion.ResolveOutline(new[] { band }, Clipper2Lib.FillRule.Positive, precision))
+            foreach (List<GeoPoint2> loop in ClipperRegion.ResolveOutline(new[] { band }, Clipper.FillRule.Positive, precision))
             {
                 CollectRuns(loop, offsetEdges, match, runs);
             }
