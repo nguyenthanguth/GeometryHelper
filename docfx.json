@@ -68,6 +68,15 @@
         "dest": "bridges/tekla"
       }
     ],
+    "resource": [
+      {
+        "src": "src/GeometryHelper/docs",
+        "files": [
+          "images/**"
+        ],
+        "dest": "guides"
+      }
+    ],
     "output": "_site",
     "template": [
       "default",

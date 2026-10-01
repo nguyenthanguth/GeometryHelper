@@ -32,6 +32,8 @@ int cut = panels.FaceCount - whole;                                         // 1
 `Box` stands for a polygon of four corners. Each panel is one face, `panels.GetFace(i)`. A panel the door or the window
 cuts is cut to it, and `IsWhole` tells the 13 whole panels from the 16 cut ones.
 
+![Formwork panels on a wall with a door and a window: 13 whole panels in blue, 16 cut ones in orange](images/mesh/wall.svg)
+
 ## Four kinds
 
 | `MeshKind` | The faces | For |
@@ -52,6 +54,18 @@ GeoMesh2 grid = slab.ToMesh(MeshOptions.Grid(1000, 1000));
 For an L-shaped slab with two openings, these give 16 triangles, 9 convex pieces, 8 strips one way and 8 the other, and
 56 cells. All five cover the same area.
 
+The same kinds on a slab with three openings, one of them a triangle:
+
+| | |
+|---|---|
+| ![Triangles: 21 on the slab's own corners](images/mesh/slab-triangles.svg) | ![Convex: 12 pieces](images/mesh/slab-convex.svg) |
+| `Triangles`, 21 faces | `Convex`, 12 pieces |
+| ![Strips along the X axis: 12 trapezoids](images/mesh/slab-strips.svg) | ![Strips at 45 degrees: 18 trapezoids](images/mesh/slab-strips-45.svg) |
+| `Strips`, 12 along the X axis | `Strips(Math.PI / 4)`, 18 |
+
+The dots are the mesh's vertices. Those along the sides of strips are corners of the strip beside, put there so that
+the strips meet edge to edge.
+
 `Triangles` gives the triangles `TriangulateSurface` gives. `Convex` merges them across every edge whose two sides stay
 convex together, longest edges first, as Hertel and Mehlhorn merge them. It leaves no more than four times as many
 pieces as the fewest there could be. A convex shape is one piece. A strip runs between two lines through corners of the
@@ -64,6 +78,8 @@ shape, so its two parallel sides run the way the strips do; it comes to a point 
 `MeshOptions.Grid(cellWidth, cellHeight)` lays cells along the X and Y axes. A cell the material holds is whole. A cell
 the boundary or a hole crosses is cut to them, and may come back in more than one piece. A cell that holds a hole whole
 is split across it, through the middle of the hole, so that no face has a hole.
+
+![A rounded plate on a 500 grid: each of the three cells holding a hole whole comes back as two faces](images/mesh/plate-split.svg)
 
 **Joints.** `joint` is the gap between two neighbouring cells, along both axes, as the joints between panels or tiles.
 The cells stand `cellWidth + joint` apart. There is no gap at the boundary: a cell there is cut to it. When a gap is
@@ -86,6 +102,8 @@ GeoMesh2 mesh = strip.ToMesh(MeshOptions.Grid(300, 100, 0, GridAlignment.CenterC
 
 The two centred ones cut the same at both ends. A tiler picks between them so that the cut cells are not too narrow.
 
+![A plain wall 7000 by 3000, panels 1200 by 600 centred on a cell: the cut panels are 491 wide at both ends and 594 high at top and bottom](images/mesh/wall-centred.svg)
+
 **An origin and an angle.** An origin puts a cell's first corner on a point, and takes the place of the alignments. An
 angle turns the grid's first axis counter-clockwise from the X axis:
 
@@ -93,6 +111,8 @@ angle turns the grid's first axis counter-clockwise from the X axis:
 var options = new MeshOptions(MeshKind.Grid, 1500, 1500, angleRad: Math.PI / 6, origin: new GeoPoint2(2400, 1800));
 GeoMesh2 mesh = slab.ToMesh(options);   // a cell's corner on the column at (2400, 1800)
 ```
+
+![The L-shaped slab on cells of 900 a joint of 20 apart, the grid turned 30 degrees](images/mesh/slab-grid.svg)
 
 **Rectangles.** A rectangle's grid runs along its own sides unless an angle is given, and starts at its lower left corner.
 `Divide(columns, rows)` gives the same cells as rectangles, when they fit evenly:
@@ -106,6 +126,8 @@ GeoRectangle2[] cells = plate.Divide(4, 3);                 // the same 12, as r
 
 **Curves.** A loop with arcs is flattened first, and so is a circle, each arc cut so that it strays no further than the
 options' chord tolerance. Nought picks the automatic share of each radius.
+
+![A disc 3000 across on cells of 400, centred both ways](images/mesh/disc.svg)
 
 ## The mesh
 
@@ -148,6 +170,8 @@ A disc is fanned from its center. `GeoTriangle2` is the triangle of the plane, a
 - The shape's own corners are the mesh's vertices, exactly.
 - A polygon crossing itself is read as the region `MakeValid` reads. Holes that touch each other or the boundary are
   taken as the booleans take them.
+
+![Holes touching each other and the boundary, in triangles: the strips' triangles are split at the corners on their sides](images/mesh/touching.svg)
 
 The tolerance reads the shape: which of its rings touch, what has no area, and for a grid which cells are whole. A cell
 the boundary cuts by no more than the point tolerance counts as whole, and keeps the shape it was cut to. A joint no
