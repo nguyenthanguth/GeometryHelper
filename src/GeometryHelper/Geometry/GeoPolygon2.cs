@@ -154,18 +154,25 @@ namespace GeometryHelper.Geometry
         /// Gets the signed area of the polygon, by the shoelace formula: positive when the vertices run
         /// counter-clockwise, negative when they run clockwise.
         /// </summary>
+        /// <remarks>
+        /// The sum is taken from the first vertex rather than from the origin, so that coordinates far out cost no
+        /// precision: from the origin, the products of coordinates seven kilometres out are near 5E13, whose last digit
+        /// is worth a hundredth, and a polygon a tenth of a millimetre across came out with no area at all.
+        /// </remarks>
         public double SignedArea
         {
             get
             {
                 double area = 0.0;
-                int n = _vertices.Length;
-                for (int i = 0; i < n; i++)
+                GeoPoint2 reference = _vertices[0];
+
+                for (int i = 1; i + 1 < _vertices.Length; i++)
                 {
                     GeoPoint2 p1 = _vertices[i];
-                    GeoPoint2 p2 = _vertices[(i + 1) % n];
-                    area += p1.X * p2.Y - p2.X * p1.Y;
+                    GeoPoint2 p2 = _vertices[i + 1];
+                    area += (p1.X - reference.X) * (p2.Y - reference.Y) - (p2.X - reference.X) * (p1.Y - reference.Y);
                 }
+
                 return area * 0.5;
             }
         }
@@ -244,20 +251,24 @@ namespace GeometryHelper.Geometry
                     return new GeoPoint2(sumX / _vertices.Length, sumY / _vertices.Length);
                 }
 
+                // Measured from the first vertex, as the area is, so that coordinates far out cost no precision.
+                GeoPoint2 reference = _vertices[0];
                 double cx = 0.0;
                 double cy = 0.0;
                 int n = _vertices.Length;
                 for (int i = 0; i < n; i++)
                 {
-                    GeoPoint2 p1 = _vertices[i];
-                    GeoPoint2 p2 = _vertices[(i + 1) % n];
-                    double factor = p1.X * p2.Y - p2.X * p1.Y;
-                    cx += (p1.X + p2.X) * factor;
-                    cy += (p1.Y + p2.Y) * factor;
+                    double x1 = _vertices[i].X - reference.X;
+                    double y1 = _vertices[i].Y - reference.Y;
+                    double x2 = _vertices[(i + 1) % n].X - reference.X;
+                    double y2 = _vertices[(i + 1) % n].Y - reference.Y;
+                    double factor = x1 * y2 - x2 * y1;
+                    cx += (x1 + x2) * factor;
+                    cy += (y1 + y2) * factor;
                 }
 
                 double areaFactor = 1.0 / (6.0 * signedArea);
-                return new GeoPoint2(cx * areaFactor, cy * areaFactor);
+                return new GeoPoint2(reference.X + cx * areaFactor, reference.Y + cy * areaFactor);
             }
         }
 

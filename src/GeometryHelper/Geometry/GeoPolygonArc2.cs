@@ -176,14 +176,17 @@ namespace GeometryHelper.Geometry
         {
             get
             {
+                // The straight loop measured from the first vertex, as GeoPolygon2 measures it, so that coordinates far out
+                // cost no precision.
                 double twice = 0.0;
+                GeoPoint2 reference = _vertices[0];
 
-                for (int i = 0; i < _vertices.Length; i++)
+                for (int i = 1; i + 1 < _vertices.Length; i++)
                 {
                     GeoPoint2 current = _vertices[i];
-                    GeoPoint2 next = _vertices[(i + 1) % _vertices.Length];
+                    GeoPoint2 next = _vertices[i + 1];
 
-                    twice += current.X * next.Y - next.X * current.Y;
+                    twice += (current.X - reference.X) * (next.Y - reference.Y) - (next.X - reference.X) * (current.Y - reference.Y);
                 }
 
                 double area = twice * 0.5;

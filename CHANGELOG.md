@@ -22,6 +22,12 @@ counter-clockwise. The plane meshes as `GeoFace3.TriangulateSurface` meshes a fa
 while its rings stand apart and cut into strips where they touch; a loop with arcs is flattened by a chord tolerance
 first, a disc is fanned from its center, and a polygon crossing itself is covered where `MakeValid` says it covers.
 
+**FIXED.** `GeoPolygon2.SignedArea`, `Area`, `IsClockwise` and `Centroid`, and `GeoPolygonArc2.SignedArea` and `Area`,
+summed their shoelace from the origin, where the products of coordinates seven kilometres out are near 5E13 and their
+last digit is worth a hundredth. A polygon a tenth of a millimetre across there came out with no area at all, or the
+wrong winding, a strip of 0.9 mm2 as 0.8984375, and the centroid of a triangle 0.3 mm across 110 km off. They are taken
+from the first vertex now, as the planar internals already took theirs, and `GeoFace2.Area` with them.
+
 ## 9.0.2
 
 **FIXED.** `GeoFace3.TriangulateSurface`, which `GeoSolid3.Triangulate` and `TriangulateSurface` and everything meshing
