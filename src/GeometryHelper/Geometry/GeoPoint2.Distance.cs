@@ -137,5 +137,24 @@ namespace GeometryHelper.Geometry
             => edge.IsArc
                 ? DistanceTo(edge.ToArc())
                 : DistanceTo(edge.ToLine());
+
+        #region Triangles
+
+        /// <summary>
+        /// Gets the distance from this point to a triangle.
+        /// </summary>
+        public double DistanceTo(GeoTriangle2 triangle) => Triangle2.DistanceTo(triangle, this);
+
+        /// <summary>
+        /// Gets the distance from this point to a triangle, negative when the point lies within it.
+        /// </summary>
+        public double SignedDistanceTo(GeoTriangle2 triangle) => Triangle2.SignedDistanceTo(triangle, this);
+
+        /// <summary>
+        /// Gets the distance from this point to a triangle, negative when the point lies within it, within a tolerance.
+        /// </summary>
+        public double SignedDistanceTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.SignedDistanceTo(triangle, this, tolerance);
+
+        #endregion
     }
 }

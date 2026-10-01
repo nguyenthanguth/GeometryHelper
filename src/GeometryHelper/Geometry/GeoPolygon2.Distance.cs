@@ -95,5 +95,14 @@ namespace GeometryHelper.Geometry
             => edge.IsArc
                 ? DistanceTo(edge.ToArc())
                 : DistanceTo(edge.ToLine());
+
+        #region Triangles
+
+        /// <summary>
+        /// Gets the distance from this polygon to a triangle.
+        /// </summary>
+        public double DistanceTo(GeoTriangle2 triangle) => Triangle2.DistanceTo(triangle, this);
+
+        #endregion
     }
 }

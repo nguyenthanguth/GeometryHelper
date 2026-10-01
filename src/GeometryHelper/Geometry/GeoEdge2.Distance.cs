@@ -1,4 +1,5 @@
 using System;
+using GeometryHelper.Core;
 
 namespace GeometryHelper.Geometry
 {
@@ -133,5 +134,14 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public double DistanceTo(GeoRectangle2 rect)
             => IsArc ? ToArc().DistanceTo(rect) : ToLine().DistanceTo(rect);
+
+        #region Triangles
+
+        /// <summary>
+        /// Gets the distance from this edge to a triangle.
+        /// </summary>
+        public double DistanceTo(GeoTriangle2 triangle) => Triangle2.DistanceTo(triangle, this);
+
+        #endregion
     }
 }

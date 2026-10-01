@@ -230,5 +230,19 @@ namespace GeometryHelper.Geometry
             => edge.IsArc
                 ? TryIntersectWith(edge.ToArc(), out intersections, tolerance)
                 : TryIntersectWith(edge.ToLine(), out intersections, tolerance);
+
+        #region Triangles
+
+        /// <summary>
+        /// Gets every point where this curved loop meets the edges of a triangle, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoTriangle2 triangle) => Triangle2.GetIntersections(triangle, this);
+
+        /// <summary>
+        /// Gets every point where this curved loop meets the edges of a triangle, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetIntersections(triangle, this, tolerance);
+
+        #endregion
     }
 }

@@ -138,5 +138,19 @@ namespace GeometryHelper.Geometry
             => edge.IsArc
                 ? GetClosestPointOnBoundary(edge.ToArc())
                 : GetClosestPointOnBoundary(edge.ToLine());
+
+        #region Triangles
+
+        /// <summary>
+        /// Gets the point on the edges of a triangle closest to this point.
+        /// </summary>
+        public GeoPoint2 GetClosestPointOnBoundary(GeoTriangle2 triangle) => Triangle2.GetClosestPointOnBoundary(triangle, this);
+
+        /// <summary>
+        /// Gets the edge of a triangle closest to this point.
+        /// </summary>
+        public GeoLine2 GetClosestEdge(GeoTriangle2 triangle) => Triangle2.GetClosestEdge(triangle, this);
+
+        #endregion
     }
 }

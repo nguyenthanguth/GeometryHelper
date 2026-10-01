@@ -111,5 +111,19 @@ namespace GeometryHelper.Geometry
             => edge.IsArc
                 ? DistanceTo(edge.ToArc(), tolerance)
                 : DistanceTo(edge.ToLine(), tolerance);
+
+        #region Triangles
+
+        /// <summary>
+        /// Gets the distance from this arc to a triangle.
+        /// </summary>
+        public double DistanceTo(GeoTriangle2 triangle) => Triangle2.DistanceTo(triangle, this);
+
+        /// <summary>
+        /// Gets the distance from this arc to a triangle, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.DistanceTo(triangle, this, tolerance);
+
+        #endregion
     }
 }

@@ -735,5 +735,39 @@ namespace GeometryHelper.Geometry
         {
             return StartPoint.IsEqualTo(other.StartPoint, tolerance) && EndPoint.IsEqualTo(other.EndPoint, tolerance);
         }
+
+        #region Triangles
+
+        /// <summary>
+        /// Extends this segment at one end to where it meets the edges of a triangle, using the default tolerance.
+        /// </summary>
+        public bool TryExtendTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result) => Triangle2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
+
+        /// <summary>
+        /// Extends this segment at one end to where it meets the edges of a triangle, within a tolerance.
+        /// </summary>
+        public bool TryExtendTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Triangle2.TryExtendTo(this, boundary, end, out result, tolerance);
+
+        /// <summary>
+        /// Trims this segment at one end to where it meets the edges of a triangle, using the default tolerance.
+        /// </summary>
+        public bool TryTrimTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result) => Triangle2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
+
+        /// <summary>
+        /// Trims this segment at one end to where it meets the edges of a triangle, within a tolerance.
+        /// </summary>
+        public bool TryTrimTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Triangle2.TryTrimTo(this, boundary, end, out result, tolerance);
+
+        /// <summary>
+        /// Checks whether this segment runs parallel to an edge of a triangle, using the default tolerance.
+        /// </summary>
+        public bool IsParallelTo(GeoTriangle2 triangle) => Triangle2.IsParallel(triangle, this);
+
+        /// <summary>
+        /// Checks whether this segment runs parallel to an edge of a triangle, within a tolerance.
+        /// </summary>
+        public bool IsParallelTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.IsParallel(triangle, this, tolerance);
+
+        #endregion
     }
 }

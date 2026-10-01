@@ -1,4 +1,5 @@
 using System;
+using GeometryHelper.Core;
 
 namespace GeometryHelper.Geometry
 {
@@ -188,5 +189,19 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance)
             => IsArc ? ToArc().GetShortestLineTo(rect, tolerance) : ToLine().GetShortestLineTo(rect, tolerance);
+
+        #region Triangles
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a triangle, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle) => Triangle2.GetShortestLineTo(triangle, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on a triangle, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetShortestLineTo(triangle, this, tolerance).Reverse();
+
+        #endregion
     }
 }

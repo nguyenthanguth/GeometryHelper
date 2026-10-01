@@ -1,4 +1,5 @@
 using System;
+using GeometryHelper.Core;
 
 namespace GeometryHelper.Geometry
 {
@@ -122,5 +123,19 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool CollidesWith(GeoFace2 face, Tolerance tolerance)
             => IsArc ? ToArc().CollidesWith(face, tolerance) : ToLine().CollidesWith(face, tolerance);
+
+        #region Triangles
+
+        /// <summary>
+        /// Checks whether this edge touches a triangle, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoTriangle2 triangle) => Triangle2.CollidesWith(triangle, this);
+
+        /// <summary>
+        /// Checks whether this edge touches a triangle, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.CollidesWith(triangle, this, tolerance);
+
+        #endregion
     }
 }

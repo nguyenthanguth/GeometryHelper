@@ -239,5 +239,24 @@ namespace GeometryHelper.Geometry
             => edge.IsArc
                 ? GetShortestLineTo(edge.ToArc(), tolerance)
                 : GetShortestLineTo(edge.ToLine(), tolerance);
+
+        #region Triangles
+
+        /// <summary>
+        /// Gets the shortest segment leaving this segment and landing on a triangle, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle) => Triangle2.GetShortestLineTo(triangle, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this segment and landing on a triangle, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetShortestLineTo(triangle, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the edge of a triangle closest to this segment.
+        /// </summary>
+        public GeoLine2 GetClosestEdge(GeoTriangle2 triangle) => Triangle2.GetClosestEdge(triangle, this);
+
+        #endregion
     }
 }

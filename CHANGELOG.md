@@ -8,7 +8,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 **NEW.** `GeoTriangle2`, the triangle of the plane, as `GeoTriangle3` is the triangle of space: its signed area and
 winding, perimeter, centroid, angles, circumcircle and incircle, barycentric coordinates, where a point is, moves and
-transforms, and its way into space and back (`ToTriangle3`, `GeoTriangle3.ProjectToTriangle2`, `PlanarMap`).
+transforms, and its way into space and back (`ToTriangle3`, `GeoTriangle3.ProjectToTriangle2`, `PlanarMap`). It
+stands in the matrix of the plane as `GeoRectangle2` does: it collides with, measures the distance to, crosses and finds
+the shortest segment to every other shape of the plane and to another triangle, holds points, segments and polylines,
+gives its closest edge and the signed distance of a point, runs parallel to a segment and is walked along its edges;
+the eleven other shapes ask the same of it, a segment extends and trims to it, and the new `Triangle2` class of
+`GeometryHelper.Core` answers all of it. A triangle answers as the polygon of its corners does, and one whose corners
+stand on each other as the segment it is.
 
 **NEW.** `TriangulateSurface` on `GeoPolygon2`, `GeoFace2`, `GeoPolygonArc2`, `GeoRectangle2` and `GeoCircle2`
 breaks the shape into `GeoTriangle2`s that each lie within its material, holes left open, all running

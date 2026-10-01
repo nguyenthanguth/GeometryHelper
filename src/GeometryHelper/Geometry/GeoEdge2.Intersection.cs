@@ -1,4 +1,5 @@
 using System;
+using GeometryHelper.Core;
 
 namespace GeometryHelper.Geometry
 {
@@ -184,5 +185,19 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance)
             => IsArc ? ToArc().TryIntersectWith(chain, out intersections, tolerance) : ToLine().TryIntersectWith(chain, out intersections, tolerance);
+
+        #region Triangles
+
+        /// <summary>
+        /// Gets every point where this edge meets the edges of a triangle, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoTriangle2 triangle) => Triangle2.GetIntersections(triangle, this);
+
+        /// <summary>
+        /// Gets every point where this edge meets the edges of a triangle, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetIntersections(triangle, this, tolerance);
+
+        #endregion
     }
 }

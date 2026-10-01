@@ -112,5 +112,19 @@ namespace GeometryHelper.Geometry
             => edge.IsArc
                 ? CollidesWith(edge.ToArc(), tolerance)
                 : CollidesWith(edge.ToLine(), tolerance);
+
+        #region Triangles
+
+        /// <summary>
+        /// Checks whether this curved loop touches a triangle, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoTriangle2 triangle) => Triangle2.CollidesWith(triangle, this);
+
+        /// <summary>
+        /// Checks whether this curved loop touches a triangle, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.CollidesWith(triangle, this, tolerance);
+
+        #endregion
     }
 }

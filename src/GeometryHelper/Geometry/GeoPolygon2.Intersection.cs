@@ -144,5 +144,19 @@ namespace GeometryHelper.Geometry
             => edge.IsArc
                 ? GetIntersections(edge.ToArc(), tolerance)
                 : GetIntersections(edge.ToLine(), tolerance);
+
+        #region Triangles
+
+        /// <summary>
+        /// Gets every point where this polygon meets the edges of a triangle, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoTriangle2 triangle) => Triangle2.GetIntersections(triangle, this);
+
+        /// <summary>
+        /// Gets every point where this polygon meets the edges of a triangle, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetIntersections(triangle, this, tolerance);
+
+        #endregion
     }
 }

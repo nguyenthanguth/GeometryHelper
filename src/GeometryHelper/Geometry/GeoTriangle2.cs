@@ -369,6 +369,71 @@ namespace GeometryHelper.Geometry
 
         #endregion
 
+        #region Holding, parallel, and walking along the edges
+
+        /// <summary>
+        /// Checks whether this triangle holds a segment whole, its edges included, using the default tolerance.
+        /// </summary>
+        public bool Contains(GeoLine2 line) => Triangle2.Contains(this, line);
+
+        /// <summary>
+        /// Checks whether this triangle holds a segment whole, its edges included, within a tolerance.
+        /// </summary>
+        public bool Contains(GeoLine2 line, Tolerance tolerance) => Triangle2.Contains(this, line, tolerance);
+
+        /// <summary>
+        /// Checks whether this triangle holds a polyline whole, its edges included, using the default tolerance.
+        /// </summary>
+        public bool Contains(GeoPolyline2 polyline) => Triangle2.Contains(this, polyline);
+
+        /// <summary>
+        /// Checks whether this triangle holds a polyline whole, its edges included, within a tolerance.
+        /// </summary>
+        public bool Contains(GeoPolyline2 polyline, Tolerance tolerance) => Triangle2.Contains(this, polyline, tolerance);
+
+        /// <summary>
+        /// Checks whether an edge of this triangle runs parallel to a segment, using the default tolerance.
+        /// </summary>
+        public bool IsParallelTo(GeoLine2 line) => Triangle2.IsParallel(this, line);
+
+        /// <summary>
+        /// Checks whether an edge of this triangle runs parallel to a segment, within a tolerance.
+        /// </summary>
+        public bool IsParallelTo(GeoLine2 line, Tolerance tolerance) => Triangle2.IsParallel(this, line, tolerance);
+
+        /// <summary>
+        /// Gets the point at a normalized parameter along the edges, from A, where 1 is all the way round; values outside
+        /// [0, 1] wrap round, so 1.25 is the same place as 0.25.
+        /// </summary>
+        public GeoPoint2 GetPointAtParameter(double parameter) => Triangle2.GetPointAtParameter(this, parameter);
+
+        /// <summary>
+        /// Gets the normalized parameter along the edges of the point on them closest to a point.
+        /// </summary>
+        public double GetParameterAtPoint(GeoPoint2 point) => Triangle2.GetParameterAtPoint(this, point);
+
+        /// <summary>
+        /// Gets the point at a length walked along the edges from A; lengths past the perimeter wrap round.
+        /// </summary>
+        public GeoPoint2 GetPointAtDistance(double distance) => Triangle2.GetPointAtDistance(this, distance);
+
+        /// <summary>
+        /// Gets the length walked along the edges from A to the point on them closest to a point.
+        /// </summary>
+        public double GetDistanceAtPoint(GeoPoint2 point) => Triangle2.GetDistanceAtPoint(this, point);
+
+        /// <summary>
+        /// Gets the length walked along the edges from A to a normalized parameter.
+        /// </summary>
+        public double GetDistanceAtParameter(double parameter) => Triangle2.GetDistanceAtParameter(this, parameter);
+
+        /// <summary>
+        /// Gets the normalized parameter at a length walked along the edges from A.
+        /// </summary>
+        public double GetParameterAtDistance(double distance) => Triangle2.GetParameterAtDistance(this, distance);
+
+        #endregion
+
         #region Equality
 
         /// <summary>

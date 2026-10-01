@@ -289,5 +289,45 @@ namespace GeometryHelper.Geometry
             return intersections.Length > 0;
         }
 
+        #region Triangles
+
+        /// <summary>
+        /// Gets every point where this face meets the edges of a triangle, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoTriangle2 triangle) => Triangle2.GetIntersections(triangle, this);
+
+        /// <summary>
+        /// Gets every point where this face meets the edges of a triangle, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetIntersections(triangle, this, tolerance);
+
+        /// <summary>
+        /// Tries to find where this face meets the edges of a triangle, using the default tolerance.
+        /// </summary>
+        /// <param name="triangle">The triangle to test against.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections)
+        {
+            intersections = GetIntersections(triangle, Tolerance.Global);
+
+            return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Tries to find where this face meets the edges of a triangle, within a tolerance.
+        /// </summary>
+        /// <param name="triangle">The triangle to test against.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(triangle, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        #endregion
     }
 }

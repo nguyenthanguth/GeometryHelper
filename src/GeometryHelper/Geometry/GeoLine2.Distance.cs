@@ -88,5 +88,14 @@ namespace GeometryHelper.Geometry
             => edge.IsArc
                 ? DistanceTo(edge.ToArc(), tolerance)
                 : DistanceTo(edge.ToLine(), tolerance);
+
+        #region Triangles
+
+        /// <summary>
+        /// Gets the distance from this segment to a triangle.
+        /// </summary>
+        public double DistanceTo(GeoTriangle2 triangle) => Triangle2.DistanceTo(triangle, this);
+
+        #endregion
     }
 }

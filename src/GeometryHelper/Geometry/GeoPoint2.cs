@@ -325,5 +325,19 @@ namespace GeometryHelper.Geometry
 
             return transform.Transform(this);
         }
+
+        #region Triangles
+
+        /// <summary>
+        /// Classifies where this point is with respect to a triangle, using the default tolerance.
+        /// </summary>
+        public PointLocation LocateIn(GeoTriangle2 triangle) => Containment2.Locate(triangle, this, Tolerance.Global);
+
+        /// <summary>
+        /// Classifies where this point is with respect to a triangle, within a tolerance.
+        /// </summary>
+        public PointLocation LocateIn(GeoTriangle2 triangle, Tolerance tolerance) => Containment2.Locate(triangle, this, tolerance);
+
+        #endregion
     }
 }
