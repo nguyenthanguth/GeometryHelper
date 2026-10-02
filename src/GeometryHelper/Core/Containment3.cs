@@ -527,7 +527,9 @@ namespace GeometryHelper.Core
         /// A hole's rim is as much an edge of the face as the outer one: a ray rising through a hole a hair short of its rim
         /// is held by the face within the tolerance, and counted as a crossing although it passes through no material
         /// there. Measured from the outer rim alone, such a crossing passed as a clean one, and a point of a plate whose
-        /// first ray left through the wall of a hole and rose that close to its far side came out of the plate.
+        /// first ray left through the wall of a hole and rose that close to its far side came out of the plate. A hole's rim
+        /// is measured in the plane of the boundary, as the face holds a point against it: a hole standing off that plane
+        /// put a crossing the face holds further from its rim in space than the band.
         /// </remarks>
         private static bool NearARim(GeoFace3 face, GeoPoint3 hit, double band, Tolerance tolerance)
         {
@@ -536,9 +538,11 @@ namespace GeometryHelper.Core
                 return true;
             }
 
+            GeoPlane3 plane = face.Boundary.GetPlane();
+
             foreach (GeoPolygon3 hole in face.Holes)
             {
-                if (Distance3.DistanceTo(Projection3.ProjectToPolygonBoundary(hole, hit, tolerance), hit) <= band)
+                if (DistanceInPlane(hole, plane, hit) <= band)
                 {
                     return true;
                 }
@@ -680,6 +684,19 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static PointLocation LocateInPlane(GeoPolygon3 ring, GeoPlane3 plane, GeoPoint3 point, Tolerance tolerance)
         {
+            if (DistanceInPlane(ring, plane, point) <= tolerance.EqualPoint)
+            {
+                return PointLocation.OnSide;
+            }
+
+            return IsInsideLoop(ring.Vertices, plane, point) ? PointLocation.Inside : PointLocation.OutSide;
+        }
+
+        /// <summary>
+        /// The distance from a point to the sides of a ring, both laid onto a plane, measured along it.
+        /// </summary>
+        private static double DistanceInPlane(GeoPolygon3 ring, GeoPlane3 plane, GeoPoint3 point)
+        {
             GeoVector3 normal = plane.Normal;
             GeoVector3 Laid(GeoPoint3 p)
             {
@@ -688,7 +705,7 @@ namespace GeometryHelper.Core
             }
 
             GeoVector3 at = Laid(point);
-            double reachSquared = tolerance.EqualPoint * tolerance.EqualPoint;
+            double nearestSquared = double.MaxValue;
             IReadOnlyList<GeoPoint3> corners = ring.Vertices;
 
             for (int i = 0; i < corners.Count; i++)
@@ -698,14 +715,10 @@ namespace GeometryHelper.Core
                 GeoVector3 toPoint = at.Subtract(a);
                 double lengthSquared = side.LengthSquared;
                 double t = lengthSquared > 0.0 ? Math.Max(0.0, Math.Min(1.0, toPoint.DotProduct(side) / lengthSquared)) : 0.0;
-
-                if (toPoint.Subtract(side.Multiply(t)).LengthSquared <= reachSquared)
-                {
-                    return PointLocation.OnSide;
-                }
+                nearestSquared = Math.Min(nearestSquared, toPoint.Subtract(side.Multiply(t)).LengthSquared);
             }
 
-            return IsInsideLoop(corners, plane, point) ? PointLocation.Inside : PointLocation.OutSide;
+            return Math.Sqrt(nearestSquared);
         }
 
         /// <summary>

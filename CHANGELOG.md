@@ -105,7 +105,9 @@ and 0.006 wide is covered within a tolerance of a ten-thousandth now.
 
 **FIXED.** `GeoSolid3.Locate` and `Contains` threw another ray when a crossing landed within twice the point tolerance of
 a face's outer rim, but not of the rim of one of its holes: a ray leaving through the wall of a hole and rising through
-the hole a hair short of its rim was counted by the face the hole is cut in, and the point came out of the body.
+the hole a hair short of its rim was counted by the face the hole is cut in, and the point came out of the body. The
+hole's rim is measured in the plane of the face, as the face holds a crossing against it, so that a hole standing off
+the face's plane within the planar tolerance is measured as one in it.
 
 **FIXED.** `GeoFace3.TrySplitBy` and `GeoSolid3.TrySplitBy` gave a hole back as a face of material when every corner of
 it stood on the rim of the piece it fell in, as a hole touching its face's boundary at two corners does when the cut runs
