@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Core;
@@ -89,6 +90,64 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(2, pieces.Count);
             Assert.All(pieces, piece => Assert.Equal(1000000.0, piece.Volume, 3));
+        }
+
+        [Fact]
+        public void TwoBlocksTouchingAlongAnEdgeStayTwoWhereTheirFacesAreCutDifferentlyAlongIt()
+        {
+            // The same two blocks, but where they meet, a face of each has a corner halfway up the line and a face of
+            // each runs past it, as merged faces leave them: two faces of the two blocks run end to end along the line,
+            // and so do the other two. Joined across the edges they share end to end, the blocks were one piece.
+            GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
+            GeoFace3 F(params GeoPoint3[] corners) => new GeoFace3(new GeoPolygon3(corners, Loose));
+
+            var faces = new[]
+            {
+                F(P(100, 0, 0), P(100, 100, 0), P(100, 100, 100), P(100, 0, 100)),
+                F(P(0, 100, 0), P(0, 100, 100), P(100, 100, 100), P(100, 100, 50), P(100, 100, 0)),
+                F(P(0, 0, 100), P(100, 0, 100), P(100, 100, 100), P(0, 100, 100)),
+                F(P(0, 0, 0), P(0, 0, 100), P(0, 100, 100), P(0, 100, 0)),
+                F(P(0, 0, 0), P(100, 0, 0), P(100, 0, 100), P(0, 0, 100)),
+                F(P(0, 0, 0), P(0, 100, 0), P(100, 100, 0), P(100, 0, 0)),
+
+                F(P(100, 100, 0), P(100, 100, 50), P(100, 100, 100), P(100, 200, 100), P(100, 200, 0)),
+                F(P(100, 100, 0), P(200, 100, 0), P(200, 100, 100), P(100, 100, 100)),
+                F(P(200, 100, 0), P(200, 200, 0), P(200, 200, 100), P(200, 100, 100)),
+                F(P(100, 200, 0), P(100, 200, 100), P(200, 200, 100), P(200, 200, 0)),
+                F(P(100, 100, 100), P(200, 100, 100), P(200, 200, 100), P(100, 200, 100)),
+                F(P(100, 100, 0), P(100, 200, 0), P(200, 200, 0), P(200, 100, 0)),
+            };
+
+            var two = new GeoSolid3(faces);
+
+            Assert.True(two.IsClosed(Loose));
+
+            var pieces = Shells3.Split(two, Loose);
+
+            Assert.Equal(2, pieces.Count);
+            Assert.All(pieces, piece => Assert.Equal(1000000.0, piece.Volume, 3));
+        }
+
+        [Fact]
+        public void ALongDrumAndAThinDiscAreSplitWithoutTryingEveryPairOfEdges()
+        {
+            // Edges are paired by a sweep along one axis, each tried against the edges it overlaps there. Along a long
+            // drum its long edges all overlap, and across a thin disc all of its edges do: swept so, each of these bodies
+            // of 4 096 sides took eleven seconds, against a few hundredths swept across.
+            Tolerance tolerance = Tolerance.Default;
+            GeoSolid3 drum = GeoSolid3.Cylinder(new GeoPoint3(0, 0, 0), new GeoPoint3(10000, 0, 0), 600, 4096, tolerance);
+            GeoSolid3 disc = GeoSolid3.Cylinder(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0), 600, 4096, tolerance);
+
+            var watch = Stopwatch.StartNew();
+            var drumPieces = Shells3.Split(drum, tolerance);
+            var discPieces = Shells3.Split(disc, tolerance);
+            watch.Stop();
+
+            Assert.Same(drum, Assert.Single(drumPieces));
+            Assert.Same(disc, Assert.Single(discPieces));
+
+            // Generous on purpose: this is a guard against trying every pair, not a benchmark.
+            Assert.True(watch.ElapsedMilliseconds < 5000, $"took {watch.ElapsedMilliseconds} ms");
         }
 
         [Fact]

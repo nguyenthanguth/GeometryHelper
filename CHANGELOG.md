@@ -135,6 +135,13 @@ from the first vertex now, as the planar internals already took theirs, and `Geo
 as an answer. No case has been seen to fail: 16 million random clips, open paths and coordinates up to 2E18 among them,
 never made the sweep fail.
 
+**CHANGED.** Separating a body into its pieces, as `GeoSolid3.SplitShells`, `Boolean3.SplitShells`, the booleans and the
+cells do, and `GeoSolid3.IsClosed` where edges do not meet end to end, pair the edges by a sweep along the axis that
+leaves the fewest pairs to try, instead of along X. Along X every edge of a body thin along it was tried against every
+other, and every long edge of a body long along it: a disc a millimetre thick and a drum ten metres long, of 4 096 sides
+each, took eleven seconds each and take four hundredths, and a drum cut into 800 slabs across its length took 42 s and
+takes 3.7 s. The pieces found are the same.
+
 **CHANGED.** The package depends on no other package. The clipping engine of Clipper2 2.0.0, which resolves the
 regions of the plane, is compiled in from its source, `src/GeometryHelper/Internal/Clipper`, instead of referenced as the
 Clipper2 package, so that it can be mended here. Only what GeometryHelper and its tests call is kept: the core, the
