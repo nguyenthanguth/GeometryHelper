@@ -3691,7 +3691,7 @@ namespace GeometryHelper.Clipper
 
     /// <summary>
     /// Runs the operation on the paths added and writes the closed and the open paths of the answer; false when the
-    /// sweep marked itself failed or threw. The paths added stay, for another run.
+    /// sweep marked itself failed or threw, with what was built until then. The paths added stay, for another run.
     /// </summary>
     public bool Execute(ClipType clipType, FillRule fillRule,
         Paths64 solutionClosed, Paths64 solutionOpen)
@@ -3852,21 +3852,22 @@ namespace GeometryHelper.Clipper
 
     /// <summary>
     /// Runs the operation and writes the closed and the open paths of the answer, scaled back to doubles; false, with
-    /// both lists left empty, when the sweep threw. Unlike Clipper64's, it does not report a sweep that marked itself
-    /// failed: what was built until then comes back.
+    /// both lists left empty, when the sweep marked itself failed or threw, as in Clipper2's C++. Clipper2 2.0.0's C#
+    /// answered true for a sweep that had marked itself failed, with what it had built until then; that is mended here.
     /// </summary>
     public bool Execute(ClipType clipType, FillRule fillRule,
         PathsD solutionClosed, PathsD solutionOpen)
     {
       Paths64 solClosed64 = new Paths64(), solOpen64 = new Paths64();
 
-      bool success = true;
+      bool success;
       solutionClosed.Clear();
       solutionOpen.Clear();
       try
       {
         ExecuteInternal(clipType, fillRule);
-        BuildPaths(solClosed64, solOpen64);
+        success = _succeeded;
+        if (success) BuildPaths(solClosed64, solOpen64);
       }
       catch
       {
@@ -3898,7 +3899,8 @@ namespace GeometryHelper.Clipper
 
     /// <summary>
     /// Runs the operation and writes the closed paths of the answer as a polytree of doubles, each hole under the outer
-    /// it lies in and each island under its hole, and the open paths as paths; false when the sweep threw.
+    /// it lies in and each island under its hole, and the open paths as paths; false, with nothing written, when the
+    /// sweep marked itself failed or threw.
     /// </summary>
     public bool Execute(ClipType clipType, FillRule fillRule, PolyTreeD polytree, PathsD openPaths)
     {
@@ -3907,18 +3909,23 @@ namespace GeometryHelper.Clipper
       _using_polytree = true;
       (polytree as PolyPathD).Scale = _scale;
       Paths64 oPaths = new Paths64();
-      bool success = true;
+      bool success;
       try
       {
         ExecuteInternal(clipType, fillRule);
-        BuildTree(polytree, oPaths);
+        success = _succeeded;
+        if (success) BuildTree(polytree, oPaths);
       }
       catch
       {
         success = false;
       }
       ClearSolutionOnly();
-      if (!success) return false;
+      if (!success)
+      {
+        polytree.Clear();
+        return false;
+      }
       if (oPaths.Count <= 0) return true;
       openPaths.EnsureCapacity(oPaths.Count);
       foreach (Path64 path in oPaths)

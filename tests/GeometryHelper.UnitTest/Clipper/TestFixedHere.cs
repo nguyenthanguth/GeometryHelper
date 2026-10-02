@@ -94,5 +94,55 @@ namespace GeometryHelper.UnitTest.Clipper
 
         private static int Side(Point64 from, Point64 to, Point64 point)
             => Math.Sign((to.X - from.X) * (point.Y - from.Y) - (to.Y - from.Y) * (point.X - from.X));
+
+        /// <summary>
+        /// ClipperD answered true for a sweep that had marked itself failed, with what it had built until then, where
+        /// Clipper64 and Clipper2's C++ answer false.
+        /// </summary>
+        [Fact]
+        public void ClipperD_ASweepThatFailed_AnswersFalse_WithNothing()
+        {
+            Clipper64 integers = new Clipper64();
+            integers.AddReuseableData(DataTheSweepFailsOn());
+            Assert.False(integers.Execute(ClipType.Difference, FillRule.Negative, new Paths64()));
+
+            PathsD closed = new PathsD(), open = new PathsD();
+            Assert.False(new ReusingClipperD(DataTheSweepFailsOn()).Execute(ClipType.Difference, FillRule.Negative, closed, open));
+            Assert.Empty(closed);
+            Assert.Empty(open);
+
+            PolyTreeD tree = new PolyTreeD();
+            Assert.False(new ReusingClipperD(DataTheSweepFailsOn()).Execute(ClipType.Difference, FillRule.Negative, tree, open));
+            Assert.Equal(0, tree.Count);
+            Assert.Empty(open);
+        }
+
+        /// <summary>
+        /// A loop crossing itself, made reusable data, with its local minimum at (5,5) then marked as a clip, which no
+        /// path added the usual way can give. The sweep cannot pair that minimum's bounds with the rest of the loop and
+        /// marks itself failed, without throwing; paths added the usual way have not made it fail once in sixteen
+        /// million random clips.
+        /// </summary>
+        private static ReuseableDataContainer64 DataTheSweepFailsOn()
+        {
+            ReuseableDataContainer64 data = new ReuseableDataContainer64();
+            data.AddPaths(new Paths64 { Clipper2.MakePath(new long[] { 5, 1, 0, 4, 4, 3, 5, 5, 3, 1, 6, 6 }) }, PathType.Subject, false);
+
+            int at = data._minimaList.FindIndex(m => m.vertex.pt == new Point64(5, 5));
+            LocalMinima minimum = data._minimaList[at];
+            data._minimaList[at] = new LocalMinima(minimum.vertex, PathType.Clip, minimum.isOpen);
+            return data;
+        }
+
+        /// <summary>
+        /// A ClipperD that starts from reusable data, which only Clipper64 takes otherwise.
+        /// </summary>
+        private sealed class ReusingClipperD : ClipperD
+        {
+            public ReusingClipperD(ReuseableDataContainer64 data) : base(0)
+            {
+                AddReuseableData(data);
+            }
+        }
     }
 }
