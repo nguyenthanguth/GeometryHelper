@@ -157,8 +157,11 @@ namespace GeometryHelper.Geometry
         /// Gets the total area of the bounding faces, without counting the openings.
         /// </summary>
         /// <remarks>
-        /// Each face's area as its outline gives it. <see cref="Measure3.SurfaceArea(GeoSolid3, Enums.AreaMethod, Tolerance)"/>
-        /// gives the material's, the walls of its openings included, and measures it other ways too.
+        /// Each face's area as its outline gives it: the true area of a body without openings, as every part
+        /// GeometryHelper.TeklaConvert reads is, its cuts and holes in its faces. A slab cut by five other parts matched
+        /// Tekla's AREA to five parts in a million million. Where a body carries openings,
+        /// <see cref="Measure3.SurfaceArea(GeoSolid3, Enums.AreaMethod, Tolerance)"/> gives its material's, the walls of
+        /// its openings included, and measures it other ways too.
         /// </remarks>
         public double SurfaceArea
         {
@@ -186,41 +189,19 @@ namespace GeometryHelper.Geometry
         /// result is reported unsigned so that faces wound inwards give the same answer as faces wound
         /// outwards; a shell that does not close gives a number with no meaning either way.
         /// <para>
+        /// It is the true volume of a body without openings, as every part GeometryHelper.TeklaConvert reads is, its cuts
+        /// and holes in its faces: a slab cut by five other parts matched Tekla's VOLUME_NET to five parts in a million
+        /// million. Where a body carries openings, <see cref="GetNetVolume()"/> and
+        /// <see cref="Measure3.Volume(GeoSolid3, Enums.VolumeMethod, Tolerance)"/> cut them in and measure what is left.
+        /// </para>
+        /// <para>
         /// Each face is taken as the fan of its boundary from its first corner, which is exact for a flat face and the
-        /// quickest. <see cref="Measure3"/> measures the volume other ways too, of the material or of the faces, and sets
-        /// the ways side by side where a face a hair out of flat makes them part.
+        /// quickest, and the way Tekla Structures reports a part's volume. <see cref="Measure3"/> measures the volume
+        /// other ways too, of the material or of the faces, and sets the ways side by side where a face a hair out of flat
+        /// makes them part.
         /// </para>
         /// </remarks>
         public double Volume => Math.Abs(GetSignedVolume());
-
-        /// <summary>
-        /// Gets the volume left after subtracting every opening, reading each opening whole.
-        /// </summary>
-        /// <remarks>
-        /// This is a sum, not a subtraction of shapes: the volume of every opening is taken off in full,
-        /// whether or not all of it lies in the body. That makes it cheap and exact for an opening that
-        /// sits inside the body, and an overestimate of what has been removed for one that pokes out —
-        /// which is how a through-hole is usually drawn, deliberately overshooting so that it clears the
-        /// far face. Two openings that overlap each other are counted twice for the same reason.
-        /// <para>
-        /// Use <see cref="GetNetVolume()"/> where either of those can happen. It cuts the openings out of
-        /// the body properly and measures what is left, at the cost of doing the cutting.
-        /// </para>
-        /// </remarks>
-        public double NetVolume
-        {
-            get
-            {
-                double volume = Volume;
-
-                foreach (GeoSolid3 opening in _openings)
-                {
-                    volume -= opening.Volume;
-                }
-
-                return Math.Max(0.0, volume);
-            }
-        }
 
         /// <summary>
         /// Gets the volume of the material actually left once every opening is cut out, using the default
@@ -235,15 +216,14 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance the cutting is carried out with.</param>
         /// <returns>The volume of the body with its openings removed, or zero when nothing is left.</returns>
         /// <remarks>
-        /// Unlike <see cref="NetVolume"/> this removes the openings as shapes rather than as numbers, so
-        /// the part of an opening reaching outside the body costs nothing and two openings overlapping
-        /// each other are not counted twice. The openings are taken out one after another, so each is
-        /// measured against what the ones before it left.
+        /// The openings are removed as shapes, not as numbers: the part of an opening reaching outside the
+        /// body costs nothing, as a through hole drawn past the faces it runs between does, and two openings
+        /// overlapping each other are not counted twice. The openings are taken out one after another, so
+        /// each is measured against what the ones before it left.
         /// <para>
-        /// The cutting is a full boolean subtraction per opening, which is why this is a method and
-        /// <see cref="NetVolume"/> is a property. An opening that cannot be cut out is taken whole, which
-        /// falls back to what <see cref="NetVolume"/> would have said for it rather than abandoning the
-        /// measurement.
+        /// The cutting is a full boolean subtraction per opening, which is why this is a method and takes a
+        /// tolerance. An opening that cannot be cut out has its whole volume taken off, rather than the
+        /// measurement abandoned.
         /// </para>
         /// </remarks>
         public double GetNetVolume(Tolerance tolerance)
@@ -580,8 +560,8 @@ namespace GeometryHelper.Geometry
         /// </para>
         /// <para>
         /// The answer holds the same material, so its <see cref="Volume"/> is what
-        /// <see cref="GetNetVolume()"/> measures — not the cheaper <see cref="NetVolume"/>, which takes every
-        /// opening off whole and so overcounts one drawn poking out past a face, as a through-hole usually is.
+        /// <see cref="GetNetVolume()"/> measures, an opening drawn past a face, as a through hole usually is, taking
+        /// off only what lies in the body.
         /// </para>
         /// </remarks>
         public bool TryCutOpenings(out GeoSolid3 material, Tolerance tolerance) => Boolean3.TryCutOpenings(this, out material, tolerance);
@@ -967,15 +947,9 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public override string ToString()
         {
-            double volume = Volume;
-            double net = volume;
-
-            foreach (GeoSolid3 opening in _openings)
-            {
-                net -= opening.Volume;
-            }
-
-            return $"Solid3(Faces: {_faces.Length}, Volume: {volume:0.###}, NetVolume: {Math.Max(0.0, net):0.###})";
+            return _openings.Length == 0
+                ? $"Solid3(Faces: {_faces.Length}, Volume: {Volume:0.###})"
+                : $"Solid3(Faces: {_faces.Length}, Openings: {_openings.Length}, Volume: {Volume:0.###})";
         }
 
         #region Combining with a body

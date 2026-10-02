@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**BREAKING.** `GeoSolid3.NetVolume` is removed. It took each opening's whole volume off the body's, so an opening drawn
+past the body, as a through hole is, took off what is not there, and two that overlap took their overlap off twice: a
+plate with a hole drawn a millimetre past each face measured 191 200 for 192 000. The volume of the material is
+`GetNetVolume()`, or `Measure3.Volume` and `Measure3.Mass`, which cut the openings in. `Volume` and `SurfaceArea` are
+those of the faces, which are the body's own where it has no openings, as every part GeometryHelper.TeklaConvert reads
+has none, its cuts and holes in its faces: a slab cut by five other parts matched Tekla's VOLUME_NET to 5E-12 and its
+AREA to 5E-12. `GeoSolid3.ToString` names the openings rather than taking their volumes off.
+
 **NEW.** `GeoTriangle2`, the triangle of the plane, as `GeoTriangle3` is the triangle of space: its signed area and
 winding, perimeter, centroid, angles, circumcircle and incircle, barycentric coordinates, where a point is, moves and
 transforms, and its way into space and back (`ToTriangle3`, `GeoTriangle3.ProjectToTriangle2`, `PlanarMap`). It

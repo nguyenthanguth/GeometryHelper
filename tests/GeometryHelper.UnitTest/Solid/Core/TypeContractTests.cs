@@ -154,7 +154,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 before = body.Clone();
 
             // Everything that measures, tests or meshes the body, run once each.
-            double _ = body.Volume + body.SurfaceArea + body.NetVolume;
+            double _ = body.Volume + body.SurfaceArea + body.GetNetVolume();
             body.GetAabb();
             body.Centroid.ToString();
             body.IsClosed();

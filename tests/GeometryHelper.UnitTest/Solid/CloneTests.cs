@@ -134,7 +134,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.NotSame(original.Faces[0], copy.Faces[0]);
             Assert.Equal(original.Faces.Count, copy.Faces.Count);
             Assert.Equal(original.Openings.Count, copy.Openings.Count);
-            Assert.Equal(original.NetVolume, copy.NetVolume, 6);
+            Assert.Equal(original.GetNetVolume(), copy.GetNetVolume(), 6);
         }
 
         [Fact]

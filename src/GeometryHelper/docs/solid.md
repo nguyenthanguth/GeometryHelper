@@ -167,9 +167,9 @@ GeoSolid3 duct = new GeoAabb3(new GeoPoint3(4, 4, 4), new GeoPoint3(6, 6, 6)).To
 
 GeoSolid3 pierced = slab.WithOpenings(new[] { duct });
 
-pierced.Volume;     // 1000 — the gross body
-pierced.NetVolume;  //  992 — with the duct removed
-pierced.IsClosed(); // true
+pierced.Volume;          // 1000 — the faces, duct and all
+pierced.GetNetVolume();  //  992 — the duct cut out
+pierced.IsClosed();      // true
 
 pierced.Locate(new GeoPoint3(1, 1, 1)); // Inside
 pierced.Locate(new GeoPoint3(5, 5, 5)); // OutSide — inside the duct

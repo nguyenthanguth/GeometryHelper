@@ -138,7 +138,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(1000.0, cube.Volume, 6);
             Assert.Equal(600.0, cube.SurfaceArea, 6);
-            Assert.Equal(1000.0, cube.NetVolume, 6);
+            Assert.Equal(1000.0, cube.GetNetVolume(), 6);
         }
 
         [Fact]
@@ -220,7 +220,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 withOpening = slab.WithOpenings(new[] { duct });
 
             Assert.Equal(1000.0, withOpening.Volume, 6);
-            Assert.Equal(1000.0 - 8.0, withOpening.NetVolume, 6);
+            Assert.Equal(1000.0 - 8.0, withOpening.GetNetVolume(), 6);
         }
 
         [Fact]

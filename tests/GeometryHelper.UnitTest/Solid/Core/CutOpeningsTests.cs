@@ -41,10 +41,6 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Two roads to the same material: one subtraction per opening, and one cut of them all.
             Assert.Equal(plate.GetNetVolume(), material.Volume, 6);
-
-            // The cheap property takes the opening off whole, overshoot and all, which is exactly why it is
-            // not the one to compare against.
-            Assert.Equal(100.0 * 100 * 20 - 20.0 * 20 * 22, plate.NetVolume, 6);
         }
 
         [Fact]

@@ -213,25 +213,17 @@ namespace GeometryHelper.UnitTest.Solid
         #region Net volume
 
         [Fact]
-        public void NetVolume_TakesAProtrudingOpeningOffWhole()
-        {
-            // Documented behaviour: the opening is 2 x 2 x 4 and all of it is deducted, though only
-            // 2 x 2 x 2 of it lies in the slab.
-            Assert.Equal(184.0, SlabWithDuct().NetVolume, 9);
-        }
-
-        [Fact]
         public void GetNetVolume_ClipsAProtrudingOpeningToTheBody()
         {
+            // The opening is 2 x 2 x 4 and only 2 x 2 x 2 of it lies in the slab.
             Assert.Equal(192.0, SlabWithDuct().GetNetVolume(), 9);
         }
 
         [Fact]
-        public void GetNetVolume_AgreesWithNetVolume_WhenTheOpeningSitsInsideTheBody()
+        public void GetNetVolume_TakesAnOpeningInsideTheBodyOffWhole()
         {
             GeoSolid3 slab = Box(0, 0, 0, 10, 10, 4).WithOpenings(new[] { Box(4, 4, 1, 6, 6, 3) });
 
-            Assert.Equal(392.0, slab.NetVolume, 9);
             Assert.Equal(392.0, slab.GetNetVolume(), 9);
         }
 
@@ -246,9 +238,6 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Two 4 x 4 x 2 openings sharing a 2 x 2 x 2 corner: 32 + 32 - 8 = 56 is really removed.
             Assert.Equal(400.0 - 56.0, slab.GetNetVolume(), 9);
-
-            // The cheap sum double-counts the shared corner.
-            Assert.Equal(400.0 - 64.0, slab.NetVolume, 9);
         }
 
         [Fact]
