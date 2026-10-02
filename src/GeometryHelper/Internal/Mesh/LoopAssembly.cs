@@ -492,8 +492,23 @@ namespace GeometryHelper.Core
         /// still cancels. See <see cref="SplitAtEdgeEnds"/>.
         /// </para>
         /// </remarks>
-        internal static void CancelOpposedEdges(List<GeoLine3> edges, Tolerance tolerance)
+        internal static void CancelOpposedEdges(List<GeoLine3> edges, Tolerance tolerance) => CancelOpposedEdges(edges, tolerance, out _);
+
+        /// <summary>
+        /// Removes pairs of edges that run the same stretch in opposite directions, and says how far apart the ends of two
+        /// that cancelled stood at the most.
+        /// </summary>
+        /// <param name="edges">The edges, changed in place.</param>
+        /// <param name="tolerance">The tolerance the ends of two edges that cancel meet within.</param>
+        /// <param name="widest">
+        /// The farthest the end of an edge stood from the start of the edge cancelling it, or its start from that one's end;
+        /// nought when none cancelled. One edge run both ways by the two faces sharing it gives the rounding of the points
+        /// a cut put on it; two edges a hair apart, the two sides of a sliver, give the sliver's width.
+        /// </param>
+        /// <remarks>See <see cref="CancelOpposedEdges(List{GeoLine3}, Tolerance)"/>.</remarks>
+        internal static void CancelOpposedEdges(List<GeoLine3> edges, Tolerance tolerance, out double widest)
         {
+            widest = 0.0;
             SplitAtEdgeEnds(edges, tolerance);
 
             bool[] dropped = new bool[edges.Count];
@@ -531,6 +546,7 @@ namespace GeometryHelper.Core
                     {
                         dropped[i] = true;
                         dropped[j] = true;
+                        widest = Math.Max(widest, Math.Max(edges[i].StartPoint.DistanceTo(edges[j].EndPoint), edges[i].EndPoint.DistanceTo(edges[j].StartPoint)));
                         break;
                     }
                 }

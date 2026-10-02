@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using GeometryHelper.Core;
 
 namespace GeometryHelper.Geometry
@@ -47,28 +46,11 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The material is cut, so a hole the plane passes through is a hole in the section, and a body in two
         /// pieces gives two faces. A plane lying along a face of the body touches it without cutting it, and gives
-        /// nothing.
+        /// nothing there: the section is where the body has material on both sides of the plane.
         /// </remarks>
         public GeoFace3[] Section(GeoPlane3 plane, Tolerance tolerance)
         {
-            GeoSolid3 material = Material3.Whole(this, tolerance);
-
-            if (!Splition3.TrySplitBy(material, plane, out _, out GeoSolid3 below, tolerance))
-            {
-                return new GeoFace3[0];
-            }
-
-            var cut = new List<GeoFace3>();
-
-            foreach (GeoFace3 face in below.Faces)
-            {
-                if (face.Boundary.Normal.DotProduct(plane.Normal) > 0.0 && Boolean3.LiesIn(plane, face, tolerance))
-                {
-                    cut.Add(face);
-                }
-            }
-
-            return cut.ToArray();
+            return Splition3.Section(Material3.Whole(this, tolerance), plane, tolerance);
         }
 
         #endregion

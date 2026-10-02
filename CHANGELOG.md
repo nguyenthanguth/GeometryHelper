@@ -76,7 +76,15 @@ material, one on its rim inside too. The holes are read in the plane of the boun
 
 **FIXED.** `GeoSolid3.TrySplitBy` refused a plane that parts a body without crossing it: one passing between two blocks
 of one body, or along the edge where two parts of a body meet, as a body cut through the corner of its notch touches
-itself. Each half is closed as it is, and was taken for one the plane misses. It is split now, with nothing to cap.
+itself. Each half is closed as it is, and was taken for one the plane misses. It is split now, with nothing to cap. A
+plane crossing a body where it is thinner than the point tolerance is still refused, as before: the two sides of the
+section stand within the tolerance of each other and their edges cancel as one edge run both ways would, but they are
+two edges, and the halves would be open by the sliver between them.
+
+**FIXED.** `GeoSolid3.Section` gave, with the section, the face a plane lies along where it also cuts the body, and only
+when the plane faced away from the material there: along the floor of an L's notch, facing up it gave the floor with the
+arm it cuts, facing down the arm alone; between two blocks standing on each other it gave all of the lower block's top.
+It gives where the body has material on both sides of the plane now, as it says, whichever way the plane faces.
 
 **FIXED.** `GeoSolid3.Locate` and `Contains` threw another ray when a crossing landed within twice the point tolerance of
 a face's outer rim, but not of the rim of one of its holes: a ray leaving through the wall of a hole and rising through

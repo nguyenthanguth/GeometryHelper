@@ -297,6 +297,43 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void APlaneTouchingABodyInTwoPartsAlongAFaceGivesNoSection()
+        {
+            // The plane parts the two blocks, lying along the top of the lower: it cuts no material, whichever way it faces.
+            var both = new GeoSolid3(Box(0, 0, 0, 1000, 1000, 1000).Faces.Concat(Box(0, 0, 2000, 1000, 1000, 3000).Faces));
+
+            Assert.Empty(both.Section(new GeoPlane3(new GeoPoint3(0, 0, 1000), GeoVector3.ZAxis)));
+            Assert.Empty(both.Section(new GeoPlane3(new GeoPoint3(0, 0, 1000), GeoVector3.ZAxis.Negate())));
+        }
+
+        [Fact]
+        public void APlaneAlongTheFloorOfANotchGivesOnlyWhatItCuts()
+        {
+            // An L in plan: the plane y = 1000 cuts the arm at x 0..1000 and lies along the floor of the notch beyond it.
+            var plan = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(2000, 0, 0), new GeoPoint3(2000, 1000, 0), new GeoPoint3(1000, 1000, 0), new GeoPoint3(1000, 2000, 0), new GeoPoint3(0, 2000, 0) };
+            GeoSolid3 ell = GeoSolid3.Extrude(new GeoPolygon3(plan), new GeoVector3(0, 0, 500));
+
+            foreach (GeoVector3 facing in new[] { GeoVector3.YAxis, GeoVector3.YAxis.Negate() })
+            {
+                GeoFace3 cut = Assert.Single(ell.Section(new GeoPlane3(new GeoPoint3(0, 1000, 0), facing)));
+                Assert.Equal(1000.0 * 500, cut.Area, 6);
+                Assert.Equal(1.0, cut.Boundary.Normal.DotProduct(facing), 9);
+                Assert.All(cut.Boundary.Vertices, p => Assert.InRange(p.X, -1E-9, 1000 + 1E-9));
+            }
+        }
+
+        [Fact]
+        public void APlaneBetweenTwoBlocksStandingOnEachOtherGivesWhereTheyMeet()
+        {
+            // The upper block stands half over the lower: the plane between them has material on both sides only there.
+            var stacked = new GeoSolid3(Box(0, 0, 0, 1000, 1000, 1000).Faces.Concat(Box(500, 0, 1000, 1500, 1000, 2000).Faces));
+            GeoFace3 cut = Assert.Single(stacked.Section(new GeoPlane3(new GeoPoint3(0, 0, 1000), GeoVector3.ZAxis)));
+
+            Assert.Equal(500.0 * 1000, cut.Area, 6);
+            Assert.All(cut.Boundary.Vertices, p => Assert.Equal(1000.0, p.Z, 9));
+        }
+
+        [Fact]
         public void ACubeCutOnTheSlantGivesItsDiagonalSection()
         {
             var slant = new GeoPlane3(new GeoPoint3(50, 50, 50), new GeoVector3(1, 1, 0));

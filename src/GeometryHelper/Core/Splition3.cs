@@ -1090,7 +1090,9 @@ namespace GeometryHelper.Core
         /// A plane that parts a body without crossing any of it — between two blocks of one body, or along the
         /// edge where two parts of it meet, as a body cut through a corner of its notch touches itself — leaves
         /// every edge on the plane run both ways within each half. Each half is closed as it is, and the body is
-        /// split with nothing to cap; it was taken before for a plane that misses the body.
+        /// split with nothing to cap. A plane crossing the body where it is thinner than the point tolerance leaves
+        /// the two sides of the section within the tolerance of each other, and their edges cancel too; but they are
+        /// two edges, not one, and the halves would be open by the sliver between them, so the body is not split.
         /// </para>
         /// </remarks>
         public static bool TrySplitBy(GeoSolid3 solid, GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below, Tolerance tolerance)
@@ -1103,8 +1105,183 @@ namespace GeometryHelper.Core
             above = solid;
             below = solid;
 
-            List<GeoFace3> upperFaces = new List<GeoFace3>();
-            List<GeoFace3> lowerFaces = new List<GeoFace3>();
+            if (!TryCut(solid, cutter, tolerance, out List<GeoFace3> upperFaces, out List<GeoFace3> lowerFaces, out List<GeoFace3> upperCaps, out List<GeoFace3> lowerCaps, out _))
+            {
+                return false;
+            }
+
+            upperFaces.AddRange(upperCaps);
+            lowerFaces.AddRange(lowerCaps);
+
+            SplitOpenings(solid, cutter, tolerance, out List<GeoSolid3> upperOpenings, out List<GeoSolid3> lowerOpenings);
+
+            above = new GeoSolid3(upperFaces, upperOpenings);
+            below = new GeoSolid3(lowerFaces, lowerOpenings);
+            return true;
+        }
+
+        /// <summary>
+        /// Gets where a plane cuts a body's faces: the faces closing the half below it, facing along the plane's normal,
+        /// where the body has material on both sides of the plane.
+        /// </summary>
+        /// <param name="solid">The body, closed and wound outwards; its openings are not read.</param>
+        /// <param name="cutter">The cutting plane.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>One face per region of the cut; none where the plane misses the body, only grazes it, or parts it.</returns>
+        /// <remarks>
+        /// Each half is capped where the plane meets it, and the halves meet the plane over the same area wherever the plane
+        /// crosses the body. Where it lies along a face of the body, the half that face bounds is capped there and the other
+        /// is not: the section is what both caps cover. A half with no cap at all, as a plane between two blocks of a body
+        /// leaves, makes no section.
+        /// </remarks>
+        internal static GeoFace3[] Section(GeoSolid3 solid, GeoPlane3 cutter, Tolerance tolerance)
+        {
+            if (!TryCut(solid, cutter, tolerance, out _, out _, out List<GeoFace3> upperCaps, out List<GeoFace3> lowerCaps, out bool along)
+                || upperCaps.Count == 0 || lowerCaps.Count == 0)
+            {
+                return new GeoFace3[0];
+            }
+
+            // With no face of the body in the plane, every edge the cut leaves bounds both halves, and the two caps are one.
+            return along ? Common(lowerCaps, upperCaps, cutter, tolerance) : lowerCaps.ToArray();
+        }
+
+        /// <summary>
+        /// What the caps of the half below a plane and of the half above both cover, facing along the plane's normal.
+        /// </summary>
+        private static GeoFace3[] Common(List<GeoFace3> lowerCaps, List<GeoFace3> upperCaps, GeoPlane3 cutter, Tolerance tolerance)
+        {
+            var frame = new GeoCoordinateSystem3(cutter);
+            var common = new List<GeoFace3>();
+
+            foreach (GeoFace3 lower in lowerCaps)
+            {
+                GeoFace2 a = LaidOut(lower, frame);
+
+                if (a == null)
+                {
+                    continue;
+                }
+
+                foreach (GeoFace3 upper in upperCaps)
+                {
+                    GeoFace2 b = LaidOut(upper, frame);
+
+                    if (b == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (GeoFace2 both in Boolean2.Intersect(a, b, tolerance))
+                    {
+                        GeoPolygon3 boundary = Lifted(both.Boundary, frame);
+
+                        if (boundary == null)
+                        {
+                            continue;
+                        }
+
+                        var holes = new List<GeoPolygon3>(both.Holes.Count);
+
+                        foreach (GeoPolygon2 hole in both.Holes)
+                        {
+                            GeoPolygon3 lifted = Lifted(hole, frame);
+
+                            if (lifted != null)
+                            {
+                                holes.Add(lifted);
+                            }
+                        }
+
+                        common.Add(new GeoFace3(boundary, holes, tolerance));
+                    }
+                }
+            }
+
+            return common.ToArray();
+        }
+
+        /// <summary>
+        /// A face lying in the plane of a frame laid out in it, each ring counter-clockwise; null when the boundary encloses
+        /// nothing there.
+        /// </summary>
+        private static GeoFace2 LaidOut(GeoFace3 face, GeoCoordinateSystem3 frame)
+        {
+            GeoPolygon2 boundary = CounterClockwise(MeshLift3.LayOutPolygon(MeshLift3.LayOut(frame, face.Boundary.Vertices)));
+
+            if (boundary == null)
+            {
+                return null;
+            }
+
+            var holes = new List<GeoPolygon2>(face.Holes.Count);
+
+            foreach (GeoPolygon3 hole in face.Holes)
+            {
+                GeoPolygon2 laid = CounterClockwise(MeshLift3.LayOutPolygon(MeshLift3.LayOut(frame, hole.Vertices)));
+
+                if (laid != null)
+                {
+                    holes.Add(laid);
+                }
+            }
+
+            return new GeoFace2(boundary, holes);
+        }
+
+        private static GeoPolygon2 CounterClockwise(GeoPolygon2 polygon) => polygon != null && polygon.SignedArea < 0.0 ? polygon.Reverse() : polygon;
+
+        /// <summary>
+        /// A ring of the plane of a frame put back into space, facing along the frame's Z axis; null when it encloses
+        /// nothing.
+        /// </summary>
+        private static GeoPolygon3 Lifted(GeoPolygon2 ring, GeoCoordinateSystem3 frame)
+        {
+            GeoPolygon2 counter = CounterClockwise(ring);
+            double area = counter.SignedArea;
+
+            if (!(area > 0.0))
+            {
+                return null;
+            }
+
+            var corners = new GeoPoint3[counter.VertexCount];
+
+            for (int i = 0; i < corners.Length; i++)
+            {
+                corners[i] = frame.ToGlobal(new GeoPoint3(counter[i].X, counter[i].Y, 0.0));
+            }
+
+            return GeoPolygon3.FromValidated(corners, frame.ZAxis, area);
+        }
+
+        /// <summary>
+        /// Cuts every face of a body by a plane and caps each half from its own rim.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="cutter">The cutting plane.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="upperFaces">The faces and pieces of faces on the side the normal points to, caps left out.</param>
+        /// <param name="lowerFaces">Those on the other side.</param>
+        /// <param name="upperCaps">The faces closing the half above; none where it touches the plane over no area.</param>
+        /// <param name="lowerCaps">The faces closing the half below.</param>
+        /// <param name="along">Whether a face of the body lies in the plane.</param>
+        /// <returns>false when the plane misses the body or only grazes it, or a half's rim does not close.</returns>
+        private static bool TryCut(
+            GeoSolid3 solid,
+            GeoPlane3 cutter,
+            Tolerance tolerance,
+            out List<GeoFace3> upperFaces,
+            out List<GeoFace3> lowerFaces,
+            out List<GeoFace3> upperCaps,
+            out List<GeoFace3> lowerCaps,
+            out bool along)
+        {
+            upperFaces = new List<GeoFace3>();
+            lowerFaces = new List<GeoFace3>();
+            upperCaps = null;
+            lowerCaps = null;
+            along = false;
             Tolerance pieces = LoopAssembly.ForPieces(tolerance);
 
             foreach (GeoFace3 face in solid.Faces)
@@ -1113,6 +1290,7 @@ namespace GeometryHelper.Core
                 {
                     case FaceCut.InPlane:
                         // A face lying in the cutting plane belongs to neither side: the cap replaces it.
+                        along = true;
                         break;
 
                     case FaceCut.Above:
@@ -1144,29 +1322,17 @@ namespace GeometryHelper.Core
             // rims usually describe the same shape, but not when the cutting plane holds a face of the body
             // already: there the two halves meet the plane over different areas, and one cap cannot serve
             // for both. Cutting an L-shaped prism along the plane of its own notch is exactly that case.
-            if (!TryBuildCaps(upperFaces, cutter, cutter.Normal.Negate(), tolerance, pieces, out List<GeoFace3> upperCaps))
+            if (!TryBuildCaps(upperFaces, cutter, cutter.Normal.Negate(), tolerance, pieces, out upperCaps))
             {
                 return false;
             }
 
-            if (!TryBuildCaps(lowerFaces, cutter, cutter.Normal, tolerance, pieces, out List<GeoFace3> lowerCaps))
+            if (!TryBuildCaps(lowerFaces, cutter, cutter.Normal, tolerance, pieces, out lowerCaps))
             {
                 return false;
             }
 
-            upperFaces.AddRange(upperCaps);
-            lowerFaces.AddRange(lowerCaps);
-
-            if (upperFaces.Count < 4 || lowerFaces.Count < 4)
-            {
-                return false;
-            }
-
-            SplitOpenings(solid, cutter, tolerance, out List<GeoSolid3> upperOpenings, out List<GeoSolid3> lowerOpenings);
-
-            above = new GeoSolid3(upperFaces, upperOpenings);
-            below = new GeoSolid3(lowerFaces, lowerOpenings);
-            return true;
+            return upperFaces.Count + upperCaps.Count >= 4 && lowerFaces.Count + lowerCaps.Count >= 4;
         }
 
         /// <summary>
@@ -1218,8 +1384,9 @@ namespace GeometryHelper.Core
         /// <param name="pieces">The tolerance the caps are built within; see <see cref="LoopAssembly.ForPieces"/>.</param>
         /// <param name="caps">The faces closing the half.</param>
         /// <returns>
-        /// false when the edges left by the cut do not close into loops; true with no caps when the half has no edge on the
-        /// plane its own faces do not run both ways.
+        /// false when the edges left by the cut do not close into loops, or cancel only as the two sides of a sliver thinner
+        /// than the point tolerance do; true with no caps when the half has no edge on the plane its own faces do not run
+        /// both ways.
         /// </returns>
         private static bool TryBuildCaps(List<GeoFace3> halfFaces, GeoPlane3 cutter, GeoVector3 outward, Tolerance tolerance, Tolerance pieces, out List<GeoFace3> caps)
         {
@@ -1249,13 +1416,25 @@ namespace GeometryHelper.Core
                 }
             }
 
-            LoopAssembly.CancelOpposedEdges(edges, tolerance);
+            int found = edges.Count;
+            double scale = 0.0;
 
-            // Every edge the half has on the plane run both ways by its own faces: the plane passes between parts of the
-            // body, or along the edge where two parts meet, and the half is closed as it is, with nothing to cap.
+            foreach (GeoLine3 edge in edges)
+            {
+                GeoPoint3 start = edge.StartPoint;
+                scale = Math.Max(scale, Math.Max(Math.Abs(start.X), Math.Max(Math.Abs(start.Y), Math.Abs(start.Z))));
+            }
+
+            LoopAssembly.CancelOpposedEdges(edges, tolerance, out double widest);
+
             if (edges.Count == 0)
             {
-                return true;
+                // Every edge the half has on the plane run both ways by its own faces: the plane passes between parts of
+                // the body, or along the edge where two parts meet, and the half is closed as it is, with nothing to cap.
+                // Two faces sharing an edge run it both ways but for the rounding of the points the cut put on it, which
+                // grows with how far out the body lies; two edges further apart are the two sides of a section thinner
+                // than the point tolerance, and the half is open there by a sliver no cap can close.
+                return found == 0 || widest <= Math.Max(1E-9, 1E-13 * scale);
             }
 
             if (edges.Count < 3)
