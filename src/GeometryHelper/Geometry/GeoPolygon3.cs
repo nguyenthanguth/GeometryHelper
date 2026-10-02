@@ -168,7 +168,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// For the faces of a mesh, which keep slivers a tolerance would refuse and are known to be flat: what the public
-        /// constructor would measure is measured already.
+        /// constructor would measure is measured already. And for the cap of a cut, which lies in the cutting plane and
+        /// faces along its normal, where the normal of its own corners can stand off it.
         /// </remarks>
         internal static GeoPolygon3 FromValidated(GeoPoint3[] validatedVertices, GeoVector3 normal, double area)
             => new GeoPolygon3(validatedVertices, normal, area);

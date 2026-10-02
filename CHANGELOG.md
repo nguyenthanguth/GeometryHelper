@@ -110,6 +110,14 @@ tolerance: from a corner a hair one way, one a hair the other stands off by twic
 belonged to could not close, and a piece of a turned column with a ledge, 0.0146 out of flat so measured, was not cut. A
 piece can be no further out of flat than the face it is cut from, and is built within three times the planar tolerance.
 
+**FIXED.** `GeoSolid3.TrySplitBy`, `GeoSolid3.Section` and the cells cut from a body refused a plane through a corner of
+the body and within the planar tolerance of another: the cap closing each half was built from its corners as any polygon
+is, measured from a corner of its own about the normal of its corners, and a corner a hair off the plane turns that
+normal. A column with a ledge 0.109 thick, cut through a corner of the ledge's tip and 0.0084 from the next, had a cap
+whose far corners stood 0.058 off so measured; it was refused, and the cells kept the piece whole in the cell above,
+reaching 39 mm out of it. A cap lies in the cutting plane, every corner within the planar tolerance of it, and is read in
+it now, facing along its normal.
+
 **FIXED.** `GeoSolid3.Locate` and `Contains` threw another ray when a crossing landed within twice the point tolerance of
 a face's outer rim, but not of the rim of one of its holes: a ray leaving through the wall of a hole and rising through
 the hole a hair short of its rim was counted by the face the hole is cut in, and the point came out of the body. The

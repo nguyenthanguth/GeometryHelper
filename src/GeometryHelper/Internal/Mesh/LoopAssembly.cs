@@ -231,7 +231,30 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static List<GeoFace3> AssembleFaces(List<List<GeoPoint3>> loops, GeoVector3 orientation, Tolerance tolerance)
         {
-            Assemble(loops, orientation, tolerance, true, out List<GeoFace3> faces);
+            Assemble(loops, loop => TryBuildPolygon(loop, orientation, tolerance), tolerance, true, out List<GeoFace3> faces);
+            return faces;
+        }
+
+        /// <summary>
+        /// Turns closed loops lying in a plane into faces as <see cref="AssembleFaces"/> does, each read flat in the plane
+        /// and facing along its normal.
+        /// </summary>
+        /// <param name="loops">The loops, every corner within the planar tolerance of the plane; they must not cross one another.</param>
+        /// <param name="plane">The plane, its normal the way every face is to face.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A polygon is measured from a corner of its own about the normal of its own corners, and a loop whose corners all
+        /// lie within the tolerance of a plane can stand further than that from both: a cap with a finger a tenth of a
+        /// millimetre wide, the corner at its tip 0.0084 off the cutting plane, had the normal of its corners turned 8E-5
+        /// from the plane's, which put its far corners 0.058 off, and it was refused, leaving each half open. Read in the
+        /// plane, a loop faces along the plane's normal from its corner nearest the plane, and the loops are nested and a
+        /// face's holes held to its plane within twice the planar tolerance: a corner a hair one way, another a hair the
+        /// other.
+        /// </remarks>
+        internal static List<GeoFace3> AssembleFacesIn(List<List<GeoPoint3>> loops, GeoPlane3 plane, Tolerance tolerance)
+        {
+            var flat = new Tolerance(tolerance.EqualPoint, tolerance.EqualVector, tolerance.EqualAngleRad, 2.0 * tolerance.EqualPlanar);
+            Assemble(loops, loop => TryBuildPolygonIn(loop, plane, tolerance), flat, true, out List<GeoFace3> faces);
             return faces;
         }
 
@@ -244,16 +267,21 @@ namespace GeometryHelper.Core
         /// <param name="faces">The faces; null when the method returns false.</param>
         /// <returns>false where a hole stands further than the tolerance off the plane of the loop round it.</returns>
         internal static bool TryAssembleFaces(List<List<GeoPoint3>> loops, GeoVector3 orientation, Tolerance tolerance, out List<GeoFace3> faces)
-            => Assemble(loops, orientation, tolerance, false, out faces);
+            => Assemble(loops, loop => TryBuildPolygon(loop, orientation, tolerance), tolerance, false, out faces);
 
-        private static bool Assemble(List<List<GeoPoint3>> loops, GeoVector3 orientation, Tolerance tolerance, bool anyPlane, out List<GeoFace3> faces)
+        /// <param name="loops">The loops.</param>
+        /// <param name="build">The polygon of a loop, or null where it makes none.</param>
+        /// <param name="tolerance">The tolerance the polygons are nested within and a face's holes held to its plane.</param>
+        /// <param name="anyPlane">Whether a hole may stand off the plane of the loop round it.</param>
+        /// <param name="faces">The faces; null when the method returns false.</param>
+        private static bool Assemble(List<List<GeoPoint3>> loops, Func<List<GeoPoint3>, GeoPolygon3> build, Tolerance tolerance, bool anyPlane, out List<GeoFace3> faces)
         {
             faces = null;
             List<GeoPolygon3> polygons = new List<GeoPolygon3>();
 
             foreach (List<GeoPoint3> loop in loops)
             {
-                GeoPolygon3 polygon = TryBuildPolygon(loop, orientation, tolerance);
+                GeoPolygon3 polygon = build(loop);
 
                 if (polygon != null)
                 {
@@ -427,6 +455,70 @@ namespace GeometryHelper.Core
                 // or three collinear ones. Neither is a piece worth reporting.
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Builds a polygon from a walked loop lying in a plane, read flat in it: facing along the plane's normal, from its
+        /// corner nearest the plane.
+        /// </summary>
+        /// <returns>null when the loop is too small to be a polygon.</returns>
+        private static GeoPolygon3 TryBuildPolygonIn(List<GeoPoint3> loop, GeoPlane3 plane, Tolerance tolerance)
+        {
+            // The corners a polygon keeps: none within the point tolerance of the one before it, nor the last of the first.
+            var kept = new List<GeoPoint3>(loop.Count);
+
+            foreach (GeoPoint3 point in loop)
+            {
+                if (kept.Count == 0 || !kept[kept.Count - 1].IsEqualTo(point, tolerance))
+                {
+                    kept.Add(point);
+                }
+            }
+
+            while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0], tolerance))
+            {
+                kept.RemoveAt(kept.Count - 1);
+            }
+
+            if (kept.Count < 3)
+            {
+                return null;
+            }
+
+            // The plane of a polygon passes through its first corner.
+            int first = 0;
+
+            for (int i = 1; i < kept.Count; i++)
+            {
+                if (Math.Abs(plane.SignedDistanceTo(kept[i])) < Math.Abs(plane.SignedDistanceTo(kept[first])))
+                {
+                    first = i;
+                }
+            }
+
+            var corners = new GeoPoint3[kept.Count];
+
+            for (int i = 0; i < corners.Length; i++)
+            {
+                corners[i] = kept[(first + i) % kept.Count];
+            }
+
+            // Its area along the plane's normal, refused below the least area a polygon encloses, as its constructor refuses it.
+            double area = Newell.GetAreaVector(corners).DotProduct(plane.Normal);
+
+            if (!(Math.Abs(area) > tolerance.EqualVector))
+            {
+                return null;
+            }
+
+            if (area < 0.0)
+            {
+                // Run the other way round from the same first corner.
+                Array.Reverse(corners, 1, corners.Length - 1);
+                area = -area;
+            }
+
+            return GeoPolygon3.FromValidated(corners, plane.Normal, area);
         }
 
         /// <summary>

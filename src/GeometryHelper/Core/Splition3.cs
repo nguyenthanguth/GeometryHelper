@@ -1466,8 +1466,9 @@ namespace GeometryHelper.Core
             }
 
             // A plane taking a corner off leaves a cap as small as the slivers beside it, and one refused would
-            // leave the half open.
-            caps = LoopAssembly.AssembleFaces(loops, outward, pieces);
+            // leave the half open. The cap is read in the plane, where its corners are: about the normal of its own,
+            // a corner a hair off the plane can turn it far enough to put the rest of the cap off its plane.
+            caps = LoopAssembly.AssembleFacesIn(loops, new GeoPlane3(cutter.Origin, outward), pieces);
 
             return caps.Count > 0;
         }
