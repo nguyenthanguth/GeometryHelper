@@ -951,6 +951,11 @@ namespace GeometryHelper.UnitTest.Meshing
             double cutArea = grid.Cells.Sum(c => c.Solid.SurfaceArea) - body.SurfaceArea;
             double slack = Tol.EqualPoint * Math.Max(0, cutArea) + 1E-9 * Math.Max(1, net);
 
+            // And measured from far out, the body's volume is good to the rounding of the coordinates where it stands: a box
+            // 0.036 thick two thousand kilometres out holds as a body three billionths more or less than its cells say.
+            GeoAabb3 extent = body.GetAabb();
+            slack += 1E-14 * (extent.Center.ToVector().Length + extent.Min.DistanceTo(extent.Max)) * body.SurfaceArea;
+
             if (!jointed && Math.Abs(grid.Volume - net) > slack)
             {
                 return $"the cells hold {grid.Volume:R}, the body {net:R} ({(grid.Volume - net) / net:E2}, slack {slack:E2}) {where}";
@@ -995,7 +1000,6 @@ namespace GeometryHelper.UnitTest.Meshing
                 {
                     return $"{cell} says {cell.Volume}, its body {cell.Solid.Volume} {where}";
                 }
-
 
                 // A cut moved onto a corner by the snap distance, then not made short of a tip past it: four point tolerances,
                 // or between cells a joint apart the point tolerance.

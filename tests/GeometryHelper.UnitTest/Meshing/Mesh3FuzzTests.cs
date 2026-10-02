@@ -37,11 +37,12 @@ namespace GeometryHelper.UnitTest.Meshing
         /// <summary>
         /// Boxes cut as boxes and as bodies that once came apart: a plate on the line through its middle given to the cell
         /// either side by the rounding (61002179), cells by count thinner than four point tolerances cut against the box's
-        /// sides alone (61000640), a plate wholly in a joint (61002363), and a thin box far out measured by its faces
-        /// (61002673).
+        /// sides alone (61000640), a plate wholly in a joint (61002363), a thin box far out measured by its faces
+        /// (61002673), and thin boxes far out whose bodies hold their volume only to the rounding of where they stand
+        /// (81002414, 81003923).
         /// </summary>
         public static IEnumerable<object[]> BoxSeedsThatFailed()
-            => new[] { 61000640, 61002179, 61002363, 61002673 }.Select(s => new object[] { s });
+            => new[] { 61000640, 61002179, 61002363, 61002673, 81002414, 81003923 }.Select(s => new object[] { s });
 
         /// <summary>
         /// Columns with a ledge that once came apart: a piece, a hair out of flat, refused once cut (62005190), and a cut
