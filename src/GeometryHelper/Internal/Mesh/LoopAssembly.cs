@@ -539,12 +539,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         private static void SplitAtEdgeEnds(List<GeoLine3> edges, Tolerance tolerance)
         {
-            // The ends sorted along X, so that the ones that could lie on an edge are found in a short run rather
-            // than by testing every end against every edge. A cut position does not depend on the order the ends
-            // are met in, since the split sorts them.
             int count = edges.Count * 2;
             GeoPoint3[] ends = new GeoPoint3[count];
-            double[] xs = new double[count];
 
             for (int i = 0; i < edges.Count; i++)
             {
@@ -552,16 +548,48 @@ namespace GeometryHelper.Core
                 ends[2 * i + 1] = edges[i].EndPoint;
             }
 
-            for (int i = 0; i < count; i++)
-            {
-                xs[i] = ends[i].X;
-            }
-
-            Array.Sort(xs, ends);
-
             // A point on an edge lies within the tolerance of it, so inside its box grown by the tolerance; the
             // box is grown a hair more so that rounding cannot shut out an end the exact test would take.
             double reach = tolerance.EqualPoint * (1.0 + 1E-6) + 1E-12;
+
+            // The ends sorted along an axis, so that the ones that could lie on an edge are found in a short run rather
+            // than by testing every end against every edge: the axis that leaves the fewest in the runs. Along an axis
+            // the edges stand square to, as the rim of a cap square to X, every end falls in the run of every edge, and
+            // the 16 384 edges of a drum's cap took half a second. A cut position does not depend on the order the ends
+            // are met in, since the split sorts them.
+            double[] along = new double[count];
+            int axis = 0;
+            long fewest = long.MaxValue;
+
+            for (int candidate = 0; candidate < 3; candidate++)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    along[i] = Coordinate(ends[i], candidate);
+                }
+
+                Array.Sort(along);
+                long tried = 0;
+
+                foreach (GeoLine3 edge in edges)
+                {
+                    double a = Coordinate(edge.StartPoint, candidate), b = Coordinate(edge.EndPoint, candidate);
+                    tried += UpperBound(along, Math.Max(a, b) + reach) - LowerBound(along, Math.Min(a, b) - reach);
+                }
+
+                if (tried < fewest)
+                {
+                    fewest = tried;
+                    axis = candidate;
+                }
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                along[i] = Coordinate(ends[i], axis);
+            }
+
+            Array.Sort(along, ends);
 
             List<GeoLine3> resolved = new List<GeoLine3>(edges.Count);
             List<double> cuts = new List<double>();
@@ -571,15 +599,16 @@ namespace GeometryHelper.Core
                 cuts.Clear();
 
                 GeoPoint3 a = edge.StartPoint, b = edge.EndPoint;
+                double minX = Math.Min(a.X, b.X) - reach, maxX = Math.Max(a.X, b.X) + reach;
                 double minY = Math.Min(a.Y, b.Y) - reach, maxY = Math.Max(a.Y, b.Y) + reach;
                 double minZ = Math.Min(a.Z, b.Z) - reach, maxZ = Math.Max(a.Z, b.Z) + reach;
-                double maxX = Math.Max(a.X, b.X) + reach;
+                double high = Math.Max(Coordinate(a, axis), Coordinate(b, axis)) + reach;
 
-                for (int k = LowerBound(xs, Math.Min(a.X, b.X) - reach); k < count && xs[k] <= maxX; k++)
+                for (int k = LowerBound(along, Math.Min(Coordinate(a, axis), Coordinate(b, axis)) - reach); k < count && along[k] <= high; k++)
                 {
                     GeoPoint3 end = ends[k];
 
-                    if (end.Y < minY || end.Y > maxY || end.Z < minZ || end.Z > maxZ)
+                    if (end.X < minX || end.X > maxX || end.Y < minY || end.Y > maxY || end.Z < minZ || end.Z > maxZ)
                     {
                         continue;
                     }
@@ -597,6 +626,32 @@ namespace GeometryHelper.Core
 
             edges.Clear();
             edges.AddRange(resolved);
+        }
+
+        private static double Coordinate(GeoPoint3 point, int axis) => axis == 0 ? point.X : axis == 1 ? point.Y : point.Z;
+
+        /// <summary>
+        /// Gets the first position in a sorted array holding a value larger than a given one.
+        /// </summary>
+        private static int UpperBound(double[] sorted, double value)
+        {
+            int low = 0, high = sorted.Length;
+
+            while (low < high)
+            {
+                int middle = low + (high - low) / 2;
+
+                if (sorted[middle] <= value)
+                {
+                    low = middle + 1;
+                }
+                else
+                {
+                    high = middle;
+                }
+            }
+
+            return low;
         }
 
         /// <summary>

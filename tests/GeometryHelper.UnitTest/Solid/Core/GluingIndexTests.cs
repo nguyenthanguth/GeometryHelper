@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using GeometryHelper.Core;
 using GeometryHelper.Enums;
@@ -373,58 +374,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int round = 0; round < 40; round++)
             {
-                // A rectangle cut into strips, and each strip into rectangles of its own, so that the strips'
-                // long sides face several short ones: every interior line is a T-junction.
-                var rectangles = new List<(double X0, double Y0, double X1, double Y1)>();
-                double y = 0;
-
-                while (y < 100)
-                {
-                    double height = Math.Min(100 - y, rng.Next(5, 30));
-                    double x = 0;
-
-                    while (x < 120)
-                    {
-                        double width = Math.Min(120 - x, rng.Next(5, 40));
-                        rectangles.Add((x, y, x + width, y + height));
-                        x += width;
-                    }
-
-                    y += height;
-                }
-
-                // Ends nudged by up to twice the tolerance, the same nudge wherever a corner is shared, or not.
-                var nudges = new Dictionary<(double, double), GeoVector3>();
-                double scale = rng.NextDouble() < 0.5 ? 0.0 : Tol.EqualPoint * 2.0;
-                bool shared = rng.NextDouble() < 0.5;
-
-                GeoPoint3 Corner(double cx, double cy)
-                {
-                    GeoVector3 nudge;
-
-                    if (!shared || !nudges.TryGetValue((cx, cy), out nudge))
-                    {
-                        nudge = new GeoVector3((rng.NextDouble() - 0.5) * scale, (rng.NextDouble() - 0.5) * scale, (rng.NextDouble() - 0.5) * scale);
-                        nudges[(cx, cy)] = nudge;
-                    }
-
-                    return new GeoPoint3(cx, cy, 0).Add(nudge);
-                }
-
-                var edges = new List<GeoLine3>();
-
-                foreach (var r in rectangles)
-                {
-                    GeoPoint3 a = Corner(r.X0, r.Y0), b = Corner(r.X1, r.Y0), c = Corner(r.X1, r.Y1), d = Corner(r.X0, r.Y1);
-                    edges.Add(new GeoLine3(a, b));
-                    edges.Add(new GeoLine3(b, c));
-                    edges.Add(new GeoLine3(c, d));
-                    edges.Add(new GeoLine3(d, a));
-                }
-
                 // Turned into a general direction in space, so that no axis lines the edges up.
                 GeoTransform3 turn = GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(0.3, -0.7, 0.64), 0.9);
-                edges = edges.Select(e => new GeoLine3(e.StartPoint.TransformBy(turn), e.EndPoint.TransformBy(turn))).ToList();
+                List<GeoLine3> edges = Strips(rng).Select(e => new GeoLine3(e.StartPoint.TransformBy(turn), e.EndPoint.TransformBy(turn))).ToList();
 
                 var expected = new List<GeoLine3>(edges);
                 var actual = new List<GeoLine3>(edges);
@@ -434,6 +386,113 @@ namespace GeometryHelper.UnitTest.Solid
 
                 AssertSameEdges(expected, actual, $"round {round}");
             }
+        }
+
+        /// <summary>
+        /// The same strips lying square to an axis, as the caps of cells cut along it lie: sorted along that axis, every end
+        /// falls in the run of every edge, and an index sorting along another must find what the full comparison finds.
+        /// </summary>
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void CancellingEdgesSquareToAnAxisGivesWhatComparingEveryPairGave(int axis)
+        {
+            var rng = new Random(78 + axis);
+
+            for (int round = 0; round < 40; round++)
+            {
+                GeoPoint3 Square(GeoPoint3 p) => axis == 0 ? new GeoPoint3(p.Z + 500, p.X, p.Y) : axis == 1 ? new GeoPoint3(p.X, p.Z + 500, p.Y) : new GeoPoint3(p.X, p.Y, p.Z + 500);
+                List<GeoLine3> edges = Strips(rng).Select(e => new GeoLine3(Square(e.StartPoint), Square(e.EndPoint))).ToList();
+
+                var expected = new List<GeoLine3>(edges);
+                var actual = new List<GeoLine3>(edges);
+
+                CancelOpposedEdgesAsBefore(expected);
+                LoopAssembly.CancelOpposedEdges(actual, Tol);
+
+                AssertSameEdges(expected, actual, $"axis {axis}, round {round}");
+            }
+        }
+
+        [Fact]
+        public void CancellingTheEdgesOfALargeCapSquareToXStaysCheap()
+        {
+            // The rim of a cap square to X, as a drum of 65 536 sides cut across its length leaves. With its ends sorted along
+            // X, every end fell in the run of every edge: the 16 384 edges of a smaller one took half a second.
+            const int sides = 65536;
+            var edges = new List<GeoLine3>(sides);
+
+            for (int i = 0; i < sides; i++)
+            {
+                double a0 = 2 * Math.PI * i / sides, a1 = 2 * Math.PI * (i + 1) / sides;
+                edges.Add(new GeoLine3(new GeoPoint3(5000, 600 * Math.Cos(a0), 600 * Math.Sin(a0)), new GeoPoint3(5000, 600 * Math.Cos(a1), 600 * Math.Sin(a1))));
+            }
+
+            var watch = Stopwatch.StartNew();
+            LoopAssembly.CancelOpposedEdges(edges, Tol);
+            watch.Stop();
+
+            Assert.Equal(sides, edges.Count);
+
+            // Generous on purpose: this is a guard against trying every end, not a benchmark.
+            Assert.True(watch.ElapsedMilliseconds < 3000, $"took {watch.ElapsedMilliseconds} ms");
+        }
+
+        /// <summary>
+        /// The edges of a rectangle cut into strips, and each strip into rectangles of its own, so that the strips' long
+        /// sides face several short ones: every interior line is a T-junction. Their ends are nudged by up to twice the
+        /// tolerance, the same nudge wherever a corner is shared, or not.
+        /// </summary>
+        private static List<GeoLine3> Strips(Random rng)
+        {
+            var rectangles = new List<(double X0, double Y0, double X1, double Y1)>();
+            double y = 0;
+
+            while (y < 100)
+            {
+                double height = Math.Min(100 - y, rng.Next(5, 30));
+                double x = 0;
+
+                while (x < 120)
+                {
+                    double width = Math.Min(120 - x, rng.Next(5, 40));
+                    rectangles.Add((x, y, x + width, y + height));
+                    x += width;
+                }
+
+                y += height;
+            }
+
+            var nudges = new Dictionary<(double, double), GeoVector3>();
+            double scale = rng.NextDouble() < 0.5 ? 0.0 : Tol.EqualPoint * 2.0;
+            bool shared = rng.NextDouble() < 0.5;
+
+            GeoPoint3 Corner(double cx, double cy)
+            {
+                GeoVector3 nudge;
+
+                if (!shared || !nudges.TryGetValue((cx, cy), out nudge))
+                {
+                    nudge = new GeoVector3((rng.NextDouble() - 0.5) * scale, (rng.NextDouble() - 0.5) * scale, (rng.NextDouble() - 0.5) * scale);
+                    nudges[(cx, cy)] = nudge;
+                }
+
+                return new GeoPoint3(cx, cy, 0).Add(nudge);
+            }
+
+            var edges = new List<GeoLine3>();
+
+            foreach (var r in rectangles)
+            {
+                GeoPoint3 a = Corner(r.X0, r.Y0), b = Corner(r.X1, r.Y0), c = Corner(r.X1, r.Y1), d = Corner(r.X0, r.Y1);
+                edges.Add(new GeoLine3(a, b));
+                edges.Add(new GeoLine3(b, c));
+                edges.Add(new GeoLine3(c, d));
+                edges.Add(new GeoLine3(d, a));
+            }
+
+            return edges;
         }
 
         /// <summary>

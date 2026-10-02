@@ -148,7 +148,10 @@ cells do, and `GeoSolid3.IsClosed` where edges do not meet end to end, pair the 
 leaves the fewest pairs to try, instead of along X. Along X every edge of a body thin along it was tried against every
 other, and every long edge of a body long along it: a disc a millimetre thick and a drum ten metres long, of 4 096 sides
 each, took eleven seconds each and take four hundredths, and a drum cut into 800 slabs across its length took 42 s and
-takes 3.7 s. The pieces found are the same.
+takes 3.7 s. The pieces found are the same. So, for the same reason, do cutting a body by a plane and merging its faces
+where they match the edges of a rim: every end of the rim of a cap square to X fell in the run of every edge, and the
+cut of a drum of 16 384 sides took 1.1 s square to X, against 0.18 s square to Y. It takes 0.18 s either way, with the
+same edges.
 
 **CHANGED.** The package depends on no other package. The clipping engine of Clipper2 2.0.0, which resolves the
 regions of the plane, is compiled in from its source, `src/GeometryHelper/Internal/Clipper`, instead of referenced as the
