@@ -124,6 +124,13 @@ the hole a hair short of its rim was counted by the face the hole is cut in, and
 hole's rim is measured in the plane of the face, as the face holds a crossing against it, so that a hole standing off
 the face's plane within the planar tolerance is measured as one in it.
 
+**FIXED.** `GeoSolid3.Locate` and `Contains` called a point of a body thinner than four point tolerances outside, near one
+of its sides: every ray from it crossed a face within twice the tolerance of a rim, where a crossing is not trusted, the
+side itself wherever a ray reached it, and a point no ray could place was reported outside. A point of a cell of a plate
+0.035 thick, 0.013 in from its side and 0.0108 below its top, lay in no cell. Where every ray is refused, the point is
+placed by the turns the faces make about it, the solid angle they subtend at it, which no edge makes ambiguous; a boundary
+that turns no whole number of times, as one open somewhere can, still claims no point.
+
 **FIXED.** `GeoFace3.TrySplitBy` and `GeoSolid3.TrySplitBy` gave a hole back as a face of material when every corner of
 it stood on the rim of the piece it fell in, as a hole touching its face's boundary at two corners does when the cut runs
 through its third: the piece covered the hole twice, and a body gained its volume.

@@ -465,10 +465,15 @@ namespace GeometryHelper.Core
         /// several unrelated directions all landing on an edge is negligible. The directions are fixed
         /// rather than random so that the same question always gets the same answer.
         /// <para>
-        /// Should every direction come back ambiguous, the point is reported as outside. That is a choice
-        /// rather than an answer — nothing was established — and it is made this way so that a body whose
-        /// boundary cannot be read does not claim to hold points. A surface degenerate enough to graze all
-        /// five directions is one <see cref="GeoSolid3.IsClosed()"/> should have been asked about first.
+        /// Every direction comes back ambiguous where the body is thinner than twice the band and the point stands near
+        /// one of its sides: every ray crosses a face within the band of a rim, the side itself if it reaches it. A point
+        /// of a cell of a plate 0.035 thick, 0.013 in from its side, was called outside so. There the faces are summed by
+        /// the turns they make about the point, which no edge makes ambiguous; see <see cref="Turns"/>. A boundary that
+        /// turns no whole number of times, as one open somewhere can, is not read, and claims no point.
+        /// </para>
+        /// <para>
+        /// The point stands further than the point tolerance from every face, as <see cref="Locate(GeoSolid3, GeoPoint3, Tolerance)"/>
+        /// settled before it asked.
         /// </para>
         /// </remarks>
         private static bool IsInsideByRayCast(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
@@ -517,7 +522,45 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return false;
+            double turns = Turns(solid, point, tolerance);
+            double whole = Math.Round(turns);
+
+            return Math.Abs(turns - whole) < 0.25 && Math.Abs(whole % 2.0) == 1.0;
+        }
+
+        /// <summary>
+        /// How many times the faces of a body turn about a point: the solid angle they subtend at it, over the whole
+        /// sphere's. One for a point of the material of a closed body wound outwards, none for a point outside it or in a
+        /// cavity of it.
+        /// </summary>
+        /// <remarks>
+        /// Each face is summed by the triangles lying in it, holes left open, rather than by the fan of its boundary: the
+        /// triangles of a fan reach outside a concave face, and one passing through the point, as across the notch of a
+        /// face in whose plane the point stands, has no solid angle to give. The triangles in a face do not come within
+        /// the point tolerance of the point.
+        /// </remarks>
+        private static double Turns(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
+        {
+            double total = 0.0;
+
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                foreach (GeoTriangle3 triangle in face.TriangulateSurface(tolerance))
+                {
+                    // Van Oosterom and Strackee: the solid angle of a triangle seen from a point, positive where the point
+                    // stands behind it, as a point of the material stands behind the faces round it.
+                    GeoVector3 a = point.GetVectorTo(triangle.A);
+                    GeoVector3 b = point.GetVectorTo(triangle.B);
+                    GeoVector3 c = point.GetVectorTo(triangle.C);
+                    double la = a.Length, lb = b.Length, lc = c.Length;
+                    double across = a.DotProduct(b.CrossProduct(c));
+                    double along = la * lb * lc + a.DotProduct(b) * lc + a.DotProduct(c) * lb + b.DotProduct(c) * la;
+
+                    total += 2.0 * Math.Atan2(across, along);
+                }
+            }
+
+            return total / (4.0 * Math.PI);
         }
 
         /// <summary>
