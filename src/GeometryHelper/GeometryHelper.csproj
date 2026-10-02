@@ -175,8 +175,9 @@
       chamfers, fillets and GeoTransform2. Both in full in the same file.
     </PackageReleaseNotes>
 
-    <!-- 3. Embed Debug symbols into DLL; F12 fetches the original code from GitHub through Source Link -->
+    <!-- 3. Embed source code and Debug symbols into DLL to support F12 original code viewing -->
     <DebugType>embedded</DebugType>
+    <EmbedAllSources>true</EmbedAllSources>
     <GenerateDependencyFile>false</GenerateDependencyFile>
 
   </PropertyGroup>
@@ -184,6 +185,7 @@
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="icon.png" Pack="true" PackagePath="\" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

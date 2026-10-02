@@ -61,8 +61,9 @@ dependency references the Clipper2 package itself now. Built into GeometryHelper
 the package, but for the hash codes of its points, which nothing reads, and one delegate the newer compiler keeps
 instead of making it on each call, so every answer was the same. Faults found in it since are mended here, each held by
 a test in `TestFixedHere` that failed before; they change no answer GeometryHelper gives, but for a region whose sweep
-fails, above. The package carries it compiled, without its source, which the Boost licence asks no notice of. Clipper2's
-own tests run with the suite; test 16 of its polygons, which Clipper2 2.0.0 fails upstream as well (#1067), is skipped.
+fails, above. Its source is embedded in the DLL's symbols with the rest, so the package carries
+`THIRD-PARTY-NOTICES.md`, its copyright and the Boost licence, as that licence asks. Clipper2's own tests run with the
+suite; test 16 of its polygons, which Clipper2 2.0.0 fails upstream as well (#1067), is skipped.
 Upstream's later change for it is not taken: it mends that case and puts the union of loops crossing themselves that
 `TestCasesFoundHere` holds 1.2 % over its area, while it changed none of 40 000 random cases at four and six decimals.
 

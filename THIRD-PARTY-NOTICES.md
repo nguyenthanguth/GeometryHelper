@@ -8,8 +8,8 @@ The clipping engine of [Clipper2](https://github.com/AngusJohnson/Clipper2) 2.0.
 library of commit `f39457d` of 17 December 2025, changed for GeometryHelper: renamed, trimmed to what GeometryHelper
 calls, made internal, without nullable annotations, commented, and mended where it was found at fault.
 
-- `src/GeometryHelper/Internal/Clipper`: the engine, compiled into GeometryHelper. The package carries it as compiled
-  code only, without its source.
+- `src/GeometryHelper/Internal/Clipper`: the engine, compiled into GeometryHelper. The package carries its source too,
+  embedded in the DLL's symbols, and this notice with it.
 - `tests/GeometryHelper.UnitTest/Clipper`: Clipper2's C# tests, the utility that reads their cases, and the cases,
   moved to xUnit.
 
