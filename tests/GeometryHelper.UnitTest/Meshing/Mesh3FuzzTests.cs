@@ -47,6 +47,14 @@ namespace GeometryHelper.UnitTest.Meshing
         public static IEnumerable<object[]> ThinSeedsThatFailed()
             => new[] { 62005190 }.Select(s => new object[] { s });
 
+        /// <summary>
+        /// Loops with arcs whose check once came apart: two arcs bulging in at a sharp corner cross and close off a lobe
+        /// wound the other way, which the mesh covers and the shoelace sum of the ring took away (71000268), and a plane
+        /// turned about an axis longer than a thousandth but too short for the rotation to turn about (72000658).
+        /// </summary>
+        public static IEnumerable<object[]> ArcSeedsThatFailed()
+            => new[] { 71000268, 72000658 }.Select(s => new object[] { s });
+
         public static IEnumerable<object[]> PlanarRun() => Enumerable.Range(1, 400).Select(s => new object[] { s });
 
         public static IEnumerable<object[]> CellRun() => Enumerable.Range(1, 200).Select(s => new object[] { s });
@@ -58,6 +66,7 @@ namespace GeometryHelper.UnitTest.Meshing
         public static IEnumerable<object[]> ArcRun() => Enumerable.Range(1, 200).Select(s => new object[] { s });
 
         [Theory]
+        [MemberData(nameof(ArcSeedsThatFailed))]
         [MemberData(nameof(ArcRun))]
         public void ALoopWithArcsOfSpaceMeshesSoundly(int seed)
         {

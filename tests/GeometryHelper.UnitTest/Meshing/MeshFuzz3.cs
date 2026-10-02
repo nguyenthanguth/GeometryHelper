@@ -74,7 +74,8 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             var axis = new GeoVector3(r.NextDouble() - 0.5, r.NextDouble() - 0.5, r.NextDouble() - 0.5);
 
-            if (axis.Length < 1E-3)
+            // An axis the rotation cannot turn about, as it reads one.
+            if (!axis.TryGetNormal(out _))
             {
                 axis = GeoVector3.ZAxis;
             }
@@ -234,7 +235,9 @@ namespace GeometryHelper.UnitTest.Meshing
             return CheckPlanar(face, options, placement, mesh, where);
         }
 
-        private static string CheckPlanar(GeoFace3 face, MeshOptions options, MeshPlacement3 placement, GeoMesh3 mesh, string where)
+        /// <summary>What a mesh of a flat shape promises, as a reason it fails, or null.</summary>
+        /// <param name="region">The area of the material where the face's boundary crosses itself, which its own area is not.</param>
+        private static string CheckPlanar(GeoFace3 face, MeshOptions options, MeshPlacement3 placement, GeoMesh3 mesh, string where, double? region = null)
         {
             GeoCoordinateSystem3 frame = mesh.Frame;
 
@@ -333,7 +336,7 @@ namespace GeometryHelper.UnitTest.Meshing
 
             // The area: the face's, or with joints no more than it.
             bool jointed = options.Kind == MeshKind.Grid && options.Joint > Tol.EqualPoint;
-            double expected = face.Area;
+            double expected = region ?? face.Area;
 
             if (!jointed && Math.Abs(mesh.Area - expected) > 1E-7 * Math.Max(1, expected) + 1E-4)
             {
@@ -565,7 +568,12 @@ namespace GeometryHelper.UnitTest.Meshing
                 polygon = polygon.Flip();
             }
 
-            return CheckPlanar(new GeoFace3(polygon), options, placement, mesh, where);
+            // Two arcs bulging in at a sharp corner cross and close off a lobe wound the other way: the loop is meshed as
+            // the region MakeValid reads, the lobe material with the rest, where the shoelace sum of the ring takes it away.
+            var flat = new GeoPolygon2(ring.Select(p => plane.ToLocal(p)).Select(p => new GeoPoint2(p.X, p.Y)));
+            double? region = flat.IsSimple(Tol) ? (double?)null : flat.MakeValid(Tol).Sum(f => f.Area);
+
+            return CheckPlanar(new GeoFace3(polygon), options, placement, mesh, where, region);
         }
 
         #endregion

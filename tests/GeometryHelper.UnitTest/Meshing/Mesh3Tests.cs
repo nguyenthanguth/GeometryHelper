@@ -471,6 +471,25 @@ namespace GeometryHelper.UnitTest.Meshing
         }
 
         [Fact]
+        public void ALoopWhoseArcsCrossNearASharpCornerMeshesTheRegionItCloses()
+        {
+            // Three arcs bulging in. At the sharpest corner, of 43 degrees, the two arcs leave 61 degrees apart inwards, so
+            // they cross before they part and close off a lobe wound the other way. The loop is meshed as the region
+            // MakeValid reads, the lobe material with the rest, where the shoelace sum of its ring takes the lobe away.
+            var plane = new GeoCoordinateSystem3(P(0, 0, 0), GeoVector3.XAxis, GeoVector3.YAxis);
+            var loop = new GeoPolygonArc3(plane, new GeoPolygonArc2(new[] { Q(-1500, -37), Q(66, -1334), Q(1048, 1215) }, new[] { -0.17, -0.27, -0.28 }));
+            GeoPolygon2 ring = loop.ToPolygonArc2().Flatten(0.0);
+
+            Assert.False(ring.IsSimple(Tolerance));
+
+            GeoMesh3 mesh = loop.ToMesh(new MeshOptions(MeshKind.Strips), Tolerance);
+            double region = ring.MakeValid(Tolerance).Sum(f => f.Area);
+
+            Assert.Equal(region, mesh.Area, 3);
+            Assert.True(region > ring.Area + 1000, $"the lobe is material: {region} against {ring.Area}");
+        }
+
+        [Fact]
         public void ALoopWithArcsWhoseCornersCloseInOnEachOtherKeepsEachCornerItsOwn()
         {
             // Two corners 0.005 apart, apart within a tolerance of a millionth: laid out in the plane they were taken for one
