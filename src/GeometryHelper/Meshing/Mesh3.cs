@@ -634,6 +634,11 @@ namespace GeometryHelper.Meshing
         /// cells and joints to the cell nearest the frame's origin, so that the shape is laid out from near it and Clipper2
         /// rounds it as finely as the shape allows. Null when the alignments place the grid.
         /// </summary>
+        /// <remarks>
+        /// The cells of every face stand where they would along a line of space with its axis running the world's way, X
+        /// before Y before Z: a wall facing +Y runs its rows along -X, and laid from the origin along that, a cell ending
+        /// there, its joints stood a joint off those of the faces beside it.
+        /// </remarks>
         private static GeoPoint2? Anchor(MeshOptions options, MeshPlacement3 placement, GeoCoordinateSystem3 frame, Tolerance tolerance)
         {
             if (options.Kind != MeshKind.Grid || !placement.Origin.HasValue)
@@ -647,8 +652,10 @@ namespace GeometryHelper.Meshing
             double joint = options.Joint > tolerance.EqualPoint ? options.Joint : 0.0;
             double pitchU = options.CellWidth + joint;
             double pitchV = options.CellHeight + joint;
+            double u = MeshPlacement3.Canonical(frame.XAxis).Equals(frame.XAxis) ? local.X : local.X - options.CellWidth;
+            double v = MeshPlacement3.Canonical(frame.YAxis).Equals(frame.YAxis) ? local.Y : local.Y - options.CellHeight;
 
-            return new GeoPoint2(local.X - Math.Round(local.X / pitchU) * pitchU, local.Y - Math.Round(local.Y / pitchV) * pitchV);
+            return new GeoPoint2(u - Math.Round(u / pitchU) * pitchU, v - Math.Round(v / pitchV) * pitchV);
         }
     }
 }

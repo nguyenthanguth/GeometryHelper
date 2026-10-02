@@ -375,6 +375,10 @@ namespace GeometryHelper.UnitTest.Meshing
                 double joint = options.Joint > Tol.EqualPoint ? options.Joint : 0.0;
                 double pu = options.CellWidth + joint, pv = options.CellHeight + joint;
 
+                // Measured the world's way along each axis, X before Y before Z, as the cells are laid from the origin.
+                double su = MeshPlacement3.Canonical(frame.XAxis).Equals(frame.XAxis) ? 1.0 : -1.0;
+                double sv = MeshPlacement3.Canonical(frame.YAxis).Equals(frame.YAxis) ? 1.0 : -1.0;
+
                 for (int f = 0; f < mesh.FaceCount; f++)
                 {
                     if (!mesh.IsWhole(f))
@@ -385,7 +389,7 @@ namespace GeometryHelper.UnitTest.Meshing
                     foreach (int v in mesh.GetFaceIndices(f))
                     {
                         GeoPoint2 p = flat.Vertices[v];
-                        double du = Mod(p.X - o.X, pu), dv = Mod(p.Y - o.Y, pv);
+                        double du = Mod(su * (p.X - o.X), pu), dv = Mod(sv * (p.Y - o.Y), pv);
                         bool onU = du < 1E-6 * scale + Tol.EqualPoint || Math.Abs(du - options.CellWidth) < 1E-6 * scale + Tol.EqualPoint || pu - du < 1E-6 * scale + Tol.EqualPoint;
                         bool onV = dv < 1E-6 * scale + Tol.EqualPoint || Math.Abs(dv - options.CellHeight) < 1E-6 * scale + Tol.EqualPoint || pv - dv < 1E-6 * scale + Tol.EqualPoint;
 

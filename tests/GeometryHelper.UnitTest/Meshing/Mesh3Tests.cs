@@ -315,6 +315,45 @@ namespace GeometryHelper.UnitTest.Meshing
         }
 
         [Fact]
+        public void AnOriginLinesTheJointsUpOnEveryFaceOfABox()
+        {
+            // The six faces of a box laid from one origin, cells of 1200 by 600 ten apart: a face's axis runs along the world's
+            // one way or the other, the back wall's level one along -X and the bottom's second along -Y, and laid from the
+            // origin along it their cells stood a joint off those of the faces beside them.
+            GeoSolid3 box = new GeoAabb3(P(0, 0, 0), P(5000, 3000, 2800)).ToObb().ToSolid();
+            MeshOptions options = MeshOptions.Grid(1200, 600, joint: 10);
+            MeshPlacement3 placement = MeshPlacement3.World.At(P(0, 0, 0));
+            double[] extent = { 5000, 3000, 2800 };
+
+            bool OnLattice(double at, double size)
+            {
+                double pitch = size + 10;
+                double r = at - Math.Floor(at / pitch) * pitch;
+                return Math.Abs(r) < 1E-6 || Math.Abs(r - size) < 1E-6 || Math.Abs(r - pitch) < 1E-6;
+            }
+
+            foreach (GeoFace3 face in box.Faces)
+            {
+                GeoMesh3 mesh = face.ToMesh(options, placement, Tolerance);
+
+                for (int axis = 0; axis < 2; axis++)
+                {
+                    GeoVector3 along = axis == 0 ? mesh.Frame.XAxis : mesh.Frame.YAxis;
+                    int world = Math.Abs(along.X) > 0.5 ? 0 : Math.Abs(along.Y) > 0.5 ? 1 : 2;
+                    double size = axis == 0 ? 1200 : 600;
+
+                    foreach (GeoPoint3 vertex in mesh.Vertices)
+                    {
+                        double at = world == 0 ? vertex.X : world == 1 ? vertex.Y : vertex.Z;
+                        Assert.True(
+                            OnLattice(at, size) || Math.Abs(at) < 1E-6 || Math.Abs(at - extent[world]) < 1E-6,
+                            $"the face facing {face.Normal} has a corner at {at} along {"XYZ"[world]}, off the cells laid from the origin");
+                    }
+                }
+            }
+        }
+
+        [Fact]
         public void AnOriginFarOutPlacesTheGridAsOneNearBy()
         {
             // A wall seven kilometres out, the origin at the world's: the cells start at whole steps of 1210 and 610.

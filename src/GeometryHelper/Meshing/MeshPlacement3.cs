@@ -20,7 +20,8 @@ namespace GeometryHelper.Meshing
     /// Without an origin the grid stands against the shape as the alignments of the options say. With one, a cell has its
     /// first corner there, as <see cref="MeshOptions.Origin"/> places a grid of the plane: over a flat shape the point is put
     /// onto the shape's plane along its normal, so that faces of one building laid from one origin line up across their
-    /// edges.
+    /// edges. Along a line of space the cells stand where they would with its axis running the world's way, X before Y before
+    /// Z, whichever way a face's own runs along it, and so do the joints between them.
     /// </remarks>
     public sealed class MeshPlacement3 : IEquatable<MeshPlacement3>
     {
