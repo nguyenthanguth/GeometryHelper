@@ -552,6 +552,35 @@ namespace GeometryHelper.UnitTest.Meshing
         }
 
         [Fact]
+        public void ABodyWoundInwardsIsCutTheRightWayOut()
+        {
+            // A mirror winds a body inwards, and so does turning every face round: the cutting reads the faces wound outwards,
+            // and cut as they were it lost cells and warned of cuts it could not make.
+            GeoSolid3 box = Prism(Rect(0, 0, 300, 300), 0, 300);
+            var mirror = GeoTransform3.Mirror(new GeoPlane3(P(0, 0, 0), GeoVector3.XAxis));
+            var region = new GeoAabb3(P(-300, 0, 0), P(0, 300, 300));
+
+            foreach (GeoSolid3 inwards in new[] { box.TransformBy(mirror), new GeoSolid3(box.Faces.Select(f => f.Flip())).TransformBy(GeoTransform3.Translation(new GeoVector3(-300, 0, 0))) })
+            {
+                Assert.True(inwards.GetSignedVolume() < 0.0);
+                GeoCellGrid3 grid = inwards.ToCells(CellOptions3.Grid(100, 100, 100), Tolerance);
+
+                Assert.Equal(27, grid.CellCount);
+                Assert.Equal(27, Whole(grid));
+                Assert.All(grid.Cells, c => Assert.True(c.Solid.GetSignedVolume() > 0.0, $"{c} is wound inwards"));
+                CellAssert.IsSound(grid, p => InBox(region, p), box.Volume, Tolerance.EqualPoint, Tolerance);
+            }
+
+            // An L with a shaft through it, mirrored with it.
+            GeoSolid3 ell = Prism(new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(1000, 1000), Q(1000, 2000), Q(0, 2000)), 0, 500);
+            GeoSolid3 shafted = ell.WithOpenings(new[] { Prism(Rect(300, 300, 700, 700), -100, 600) }).TransformBy(mirror);
+            GeoCellGrid3 cells = shafted.ToCells(CellOptions3.Grid(500, 500, 0), Tolerance);
+
+            Assert.Equal(ell.Volume - 400.0 * 400 * 500, cells.Volume, 3);
+            Assert.All(cells.Cells, c => Assert.True(c.Solid.GetSignedVolume() > 0.0, $"{c} is wound inwards"));
+        }
+
+        [Fact]
         public void ABodyThatIsNotClosedIsRefused()
         {
             GeoSolid3 box = new GeoAabb3(P(0, 0, 0), P(1000, 1000, 1000)).ToObb().ToSolid();

@@ -333,7 +333,9 @@ namespace GeometryHelper.Meshing
         /// </para>
         /// <para>
         /// A cell the body holds in several pieces, as across the notch of a U, gives a cell for each. A body that is not
-        /// closed holds no volume to cut, and is refused rather than cut into cells that would not hold it either.
+        /// closed holds no volume to cut, and is refused rather than cut into cells that would not hold it either. A body
+        /// wound inwards, as a mirror leaves one, and an opening wound so, are read the right way out, and the cells are
+        /// wound outwards.
         /// </para>
         /// </remarks>
         public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
@@ -350,6 +352,7 @@ namespace GeometryHelper.Meshing
                 throw new ArgumentException("The body is not closed, so it holds no volume to cut into cells; mend it first, as GeoSolid3.IsClosed says.", nameof(solid));
             }
 
+            solid = Outwards(solid);
             GeoSolid3 material = solid;
 
             if (solid.Openings.Count > 0 && !Boolean3.TryCutOpenings(solid, out material, tolerance))
@@ -462,6 +465,38 @@ namespace GeometryHelper.Meshing
             {
                 throw new ArgumentNullException(nameof(placement));
             }
+        }
+
+        /// <summary>
+        /// A body wound outwards, its openings too: one wound inwards, as a mirror leaves it, turned the right way out, which
+        /// the cutting reads its faces as.
+        /// </summary>
+        private static GeoSolid3 Outwards(GeoSolid3 solid)
+        {
+            bool turn = solid.GetSignedVolume() < 0.0;
+            var openings = new List<GeoSolid3>(solid.Openings.Count);
+            bool changed = turn;
+
+            foreach (GeoSolid3 opening in solid.Openings)
+            {
+                GeoSolid3 outwards = Outwards(opening);
+                openings.Add(outwards);
+                changed |= !ReferenceEquals(outwards, opening);
+            }
+
+            if (!changed)
+            {
+                return solid;
+            }
+
+            var faces = new List<GeoFace3>(solid.Faces.Count);
+
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                faces.Add(turn ? face.Flip() : face);
+            }
+
+            return new GeoSolid3(faces, openings);
         }
 
         private static List<GeoPoint3> Corners(GeoSolid3 solid)
