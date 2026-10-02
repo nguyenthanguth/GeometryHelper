@@ -502,7 +502,7 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    if (Distance3.DistanceTo(Projection3.ProjectToPolygonBoundary(face.Boundary, hit, tolerance), hit) <= grazeBand)
+                    if (NearARim(face, hit, grazeBand, tolerance))
                     {
                         ambiguous = true;
                         break;
@@ -514,6 +514,33 @@ namespace GeometryHelper.Core
                 if (!ambiguous)
                 {
                     return crossings % 2 == 1;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Whether a crossing of a face lands within a distance of its rim or of the rim of one of its holes.
+        /// </summary>
+        /// <remarks>
+        /// A hole's rim is as much an edge of the face as the outer one: a ray rising through a hole a hair short of its rim
+        /// is held by the face within the tolerance, and counted as a crossing although it passes through no material
+        /// there. Measured from the outer rim alone, such a crossing passed as a clean one, and a point of a plate whose
+        /// first ray left through the wall of a hole and rose that close to its far side came out of the plate.
+        /// </remarks>
+        private static bool NearARim(GeoFace3 face, GeoPoint3 hit, double band, Tolerance tolerance)
+        {
+            if (Distance3.DistanceTo(Projection3.ProjectToPolygonBoundary(face.Boundary, hit, tolerance), hit) <= band)
+            {
+                return true;
+            }
+
+            foreach (GeoPolygon3 hole in face.Holes)
+            {
+                if (Distance3.DistanceTo(Projection3.ProjectToPolygonBoundary(hole, hit, tolerance), hit) <= band)
+                {
+                    return true;
                 }
             }
 
