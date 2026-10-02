@@ -350,6 +350,24 @@ namespace GeometryHelper.UnitTest.Meshing
         }
 
         [Fact]
+        public void ATipAHairPastACutStaysWithTheRest()
+        {
+            // A pyramid whose apex stands fourteen thousandths past the second line of lifts, a little more than the point
+            // tolerance a cut is snapped within: cut off, the tip would be a piece the size of the tolerance.
+            var pyramid = new GeoSolid3(
+                new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(0, 1000, 0), P(1000, 1000, 0), P(1000, 0, 0))),
+                new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(1000, 0, 0), P(500, 500, 1000.014))),
+                new GeoFace3(new GeoPolygon3(P(1000, 0, 0), P(1000, 1000, 0), P(500, 500, 1000.014))),
+                new GeoFace3(new GeoPolygon3(P(1000, 1000, 0), P(0, 1000, 0), P(500, 500, 1000.014))),
+                new GeoFace3(new GeoPolygon3(P(0, 1000, 0), P(0, 0, 0), P(500, 500, 1000.014))));
+            GeoCellGrid3 lifts = pyramid.ToCells(CellOptions3.Layers(500), Tolerance);
+
+            Assert.Equal(2, lifts.CellCount);
+            Assert.Equal(pyramid.Volume, lifts.Volume, 3);
+            CellAssert.IsSound(lifts, p => pyramid.Locate(p, Tolerance), pyramid.Volume, 4 * Tolerance.EqualPoint, Tolerance);
+        }
+
+        [Fact]
         public void ALargerSnapDistanceTakesThickerSlicesToTheCellBeside()
         {
             // The step 30 past the line: with the point tolerance it leaves a slice 30 thick, with 50 it does not.

@@ -291,6 +291,12 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// How many point tolerances from the far side of a part a cut has to stand to be made: less takes off a piece at the
+        /// scale of the tolerance.
+        /// </summary>
+        private const double Tip = 4.0;
+
+        /// <summary>
         /// How near a corner a cut is moved onto it: the options' distance, or the point tolerance if more. Between cells a
         /// joint apart, the point tolerance alone: the cuts bound the joints, and moved onto a corner within the joint they
         /// would carry a cell into it.
@@ -346,7 +352,7 @@ namespace GeometryHelper.Core
 
             Layout layout = Lay(box.GetCorners(), axes, options, origin, tolerance);
 
-            double snap = SnapDistance(options, layout, tolerance);
+            double snap = Math.Max(SnapDistance(options, layout, tolerance), Tip * tolerance.EqualPoint);
 
             // Along each axis, what of each cell the box holds: a cut within the snap distance of a side of the box moves onto
             // it, so that the slice between goes to the cell beside.
@@ -501,6 +507,7 @@ namespace GeometryHelper.Core
         {
             public Layout Layout;
             public double Snap;
+            public double Reach;
             public Tolerance Tolerance;
             public GeoVector3[] Directions;
         }
@@ -527,6 +534,7 @@ namespace GeometryHelper.Core
             {
                 Layout = layout,
                 Snap = SnapDistance(options, layout, tolerance),
+                Reach = Math.Max(SnapDistance(options, layout, tolerance), Tip * tolerance.EqualPoint),
                 Tolerance = tolerance,
                 Directions = new[] { layout.Frame.XAxis, layout.Frame.YAxis, layout.Frame.ZAxis },
             };
@@ -720,13 +728,15 @@ namespace GeometryHelper.Core
                 }
             }
 
-            // Within the snap distance of the piece's far side, the cut would take off no more than a slice, which stays on.
-            if (highest - at <= cutting.Snap)
+            // Within the snap distance of the piece's far side, or four point tolerances, the cut would take off no more than
+            // a slice, which stays on: a tip a hair past the plane is a piece the size of the tolerance, which the cut cannot
+            // keep, and a cell no one wants.
+            if (highest - at <= cutting.Reach)
             {
                 return new Cut { Below = piece };
             }
 
-            if (at - lowest <= cutting.Snap)
+            if (at - lowest <= cutting.Reach)
             {
                 return new Cut { Above = piece };
             }
