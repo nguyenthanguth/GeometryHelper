@@ -270,6 +270,7 @@ namespace GeometryHelper.Meshing
         /// scaling stretches them there too.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation flattens the plane of the mesh into a line.</exception>
         public GeoMesh3 TransformBy(GeoTransform3 transform)
         {
             if (transform == null)
@@ -285,8 +286,30 @@ namespace GeometryHelper.Meshing
             }
 
             // Built from the transformed X and Y axes, the frame keeps its right hand, so that a mirror turns its Z axis
-            // round with the faces' winding and they still run counter-clockwise about it.
-            GeoCoordinateSystem3 frame = Frame.TransformBy(transform);
+            // round with the faces' winding and they still run counter-clockwise about it. The axes are brought back to unit
+            // length first: as a scaling of a drawing leaves them, shorter than the global vector tolerance, the frame
+            // refused them.
+            GeoVector3 x = transform.Transform(Frame.XAxis);
+            GeoVector3 y = transform.Transform(Frame.YAxis);
+            double lx = x.Length;
+            double ly = y.Length;
+
+            if (!(lx > 0.0) || !(ly > 0.0) || double.IsInfinity(lx) || double.IsInfinity(ly))
+            {
+                throw new ArgumentException("The transformation flattens the plane of the mesh into a line.", nameof(transform));
+            }
+
+            x = x.Divide(lx);
+            y = y.Divide(ly);
+            GeoVector3 z = x.CrossProduct(y);
+            double lz = z.Length;
+
+            if (!(lz > 1E-9))
+            {
+                throw new ArgumentException("The transformation flattens the plane of the mesh into a line.", nameof(transform));
+            }
+
+            GeoCoordinateSystem3 frame = new GeoCoordinateSystem3(transform.Transform(Frame.Origin), x, z.Divide(lz).CrossProduct(x));
             var flat = new GeoPoint2[moved.Length];
 
             for (int i = 0; i < flat.Length; i++)

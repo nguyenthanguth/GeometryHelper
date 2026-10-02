@@ -594,6 +594,28 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(4.0 * mesh.Area, stretched.ToMesh2().Area, 3);
         }
 
+        [Theory]
+        [InlineData(0.05)]
+        [InlineData(0.01)]
+        [InlineData(1E-6)]
+        public void AMeshScaledDownToADrawingKeepsItsFaces(double scale)
+        {
+            // A scaling of 1:20, or less: the frame was built from its axes as the scaling left them, shorter than the global
+            // vector tolerance, and refused.
+            var plate = new GeoPolygon3(P(0, 0, 0), P(2000, 0, 0), P(2000, 1000, 0), P(0, 1000, 0));
+            GeoMesh3 mesh = plate.ToMesh(MeshOptions.Grid(500, 500), Tolerance);
+            GeoMesh3 drawn = mesh.TransformBy(GeoTransform3.Scaling(scale));
+
+            Assert.Equal(mesh.FaceCount, drawn.FaceCount);
+            Assert.Equal(1.0, drawn.Area / (2E6 * scale * scale), 9);
+            Assert.Equal(1.0, drawn.ToMesh2().Area / (2E6 * scale * scale), 9);
+            Assert.Equal(1.0, drawn.Normal.Z, 12);
+            Assert.Equal(1.0, drawn.Frame.XAxis.Length, 12);
+
+            // Flattened into a line, the plane has no frame.
+            Assert.Throws<ArgumentException>(() => mesh.TransformBy(GeoTransform3.Scaling(1, 0, 1)));
+        }
+
         [Fact]
         public void EdgesBoundaryAndNeighboursAreThoseOfTheLayout()
         {
