@@ -289,12 +289,35 @@ namespace GeometryHelper.Core
         /// Loops that do not cross are either wholly inside or wholly outside one another, so one vertex
         /// settles it. Vertices sitting on the other loop say nothing, which is why the scan keeps looking
         /// until it finds one that does.
+        /// <para>
+        /// A hole can touch the rim of the loop round it at every corner: a hole meeting the boundary at two, cut
+        /// through its third, leaves one in the piece on that side. Its sides still run through the material
+        /// between, so the middle of a side settles it where no corner does. Read as outside, such a hole came
+        /// back as a face of its own, and the piece covered it twice.
+        /// </para>
         /// </remarks>
         internal static bool IsLoopInside(GeoPolygon3 inner, GeoPolygon3 outer, Tolerance tolerance)
         {
             foreach (GeoPoint3 vertex in inner.Vertices)
             {
                 PointLocation location = Containment3.Locate(outer, vertex, tolerance);
+
+                if (location == PointLocation.Inside)
+                {
+                    return true;
+                }
+
+                if (location == PointLocation.OutSide)
+                {
+                    return false;
+                }
+            }
+
+            IReadOnlyList<GeoPoint3> corners = inner.Vertices;
+
+            for (int i = 0; i < corners.Count; i++)
+            {
+                PointLocation location = Containment3.Locate(outer, corners[i].GetMiddlePoint(corners[(i + 1) % corners.Count]), tolerance);
 
                 if (location == PointLocation.Inside)
                 {
