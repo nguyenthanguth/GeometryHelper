@@ -95,6 +95,11 @@ round it. The booleans and `TryCutOpenings` glue their cells with it, and report
 warning: a sliver of an opening turned a thousandth of a radian, flush with the floor and a side of a body, was not cut
 in. Such faces are left as they were, unmerged.
 
+**FIXED.** `GeoFace3.TriangulateSurface` and `GeoSolid3.Triangulate`, asked within a tolerance finer than the global one,
+threw on a face thinner than the global point tolerance whose corners the clipping could not reduce: the strips they fall
+back to laid the face out checked against the global tolerance, which took its two long sides for one. A strip 300 long
+and 0.006 wide is covered within a tolerance of a ten-thousandth now.
+
 **FIXED.** `GeoSolid3.Locate` and `Contains` threw another ray when a crossing landed within twice the point tolerance of
 a face's outer rim, but not of the rim of one of its holes: a ray leaving through the wall of a hole and rising through
 the hole a hair short of its rim was counted by the face the hole is cut in, and the point came out of the body.

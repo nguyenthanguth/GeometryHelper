@@ -797,6 +797,56 @@ namespace GeometryHelper.UnitTest.Meshing
         }
 
         [Fact]
+        public void NeighboursAreFoundWhereTheyMeetWhateverTheirIndexes()
+        {
+            // An L standing in XZ, cells of 100 along X with a snap distance of 60: the first cut goes onto the step at 150,
+            // the second onto the same corner and is not made, and the cells 0 and 2 meet across the step's plane.
+            var l = new[] { Q(0, 0), Q(400, 0), Q(400, 100), Q(150, 100), Q(150, 200), Q(0, 200) };
+            GeoSolid3 wall = GeoSolid3.Extrude(new GeoPolygon3(l.Select(p => P(p.X, 0, p.Y)), Tolerance), new GeoVector3(0, 100, 0), Tolerance);
+            GeoCellGrid3 cells = wall.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole, 0, 60), Tolerance);
+            int first = cells.Cells.ToList().FindIndex(c => c.I == 0);
+            int third = cells.Cells.ToList().FindIndex(c => c.I == 2);
+
+            Assert.Contains(third, cells.GetAdjacentCells(first));
+            Assert.Contains(first, cells.GetAdjacentCells(third));
+
+            // A notch in a block, cells of 100 both ways with a snap distance of 35: the second column's cut along Y goes onto
+            // the notch at 130, the first's stays at 100, and the cells (0, 1) and (1, 0) meet over 30 of the plane x = 100.
+            GeoSolid3 block = Prism(new GeoPolygon2(Q(0, 0), Q(200, 0), Q(200, 130), Q(170, 130), Q(170, 300), Q(0, 300)), 0, 100);
+            GeoCellGrid3 grid = block.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.BySize(100), CellAxis.Whole, 0, 35), Tolerance);
+            int a = grid.Cells.ToList().FindIndex(c => c.I == 1 && c.J == 0);
+            int b = grid.Cells.ToList().FindIndex(c => c.I == 0 && c.J == 1);
+
+            Assert.Contains(b, grid.GetAdjacentCells(a));
+            Assert.Contains(a, grid.GetAdjacentCells(b));
+            Assert.All(Enumerable.Range(0, grid.CellCount), n => Assert.DoesNotContain(n, grid.GetAdjacentCells(n)));
+        }
+
+        [Fact]
+        public void AGridCutFinerThanTheGlobalToleranceGivesItsNeighboursAndItsMesh()
+        {
+            // A wedge whose section has a side of 0.005, and a box whose last cell is 0.006 long, both cut at a tolerance of
+            // a ten-thousandth: their faces are too thin for the global tolerance, which the neighbours and the OBJ writer
+            // read them with.
+            var fine = new Tolerance(1E-4, 1E-4);
+            GeoPoint3 a = P(0, 0, 0), b = P(0, 0.005, 0), c = P(0, 0, 50);
+            var up = new GeoVector3(300, 0, 0);
+            GeoFace3 F(params GeoPoint3[] p) => new GeoFace3(new GeoPolygon3(p, fine));
+            var wedge = new GeoSolid3(F(a, c, b), F(a.Add(up), b.Add(up), c.Add(up)), F(a, b, b.Add(up), a.Add(up)), F(b, c, c.Add(up), b.Add(up)), F(c, a, a.Add(up), c.Add(up)));
+            GeoCellGrid3 slices = wedge.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole), fine);
+
+            Assert.Equal(3, slices.CellCount);
+            Assert.Equal(new[] { 1 }, slices.GetAdjacentCells(0));
+            Assert.Equal(new[] { 0, 2 }, slices.GetAdjacentCells(1));
+
+            GeoCellGrid3 boxes = new GeoAabb3(P(0, 0, 0), P(100.006, 50, 50)).ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole), fine);
+            string[] lines = new GeometryHelper.Export.ObjWriter().Add(boxes, "c").ToString().Split('\n');
+
+            Assert.Equal(2, boxes.CellCount);
+            Assert.Equal(24, lines.Count(l => l.StartsWith("f ", StringComparison.Ordinal)));
+        }
+
+        [Fact]
         public void OneThreadCutsAsManyDo()
         {
             GeoSolid3 cylinder = GeoSolid3.Cylinder(P(0, 0, 0), P(0, 0, 2000), 600, 32, Tolerance);

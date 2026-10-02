@@ -1229,7 +1229,26 @@ namespace GeometryHelper.Core
             return new GeoFace2(boundary, holes);
         }
 
-        private static GeoPolygon2 CounterClockwise(GeoPolygon2 polygon) => polygon != null && polygon.SignedArea < 0.0 ? polygon.Reverse() : polygon;
+        /// <summary>
+        /// A polygon wound counter-clockwise, turned round as it is rather than through a constructor that would check it
+        /// against the global tolerance; null for null.
+        /// </summary>
+        private static GeoPolygon2 CounterClockwise(GeoPolygon2 polygon)
+        {
+            if (polygon == null || !(polygon.SignedArea < 0.0))
+            {
+                return polygon;
+            }
+
+            var turned = new GeoPoint2[polygon.VertexCount];
+
+            for (int i = 0; i < turned.Length; i++)
+            {
+                turned[i] = polygon[turned.Length - 1 - i];
+            }
+
+            return new GeoPolygon2(turned, turned.Length);
+        }
 
         /// <summary>
         /// A ring of the plane of a frame put back into space, facing along the frame's Z axis; null when it encloses

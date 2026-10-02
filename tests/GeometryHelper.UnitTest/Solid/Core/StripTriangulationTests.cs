@@ -34,6 +34,19 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void AFaceThinnerThanTheGlobalToleranceIsCoveredWithinAFinerOne()
+        {
+            // A strip 300 long and 0.006 wide, a face at a tolerance of a ten-thousandth: laid out, it was checked against the
+            // global tolerance, which takes its two long sides for one, and refused.
+            var fine = new Tolerance(1E-4, 1E-4);
+            var face = new GeoFace3(new GeoPolygon3(new[] { P(0, 0), P(300, 0), P(300, 0.006), P(0, 0.006) }, fine));
+
+            GeoTriangle3[] triangles = StripTriangulation.Triangulate(face, fine);
+
+            Assert.Equal(300 * 0.006, triangles.Sum(t => t.Area), 9);
+        }
+
+        [Fact]
         public void TheTrianglesKeepTheCornersOfTheFace()
         {
             var face = new GeoFace3(

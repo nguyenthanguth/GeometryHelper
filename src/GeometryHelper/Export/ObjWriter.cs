@@ -162,7 +162,8 @@ namespace GeometryHelper.Export
                     label += "_" + cell.Piece.ToString(CultureInfo.InvariantCulture);
                 }
 
-                Add(cell.Solid.Triangulate(), label);
+                // At the tolerance the cells were cut within, which a face thinner than the global one is not too thin for.
+                Add(cell.Solid.Triangulate(grid.Tolerance), label);
             }
 
             return this;

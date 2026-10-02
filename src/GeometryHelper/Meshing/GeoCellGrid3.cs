@@ -91,6 +91,11 @@ namespace GeometryHelper.Meshing
         public double Volume { get; }
 
         /// <summary>
+        /// Gets the tolerance the cells were cut within, which their faces hold to.
+        /// </summary>
+        internal Tolerance Tolerance => _tolerance;
+
+        /// <summary>
         /// Gets the pieces of the cell at an index, in turn.
         /// </summary>
         /// <param name="i">The index along the grid's X axis.</param>
@@ -150,7 +155,10 @@ namespace GeometryHelper.Meshing
         /// <exception cref="ArgumentOutOfRangeException">Thrown when there is no such cell.</exception>
         /// <remarks>
         /// Two pieces of one cell never share a face, and pieces of neighbouring cells only where they meet: across the notch
-        /// of a U, the piece of one arm meets only the cell beside it in that arm.
+        /// of a U, the piece of one arm meets only the cell beside it in that arm. A neighbour is found where it meets the
+        /// cell, not by its indexes: a cut moved onto a corner can leave the next cell along an axis empty and the one after
+        /// meeting this one, and the slabs and bars, each cut to its own corners, can leave a cell meeting one beside the
+        /// next.
         /// </remarks>
         public int[] GetAdjacentCells(int index)
         {
@@ -161,7 +169,7 @@ namespace GeometryHelper.Meshing
 
             if (_adjacent == null)
             {
-                _adjacent = CellContact3.Adjacency(_cells, ByIndex(), Frame, _joint, _tolerance);
+                _adjacent = CellContact3.Adjacency(_cells, _starts, _ends, Frame, _joint, _tolerance);
             }
 
             return (int[])_adjacent[index].Clone();

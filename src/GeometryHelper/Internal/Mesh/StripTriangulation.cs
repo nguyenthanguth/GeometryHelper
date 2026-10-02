@@ -137,7 +137,9 @@ namespace GeometryHelper.Core
                     corners[(point.X - origin.X, point.Y - origin.Y)] = corner;
                 }
 
-                return new GeoPolygon2(flat);
+                // Laid out as the face has it: the ring is resolved within the tolerance given below, and checked against the
+                // global one here it would refuse a face thinner than that, which the tolerance given may not be.
+                return new GeoPolygon2(flat.ToArray(), flat.Count);
             }
 
             var holes = new List<GeoPolygon2>(face.Holes.Count);
