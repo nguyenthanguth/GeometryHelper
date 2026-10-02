@@ -922,19 +922,68 @@ namespace GeometryHelper.Core
             GeoObb3 whole = GeoCellGrid3.BoxOf(layout.Frame, x0, x1, y0, y1, z0, z1);
             double boxVolume = (x1 - x0) * (y1 - y0) * (z1 - z0);
             double boxArea = 2.0 * ((x1 - x0) * (y1 - y0) + (y1 - y0) * (z1 - z0) + (z1 - z0) * (x1 - x0));
+            var low = new[] { x0, y0, z0 };
+            var high = new[] { x1, y1, z1 };
             var cells = new List<GeoCell3>(parts.Count);
 
             for (int p = 0; p < parts.Count; p++)
             {
                 double volume = parts[p].Solid.Volume;
 
-                // The body fills the cell but for a skin no thicker than the point tolerance.
-                bool isWhole = parts.Count == 1 && Math.Abs(boxVolume - volume) <= tolerance.EqualPoint * boxArea;
+                // The body fills the cell but for a skin no thicker than the point tolerance: every face it has there lies on
+                // a side of the cell, as a box's whole cell is cut by none of its sides. The volume alone would let through a
+                // hole or a pocket taking less than the skin's.
+                bool isWhole = parts.Count == 1
+                    && Math.Abs(boxVolume - volume) <= tolerance.EqualPoint * boxArea
+                    && OnSides(parts[p].Solid, layout.Frame, low, high, tolerance);
 
                 cells.Add(new GeoCell3(piece.I, piece.J, piece.K, p, whole, parts[p].Solid, null, isWhole, volume, (double[])piece.Low.Clone(), (double[])piece.High.Clone()));
             }
 
             return cells;
+        }
+
+        /// <summary>
+        /// Whether every face of a body lies on a side of a cell, within the point tolerance.
+        /// </summary>
+        private static bool OnSides(GeoSolid3 solid, GeoCoordinateSystem3 frame, double[] low, double[] high, Tolerance tolerance)
+        {
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                bool on = false;
+
+                for (int a = 0; a < 3 && !on; a++)
+                {
+                    on = Lies(face, frame, a, low[a], tolerance) || Lies(face, frame, a, high[a], tolerance);
+                }
+
+                if (!on)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Whether a face lies in the plane square to an axis at a place along it, within the point tolerance; its holes lie
+        /// in its plane.
+        /// </summary>
+        private static bool Lies(GeoFace3 face, GeoCoordinateSystem3 frame, int axis, double at, Tolerance tolerance)
+        {
+            foreach (GeoPoint3 corner in face.Boundary.Vertices)
+            {
+                GeoPoint3 local = frame.ToLocal(corner);
+                double d = axis == 0 ? local.X : axis == 1 ? local.Y : local.Z;
+
+                if (Math.Abs(d - at) > tolerance.EqualPoint)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         #endregion

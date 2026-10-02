@@ -619,6 +619,43 @@ namespace GeometryHelper.UnitTest.Meshing
         }
 
         [Fact]
+        public void ACellWithAHoleOrAPocketIsNotWhole()
+        {
+            // A hole 30 across through a slab, a shaft 8 across through a block and a pocket 30 square and 100 deep in its top:
+            // each takes less than the point tolerance times the cell's surface from the cell, which was all whole asked.
+            GeoSolid3 slab = Prism(Rect(0, 0, 6000, 6000), 0, 200).WithOpenings(new[] { Prism(Rect(1000, 1000, 1030, 1030), -10, 210) });
+            GeoCellGrid3 bays = slab.ToCells(CellOptions3.Grid(3000, 3000, 0), Tolerance);
+
+            Assert.Equal(4, bays.CellCount);
+            Assert.False(Assert.Single(bays.GetCellsAt(0, 0, 0)).IsWhole);
+            Assert.Equal(3, Whole(bays));
+
+            GeoSolid3 cube = Prism(Rect(0, 0, 1000, 1000), 0, 1000);
+            GeoSolid3 drilled = cube.WithOpenings(new[] { GeoSolid3.Cylinder(P(500, 500, -10), P(500, 500, 1010), 4, 16, Tolerance) });
+            GeoSolid3 pocketed = cube.WithOpenings(new[] { Prism(Rect(400, 400, 430, 430), 900, 1010) });
+
+            Assert.False(Assert.Single(drilled.ToCells(CellOptions3.Grid(1000, 1000, 1000), Tolerance).Cells).IsWhole);
+            Assert.False(Assert.Single(pocketed.ToCells(CellOptions3.Grid(1000, 1000, 1000), Tolerance).Cells).IsWhole);
+            Assert.True(Assert.Single(cube.ToCells(CellOptions3.Grid(1000, 1000, 1000), Tolerance).Cells).IsWhole);
+        }
+
+        [Fact]
+        public void ABodyShortOfItsCellIsNotWholeThereAsABoxIsNot()
+        {
+            // The slab ends 0.3 short of its second column of cells: as a box it is cut there, as a body it was whole.
+            var options = CellOptions3.Grid(3000, 3000, 0);
+            GeoCellGrid3 box = new GeoAabb3(P(0, 0, 0), P(5999.7, 6000, 200)).ToCells(options, Tolerance);
+            GeoCellGrid3 body = Prism(Rect(0, 0, 5999.7, 6000), 0, 200).ToCells(options, Tolerance);
+
+            Assert.Equal(box.Cells.Select(c => c.IsWhole), body.Cells.Select(c => c.IsWhole));
+            Assert.Equal(2, Whole(body));
+
+            // A step five thousandths past a line is within the tolerance of it: the cells either side are whole.
+            GeoSolid3 footing = Prism(new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(1000.005, 1000), Q(1000.005, 2000), Q(0, 2000)), 0, 800);
+            Assert.All(footing.ToCells(CellOptions3.Grid(500, 500, 400), Tolerance).Cells, c => Assert.True(c.IsWhole, $"{c} is not whole"));
+        }
+
+        [Fact]
         public void ABodyThatIsNotClosedIsRefused()
         {
             GeoSolid3 box = new GeoAabb3(P(0, 0, 0), P(1000, 1000, 1000)).ToObb().ToSolid();
