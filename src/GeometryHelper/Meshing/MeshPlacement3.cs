@@ -10,9 +10,10 @@ namespace GeometryHelper.Meshing
     /// Where a grid, or strips, stand in space: which way the axes run, as <see cref="MeshAxes"/> says, and, when given, the
     /// point a cell starts at.
     /// <para>
-    /// The same placement serves a flat shape, meshed into a <see cref="GeoMesh3"/>, and a body, cut into cells: over a
-    /// flat shape the axes give the direction of the grid's first axis in the shape's plane, and through a body all three
-    /// axes of the grid. The placement is immutable, so one instance can be shared between threads and kept as a setting.
+    /// The same placement serves a flat shape, meshed into a <see cref="GeoMesh3"/>, and a body, cut into a
+    /// <see cref="GeoCellGrid3"/>: over a flat shape the axes give the direction of the grid's first axis in the shape's
+    /// plane, and through a body all three axes of the grid. The placement is immutable, so one instance can be shared
+    /// between threads and kept as a setting.
     /// </para>
     /// </summary>
     /// <remarks>
@@ -234,6 +235,94 @@ namespace GeometryHelper.Meshing
             }
 
             return direction;
+        }
+
+        /// <summary>
+        /// The axes of a body's grid, as these axes say, about a point of the body.
+        /// </summary>
+        /// <param name="points">The body's corners: the box's own axes fit round them, and the plan's rectangle.</param>
+        /// <param name="box">The body's own box, whose axes <see cref="MeshAxes.Own"/> takes; null to fit one round the points.</param>
+        /// <param name="tolerance">The tolerance the box and the rectangle are fitted within.</param>
+        internal GeoCoordinateSystem3 AxesOfBody(IReadOnlyList<GeoPoint3> points, GeoObb3 box, Tolerance tolerance)
+        {
+            GeoPoint3 at = points[0];
+
+            switch (Axes)
+            {
+                case MeshAxes.Own:
+                    return box != null ? box.CoordinateSystem.WithOrigin(at) : FittedAxes(points, at, tolerance);
+
+                case MeshAxes.Upright:
+                    return UprightAxes(points, at, tolerance);
+
+                case MeshAxes.Along:
+                    GeoVector3 x = Direction.Value;
+                    GeoVector3 level = GeoVector3.ZAxis.CrossProduct(x);
+
+                    // A direction straight up has no level across it; Y then runs along the world's Y laid square to it.
+                    GeoVector3 y = level.Length > 1E-9 ? level.Divide(level.Length) : LaidOnto(GeoVector3.YAxis, x);
+                    return new GeoCoordinateSystem3(at, x, y);
+
+                case MeshAxes.Frame:
+                    return CoordinateSystem.Value.WithOrigin(at);
+
+                default:
+                    return GeoCoordinateSystem3.Global.WithOrigin(at);
+            }
+        }
+
+        /// <summary>
+        /// The axes of the smallest box round a body's corners, the one nearest upright as Z, pointing up, and the longer of
+        /// the other two as X, pointing along the world's X axis rather than against it.
+        /// </summary>
+        private static GeoCoordinateSystem3 FittedAxes(IReadOnlyList<GeoPoint3> points, GeoPoint3 at, Tolerance tolerance)
+        {
+            GeoObb3 fitted = BoxFit.Box(points, tolerance);
+            int up = 0;
+
+            for (int a = 1; a < 3; a++)
+            {
+                if (Math.Abs(fitted.GetAxisAt(a).Z) > Math.Abs(fitted.GetAxisAt(up).Z) + 1E-12)
+                {
+                    up = a;
+                }
+            }
+
+            int first = (up + 1) % 3;
+            int second = (up + 2) % 3;
+            int along = fitted.GetExtentAt(second) > fitted.GetExtentAt(first) + 1E-9 * Math.Max(1.0, fitted.GetExtentAt(first)) ? second : first;
+
+            GeoVector3 z = fitted.GetAxisAt(up);
+
+            if (z.Z < -1E-12 || (Math.Abs(z.Z) <= 1E-12 && !Canonical(z).Equals(z)))
+            {
+                z = z.Negate();
+            }
+
+            GeoVector3 x = Canonical(fitted.GetAxisAt(along));
+
+            return new GeoCoordinateSystem3(at, x, z.CrossProduct(x));
+        }
+
+        /// <summary>
+        /// Axes standing up: Z along the world's, and X along the long side of the smallest rectangle round the body's plan.
+        /// </summary>
+        private static GeoCoordinateSystem3 UprightAxes(IReadOnlyList<GeoPoint3> points, GeoPoint3 at, Tolerance tolerance)
+        {
+            var plan = new List<GeoPoint2>(points.Count);
+
+            foreach (GeoPoint3 point in points)
+            {
+                plan.Add(new GeoPoint2(point.X - at.X, point.Y - at.Y));
+            }
+
+            GeoRectangle2 rectangle = BoxFit.Rectangle(plan, tolerance);
+            double cos = Math.Cos(rectangle.AngleRad);
+            double sin = Math.Sin(rectangle.AngleRad);
+            GeoVector3 x = rectangle.Width >= rectangle.Height ? new GeoVector3(cos, sin, 0.0) : new GeoVector3(-sin, cos, 0.0);
+            x = Canonical(x);
+
+            return new GeoCoordinateSystem3(at, x, GeoVector3.ZAxis.CrossProduct(x));
         }
 
         /// <summary>

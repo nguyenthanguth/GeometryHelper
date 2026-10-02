@@ -344,6 +344,45 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Cuts the box into cells as the options say, along the world's axes, using the default tolerance.
+        /// </summary>
+        /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
+        /// <returns>The grid of cells.</returns>
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options) => Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
+
+        /// <summary>
+        /// Cuts the box into cells as the options say, along the world's axes, within a tolerance.
+        /// </summary>
+        /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
+        /// <param name="tolerance">The tolerance it is cut within: which cells are whole, and the least a cut is snapped by.</param>
+        /// <returns>The grid of cells.</returns>
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Tolerance tolerance) => Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.World, tolerance);
+
+        /// <summary>
+        /// Cuts the box into cells as the options say, its grid standing as the placement says, using the default
+        /// tolerance.
+        /// </summary>
+        /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
+        /// <param name="placement">Which way the grid's axes run, and where a cell starts.</param>
+        /// <returns>The grid of cells.</returns>
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToCells(this, options, placement, Tolerance.Global);
+
+        /// <summary>
+        /// Cuts the box into cells as the options say, its grid standing as the placement says, within a tolerance: blocks,
+        /// bays, lifts or bars, each a closed body of what the box holds of the cell.
+        /// </summary>
+        /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
+        /// <param name="placement">Which way the grid's axes run, and where a cell starts.</param>
+        /// <param name="tolerance">The tolerance it is cut within: which cells are whole, and the least a cut is snapped by.</param>
+        /// <returns>The grid of cells.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options or the placement are null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a cell is no larger than the point tolerance along an axis it divides, or the grid would lay more
+        /// cells than a grid may have.
+        /// </exception>
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToCells(this, options, placement, tolerance);
+
+        /// <summary>
         /// Gets this box as an oriented box aligned with the world axes.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>

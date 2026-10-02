@@ -133,6 +133,42 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
+        /// Adds the cells of a body, each an object of its own named after its indexes, so that a viewer lists them and shows
+        /// or hides them one by one.
+        /// </summary>
+        /// <param name="grid">The cells.</param>
+        /// <param name="name">What the objects' names start with; "cell" when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the grid is null.</exception>
+        /// <remarks>
+        /// A cell is written as the mesh of its body, <c>name_i_j_k</c>, and a second or later piece of one cell with its
+        /// number after, <c>name_i_j_k_p</c>.
+        /// </remarks>
+        public ObjWriter Add(GeoCellGrid3 grid, string name = null)
+        {
+            if (grid == null)
+            {
+                throw new ArgumentNullException(nameof(grid));
+            }
+
+            string prefix = string.IsNullOrWhiteSpace(name) ? "cell" : name;
+
+            foreach (GeoCell3 cell in grid.Cells)
+            {
+                string label = string.Format(CultureInfo.InvariantCulture, "{0}_{1}_{2}_{3}", prefix, cell.I, cell.J, cell.K);
+
+                if (cell.Piece > 0)
+                {
+                    label += "_" + cell.Piece.ToString(CultureInfo.InvariantCulture);
+                }
+
+                Add(cell.Solid.Triangulate(), label);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Adds a chain as a line through its vertices.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>

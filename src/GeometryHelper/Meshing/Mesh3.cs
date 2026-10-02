@@ -7,7 +7,8 @@ namespace GeometryHelper.Meshing
 {
     /// <summary>
     /// Breaking the flat shapes of space into the faces of a <see cref="GeoMesh3"/>: triangles, the cells of a grid, strips or
-    /// convex pieces, as the shapes of the plane break into a <see cref="GeoMesh2"/>.
+    /// convex pieces, as the shapes of the plane break into a <see cref="GeoMesh2"/>; and cutting bodies and boxes into the
+    /// cells of a <see cref="GeoCellGrid3"/>.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -285,6 +286,194 @@ namespace GeometryHelper.Meshing
 
             var corners = new[] { triangle.A, triangle.B, triangle.C };
             return MeshRings(corners, new IReadOnlyList<GeoPoint3>[0], normal, options, placement, tolerance);
+        }
+
+        #endregion
+
+        #region Cells
+
+        /// <summary>
+        /// Cuts a body into cells as the options say, along the world's axes, using the default tolerance.
+        /// </summary>
+        public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options) => ToCells(solid, options, MeshPlacement3.World, Tolerance.Global);
+
+        /// <summary>
+        /// Cuts a body into cells as the options say, along the world's axes, within a tolerance.
+        /// </summary>
+        public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, Tolerance tolerance) => ToCells(solid, options, MeshPlacement3.World, tolerance);
+
+        /// <summary>
+        /// Cuts a body into cells as the options say, its grid standing as the placement says, using the default tolerance.
+        /// </summary>
+        public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement) => ToCells(solid, options, placement, Tolerance.Global);
+
+        /// <summary>
+        /// Cuts a body into cells as the options say, its grid standing as the placement says, within a tolerance.
+        /// </summary>
+        /// <param name="solid">The body; closed, its openings cut in first.</param>
+        /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
+        /// <param name="placement">Which way the grid's axes run, and where a cell starts.</param>
+        /// <param name="tolerance">The tolerance the body is cut within: which cells are whole, and the least a cut is snapped by.</param>
+        /// <returns>
+        /// The grid, every cell the body holds any of a closed body of what it holds, a piece each; none when the openings take
+        /// all of the body.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the body, the options or the placement are null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the body is not closed, a cell is no larger than the point tolerance along an axis it divides, or the grid
+        /// would lay more cells through the body than a grid may have.
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// The cells are cut by planes, along the grid's X axis first, then Y, then Z. A cut that comes within the snap
+        /// distance of a corner of the part it cuts is moved onto that corner, and one that would take off no more than that
+        /// from a side is not made: the slice stays with the cell beside, so that no cell is thinner than the snap distance
+        /// where the body leaves room, and no cut runs along a face of the body a hair off it. Features of the body closer
+        /// together than that still leave the slice between them.
+        /// </para>
+        /// <para>
+        /// A cell the body holds in several pieces, as across the notch of a U, gives a cell for each. A body that is not
+        /// closed holds no volume to cut, and is refused rather than cut into cells that would not hold it either.
+        /// </para>
+        /// </remarks>
+        public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
+        {
+            if (solid == null)
+            {
+                throw new ArgumentNullException(nameof(solid));
+            }
+
+            Check(options, placement);
+
+            if (!solid.IsClosed(tolerance))
+            {
+                throw new ArgumentException("The body is not closed, so it holds no volume to cut into cells; mend it first, as GeoSolid3.IsClosed says.", nameof(solid));
+            }
+
+            GeoSolid3 material = solid;
+
+            if (solid.Openings.Count > 0 && !Boolean3.TryCutOpenings(solid, out material, tolerance))
+            {
+                material = null;
+            }
+
+            GeoCoordinateSystem3 axes = placement.AxesOfBody(Corners(solid), null, tolerance);
+            return CellGrid3.OfSolid(solid, material, axes, options, placement.Origin, tolerance);
+        }
+
+        /// <summary>
+        /// Cuts a box into cells as the options say, along its own axes, using the default tolerance.
+        /// </summary>
+        public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options) => ToCells(box, options, MeshPlacement3.Own, Tolerance.Global);
+
+        /// <summary>
+        /// Cuts a box into cells as the options say, along its own axes, within a tolerance.
+        /// </summary>
+        public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options, Tolerance tolerance) => ToCells(box, options, MeshPlacement3.Own, tolerance);
+
+        /// <summary>
+        /// Cuts a box into cells as the options say, its grid standing as the placement says, using the default tolerance.
+        /// </summary>
+        public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options, MeshPlacement3 placement) => ToCells(box, options, placement, Tolerance.Global);
+
+        /// <summary>
+        /// Cuts a box into cells as the options say, its grid standing as the placement says, within a tolerance.
+        /// </summary>
+        /// <param name="box">The box.</param>
+        /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
+        /// <param name="placement">Which way the grid's axes run, <see cref="MeshPlacement3.Own"/> along the box's, and where a cell starts.</param>
+        /// <param name="tolerance">The tolerance the box is cut within: which cells are whole, and the least a cut is snapped by.</param>
+        /// <returns>The grid; none when the box is flat.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the box, the options or the placement are null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a cell is no larger than the point tolerance along an axis it divides, or the grid would lay more cells
+        /// through the box than a grid may have.
+        /// </exception>
+        /// <remarks>
+        /// A grid along the box's own sides cuts it by arithmetic, every cell a box, which a grid of a million cells takes a
+        /// second over; one turned against them cuts it as a body.
+        /// </remarks>
+        public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
+        {
+            if (box == null)
+            {
+                throw new ArgumentNullException(nameof(box));
+            }
+
+            Check(options, placement);
+
+            GeoPoint3[] corners = box.GetCorners();
+            GeoCoordinateSystem3 axes = placement.AxesOfBody(corners, box, tolerance);
+
+            if (CellGrid3.RunsAlong(axes, box) || box.IsDegenerate(tolerance))
+            {
+                return CellGrid3.OfBox(box, axes, options, placement.Origin, tolerance);
+            }
+
+            GeoSolid3 solid = CellGrid3.BoxSolid(box);
+            return CellGrid3.OfSolid(solid, solid, axes, options, placement.Origin, tolerance);
+        }
+
+        /// <summary>
+        /// Cuts a box into cells as the options say, along the world's axes, using the default tolerance.
+        /// </summary>
+        public static GeoCellGrid3 ToCells(GeoAabb3 box, CellOptions3 options) => ToCells(box, options, MeshPlacement3.World, Tolerance.Global);
+
+        /// <summary>
+        /// Cuts a box into cells as the options say, along the world's axes, within a tolerance.
+        /// </summary>
+        public static GeoCellGrid3 ToCells(GeoAabb3 box, CellOptions3 options, Tolerance tolerance) => ToCells(box, options, MeshPlacement3.World, tolerance);
+
+        /// <summary>
+        /// Cuts a box into cells as the options say, its grid standing as the placement says, using the default tolerance.
+        /// </summary>
+        public static GeoCellGrid3 ToCells(GeoAabb3 box, CellOptions3 options, MeshPlacement3 placement) => ToCells(box, options, placement, Tolerance.Global);
+
+        /// <summary>
+        /// Cuts a box into cells as the options say, its grid standing as the placement says, within a tolerance.
+        /// </summary>
+        /// <param name="box">The box; its own axes are the world's.</param>
+        /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
+        /// <param name="placement">Which way the grid's axes run, and where a cell starts.</param>
+        /// <param name="tolerance">The tolerance the box is cut within: which cells are whole, and the least a cut is snapped by.</param>
+        /// <returns>The grid; none when the box is empty or flat.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options or the placement are null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a cell is no larger than the point tolerance along an axis it divides, or the grid would lay more cells
+        /// through the box than a grid may have.
+        /// </exception>
+        public static GeoCellGrid3 ToCells(GeoAabb3 box, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
+        {
+            Check(options, placement);
+
+            // An empty box is a box of no size at the origin, which has no cells.
+            GeoObb3 obb = box.IsEmpty ? new GeoObb3(GeoPoint3.Origin, 0.0, 0.0, 0.0) : box.ToObb();
+            return ToCells(obb, options, placement, tolerance);
+        }
+
+        private static void Check(CellOptions3 options, MeshPlacement3 placement)
+        {
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            if (placement == null)
+            {
+                throw new ArgumentNullException(nameof(placement));
+            }
+        }
+
+        private static List<GeoPoint3> Corners(GeoSolid3 solid)
+        {
+            var corners = new List<GeoPoint3>();
+
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                corners.AddRange(face.Boundary.Vertices);
+            }
+
+            return corners;
         }
 
         #endregion
