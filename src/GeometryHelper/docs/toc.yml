@@ -6,6 +6,10 @@
   href: mesh.md
 - name: Geometry in space
   href: solid.md
+- name: Meshing in space
+  href: mesh3.md
+- name: "Meshing in space: cases and checks"
+  href: mesh3-report.md
 - name: Label placement
   href: arrange.md
 - name: Packing boxes onto sheets

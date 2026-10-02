@@ -40,6 +40,56 @@ faces as indices and as polygons, the area, the edges, the boundary, a face's ne
 and moves and transforms. `GeoRectangle2.Divide(columns, rows)` divides a rectangle into equal rectangles. 300 000
 random faces with holes touching each other and the boundary, meshed every way, are held to all of it.
 
+**NEW.** Meshing in space. `ToMesh` on `GeoPolygon3`, `GeoFace3`, `GeoPolygonArc3`, `GeoCircle3` and `GeoTriangle3`
+breaks the shape into a `GeoMesh3`, with the `MeshOptions` of the plane: the shape is laid out in a frame of its plane,
+meshed there as the plane meshes it, and put back, its own corners exactly where it has them. A face a hair out of flat
+keeps its corners, the points on its sides stay on them, and only the points inside lie on the plane. `GeoMesh3` is a
+`GeoMesh2` standing in a plane: its faces run counter-clockwise about `Normal`, `Frame` is the plane they were laid out
+in, its X axis the grid's first axis, and `ToMesh2` draws them in it, as an elevation. A `MeshPlacement3` says which way
+the grid runs, `MeshAxes`: level with the second axis up the slope, along X on a level face (`World`, the default); along
+the long side of the smallest rectangle round the shape (`Own`); `Upright`; along a direction; along a coordinate
+system's axes; and `At(origin)` puts a cell's corner on a point of space, so that walls laid from one origin have their
+rows at the same heights. In space a grid's origin is a point of space, and `MeshOptions.Origin` is refused there.
+
+**NEW.** Bodies cut into cells. `ToCells` on `GeoSolid3`, `GeoObb3` and `GeoAabb3` cuts the body into a `GeoCellGrid3`
+of `GeoCell3`s: each cell a closed body of what the body holds of it, with its indexes along the grid's three axes, the
+whole cell as a box, whether it is whole, and its volume; a cell the body holds in several pieces, as across the notch of a
+U, gives a cell a piece. The grid gives its frame, the counts along each axis, the cells at an index and the box at any,
+and the neighbours that share part of a face. `CellOptions3` divides each axis as its `CellAxis` says, by a size standing
+as a `GridAlignment` says or from the placement's origin, by a count, or not at all, with a joint between neighbouring
+cells and none at the boundary: `Grid`, `Layers` and `Divide` give the usual ones. The axes come from `MeshPlacement3`:
+the world's, a box's own or the smallest box round a body (`Own`, the default for `GeoObb3`), upright along the long side
+of its plan, along a direction, or a coordinate system's. A cut coming within the snap distance of a corner of the part it
+cuts moves onto it, and none takes off a slice thinner than that, or than four point tolerances, from the part's far side,
+so that the slice goes with the cell beside. The openings are cut in first, and a body that is not closed is refused. A
+box cut along its own sides is cut by arithmetic, a million cells in about two thirds of a second; any other body is cut
+by planes, along X, then each slab along Y and each bar along Z, on as many threads as allowed. The cells hold the body's
+volume but for the tolerance times the area cut: over 200 000 random bodies, a median of two parts in ten million
+million. The OBJ writer adds a `GeoMesh3`, a face that turns right at no corner as one polygon, and a `GeoCellGrid3`, each
+cell an object of its own. The guide `docs/mesh3.md` describes it all, and `docs/mesh3-report.md` draws and measures its
+cases and how they were checked.
+
+**FIXED.** `GeoFace3.Locate` and `Contains`, and `GeoPoint3.LocateIn` a face, read each hole in the hole's own plane.
+A hole may stand off the boundary's plane by up to the planar tolerance, as one a modeller cut can, and a point on the
+face's plane a thousandth below stood further than the tolerance from the hole's: a point in the hole was inside the
+material, one on its rim inside too. The holes are read in the plane of the boundary now.
+
+**FIXED.** `GeoSolid3.TrySplitBy` refused a plane that parts a body without crossing it: one passing between two blocks
+of one body, or along the edge where two parts of a body meet, as a body cut through the corner of its notch touches
+itself. Each half is closed as it is, and was taken for one the plane misses. It is split now, with nothing to cap.
+
+**FIXED.** `GeoSolid3.Locate` and `Contains` threw another ray when a crossing landed within twice the point tolerance of
+a face's outer rim, but not of the rim of one of its holes: a ray leaving through the wall of a hole and rising through
+the hole a hair short of its rim was counted by the face the hole is cut in, and the point came out of the body.
+
+**FIXED.** `GeoFace3.TrySplitBy` and `GeoSolid3.TrySplitBy` gave a hole back as a face of material when every corner of
+it stood on the rim of the piece it fell in, as a hole touching its face's boundary at two corners does when the cut runs
+through its third: the piece covered the hole twice, and a body gained its volume.
+
+**FIXED.** `ConvexHull3.TryOf` and `Of`, and `GeoObb3.Fit`, threw on points whose hull has a face smaller than a polygon
+of the tolerance may enclose, as three corners a tenth of a millimetre apart that a boolean leaves make. The hull's faces
+are built from their corners as they are now.
+
 **FIXED.** `GeoPolygon2.SignedArea`, `Area`, `IsClockwise` and `Centroid`, and `GeoPolygonArc2.SignedArea` and `Area`,
 summed their shoelace from the origin, where the products of coordinates seven kilometres out are near 5E13 and their
 last digit is worth a hundredth. A polygon a tenth of a millimetre across there came out with no area at all, or the

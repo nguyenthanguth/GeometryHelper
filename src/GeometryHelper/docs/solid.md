@@ -817,6 +817,9 @@ Like every other question, both read the material: a bolt hole comes out of the 
 and is a hole in the section. A section is one face per region the plane cuts, facing along the plane's normal;
 a plane that misses the body, or only lies along one of its faces, gives none.
 
+A body cut into many pieces at once, the blocks, bays or lifts of a grid, is what `ToCells` gives, described with
+[meshing in space](mesh3.md).
+
 ### Hulls and fitted boxes
 
 `ConvexHull3.Of(points)` is the smallest convex body holding some points, closed and with coplanar triangles

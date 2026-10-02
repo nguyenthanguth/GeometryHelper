@@ -50,7 +50,7 @@ beam.TryTrimTo(wall, LineEnd.End, out GeoLine3 cut);      // (0,0,0) -> (2500,0,
 | `GeometryHelper.Spatial` | `GeoBvh2` and `GeoBvh3`, the bounding volume hierarchies for large chains and meshes |
 | `GeometryHelper.Extension` | turning raw point lists into geometry |
 | `GeometryHelper.Arranging` | label placement: `Arranger`, `ArrangeItem`, `ArrangeResult`, `ArrangeOptions`, five algorithms |
-| `GeometryHelper.Meshing` | closed shapes of the plane broken into triangles, grids, strips or convex pieces: `GeoMesh2`, `Mesh2`, `MeshKind`, `MeshOptions`, `GridAlignment` |
+| `GeometryHelper.Meshing` | closed shapes of the plane and flat shapes of space broken into triangles, grids, strips or convex pieces, and bodies cut into the cells of a grid: `GeoMesh2`, `Mesh2`, `GeoMesh3`, `Mesh3`, `MeshKind`, `MeshOptions`, `MeshPlacement3`, `GeoCellGrid3`, `GeoCell3`, `CellOptions3`, `CellAxis`, `GridAlignment` |
 | `GeometryHelper.Packing` | boxes onto sheets of paper: `SheetPacker`, `Sheet`, `PackOptions`, `PackResult` |
 
 Every operation is reachable both ways: the static form names the larger shape first, and the instance
@@ -76,6 +76,7 @@ The whole of it, searchable, with every type and member: [https://nguyenthanguth
 | [Geometry in the plane](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/plane.md) | points to polygons and faces; extending, trimming, offsetting, combining regions |
 | [Meshing the plane](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/mesh.md) | triangles, grids of panels or tiles with joints and alignment, strips and convex pieces, edge to edge |
 | [Geometry in space](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |
+| [Meshing in space](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/mesh3.md) | flat shapes of space in panels, tiles, strips and triangles; bodies and boxes cut into blocks, bays and lifts; [the cases, drawn and checked](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/mesh3-report.md) |
 | [Label placement](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/arrange.md) | five algorithms behind one entry point |
 | [Packing boxes onto sheets](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/packing.md) | drawing views onto A0 to A4 sheets or sheets of a size of their own, a new sheet when one is full |
 

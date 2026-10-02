@@ -17,6 +17,7 @@ dotnet add package GeometryHelper
 | [Geometry in the plane](../src/GeometryHelper/docs/plane.md) | points to polygons and faces; arcs, offsetting, combining regions |
 | [Meshing the plane](../src/GeometryHelper/docs/mesh.md) | triangles, grids of panels or tiles with joints and alignment, strips and convex pieces, edge to edge |
 | [Geometry in space](../src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |
+| [Meshing in space](../src/GeometryHelper/docs/mesh3.md) | flat shapes of space in panels, tiles, strips and triangles; bodies and boxes cut into blocks, bays and lifts; [the cases, drawn and checked](../src/GeometryHelper/docs/mesh3-report.md) |
 | [Label placement](../src/GeometryHelper/docs/arrange.md) | five algorithms behind one entry point |
 | [Packing boxes onto sheets](../src/GeometryHelper/docs/packing.md) | drawing views onto A0 to A4 sheets or sheets of a size of their own, a new sheet when one is full |
 | [AutoCAD](../src/GeometryHelper.CadConvert/README.md) | both ways with AutoCAD, arcs and bulges included |

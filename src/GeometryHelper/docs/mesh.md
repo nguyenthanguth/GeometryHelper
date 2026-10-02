@@ -5,6 +5,9 @@ or convex pieces. Polygons, faces with holes, loops with arcs, rectangles and ci
 `ToMesh`. What comes back is a `GeoMesh2`. Its faces are simple polygons with no hole, running counter-clockwise.
 They share their corners, and two faces side by side meet along the same edge.
 
+The flat shapes of space mesh the same way, standing in their own plane, and bodies cut into the cells of a grid:
+see [meshing in space](mesh3.md).
+
 ## Quick start
 
 Panels of formwork, 1200 by 600 with joints of 3 mm, on a wall with a door and a window:
