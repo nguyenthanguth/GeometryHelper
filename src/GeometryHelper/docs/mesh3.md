@@ -84,15 +84,21 @@ GeoMesh3 side = sideWall.ToMesh(MeshOptions.Grid(1200, 600, joint: 10), placemen
 
 ![Two walls meeting at a corner, their panels laid from one origin, so that the rows meet across the corner](images/mesh3/walls-origin.svg)
 
+Along a line of space the cells stand where they would with its axis running the world's way, X before Y before Z,
+whichever way a face's own frame runs along it: the two faces of a wall, whose frames run opposite ways along it, have
+their joints on the same lines.
+
 In space a grid's origin is a point of space. `MeshOptions.Origin`, a point of the plane, is refused here with an
 `ArgumentException` that says to use `MeshPlacement3.At`.
 
 ### Other flat shapes
 
 `GeoPolygon3`, `GeoFace3`, `GeoPolygonArc3`, `GeoCircle3` and `GeoTriangle3` all mesh the same way, with `ToMesh`. A
-loop with arcs is flattened by the options' chord tolerance first, and its mesh's normal is the one the loop runs
-counter-clockwise about; a disc's triangles are fanned from its center, its normal the circle's; a triangle's normal runs
-from A by B to C.
+loop with arcs is flattened in space by the options' chord tolerance first, its corners kept where they are and the points
+of each arc on the arc, and its mesh's normal is the one the loop runs counter-clockwise about; a disc's triangles are
+fanned from its center, its normal the circle's, and a disc of no size has no faces; a triangle's normal runs from A by B
+to C. A shape crossing itself is meshed as the region `MakeValid` reads, as in the plane: two arcs bulging in at a sharp
+corner can cross before they part, and the lobe they close off, wound the other way, is material with the rest.
 
 ![A disc of 1500 on a sloping plane: fanned into 50 triangles on the left, in cells of 400 centred both ways on the right](images/mesh3/disc.svg)
 
@@ -112,8 +118,10 @@ string obj = new ObjWriter().Add(panels, "panels").ToString();
 are what they are in the plane, measured in space. `Frame` is the plane the faces were laid out in, its X axis the grid's
 first axis, its Z axis `Normal`, and `ToMesh2` gives the faces in it with the same indexes. `Translate` and `TransformBy`
 move the mesh; a mirror turns its normal round, as it turns a polygon's, and the faces still run counter-clockwise
-about it. The OBJ writer gives a face that turns right at no corner as one polygon, so that a viewer shows the cells of a
-grid as they are, and any other as its triangles.
+about it, and a scaling, however small, lays them out again in the frame scaled. `GetFace` gives a face with every corner
+it has: of a shape a hair out of flat, a triangle turns about the normal of its own corners, and a face of more corners
+keeps them where the shape has them. The OBJ writer gives a face that turns right at no corner as one polygon, so that a
+viewer shows the cells of a grid as they are, and any other as its triangles.
 
 ## Bodies in cells
 
@@ -131,7 +139,8 @@ int[] beside = bays.GetAdjacentCells(0);  // 1 and 2
 ```
 
 A size of nought leaves the body whole along that axis, so the slab is not cut through its thickness. The openings are cut
-in first: each bay is cut to the shaft, and none is whole.
+in first: each bay is cut to the shaft, and none is whole. Openings the whole body will not take are cut into each cell
+they meet.
 
 ![A slab with a shaft through it in four pour bays, drawn apart](images/mesh3/slab-bays.svg)
 
@@ -208,16 +217,20 @@ GeoCellGrid3 world = wall.ToCells(CellOptions3.Grid(1000, 0, 1000));            
 
 **Pieces.** A cell the body holds in several pieces, as the cell across the notch of a U holds two, comes as one `GeoCell3`
 a piece, with the same indexes, `Piece` telling them apart, numbered up Z, along Y and along X by their middles. Two pieces
-of one cell never share a face; `GetAdjacentCells` gives the cells that do, across the planes between neighbours.
+of one cell never share a face; `GetAdjacentCells` gives the cells that do, found where their material meets across the
+planes between them rather than by their indexes, and none where joints stand between.
 
 ![A U cut into two rows: the row over the arms holds two pieces, each a cell of its own](images/mesh3/u-pieces.svg)
 
-**Snapping.** A cut that comes within the snap distance of a corner of the part it cuts is moved onto that corner, and
-one that would take off no more than that from the part's far side is not made: the slice stays with the cell beside, so
-that no cell is cut thinner than the snap distance where the body leaves room, and no cut runs a hair off a face of the
-body. The snap distance is the point tolerance unless the options give more, and however small it is, no cut takes off
-less than four point tolerances, a piece at the scale of the tolerance. Features of the body closer together than the
-snap distance still leave the slice between them.
+**Snapping.** Each cut is settled against the part of the body it cuts, in turn. One that would take off no more than the
+snap distance from a side of the part, or four point tolerances however small the snap distance is, is not made: the slice
+stays with the cell beside, so that no cell is cut thinner than the snap distance where the body leaves room. A part that
+thin both ways, as a plate thinner than the snap distance lying across a line of cells, goes whole to the side holding
+more of it, or below where the two hold as much. Any other cut that comes within the snap distance of a corner of the
+part is moved onto the nearest, the higher of two as near, so that no cut runs a hair off a face of the body, and once
+moved is not made where it would take off no more than four point tolerances. The snap distance is the point tolerance
+unless the options give more. Features of the body closer together than the snap distance still leave the slice between
+them.
 
 ```csharp
 var options = new CellOptions3(CellAxis.BySize(500), CellAxis.BySize(500), CellAxis.Whole, snapDistance: 50);
@@ -226,8 +239,13 @@ GeoCellGrid3 cells = footing.ToCells(options);   // the step 30 past a line of c
 
 ![An L-shaped footing whose step stands 30 past a line of cells: with the point tolerance the slice 30 thick is a cell of its own, on the left; with a snap distance of 50 it goes with the cell beside, on the right](images/mesh3/snap.svg)
 
-**Joints and snapping.** With a joint the cuts bound the joints, and are snapped within the point tolerance only, so that
-no cell is carried into a joint.
+**Joints and snapping.** With a joint the cuts bound the joints, and are snapped, and slices left on, within the point
+tolerance only, so that no cell is carried into a joint.
+
+**A cut that cannot be made.** The point of a needle past a plane, a part thinner across than the point tolerance where
+the plane meets it, stays with the cell that holds the rest of it. A cut the body will not take, which a closed body
+should not give, leaves the part whole in the cell its middle stands in, or in the cell beside where the other side is a
+joint or past the last cell, so that nothing is lost, and says so in `GeometryHelperLog`.
 
 ### The cells
 
@@ -254,10 +272,13 @@ box, built as a body only when its `Solid` is asked for.
   volume but for the tolerance times the area cut: a face of the body within the tolerance of a cut is taken as lying in
   it, and the wedge between goes with it. Over hundreds of thousands of random bodies the median was two parts in ten
   million million, and the most two in a million.
-- The openings are cut in first. A body the openings take wholly gives a grid with no cells.
-- A cell is whole when the body fills it but for a skin no thicker than the point tolerance; it keeps the shape it was cut
-  to.
+- The openings are cut in first, into the whole body or, where it will not take them, into each cell they meet; a cell that
+  will not take them either keeps their material, and says so in the log. A body the openings take wholly gives a grid
+  with no cells.
+- A cell is whole when the body fills it but for a skin no thicker than the point tolerance, every face of it on a side of
+  its box; it keeps the shape it was cut to.
 - A body that is not closed holds no volume to cut, and is refused with an `ArgumentException`, as is a cell no larger than
-  the point tolerance along an axis it divides, or a grid of more than 1 000 000 cells through the body.
+  the point tolerance along an axis it divides, or a grid of more than 1 000 000 cells through the body. A body wound
+  inwards, as a mirror leaves one, is read the right way out, and its cells are wound outwards.
 - The bodies are cut by planes, along X first, then each slab along Y and each bar along Z, on every processor unless
   `maxDegreeOfParallelism` says otherwise; the cells come out the same on one thread as on many.

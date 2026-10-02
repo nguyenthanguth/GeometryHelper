@@ -60,17 +60,17 @@ as a `GridAlignment` says or from the placement's origin, by a count, or not at 
 cells and none at the boundary: `Grid`, `Layers` and `Divide` give the usual ones. The axes come from `MeshPlacement3`:
 the world's, a box's own or the smallest box round a body (`Own`, the default for `GeoObb3`), upright along the long side
 of its plan, along a direction, or a coordinate system's. A cut coming within the snap distance of a corner of the part it
-cuts moves onto it, and none takes off a slice thinner than that, or than four point tolerances, from the part's far side,
-so that the slice goes with the cell beside; past a joint, where it would go with the joint, a slice thicker than the
-point tolerance is the cell beyond's. The openings are cut in first, or into each cell they meet where the whole body
-will not take them or is left open by them, a body that is not closed is refused, and one wound inwards, as a mirror
-leaves it, is read the right way out. A
-box cut along its own sides is cut by arithmetic, a million cells in about two thirds of a second; any other body is cut
-by planes, along X, then each slab along Y and each bar along Z, on as many threads as allowed. The cells hold the body's
-volume but for the tolerance times the area cut: over 200 000 random bodies, a median of two parts in ten million
-million. The OBJ writer adds a `GeoMesh3`, a face that turns right at no corner as one polygon, and a `GeoCellGrid3`, each
-cell an object of its own. The guide `docs/mesh3.md` describes it all, and `docs/mesh3-report.md` draws and measures its
-cases and how they were checked.
+cuts moves onto it, and none takes off a slice thinner than that, or than four point tolerances, from a side of the part,
+so that the slice goes with the cell beside; a part that thin both ways goes whole to the side holding more of it. Past a
+joint, where it would go with the joint, a slice thicker than the point tolerance is the cell beyond's. The neighbours
+are found where the cells' material meets. The openings are cut in first, or into each cell they meet where the whole
+body will not take them or is left open by them, a body that is not closed is refused, and one wound inwards, as a mirror
+leaves it, is read the right way out. A box cut along its own sides is cut by arithmetic, a million cells in about two
+thirds of a second; any other body is cut by planes, along X, then each slab along Y and each bar along Z, on as many
+threads as allowed. The cells hold the body's volume but for the tolerance times the area cut: over about 150 000 random
+bodies cut without joints, a median of two parts in ten million million. The OBJ writer adds a `GeoMesh3`, a face that
+turns right at no corner as one polygon, and a `GeoCellGrid3`, each cell an object of its own. The guide `docs/mesh3.md`
+describes it all, and `docs/mesh3-report.md` draws and measures its cases and how they were checked.
 
 **FIXED.** `GeoFace3.Locate` and `Contains`, and `GeoPoint3.LocateIn` a face, read each hole in the hole's own plane.
 A hole may stand off the boundary's plane by up to the planar tolerance, as one a modeller cut can, and a point on the
