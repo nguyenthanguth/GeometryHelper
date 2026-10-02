@@ -175,18 +175,11 @@
       chamfers, fillets and GeoTransform2. Both in full in the same file.
     </PackageReleaseNotes>
 
-    <!-- 3. Embed source code and Debug symbols into DLL to support F12 original code viewing -->
+    <!-- 3. Embed Debug symbols into DLL; F12 fetches the original code from GitHub through Source Link -->
     <DebugType>embedded</DebugType>
     <GenerateDependencyFile>false</GenerateDependencyFile>
 
   </PropertyGroup>
-
-  <!-- Every source is embedded but those under Internal\Clipper\: the package carries that code compiled only,
-       so that the Boost licence asks no notice of it (THIRD-PARTY-NOTICES.md). -->
-  <ItemGroup>
-    <EmbeddedFiles Include="@(Compile)" />
-    <EmbeddedFiles Remove="Internal\Clipper\**" />
-  </ItemGroup>
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
