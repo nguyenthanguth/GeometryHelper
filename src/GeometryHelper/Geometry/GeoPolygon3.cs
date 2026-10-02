@@ -164,6 +164,16 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Gives a polygon of corners already apart, with the normal and area they are known to have, checking nothing.
+        /// </summary>
+        /// <remarks>
+        /// For the faces of a mesh, which keep slivers a tolerance would refuse and are known to be flat: what the public
+        /// constructor would measure is measured already.
+        /// </remarks>
+        internal static GeoPolygon3 FromValidated(GeoPoint3[] validatedVertices, GeoVector3 normal, double area)
+            => new GeoPolygon3(validatedVertices, normal, area);
+
+        /// <summary>
         /// Measures the total boundary length of a closed loop.
         /// </summary>
         private static double MeasurePerimeter(GeoPoint3[] loop)
@@ -369,6 +379,60 @@ namespace GeometryHelper.Geometry
 
             return triangles;
         }
+
+        /// <summary>
+        /// Breaks the polygon into faces of a kind, its grid level, using the default tolerance. A grid needs the size of its
+        /// cells, which <see cref="ToMesh(Meshing.MeshOptions)"/> takes.
+        /// </summary>
+        /// <param name="kind">The kind of faces.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the polygon into faces as the options say, its grid level, with the second axis up the slope, using the
+        /// default tolerance.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the polygon into faces as the options say, its grid level, with the second axis up the slope, within a
+        /// tolerance.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
+
+        /// <summary>
+        /// Breaks the polygon into faces as the options say, its grid standing as the placement says, using the default
+        /// tolerance.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <param name="placement">Which way the grid or the strips run in the plane, and where a cell starts.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the polygon into faces as the options say, its grid standing as the placement says, within a tolerance:
+        /// triangles, the cells of a grid, strips or convex pieces, each a simple polygon with no hole, counter-clockwise about
+        /// the normal, meeting its neighbours edge to edge.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <param name="placement">Which way the grid or the strips run in the plane, and where a cell starts.</param>
+        /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options or the placement are null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the options give an origin of the plane, a grid's cell is no larger than the point tolerance, the grid
+        /// would lay more cells over the shape than a mesh may have, or the placement's direction stands square to the plane.
+        /// </exception>
+        /// <remarks>
+        /// A polygon crossing itself is read as <see cref="GeoPolygon2.MakeValid()"/> reads it, laid out in its plane.
+        /// </remarks>
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
 
         /// <summary>
         /// Gets the axis-aligned bounding box enclosing this polygon.

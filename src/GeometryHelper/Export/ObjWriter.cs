@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using GeometryHelper.Geometry;
+using GeometryHelper.Meshing;
 
 namespace GeometryHelper.Export
 {
@@ -76,6 +77,56 @@ namespace GeometryHelper.Export
                 Vertex(triangle.B);
                 Vertex(triangle.C);
                 _text.Append("f ").Append(_vertices - 2).Append(' ').Append(_vertices - 1).Append(' ').Append(_vertices).Append('\n');
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Adds the mesh of a flat shape, its faces sharing their vertices: a face that turns right at none of its corners as
+        /// one polygon, so that a viewer shows the cells of a grid as they are, and any other as its triangles.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the mesh is null.</exception>
+        public ObjWriter Add(GeoMesh3 mesh, string name = null)
+        {
+            if (mesh == null)
+            {
+                throw new ArgumentNullException(nameof(mesh));
+            }
+
+            Begin(name);
+
+            int first = _vertices + 1;
+
+            foreach (GeoPoint3 vertex in mesh.Vertices)
+            {
+                Vertex(vertex);
+            }
+
+            for (int f = 0; f < mesh.FaceCount; f++)
+            {
+                if (mesh.IsConvex(f))
+                {
+                    _text.Append('f');
+
+                    foreach (int corner in mesh.GetFaceIndices(f))
+                    {
+                        _text.Append(' ').Append(first + corner);
+                    }
+
+                    _text.Append('\n');
+                    continue;
+                }
+
+                // A viewer fans a polygon from its first corner, which covers what a face turning right at a corner does not
+                // hold; its own triangles cover it exactly.
+                foreach (GeoTriangle3 triangle in mesh.GetFaceTriangles(f))
+                {
+                    Vertex(triangle.A);
+                    Vertex(triangle.B);
+                    Vertex(triangle.C);
+                    _text.Append("f ").Append(_vertices - 2).Append(' ').Append(_vertices - 1).Append(' ').Append(_vertices).Append('\n');
+                }
             }
 
             return this;

@@ -57,6 +57,22 @@ namespace GeometryHelper.Meshing
         public MeshKind Kind { get; }
 
         /// <summary>
+        /// The places the faces share, as the mesh holds them, for the meshes built on this one; not to be changed.
+        /// </summary>
+        internal GeoPoint2[] VertexArray => _vertices;
+
+        /// <summary>
+        /// The faces as the indexes of their corners, as the mesh holds them, for the meshes built on this one; not to be
+        /// changed.
+        /// </summary>
+        internal int[][] FaceArray => _faces;
+
+        /// <summary>
+        /// The same faces on vertices standing somewhere else, in the same order, counter-clockwise still.
+        /// </summary>
+        internal GeoMesh2 WithVertices(GeoPoint2[] vertices) => new GeoMesh2(Kind, vertices, _faces, _whole, _tolerance);
+
+        /// <summary>
         /// Gets the places the faces share, each once.
         /// </summary>
         public IReadOnlyList<GeoPoint2> Vertices => _vertices;
@@ -218,31 +234,69 @@ namespace GeometryHelper.Meshing
 
             foreach (int[] face in _faces)
             {
-                if (face.Length == 3)
-                {
-                    triangles.Add(new GeoTriangle2(_vertices[face[0]], _vertices[face[1]], _vertices[face[2]]));
-                }
-                else if (face.Length == 4 && TurnsLeftAtEveryCorner(face))
-                {
-                    // A whole cell, or any four corners that turn the same way at each: either diagonal lies within.
-                    triangles.Add(new GeoTriangle2(_vertices[face[0]], _vertices[face[1]], _vertices[face[2]]));
-                    triangles.Add(new GeoTriangle2(_vertices[face[0]], _vertices[face[2]], _vertices[face[3]]));
-                }
-                else if (!FaceEars.TryTriangulate(_vertices, face, triangles))
-                {
-                    // No ear to clip, as a face rounding has left touching itself has none: the surface's triangles, those
-                    // of any area.
-                    foreach (GeoTriangle2 triangle in Triangulation2.Triangulate(new GeoFace2(ToPolygon(face)), _tolerance))
-                    {
-                        if (triangle.SignedArea > 0.0)
-                        {
-                            triangles.Add(triangle);
-                        }
-                    }
-                }
+                AddTriangles(face, triangles);
             }
 
             return triangles.ToArray();
+        }
+
+        /// <summary>
+        /// Breaks one face into triangles on its own corners, counter-clockwise, as <see cref="ToTriangles"/> breaks every
+        /// face.
+        /// </summary>
+        internal void AddTriangles(int[] face, List<GeoTriangle2> triangles)
+        {
+            if (face.Length == 3)
+            {
+                triangles.Add(new GeoTriangle2(_vertices[face[0]], _vertices[face[1]], _vertices[face[2]]));
+            }
+            else if (face.Length == 4 && TurnsLeftAtEveryCorner(face))
+            {
+                // A whole cell, or any four corners that turn the same way at each: either diagonal lies within.
+                triangles.Add(new GeoTriangle2(_vertices[face[0]], _vertices[face[1]], _vertices[face[2]]));
+                triangles.Add(new GeoTriangle2(_vertices[face[0]], _vertices[face[2]], _vertices[face[3]]));
+            }
+            else if (!FaceEars.TryTriangulate(_vertices, face, triangles))
+            {
+                // No ear to clip, as a face rounding has left touching itself has none: the surface's triangles, those of
+                // any area.
+                foreach (GeoTriangle2 triangle in Triangulation2.Triangulate(new GeoFace2(ToPolygon(face)), _tolerance))
+                {
+                    if (triangle.SignedArea > 0.0)
+                    {
+                        triangles.Add(triangle);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether a face turns right at none of its corners by more than rounding, so that a fan from any corner covers it;
+        /// corners in a row, where the face beside has a corner on its side, are allowed.
+        /// </summary>
+        internal bool IsConvex(int[] face)
+        {
+            double size = 0.0;
+
+            for (int i = 1; i < face.Length; i++)
+            {
+                size = Math.Max(size, _vertices[face[i]].DistanceTo(_vertices[face[0]]));
+            }
+
+            for (int i = 0; i < face.Length; i++)
+            {
+                GeoPoint2 previous = _vertices[face[(i + face.Length - 1) % face.Length]];
+                GeoPoint2 corner = _vertices[face[i]];
+                GeoPoint2 next = _vertices[face[(i + 1) % face.Length]];
+                double turn = (corner.X - previous.X) * (next.Y - corner.Y) - (corner.Y - previous.Y) * (next.X - corner.X);
+
+                if (turn < -1E-12 * size * (previous.DistanceTo(corner) + corner.DistanceTo(next)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

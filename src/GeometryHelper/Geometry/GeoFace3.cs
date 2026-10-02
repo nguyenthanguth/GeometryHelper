@@ -245,6 +245,61 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Breaks the face into faces of a kind, its grid level, using the default tolerance. A grid needs the size of its
+        /// cells, which <see cref="ToMesh(Meshing.MeshOptions)"/> takes.
+        /// </summary>
+        /// <param name="kind">The kind of faces.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the face into faces as the options say, its grid level, with the second axis up the slope, using the
+        /// default tolerance.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the face into faces as the options say, its grid level, with the second axis up the slope, within a
+        /// tolerance.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
+
+        /// <summary>
+        /// Breaks the face into faces as the options say, its grid standing as the placement says, using the default
+        /// tolerance.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <param name="placement">Which way the grid or the strips run in the plane, and where a cell starts.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the face into faces as the options say, its grid standing as the placement says, within a tolerance:
+        /// triangles, the cells of a grid, strips or convex pieces, each a simple polygon with no hole, counter-clockwise about
+        /// the normal, meeting its neighbours edge to edge.
+        /// </summary>
+        /// <param name="options">How to break it up.</param>
+        /// <param name="placement">Which way the grid or the strips run in the plane, and where a cell starts.</param>
+        /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
+        /// <returns>The mesh; one with no faces when there is no area.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options or the placement are null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the options give an origin of the plane, a grid's cell is no larger than the point tolerance, the grid
+        /// would lay more cells over the shape than a mesh may have, or the placement's direction stands square to the plane.
+        /// </exception>
+        /// <remarks>
+        /// The holes are left open. A face a hair out of flat keeps its corners where they are, and the points put on its
+        /// sides stay on them; only the points inside lie on the plane.
+        /// </remarks>
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
+
+        /// <summary>
         /// Moves the face by a vector.
         /// </summary>
         /// <param name="vector">How far to move it, and which way.</param>

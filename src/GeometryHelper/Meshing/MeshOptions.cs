@@ -201,6 +201,13 @@ namespace GeometryHelper.Meshing
         /// </summary>
         public double ChordTolerance { get; }
 
+        /// <summary>
+        /// The same options for a shape laid out in a frame whose X axis is already the grid's first axis: no angle, and a
+        /// cell starting at a point of the frame, or none.
+        /// </summary>
+        internal MeshOptions InFrame(GeoPoint2? origin)
+            => new MeshOptions(Kind, CellWidth, CellHeight, Joint, null, AlignU, AlignV, origin, ChordTolerance);
+
         private static void CheckAlignment(GridAlignment alignment, string name)
         {
             if (alignment != GridAlignment.Start && alignment != GridAlignment.End && alignment != GridAlignment.CenterCell && alignment != GridAlignment.CenterJoint)

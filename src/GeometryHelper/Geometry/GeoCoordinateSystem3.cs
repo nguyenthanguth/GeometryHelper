@@ -113,6 +113,11 @@ namespace GeometryHelper.Geometry
         public GeoCoordinateSystem3 Clone() => new GeoCoordinateSystem3(Origin, XAxis, YAxis, ZAxis);
 
         /// <summary>
+        /// The same axes about another origin, exactly: rebuilding them from two of them would shift their last digits.
+        /// </summary>
+        internal GeoCoordinateSystem3 WithOrigin(GeoPoint3 origin) => new GeoCoordinateSystem3(origin, XAxis, YAxis, ZAxis);
+
+        /// <summary>
         /// Gets the XY plane of this coordinate system, oriented along the local Z axis.
         /// </summary>
         public GeoPlane3 GetPlane() => new GeoPlane3(Origin, ZAxis);

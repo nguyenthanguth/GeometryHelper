@@ -288,12 +288,12 @@ namespace GeometryHelper.Meshing
             return scale;
         }
 
-        private static GeoMesh2 Empty(MeshKind kind, Tolerance tolerance) => new GeoMesh2(kind, new GeoPoint2[0], new int[0][], new bool[0], tolerance);
+        internal static GeoMesh2 Empty(MeshKind kind, Tolerance tolerance) => new GeoMesh2(kind, new GeoPoint2[0], new int[0][], new bool[0], tolerance);
 
         /// <summary>
         /// Breaks the material of a straight-edged face up as the options say.
         /// </summary>
-        private static GeoMesh2 Mesh(GeoFace2 face, MeshOptions options, double angleRad, Tolerance tolerance)
+        internal static GeoMesh2 Mesh(GeoFace2 face, MeshOptions options, double angleRad, Tolerance tolerance)
         {
             // The pieces are laid out from the boundary's first corner, or a grid's origin, and reach a cell past the shape.
             GeoPoint2 from = options.Kind == MeshKind.Grid && options.Origin.HasValue ? options.Origin.Value : face.Boundary[0];
