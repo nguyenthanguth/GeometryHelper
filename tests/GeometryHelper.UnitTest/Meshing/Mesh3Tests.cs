@@ -384,6 +384,15 @@ namespace GeometryHelper.UnitTest.Meshing
         #region Other shapes
 
         [Fact]
+        public void ADiscOfNoSizeHasNoFaces()
+        {
+            // The disc a default circle is, with no radius and no normal: its frame was laid on the normal, and refused.
+            Assert.Equal(0, default(GeoCircle3).ToMesh(MeshKind.Triangles).FaceCount);
+            Assert.Equal(0, default(GeoCircle3).ToMesh(MeshOptions.Grid(10, 10), MeshPlacement3.Own, Tolerance).FaceCount);
+            Assert.Equal(0, new GeoCircle3(P(1, 2, 3), GeoVector3.ZAxis, 0.005).ToMesh(MeshKind.Convex).FaceCount);
+        }
+
+        [Fact]
         public void ADiscInSpaceIsFannedFromItsCenter()
         {
             var circle = new GeoCircle3(P(100, 200, 300), new GeoVector3(1, 1, 1).Normalize(), 1500);

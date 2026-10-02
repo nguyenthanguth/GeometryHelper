@@ -83,6 +83,13 @@ namespace GeometryHelper.Core
             if (axis.Count > 1)
             {
                 int n = axis.Count;
+
+                // Counted before anything is laid out for them: the most an int holds would not fit in memory.
+                if (n > MaxCells)
+                {
+                    throw new ArgumentException($"{n} cells along the {name} axis are more than the {MaxCells} cells a grid may have.", "options");
+                }
+
                 double size = (max - min - (n - 1) * joint) / n;
 
                 if (!(size > tolerance.EqualPoint))
@@ -141,6 +148,13 @@ namespace GeometryHelper.Core
             {
                 // The cell after the joint on the middle starts half a joint past it.
                 start = middle + 0.5 * joint;
+            }
+
+            // Counted before they are laid out: past 2^53 cells a cell's number less one is the number itself, and the steps
+            // below would never end.
+            if ((max - min) / pitch > MaxCells + 2.0)
+            {
+                throw new ArgumentException($"More than {MaxCells} cells along the {name} axis, which are more than a grid may have; the cells are far smaller than the body.", "options");
             }
 
             // The cells k that reach into the span: start + k pitch before its end, and start + k pitch + size past its

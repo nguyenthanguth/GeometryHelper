@@ -369,6 +369,13 @@ namespace GeometryHelper.Core
                     start = middle + 0.5 * joint;
                 }
 
+                // Too many to lay out, which the caller refuses: past 2^53 cells a cell's number less one is the number
+                // itself, and the steps below would never end.
+                if ((max - min) / pitch > MaxCells + 2.0)
+                {
+                    return new Axis(start, pitch, size, joint == 0.0, (int)(MaxCells + 1));
+                }
+
                 // The cells k that reach into the span: start + k pitch before its end, and start + k pitch + size past
                 // its start, each by more than the reach.
                 double low = Math.Floor((min + reach - size - start) / pitch) + 1.0;

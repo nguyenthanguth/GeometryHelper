@@ -330,6 +330,10 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Throws<ArgumentException>(() => plate.ToMesh(MeshOptions.Grid(0.005, 10), Tolerance));
             Assert.Throws<ArgumentException>(() => plate.ToMesh(MeshOptions.Grid(10, 10), Tolerance));
             Assert.Throws<ArgumentException>(() => plate.ToMesh(MeshKind.Grid));
+
+            // At a tolerance of nought, cells of 1E-14 along 100 000, more than 2^53 of them: the steps that find the first
+            // cell never ended, as a cell's number less one is the number itself there.
+            Assert.Throws<ArgumentException>(() => plate.ToMesh(MeshOptions.Grid(1E-14, 1E-14), new Tolerance(0.0, 0.0, 0.0, 0.0)));
         }
 
         [Fact]

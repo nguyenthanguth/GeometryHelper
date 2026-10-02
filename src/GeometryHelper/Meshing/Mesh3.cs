@@ -254,12 +254,13 @@ namespace GeometryHelper.Meshing
         {
             Check(options, placement);
 
-            GeoCoordinateSystem3 frame = placement.FrameOnPlane(circle.Center, circle.Normal, new[] { circle.Center }, options.AngleRad ?? 0.0, tolerance);
-
-            if (!(circle.Radius > tolerance.EqualPoint))
+            // A disc of no size has no plane to speak of, as the default circle's normal says: no frame is laid on it.
+            if (!(circle.Radius > tolerance.EqualPoint) || !(circle.Normal.LengthSquared > 0.5))
             {
-                return new GeoMesh3(Mesh2.Empty(options.Kind, tolerance), new GeoPoint3[0], frame);
+                return new GeoMesh3(Mesh2.Empty(options.Kind, tolerance), new GeoPoint3[0], GeoCoordinateSystem3.Global.WithOrigin(circle.Center));
             }
+
+            GeoCoordinateSystem3 frame = placement.FrameOnPlane(circle.Center, circle.Normal, new[] { circle.Center }, options.AngleRad ?? 0.0, tolerance);
 
             // The rim has no corners of its own, so its points go onto the plane, where the circle is.
             GeoMesh2 flat = Mesh2.ToMesh(new GeoCircle2(new GeoPoint2(0.0, 0.0), circle.Radius), options.InFrame(Anchor(options, placement, frame, tolerance)), tolerance);

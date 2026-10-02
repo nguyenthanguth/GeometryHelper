@@ -278,6 +278,15 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Throws<ArgumentException>(() => box.ToCells(CellOptions3.Grid(10, 10, 10), Tolerance));
             Assert.Throws<ArgumentException>(() => box.ToCells(CellOptions3.Grid(0.005, 0, 0), Tolerance));
             Assert.Throws<ArgumentException>(() => new GeoAabb3(P(0, 0, 0), P(1, 1, 1)).ToCells(CellOptions3.Divide(1000, 1, 1), Tolerance));
+
+            // At a tolerance of nought no cell is too small, and a count was laid out before it was counted: the most an int
+            // holds ran out of memory.
+            var zero = new Tolerance(0.0, 0.0, 0.0, 0.0);
+            Assert.Throws<ArgumentException>(() => new GeoAabb3(P(0, 0, 0), P(100, 100, 100)).ToCells(CellOptions3.Divide(int.MaxValue, 1, 1), zero));
+
+            // And cells of 1E-14 along 100, more than 2^53 of them, where a cell's number less one is the number itself: the
+            // steps that find the first cell never ended.
+            Assert.Throws<ArgumentException>(() => new GeoAabb3(P(0, 0, 0), P(100, 100, 100)).ToCells(CellOptions3.Grid(1E-14, 0, 0), zero));
         }
 
         [Fact]
