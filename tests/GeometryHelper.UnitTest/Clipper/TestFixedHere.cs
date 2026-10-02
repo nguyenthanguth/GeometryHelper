@@ -185,5 +185,22 @@ namespace GeometryHelper.UnitTest.Clipper
             Assert.Throws<ClipperLibException>(() => Clipper2.PointInPolygon(new PointD(0.2, 0.2), triangle, -9));
             Assert.Throws<ClipperLibException>(() => new ClipperD(9));
         }
+
+        /// <summary>
+        /// PointD took points within 1E-12 of each other as equal but hashed their exact coordinates, so that equal points
+        /// could hash differently. Its equality is exact now, as Point64's and GeoPoint2's are.
+        /// </summary>
+        [Fact]
+        public void PointD_EqualPoints_HashAlike()
+        {
+            PointD point = new PointD(1.0, 2.0), near = new PointD(1.0 + 1e-13, 2.0);
+
+            Assert.True(!point.Equals(near) || point.GetHashCode() == near.GetHashCode(), "equal points hash differently");
+            Assert.False(point == near);
+            Assert.True(point != near);
+            Assert.True(point == new PointD(1.0, 2.0));
+            Assert.True(point.Equals(new PointD(1.0, 2.0)));
+            Assert.Equal(point.GetHashCode(), new PointD(1.0, 2.0).GetHashCode());
+        }
     }
 }

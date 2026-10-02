@@ -127,7 +127,9 @@ namespace GeometryHelper.Clipper
   }
 
   /// <summary>
-  /// A point of double coordinates. Two points are equal when they lie within 1E-12 of each other along each axis.
+  /// A point of double coordinates. Two points are equal when their coordinates are, as Point64's and GeoPoint2's are.
+  /// Clipper2 2.0.0 took points within 1E-12 of each other as equal but hashed their exact coordinates, so that equal
+  /// points could hash differently; that is mended here.
   /// </summary>
   internal struct PointD
   {
@@ -198,25 +200,23 @@ namespace GeometryHelper.Clipper
     }
 
     /// <summary>
-    /// Whether the two points lie within 1E-12 of each other along X and along Y.
+    /// Whether the two points have the same coordinates.
     /// </summary>
     public static bool operator ==(PointD lhs, PointD rhs)
     {
-      return InternalClipper.IsAlmostZero(lhs.x - rhs.x) &&
-        InternalClipper.IsAlmostZero(lhs.y - rhs.y);
+      return lhs.x.Equals(rhs.x) && lhs.y.Equals(rhs.y);
     }
 
     /// <summary>
-    /// Whether the two points lie further than 1E-12 apart along X or along Y.
+    /// Whether the two points differ in either coordinate.
     /// </summary>
     public static bool operator !=(PointD lhs, PointD rhs)
     {
-      return !InternalClipper.IsAlmostZero(lhs.x - rhs.x) ||
-        !InternalClipper.IsAlmostZero(lhs.y - rhs.y);
+      return !(lhs == rhs);
     }
 
     /// <summary>
-    /// Whether the object is a point within 1E-12 of this one along each axis, as == says.
+    /// Whether the object is a point with the same coordinates.
     /// </summary>
     public readonly override bool Equals(object obj)
     {
@@ -231,8 +231,7 @@ namespace GeometryHelper.Clipper
     public void Negate() { x = -x; y = -y; }
 
     /// <summary>
-    /// A hash code made of the two coordinates as they are: points that == calls equal, less than 1E-12 apart, may
-    /// still hash differently.
+    /// A hash code made of the two coordinates, the same for equal points.
     /// </summary>
     public readonly override int GetHashCode()
     {
