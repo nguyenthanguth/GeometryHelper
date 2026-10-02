@@ -44,6 +44,118 @@ namespace GeometryHelper.Core
         }
         
         /// <summary>
+        /// How many point tolerances apart the two ends of a gap in a rim may stand to be joined: the crossings of two copies
+        /// of one edge a point tolerance apart, met at a slant of fifteen degrees.
+        /// </summary>
+        private const double Bridge = 4.0;
+
+        /// <summary>
+        /// Joins the ends a rim leaves open where two faces crossed the edge they share on copies of it a hair apart: each
+        /// end left with no edge after it to the start left with none before it that is nearest, and the other way round.
+        /// </summary>
+        /// <param name="edges">The edges of the rim.</param>
+        /// <param name="tolerance">The tolerance deciding which ends are one point.</param>
+        /// <param name="bridged">The edges, and an edge across each gap; null when the method returns false.</param>
+        /// <returns>
+        /// false when no end is open, or an open end has no open start that is its nearest and it the start's, within
+        /// <see cref="Bridge"/> point tolerances.
+        /// </returns>
+        /// <remarks>
+        /// Two faces of a body can share an edge within the tolerance whose ends are not one point, as the booleans leave
+        /// corners a few thousandths apart, and the body is closed across them. Each face crosses the plane on its own copy,
+        /// and where the plane meets the edge at a slant the crossings stand further apart than the copies' ends do: copies
+        /// whose top corners stood 0.0045 apart in height above a plane meeting them at 22 degrees crossed it 0.0112 apart,
+        /// and the rim did not close. A short edge between the two crossings closes it, and lies within the tolerance of both
+        /// copies, as the stretch of the edge between the crossings does. Putting both faces' crossings on one point instead
+        /// took the two sides of a tube's wall thinner than the tolerance for one, and its section for none.
+        /// </remarks>
+        internal static bool TryBridgeGaps(List<GeoLine3> edges, Tolerance tolerance, out List<GeoLine3> bridged)
+        {
+            bridged = null;
+
+            var welder = new VertexWelder(tolerance);
+            var points = new Dictionary<int, GeoPoint3>();
+            var balance = new Dictionary<int, int>();
+
+            void Count(GeoPoint3 point, int step)
+            {
+                int index = welder.GetIndex(point);
+
+                if (!points.ContainsKey(index))
+                {
+                    points.Add(index, point);
+                }
+
+                balance[index] = (balance.TryGetValue(index, out int seen) ? seen : 0) + step;
+            }
+
+            foreach (GeoLine3 edge in edges)
+            {
+                Count(edge.StartPoint, 1);
+                Count(edge.EndPoint, -1);
+            }
+
+            // An end has one edge more arriving than leaving, a start one more leaving than arriving.
+            var ends = new List<GeoPoint3>();
+            var starts = new List<GeoPoint3>();
+
+            foreach (KeyValuePair<int, int> vertex in balance)
+            {
+                if (vertex.Value == -1)
+                {
+                    ends.Add(points[vertex.Key]);
+                }
+                else if (vertex.Value == 1)
+                {
+                    starts.Add(points[vertex.Key]);
+                }
+                else if (vertex.Value != 0)
+                {
+                    return false;
+                }
+            }
+
+            if (ends.Count == 0 || ends.Count != starts.Count)
+            {
+                return false;
+            }
+
+            double reach = Bridge * tolerance.EqualPoint;
+            var joined = new List<GeoLine3>(edges);
+
+            foreach (GeoPoint3 end in ends)
+            {
+                GeoPoint3 start = Nearest(starts, end);
+
+                // Each the other's nearest, so that no gap is closed across another.
+                if (!(end.DistanceTo(start) <= reach) || !Nearest(ends, start).Equals(end))
+                {
+                    return false;
+                }
+
+                joined.Add(new GeoLine3(end, start));
+            }
+
+            bridged = joined;
+            return true;
+        }
+
+        private static GeoPoint3 Nearest(List<GeoPoint3> points, GeoPoint3 to)
+        {
+            GeoPoint3 nearest = points[0];
+
+            foreach (GeoPoint3 point in points)
+            {
+                if (point.DistanceTo(to) < nearest.DistanceTo(to))
+                {
+                    nearest = point;
+                }
+            }
+
+            return nearest;
+        }
+
+        /// <summary>
         /// Chains a set of directed edges into closed loops.
         /// </summary>
         /// <param name="edges">The edges; each is used once and each must have a neighbour at both ends.</param>

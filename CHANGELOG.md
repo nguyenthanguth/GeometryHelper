@@ -118,6 +118,14 @@ whose far corners stood 0.058 off so measured; it was refused, and the cells kep
 reaching 39 mm out of it. A cap lies in the cutting plane, every corner within the planar tolerance of it, and is read in
 it now, facing along its normal.
 
+**FIXED.** `GeoSolid3.TrySplitBy`, `GeoSolid3.Section` and the cells cut from a body refused a plane crossing at a slant an
+edge two faces share within the tolerance, its ends a few thousandths apart on the two, as the booleans leave them: each
+face crossed the plane on its own copy of the edge, and the crossings stood further apart than the copies' ends, 0.0112
+for ends 0.0045 apart in height above a plane meeting the edge at 22 degrees, so the rim of the cut did not close. A cell
+of a box with a box taken out kept such a piece whole, 56 mm out of its box. The gap is closed across now, where each end
+the rim leaves open and the start nearest it are each other's nearest within four point tolerances. The two crossings
+are not put on one point: that took the two sides of a tube's wall thinner than the tolerance for one, and cut it.
+
 **FIXED.** `GeoSolid3.Locate` and `Contains` threw another ray when a crossing landed within twice the point tolerance of
 a face's outer rim, but not of the rim of one of its holes: a ray leaving through the wall of a hole and rising through
 the hole a hair short of its rim was counted by the face the hole is cut in, and the point came out of the body. The

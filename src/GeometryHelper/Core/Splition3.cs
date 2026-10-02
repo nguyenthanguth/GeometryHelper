@@ -1459,7 +1459,10 @@ namespace GeometryHelper.Core
 
             // The cap is traced in the cutting plane, and it must be traced the way the finished cap will
             // face, or a vertex where several rim edges meet would send the walk onto the wrong outline.
-            if (!LoopAssembly.TryChainLoops(edges, outward, tolerance, out List<List<GeoPoint3>> loops))
+            // A gap a hair wide where two faces crossed the edge they share on copies of it is closed across; see
+            // LoopAssembly.TryBridgeGaps.
+            if (!LoopAssembly.TryChainLoops(edges, outward, tolerance, out List<List<GeoPoint3>> loops)
+                && !(LoopAssembly.TryBridgeGaps(edges, tolerance, out List<GeoLine3> bridged) && LoopAssembly.TryChainLoops(bridged, outward, tolerance, out loops)))
             {
                 // An open chain means the surface did not close, so the section cannot be trusted.
                 return false;
