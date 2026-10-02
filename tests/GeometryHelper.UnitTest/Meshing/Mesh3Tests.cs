@@ -515,6 +515,23 @@ namespace GeometryHelper.UnitTest.Meshing
         #region A face a hair out of flat
 
         [Fact]
+        public void TheTrianglesOfAShapeAHairOutOfFlatHoldTheirOwnCorners()
+        {
+            // Corners up to 0.0089 off the plane through the first: a triangle of the mesh turned about the mesh's normal, its
+            // plane through its first corner, which stood off its others by more than the tolerance it holds them within.
+            var polygon = new GeoPolygon3(
+                new[] { P(1162.6, 1637.3, 0.0003), P(1289.7, 1951.2, 0.0042), P(300, 2064.8, -0.0012), P(-232.5, 2022, -0.0062), P(-2183.5, 751.7, 0.0085), P(-1062.7, -1443.7, -0.0014), P(-485.3, -2080.2, -0.0089), P(1999, -600.1, 0) },
+                Tolerance);
+            GeoMesh3 mesh = polygon.ToMesh(MeshOptions.Triangles, Tolerance);
+
+            foreach (GeoPolygon3 face in mesh.GetFaces())
+            {
+                Assert.All(face.Vertices, v => Assert.True(face.Contains(v, Tolerance), $"{face} does not hold its corner {v}"));
+                Assert.True(face.Normal.DotProduct(mesh.Normal) > 0.999999);
+            }
+        }
+
+        [Fact]
         public void AFaceAHairOutOfFlatKeepsItsCornersAndItsSides()
         {
             // A slab face from a modeller: its corners stand up to 4 thousandths off the plane.

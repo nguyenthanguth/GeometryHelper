@@ -94,6 +94,10 @@ namespace GeometryHelper.Meshing
         /// Gets a face as a polygon of space, counter-clockwise about the normal, with every corner it has, three in a row
         /// among them.
         /// </summary>
+        /// <remarks>
+        /// Of a shape a hair out of flat the polygon turns about the normal of its own corners, which a triangle's all lie
+        /// on; a face of more corners keeps them where the shape has them, a hair out of flat as the shape is.
+        /// </remarks>
         /// <param name="index">The face.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when there is no such face.</exception>
         public GeoPolygon3 GetFace(int index)
@@ -345,8 +349,14 @@ namespace GeometryHelper.Meshing
             }
 
             // The corners are apart already; filtering them again against the global tolerance could drop one, and a sliver
-            // the mesh keeps would be refused as enclosing no area.
-            return GeoPolygon3.FromValidated(corners, Normal, AreaOf(face));
+            // the mesh keeps would be refused as enclosing no area. The face turns about the normal of its own corners: of a
+            // shape a hair out of flat, the plane of the mesh's normal through its first corner stood off its others by up to
+            // twice the planar tolerance, and the polygon did not hold them; a sliver turns about the mesh's.
+            GeoVector3 own = Newell.GetAreaVector(corners);
+            double length = own.Length;
+            GeoVector3 normal = length > 0.0 && own.DotProduct(Normal) > 0.5 * length ? own.Divide(length) : Normal;
+
+            return GeoPolygon3.FromValidated(corners, normal, AreaOf(face));
         }
 
         /// <summary>
