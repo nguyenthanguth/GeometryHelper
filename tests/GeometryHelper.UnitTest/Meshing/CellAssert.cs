@@ -53,7 +53,8 @@ namespace GeometryHelper.UnitTest.Meshing
                 GeoObb3 box = grid.GetBox(cell.I, cell.J, cell.K);
                 Assert.True(box.IsEqualTo(cell.Box, new Tolerance(1E-9, 1E-9)), $"{cell} stands in {cell.Box}, the grid lays {box} there");
 
-                double reach = Math.Max(snap, 4.0 * tolerance.EqualPoint) + 2.0 * tolerance.EqualPoint;
+                // A cut moved onto a corner by the snap distance and then not made, four point tolerances short of the far side.
+                double reach = snap + 4.0 * tolerance.EqualPoint + 2.0 * tolerance.EqualPoint;
 
                 foreach (GeoFace3 face in solid.Faces)
                 {

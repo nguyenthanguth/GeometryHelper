@@ -231,6 +231,45 @@ namespace GeometryHelper.UnitTest.Meshing
             CellAssert.IsSound(snapped, p => InBox(longer, p), longer.Volume, 50, Tolerance);
         }
 
+        [Theory]
+        [InlineData(5.0, 10.0)]
+        [InlineData(0.03, 0.0)]
+        [InlineData(30.0, 40.0)]
+        public void ABoxThinnerThanTheSnapDistanceKeepsItsCells(double thickness, double snap)
+        {
+            // Along its thickness the box is no thicker than the snap distance, or four point tolerances: every cell's far
+            // side is within it of the box's near side, and went onto it.
+            var plate = new GeoAabb3(P(0, 0, 0), P(1000, 1000, thickness));
+            GeoCellGrid3 grid = plate.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.BySize(100), CellAxis.Whole, 0, snap), Tolerance);
+
+            Assert.Equal(100, grid.CellCount);
+            Assert.Equal(plate.Volume, grid.Volume, 6);
+
+            var turned = new GeoObb3(P(0, 0, 0), 2000, 1000, thickness, new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0));
+            GeoCellGrid3 own = turned.ToCells(new CellOptions3(CellAxis.BySize(500), CellAxis.BySize(500), CellAxis.Whole, 0, snap), Tolerance);
+
+            Assert.Equal(8, own.CellCount);
+            Assert.Equal(turned.Volume, own.Volume, 6);
+        }
+
+        [Fact]
+        public void ABoxAndTheSameBodyGiveAThinPlateToOneLayer()
+        {
+            // Layers of 2 through a plate 5 thick with a snap distance of 10: each cut comes within it of a side of the plate,
+            // and the plate goes whole to one layer, the same one as a box and as a body.
+            var plate = new GeoAabb3(P(0, 0, 0), P(1000, 100, 5));
+            var options = new CellOptions3(CellAxis.Whole, CellAxis.Whole, CellAxis.BySize(2), 0, 10);
+            GeoCellGrid3 box = plate.ToCells(options, Tolerance);
+            GeoCellGrid3 body = Prism(Rect(0, 0, 1000, 100), 0, 5).ToCells(options, Tolerance);
+
+            GeoCell3 inBox = Assert.Single(box.Cells);
+            GeoCell3 inBody = Assert.Single(body.Cells);
+            Assert.Equal(inBox.K, inBody.K);
+            Assert.Equal(plate.Volume, inBox.Volume, 6);
+            Assert.Equal(plate.Volume, inBody.Volume, 3);
+            CellAssert.IsSound(body, p => InBox(plate, p), plate.Volume, 10, Tolerance, samples: 6000);
+        }
+
         [Fact]
         public void TooManyCellsOrCellsTooSmallAreRefused()
         {
@@ -384,6 +423,53 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.True(needle.GetSignedVolume() > 0);
             Assert.Equal(1, grid.CellCount);
             Assert.Equal(needle.Volume, grid.Volume, 6);
+        }
+
+        [Fact]
+        public void AFlangeThinnerThanTheSnapDistanceStaysInTheCellsItCrosses()
+        {
+            // An L standing in XZ, a flange 1000 long and 5 thick and a web 100 wide and 500 tall: past the web the flange is
+            // thinner along Z than the snap distance, and lies wholly above the cut before the first layer.
+            var l = new[] { Q(0, 0), Q(1000, 0), Q(1000, 5), Q(100, 5), Q(100, 500), Q(0, 500) };
+            GeoSolid3 body = GeoSolid3.Extrude(new GeoPolygon3(l.Select(p => P(p.X, 0, p.Y)), Tolerance), new GeoVector3(0, 100, 0), Tolerance);
+            GeoCellGrid3 grid = body.ToCells(new CellOptions3(CellAxis.BySize(200), CellAxis.Whole, CellAxis.BySize(100), 0, 6), Tolerance);
+
+            Assert.Equal(5.45E6, body.Volume, 3);
+            CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.Volume, 6, Tolerance);
+        }
+
+        [Fact]
+        public void ALedgeAboveALineOfLayersGoesToTheLayerItStandsIn()
+        {
+            // A column with a ledge 3 thick sticking out at 205: the ledge stands wholly above the line at 200, within the snap
+            // distance of it, and belongs to the layer above.
+            GeoSolid3 column = Prism(Rect(0, 0, 100, 100), 0, 300);
+            Assert.True(column.TryUnion(Prism(Rect(100, 0, 200, 100), 205, 208), out GeoSolid3 body, Tolerance));
+            GeoCellGrid3 grid = body.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.BySize(100), 0, 10), Tolerance);
+
+            GeoCell3 ledge = Assert.Single(grid.Cells, c => c.I == 1);
+            Assert.Equal(2, ledge.K);
+            Assert.Equal(100.0 * 100 * 3, ledge.Volume, 3);
+            CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.Volume, 10, Tolerance);
+        }
+
+        [Fact]
+        public void ACutMovedOntoACornerTakesNoTipOffTheFarSide()
+        {
+            // The end of the body slopes from 100.008 to 100.042: the cut at 100 is moved onto the corner at 100.008, and from
+            // there would take off a slice 0.034 thick, less than four point tolerances.
+            GeoSolid3 body = Prism(new GeoPolygon2(Q(0, 0), Q(100.008, 0), Q(100.042, 100), Q(0, 100)), 0, 100);
+            GeoCellGrid3 grid = body.ToCells(CellOptions3.Grid(100, 0, 0), Tolerance);
+
+            GeoCell3 cell = Assert.Single(grid.Cells);
+            Assert.Equal(body.Volume, cell.Volume, 3);
+
+            // So too with a snap distance of 60 and the slope from 159.99 to 160.02.
+            GeoSolid3 longer = Prism(new GeoPolygon2(Q(0, 0), Q(159.99, 0), Q(160.02, 100), Q(0, 100)), 0, 100);
+            GeoCellGrid3 snapped = longer.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole, 0, 60), Tolerance);
+
+            Assert.All(snapped.Cells, c => Assert.True(Extent(c, snapped.Frame, 0) > 4 * Tolerance.EqualPoint, $"{c} is {Extent(c, snapped.Frame, 0)} along X"));
+            CellAssert.IsSound(snapped, p => longer.Locate(p, Tolerance), longer.Volume, 60, Tolerance);
         }
 
         [Fact]

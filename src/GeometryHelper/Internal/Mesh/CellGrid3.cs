@@ -16,8 +16,9 @@ namespace GeometryHelper.Core
     /// a box. Any other body is cut by planes: along X first, the rest of the body cut off cell by cell, then each slab along
     /// Y, and each bar along Z, so that every cut is made through as little of the body as can be. A cut coming within the
     /// snap distance of a corner of the piece it cuts is moved onto that corner, so that no slice thinner than that is cut
-    /// off: within it of the piece's far side it is not made at all, and the slice stays with the cell beside. What a cell
-    /// holds in several pieces is split into them.
+    /// off: within it of the piece's far side it is not made at all, and the slice stays with the cell beside, nor where,
+    /// moved onto a corner, it would take off less than four point tolerances. A piece standing wholly on one side of a cut
+    /// goes to that side, however thin. What a cell holds in several pieces is split into them.
     /// </para>
     /// </summary>
     internal static class CellGrid3
@@ -431,16 +432,17 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// A place along an axis within the box's span, moved onto a side of the box within the snap distance of it.
+        /// A place along an axis within the box's span, moved onto a side of the box within the snap distance of it, the
+        /// nearer where both are, and the far one where they are as near: as a body's cut is moved and kept off a slice.
         /// </summary>
         private static double Snap(double at, double min, double max, double snap)
         {
-            if (at - min <= snap)
+            if (max - at <= snap && max - at <= at - min)
             {
-                return min;
+                return max;
             }
 
-            return max - at <= snap ? max : at;
+            return at - min <= snap ? min : at;
         }
 
         private static bool Same(double a, double b, Tolerance tolerance) => Math.Abs(a - b) <= tolerance.EqualPoint;
@@ -514,6 +516,7 @@ namespace GeometryHelper.Core
             public Layout Layout;
             public double Snap;
             public double Reach;
+            public double Tip;
             public Tolerance Tolerance;
             public GeoVector3[] Directions;
         }
@@ -541,6 +544,7 @@ namespace GeometryHelper.Core
                 Layout = layout,
                 Snap = SnapDistance(options, layout, tolerance),
                 Reach = Math.Max(SnapDistance(options, layout, tolerance), Tip * tolerance.EqualPoint),
+                Tip = Tip * tolerance.EqualPoint,
                 Tolerance = tolerance,
                 Directions = new[] { layout.Frame.XAxis, layout.Frame.YAxis, layout.Frame.ZAxis },
             };
@@ -727,29 +731,53 @@ namespace GeometryHelper.Core
                 lowest = Math.Min(lowest, d);
                 highest = Math.Max(highest, d);
 
-                if (Math.Abs(d - at) <= gap)
+                // The nearest corner within the snap distance, the higher of two as near, as a box's cut goes to its far side.
+                double off = Math.Abs(d - at);
+
+                if (off < gap || (off == gap && !(d <= nearest)))
                 {
-                    gap = Math.Abs(d - at);
+                    gap = off;
                     nearest = d;
                 }
             }
 
-            // Within the snap distance of the piece's far side, or four point tolerances, the cut would take off no more than
-            // a slice, which stays on: a tip a hair past the plane is a piece the size of the tolerance, which the cut cannot
-            // keep, and a cell no one wants.
-            if (highest - at <= cutting.Reach)
+            // A plane at or past a side of the piece leaves all of it on the other.
+            if (at <= lowest)
+            {
+                return new Cut { Above = piece };
+            }
+
+            if (at >= highest)
             {
                 return new Cut { Below = piece };
             }
 
-            if (at - lowest <= cutting.Reach)
+            // Within the snap distance of the piece's far side, or four point tolerances, the cut would take off no more than
+            // a slice, which stays on: a tip a hair past the plane is a piece the size of the tolerance, which the cut cannot
+            // keep, and a cell no one wants. A piece that thin both ways goes whole to the side holding more of it.
+            double over = highest - at;
+            double under = at - lowest;
+
+            if (over <= cutting.Reach || under <= cutting.Reach)
             {
-                return new Cut { Above = piece };
+                return over <= cutting.Reach && (under > cutting.Reach || under >= over) ? new Cut { Below = piece } : new Cut { Above = piece };
             }
 
             if (!double.IsNaN(nearest))
             {
                 at = nearest;
+            }
+
+            // Moved onto a corner, the cut can come within four point tolerances of a side, a corner a hair past the one it
+            // went to, as a sloping end leaves: the slice there stays on too.
+            if (highest - at <= cutting.Tip)
+            {
+                return new Cut { Below = piece };
+            }
+
+            if (at - lowest <= cutting.Tip)
+            {
+                return new Cut { Above = piece };
             }
 
             var plane = new GeoPlane3(origin.Add(direction.Multiply(at)), direction);
