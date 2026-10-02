@@ -116,6 +116,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.Equal(box.Volume, Measure3.Volume(box, VolumeMethod.Fan, Tolerance), 6);
             Assert.Equal(1E5 + quarter, Measure3.Volume(box, VolumeMethod.FlatFaces, Tolerance), 5);
 
+            // The fan reads the top flat through its first corner, which stands a quarter of the lift off the top's middle
+            // plane, above it from (0, 0) and below it from (100, 0): a third of that times the area apart from flat.
+            double fan = Measure3.Volume(box, VolumeMethod.Fan, Tolerance), flat = Measure3.Volume(box, VolumeMethod.FlatFaces, Tolerance);
+            Assert.Equal((start == 0 ? 1 : -1) * 1E4 * (0.008 / 4) / 3, fan - flat, 6);
+
             double surface = Measure3.Volume(box, VolumeMethod.Surface, Tolerance);
             Assert.True(Math.Abs(surface - (1E5 + third)) < 1E-6 || Math.Abs(surface - (1E5 + sixth)) < 1E-6, $"{surface} is neither split");
 

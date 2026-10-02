@@ -843,8 +843,10 @@ is exact for them. They part only over a face a hair out of flat, as the planar 
 is no one surface: a face of four corners with one of them lifted holds a third of the lift times its area more split
 along the diagonal through that corner, a sixth more split along the other, and a quarter more read flat. So the
 spread is the answer to which is right — it says how far the faces leave the volume open — and where it matters,
-`Surface` is the reading that stays consistent: cut a body in two, and the halves read so hold what it held, where the
-fans of their concave faces counted a ten-thousandth more. `ReferenceSpread` is the other doubt: faces that meet within
+`Surface` is the reading that stays consistent: cut a body in two, and the halves read so hold what it held, where read
+by their fans, each face flat through its first corner, they held a ten-thousandth more. A fan sums to that whatever the
+face's shape, so `Fan` moves by a third of a face's area times how far its first corner stands off its middle plane,
+and it is the way Tekla Structures reports a part's volume. `ReferenceSpread` is the other doubt: faces that meet within
 the tolerance but not on one another, as copies of one edge a few thousandths apart, leave gaps that the volume holds
 or not depending on where it is measured from. Both spreads are the rounding for a body whose flat faces close.
 

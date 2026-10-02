@@ -57,8 +57,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(below.IsClosed(Tolerance));
 
             // The halves hold the piece's material, measured by triangles lying in their faces. Measured as Volume measures
-            // it, by the fan of each face's corners, the faces round the finger, concave and a hair off flat, are swept a
-            // dozen times over and hold 560 mm3 more between them, a ten-thousandth.
+            // it, by the fan of each face's corners, each face is read flat through its first corner, and the large faces
+            // the cut leaves, a corner of each a hair off their middle planes, hold 560 mm3 more between them, a
+            // ten-thousandth.
             Assert.InRange((Material(above) + Material(below)) / Material(piece), 1 - 1E-7, 1 + 1E-7);
             Assert.InRange((above.Volume + below.Volume) / piece.Volume, 1 - 2E-4, 1 + 2E-4);
 
