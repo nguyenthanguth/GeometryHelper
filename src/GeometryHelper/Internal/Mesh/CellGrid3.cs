@@ -311,6 +311,20 @@ namespace GeometryHelper.Core
         private static double SnapDistance(CellOptions3 options, Layout layout, Tolerance tolerance)
             => layout.Joint > 0.0 ? tolerance.EqualPoint : Math.Max(options.SnapDistance, tolerance.EqualPoint);
 
+        /// <summary>
+        /// How near the far side of a part a cut is not made, the slice staying on the part: the snap distance, or four point
+        /// tolerances if more. Between cells a joint apart, the point tolerance alone: a slice past a joint is the cell
+        /// beyond's, and kept on the part before it, it would go with the joint.
+        /// </summary>
+        private static double Reach(CellOptions3 options, Layout layout, Tolerance tolerance)
+            => layout.Joint > 0.0 ? tolerance.EqualPoint : Math.Max(SnapDistance(options, layout, tolerance), Tip * tolerance.EqualPoint);
+
+        /// <summary>
+        /// How near a side of a part a cut moved onto a corner is not made: four point tolerances, or between cells a joint
+        /// apart the point tolerance, as <see cref="Reach"/> says.
+        /// </summary>
+        private static double TipOf(Layout layout, Tolerance tolerance) => (layout.Joint > 0.0 ? 1.0 : Tip) * tolerance.EqualPoint;
+
         private static GeoCellGrid3 Empty(Layout layout, Tolerance tolerance)
             => new GeoCellGrid3(layout.Frame, Starts(layout), Ends(layout), new GeoCell3[0], layout.Joint, tolerance);
 
@@ -359,7 +373,7 @@ namespace GeometryHelper.Core
 
             Layout layout = Lay(box.GetCorners(), axes, options, origin, tolerance);
 
-            double snap = Math.Max(SnapDistance(options, layout, tolerance), Tip * tolerance.EqualPoint);
+            double snap = Reach(options, layout, tolerance);
 
             // Along each axis, what of each cell the box holds: a cut within the snap distance of a side of the box moves onto
             // it, so that the slice between goes to the cell beside.
@@ -543,8 +557,8 @@ namespace GeometryHelper.Core
             {
                 Layout = layout,
                 Snap = SnapDistance(options, layout, tolerance),
-                Reach = Math.Max(SnapDistance(options, layout, tolerance), Tip * tolerance.EqualPoint),
-                Tip = Tip * tolerance.EqualPoint,
+                Reach = Reach(options, layout, tolerance),
+                Tip = TipOf(layout, tolerance),
                 Tolerance = tolerance,
                 Directions = new[] { layout.Frame.XAxis, layout.Frame.YAxis, layout.Frame.ZAxis },
             };
@@ -667,7 +681,7 @@ namespace GeometryHelper.Core
                 // What lies before the cell, in the joint before it or before the first, is no cell's.
                 if (i == 0 || lines.Starts[i] != lines.Ends[i - 1])
                 {
-                    Cut before = Split(rest, axis, lines.Starts[i], cutting);
+                    Cut before = Split(rest, axis, lines.Starts[i], cutting, Kept.Above);
                     rest = before.Above;
 
                     if (before.Made)
@@ -681,7 +695,9 @@ namespace GeometryHelper.Core
                     }
                 }
 
-                Cut end = Split(rest, axis, lines.Ends[i], cutting);
+                // What lies past the cell is the next one's, or in the joint after it or past the last, no cell's.
+                bool gap = i == lines.Count - 1 || lines.Starts[i + 1] != lines.Ends[i];
+                Cut end = Split(rest, axis, lines.Ends[i], cutting, gap ? Kept.Below : Kept.Both);
 
                 if (end.Below != null)
                 {
@@ -700,6 +716,17 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Which side of a cut a cell takes: both, or only the one above or below, the other lying in a joint, before the
+        /// first cell or past the last.
+        /// </summary>
+        private enum Kept
+        {
+            Both,
+            Above,
+            Below,
+        }
+
+        /// <summary>
         /// What a cut leaves: the part below the plane and the part above, either null when the piece lies wholly on the
         /// other side, whether a cut was made, and where it stands once snapped.
         /// </summary>
@@ -715,7 +742,12 @@ namespace GeometryHelper.Core
         /// Cuts a piece by the plane square to an axis at a place along it, the place snapped to a corner of the piece within
         /// the snap distance.
         /// </summary>
-        private static Cut Split(GeoSolid3 piece, int axis, double at, Cutting cutting)
+        /// <param name="piece">The piece.</param>
+        /// <param name="axis">The axis the plane stands square to.</param>
+        /// <param name="at">Where the plane stands along it.</param>
+        /// <param name="cutting">The grid being cut.</param>
+        /// <param name="kept">Which side a cell takes, where a piece the cut cannot be made through is kept.</param>
+        private static Cut Split(GeoSolid3 piece, int axis, double at, Cutting cutting, Kept kept)
         {
             GeoVector3 direction = cutting.Directions[axis];
             GeoPoint3 origin = cutting.Layout.Frame.Origin;
@@ -797,11 +829,12 @@ namespace GeometryHelper.Core
             }
 
             // A cut the body would not take, which a closed body should never give: the piece goes whole to the side of its
-            // middle, so that nothing of the body is lost, and the grid says so.
-            double middle = origin.GetVectorTo(piece.Centroid).DotProduct(direction);
-            GeometryHelperLog.Warn($"Cells: a cut square to the grid's {AxisNames[axis]} axis at {at} through a piece of the body could not be made; the piece is kept whole in the cell {(middle < at ? "below" : "above")}.");
+            // middle, or where one side is a joint or past the cells to the side a cell takes, so that nothing of the body is
+            // lost, and the grid says so.
+            bool toBelow = kept == Kept.Both ? origin.GetVectorTo(piece.Centroid).DotProduct(direction) < at : kept == Kept.Below;
+            GeometryHelperLog.Warn($"Cells: a cut square to the grid's {AxisNames[axis]} axis at {at} through a piece of the body could not be made; the piece is kept whole in the cell {(toBelow ? "below" : "above")}.");
 
-            return middle < at ? new Cut { Below = piece } : new Cut { Above = piece };
+            return toBelow ? new Cut { Below = piece } : new Cut { Above = piece };
         }
 
         /// <summary>

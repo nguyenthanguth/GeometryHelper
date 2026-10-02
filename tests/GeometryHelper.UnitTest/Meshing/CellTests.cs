@@ -658,6 +658,40 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(6 * 1990.0 * 1990 * 250, boxes.Volume, 0);
         }
 
+        [Theory]
+        [InlineData(1020.03, 3)]
+        [InlineData(510.035, 2)]
+        public void ASlicePastAJointGoesToTheCellBeyondIt(double length, int count)
+        {
+            // Cells of 500 ten apart: the box reaches past the last joint by more than the point tolerance and less than four,
+            // a slice of the cell beyond, which went with the joint.
+            var box = new GeoAabb3(P(0, 0, 0), P(length, 100, 100));
+            CellOptions3 options = CellOptions3.Grid(500, 0, 0, joint: 10);
+            double expected = (length - (count - 1) * 10) * 100 * 100;
+            GeoCellGrid3 boxes = box.ToCells(options, Tolerance);
+            GeoSolid3 body = Prism(Rect(0, 0, length, 100), 0, 100);
+            GeoCellGrid3 cells = body.ToCells(options, Tolerance);
+
+            Assert.Equal(count, boxes.CellCount);
+            Assert.Equal(count, cells.CellCount);
+            Assert.Equal(expected, boxes.Volume, 6);
+            CellAssert.IsSound(cells, p => body.Locate(p, Tolerance), expected, Tolerance.EqualPoint, Tolerance, covers: false);
+        }
+
+        [Fact]
+        public void APieceNoCutCanBeMadeThroughStaysInTheCellBesideAJoint()
+        {
+            // A plate thinner than the point tolerance, so that no cut through it can be made, and each is warned of. Its middle
+            // stands in the joint between the first two cells: kept whole on the side of its middle, it went with the joint.
+            GeoSolid3 plate = GeometryHelper.Core.CellGrid3.BoxSolid(new GeoAabb3(P(0, 0, 0), P(1000, 100, 0.005)).ToObb());
+            GeoCellGrid3 grid = plate.ToCells(CellOptions3.Grid(495, 0, 0, joint: 10), Tolerance);
+
+            Assert.Equal(plate.Volume, grid.Volume, 9);
+            Assert.NotEmpty(_warnings);
+            Assert.All(_warnings, w => Assert.Contains("could not be made", w));
+            _warnings.Clear();
+        }
+
         [Fact]
         public void OneThreadCutsAsManyDo()
         {

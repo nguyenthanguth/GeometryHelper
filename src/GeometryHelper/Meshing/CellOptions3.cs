@@ -68,9 +68,10 @@ namespace GeometryHelper.Meshing
         /// <param name="snapDistance">
         /// How near a corner of the body a cut has to come to be moved onto it, so that no cell is cut off thinner than this:
         /// the slice between goes to the cell beside. Nought, or anything less, takes the point tolerance, which every cut
-        /// is snapped within, since a cut that close is a cut along the body's own face. With a joint the cuts bound the
-        /// joints, and are snapped within the point tolerance only, so that no cell is carried into a joint. However small
-        /// this is, no cut takes off less than four point tolerances: such a piece is at the scale of the tolerance.
+        /// is snapped within, since a cut that close is a cut along the body's own face. However small this is, no cut takes
+        /// off less than four point tolerances: such a piece is at the scale of the tolerance. With a joint the cuts bound the
+        /// joints, and are snapped within the point tolerance only, so that no cell is carried into a joint, and none leaves
+        /// a slice thicker than that past a joint to go with it.
         /// </param>
         /// <param name="maxDegreeOfParallelism">How many threads may cut at once; -1 for every processor.</param>
         /// <exception cref="ArgumentOutOfRangeException">
