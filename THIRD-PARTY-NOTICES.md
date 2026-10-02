@@ -6,7 +6,7 @@ GeometryHelper holds code that comes from another project. Its notice follows.
 
 The clipping engine of [Clipper2](https://github.com/AngusJohnson/Clipper2) 2.0.0, by Angus Johnson, from the C#
 library of commit `f39457d` of 17 December 2025, changed for GeometryHelper: renamed, trimmed to what GeometryHelper
-calls, made internal, without nullable annotations, and commented.
+calls, made internal, without nullable annotations, commented, and mended where it was found at fault.
 
 - `src/GeometryHelper/Internal/Clipper`: the engine, compiled into GeometryHelper. The package carries it as compiled
   code only, without its source.

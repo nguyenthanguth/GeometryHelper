@@ -913,9 +913,9 @@ namespace GeometryHelper.Clipper
 
     /// <summary>
     /// Whether the two segments cross. Parallel segments never do, those overlapping along one line included. Without
-    /// inclusive, the only way the engine asks, segments that only touch, an end of one on the other, do not count.
-    /// With inclusive they do; but seg1a lying anywhere on the line through the second segment counts as well, even
-    /// beyond its ends, as in Clipper2's C++.
+    /// inclusive, the only way the engine asks, segments that only touch, an end of one on the other, do not count;
+    /// with inclusive they do. Clipper2 2.0.0, its C++ as well, counted with inclusive seg1a lying anywhere on the line
+    /// through the second segment, even beyond its ends; that is mended here.
     /// </summary>
     internal static bool SegsIntersect(Point64 seg1a,
       Point64 seg1b, Point64 seg2a, Point64 seg2b, bool inclusive = false)
@@ -931,12 +931,12 @@ namespace GeometryHelper.Clipper
       {
         //result **includes** segments that touch at an end point
         double t = ((seg1a.X - seg2a.X) * dy2 - (seg1a.Y - seg2a.Y) * dx2);
-        if (t == 0) return true;
+        // t == 0 only puts seg1a on the line through seg2; the test along seg2 below says whether it is on seg2
         if (t > 0)
         {
           if (cp < 0 || t > cp) return false;
         }
-        else if (cp > 0 || t < cp) return false; // false when t more neg. than cp
+        else if (t < 0 && (cp > 0 || t < cp)) return false; // false when t more neg. than cp
 
         t = ((seg1a.X - seg2a.X) * dy1 - (seg1a.Y - seg2a.Y) * dx1);
         if (t == 0) return true;

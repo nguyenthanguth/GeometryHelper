@@ -52,13 +52,14 @@ Clipper2 package, so that it can be mended here. Only what GeometryHelper calls 
 static functions and the pools; the offset, rectangle clipping, Minkowski sums, the triangulation and the borrowed
 `System.HashCode` are left out. Its types are internal: they are not part of GeometryHelper, and a project that
 references the Clipper2 package as well sees that one only. A project that used Clipper2 through GeometryHelper's
-dependency references the Clipper2 package itself now. Built into GeometryHelper, the engine gives the IL of the
-package, but for the hash codes of its points, which nothing reads, and one delegate the newer compiler keeps instead
-of making it on each call, so every answer is the same. The package carries it compiled, without its source, which
-the Boost licence asks no notice of. Clipper2's own tests run with the suite; test 16 of its polygons, which Clipper2
-2.0.0 fails upstream as well (#1067), is skipped. Upstream's later change for it is not taken: it mends that case and
-puts the union of loops crossing themselves that `TestCasesFoundHere` holds 1.2 % over its area, while it changed
-none of 40 000 random cases at four and six decimals.
+dependency references the Clipper2 package itself now. Built into GeometryHelper as it came, the engine gave the IL of
+the package, but for the hash codes of its points, which nothing reads, and one delegate the newer compiler keeps
+instead of making it on each call, so every answer was the same. Faults found in it since are mended here, each held by
+a test in `TestFixedHere` that failed before; they change no answer GeometryHelper gives. The package carries it
+compiled, without its source, which the Boost licence asks no notice of. Clipper2's own tests run with the suite; test
+16 of its polygons, which Clipper2 2.0.0 fails upstream as well (#1067), is skipped. Upstream's later change for it is
+not taken: it mends that case and puts the union of loops crossing themselves that `TestCasesFoundHere` holds 1.2 % over
+its area, while it changed none of 40 000 random cases at four and six decimals.
 
 ## 9.0.2
 
