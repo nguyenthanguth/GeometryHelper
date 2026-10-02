@@ -6,10 +6,10 @@ namespace GeometryHelper.Clipper
 {
 
   /// <summary>
-  /// The front of the clipping engine in the plane: booleans of regions read by a fill rule, areas, bounds, scaling and
-  /// conversion between integer and floating-point paths, simplification and where a point lies. Paths of integers
-  /// (Path64) are worked on as they are; paths of doubles (PathD) are rounded to a number of decimal places first,
-  /// worked on as integers, and scaled back.
+  /// The front of the clipping engine in the plane: booleans of regions read by a fill rule, offsets, areas, bounds,
+  /// scaling and conversion between integer and floating-point paths, simplification and where a point lies. Paths of
+  /// integers (Path64) are worked on as they are; paths of doubles (PathD) are rounded to a number of decimal places
+  /// first, worked on as integers, and scaled back.
   /// </summary>
   internal static class Clipper2
   {
@@ -185,6 +185,38 @@ namespace GeometryHelper.Clipper
       if (clip != null)
         c.AddPaths(clip, PathType.Clip);
       c.Execute(clipType, fillRule, polytree);
+    }
+
+    /// <summary>
+    /// The paths grown by delta, or shrunk when it is negative, their corners joined by joinType and the paths read by
+    /// endType, with the miter limit and the arc tolerance. The pieces are united, so that overlaps and the parts
+    /// shrunk past nothing go.
+    /// </summary>
+    public static Paths64 InflatePaths(Paths64 paths, double delta, JoinType joinType,
+      EndType endType, double miterLimit = 2.0, double arcTolerance = 0.0)
+    {
+      ClipperOffset co = new ClipperOffset(miterLimit, arcTolerance);
+      co.AddPaths(paths, joinType, endType);
+      Paths64 solution = new Paths64();
+      co.Execute(delta, solution);
+      return solution;
+    }
+
+    /// <summary>
+    /// The paths grown by delta, or shrunk when it is negative, as for paths of integers, with the coordinates rounded
+    /// to <c>precision</c> decimal places, from -8 to 8, delta and the arc tolerance scaled with them, the answer
+    /// scaled back.
+    /// </summary>
+    public static PathsD InflatePaths(PathsD paths, double delta, JoinType joinType,
+      EndType endType, double miterLimit = 2.0, int precision = 2, double arcTolerance = 0.0)
+    {
+      InternalClipper.CheckPrecision(precision);
+      double scale = Math.Pow(10, precision);
+      Paths64 tmp = ScalePaths64(paths, scale);
+      ClipperOffset co = new ClipperOffset(miterLimit, scale * arcTolerance);
+      co.AddPaths(tmp, joinType, endType);
+      co.Execute(delta * scale, tmp); // reuse 'tmp' to receive (scaled) solution
+      return ScalePathsD(tmp, 1 / scale);
     }
 
     /// <summary>

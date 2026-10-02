@@ -53,9 +53,10 @@ never made the sweep fail.
 
 **CHANGED.** The package depends on no other package. The clipping engine of Clipper2 2.0.0, which resolves the
 regions of the plane, is compiled in from its source, `src/GeometryHelper/Internal/Clipper`, instead of referenced as the
-Clipper2 package, so that it can be mended here. Only what GeometryHelper calls is kept: the core, the engine, the
-static functions and the pools; the offset, rectangle clipping, Minkowski sums, the triangulation and the borrowed
-`System.HashCode` are left out. Its types are internal: they are not part of GeometryHelper, and a project that
+Clipper2 package, so that it can be mended here. Only what GeometryHelper and its tests call is kept: the core, the
+engine, the static functions, the pools, and the offset, which the tests hold the library's own offsets against;
+rectangle clipping, Minkowski sums, the triangulation and the borrowed `System.HashCode` are left out, and the tests
+reference no Clipper2 package either. Its types are internal: they are not part of GeometryHelper, and a project that
 references the Clipper2 package as well sees that one only. A project that used Clipper2 through GeometryHelper's
 dependency references the Clipper2 package itself now. Built into GeometryHelper as it came, the engine gave the IL of
 the package, but for the hash codes of its points, which nothing reads, and one delegate the newer compiler keeps

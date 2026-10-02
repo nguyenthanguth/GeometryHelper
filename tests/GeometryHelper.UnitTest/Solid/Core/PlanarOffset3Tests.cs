@@ -1,11 +1,8 @@
-extern alias Clipper2Package;
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Clipper2Package::Clipper2Lib;
-using ClipperPackage = Clipper2Package::Clipper2Lib.Clipper;
 using GeometryHelper;
+using GeometryHelper.Clipper;
 using GeometryHelper.Enums;
 using GeometryHelper.Core;
 using GeometryHelper.Geometry;
@@ -214,14 +211,19 @@ namespace GeometryHelper.UnitTest.Solid
             return paths;
         }
 
-        private static double XorArea(PathsD a, PathsD b) => Math.Abs(ClipperPackage.Area(ClipperPackage.Xor(a, b, FillRule.NonZero, 8)));
+        // The join of Clipper2's offset that ours is held against: a chamfer is its square join.
+        private static JoinType ClipperJoin(OffsetJoin ours)
+            => ours == OffsetJoin.Miter ? JoinType.Miter : ours == OffsetJoin.Chamfer ? JoinType.Square : JoinType.Round;
+
+        private static double XorArea(PathsD a, PathsD b) => Math.Abs(Clipper2.Area(Clipper2.Xor(a, b, FillRule.NonZero, 8)));
 
         [Theory]
-        [InlineData(OffsetJoin.Miter, JoinType.Miter)]
-        [InlineData(OffsetJoin.Chamfer, JoinType.Square)]
-        [InlineData(OffsetJoin.Round, JoinType.Round)]
-        public void RandomStarsInRandomPlanes_MatchClipper(OffsetJoin ours, JoinType theirs)
+        [InlineData(OffsetJoin.Miter)]
+        [InlineData(OffsetJoin.Chamfer)]
+        [InlineData(OffsetJoin.Round)]
+        public void RandomStarsInRandomPlanes_MatchClipper(OffsetJoin ours)
         {
+            JoinType theirs = ClipperJoin(ours);
             using (Tolerance.Use(Fine))
             {
                 var options = new OffsetOptions(ours, double.PositiveInfinity, 0.0005);
@@ -235,7 +237,7 @@ namespace GeometryHelper.UnitTest.Solid
                     foreach (double d in new[] { 0.4, -0.4, 2.0, -2.0 })
                     {
                         GeoPolygon3[] result = star.Offset(d, options);
-                        PathsD expected = ClipperPackage.InflatePaths(local, d, theirs, EndType.Polygon, 1e9, 8, 0.0005);
+                        PathsD expected = Clipper2.InflatePaths(local, d, theirs, EndType.Polygon, 1e9, 8, 0.0005);
 
                         foreach (GeoPolygon3 loop in result)
                         {
@@ -319,11 +321,11 @@ namespace GeometryHelper.UnitTest.Solid
                 foreach (double d in new[] { -0.3, 0.3, -0.12 })
                 {
                     GeoPolygon3[] round = comb.Offset(d, new OffsetOptions(OffsetJoin.Round, arcTolerance: 0.001));
-                    PathsD expectedRound = ClipperPackage.InflatePaths(local, d, JoinType.Round, EndType.Polygon, 1e9, 8, 0.001);
+                    PathsD expectedRound = Clipper2.InflatePaths(local, d, JoinType.Round, EndType.Polygon, 1e9, 8, 0.001);
                     Assert.True(XorArea(Local(Flat, round), expectedRound) < 0.002 * (round.Sum(p => p.Length) + 1.0), $"round offset {d} differs from Clipper");
 
                     GeoPolygon3[] sharp = comb.Offset(d, SharpAlways);
-                    PathsD expectedSharp = ClipperPackage.InflatePaths(local, d, JoinType.Miter, EndType.Polygon, 1e9, 8, 0.0);
+                    PathsD expectedSharp = Clipper2.InflatePaths(local, d, JoinType.Miter, EndType.Polygon, 1e9, 8, 0.0);
                     Assert.True(XorArea(Local(Flat, sharp), expectedSharp) < 1e-5, $"sharp offset {d} differs from Clipper");
                 }
             }
