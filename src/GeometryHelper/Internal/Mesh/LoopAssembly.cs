@@ -231,6 +231,24 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static List<GeoFace3> AssembleFaces(List<List<GeoPoint3>> loops, GeoVector3 orientation, Tolerance tolerance)
         {
+            Assemble(loops, orientation, tolerance, true, out List<GeoFace3> faces);
+            return faces;
+        }
+
+        /// <summary>
+        /// Nests closed loops into faces as <see cref="AssembleFaces"/> does, refusing loops that do not lie in one plane.
+        /// </summary>
+        /// <param name="loops">The loops.</param>
+        /// <param name="orientation">The side the faces should face.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="faces">The faces; null when the method returns false.</param>
+        /// <returns>false where a hole stands further than the tolerance off the plane of the loop round it.</returns>
+        internal static bool TryAssembleFaces(List<List<GeoPoint3>> loops, GeoVector3 orientation, Tolerance tolerance, out List<GeoFace3> faces)
+            => Assemble(loops, orientation, tolerance, false, out faces);
+
+        private static bool Assemble(List<List<GeoPoint3>> loops, GeoVector3 orientation, Tolerance tolerance, bool anyPlane, out List<GeoFace3> faces)
+        {
+            faces = null;
             List<GeoPolygon3> polygons = new List<GeoPolygon3>();
 
             foreach (List<GeoPoint3> loop in loops)
@@ -243,7 +261,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            List<GeoFace3> faces = new List<GeoFace3>();
+            var assembled = new List<GeoFace3>();
             int[] depth = new int[polygons.Count];
 
             for (int i = 0; i < polygons.Count; i++)
@@ -276,10 +294,29 @@ namespace GeometryHelper.Core
                     }
                 }
 
-                faces.Add(new GeoFace3(polygons[i], holes, tolerance));
+                if (!anyPlane && holes.Count > 0 && !AllOn(polygons[i].GetPlane(), holes, tolerance))
+                {
+                    return false;
+                }
+
+                assembled.Add(new GeoFace3(polygons[i], holes, tolerance));
             }
 
-            return faces;
+            faces = assembled;
+            return true;
+        }
+
+        private static bool AllOn(GeoPlane3 plane, List<GeoPolygon3> holes, Tolerance tolerance)
+        {
+            foreach (GeoPolygon3 hole in holes)
+            {
+                if (!plane.ContainsAll(hole.Vertices, tolerance))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

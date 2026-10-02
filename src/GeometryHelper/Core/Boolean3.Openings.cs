@@ -78,6 +78,27 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static bool TryCutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance)
         {
+            if (TryCutOpenings(solid, openings, out material, tolerance, out Exception failure))
+            {
+                return true;
+            }
+
+            return failure != null && Unworkable("cut of openings", failure, out material);
+        }
+
+        /// <summary>
+        /// Cuts some of a body's openings into it, handing back a cut that cannot be worked out rather than warning of it.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="openings">The openings to cut; the others are not carried over.</param>
+        /// <param name="material">The body with those openings cut into it; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="failure">What was thrown where the cut could not be worked out; null otherwise.</param>
+        /// <returns>true when some material is left; false when the openings take all of it, or the cut cannot be worked out.</returns>
+        internal static bool TryCutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out Exception failure)
+        {
+            failure = null;
+
             if (openings.Count == 0)
             {
                 material = solid.Openings.Count == 0 ? solid : new GeoSolid3(solid.Faces);
@@ -90,7 +111,9 @@ namespace GeometryHelper.Core
             }
             catch (Exception exception) when (IsUnworkable(exception))
             {
-                return Unworkable("cut of openings", exception, out material);
+                failure = exception;
+                material = null;
+                return false;
             }
         }
 

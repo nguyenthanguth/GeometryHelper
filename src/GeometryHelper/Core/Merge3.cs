@@ -467,7 +467,9 @@ namespace GeometryHelper.Core
         /// only: an edge two of them share is interior to the union, and it appears twice among the
         /// collected edges running in opposite directions, so cancelling opposed pairs leaves precisely the
         /// outline. If what is left does not close into loops the group was not a well formed surface, and
-        /// the faces are handed back untouched rather than replaced by a guess.
+        /// the faces are handed back untouched rather than replaced by a guess. So are faces that each lie in
+        /// the plane within the tolerance but whose outline does not: a face turned a hair against the others
+        /// leaves a hole standing further than the tolerance off the plane of the loop round it.
         /// </remarks>
         private static IEnumerable<GeoFace3> MergeGroup(List<GeoFace3> group, GeoPlane3 plane, Tolerance tolerance)
         {
@@ -499,7 +501,11 @@ namespace GeometryHelper.Core
             // Every loop is the outline of faces that exist, however thin, so it is built as thin as they were:
             // a sliver left by a cut beside the plane's other faces would otherwise be refused and leave a hole.
             // A loop lost anyway leaves the group as it was rather than a surface with a hole in it.
-            List<GeoFace3> assembled = LoopAssembly.AssembleFaces(loops, plane.Normal, LoopAssembly.ForPieces(tolerance));
+            if (!LoopAssembly.TryAssembleFaces(loops, plane.Normal, LoopAssembly.ForPieces(tolerance), out List<GeoFace3> assembled))
+            {
+                return group;
+            }
+
             int rings = 0;
 
             foreach (GeoFace3 face in assembled)

@@ -168,6 +168,39 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void FacesTheToleranceTakesForOnePlaneButWhoseOutlineIsNotFlatAreLeftUnmerged()
+        {
+            // A sliver of an opening turned a hair, flush with the floor and a side of an L and across its step: gluing the
+            // cut, a face of it was taken for one plane with the floor, and their outline left a hole further off the plane
+            // than the tolerance. Merging those faces threw, and the cut was reported as not made, with a warning.
+            var warnings = new System.Collections.Generic.List<string>();
+            GeometryHelperLog.Writer = (level, message, exception) =>
+            {
+                if (level == GeometryHelperLogLevel.Warn)
+                {
+                    warnings.Add(message);
+                }
+            };
+
+            try
+            {
+                GeoSolid3 sliver = GeometryHelper.UnitTest.Meshing.CellTests.OpeningSliver();
+                var plan = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(65, 0, 0), new GeoPoint3(65, 62, 0), new GeoPoint3(40, 62, 0), new GeoPoint3(40, 142, 0), new GeoPoint3(0, 142, 0) };
+                GeoSolid3 ell = GeoSolid3.Extrude(new GeoPolygon3(plan), new GeoVector3(0, 0, 1777), Tolerance.Default);
+
+                Assert.True(ell.WithOpenings(new[] { sliver }).TryCutOpenings(out GeoSolid3 material, Tolerance.Default));
+                Assert.Empty(warnings);
+
+                // Most of the sliver is outside the L: what of it is inside, under a twentieth of a cubic millimetre, is gone.
+                Assert.InRange(ell.Volume - material.Volume, 0.0, 0.1);
+            }
+            finally
+            {
+                GeometryHelperLog.Writer = null;
+            }
+        }
+
+        [Fact]
         public void EveryWayInTakesAToleranceAndNothingIsAskedOfNothing()
         {
             GeoSolid3 plate = Plate();

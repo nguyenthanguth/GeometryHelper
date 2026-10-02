@@ -552,6 +552,44 @@ namespace GeometryHelper.UnitTest.Meshing
         }
 
         [Fact]
+        public void OpeningsThatLeaveTheWholeBodyOpenAreCutIntoItsCells()
+        {
+            // A sliver of an opening 4.1 by 0.46 by 0.48, turned a hair, flush with the floor and the side x = 65 of an L and
+            // across its step, most of it outside: cut into the whole body, it leaves the body open by a sliver along the step,
+            // and the cut was once not worked out at all and taken for openings that take all of it. Each cell has the
+            // openings it meets cut in instead, and one that cannot have them is kept whole of them, and says so.
+            GeoSolid3 sliver = OpeningSliver();
+            GeoSolid3 ell = Prism(new GeoPolygon2(Q(0, 0), Q(65, 0), Q(65, 62), Q(40, 62), Q(40, 142), Q(0, 142)), 0, 1777);
+            GeoCellGrid3 grid = ell.WithOpenings(new[] { sliver }).ToCells(CellOptions3.Grid(500, 500, 500), Tolerance);
+
+            Assert.Equal(ell.ToCells(CellOptions3.Grid(500, 500, 500), Tolerance).CellCount, grid.CellCount);
+            Assert.InRange(grid.Volume, ell.Volume - sliver.Volume, ell.Volume + 1E-6);
+            Assert.All(grid.Cells, cell => Assert.True(cell.Solid.IsClosed(Tolerance), $"{cell} is not closed"));
+            Assert.All(_warnings, w => Assert.Contains("could not be cut into it", w));
+            _warnings.Clear();
+        }
+
+        /// <summary>A box 4.1 by 0.46 by 0.48 turned a hair about its middle, at the step of the L of the tests above.</summary>
+        internal static GeoSolid3 OpeningSliver()
+        {
+            GeoPoint3 a = P(60.879266394762652, 61.982258829493873, 0.0023554028315861397);
+            GeoPoint3 b = P(60.880238105962427, 62.446719867621809, 0.0020242945736189122);
+            GeoPoint3 c = P(65.000226755390827, 62.43809720864791, -0.0023550128368232115);
+            GeoPoint3 d = P(64.999255044191045, 61.973636170519974, -0.002023904578855984);
+            GeoPoint3 e = P(60.879773244609154, 61.982597225003062, 0.47852607322115404);
+            GeoPoint3 f = P(64.999761894037562, 61.973974566029163, 0.47414676581071191);
+            GeoPoint3 g = P(65.000733605237343, 62.4384356041571, 0.47381565755274468);
+            GeoPoint3 h = P(60.880744955808929, 62.447058263131, 0.47819496496318681);
+            return new GeoSolid3(
+                new GeoFace3(new GeoPolygon3(a, b, c, d)),
+                new GeoFace3(new GeoPolygon3(e, f, g, h)),
+                new GeoFace3(new GeoPolygon3(a, d, f, e)),
+                new GeoFace3(new GeoPolygon3(c, b, h, g)),
+                new GeoFace3(new GeoPolygon3(d, c, g, f)),
+                new GeoFace3(new GeoPolygon3(b, a, e, h)));
+        }
+
+        [Fact]
         public void ABodyWoundInwardsIsCutTheRightWayOut()
         {
             // A mirror winds a body inwards, and so does turning every face round: the cutting reads the faces wound outwards,

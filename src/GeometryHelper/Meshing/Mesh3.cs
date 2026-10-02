@@ -335,7 +335,8 @@ namespace GeometryHelper.Meshing
         /// A cell the body holds in several pieces, as across the notch of a U, gives a cell for each. A body that is not
         /// closed holds no volume to cut, and is refused rather than cut into cells that would not hold it either. A body
         /// wound inwards, as a mirror leaves one, and an opening wound so, are read the right way out, and the cells are
-        /// wound outwards.
+        /// wound outwards. Openings that cannot be cut into the whole body, or leave it open, are cut into each cell they
+        /// meet; a cell they cannot be cut into either keeps their material, and says so in the log.
         /// </para>
         /// </remarks>
         public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
@@ -354,14 +355,28 @@ namespace GeometryHelper.Meshing
 
             solid = Outwards(solid);
             GeoSolid3 material = solid;
+            IReadOnlyList<GeoSolid3> left = new GeoSolid3[0];
 
-            if (solid.Openings.Count > 0 && !Boolean3.TryCutOpenings(solid, out material, tolerance))
+            if (solid.Openings.Count > 0)
             {
-                material = null;
+                bool cut = Boolean3.TryCutOpenings(solid, solid.Openings, out material, tolerance, out Exception failure);
+
+                if (failure != null || (cut && !material.IsClosed(tolerance)))
+                {
+                    // The openings could not be cut into the whole body, or left it open: the body is cut into its cells as
+                    // it is, and each cell has the openings it meets cut into it.
+                    material = new GeoSolid3(solid.Faces);
+                    left = solid.Openings;
+                }
+                else if (!cut)
+                {
+                    // The openings take all of it.
+                    material = null;
+                }
             }
 
             GeoCoordinateSystem3 axes = placement.AxesOfBody(Corners(solid), null, tolerance);
-            return CellGrid3.OfSolid(solid, material, axes, options, placement.Origin, tolerance);
+            return CellGrid3.OfSolid(solid, material, left, axes, options, placement.Origin, tolerance);
         }
 
         /// <summary>
@@ -414,7 +429,7 @@ namespace GeometryHelper.Meshing
             }
 
             GeoSolid3 solid = CellGrid3.BoxSolid(box);
-            return CellGrid3.OfSolid(solid, solid, axes, options, placement.Origin, tolerance);
+            return CellGrid3.OfSolid(solid, solid, new GeoSolid3[0], axes, options, placement.Origin, tolerance);
         }
 
         /// <summary>

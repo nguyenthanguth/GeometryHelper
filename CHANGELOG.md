@@ -62,8 +62,9 @@ the world's, a box's own or the smallest box round a body (`Own`, the default fo
 of its plan, along a direction, or a coordinate system's. A cut coming within the snap distance of a corner of the part it
 cuts moves onto it, and none takes off a slice thinner than that, or than four point tolerances, from the part's far side,
 so that the slice goes with the cell beside; past a joint, where it would go with the joint, a slice thicker than the
-point tolerance is the cell beyond's. The openings are cut in first, a body that is not closed is refused, and one wound
-inwards, as a mirror leaves it, is read the right way out. A
+point tolerance is the cell beyond's. The openings are cut in first, or into each cell they meet where the whole body
+will not take them or is left open by them, a body that is not closed is refused, and one wound inwards, as a mirror
+leaves it, is read the right way out. A
 box cut along its own sides is cut by arithmetic, a million cells in about two thirds of a second; any other body is cut
 by planes, along X, then each slab along Y and each bar along Z, on as many threads as allowed. The cells hold the body's
 volume but for the tolerance times the area cut: over 200 000 random bodies, a median of two parts in ten million
@@ -87,6 +88,12 @@ two edges, and the halves would be open by the sliver between them.
 when the plane faced away from the material there: along the floor of an L's notch, facing up it gave the floor with the
 arm it cuts, facing down the arm alone; between two blocks standing on each other it gave all of the lower block's top.
 It gives where the body has material on both sides of the plane now, as it says, whichever way the plane faces.
+
+**FIXED.** `Merge3.CoplanarFaces` threw where faces the tolerance takes for one plane, one of them turned a hair against
+the others, leave an outline that is not flat: a hole of it stood further than the tolerance off the plane of the loop
+round it. The booleans and `TryCutOpenings` glue their cells with it, and reported such a cut as not made, with a
+warning: a sliver of an opening turned a thousandth of a radian, flush with the floor and a side of a body, was not cut
+in. Such faces are left as they were, unmerged.
 
 **FIXED.** `GeoSolid3.Locate` and `Contains` threw another ray when a crossing landed within twice the point tolerance of
 a face's outer rim, but not of the rim of one of its holes: a ray leaving through the wall of a hole and rising through

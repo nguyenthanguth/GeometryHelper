@@ -540,11 +540,12 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="gross">The body as given, whose corners the grid is laid between.</param>
         /// <param name="material">The body with its openings cut in, which is cut; null when they take all of it.</param>
+        /// <param name="openings">Openings still to cut into each cell they meet, which the whole body would not take.</param>
         /// <param name="axes">The grid's axes.</param>
         /// <param name="options">How the axes are divided.</param>
         /// <param name="origin">Where a cell starts, or null for the alignments.</param>
         /// <param name="tolerance">The tolerance the body is cut within.</param>
-        public static GeoCellGrid3 OfSolid(GeoSolid3 gross, GeoSolid3 material, GeoCoordinateSystem3 axes, CellOptions3 options, GeoPoint3? origin, Tolerance tolerance)
+        public static GeoCellGrid3 OfSolid(GeoSolid3 gross, GeoSolid3 material, IReadOnlyList<GeoSolid3> openings, GeoCoordinateSystem3 axes, CellOptions3 options, GeoPoint3? origin, Tolerance tolerance)
         {
             Layout layout = Lay(Corners(gross), axes, options, origin, tolerance);
 
@@ -589,7 +590,7 @@ namespace GeometryHelper.Core
 
             var cells = new List<GeoCell3>[pieces.Count];
 
-            Run(pieces.Count, threads, p => cells[p] = Cells(pieces[p], layout, tolerance));
+            Run(pieces.Count, threads, p => cells[p] = Cells(pieces[p], openings, layout, tolerance));
 
             var all = new List<GeoCell3>();
 
@@ -838,12 +839,62 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// A piece of the body with the openings it meets cut into it: null when they take all of it, and the piece as it is,
+        /// warned of, where they cannot be cut into it or leave it open.
+        /// </summary>
+        private static GeoSolid3 CutIn(GeoSolid3 piece, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance)
+        {
+            if (openings.Count == 0)
+            {
+                return piece;
+            }
+
+            GeoAabb3 box = piece.GetAabb();
+            var meeting = new List<GeoSolid3>();
+
+            foreach (GeoSolid3 opening in openings)
+            {
+                if (opening.GetAabb().CollidesWith(box, tolerance))
+                {
+                    meeting.Add(opening);
+                }
+            }
+
+            if (meeting.Count == 0)
+            {
+                return piece;
+            }
+
+            bool cut = Boolean3.TryCutOpenings(piece, meeting, out GeoSolid3 material, tolerance, out Exception failure);
+
+            if (failure == null && !cut)
+            {
+                return null;
+            }
+
+            if (failure == null && material.IsClosed(tolerance))
+            {
+                return material;
+            }
+
+            GeometryHelperLog.Warn("Cells: the openings a cell meets could not be cut into it; the cell keeps their material.", failure);
+            return piece;
+        }
+
+        /// <summary>
         /// The cells a piece makes: one for each part of it that does not touch the others, numbered in turn up Z, along Y
         /// and along X by their middles.
         /// </summary>
-        private static List<GeoCell3> Cells(Piece piece, Layout layout, Tolerance tolerance)
+        private static List<GeoCell3> Cells(Piece piece, IReadOnlyList<GeoSolid3> openings, Layout layout, Tolerance tolerance)
         {
-            GeoSolid3[] shells = Boolean3.SplitShells(piece.Solid, tolerance);
+            GeoSolid3 material = CutIn(piece.Solid, openings, tolerance);
+
+            if (material == null)
+            {
+                return new List<GeoCell3>();
+            }
+
+            GeoSolid3[] shells = Boolean3.SplitShells(material, tolerance);
             var parts = new List<(GeoSolid3 Solid, GeoPoint3 Middle)>(shells.Length);
 
             foreach (GeoSolid3 shell in shells)
