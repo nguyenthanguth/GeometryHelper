@@ -714,14 +714,14 @@ namespace GeometryHelper.Clipper
     }
 
     /// <summary>
-    /// Throws for a precision outside -8 to 8, a plain Exception rather than the ClipperLibException of ClipperD's
-    /// constructor.
+    /// Throws ClipperLibException for a precision outside -8 to 8, as ClipperD's constructor does. Clipper2 2.0.0 threw
+    /// a plain Exception here; that is mended.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void CheckPrecision(int precision)
     {
       if (precision < -8 || precision > 8)
-        throw new Exception(precision_range_error);
+        throw new ClipperLibException(precision_range_error);
     }
 
     /// <summary>

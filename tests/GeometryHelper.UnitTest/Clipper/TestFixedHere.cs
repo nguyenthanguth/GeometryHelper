@@ -171,5 +171,19 @@ namespace GeometryHelper.UnitTest.Clipper
                 GeometryHelperLog.Enable = enabled;
             }
         }
+
+        /// <summary>
+        /// A precision out of range threw a plain Exception from the static functions and a ClipperLibException from
+        /// ClipperD; it is a ClipperLibException everywhere now.
+        /// </summary>
+        [Fact]
+        public void PrecisionOutOfRange_ThrowsClipperLibException()
+        {
+            PathD triangle = new PathD { new PointD(0, 0), new PointD(1, 0), new PointD(0, 1) };
+
+            Assert.Throws<ClipperLibException>(() => Clipper2.TrimCollinear(triangle, 9));
+            Assert.Throws<ClipperLibException>(() => Clipper2.PointInPolygon(new PointD(0.2, 0.2), triangle, -9));
+            Assert.Throws<ClipperLibException>(() => new ClipperD(9));
+        }
     }
 }

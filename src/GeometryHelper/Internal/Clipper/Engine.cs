@@ -4272,7 +4272,8 @@ namespace GeometryHelper.Clipper
   }
 
   /// <summary>
-  /// The exception the clipper throws: ClipperD's constructor throws it for a precision out of range.
+  /// The exception the clipper throws for a precision out of range, from ClipperD's constructor and from the static
+  /// functions that round.
   /// </summary>
   internal class ClipperLibException : Exception
   {
