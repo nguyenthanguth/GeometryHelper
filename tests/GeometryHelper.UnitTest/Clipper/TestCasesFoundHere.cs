@@ -38,5 +38,61 @@ namespace GeometryHelper.UnitTest.Clipper
             double area = Clipper2.Area(solution);
             Assert.True(Math.Abs(area - exact) < 0.005 * exact, $"area {area}, {exact} exactly");
         }
+
+        /// <summary>
+        /// A union whose polytree has three islands in a hole that touches them, each wound as an outer is. With the test
+        /// of a closed path written as Clipper2's C++ writes it, which empties rings of two points and very small
+        /// triangles in CleanCollinear at once, the tree nested the three as holes of the outer instead: in 600 000
+        /// random cases it nested islands so in four, the C# test in none. So the C# test stays.
+        /// </summary>
+        [Fact]
+        public void PolyTreeOfIslandsTouchingTheirHole_NestsThemByTheirWinding()
+        {
+            Paths64 subject = new()
+            {
+                Clipper2.MakePath(new int[] { 34, 25, 4, 35, 7, 2, 16, 39, 24, 11, 9, 24, 22, 6, 20, 33 }),
+                Clipper2.MakePath(new int[] { 14, 3, 33, 33, 11, 5, 6, 20, 35, 12 }),
+                Clipper2.MakePath(new int[] { 7, 12, 4, 34, 9, 7, 14, 11, 6, 19, 30, 22, 19, 15, 32, 20 }),
+            };
+            Paths64 clip = new()
+            {
+                Clipper2.MakePath(new int[] { 24, 2, 22, 9, 17, 25, 30, 24, 35, 6, 22, 19, 38, 15, 12, 31 }),
+                Clipper2.MakePath(new int[] { 32, 12, 6, 15, 14, 15, 32, 8, 26, 0, 25, 22 }),
+                Clipper2.MakePath(new int[] { 18, 20, 26, 10, 36, 33, 30, 25 }),
+            };
+            Clipper64 c64 = new() { PreserveCollinear = true };
+            c64.AddSubject(subject);
+            c64.AddClip(clip);
+            PolyTree64 tree = new();
+            Assert.True(c64.Execute(ClipType.Union, FillRule.EvenOdd, tree));
+
+            Assert.Equal(0, WoundAgainstTheirDepth(tree));
+            Assert.Equal(3, AtLevel(tree, 3));
+        }
+
+        // Nodes whose winding disagrees with their depth: a hole winds clockwise with Y up, an outer counter-clockwise.
+        private static int WoundAgainstTheirDepth(PolyPath64 node)
+        {
+            int count = node.Polygon != null && (Clipper2.Area(node.Polygon) < 0) != node.IsHole ? 1 : 0;
+
+            for (int i = 0; i < node.Count; i++)
+            {
+                count += WoundAgainstTheirDepth(node[i]);
+            }
+
+            return count;
+        }
+
+        private static int AtLevel(PolyPath64 node, int level)
+        {
+            int count = node.Level == level ? 1 : 0;
+
+            for (int i = 0; i < node.Count; i++)
+            {
+                count += AtLevel(node[i], level);
+            }
+
+            return count;
+        }
     }
 }

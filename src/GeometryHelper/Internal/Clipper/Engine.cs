@@ -3228,7 +3228,8 @@ namespace GeometryHelper.Clipper
     /// Whether the ring can still be a closed path; here, whenever it has more than one point. Clipper2's C++ also
     /// refuses a ring of two points and a triangle with two corners less than two units apart, but this test of the
     /// triangle only runs on rings of two points, where it never holds, so both are left to BuildPath, which drops
-    /// them.
+    /// them. Keep it so: written as the C++ has it, the test empties those rings in CleanCollinear, and BuildTree then
+    /// nests islands as holes in some polytrees, four in 600 000 random cases; TestCasesFoundHere holds one.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsValidClosedPath(OutPt op)
