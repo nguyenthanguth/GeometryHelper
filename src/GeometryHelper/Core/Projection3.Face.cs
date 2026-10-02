@@ -38,7 +38,8 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
-            GeoPoint3 flat = ProjectToPlane(face.GetPlane(), point);
+            GeoPlane3 plane = face.GetPlane();
+            GeoPoint3 flat = ProjectToPlane(plane, point);
 
             if (!Containment3.Contains(face.Boundary, flat, tolerance))
             {
@@ -48,8 +49,9 @@ namespace GeometryHelper.Core
             foreach (GeoPolygon3 hole in face.Holes)
             {
                 // Over a hole is over nothing, so the nearest material is the rim of the hole rather than
-                // the surface that is not there behind it.
-                if (Containment3.Locate(hole, flat, tolerance) == PointLocation.Inside)
+                // the surface that is not there behind it. The hole is read in the plane of the boundary, as
+                // GeoFace3.Locate reads it: one standing a hair off that plane holds nothing of a point on it.
+                if (Containment3.LocateInPlane(hole, plane, flat, tolerance) == PointLocation.Inside)
                 {
                     return ProjectToPolygonBoundary(hole, point, tolerance);
                 }

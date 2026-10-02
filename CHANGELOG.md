@@ -75,7 +75,10 @@ cases and how they were checked.
 **FIXED.** `GeoFace3.Locate` and `Contains`, and `GeoPoint3.LocateIn` a face, read each hole in the hole's own plane.
 A hole may stand off the boundary's plane by up to the planar tolerance, as one a modeller cut can, and a point on the
 face's plane a thousandth below stood further than the tolerance from the hole's: a point in the hole was inside the
-material, one on its rim inside too. The holes are read in the plane of the boundary now.
+material, one on its rim inside too. So did `GeoFace3.DistanceTo` and `GetClosestPointOnBoundary`, which gave a point in
+the hole as its own nearest, at no distance, and with them `GeoSolid3.Locate` and `Contains`, which took a point in a
+hole through a plate at the level of its top for one on the plate's side, and `DistanceTo` and
+`GetClosestPointOnBoundary`. The holes are read in the plane of the boundary now.
 
 **FIXED.** `GeoSolid3.TrySplitBy` refused a plane that parts a body without crossing it: one passing between two blocks
 of one body, or along the edge where two parts of a body meet, as a body cut through the corner of its notch touches

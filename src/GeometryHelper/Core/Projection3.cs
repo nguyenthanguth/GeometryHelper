@@ -678,12 +678,14 @@ namespace GeometryHelper.Core
             foreach (GeoFace3 face in faces)
             {
                 GeoPoint3 candidate = ProjectToPolygon(face.Boundary, point, tolerance);
+                GeoPlane3 plane = face.GetPlane();
 
                 foreach (GeoPolygon3 hole in face.Holes)
                 {
                     // A point over a hole is not over material, so the nearest position on that face is on
-                    // the rim of the hole instead of on the surface behind it.
-                    if (Containment3.Contains(hole, ProjectToPlane(face.GetPlane(), point), tolerance))
+                    // the rim of the hole instead of on the surface behind it; the hole read in the plane of
+                    // the boundary, as the face is.
+                    if (Containment3.LocateInPlane(hole, plane, ProjectToPlane(plane, point), tolerance) != PointLocation.OutSide)
                     {
                         candidate = ProjectToPolygonBoundary(hole, point, tolerance);
                         break;

@@ -678,7 +678,7 @@ namespace GeometryHelper.Core
         /// Locates a point against a ring laid onto a plane: within the point tolerance of a side, along the plane, it is on
         /// it, and otherwise inside or outside as the ring winds about it there.
         /// </summary>
-        private static PointLocation LocateInPlane(GeoPolygon3 ring, GeoPlane3 plane, GeoPoint3 point, Tolerance tolerance)
+        internal static PointLocation LocateInPlane(GeoPolygon3 ring, GeoPlane3 plane, GeoPoint3 point, Tolerance tolerance)
         {
             GeoVector3 normal = plane.Normal;
             GeoVector3 Laid(GeoPoint3 p)
