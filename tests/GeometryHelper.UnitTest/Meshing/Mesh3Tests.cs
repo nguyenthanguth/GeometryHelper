@@ -423,6 +423,32 @@ namespace GeometryHelper.UnitTest.Meshing
         }
 
         [Fact]
+        public void ALoopWithArcsWhoseCornersCloseInOnEachOtherKeepsEachCornerItsOwn()
+        {
+            // Two corners 0.005 apart, apart within a tolerance of a millionth: laid out in the plane they were taken for one
+            // within the global tolerance, and every corner after it was put back onto the next corner in space.
+            var fine = new Tolerance(1E-6, 1E-9, 1E-6, 1E-6);
+            GeoPoint3[] corners = { P(0, 0, 0), P(1000, 0, 0), P(1000, 0.005, 0), P(1000, 500, 0), P(0, 500, 0) };
+            GeoMesh3 loop = new GeoPolygonArc3(corners, null, null, fine).ToMesh(MeshOptions.Triangles, fine);
+            GeoMesh3 polygon = new GeoPolygon3(corners, fine).ToMesh(MeshOptions.Triangles, fine);
+
+            Assert.Equal(polygon.Area, loop.Area, 6);
+            Assert.All(corners, c => Assert.Contains(c, loop.Vertices));
+
+            // A loop a hair out of flat, two of its corners 0.0126 apart in space and 0.004 in its plane, at the default
+            // tolerance: its grid covered nine tenths of it.
+            GeoPoint3[] tilted = { P(0, 0, 0), P(1000, 0, -0.006), P(1000, 0.004, 0.006), P(1000, 1000, 0), P(0, 1000, 0) };
+            GeoMesh3 grid = new GeoPolygonArc3(tilted).ToMesh(MeshOptions.Grid(300, 300), Tolerance);
+
+            Assert.Equal(new GeoPolygon3(tilted, Tolerance).ToMesh(MeshOptions.Grid(300, 300), Tolerance).Area, grid.Area, 6);
+            Assert.InRange(grid.Area, 1E6 - 10, 1E6);
+
+            // A sliver the plane's tolerance would take for no loop at all is meshed as its polygon is, and not refused.
+            GeoPoint3[] sliver = { P(0, 0, 0), P(1000, 0, 0), P(1000, 0.005, 0), P(0, 0.005, 0) };
+            Assert.Equal(new GeoPolygon3(sliver, fine).ToMesh(MeshOptions.Triangles, fine).Area, new GeoPolygonArc3(sliver, null, null, fine).ToMesh(MeshOptions.Triangles, fine).Area, 9);
+        }
+
+        [Fact]
         public void ATriangleOfSpaceMeshesAsAPolygonOfThree()
         {
             var triangle = new GeoTriangle3(P(0, 0, 0), P(3000, 0, 1000), P(0, 2000, 500));

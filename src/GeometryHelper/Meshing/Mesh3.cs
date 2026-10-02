@@ -164,28 +164,54 @@ namespace GeometryHelper.Meshing
 
             Check(options, placement);
 
+            // The arcs flattened in space, the loop's corners kept exactly where it has them: the ring then meshes as a
+            // polygon's, its corners read within the tolerance given and each put back where it came from. Laid out as a loop
+            // with arcs of the plane, its corners were read within the global tolerance, and one dropped there put each after it
+            // back onto the next.
+            var ring = new List<GeoPoint3>(loop.VertexCount * 2);
+
+            for (int i = 0; i < loop.EdgeCount; i++)
+            {
+                GeoEdge3 edge = loop.GetEdgeAt(i);
+                ring.Add(loop[i]);
+
+                if (edge.IsArc)
+                {
+                    GeoPolyline3 points = edge.ToArc().ToPolylineByChordTolerance(options.ChordTolerance);
+
+                    for (int j = 1; j + 1 < points.VertexCount; j++)
+                    {
+                        ring.Add(points[j]);
+                    }
+                }
+            }
+
             // The loop's plane does not say which way round it runs; the mesh's normal is the one it runs counter-clockwise
             // about, as a polygon's is.
             GeoVector3 normal = loop.Normal;
-            GeoCoordinateSystem3 trial = new GeoCoordinateSystem3(new GeoPlane3(loop[0], normal));
 
-            if (loop.ProjectToPolygonArc2(trial).IsClockwise)
+            if (TwiceTheAreaAbout(ring, normal) < 0.0)
             {
                 normal = normal.Negate();
             }
 
-            GeoCoordinateSystem3 frame = placement.FrameOnPlane(loop[0], normal, loop.Vertices, options.AngleRad ?? 0.0, tolerance);
-            GeoPolygonArc2 laid = loop.ProjectToPolygonArc2(frame);
-            GeoMesh2 flat = Mesh2.ToMesh(laid, options.InFrame(Anchor(options, placement, frame, tolerance)), tolerance);
+            return MeshRings(ring, new IReadOnlyList<GeoPoint3>[0], normal, options, placement, tolerance);
+        }
 
-            var corners = new GeoPoint2[laid.VertexCount];
+        /// <summary>
+        /// Twice the area a ring encloses seen along a normal, positive where it runs counter-clockwise about it.
+        /// </summary>
+        private static double TwiceTheAreaAbout(IReadOnlyList<GeoPoint3> ring, GeoVector3 normal)
+        {
+            GeoPoint3 first = ring[0];
+            GeoVector3 twice = GeoVector3.Zero;
 
-            for (int i = 0; i < corners.Length; i++)
+            for (int i = 1; i + 1 < ring.Count; i++)
             {
-                corners[i] = laid[i];
+                twice = twice.Add(first.GetVectorTo(ring[i]).CrossProduct(first.GetVectorTo(ring[i + 1])));
             }
 
-            return Lifted(flat, frame, new[] { loop.Vertices }, new[] { corners }, false);
+            return twice.DotProduct(normal);
         }
 
         #endregion
