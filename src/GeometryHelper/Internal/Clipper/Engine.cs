@@ -5,4281 +5,4289 @@ using System.Runtime.CompilerServices;
 
 namespace GeometryHelper.Clipper
 {
-  /// <summary>
-  /// Where a point lies against a polygon: on its boundary, inside or outside.
-  /// </summary>
-  [Flags]
-  internal enum PointInPolygonResult
-  {
-    IsOn = 0,
-    IsInside = 1,
-    IsOutside = 2
-  }
-
-  /// <summary>
-  /// What a vertex of an input path is: the start or the end of an open path, a local maximum, a local minimum.
-  /// </summary>
-  [Flags]
-  internal enum VertexFlags
-  {
-    None = 0,
-    OpenStart = 1,
-    OpenEnd = 2,
-    LocalMax = 4,
-    LocalMin = 8
-  }
-
-  /// <summary>
-  /// A vertex of an input path, linked to its neighbours in a ring, before clipping. The engine reads each path as
-  /// bounds, the sides that rise from a local minimum to a local maximum before falling again (Clipper's up and down: Y
-  /// grows downwards, so a local minimum is a vertex of locally largest Y).
-  /// </summary>
-  internal class Vertex
-  {
-    public Point64 pt;
-    public Vertex next;
-    public Vertex prev;
-    public VertexFlags flags;
-
     /// <summary>
-    /// A vertex at the point, with its flags, after prev; its next is set when the vertex after it is added.
+    /// Where a point lies against a polygon: on its boundary, inside or outside.
     /// </summary>
-    public Vertex(Point64 pt, VertexFlags flags, Vertex prev)
+    [Flags]
+    internal enum PointInPolygonResult
     {
-      this.pt = pt;
-      this.flags = flags;
-      next = null;
-      this.prev = prev;
-    }
-  }
-
-  /// <summary>
-  /// A local minimum of an input path: the vertex two bounds rise from, whether the path is a subject or a clip, and
-  /// whether it is open.
-  /// </summary>
-  internal readonly struct LocalMinima
-  {
-    public readonly Vertex vertex;
-    public readonly PathType polytype;
-    public readonly bool isOpen;
-
-    /// <summary>
-    /// A local minimum at the vertex, of a subject or a clip, open or closed.
-    /// </summary>
-    public LocalMinima(Vertex vertex, PathType polytype, bool isOpen = false)
-    {
-      this.vertex = vertex;
-      this.polytype = polytype;
-      this.isOpen = isOpen;
+        IsOn = 0,
+        IsInside = 1,
+        IsOutside = 2
     }
 
     /// <summary>
-    /// Whether the two local minima are at the same vertex object.
+    /// What a vertex of an input path is: the start or the end of an open path, a local maximum, a local minimum.
     /// </summary>
-    public static bool operator ==(LocalMinima lm1, LocalMinima lm2)
+    [Flags]
+    internal enum VertexFlags
     {
-      return ReferenceEquals(lm1.vertex, lm2.vertex);
+        None = 0,
+        OpenStart = 1,
+        OpenEnd = 2,
+        LocalMax = 4,
+        LocalMin = 8
     }
 
     /// <summary>
-    /// Whether the two local minima are at different vertex objects.
+    /// A vertex of an input path, linked to its neighbours in a ring, before clipping. The engine reads each path as
+    /// bounds, the sides that rise from a local minimum to a local maximum before falling again (Clipper's up and down:
+    /// Y grows downwards, so a local minimum is a vertex of locally largest Y).
     /// </summary>
-    public static bool operator !=(LocalMinima lm1, LocalMinima lm2)
+    internal class Vertex
     {
-      return !(lm1 == lm2);
-    }
+        public Point64 pt;
+        public Vertex next;
+        public Vertex prev;
+        public VertexFlags flags;
 
-    /// <summary>
-    /// Whether the object is a local minimum at the same vertex object.
-    /// </summary>
-    public override bool Equals(object obj)
-    {
-      return obj is LocalMinima minima && this == minima;
-    }
-
-    /// <summary>
-    /// The hash code of its vertex object.
-    /// </summary>
-    public override int GetHashCode()
-    {
-      return vertex.GetHashCode();
-    }
-  }
-
-  /// <summary>
-  /// Two edges that cross within the scanbeam, and the point where they cross. Crossings are processed from the largest
-  /// Y to the smallest, so that the two edges of each are adjacent in the active edge list when they swap.
-  /// </summary>
-  internal readonly struct IntersectNode
-  {
-    public readonly Point64 pt;
-    public readonly Active edge1;
-    public readonly Active edge2;
-
-    /// <summary>
-    /// The crossing of the two edges at the point.
-    /// </summary>
-    public IntersectNode(Point64 pt, Active edge1, Active edge2)
-    {
-      this.pt = pt;
-      this.edge1 = edge1;
-      this.edge2 = edge2;
-    }
-  }
-
-  /// <summary>
-  /// Orders local minima by Y, largest first: the order the sweep meets them in.
-  /// </summary>
-  internal struct LocMinSorter : IComparer<LocalMinima>
-  {
-    /// <summary>
-    /// Negative when the first local minimum has the larger Y, so that it comes first.
-    /// </summary>
-    public readonly int Compare(LocalMinima locMin1, LocalMinima locMin2)
-    {
-      return locMin2.vertex.pt.Y.CompareTo(locMin1.vertex.pt.Y);
-    }
-  }
-
-  /// <summary>
-  /// A vertex of an output path, in a ring linked both ways, with the output path it belongs to and the horizontal
-  /// segment that starts at it, if any.
-  /// </summary>
-  internal class OutPt
-  {
-    public Point64 pt;
-    public OutPt next;
-    public OutPt prev;
-    public OutRec outrec;
-    public HorzSegment horz;
-
-    /// <summary>
-    /// A vertex at the point of the output path, a ring of one: its next and its prev are itself.
-    /// </summary>
-    public OutPt(Point64 pt, OutRec outrec)
-    {
-      this.pt = pt;
-      this.outrec = outrec;
-      next = this;
-      prev = this;
-      horz = null;
-    }
-  }
-
-  /// <summary>
-  /// Which neighbour in the active edge list an edge is joined with where two output paths touch: none, the one on its
-  /// left or the one on its right.
-  /// </summary>
-  internal enum JoinWith { None, Left, Right }
-
-  /// <summary>
-  /// Where a horizontal stands in its bound: at the bottom, in the middle or at the top.
-  /// </summary>
-  internal enum HorzPosition { Bottom, Middle, Top }
-
-  /// <summary>
-  /// An output path while it is built: its index and number of points, the output path it lies in (its owner), the two
-  /// edges that add to its front and its back, its ring of points, its node in a polytree, its bounds, its finished
-  /// path, whether it is open, and the paths split off it.
-  /// </summary>
-  internal class OutRec
-  {
-    public int idx;
-    public int outPtCount;
-    public OutRec owner;
-    public Active frontEdge;
-    public Active backEdge;
-    public OutPt pts;
-    public PolyPathBase polypath;
-    public Rect64 bounds;
-    public Path64 path = new Path64();
-    public bool isOpen;
-    public List<int> splits;
-    public OutRec recursiveSplit;
-  }
-
-  /// <summary>
-  /// A horizontal run of an output path, from its left point to its right one, kept so that output paths meeting along
-  /// horizontals can be joined there.
-  /// </summary>
-  internal class HorzSegment
-  {
-    public OutPt leftOp;
-    public OutPt rightOp;
-    public bool leftToRight;
-
-    /// <summary>
-    /// A horizontal segment starting at the point, its right end not known yet.
-    /// </summary>
-    public HorzSegment(OutPt op)
-    {
-      leftOp = op;
-      rightOp = null;
-      leftToRight = true;
-    }
-  }
-
-  /// <summary>
-  /// Two output points on horizontals that overlap, one on a run heading right and one on a run heading left, where
-  /// their paths are to be joined or split.
-  /// </summary>
-  internal class HorzJoin
-  {
-    public OutPt op1;
-    public OutPt op2;
-
-    /// <summary>
-    /// A join of the point on the run heading right and the point on the run heading left.
-    /// </summary>
-    public HorzJoin(OutPt ltor, OutPt rtol)
-    {
-      op1 = ltor;
-      op2 = rtol;
-    }
-  }
-
-  ///////////////////////////////////////////////////////////////////
-  // Important: UP and DOWN here are premised on Y-axis positive down
-  // displays, which is the orientation used in Clipper's development.
-  ///////////////////////////////////////////////////////////////////
-
-  /// <summary>
-  /// An edge in the active edge list, the edges the scanline crosses, from left to right: its bottom and top, its X at
-  /// the current scanline, its slope, its winding direction and counts, the output path it adds to, its neighbours in
-  /// the active and the sorted edge lists, the vertex at its top, the local minimum it rose from, whether it is the
-  /// left bound, and what it is joined with.
-  /// </summary>
-  internal class Active
-  {
-    public Point64 bot;
-    public Point64 top;
-    public long curX; // current (updated at every new scanline)
-    public double dx;
-    public int windDx; // 1 or -1 depending on winding direction
-    public int windCount;
-    public int windCount2; // winding count of the opposite polytype
-    public OutRec outrec;
-
-    // AEL: 'active edge list' (Vatti's AET - active edge table)
-    //     a linked list of all edges (from left to right) that are present
-    //     (or 'active') within the current scanbeam (a horizontal 'beam' that
-    //     sweeps from bottom to top over the paths in the clipping operation).
-    public Active prevInAEL;
-    public Active nextInAEL;
-
-    // SEL: 'sorted edge list' (Vatti's ST - sorted table)
-    //     linked list used when sorting edges into their new positions at the
-    //     top of scanbeams, but also (re)used to process horizontals.
-    public Active prevInSEL;
-    public Active nextInSEL;
-    public Active jump;
-    public Vertex vertexTop;
-    public LocalMinima localMin; // the bottom of an edge 'bound' (also Vatti)
-    internal bool isLeftBound;
-    internal JoinWith joinWith;
-  }
-
-  /// <summary>
-  /// Turns input paths into the vertices and local minima the sweep starts from.
-  /// </summary>
-  internal static class ClipperEngine
-  {
-    /// <summary>
-    /// Adds the vertex to the local minima, once: it is flagged a local minimum, and a vertex already flagged is not
-    /// added again.
-    /// </summary>
-    internal static void AddLocMin(Vertex vert, PathType polytype, bool isOpen,
-      List<LocalMinima> minimaList)
-    {
-      // make sure the vertex is added only once ...
-      if ((vert.flags & VertexFlags.LocalMin) != VertexFlags.None) return;
-      vert.flags |= VertexFlags.LocalMin;
-
-      LocalMinima lm = new LocalMinima(vert, polytype, isOpen);
-      minimaList.Add(lm);
-    }
-
-    /// <summary>
-    /// Grows the capacity of the list to minCapacity when it is smaller.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void EnsureCapacity<T>(this List<T> list, int minCapacity)
-    {
-      if(list.Capacity < minCapacity)
-        list.Capacity = minCapacity;
-    }
-
-    /// <summary>
-    /// Adds each path as a ring of vertices, points that repeat the one before skipped, flags its local minima and
-    /// maxima and adds the minima to minimaList. The last point of a closed path goes when it repeats the first. A path
-    /// of fewer than two distinct points adds nothing, nor does a closed path with no height; the ends of an open path
-    /// are flagged.
-    /// </summary>
-    internal static void AddPathsToVertexList(Paths64 paths, PathType polytype, bool isOpen,
-      List<LocalMinima> minimaList, VertexPoolList vertexList)
-    {
-      int totalVertCnt = 0;
-      foreach (Path64 path in paths) totalVertCnt += path.Count;
-      vertexList.EnsureCapacity(vertexList.Count + totalVertCnt);
-
-      foreach (Path64 path in paths)
-      {
-        Vertex v0 = null, prev_v = null, curr_v;
-        foreach (Point64 pt in path)
+        /// <summary>
+        /// A vertex at the point, with its flags, after prev; its next is set when the vertex after it is added.
+        /// </summary>
+        public Vertex(Point64 pt, VertexFlags flags, Vertex prev)
         {
-          if (v0 == null)
-          {
-            v0 = vertexList.Add(pt, VertexFlags.None, null);
-            prev_v = v0;
-          }
-          else if (prev_v.pt != pt) // ie skips duplicates
-          {
-            curr_v = vertexList.Add(pt, VertexFlags.None, prev_v);
-            prev_v.next = curr_v;
-            prev_v = curr_v;
-          }
-        }
-        if (prev_v?.prev == null) continue;
-        if (!isOpen && prev_v.pt == v0.pt) prev_v = prev_v.prev;
-        prev_v.next = v0;
-        v0.prev = prev_v;
-        if (!isOpen && prev_v.next == prev_v) continue;
-
-        // OK, we have a valid path
-        bool going_up;
-        if (isOpen)
-        {
-          curr_v = v0.next;
-          while (curr_v != v0 && curr_v.pt.Y == v0.pt.Y)
-            curr_v = curr_v.next;
-          going_up = curr_v.pt.Y <= v0.pt.Y;
-          if (going_up)
-          {
-            v0.flags = VertexFlags.OpenStart;
-            AddLocMin(v0, polytype, true, minimaList);
-          }
-          else
-            v0.flags = VertexFlags.OpenStart | VertexFlags.LocalMax;
-        }
-        else // closed path
-        {
-          prev_v = v0.prev;
-          while (prev_v != v0 && prev_v.pt.Y == v0.pt.Y)
-            prev_v = prev_v.prev;
-          if (prev_v == v0)
-            continue; // only open paths can be completely flat
-          going_up = prev_v.pt.Y > v0.pt.Y;
-        }
-
-        bool going_up0 = going_up;
-        prev_v = v0;
-        curr_v = v0.next;
-        while (curr_v != v0)
-        {
-          if (curr_v.pt.Y > prev_v.pt.Y && going_up)
-          {
-            prev_v.flags |= VertexFlags.LocalMax;
-            going_up = false;
-          }
-          else if (curr_v.pt.Y < prev_v.pt.Y && !going_up)
-          {
-            going_up = true;
-            AddLocMin(prev_v, polytype, isOpen, minimaList);
-          }
-          prev_v = curr_v;
-          curr_v = curr_v.next;
-        }
-
-        if (isOpen)
-        {
-          prev_v.flags |= VertexFlags.OpenEnd;
-          if (going_up)
-            prev_v.flags |= VertexFlags.LocalMax;
-          else
-            AddLocMin(prev_v, polytype, isOpen, minimaList);
-        }
-        else if (going_up != going_up0)
-        {
-          if (going_up0) AddLocMin(prev_v, polytype, false, minimaList);
-          else prev_v.flags |= VertexFlags.LocalMax;
-        }
-      }
-    }
-  }
-
-  /// <summary>
-  /// Paths made vertices and local minima once, to be added to more than one clipper without converting them again.
-  /// </summary>
-  internal class ReuseableDataContainer64
-  {
-    internal readonly List<LocalMinima> _minimaList;
-    internal readonly VertexPoolList _vertexList;
-
-    /// <summary>
-    /// An empty container.
-    /// </summary>
-    public ReuseableDataContainer64()
-    {
-      _minimaList = new List<LocalMinima>();
-      _vertexList = new VertexPoolList();
-    }
-
-    /// <summary>
-    /// Removes all the vertices and local minima.
-    /// </summary>
-    public void Clear()
-    {
-      _minimaList.Clear();
-      _vertexList.Clear();
-    }
-
-    /// <summary>
-    /// Adds the paths as vertices and local minima, as subjects or clips, open or closed.
-    /// </summary>
-    public void AddPaths(Paths64 paths, PathType pt, bool isOpen)
-    {
-      ClipperEngine.AddPathsToVertexList(paths, pt, isOpen, _minimaList, _vertexList);
-    }
-  }
-
-  /// <summary>
-  /// The sweep that clips: Vatti's algorithm on paths of integers. Paths are added as subjects or clips, open or
-  /// closed. The sweep runs a scanline over them from the largest Y to the smallest (Clipper's bottom to top, Y growing
-  /// downwards), keeps the edges it crosses in the active edge list, decides by the operation and the fill rule which
-  /// edges bound the answer, builds the output paths from them, and hands them back as paths or as a polytree.
-  /// </summary>
-  internal class ClipperBase
-  {
-    private ClipType _cliptype;
-    private FillRule _fillrule;
-    private Active _actives;
-    private Active _sel;
-    private Stack<Active> _freeActives;
-    private readonly List<LocalMinima> _minimaList;
-    private readonly List<IntersectNode> _intersectList;
-    private readonly VertexPoolList _vertexList;
-    private readonly OutRecPoolList _outrecList;
-    private readonly List<long> _scanlineList;
-    private readonly List<HorzSegment> _horzSegList;
-    private readonly HorzJoinPoolList _horzJoinList;
-    private readonly OutPtPoolList _outPtPool;
-    private int _currentLocMin;
-    private long _currentBotY;
-    private bool _isSortedMinimaList;
-    private bool _hasOpenPaths;
-    internal bool _using_polytree;
-    internal bool _succeeded;
-
-    /// <summary>
-    /// Whether points along a straight run of an output path are kept; true unless set. Points that repeat their
-    /// neighbour and spikes, where a path turns straight back, go either way.
-    /// </summary>
-    public bool PreserveCollinear { get; set; }
-
-    /// <summary>
-    /// Whether the closed output paths are wound the other way round: outers clockwise and holes counter-clockwise with
-    /// Y up.
-    /// </summary>
-    public bool ReverseSolution { get; set; }
-
-    /// <summary>
-    /// An empty clipper that keeps collinear points.
-    /// </summary>
-    public ClipperBase()
-    {
-      _minimaList = new List<LocalMinima>();
-      _intersectList = new List<IntersectNode>();
-      _vertexList = new VertexPoolList();
-      _outrecList = new OutRecPoolList();
-      _scanlineList = new List<long>();
-      _horzSegList = new List<HorzSegment>();
-      _horzJoinList = new HorzJoinPoolList();
-      _outPtPool = new OutPtPoolList();
-      _freeActives = new Stack<Active>();
-      PreserveCollinear = true;
-    }
-
-    /// <summary>
-    /// Whether the value is odd.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsOdd(int val)
-    {
-      return ((val & 1) != 0);
-    }
-
-    /// <summary>
-    /// Whether the edge adds to an output path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsHotEdge(Active ae)
-    {
-      return ae.outrec != null;
-    }
-
-    /// <summary>
-    /// Whether the edge belongs to an open path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsOpen(Active ae)
-    {
-      return ae.localMin.isOpen;
-    }
-
-    /// <summary>
-    /// Whether the edge belongs to an open path and its top vertex is an end of that path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsOpenEnd(Active ae)
-    {
-      return ae.localMin.isOpen && IsOpenEnd(ae.vertexTop);
-    }
-
-    /// <summary>
-    /// Whether the vertex is the start or the end of an open path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsOpenEnd(Vertex v)
-    {
-      return (v.flags & (VertexFlags.OpenStart | VertexFlags.OpenEnd)) != VertexFlags.None;
-    }
-
-    /// <summary>
-    /// The nearest edge to the left in the active edge list that adds to a closed output path, or null.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Active GetPrevHotEdge(Active ae)
-    {
-      Active prev = ae.prevInAEL;
-      while (prev != null && (IsOpen(prev) || !IsHotEdge(prev)))
-        prev = prev.prevInAEL;
-      return prev;
-    }
-
-    /// <summary>
-    /// Whether the edge adds to the front of its output path rather than to its back.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsFront(Active ae)
-    {
-      return (ae == ae.outrec.frontEdge);
-    }
-
-    /*******************************************************************************
-    *  Dx:                             0(90deg)                                    *
-    *                                  |                                           *
-    *               +inf (180deg) <--- o --. -inf (0deg)                          *
-    *******************************************************************************/
-
-    /// <summary>
-    /// How far X moves for each unit of Y from pt1 to pt2. A horizontal gives negative infinity when it heads right and
-    /// positive infinity when it heads left.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static double GetDx(Point64 pt1, Point64 pt2)
-    {
-      double dy = pt2.Y - pt1.Y;
-      if (dy != 0)
-        return (pt2.X - pt1.X) / dy;
-      return pt2.X > pt1.X ? double.NegativeInfinity : double.PositiveInfinity;
-    }
-
-    /// <summary>
-    /// The X of the edge at the scanline currentY, rounded half to even as the C++ library rounds; exactly its top or
-    /// bottom X at its ends, and its top X when it is vertical.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static long TopX(Active ae, long currentY)
-    {
-      if ((currentY == ae.top.Y) || (ae.top.X == ae.bot.X)) return ae.top.X;
-      if (currentY == ae.bot.Y) return ae.bot.X;
-
-      // use MidpointRounding.ToEven in order to explicitly match the nearbyint behaviour on the C++ side
-      return ae.bot.X + (long) Math.Round(ae.dx * (currentY - ae.bot.Y), MidpointRounding.ToEven);
-    }
-
-    /// <summary>
-    /// Whether the top and the bottom of the edge have the same Y.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsHorizontal(Active ae)
-    {
-      return (ae.top.Y == ae.bot.Y);
-    }
-
-    /// <summary>
-    /// Whether the edge is a horizontal heading right.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsHeadingRightHorz(Active ae)
-    {
-      return (double.IsNegativeInfinity(ae.dx));
-    }
-
-    /// <summary>
-    /// Whether the edge is a horizontal heading left.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsHeadingLeftHorz(Active ae)
-    {
-      return (double.IsPositiveInfinity(ae.dx));
-    }
-
-    /// <summary>
-    /// Swaps the two edges the references hold.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SwapActives(ref Active ae1, ref Active ae2)
-    {
-      (ae2, ae1) = (ae1, ae2);
-    }
-
-    /// <summary>
-    /// Whether the edge belongs to a subject or to a clip.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static PathType GetPolyType(Active ae)
-    {
-      return ae.localMin.polytype;
-    }
-
-    /// <summary>
-    /// Whether the two edges both belong to subjects or both to clips.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsSamePolyType(Active ae1, Active ae2)
-    {
-      return ae1.localMin.polytype == ae2.localMin.polytype;
-    }
-
-    /// <summary>
-    /// Sets the slope of the edge from its bottom and its top.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SetDx(Active ae)
-    {
-      ae.dx = GetDx(ae.bot, ae.top);
-    }
-
-    /// <summary>
-    /// The vertex after the top of the edge along its bound, the way the bound winds.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vertex NextVertex(Active ae)
-    {
-      return ae.windDx > 0 ? ae.vertexTop.next : ae.vertexTop.prev;
-    }
-
-    /// <summary>
-    /// The vertex two before the top of the edge along its bound, the way the bound winds.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vertex PrevPrevVertex(Active ae)
-    {
-      return ae.windDx > 0 ? ae.vertexTop.prev.prev : ae.vertexTop.next.next;
-    }
-
-    /// <summary>
-    /// Whether the vertex is a local maximum.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsMaxima(Vertex vertex)
-    {
-      return ((vertex.flags & VertexFlags.LocalMax) != VertexFlags.None);
-    }
-
-    /// <summary>
-    /// Whether the edge tops out at a local maximum.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsMaxima(Active ae)
-    {
-      return IsMaxima(ae.vertexTop);
-    }
-
-    /// <summary>
-    /// The edge to the right in the active edge list that shares the top vertex of the edge, the other side of the same
-    /// maximum, or null.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Active GetMaximaPair(Active ae)
-    {
-      Active ae2 = ae.nextInAEL;
-      while (ae2 != null)
-      {
-        if (ae2.vertexTop == ae.vertexTop) return ae2; // Found!
-        ae2 = ae2.nextInAEL;
-      }
-      return null;
-    }
-
-    /// <summary>
-    /// The local maximum at the end of the horizontal run from the top of an edge of an open path, the run stopping at
-    /// an open end; null when it ends at no maximum.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vertex GetCurrYMaximaVertex_Open(Active ae)
-    {
-      Vertex result = ae.vertexTop;
-      if (ae.windDx > 0)
-        while (result.next.pt.Y == result.pt.Y &&
-          ((result.flags & (VertexFlags.OpenEnd |
-          VertexFlags.LocalMax)) == VertexFlags.None))
-          result = result.next;
-      else
-        while (result.prev.pt.Y == result.pt.Y &&
-          ((result.flags & (VertexFlags.OpenEnd |
-          VertexFlags.LocalMax)) == VertexFlags.None))
-          result = result.prev;
-      if (!IsMaxima(result)) result = null; // not a maxima
-      return result;
-    }
-
-    /// <summary>
-    /// The local maximum at the end of the horizontal run from the top of the edge; null when the run ends at no
-    /// maximum.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vertex GetCurrYMaximaVertex(Active ae)
-    {
-      Vertex result = ae.vertexTop;
-      if (ae.windDx > 0)
-        while (result.next.pt.Y == result.pt.Y) result = result.next;
-      else
-        while (result.prev.pt.Y == result.pt.Y) result = result.prev;
-      if (!IsMaxima(result)) result = null; // not a maxima
-      return result;
-    }
-
-    /// <summary>
-    /// Orders crossings by Y, largest first, then by X, smallest first.
-    /// </summary>
-    private struct IntersectListSort : IComparer<IntersectNode>
-    {
-      /// <summary>
-      /// Negative when a comes first: it has the larger Y, or the same Y and the smaller X.
-      /// </summary>
-      public readonly int Compare(IntersectNode a, IntersectNode b)
-      {
-        if (a.pt.Y != b.pt.Y) return (a.pt.Y > b.pt.Y) ? -1 : 1;
-        if (a.pt.X == b.pt.X) return 0;
-        return (a.pt.X < b.pt.X) ? -1 : 1;
-      }
-    }
-
-    /// <summary>
-    /// Sets the edges that add to the front and to the back of the output path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SetSides(OutRec outrec, Active startEdge, Active endEdge)
-    {
-      outrec.frontEdge = startEdge;
-      outrec.backEdge = endEdge;
-    }
-
-    /// <summary>
-    /// Swaps the output paths of the two edges, with the sides they add to; when both add to the same path, swaps its
-    /// front and back edges.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SwapOutrecs(Active ae1, Active ae2)
-    {
-      OutRec or1 = ae1.outrec; // at least one edge has
-      OutRec or2 = ae2.outrec; // an assigned outrec
-      if (or1 == or2)
-      {
-        Active ae = or1.frontEdge;
-        or1.frontEdge = or1.backEdge;
-        or1.backEdge = ae;
-        return;
-      }
-
-      if (or1 != null)
-      {
-        if (ae1 == or1.frontEdge)
-          or1.frontEdge = ae2;
-        else
-          or1.backEdge = ae2;
-      }
-
-      if (or2 != null)
-      {
-        if (ae2 == or2.frontEdge)
-          or2.frontEdge = ae1;
-        else
-          or2.backEdge = ae1;
-      }
-
-      ae1.outrec = or2;
-      ae2.outrec = or1;
-    }
-
-    /// <summary>
-    /// Makes newOwner the owner of the output path. Owners of newOwner that were emptied are skipped, and when the path
-    /// itself owns newOwner, newOwner takes the path's own owner first, so that no path comes to own itself.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SetOwner(OutRec outrec, OutRec newOwner)
-    {
-      //precondition1: new_owner is never null
-      while (newOwner.owner != null && newOwner.owner.pts == null)
-        newOwner.owner = newOwner.owner.owner;
-
-      //make sure that outrec isn't an owner of newOwner
-      OutRec tmp = newOwner;
-      while (tmp != null && tmp != outrec)
-        tmp = tmp.owner;
-      if (tmp != null)
-        newOwner.owner = outrec.owner;
-      outrec.owner = newOwner;
-    }
-
-    /// <summary>
-    /// The signed area of the ring of output points, by the shoelace formula.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static double Area(OutPt op)
-    {
-      // https://en.wikipedia.org/wiki/Shoelace_formula
-      double area = 0.0;
-      OutPt op2 = op;
-      do
-      {
-        area += (double) (op2.prev.pt.Y + op2.pt.Y) *
-          (op2.prev.pt.X - op2.pt.X);
-        op2 = op2.next;
-      } while (op2 != op);
-      return area * 0.5;
-    }
-
-    /// <summary>
-    /// Twice the signed area of the triangle, by the shoelace formula.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static double AreaTriangle(Point64 pt1, Point64 pt2, Point64 pt3)
-    {
-      return (double) (pt3.Y + pt1.Y) * (pt3.X - pt1.X) +
-        (double) (pt1.Y + pt2.Y) * (pt1.X - pt2.X) +
-        (double) (pt2.Y + pt3.Y) * (pt2.X - pt3.X);
-    }
-
-    /// <summary>
-    /// The output path itself while it has points, else the first of its owners that has: the path it was merged into.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static OutRec GetRealOutRec(OutRec outRec)
-    {
-      while ((outRec != null) && (outRec.pts == null))
-        outRec = outRec.owner;
-      return outRec;
-    }
-
-    /// <summary>
-    /// Whether testOwner may own the output path: neither testOwner nor any owner above it is the path itself.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsValidOwner(OutRec outRec, OutRec testOwner)
-    {
-      while ((testOwner != null) && (testOwner != outRec))
-        testOwner = testOwner.owner;
-      return testOwner == null;
-    }
-
-    /// <summary>
-    /// Parts the output path of the edge from both its edges, so that neither adds to it any more.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void UncoupleOutRec(Active ae)
-    {
-      OutRec outrec = ae.outrec;
-      if (outrec == null) return;
-      outrec.frontEdge.outrec = null;
-      outrec.backEdge.outrec = null;
-      outrec.frontEdge = null;
-      outrec.backEdge = null;
-    }
-
-    /// <summary>
-    /// Whether the edge is the front edge of its output path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool OutrecIsAscending(Active hotEdge)
-    {
-      return (hotEdge == hotEdge.outrec.frontEdge);
-    }
-
-    /// <summary>
-    /// Swaps the front and the back edges of the output path and moves its start one point on; open paths need it,
-    /// closed ones hardly ever.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SwapFrontBackSides(OutRec outrec)
-    {
-      // while this proc. is needed for open paths
-      // it's almost never needed for closed paths
-      Active ae2 = outrec.frontEdge;
-      outrec.frontEdge = outrec.backEdge;
-      outrec.backEdge = ae2;
-      outrec.pts = outrec.pts.next;
-    }
-
-    /// <summary>
-    /// Whether the two edges of the crossing are neighbours in the active edge list.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool EdgesAdjacentInAEL(IntersectNode inode)
-    {
-      return (inode.edge1.nextInAEL == inode.edge2) || (inode.edge1.prevInAEL == inode.edge2);
-    }
-
-    /// <summary>
-    /// Clears what the last sweep built, its active edges, scanlines, crossings, output paths and joins, and keeps the
-    /// paths added.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void ClearSolutionOnly()
-    {
-      while (_actives != null) DeleteFromAEL(_actives);
-      _scanlineList.Clear();
-      DisposeIntersectNodes();
-      _outrecList.Clear();
-      _horzSegList.Clear();
-      _horzJoinList.Clear();
-      _outPtPool.Clear();
-      _freeActives.Clear();
-    }
-
-    /// <summary>
-    /// Clears everything: the paths added and all that was built from them.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Clear()
-    {
-      ClearSolutionOnly();
-      _minimaList.Clear();
-      _vertexList.Clear();
-      _currentLocMin = 0;
-      _isSortedMinimaList = false;
-      _hasOpenPaths = false;
-    }
-
-    /// <summary>
-    /// Gets the sweep ready to run: sorts the local minima once, makes their Y the first scanlines, and empties the
-    /// edge lists.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void Reset()
-    {
-      if (!_isSortedMinimaList)
-      {
-        _minimaList.Sort(new LocMinSorter());
-        _isSortedMinimaList = true;
-      }
-
-      _scanlineList.EnsureCapacity(_minimaList.Count);
-      for (int i = _minimaList.Count - 1; i >= 0; i--)
-        _scanlineList.Add(_minimaList[i].vertex.pt.Y);
-
-      _currentBotY = 0;
-      _currentLocMin = 0;
-      _actives = null;
-      _sel = null;
-      _succeeded = true;
-    }
-
-    /// <summary>
-    /// Adds a scanline at y unless there is one there already, keeping the scanlines sorted.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void InsertScanline(long y)
-    {
-      int index = _scanlineList.BinarySearch(y);
-      if (index >= 0) return;
-      index = ~index;
-      _scanlineList.Insert(index, y);
-    }
-
-    /// <summary>
-    /// Takes the scanline of largest Y, with any repeats of it, off the list; false when none is left.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool PopScanline(out long y)
-    {
-      int cnt = _scanlineList.Count - 1;
-      if (cnt < 0)
-      {
-        y = 0;
-        return false;
-      }
-
-      y = _scanlineList[cnt];
-      _scanlineList.RemoveAt(cnt--);
-      while (cnt >= 0 && y == _scanlineList[cnt])
-        _scanlineList.RemoveAt(cnt--);
-      return true;
-    }
-
-    /// <summary>
-    /// Whether the next local minimum not yet taken is at y.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool HasLocMinAtY(long y)
-    {
-      return (_currentLocMin < _minimaList.Count && _minimaList[_currentLocMin].vertex.pt.Y == y);
-    }
-
-    /// <summary>
-    /// Takes the next local minimum.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LocalMinima PopLocalMinima()
-    {
-      return _minimaList[_currentLocMin++];
-    }
-
-    /// <summary>
-    /// Adds a closed subject path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddSubject(Path64 path)
-    {
-      AddPath(path, PathType.Subject);
-    }
-
-    /// <summary>
-    /// Adds an open subject path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddOpenSubject(Path64 path)
-    {
-      AddPath(path, PathType.Subject, true);
-    }
-
-    /// <summary>
-    /// Adds a clip path; clips are always closed.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddClip(Path64 path)
-    {
-      AddPath(path, PathType.Clip);
-    }
-
-    /// <summary>
-    /// Adds a path, as a subject or a clip, open or closed.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void AddPath(Path64 path, PathType polytype, bool isOpen = false)
-    {
-      Paths64 tmp = new Paths64(1) { path };
-      AddPaths(tmp, polytype, isOpen);
-    }
-
-    /// <summary>
-    /// Adds the paths, as subjects or clips, open or closed.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void AddPaths(Paths64 paths, PathType polytype, bool isOpen = false)
-    {
-      if (isOpen) _hasOpenPaths = true;
-      _isSortedMinimaList = false;
-      ClipperEngine.AddPathsToVertexList(paths, polytype, isOpen, _minimaList, _vertexList);
-    }
-
-    /// <summary>
-    /// Adds the local minima of paths converted once in the container. The container keeps owning their vertices, so it
-    /// has to outlive this clipper's use of them.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void AddReuseableData(ReuseableDataContainer64 reuseableData)
-    {
-      if (reuseableData._minimaList.Count == 0) return;
-      // nb: reuseableData will continue to own the vertices, so it's important
-      // that the reuseableData object isn't destroyed before the Clipper object
-      // that's using the data.
-      _isSortedMinimaList = false;
-      foreach (LocalMinima lm in reuseableData._minimaList)
-      {
-        _minimaList.Add(new LocalMinima(lm.vertex, lm.polytype, lm.isOpen));
-        if (lm.isOpen) _hasOpenPaths = true;
-      }
-    }
-
-    /// <summary>
-    /// Whether an edge of a closed path bounds the answer: by the fill rule it lies on the boundary of the region of
-    /// its own kind, and the winding count of the other kind puts it where the operation keeps it: inside the other
-    /// kind for an intersection, outside it for a union, a subject edge outside the clips and a clip edge inside the
-    /// subjects for a difference, anywhere for an exclusive or.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool IsContributingClosed(Active ae)
-    {
-      switch (_fillrule)
-      {
-        case FillRule.Positive:
-          if (ae.windCount != 1) return false;
-          break;
-        case FillRule.Negative:
-          if (ae.windCount != -1) return false;
-          break;
-        case FillRule.NonZero:
-          if (Math.Abs(ae.windCount) != 1) return false;
-          break;
-      }
-
-      switch (_cliptype)
-      {
-        case ClipType.Intersection:
-          return _fillrule switch
-          {
-            FillRule.Positive => ae.windCount2 > 0,
-            FillRule.Negative => ae.windCount2 < 0,
-            _ => ae.windCount2 != 0
-          };
-
-        case ClipType.Union:
-          return _fillrule switch
-          {
-            FillRule.Positive => ae.windCount2 <= 0,
-            FillRule.Negative => ae.windCount2 >= 0,
-            _ => ae.windCount2 == 0
-          };
-
-        case ClipType.Difference:
-          bool result = _fillrule switch
-          {
-            FillRule.Positive => (ae.windCount2 <= 0),
-            FillRule.Negative => (ae.windCount2 >= 0),
-            _ => (ae.windCount2 == 0)
-          };
-          return (GetPolyType(ae) == PathType.Subject) ? result : !result;
-
-        case ClipType.Xor:
-          return true; // XOr is always contributing unless open
-
-        default:
-          return false;
-      }
-    }
-
-    /// <summary>
-    /// Whether an edge of an open path is kept: inside the clips for an intersection, outside both the subjects and the
-    /// clips for a union, outside the clips for a difference or an exclusive or, each read by the fill rule.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool IsContributingOpen(Active ae)
-    {
-      bool isInClip, isInSubj;
-      switch (_fillrule)
-      {
-        case FillRule.Positive:
-          isInSubj = ae.windCount > 0;
-          isInClip = ae.windCount2 > 0;
-          break;
-        case FillRule.Negative:
-          isInSubj = ae.windCount < 0;
-          isInClip = ae.windCount2 < 0;
-          break;
-        default:
-          isInSubj = ae.windCount != 0;
-          isInClip = ae.windCount2 != 0;
-          break;
-      }
-
-      bool result = _cliptype switch
-      {
-        ClipType.Intersection => isInClip,
-        ClipType.Union => !isInSubj && !isInClip,
-        _ => !isInClip
-      };
-      return result;
-    }
-
-    /// <summary>
-    /// Sets the winding counts of a new edge of a closed path from the edges to its left. windCount, the count of its
-    /// own kind on the side of the edge where it is higher, follows from the nearest edge of the same kind; windCount2,
-    /// the count of the other kind, from the edges of that kind between the two.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SetWindCountForClosedPathEdge(Active ae)
-    {
-      // Wind counts refer to polygon regions not edges, so here an edge's WindCnt
-      // indicates the higher of the wind counts for the two regions touching the
-      // edge. (nb: Adjacent regions can only ever have their wind counts differ by
-      // one. Also, open paths have no meaningful wind directions or counts.)
-
-      Active ae2 = ae.prevInAEL;
-      // find the nearest closed path edge of the same PolyType in AEL (heading left)
-      PathType pt = GetPolyType(ae);
-      while (ae2 != null && (GetPolyType(ae2) != pt || IsOpen(ae2))) ae2 = ae2.prevInAEL;
-
-      if (ae2 == null)
-      {
-        ae.windCount = ae.windDx;
-        ae2 = _actives;
-      }
-      else if (_fillrule == FillRule.EvenOdd)
-      {
-        ae.windCount = ae.windDx;
-        ae.windCount2 = ae2.windCount2;
-        ae2 = ae2.nextInAEL;
-      }
-      else
-      {
-        // NonZero, positive, or negative filling here ...
-        // when e2's WindCnt is in the SAME direction as its WindDx,
-        // then polygon will fill on the right of 'e2' (and 'e' will be inside)
-        // nb: neither e2.WindCnt nor e2.WindDx should ever be 0.
-        if (ae2.windCount * ae2.windDx < 0)
-        {
-          // opposite directions so 'ae' is outside 'ae2' ...
-          if (Math.Abs(ae2.windCount) > 1)
-          {
-            // outside prev poly but still inside another.
-            if (ae2.windDx * ae.windDx < 0)
-              // reversing direction so use the same WC
-              ae.windCount = ae2.windCount;
-            else
-              // otherwise keep 'reducing' the WC by 1 (i.e. towards 0) ...
-              ae.windCount = ae2.windCount + ae.windDx;
-          }
-          else
-            // now outside all polys of same polytype so set own WC ...
-            ae.windCount = (IsOpen(ae) ? 1 : ae.windDx);
-        }
-        else
-        {
-          //'ae' must be inside 'ae2'
-          if (ae2.windDx * ae.windDx < 0)
-            // reversing direction so use the same WC
-            ae.windCount = ae2.windCount;
-          else
-            // otherwise keep 'increasing' the WC by 1 (i.e. away from 0) ...
-            ae.windCount = ae2.windCount + ae.windDx;
-        }
-
-        ae.windCount2 = ae2.windCount2;
-        ae2 = ae2.nextInAEL; // i.e. get ready to calc WindCnt2
-      }
-
-      // update windCount2 ...
-      if (_fillrule == FillRule.EvenOdd)
-        while (ae2 != ae)
-        {
-          if (GetPolyType(ae2) != pt && !IsOpen(ae2))
-            ae.windCount2 = (ae.windCount2 == 0 ? 1 : 0);
-          ae2 = ae2.nextInAEL;
-        }
-      else
-        while (ae2 != ae)
-        {
-          if (GetPolyType(ae2) != pt && !IsOpen(ae2))
-            ae.windCount2 += ae2.windDx;
-          ae2 = ae2.nextInAEL;
+            this.pt = pt;
+            this.flags = flags;
+            next = null;
+            this.prev = prev;
         }
     }
 
     /// <summary>
-    /// Sets the winding counts of a new edge of an open path from all the edges to its left: of the closed subjects in
-    /// windCount and of the clips in windCount2, each reduced to odd or even under the even-odd rule.
+    /// A local minimum of an input path: the vertex two bounds rise from, whether the path is a subject or a clip, and
+    /// whether it is open.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SetWindCountForOpenPathEdge(Active ae)
+    internal readonly struct LocalMinima
     {
-      Active ae2 = _actives;
-      if (_fillrule == FillRule.EvenOdd)
-      {
-        int cnt1 = 0, cnt2 = 0;
-        while (ae2 != ae)
+        public readonly Vertex vertex;
+        public readonly PathType polytype;
+        public readonly bool isOpen;
+
+        /// <summary>
+        /// A local minimum at the vertex, of a subject or a clip, open or closed.
+        /// </summary>
+        public LocalMinima(Vertex vertex, PathType polytype, bool isOpen = false)
         {
-          if (GetPolyType(ae2) == PathType.Clip)
-            cnt2++;
-          else if (!IsOpen(ae2))
-            cnt1++;
-          ae2 = ae2.nextInAEL;
+            this.vertex = vertex;
+            this.polytype = polytype;
+            this.isOpen = isOpen;
         }
 
-        ae.windCount = (IsOdd(cnt1) ? 1 : 0);
-        ae.windCount2 = (IsOdd(cnt2) ? 1 : 0);
-      }
-      else
-      {
-        while (ae2 != ae)
+        /// <summary>
+        /// Whether the two local minima are at the same vertex object.
+        /// </summary>
+        public static bool operator ==(LocalMinima lm1, LocalMinima lm2)
         {
-          if (GetPolyType(ae2) == PathType.Clip)
-            ae.windCount2 += ae2.windDx;
-          else if (!IsOpen(ae2))
-            ae.windCount += ae2.windDx;
-          ae2 = ae2.nextInAEL;
+            return ReferenceEquals(lm1.vertex, lm2.vertex);
         }
-      }
+
+        /// <summary>
+        /// Whether the two local minima are at different vertex objects.
+        /// </summary>
+        public static bool operator !=(LocalMinima lm1, LocalMinima lm2)
+        {
+            return !(lm1 == lm2);
+        }
+
+        /// <summary>
+        /// Whether the object is a local minimum at the same vertex object.
+        /// </summary>
+        public override bool Equals(object obj)
+        {
+            return obj is LocalMinima minima && this == minima;
+        }
+
+        /// <summary>
+        /// The hash code of its vertex object.
+        /// </summary>
+        public override int GetHashCode()
+        {
+            return vertex.GetHashCode();
+        }
     }
 
     /// <summary>
-    /// Whether the newcomer belongs to the right of the resident in the active edge list: by their X at the scanline,
-    /// then by the way the newcomer turns from the top of the resident, and for collinear edges by where each turns
-    /// next and which bound each is.
+    /// Two edges that cross within the scanbeam, and the point where they cross. Crossings are processed from the
+    /// largest Y to the smallest, so that the two edges of each are adjacent in the active edge list when they swap.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsValidAelOrder(Active resident, Active newcomer)
+    internal readonly struct IntersectNode
     {
-      if (newcomer.curX != resident.curX)
-        return newcomer.curX > resident.curX;
+        public readonly Point64 pt;
+        public readonly Active edge1;
+        public readonly Active edge2;
 
-      // get the turning direction  a1.top, a2.bot, a2.top
-      int d = InternalClipper.CrossProductSign(resident.top, newcomer.bot, newcomer.top);
-      if (d != 0) return (d < 0);
-
-      // edges must be collinear to get here
-
-      // for starting open paths, place them according to
-      // the direction they're about to turn
-      if (!IsMaxima(resident) && (resident.top.Y > newcomer.top.Y))
-      {
-        return InternalClipper.CrossProductSign(newcomer.bot,
-          resident.top, NextVertex(resident).pt) <= 0;
-      }
-
-      if (!IsMaxima(newcomer) && (newcomer.top.Y > resident.top.Y))
-      {
-        return InternalClipper.CrossProductSign(newcomer.bot,
-          newcomer.top, NextVertex(newcomer).pt) >= 0;
-      }
-
-      long y = newcomer.bot.Y;
-      bool newcomerIsLeft = newcomer.isLeftBound;
-
-      if (resident.bot.Y != y || resident.localMin.vertex.pt.Y != y)
-        return newcomer.isLeftBound;
-      // resident must also have just been inserted
-      if (resident.isLeftBound != newcomerIsLeft)
-        return newcomerIsLeft;
-      if (InternalClipper.IsCollinear(PrevPrevVertex(resident).pt,
-            resident.bot, resident.top)) return true;
-      // compare turning direction of the alternate bound
-      return (InternalClipper.CrossProductSign(PrevPrevVertex(resident).pt,
-        newcomer.bot, PrevPrevVertex(newcomer).pt) > 0) == newcomerIsLeft;
+        /// <summary>
+        /// The crossing of the two edges at the point.
+        /// </summary>
+        public IntersectNode(Point64 pt, Active edge1, Active edge2)
+        {
+            this.pt = pt;
+            this.edge1 = edge1;
+            this.edge2 = edge2;
+        }
     }
 
     /// <summary>
-    /// Inserts a new left bound into the active edge list in its place, never between two edges joined to each other.
+    /// Orders local minima by Y, largest first: the order the sweep meets them in.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void InsertLeftEdge(Active ae)
+    internal struct LocMinSorter : IComparer<LocalMinima>
     {
-      if (_actives == null)
-      {
-        ae.prevInAEL = null;
-        ae.nextInAEL = null;
-        _actives = ae;
-      }
-      else if (!IsValidAelOrder(_actives, ae))
-      {
-        ae.prevInAEL = null;
-        ae.nextInAEL = _actives;
-        _actives.prevInAEL = ae;
-        _actives = ae;
-      }
-      else
-      {
-        Active ae2 = _actives;
-        while (ae2.nextInAEL != null && IsValidAelOrder(ae2.nextInAEL, ae))
-          ae2 = ae2.nextInAEL;
-        //don't separate joined edges
-        if (ae2.joinWith == JoinWith.Right) ae2 = ae2.nextInAEL;
-        ae.nextInAEL = ae2.nextInAEL;
-        if (ae2.nextInAEL != null) ae2.nextInAEL.prevInAEL = ae;
-        ae.prevInAEL = ae2;
-        ae2.nextInAEL = ae;
-      }
+        /// <summary>
+        /// Negative when the first local minimum has the larger Y, so that it comes first.
+        /// </summary>
+        public readonly int Compare(LocalMinima locMin1, LocalMinima locMin2)
+        {
+            return locMin2.vertex.pt.Y.CompareTo(locMin1.vertex.pt.Y);
+        }
     }
 
     /// <summary>
-    /// Inserts ae2 into the active edge list just to the right of ae.
+    /// A vertex of an output path, in a ring linked both ways, with the output path it belongs to and the horizontal
+    /// segment that starts at it, if any.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InsertRightEdge(Active ae, Active ae2)
+    internal class OutPt
     {
-      ae2.nextInAEL = ae.nextInAEL;
-      if (ae.nextInAEL != null) ae.nextInAEL.prevInAEL = ae2;
-      ae2.prevInAEL = ae;
-      ae.nextInAEL = ae2;
+        public Point64 pt;
+        public OutPt next;
+        public OutPt prev;
+        public OutRec outrec;
+        public HorzSegment horz;
+
+        /// <summary>
+        /// A vertex at the point of the output path, a ring of one: its next and its prev are itself.
+        /// </summary>
+        public OutPt(Point64 pt, OutRec outrec)
+        {
+            this.pt = pt;
+            this.outrec = outrec;
+            next = this;
+            prev = this;
+            horz = null;
+        }
     }
 
     /// <summary>
-    /// Starts the two bounds of every local minimum at botY: makes their edges, the left bound and the right, sets
-    /// their winding counts and inserts them into the active edge list. Where they bound the answer an output path
-    /// starts there, or an open path, and the right bound crosses any edge now on its wrong side. Horizontals go onto
-    /// the list of horizontals, and the tops of the other edges become scanlines.
+    /// Which neighbour in the active edge list an edge is joined with where two output paths touch: none, the one on
+    /// its left or the one on its right.
     /// </summary>
-    private void InsertLocalMinimaIntoAEL(long botY)
+    internal enum JoinWith { None, Left, Right }
+
+    /// <summary>
+    /// Where a horizontal stands in its bound: at the bottom, in the middle or at the top.
+    /// </summary>
+    internal enum HorzPosition { Bottom, Middle, Top }
+
+    /// <summary>
+    /// An output path while it is built: its index and number of points, the output path it lies in (its owner), the
+    /// two edges that add to its front and its back, its ring of points, its node in a polytree, its bounds, its
+    /// finished path, whether it is open, and the paths split off it.
+    /// </summary>
+    internal class OutRec
     {
-      // Add any local minima (if any) at BotY ...
-      // NB horizontal local minima edges should contain locMin.vertex.prev
-      while (HasLocMinAtY(botY))
-      {
-        LocalMinima localMinima = PopLocalMinima();
-        Active leftBound;
-        if ((localMinima.vertex.flags & VertexFlags.OpenStart) != VertexFlags.None)
-        {
-          leftBound = null;
-        }
-        else
-        {
-          leftBound = NewActive();
-          leftBound.bot = localMinima.vertex.pt;
-          leftBound.curX = localMinima.vertex.pt.X;
-          leftBound.windDx = -1;
-          leftBound.vertexTop = localMinima.vertex.prev;
-          leftBound.top = localMinima.vertex.prev.pt;
-          leftBound.outrec = null;
-          leftBound.localMin = localMinima;
-          SetDx(leftBound);
-        }
-
-        Active rightBound;
-        if ((localMinima.vertex.flags & VertexFlags.OpenEnd) != VertexFlags.None)
-        {
-          rightBound = null;
-        }
-        else
-        {
-          rightBound = NewActive();
-          rightBound.bot = localMinima.vertex.pt;
-          rightBound.curX = localMinima.vertex.pt.X;
-          rightBound.windDx = 1;
-          rightBound.vertexTop = localMinima.vertex.next; // i.e. ascending
-          rightBound.top = localMinima.vertex.next.pt;
-          rightBound.outrec = null;
-          rightBound.localMin = localMinima;
-          SetDx(rightBound);
-        }
-
-        // Currently LeftB is just the descending bound and RightB is the ascending.
-        // Now if the LeftB isn't on the left of RightB then we need swap them.
-        if (leftBound != null && rightBound != null)
-        {
-          if (IsHorizontal(leftBound))
-          {
-            if (IsHeadingRightHorz(leftBound)) SwapActives(ref leftBound, ref rightBound);
-          }
-          else if (IsHorizontal(rightBound))
-          {
-            if (IsHeadingLeftHorz(rightBound)) SwapActives(ref leftBound, ref rightBound);
-          }
-          else if (leftBound.dx < rightBound.dx)
-            SwapActives(ref leftBound, ref rightBound);
-          //so when leftBound has windDx == 1, the polygon will be oriented
-          //counter-clockwise in Cartesian coords (clockwise with inverted Y).
-        }
-        else if (leftBound == null)
-        {
-          leftBound = rightBound;
-          rightBound = null;
-        }
-
-        bool contributing;
-        leftBound.isLeftBound = true;
-        InsertLeftEdge(leftBound);
-
-        if (IsOpen(leftBound))
-        {
-          SetWindCountForOpenPathEdge(leftBound);
-          contributing = IsContributingOpen(leftBound);
-        }
-        else
-        {
-          SetWindCountForClosedPathEdge(leftBound);
-          contributing = IsContributingClosed(leftBound);
-        }
-
-        if (rightBound != null)
-        {
-          rightBound.windCount = leftBound.windCount;
-          rightBound.windCount2 = leftBound.windCount2;
-          InsertRightEdge(leftBound, rightBound); ///////
-
-          if (contributing)
-          {
-            AddLocalMinPoly(leftBound, rightBound, leftBound.bot, true);
-            if (!IsHorizontal(leftBound))
-              CheckJoinLeft(leftBound, leftBound.bot);
-          }
-
-          while (rightBound.nextInAEL != null &&
-                 IsValidAelOrder(rightBound.nextInAEL, rightBound))
-          {
-            IntersectEdges(rightBound, rightBound.nextInAEL, rightBound.bot);
-            SwapPositionsInAEL(rightBound, rightBound.nextInAEL);
-          }
-
-          if (IsHorizontal(rightBound))
-            PushHorz(rightBound);
-          else
-          {
-            CheckJoinRight(rightBound, rightBound.bot);
-            InsertScanline(rightBound.top.Y);
-          }
-        }
-        else if (contributing)
-          StartOpenPath(leftBound, leftBound.bot);
-
-        if (IsHorizontal(leftBound))
-          PushHorz(leftBound);
-        else
-          InsertScanline(leftBound.top.Y);
-      } // while (HasLocMinAtY())
+        public int idx;
+        public int outPtCount;
+        public OutRec owner;
+        public Active frontEdge;
+        public Active backEdge;
+        public OutPt pts;
+        public PolyPathBase polypath;
+        public Rect64 bounds;
+        public Path64 path = new Path64();
+        public bool isOpen;
+        public List<int> splits;
+        public OutRec recursiveSplit;
     }
 
     /// <summary>
-    /// Puts the horizontal edge on the list of horizontals to process at this scanline.
+    /// A horizontal run of an output path, from its left point to its right one, kept so that output paths meeting
+    /// along horizontals can be joined there.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void PushHorz(Active ae)
+    internal class HorzSegment
     {
-      ae.nextInSEL = _sel;
-      _sel = ae;
-    }
+        public OutPt leftOp;
+        public OutPt rightOp;
+        public bool leftToRight;
 
-    /// <summary>
-    /// Takes the horizontal put on the list last; false when the list is empty.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool PopHorz(out Active ae)
-    {
-      ae = _sel;
-      if (_sel == null) return false;
-      _sel = _sel.nextInSEL;
-      return true;
-    }
-
-    /// <summary>
-    /// Starts an output path at pt, where the two edges meet at a local minimum of the answer, and gives it to both. A
-    /// closed path is owned by the output path of the nearest hot edge to its left, and its front and back edges are
-    /// set so that it winds as an outer or as a hole of that owner; isNew tells a local minimum of the input from one
-    /// made by two edges crossing. Returns the first point of the path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private OutPt AddLocalMinPoly(Active ae1, Active ae2, Point64 pt, bool isNew = false)
-    {
-      OutRec outrec = NewOutRec();
-      ae1.outrec = outrec;
-      ae2.outrec = outrec;
-
-      if (IsOpen(ae1))
-      {
-        outrec.owner = null;
-        outrec.isOpen = true;
-        if (ae1.windDx > 0)
-          SetSides(outrec, ae1, ae2);
-        else
-          SetSides(outrec, ae2, ae1);
-      }
-      else
-      {
-        outrec.isOpen = false;
-        Active prevHotEdge = GetPrevHotEdge(ae1);
-        // e.windDx is the winding direction of the **input** paths
-        // and unrelated to the winding direction of output polygons.
-        // Output orientation is determined by e.outrec.frontE which is
-        // the ascending edge (see AddLocalMinPoly).
-        if (prevHotEdge != null)
+        /// <summary>
+        /// A horizontal segment starting at the point, its right end not known yet.
+        /// </summary>
+        public HorzSegment(OutPt op)
         {
-          if (_using_polytree)
-            SetOwner(outrec, prevHotEdge.outrec);
-          outrec.owner = prevHotEdge.outrec;
-          if (OutrecIsAscending(prevHotEdge) == isNew)
-            SetSides(outrec, ae2, ae1);
-          else
-            SetSides(outrec, ae1, ae2);
+            leftOp = op;
+            rightOp = null;
+            leftToRight = true;
         }
-        else
+    }
+
+    /// <summary>
+    /// Two output points on horizontals that overlap, one on a run heading right and one on a run heading left, where
+    /// their paths are to be joined or split.
+    /// </summary>
+    internal class HorzJoin
+    {
+        public OutPt op1;
+        public OutPt op2;
+
+        /// <summary>
+        /// A join of the point on the run heading right and the point on the run heading left.
+        /// </summary>
+        public HorzJoin(OutPt ltor, OutPt rtol)
         {
-          outrec.owner = null;
-          if (isNew)
-            SetSides(outrec, ae1, ae2);
-          else
-            SetSides(outrec, ae2, ae1);
+            op1 = ltor;
+            op2 = rtol;
         }
-      }
+    }
 
-      OutPt op = _outPtPool.Add(pt, outrec);
-      outrec.pts = op;
-      return op;
+    ///////////////////////////////////////////////////////////////////
+    // Important: UP and DOWN here are premised on Y-axis positive down
+    // displays, which is the orientation used in Clipper's development.
+    ///////////////////////////////////////////////////////////////////
+
+    /// <summary>
+    /// An edge in the active edge list, the edges the scanline crosses, from left to right: its bottom and top, its X
+    /// at the current scanline, its slope, its winding direction and counts, the output path it adds to, its neighbours
+    /// in the active and the sorted edge lists, the vertex at its top, the local minimum it rose from, whether it is
+    /// the left bound, and what it is joined with.
+    /// </summary>
+    internal class Active
+    {
+        public Point64 bot;
+        public Point64 top;
+        public long curX; // current (updated at every new scanline)
+        public double dx;
+        public int windDx; // 1 or -1 depending on winding direction
+        public int windCount;
+        public int windCount2; // winding count of the opposite polytype
+        public OutRec outrec;
+
+        // AEL: 'active edge list' (Vatti's AET - active edge table)
+        //     a linked list of all edges (from left to right) that are present
+        //     (or 'active') within the current scanbeam (a horizontal 'beam' that
+        //     sweeps from bottom to top over the paths in the clipping operation).
+        public Active prevInAEL;
+        public Active nextInAEL;
+
+        // SEL: 'sorted edge list' (Vatti's ST - sorted table)
+        //     linked list used when sorting edges into their new positions at the
+        //     top of scanbeams, but also (re)used to process horizontals.
+        public Active prevInSEL;
+        public Active nextInSEL;
+        public Active jump;
+        public Vertex vertexTop;
+        public LocalMinima localMin; // the bottom of an edge 'bound' (also Vatti)
+        internal bool isLeftBound;
+        internal JoinWith joinWith;
     }
 
     /// <summary>
-    /// Ends the output paths of two edges that meet at pt, a local maximum of the answer, splitting joined edges first.
-    /// When the edges share a path it is closed (and given its owner in a polytree); when they add to two, the two are
-    /// joined into one. Returns the point added; null, with the sweep marked failed, when both edges add to the same
-    /// side of their paths and neither is an open end.
+    /// Turns input paths into the vertices and local minima the sweep starts from.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private OutPt AddLocalMaxPoly(Active ae1, Active ae2, Point64 pt)
+    internal static class ClipperEngine
     {
-      if (IsJoined(ae1)) Split(ae1, pt);
-      if (IsJoined(ae2)) Split(ae2, pt);
-
-      if (IsFront(ae1) == IsFront(ae2))
-      {
-        if (IsOpenEnd(ae1))
-          SwapFrontBackSides(ae1.outrec);
-        else if (IsOpenEnd(ae2))
-          SwapFrontBackSides(ae2.outrec);
-        else
+        /// <summary>
+        /// Adds the vertex to the local minima, once: it is flagged a local minimum, and a vertex already flagged is
+        /// not added again.
+        /// </summary>
+        internal static void AddLocMin(Vertex vert, PathType polytype, bool isOpen,
+            List<LocalMinima> minimaList)
         {
-          _succeeded = false;
-          return null;
-        }
-      }
+            // make sure the vertex is added only once ...
+            if ((vert.flags & VertexFlags.LocalMin) != VertexFlags.None) return;
+            vert.flags |= VertexFlags.LocalMin;
 
-      OutPt result = AddOutPt(ae1, pt);
-      if (ae1.outrec == ae2.outrec)
-      {
-        OutRec outrec = ae1.outrec;
-        outrec.pts = result;
-
-        if (_using_polytree)
-        {
-          Active e = GetPrevHotEdge(ae1);
-          if (e == null)
-            outrec.owner = null;
-          else
-            SetOwner(outrec, e.outrec);
-          // nb: outRec.owner here is likely NOT the real
-          // owner but this will be fixed in DeepCheckOwner()
-        }
-        UncoupleOutRec(ae1);
-      }
-      // and to preserve the winding orientation of outrec ...
-      else if (IsOpen(ae1))
-      {
-        if (ae1.windDx < 0)
-          JoinOutrecPaths(ae1, ae2);
-        else
-          JoinOutrecPaths(ae2, ae1);
-      }
-      else if (ae1.outrec.idx < ae2.outrec.idx)
-        JoinOutrecPaths(ae1, ae2);
-      else
-        JoinOutrecPaths(ae2, ae1);
-      return result;
-    }
-
-    /// <summary>
-    /// Joins the output path of ae2 onto that of ae1 where the two edges meet, then empties the path of ae2 and makes
-    /// the path of ae1 its owner. Neither edge adds to a path afterwards: both are maxima about to leave the active
-    /// edge list.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void JoinOutrecPaths(Active ae1, Active ae2)
-    {
-      // join ae2 outrec path onto ae1 outrec path and then delete ae2 outrec path
-      // pointers. (NB Only very rarely do the joining ends share the same coords.)
-      OutPt p1Start = ae1.outrec.pts;
-      OutPt p2Start = ae2.outrec.pts;
-      OutPt p1End = p1Start.next;
-      OutPt p2End = p2Start.next;
-      if (IsFront(ae1))
-      {
-        p2End.prev = p1Start;
-        p1Start.next = p2End;
-        p2Start.next = p1End;
-        p1End.prev = p2Start;
-        ae1.outrec.pts = p2Start;
-        // nb: if IsOpen(e1) then e1 & e2 must be a 'maximaPair'
-        ae1.outrec.frontEdge = ae2.outrec.frontEdge;
-        if (ae1.outrec.frontEdge != null)
-          ae1.outrec.frontEdge.outrec = ae1.outrec;
-      }
-      else
-      {
-        p1End.prev = p2Start;
-        p2Start.next = p1End;
-        p1Start.next = p2End;
-        p2End.prev = p1Start;
-
-        ae1.outrec.backEdge = ae2.outrec.backEdge;
-        if (ae1.outrec.backEdge != null)
-          ae1.outrec.backEdge.outrec = ae1.outrec;
-      }
-
-      // after joining, the ae2.OutRec must contains no vertices ...
-      ae2.outrec.frontEdge = null;
-      ae2.outrec.backEdge = null;
-      ae2.outrec.pts = null;
-      ae1.outrec.outPtCount += ae2.outrec.outPtCount;
-      SetOwner(ae2.outrec, ae1.outrec);
-
-      if (IsOpenEnd(ae1))
-      {
-        ae2.outrec.pts = ae1.outrec.pts;
-        ae1.outrec.pts = null;
-      }
-
-      // and ae1 and ae2 are maxima and are about to be dropped from the Actives list.
-      ae1.outrec = null;
-      ae2.outrec = null;
-    }
-
-    /// <summary>
-    /// Adds the point to the side of the output path the edge adds to, its front or its back, unless it repeats the
-    /// point already at that end; returns the output point there.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private OutPt AddOutPt(Active ae, Point64 pt)
-    {
-
-      // Outrec.OutPts: a circular doubly-linked-list of POutPt where ...
-      // opFront[.Prev]* ~~~> opBack & opBack == opFront.Next
-      OutRec outrec = ae.outrec;
-      bool toFront = IsFront(ae);
-      OutPt opFront = outrec.pts;
-      OutPt opBack = opFront.next;
-
-      switch (toFront)
-      {
-        case true when (pt == opFront.pt):
-          return opFront;
-        case false when (pt == opBack.pt):
-          return opBack;
-      }
-
-      OutPt newOp = _outPtPool.Add(pt, outrec);
-      opBack.prev = newOp;
-      newOp.prev = opFront;
-      newOp.next = opBack;
-      opFront.next = newOp;
-      if (toFront) outrec.pts = newOp;
-      return newOp;
-    }
-
-    /// <summary>
-    /// A new, empty output path, its index its place in the list of output paths.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private OutRec NewOutRec()
-    {
-      int idx = _outrecList.Count;
-      OutRec result = _outrecList.Add();
-      result.idx = idx;
-      return result;
-    }
-
-    /// <summary>
-    /// Starts an open output path at pt for the edge, which adds to its front or its back by the way it winds; returns
-    /// the first point.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private OutPt StartOpenPath(Active ae, Point64 pt)
-    {
-      OutRec outrec = NewOutRec();
-      outrec.isOpen = true;
-      if (ae.windDx > 0)
-      {
-        outrec.frontEdge = ae;
-        outrec.backEdge = null;
-      }
-      else
-      {
-        outrec.frontEdge = null;
-        outrec.backEdge = ae;
-      }
-
-      ae.outrec = outrec;
-      OutPt op = _outPtPool.Add(pt, outrec);
-      outrec.pts = op;
-      return op;
-    }
-
-    /// <summary>
-    /// Moves the edge on to the next edge of its bound, its top becoming its bottom, and splits it from any join. A
-    /// horizontal is left for the horizontals (a closed one trimmed of the collinear points it runs through); any other
-    /// edge makes its new top a scanline and is checked for joins with its neighbours.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void UpdateEdgeIntoAEL(Active ae)
-    {
-      ae.bot = ae.top;
-      ae.vertexTop = NextVertex(ae);
-      ae.top = ae.vertexTop.pt;
-      ae.curX = ae.bot.X;
-      SetDx(ae);
-
-      if (IsJoined(ae)) Split(ae, ae.bot);
-
-      if (IsHorizontal(ae))
-      {
-        if (!IsOpen(ae)) TrimHorz(ae, PreserveCollinear);
-        return;
-      }
-      InsertScanline(ae.top.Y);
-
-      CheckJoinLeft(ae, ae.bot);
-      CheckJoinRight(ae, ae.bot, true); // (#500)
-    }
-
-    /// <summary>
-    /// The edge that rose from the same local minimum as e, the other bound, looked for to either side of e among the
-    /// edges at its bottom and past horizontals; null when there is none.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Active FindEdgeWithMatchingLocMin(Active e)
-    {
-      Active result = e.nextInAEL;
-      while (result != null)
-      {
-        if (result.localMin == e.localMin) return result;
-        if (!IsHorizontal(result) && e.bot != result.bot) result = null;
-        else result = result.nextInAEL;
-      }
-      result = e.prevInAEL;
-      while (result != null)
-      {
-        if (result.localMin == e.localMin) return result;
-        if (!IsHorizontal(result) && e.bot != result.bot) return null;
-        result = result.prevInAEL;
-      }
-      return result;
-    }
-
-    /// <summary>
-    /// Two edges crossing at pt, about to swap places: updates their winding counts and, by what the counts and the
-    /// operation say, starts, extends, ends or swaps output paths there. An open path crossing a closed edge starts or
-    /// ends an open output path instead.
-    /// </summary>
-    private void IntersectEdges(Active ae1, Active ae2, Point64 pt)
-    {
-      OutPt resultOp = null;
-      // MANAGE OPEN PATH INTERSECTIONS SEPARATELY ...
-      if (_hasOpenPaths && (IsOpen(ae1) || IsOpen(ae2)))
-      {
-        if (IsOpen(ae1) && IsOpen(ae2)) return;
-        // the following line avoids duplicating quite a bit of code
-        if (IsOpen(ae2)) SwapActives(ref ae1, ref ae2);
-        if (IsJoined(ae2)) Split(ae2, pt); // needed for safety
-
-        if (_cliptype == ClipType.Union)
-        {
-          if (!IsHotEdge(ae2)) return;
-        }
-        else if (ae2.localMin.polytype == PathType.Subject) return;
-
-        switch (_fillrule)
-        {
-          case FillRule.Positive:
-            if (ae2.windCount != 1) return;
-            break;
-          case FillRule.Negative:
-            if (ae2.windCount != -1) return;
-            break;
-          default:
-            if (Math.Abs(ae2.windCount) != 1) return;
-            break;
+            LocalMinima lm = new LocalMinima(vert, polytype, isOpen);
+            minimaList.Add(lm);
         }
 
-        // toggle contribution ...
-        if (IsHotEdge(ae1))
+        /// <summary>
+        /// Grows the capacity of the list to minCapacity when it is smaller.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void EnsureCapacity<T>(this List<T> list, int minCapacity)
         {
-          resultOp = AddOutPt(ae1, pt);
-          if (IsFront(ae1))
-            ae1.outrec.frontEdge = null;
-          else
-            ae1.outrec.backEdge = null;
-          ae1.outrec = null;
+            if(list.Capacity < minCapacity)
+                list.Capacity = minCapacity;
         }
 
-        // horizontal edges can pass under open paths at a LocMins
-        else if (pt == ae1.localMin.vertex.pt &&
-          !IsOpenEnd(ae1.localMin.vertex))
+        /// <summary>
+        /// Adds each path as a ring of vertices, points that repeat the one before skipped, flags its local minima and
+        /// maxima and adds the minima to minimaList. The last point of a closed path goes when it repeats the first. A
+        /// path of fewer than two distinct points adds nothing, nor does a closed path with no height; the ends of an
+        /// open path are flagged.
+        /// </summary>
+        internal static void AddPathsToVertexList(Paths64 paths, PathType polytype, bool isOpen,
+            List<LocalMinima> minimaList, VertexPoolList vertexList)
         {
-          // find the other side of the LocMin and
-          // if it's 'hot' join up with it ...
-          Active ae3 = FindEdgeWithMatchingLocMin(ae1);
-          if (ae3 != null && IsHotEdge(ae3))
-          {
-            ae1.outrec = ae3.outrec;
-            if (ae1.windDx > 0)
-              SetSides(ae3.outrec, ae1, ae3);
-            else
-              SetSides(ae3.outrec, ae3, ae1);
-            return;
-          }
+            int totalVertCnt = 0;
+            foreach (Path64 path in paths) totalVertCnt += path.Count;
+            vertexList.EnsureCapacity(vertexList.Count + totalVertCnt);
 
-          resultOp = StartOpenPath(ae1, pt);
-        }
-        else
-          resultOp = StartOpenPath(ae1, pt);
-
-        return;
-      }
-
-      // MANAGING CLOSED PATHS FROM HERE ON
-      if (IsJoined(ae1)) Split(ae1, pt);
-      if (IsJoined(ae2)) Split(ae2, pt);
-
-      // UPDATE WINDING COUNTS...
-
-      int oldE1WindCount, oldE2WindCount;
-      if (ae1.localMin.polytype == ae2.localMin.polytype)
-      {
-        if (_fillrule == FillRule.EvenOdd)
-        {
-          oldE1WindCount = ae1.windCount;
-          ae1.windCount = ae2.windCount;
-          ae2.windCount = oldE1WindCount;
-        }
-        else
-        {
-          if (ae1.windCount + ae2.windDx == 0)
-            ae1.windCount = -ae1.windCount;
-          else
-            ae1.windCount += ae2.windDx;
-          if (ae2.windCount - ae1.windDx == 0)
-            ae2.windCount = -ae2.windCount;
-          else
-            ae2.windCount -= ae1.windDx;
-        }
-      }
-      else
-      {
-        if (_fillrule != FillRule.EvenOdd)
-          ae1.windCount2 += ae2.windDx;
-        else
-          ae1.windCount2 = (ae1.windCount2 == 0 ? 1 : 0);
-        if (_fillrule != FillRule.EvenOdd)
-          ae2.windCount2 -= ae1.windDx;
-        else
-          ae2.windCount2 = (ae2.windCount2 == 0 ? 1 : 0);
-      }
-
-      switch (_fillrule)
-      {
-        case FillRule.Positive:
-          oldE1WindCount = ae1.windCount;
-          oldE2WindCount = ae2.windCount;
-          break;
-        case FillRule.Negative:
-          oldE1WindCount = -ae1.windCount;
-          oldE2WindCount = -ae2.windCount;
-          break;
-        default:
-          oldE1WindCount = Math.Abs(ae1.windCount);
-          oldE2WindCount = Math.Abs(ae2.windCount);
-          break;
-      }
-
-      bool e1WindCountIs0or1 = oldE1WindCount == 0 || oldE1WindCount == 1;
-      bool e2WindCountIs0or1 = oldE2WindCount == 0 || oldE2WindCount == 1;
-
-      if ((!IsHotEdge(ae1) && !e1WindCountIs0or1) ||
-        (!IsHotEdge(ae2) && !e2WindCountIs0or1)) return;
-
-      // NOW PROCESS THE INTERSECTION ...
-
-      // if both edges are 'hot' ...
-      if (IsHotEdge(ae1) && IsHotEdge(ae2))
-      {
-        if ((oldE1WindCount != 0 && oldE1WindCount != 1) || (oldE2WindCount != 0 && oldE2WindCount != 1) ||
-            (ae1.localMin.polytype != ae2.localMin.polytype && _cliptype != ClipType.Xor))
-        {
-          resultOp = AddLocalMaxPoly(ae1, ae2, pt);
-        }
-        else if (IsFront(ae1) || (ae1.outrec == ae2.outrec))
-        {
-          // this 'else if' condition isn't strictly needed but
-          // it's sensible to split polygons that only touch at
-          // a common vertex (not at common edges).
-          resultOp = AddLocalMaxPoly(ae1, ae2, pt);
-          AddLocalMinPoly(ae1, ae2, pt);
-        }
-        else
-        {
-          // can't treat as maxima & minima
-          resultOp = AddOutPt(ae1, pt);
-          AddOutPt(ae2, pt);
-          SwapOutrecs(ae1, ae2);
-        }
-      }
-
-      // if one or other edge is 'hot' ...
-      else if (IsHotEdge(ae1))
-      {
-        resultOp = AddOutPt(ae1, pt);
-        SwapOutrecs(ae1, ae2);
-      }
-      else if (IsHotEdge(ae2))
-      {
-        resultOp = AddOutPt(ae2, pt);
-        SwapOutrecs(ae1, ae2);
-      }
-
-      // neither edge is 'hot'
-      else
-      {
-        long e1Wc2, e2Wc2;
-        switch (_fillrule)
-        {
-          case FillRule.Positive:
-            e1Wc2 = ae1.windCount2;
-            e2Wc2 = ae2.windCount2;
-            break;
-          case FillRule.Negative:
-            e1Wc2 = -ae1.windCount2;
-            e2Wc2 = -ae2.windCount2;
-            break;
-          default:
-            e1Wc2 = Math.Abs(ae1.windCount2);
-            e2Wc2 = Math.Abs(ae2.windCount2);
-            break;
-        }
-
-        if (!IsSamePolyType(ae1, ae2))
-        {
-          resultOp = AddLocalMinPoly(ae1, ae2, pt);
-        }
-        else if (oldE1WindCount == 1 && oldE2WindCount == 1)
-        {
-          resultOp = null;
-          switch (_cliptype)
-          {
-            case ClipType.Union:
-              if (e1Wc2 > 0 && e2Wc2 > 0) return;
-              resultOp = AddLocalMinPoly(ae1, ae2, pt);
-              break;
-
-            case ClipType.Difference:
-              if (((GetPolyType(ae1) == PathType.Clip) && (e1Wc2 > 0) && (e2Wc2 > 0)) ||
-                  ((GetPolyType(ae1) == PathType.Subject) && (e1Wc2 <= 0) && (e2Wc2 <= 0)))
-              {
-                resultOp = AddLocalMinPoly(ae1, ae2, pt);
-              }
-
-              break;
-
-            case ClipType.Xor:
-              resultOp = AddLocalMinPoly(ae1, ae2, pt);
-              break;
-
-            default: // ClipType.Intersection:
-              if (e1Wc2 <= 0 || e2Wc2 <= 0) return;
-              resultOp = AddLocalMinPoly(ae1, ae2, pt);
-              break;
-          }
-        }
-      }
-    }
-
-    /// <summary>
-    /// Takes the edge out of the active edge list and keeps it for reuse; nothing when it is out already.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void DeleteFromAEL(Active ae)
-    {
-      Active prev = ae.prevInAEL;
-      Active next = ae.nextInAEL;
-      if (prev == null && next == null && (ae != _actives)) return; // already deleted
-      if (prev != null)
-        prev.nextInAEL = next;
-      else
-        _actives = next;
-      if (next != null) next.prevInAEL = prev;
-      // delete &ae;
-      PoolDeletedActive(ae);
-    }
-
-    /// <summary>
-    /// Empties the edge and keeps it to be used again.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void PoolDeletedActive(Active ae)
-    {
-      //clear refs to allow GC
-      ae.bot = new Point64();
-      ae.top = new Point64();
-      ae.dx = 0.0;
-      ae.windCount = 0;
-      ae.windCount2 = 0;
-      ae.outrec = null;
-      ae.prevInAEL = null;
-      ae.nextInAEL = null;
-      ae.prevInSEL = null;
-      ae.nextInSEL = null;
-      ae.jump = null;
-      ae.vertexTop = null;
-      ae.localMin = new LocalMinima();
-      ae.isLeftBound = false;
-      ae.joinWith = JoinWith.None;
-      _freeActives.Push(ae);
-    }
-
-    /// <summary>
-    /// An edge to use: one kept for reuse, or a new one.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Active NewActive()
-    {
-      Active ae;
-      if (_freeActives.Count == 0)
-      {
-        ae = new Active();
-      }
-      else
-      {
-        //recycle active from free list
-        ae = _freeActives.Pop();
-      }
-      return ae;
-    }
-
-    /// <summary>
-    /// Sets the X of every active edge at the top of the scanbeam and copies the active edge list into the sorted edge
-    /// list, ready to find where edges cross.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void AdjustCurrXAndCopyToSEL(long topY)
-    {
-      Active ae = _actives;
-      _sel = ae;
-      while (ae != null)
-      {
-        ae.prevInSEL = ae.prevInAEL;
-        ae.nextInSEL = ae.nextInAEL;
-        ae.jump = ae.nextInSEL;
-        // it is safe to ignore 'joined' edges here because
-        // if necessary they will be split in IntersectEdges()
-        ae.curX = TopX(ae, topY);
-        // NB don't update ae.curr.Y yet (see AddNewIntersectNode)
-        ae = ae.nextInAEL;
-      }
-    }
-
-    /// <summary>
-    /// Runs the sweep. At each scanline, from the largest Y to the smallest, it starts the bounds of the local minima
-    /// there and processes the horizontals, then finds and processes the crossings within the scanbeam and the edges
-    /// that end at its top; when the sweep is done it joins the output paths that meet along horizontals. It stops
-    /// where the sweep fails, and does nothing for NoClip.
-    /// </summary>
-    protected void ExecuteInternal(ClipType ct, FillRule fillRule)
-    {
-      if (ct == ClipType.NoClip) return;
-      _fillrule = fillRule;
-      _cliptype = ct;
-      Reset();
-      if (!PopScanline(out long y)) return;
-      while (_succeeded)
-      {
-        InsertLocalMinimaIntoAEL(y);
-        Active ae;
-        while (PopHorz(out ae)) DoHorizontal(ae);
-        if (_horzSegList.Count > 0)
-        {
-          ConvertHorzSegsToJoins();
-          _horzSegList.Clear();
-        }
-        _currentBotY = y; // bottom of scanbeam
-        if (!PopScanline(out y))
-          break; // y new top of scanbeam
-        DoIntersections(y);
-        DoTopOfScanbeam(y);
-        while (PopHorz(out ae)) DoHorizontal(ae);
-      }
-      if (_succeeded) ProcessHorzJoins();
-    }
-
-    /// <summary>
-    /// Finds the edges that cross within the scanbeam up to topY and processes the crossings in order.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void DoIntersections(long topY)
-    {
-      if (!BuildIntersectList(topY)) return;
-      ProcessIntersectList();
-      DisposeIntersectNodes();
-    }
-
-    /// <summary>
-    /// Empties the list of crossings.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void DisposeIntersectNodes()
-    {
-      _intersectList.Clear();
-    }
-
-    /// <summary>
-    /// Adds the crossing of the two edges to the list. When the lines through them cross outside the scanbeam, as
-    /// rounding can make them, the point is brought back: onto the nearest point of an edge that is nearly horizontal,
-    /// or else to the top or the bottom of the scanbeam along the steeper edge.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void AddNewIntersectNode(Active ae1, Active ae2, long topY)
-    {
-      if (!InternalClipper.GetLineIntersectPt(
-        ae1.bot, ae1.top, ae2.bot, ae2.top, out Point64 ip))
-          ip = new Point64(ae1.curX, topY);
-
-      if (ip.Y > _currentBotY || ip.Y < topY)
-      {
-        double absDx1 = Math.Abs(ae1.dx);
-        double absDx2 = Math.Abs(ae2.dx);
-        switch (absDx1 > 100)
-        {
-          case true when absDx2 > 100:
-          {
-            if (absDx1 > absDx2)
-              ip = InternalClipper.GetClosestPtOnSegment(ip, ae1.bot, ae1.top);
-            else
-              ip = InternalClipper.GetClosestPtOnSegment(ip, ae2.bot, ae2.top);
-            break;
-          }
-          case true:
-            ip = InternalClipper.GetClosestPtOnSegment(ip, ae1.bot, ae1.top);
-            break;
-          default:
-          {
-            if (absDx2 > 100)
-              ip = InternalClipper.GetClosestPtOnSegment(ip, ae2.bot, ae2.top);
-            else
+            foreach (Path64 path in paths)
             {
-              if (ip.Y < topY) ip.Y = topY;
-              else ip.Y = _currentBotY;
-              if (absDx1 < absDx2) ip.X = TopX(ae1, ip.Y);
-              else ip.X = TopX(ae2, ip.Y);
+                Vertex v0 = null, prev_v = null, curr_v;
+                foreach (Point64 pt in path)
+                {
+                    if (v0 == null)
+                    {
+                        v0 = vertexList.Add(pt, VertexFlags.None, null);
+                        prev_v = v0;
+                    }
+                    else if (prev_v.pt != pt) // ie skips duplicates
+                    {
+                        curr_v = vertexList.Add(pt, VertexFlags.None, prev_v);
+                        prev_v.next = curr_v;
+                        prev_v = curr_v;
+                    }
+                }
+                if (prev_v?.prev == null) continue;
+                if (!isOpen && prev_v.pt == v0.pt) prev_v = prev_v.prev;
+                prev_v.next = v0;
+                v0.prev = prev_v;
+                if (!isOpen && prev_v.next == prev_v) continue;
+
+                // OK, we have a valid path
+                bool going_up;
+                if (isOpen)
+                {
+                    curr_v = v0.next;
+                    while (curr_v != v0 && curr_v.pt.Y == v0.pt.Y)
+                        curr_v = curr_v.next;
+                    going_up = curr_v.pt.Y <= v0.pt.Y;
+                    if (going_up)
+                    {
+                        v0.flags = VertexFlags.OpenStart;
+                        AddLocMin(v0, polytype, true, minimaList);
+                    }
+                    else
+                        v0.flags = VertexFlags.OpenStart | VertexFlags.LocalMax;
+                }
+                else // closed path
+                {
+                    prev_v = v0.prev;
+                    while (prev_v != v0 && prev_v.pt.Y == v0.pt.Y)
+                        prev_v = prev_v.prev;
+                    if (prev_v == v0)
+                        continue; // only open paths can be completely flat
+                    going_up = prev_v.pt.Y > v0.pt.Y;
+                }
+
+                bool going_up0 = going_up;
+                prev_v = v0;
+                curr_v = v0.next;
+                while (curr_v != v0)
+                {
+                    if (curr_v.pt.Y > prev_v.pt.Y && going_up)
+                    {
+                        prev_v.flags |= VertexFlags.LocalMax;
+                        going_up = false;
+                    }
+                    else if (curr_v.pt.Y < prev_v.pt.Y && !going_up)
+                    {
+                        going_up = true;
+                        AddLocMin(prev_v, polytype, isOpen, minimaList);
+                    }
+                    prev_v = curr_v;
+                    curr_v = curr_v.next;
+                }
+
+                if (isOpen)
+                {
+                    prev_v.flags |= VertexFlags.OpenEnd;
+                    if (going_up)
+                        prev_v.flags |= VertexFlags.LocalMax;
+                    else
+                        AddLocMin(prev_v, polytype, isOpen, minimaList);
+                }
+                else if (going_up != going_up0)
+                {
+                    if (going_up0) AddLocMin(prev_v, polytype, false, minimaList);
+                    else prev_v.flags |= VertexFlags.LocalMax;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Paths made vertices and local minima once, to be added to more than one clipper without converting them again.
+    /// </summary>
+    internal class ReuseableDataContainer64
+    {
+        internal readonly List<LocalMinima> _minimaList;
+        internal readonly VertexPoolList _vertexList;
+
+        /// <summary>
+        /// An empty container.
+        /// </summary>
+        public ReuseableDataContainer64()
+        {
+            _minimaList = new List<LocalMinima>();
+            _vertexList = new VertexPoolList();
+        }
+
+        /// <summary>
+        /// Removes all the vertices and local minima.
+        /// </summary>
+        public void Clear()
+        {
+            _minimaList.Clear();
+            _vertexList.Clear();
+        }
+
+        /// <summary>
+        /// Adds the paths as vertices and local minima, as subjects or clips, open or closed.
+        /// </summary>
+        public void AddPaths(Paths64 paths, PathType pt, bool isOpen)
+        {
+            ClipperEngine.AddPathsToVertexList(paths, pt, isOpen, _minimaList, _vertexList);
+        }
+    }
+
+    /// <summary>
+    /// The sweep that clips: Vatti's algorithm on paths of integers. Paths are added as subjects or clips, open or
+    /// closed. The sweep runs a scanline over them from the largest Y to the smallest (Clipper's bottom to top, Y
+    /// growing downwards), keeps the edges it crosses in the active edge list, decides by the operation and the fill
+    /// rule which edges bound the answer, builds the output paths from them, and hands them back as paths or as a
+    /// polytree.
+    /// </summary>
+    internal class ClipperBase
+    {
+        private ClipType _cliptype;
+        private FillRule _fillrule;
+        private Active _actives;
+        private Active _sel;
+        private Stack<Active> _freeActives;
+        private readonly List<LocalMinima> _minimaList;
+        private readonly List<IntersectNode> _intersectList;
+        private readonly VertexPoolList _vertexList;
+        private readonly OutRecPoolList _outrecList;
+        private readonly List<long> _scanlineList;
+        private readonly List<HorzSegment> _horzSegList;
+        private readonly HorzJoinPoolList _horzJoinList;
+        private readonly OutPtPoolList _outPtPool;
+        private int _currentLocMin;
+        private long _currentBotY;
+        private bool _isSortedMinimaList;
+        private bool _hasOpenPaths;
+        internal bool _using_polytree;
+        internal bool _succeeded;
+
+        /// <summary>
+        /// Whether points along a straight run of an output path are kept; true unless set. Points that repeat their
+        /// neighbour and spikes, where a path turns straight back, go either way.
+        /// </summary>
+        public bool PreserveCollinear { get; set; }
+
+        /// <summary>
+        /// Whether the closed output paths are wound the other way round: outers clockwise and holes counter-clockwise
+        /// with Y up.
+        /// </summary>
+        public bool ReverseSolution { get; set; }
+
+        /// <summary>
+        /// An empty clipper that keeps collinear points.
+        /// </summary>
+        public ClipperBase()
+        {
+            _minimaList = new List<LocalMinima>();
+            _intersectList = new List<IntersectNode>();
+            _vertexList = new VertexPoolList();
+            _outrecList = new OutRecPoolList();
+            _scanlineList = new List<long>();
+            _horzSegList = new List<HorzSegment>();
+            _horzJoinList = new HorzJoinPoolList();
+            _outPtPool = new OutPtPoolList();
+            _freeActives = new Stack<Active>();
+            PreserveCollinear = true;
+        }
+
+        /// <summary>
+        /// Whether the value is odd.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsOdd(int val)
+        {
+            return ((val & 1) != 0);
+        }
+
+        /// <summary>
+        /// Whether the edge adds to an output path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsHotEdge(Active ae)
+        {
+            return ae.outrec != null;
+        }
+
+        /// <summary>
+        /// Whether the edge belongs to an open path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsOpen(Active ae)
+        {
+            return ae.localMin.isOpen;
+        }
+
+        /// <summary>
+        /// Whether the edge belongs to an open path and its top vertex is an end of that path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsOpenEnd(Active ae)
+        {
+            return ae.localMin.isOpen && IsOpenEnd(ae.vertexTop);
+        }
+
+        /// <summary>
+        /// Whether the vertex is the start or the end of an open path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsOpenEnd(Vertex v)
+        {
+            return (v.flags & (VertexFlags.OpenStart | VertexFlags.OpenEnd)) != VertexFlags.None;
+        }
+
+        /// <summary>
+        /// The nearest edge to the left in the active edge list that adds to a closed output path, or null.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Active GetPrevHotEdge(Active ae)
+        {
+            Active prev = ae.prevInAEL;
+            while (prev != null && (IsOpen(prev) || !IsHotEdge(prev)))
+                prev = prev.prevInAEL;
+            return prev;
+        }
+
+        /// <summary>
+        /// Whether the edge adds to the front of its output path rather than to its back.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsFront(Active ae)
+        {
+            return (ae == ae.outrec.frontEdge);
+        }
+
+        /*******************************************************************************
+        *  Dx:                             0(90deg)                                    *
+        *                                  |                                           *
+        *               +inf (180deg) <--- o --. -inf (0deg)                          *
+        *******************************************************************************/
+
+        /// <summary>
+        /// How far X moves for each unit of Y from pt1 to pt2. A horizontal gives negative infinity when it heads right
+        /// and positive infinity when it heads left.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double GetDx(Point64 pt1, Point64 pt2)
+        {
+            double dy = pt2.Y - pt1.Y;
+            if (dy != 0)
+                return (pt2.X - pt1.X) / dy;
+            return pt2.X > pt1.X ? double.NegativeInfinity : double.PositiveInfinity;
+        }
+
+        /// <summary>
+        /// The X of the edge at the scanline currentY, rounded half to even as the C++ library rounds; exactly its top
+        /// or bottom X at its ends, and its top X when it is vertical.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long TopX(Active ae, long currentY)
+        {
+            if ((currentY == ae.top.Y) || (ae.top.X == ae.bot.X)) return ae.top.X;
+            if (currentY == ae.bot.Y) return ae.bot.X;
+
+            // use MidpointRounding.ToEven in order to explicitly match the nearbyint behaviour on the C++ side
+            return ae.bot.X + (long) Math.Round(ae.dx * (currentY - ae.bot.Y), MidpointRounding.ToEven);
+        }
+
+        /// <summary>
+        /// Whether the top and the bottom of the edge have the same Y.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsHorizontal(Active ae)
+        {
+            return (ae.top.Y == ae.bot.Y);
+        }
+
+        /// <summary>
+        /// Whether the edge is a horizontal heading right.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsHeadingRightHorz(Active ae)
+        {
+            return (double.IsNegativeInfinity(ae.dx));
+        }
+
+        /// <summary>
+        /// Whether the edge is a horizontal heading left.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsHeadingLeftHorz(Active ae)
+        {
+            return (double.IsPositiveInfinity(ae.dx));
+        }
+
+        /// <summary>
+        /// Swaps the two edges the references hold.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SwapActives(ref Active ae1, ref Active ae2)
+        {
+            (ae2, ae1) = (ae1, ae2);
+        }
+
+        /// <summary>
+        /// Whether the edge belongs to a subject or to a clip.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static PathType GetPolyType(Active ae)
+        {
+            return ae.localMin.polytype;
+        }
+
+        /// <summary>
+        /// Whether the two edges both belong to subjects or both to clips.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsSamePolyType(Active ae1, Active ae2)
+        {
+            return ae1.localMin.polytype == ae2.localMin.polytype;
+        }
+
+        /// <summary>
+        /// Sets the slope of the edge from its bottom and its top.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SetDx(Active ae)
+        {
+            ae.dx = GetDx(ae.bot, ae.top);
+        }
+
+        /// <summary>
+        /// The vertex after the top of the edge along its bound, the way the bound winds.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vertex NextVertex(Active ae)
+        {
+            return ae.windDx > 0 ? ae.vertexTop.next : ae.vertexTop.prev;
+        }
+
+        /// <summary>
+        /// The vertex two before the top of the edge along its bound, the way the bound winds.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vertex PrevPrevVertex(Active ae)
+        {
+            return ae.windDx > 0 ? ae.vertexTop.prev.prev : ae.vertexTop.next.next;
+        }
+
+        /// <summary>
+        /// Whether the vertex is a local maximum.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsMaxima(Vertex vertex)
+        {
+            return ((vertex.flags & VertexFlags.LocalMax) != VertexFlags.None);
+        }
+
+        /// <summary>
+        /// Whether the edge tops out at a local maximum.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsMaxima(Active ae)
+        {
+            return IsMaxima(ae.vertexTop);
+        }
+
+        /// <summary>
+        /// The edge to the right in the active edge list that shares the top vertex of the edge, the other side of the
+        /// same maximum, or null.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Active GetMaximaPair(Active ae)
+        {
+            Active ae2 = ae.nextInAEL;
+            while (ae2 != null)
+            {
+                if (ae2.vertexTop == ae.vertexTop) return ae2; // Found!
+                ae2 = ae2.nextInAEL;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// The local maximum at the end of the horizontal run from the top of an edge of an open path, the run stopping
+        /// at an open end; null when it ends at no maximum.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vertex GetCurrYMaximaVertex_Open(Active ae)
+        {
+            Vertex result = ae.vertexTop;
+            if (ae.windDx > 0)
+                while (result.next.pt.Y == result.pt.Y &&
+                    ((result.flags & (VertexFlags.OpenEnd |
+                    VertexFlags.LocalMax)) == VertexFlags.None))
+                    result = result.next;
+            else
+                while (result.prev.pt.Y == result.pt.Y &&
+                    ((result.flags & (VertexFlags.OpenEnd |
+                    VertexFlags.LocalMax)) == VertexFlags.None))
+                    result = result.prev;
+            if (!IsMaxima(result)) result = null; // not a maxima
+            return result;
+        }
+
+        /// <summary>
+        /// The local maximum at the end of the horizontal run from the top of the edge; null when the run ends at no
+        /// maximum.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vertex GetCurrYMaximaVertex(Active ae)
+        {
+            Vertex result = ae.vertexTop;
+            if (ae.windDx > 0)
+                while (result.next.pt.Y == result.pt.Y) result = result.next;
+            else
+                while (result.prev.pt.Y == result.pt.Y) result = result.prev;
+            if (!IsMaxima(result)) result = null; // not a maxima
+            return result;
+        }
+
+        /// <summary>
+        /// Orders crossings by Y, largest first, then by X, smallest first.
+        /// </summary>
+        private struct IntersectListSort : IComparer<IntersectNode>
+        {
+            /// <summary>
+            /// Negative when a comes first: it has the larger Y, or the same Y and the smaller X.
+            /// </summary>
+            public readonly int Compare(IntersectNode a, IntersectNode b)
+            {
+                if (a.pt.Y != b.pt.Y) return (a.pt.Y > b.pt.Y) ? -1 : 1;
+                if (a.pt.X == b.pt.X) return 0;
+                return (a.pt.X < b.pt.X) ? -1 : 1;
+            }
+        }
+
+        /// <summary>
+        /// Sets the edges that add to the front and to the back of the output path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SetSides(OutRec outrec, Active startEdge, Active endEdge)
+        {
+            outrec.frontEdge = startEdge;
+            outrec.backEdge = endEdge;
+        }
+
+        /// <summary>
+        /// Swaps the output paths of the two edges, with the sides they add to; when both add to the same path, swaps
+        /// its front and back edges.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SwapOutrecs(Active ae1, Active ae2)
+        {
+            OutRec or1 = ae1.outrec; // at least one edge has
+            OutRec or2 = ae2.outrec; // an assigned outrec
+            if (or1 == or2)
+            {
+                Active ae = or1.frontEdge;
+                or1.frontEdge = or1.backEdge;
+                or1.backEdge = ae;
+                return;
             }
 
-            break;
-          }
-        }
-      }
-      IntersectNode node = new IntersectNode(ip, ae1, ae2);
-      _intersectList.Add(node);
-    }
-
-    /// <summary>
-    /// Takes the edge out of the sorted edge list and returns the edge after it.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Active ExtractFromSEL(Active ae)
-    {
-      Active res = ae.nextInSEL;
-      if (res != null)
-        res.prevInSEL = ae.prevInSEL;
-      ae.prevInSEL.nextInSEL = res;
-      return res;
-    }
-
-    /// <summary>
-    /// Inserts ae1 into the sorted edge list just before ae2.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Insert1Before2InSEL(Active ae1, Active ae2)
-    {
-      ae1.prevInSEL = ae2.prevInSEL;
-      if (ae1.prevInSEL != null)
-        ae1.prevInSEL.nextInSEL = ae1;
-      ae1.nextInSEL = ae2;
-      ae2.prevInSEL = ae1;
-    }
-
-    /// <summary>
-    /// Finds every pair of edges that cross between the bottom and the top of the scanbeam, by a stable merge sort of
-    /// the edges on their X at its top in which every swap of neighbours is a crossing; false when none cross.
-    /// </summary>
-    private bool BuildIntersectList(long topY)
-    {
-      if (_actives?.nextInAEL == null) return false;
-
-      // Calculate edge positions at the top of the current scanbeam, and from this
-      // we will determine the intersections required to reach these new positions.
-      AdjustCurrXAndCopyToSEL(topY);
-
-      // Find all edge intersections in the current scanbeam using a stable merge
-      // sort that ensures only adjacent edges are intersecting. Intersect info is
-      // stored in FIntersectList ready to be processed in ProcessIntersectList.
-      // Re merge sorts see https://stackoverflow.com/a/46319131/359538
-
-      Active left = _sel;
-
-      while (left.jump != null)
-      {
-        Active prevBase = null;
-        while (left?.jump != null)
-        {
-          Active currBase = left;
-          Active right = left.jump;
-          Active lEnd = right;
-          Active rEnd = right.jump;
-          left.jump = rEnd;
-          while (left != lEnd && right != rEnd)
-          {
-            if (right.curX < left.curX)
+            if (or1 != null)
             {
-              Active tmp = right.prevInSEL;
-              for (; ; )
-              {
-                AddNewIntersectNode(tmp, right, topY);
-                if (tmp == left) break;
-                tmp = tmp.prevInSEL;
-              }
-
-              tmp = right;
-              right = ExtractFromSEL(tmp);
-              lEnd = right;
-              Insert1Before2InSEL(tmp, left);
-              if (left != currBase) continue;
-              currBase = tmp;
-              currBase.jump = rEnd;
-              if (prevBase == null) _sel = currBase;
-              else prevBase.jump = currBase;
+                if (ae1 == or1.frontEdge)
+                    or1.frontEdge = ae2;
+                else
+                    or1.backEdge = ae2;
             }
-            else left = left.nextInSEL;
-          }
 
-          prevBase = currBase;
-          left = rEnd;
-        }
-        left = _sel;
-      }
+            if (or2 != null)
+            {
+                if (ae2 == or2.frontEdge)
+                    or2.frontEdge = ae1;
+                else
+                    or2.backEdge = ae1;
+            }
 
-      return _intersectList.Count > 0;
-    }
-
-    /// <summary>
-    /// Processes the crossings from the bottom of the scanbeam up, reordering them where needed so that the two edges
-    /// of each are neighbours when they cross. Each crossing updates the output paths, swaps its edges and checks them
-    /// for joins.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ProcessIntersectList()
-    {
-      // We now have a list of intersections required so that edges will be
-      // correctly positioned at the top of the scanbeam. However, it's important
-      // that edge intersections are processed from the bottom up, but it's also
-      // crucial that intersections only occur between adjacent edges.
-
-      // First we do a quicksort so intersections proceed in a bottom up order ...
-      _intersectList.Sort(new IntersectListSort());
-
-      // Now as we process these intersections, we must sometimes adjust the order
-      // to ensure that intersecting edges are always adjacent ...
-      for (int i = 0; i < _intersectList.Count; ++i)
-      {
-        if (!EdgesAdjacentInAEL(_intersectList[i]))
-        {
-          int j = i + 1;
-          while (!EdgesAdjacentInAEL(_intersectList[j])) j++;
-          // swap
-          (_intersectList[j], _intersectList[i]) =
-            (_intersectList[i], _intersectList[j]);
+            ae1.outrec = or2;
+            ae2.outrec = or1;
         }
 
-        IntersectNode node = _intersectList[i];
-        IntersectEdges(node.edge1, node.edge2, node.pt);
-        SwapPositionsInAEL(node.edge1, node.edge2);
-
-        node.edge1.curX = node.pt.X;
-        node.edge2.curX = node.pt.X;
-        CheckJoinLeft(node.edge2, node.pt, true);
-        CheckJoinRight(node.edge1, node.pt, true);
-      }
-    }
-
-    /// <summary>
-    /// Swaps two neighbouring edges in the active edge list, ae1 being just to the left of ae2.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SwapPositionsInAEL(Active ae1, Active ae2)
-    {
-      // preconditon: ae1 must be immediately to the left of ae2
-      Active next = ae2.nextInAEL;
-      if (next != null) next.prevInAEL = ae1;
-      Active prev = ae1.prevInAEL;
-      if (prev != null) prev.nextInAEL = ae2;
-      ae2.prevInAEL = prev;
-      ae2.nextInAEL = ae1;
-      ae1.prevInAEL = ae2;
-      ae1.nextInAEL = next;
-      if (ae2.prevInAEL == null) _actives = ae2;
-    }
-
-    /// <summary>
-    /// Whether the horizontal heads right, with the range of X it spans from its current X to its top. A horizontal of
-    /// no length heads right when the edge that shares its maximum lies to its right.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool ResetHorzDirection(Active horz, Vertex vertexMax,
-        out long leftX, out long rightX)
-    {
-      if (horz.bot.X == horz.top.X)
-      {
-        // the horizontal edge is going nowhere ...
-        leftX = horz.curX;
-        rightX = horz.curX;
-        Active ae = horz.nextInAEL;
-        while (ae != null && ae.vertexTop != vertexMax)
-          ae = ae.nextInAEL;
-        return ae != null;
-      }
-
-      if (horz.curX < horz.top.X)
-      {
-        leftX = horz.curX;
-        rightX = horz.top.X;
-        return true;
-      }
-      leftX = horz.top.X;
-      rightX = horz.curX;
-      return false; // right to left
-    }
-
-    /// <summary>
-    /// Takes the horizontal on over the horizontal edges that follow it in its bound, up to a maximum: those that turn
-    /// straight back always, those going on the same way only when collinear points are not kept.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void TrimHorz(Active horzEdge, bool preserveCollinear)
-    {
-      bool wasTrimmed = false;
-      Point64 pt = NextVertex(horzEdge).pt;
-
-      while (pt.Y == horzEdge.top.Y)
-      {
-        // always trim 180 deg. spikes (in closed paths)
-        // but otherwise break if preserveCollinear = true
-        if (preserveCollinear &&
-        (pt.X < horzEdge.top.X) != (horzEdge.bot.X < horzEdge.top.X))
-          break;
-
-        horzEdge.vertexTop = NextVertex(horzEdge);
-        horzEdge.top = pt;
-        wasTrimmed = true;
-        if (IsMaxima(horzEdge)) break;
-        pt = NextVertex(horzEdge).pt;
-      }
-      if (wasTrimmed) SetDx(horzEdge); // +/-infinity
-    }
-
-    /// <summary>
-    /// Starts a horizontal segment at the output point, unless its path is open.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void AddToHorzSegList(OutPt op)
-    {
-      if (op.outrec.isOpen) return;
-      _horzSegList.Add(new HorzSegment(op));
-    }
-
-    /// <summary>
-    /// The output point the edge added last: the front of its path when it is the front edge, else the back.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static OutPt GetLastOp(Active hotEdge)
-    {
-      OutRec outrec = hotEdge.outrec;
-      return (hotEdge == outrec.frontEdge) ?
-        outrec.pts : outrec.pts.next;
-    }
-
-    /// <summary>
-    /// Processes a horizontal edge at its scanline. It crosses the edges it passes on its way from one end to the
-    /// other, adding output points as it goes, and either ends at the maximum it shares with another edge or moves on
-    /// to the rest of its bound, horizontals after it included. The notes below show the layering.
-    /// </summary>
-    private void DoHorizontal(Active horz)
-    /*******************************************************************************
-     * Notes: Horizontal edges (HEs) at scanline intersections (i.e. at the top or  *
-     * bottom of a scanbeam) are processed as if layered. The order in which HEs    *
-     * are processed doesn't matter. HEs intersect with the bottom vertices of      *
-     * other HEs[#] and with non-horizontal edges [*]. Once these intersections     *
-     * are completed, intermediate HEs are 'promoted' to the next edge in their     *
-     * bounds, and they in turn may be intersected[%] by other HEs.                 *
-     *                                                                              *
-     * eg: 3 horizontals at a scanline:    /   |                     /           /  *
-     *              |                     /    |     (HE3)o ========%========== o   *
-     *              o ======= o(HE2)     /     |         /         /                *
-     *          o ============#=========*======*========#=========o (HE1)           *
-     *         /              |        /       |       /                            *
-     *******************************************************************************/
-    {
-      bool horzIsOpen = IsOpen(horz);
-      long Y = horz.bot.Y;
-
-      Vertex vertex_max = horzIsOpen ?
-        GetCurrYMaximaVertex_Open(horz) :
-        GetCurrYMaximaVertex(horz);
-
-      bool isLeftToRight =
-        ResetHorzDirection(horz, vertex_max, out long leftX, out long rightX);
-
-      if (IsHotEdge(horz))
-      {
-        OutPt op = AddOutPt(horz, new Point64(horz.curX, Y));
-        AddToHorzSegList(op);
-      }
-
-      for (; ; )
-      {
-        // loops through consec. horizontal edges (if open)
-        Active ae = isLeftToRight ? horz.nextInAEL : horz.prevInAEL;
-
-        while (ae != null)
+        /// <summary>
+        /// Makes newOwner the owner of the output path. Owners of newOwner that were emptied are skipped, and when the
+        /// path itself owns newOwner, newOwner takes the path's own owner first, so that no path comes to own itself.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SetOwner(OutRec outrec, OutRec newOwner)
         {
-          if (ae.vertexTop == vertex_max)
-          {
-            // do this first!!
-            if (IsHotEdge(horz) && IsJoined(ae)) Split(ae, ae.top);
+            //precondition1: new_owner is never null
+            while (newOwner.owner != null && newOwner.owner.pts == null)
+                newOwner.owner = newOwner.owner.owner;
+
+            //make sure that outrec isn't an owner of newOwner
+            OutRec tmp = newOwner;
+            while (tmp != null && tmp != outrec)
+                tmp = tmp.owner;
+            if (tmp != null)
+                newOwner.owner = outrec.owner;
+            outrec.owner = newOwner;
+        }
+
+        /// <summary>
+        /// The signed area of the ring of output points, by the shoelace formula.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double Area(OutPt op)
+        {
+            // https://en.wikipedia.org/wiki/Shoelace_formula
+            double area = 0.0;
+            OutPt op2 = op;
+            do
+            {
+                area += (double) (op2.prev.pt.Y + op2.pt.Y) *
+                    (op2.prev.pt.X - op2.pt.X);
+                op2 = op2.next;
+            } while (op2 != op);
+            return area * 0.5;
+        }
+
+        /// <summary>
+        /// Twice the signed area of the triangle, by the shoelace formula.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double AreaTriangle(Point64 pt1, Point64 pt2, Point64 pt3)
+        {
+            return (double) (pt3.Y + pt1.Y) * (pt3.X - pt1.X) +
+                (double) (pt1.Y + pt2.Y) * (pt1.X - pt2.X) +
+                (double) (pt2.Y + pt3.Y) * (pt2.X - pt3.X);
+        }
+
+        /// <summary>
+        /// The output path itself while it has points, else the first of its owners that has: the path it was merged
+        /// into.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static OutRec GetRealOutRec(OutRec outRec)
+        {
+            while ((outRec != null) && (outRec.pts == null))
+                outRec = outRec.owner;
+            return outRec;
+        }
+
+        /// <summary>
+        /// Whether testOwner may own the output path: neither testOwner nor any owner above it is the path itself.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsValidOwner(OutRec outRec, OutRec testOwner)
+        {
+            while ((testOwner != null) && (testOwner != outRec))
+                testOwner = testOwner.owner;
+            return testOwner == null;
+        }
+
+        /// <summary>
+        /// Parts the output path of the edge from both its edges, so that neither adds to it any more.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void UncoupleOutRec(Active ae)
+        {
+            OutRec outrec = ae.outrec;
+            if (outrec == null) return;
+            outrec.frontEdge.outrec = null;
+            outrec.backEdge.outrec = null;
+            outrec.frontEdge = null;
+            outrec.backEdge = null;
+        }
+
+        /// <summary>
+        /// Whether the edge is the front edge of its output path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool OutrecIsAscending(Active hotEdge)
+        {
+            return (hotEdge == hotEdge.outrec.frontEdge);
+        }
+
+        /// <summary>
+        /// Swaps the front and the back edges of the output path and moves its start one point on; open paths need it,
+        /// closed ones hardly ever.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SwapFrontBackSides(OutRec outrec)
+        {
+            // while this proc. is needed for open paths
+            // it's almost never needed for closed paths
+            Active ae2 = outrec.frontEdge;
+            outrec.frontEdge = outrec.backEdge;
+            outrec.backEdge = ae2;
+            outrec.pts = outrec.pts.next;
+        }
+
+        /// <summary>
+        /// Whether the two edges of the crossing are neighbours in the active edge list.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool EdgesAdjacentInAEL(IntersectNode inode)
+        {
+            return (inode.edge1.nextInAEL == inode.edge2) || (inode.edge1.prevInAEL == inode.edge2);
+        }
+
+        /// <summary>
+        /// Clears what the last sweep built, its active edges, scanlines, crossings, output paths and joins, and keeps
+        /// the paths added.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void ClearSolutionOnly()
+        {
+            while (_actives != null) DeleteFromAEL(_actives);
+            _scanlineList.Clear();
+            DisposeIntersectNodes();
+            _outrecList.Clear();
+            _horzSegList.Clear();
+            _horzJoinList.Clear();
+            _outPtPool.Clear();
+            _freeActives.Clear();
+        }
+
+        /// <summary>
+        /// Clears everything: the paths added and all that was built from them.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            ClearSolutionOnly();
+            _minimaList.Clear();
+            _vertexList.Clear();
+            _currentLocMin = 0;
+            _isSortedMinimaList = false;
+            _hasOpenPaths = false;
+        }
+
+        /// <summary>
+        /// Gets the sweep ready to run: sorts the local minima once, makes their Y the first scanlines, and empties the
+        /// edge lists.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void Reset()
+        {
+            if (!_isSortedMinimaList)
+            {
+                _minimaList.Sort(new LocMinSorter());
+                _isSortedMinimaList = true;
+            }
+
+            _scanlineList.EnsureCapacity(_minimaList.Count);
+            for (int i = _minimaList.Count - 1; i >= 0; i--)
+                _scanlineList.Add(_minimaList[i].vertex.pt.Y);
+
+            _currentBotY = 0;
+            _currentLocMin = 0;
+            _actives = null;
+            _sel = null;
+            _succeeded = true;
+        }
+
+        /// <summary>
+        /// Adds a scanline at y unless there is one there already, keeping the scanlines sorted.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void InsertScanline(long y)
+        {
+            int index = _scanlineList.BinarySearch(y);
+            if (index >= 0) return;
+            index = ~index;
+            _scanlineList.Insert(index, y);
+        }
+
+        /// <summary>
+        /// Takes the scanline of largest Y, with any repeats of it, off the list; false when none is left.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool PopScanline(out long y)
+        {
+            int cnt = _scanlineList.Count - 1;
+            if (cnt < 0)
+            {
+                y = 0;
+                return false;
+            }
+
+            y = _scanlineList[cnt];
+            _scanlineList.RemoveAt(cnt--);
+            while (cnt >= 0 && y == _scanlineList[cnt])
+                _scanlineList.RemoveAt(cnt--);
+            return true;
+        }
+
+        /// <summary>
+        /// Whether the next local minimum not yet taken is at y.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool HasLocMinAtY(long y)
+        {
+            return (_currentLocMin < _minimaList.Count && _minimaList[_currentLocMin].vertex.pt.Y == y);
+        }
+
+        /// <summary>
+        /// Takes the next local minimum.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private LocalMinima PopLocalMinima()
+        {
+            return _minimaList[_currentLocMin++];
+        }
+
+        /// <summary>
+        /// Adds a closed subject path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddSubject(Path64 path)
+        {
+            AddPath(path, PathType.Subject);
+        }
+
+        /// <summary>
+        /// Adds an open subject path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddOpenSubject(Path64 path)
+        {
+            AddPath(path, PathType.Subject, true);
+        }
+
+        /// <summary>
+        /// Adds a clip path; clips are always closed.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddClip(Path64 path)
+        {
+            AddPath(path, PathType.Clip);
+        }
+
+        /// <summary>
+        /// Adds a path, as a subject or a clip, open or closed.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void AddPath(Path64 path, PathType polytype, bool isOpen = false)
+        {
+            Paths64 tmp = new Paths64(1) { path };
+            AddPaths(tmp, polytype, isOpen);
+        }
+
+        /// <summary>
+        /// Adds the paths, as subjects or clips, open or closed.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void AddPaths(Paths64 paths, PathType polytype, bool isOpen = false)
+        {
+            if (isOpen) _hasOpenPaths = true;
+            _isSortedMinimaList = false;
+            ClipperEngine.AddPathsToVertexList(paths, polytype, isOpen, _minimaList, _vertexList);
+        }
+
+        /// <summary>
+        /// Adds the local minima of paths converted once in the container. The container keeps owning their vertices,
+        /// so it has to outlive this clipper's use of them.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void AddReuseableData(ReuseableDataContainer64 reuseableData)
+        {
+            if (reuseableData._minimaList.Count == 0) return;
+            // nb: reuseableData will continue to own the vertices, so it's important
+            // that the reuseableData object isn't destroyed before the Clipper object
+            // that's using the data.
+            _isSortedMinimaList = false;
+            foreach (LocalMinima lm in reuseableData._minimaList)
+            {
+                _minimaList.Add(new LocalMinima(lm.vertex, lm.polytype, lm.isOpen));
+                if (lm.isOpen) _hasOpenPaths = true;
+            }
+        }
+
+        /// <summary>
+        /// Whether an edge of a closed path bounds the answer: by the fill rule it lies on the boundary of the region
+        /// of its own kind, and the winding count of the other kind puts it where the operation keeps it: inside the
+        /// other kind for an intersection, outside it for a union, a subject edge outside the clips and a clip edge
+        /// inside the subjects for a difference, anywhere for an exclusive or.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool IsContributingClosed(Active ae)
+        {
+            switch (_fillrule)
+            {
+                case FillRule.Positive:
+                    if (ae.windCount != 1) return false;
+                    break;
+                case FillRule.Negative:
+                    if (ae.windCount != -1) return false;
+                    break;
+                case FillRule.NonZero:
+                    if (Math.Abs(ae.windCount) != 1) return false;
+                    break;
+            }
+
+            switch (_cliptype)
+            {
+                case ClipType.Intersection:
+                    return _fillrule switch
+                    {
+                        FillRule.Positive => ae.windCount2 > 0,
+                        FillRule.Negative => ae.windCount2 < 0,
+                        _ => ae.windCount2 != 0
+                    };
+
+                case ClipType.Union:
+                    return _fillrule switch
+                    {
+                        FillRule.Positive => ae.windCount2 <= 0,
+                        FillRule.Negative => ae.windCount2 >= 0,
+                        _ => ae.windCount2 == 0
+                    };
+
+                case ClipType.Difference:
+                    bool result = _fillrule switch
+                    {
+                        FillRule.Positive => (ae.windCount2 <= 0),
+                        FillRule.Negative => (ae.windCount2 >= 0),
+                        _ => (ae.windCount2 == 0)
+                    };
+                    return (GetPolyType(ae) == PathType.Subject) ? result : !result;
+
+                case ClipType.Xor:
+                    return true; // XOr is always contributing unless open
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Whether an edge of an open path is kept: inside the clips for an intersection, outside both the subjects and
+        /// the clips for a union, outside the clips for a difference or an exclusive or, each read by the fill rule.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool IsContributingOpen(Active ae)
+        {
+            bool isInClip, isInSubj;
+            switch (_fillrule)
+            {
+                case FillRule.Positive:
+                    isInSubj = ae.windCount > 0;
+                    isInClip = ae.windCount2 > 0;
+                    break;
+                case FillRule.Negative:
+                    isInSubj = ae.windCount < 0;
+                    isInClip = ae.windCount2 < 0;
+                    break;
+                default:
+                    isInSubj = ae.windCount != 0;
+                    isInClip = ae.windCount2 != 0;
+                    break;
+            }
+
+            bool result = _cliptype switch
+            {
+                ClipType.Intersection => isInClip,
+                ClipType.Union => !isInSubj && !isInClip,
+                _ => !isInClip
+            };
+            return result;
+        }
+
+        /// <summary>
+        /// Sets the winding counts of a new edge of a closed path from the edges to its left. windCount, the count of
+        /// its own kind on the side of the edge where it is higher, follows from the nearest edge of the same kind;
+        /// windCount2, the count of the other kind, from the edges of that kind between the two.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetWindCountForClosedPathEdge(Active ae)
+        {
+            // Wind counts refer to polygon regions not edges, so here an edge's WindCnt
+            // indicates the higher of the wind counts for the two regions touching the
+            // edge. (nb: Adjacent regions can only ever have their wind counts differ by
+            // one. Also, open paths have no meaningful wind directions or counts.)
+
+            Active ae2 = ae.prevInAEL;
+            // find the nearest closed path edge of the same PolyType in AEL (heading left)
+            PathType pt = GetPolyType(ae);
+            while (ae2 != null && (GetPolyType(ae2) != pt || IsOpen(ae2))) ae2 = ae2.prevInAEL;
+
+            if (ae2 == null)
+            {
+                ae.windCount = ae.windDx;
+                ae2 = _actives;
+            }
+            else if (_fillrule == FillRule.EvenOdd)
+            {
+                ae.windCount = ae.windDx;
+                ae.windCount2 = ae2.windCount2;
+                ae2 = ae2.nextInAEL;
+            }
+            else
+            {
+                // NonZero, positive, or negative filling here ...
+                // when e2's WindCnt is in the SAME direction as its WindDx,
+                // then polygon will fill on the right of 'e2' (and 'e' will be inside)
+                // nb: neither e2.WindCnt nor e2.WindDx should ever be 0.
+                if (ae2.windCount * ae2.windDx < 0)
+                {
+                    // opposite directions so 'ae' is outside 'ae2' ...
+                    if (Math.Abs(ae2.windCount) > 1)
+                    {
+                        // outside prev poly but still inside another.
+                        if (ae2.windDx * ae.windDx < 0)
+                            // reversing direction so use the same WC
+                            ae.windCount = ae2.windCount;
+                        else
+                            // otherwise keep 'reducing' the WC by 1 (i.e. towards 0) ...
+                            ae.windCount = ae2.windCount + ae.windDx;
+                    }
+                    else
+                        // now outside all polys of same polytype so set own WC ...
+                        ae.windCount = (IsOpen(ae) ? 1 : ae.windDx);
+                }
+                else
+                {
+                    //'ae' must be inside 'ae2'
+                    if (ae2.windDx * ae.windDx < 0)
+                        // reversing direction so use the same WC
+                        ae.windCount = ae2.windCount;
+                    else
+                        // otherwise keep 'increasing' the WC by 1 (i.e. away from 0) ...
+                        ae.windCount = ae2.windCount + ae.windDx;
+                }
+
+                ae.windCount2 = ae2.windCount2;
+                ae2 = ae2.nextInAEL; // i.e. get ready to calc WindCnt2
+            }
+
+            // update windCount2 ...
+            if (_fillrule == FillRule.EvenOdd)
+                while (ae2 != ae)
+                {
+                    if (GetPolyType(ae2) != pt && !IsOpen(ae2))
+                        ae.windCount2 = (ae.windCount2 == 0 ? 1 : 0);
+                    ae2 = ae2.nextInAEL;
+                }
+            else
+                while (ae2 != ae)
+                {
+                    if (GetPolyType(ae2) != pt && !IsOpen(ae2))
+                        ae.windCount2 += ae2.windDx;
+                    ae2 = ae2.nextInAEL;
+                }
+        }
+
+        /// <summary>
+        /// Sets the winding counts of a new edge of an open path from all the edges to its left: of the closed subjects
+        /// in windCount and of the clips in windCount2, each reduced to odd or even under the even-odd rule.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetWindCountForOpenPathEdge(Active ae)
+        {
+            Active ae2 = _actives;
+            if (_fillrule == FillRule.EvenOdd)
+            {
+                int cnt1 = 0, cnt2 = 0;
+                while (ae2 != ae)
+                {
+                    if (GetPolyType(ae2) == PathType.Clip)
+                        cnt2++;
+                    else if (!IsOpen(ae2))
+                        cnt1++;
+                    ae2 = ae2.nextInAEL;
+                }
+
+                ae.windCount = (IsOdd(cnt1) ? 1 : 0);
+                ae.windCount2 = (IsOdd(cnt2) ? 1 : 0);
+            }
+            else
+            {
+                while (ae2 != ae)
+                {
+                    if (GetPolyType(ae2) == PathType.Clip)
+                        ae.windCount2 += ae2.windDx;
+                    else if (!IsOpen(ae2))
+                        ae.windCount += ae2.windDx;
+                    ae2 = ae2.nextInAEL;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether the newcomer belongs to the right of the resident in the active edge list: by their X at the
+        /// scanline, then by the way the newcomer turns from the top of the resident, and for collinear edges by where
+        /// each turns next and which bound each is.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsValidAelOrder(Active resident, Active newcomer)
+        {
+            if (newcomer.curX != resident.curX)
+                return newcomer.curX > resident.curX;
+
+            // get the turning direction  a1.top, a2.bot, a2.top
+            int d = InternalClipper.CrossProductSign(resident.top, newcomer.bot, newcomer.top);
+            if (d != 0) return (d < 0);
+
+            // edges must be collinear to get here
+
+            // for starting open paths, place them according to
+            // the direction they're about to turn
+            if (!IsMaxima(resident) && (resident.top.Y > newcomer.top.Y))
+            {
+                return InternalClipper.CrossProductSign(newcomer.bot,
+                    resident.top, NextVertex(resident).pt) <= 0;
+            }
+
+            if (!IsMaxima(newcomer) && (newcomer.top.Y > resident.top.Y))
+            {
+                return InternalClipper.CrossProductSign(newcomer.bot,
+                    newcomer.top, NextVertex(newcomer).pt) >= 0;
+            }
+
+            long y = newcomer.bot.Y;
+            bool newcomerIsLeft = newcomer.isLeftBound;
+
+            if (resident.bot.Y != y || resident.localMin.vertex.pt.Y != y)
+                return newcomer.isLeftBound;
+            // resident must also have just been inserted
+            if (resident.isLeftBound != newcomerIsLeft)
+                return newcomerIsLeft;
+            if (InternalClipper.IsCollinear(PrevPrevVertex(resident).pt,
+                        resident.bot, resident.top)) return true;
+            // compare turning direction of the alternate bound
+            return (InternalClipper.CrossProductSign(PrevPrevVertex(resident).pt,
+                newcomer.bot, PrevPrevVertex(newcomer).pt) > 0) == newcomerIsLeft;
+        }
+
+        /// <summary>
+        /// Inserts a new left bound into the active edge list in its place, never between two edges joined to each
+        /// other.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void InsertLeftEdge(Active ae)
+        {
+            if (_actives == null)
+            {
+                ae.prevInAEL = null;
+                ae.nextInAEL = null;
+                _actives = ae;
+            }
+            else if (!IsValidAelOrder(_actives, ae))
+            {
+                ae.prevInAEL = null;
+                ae.nextInAEL = _actives;
+                _actives.prevInAEL = ae;
+                _actives = ae;
+            }
+            else
+            {
+                Active ae2 = _actives;
+                while (ae2.nextInAEL != null && IsValidAelOrder(ae2.nextInAEL, ae))
+                    ae2 = ae2.nextInAEL;
+                //don't separate joined edges
+                if (ae2.joinWith == JoinWith.Right) ae2 = ae2.nextInAEL;
+                ae.nextInAEL = ae2.nextInAEL;
+                if (ae2.nextInAEL != null) ae2.nextInAEL.prevInAEL = ae;
+                ae.prevInAEL = ae2;
+                ae2.nextInAEL = ae;
+            }
+        }
+
+        /// <summary>
+        /// Inserts ae2 into the active edge list just to the right of ae.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InsertRightEdge(Active ae, Active ae2)
+        {
+            ae2.nextInAEL = ae.nextInAEL;
+            if (ae.nextInAEL != null) ae.nextInAEL.prevInAEL = ae2;
+            ae2.prevInAEL = ae;
+            ae.nextInAEL = ae2;
+        }
+
+        /// <summary>
+        /// Starts the two bounds of every local minimum at botY: makes their edges, the left bound and the right, sets
+        /// their winding counts and inserts them into the active edge list. Where they bound the answer an output path
+        /// starts there, or an open path, and the right bound crosses any edge now on its wrong side. Horizontals go
+        /// onto the list of horizontals, and the tops of the other edges become scanlines.
+        /// </summary>
+        private void InsertLocalMinimaIntoAEL(long botY)
+        {
+            // Add any local minima (if any) at BotY ...
+            // NB horizontal local minima edges should contain locMin.vertex.prev
+            while (HasLocMinAtY(botY))
+            {
+                LocalMinima localMinima = PopLocalMinima();
+                Active leftBound;
+                if ((localMinima.vertex.flags & VertexFlags.OpenStart) != VertexFlags.None)
+                {
+                    leftBound = null;
+                }
+                else
+                {
+                    leftBound = NewActive();
+                    leftBound.bot = localMinima.vertex.pt;
+                    leftBound.curX = localMinima.vertex.pt.X;
+                    leftBound.windDx = -1;
+                    leftBound.vertexTop = localMinima.vertex.prev;
+                    leftBound.top = localMinima.vertex.prev.pt;
+                    leftBound.outrec = null;
+                    leftBound.localMin = localMinima;
+                    SetDx(leftBound);
+                }
+
+                Active rightBound;
+                if ((localMinima.vertex.flags & VertexFlags.OpenEnd) != VertexFlags.None)
+                {
+                    rightBound = null;
+                }
+                else
+                {
+                    rightBound = NewActive();
+                    rightBound.bot = localMinima.vertex.pt;
+                    rightBound.curX = localMinima.vertex.pt.X;
+                    rightBound.windDx = 1;
+                    rightBound.vertexTop = localMinima.vertex.next; // i.e. ascending
+                    rightBound.top = localMinima.vertex.next.pt;
+                    rightBound.outrec = null;
+                    rightBound.localMin = localMinima;
+                    SetDx(rightBound);
+                }
+
+                // Currently LeftB is just the descending bound and RightB is the ascending.
+                // Now if the LeftB isn't on the left of RightB then we need swap them.
+                if (leftBound != null && rightBound != null)
+                {
+                    if (IsHorizontal(leftBound))
+                    {
+                        if (IsHeadingRightHorz(leftBound)) SwapActives(ref leftBound, ref rightBound);
+                    }
+                    else if (IsHorizontal(rightBound))
+                    {
+                        if (IsHeadingLeftHorz(rightBound)) SwapActives(ref leftBound, ref rightBound);
+                    }
+                    else if (leftBound.dx < rightBound.dx)
+                        SwapActives(ref leftBound, ref rightBound);
+                    //so when leftBound has windDx == 1, the polygon will be oriented
+                    //counter-clockwise in Cartesian coords (clockwise with inverted Y).
+                }
+                else if (leftBound == null)
+                {
+                    leftBound = rightBound;
+                    rightBound = null;
+                }
+
+                bool contributing;
+                leftBound.isLeftBound = true;
+                InsertLeftEdge(leftBound);
+
+                if (IsOpen(leftBound))
+                {
+                    SetWindCountForOpenPathEdge(leftBound);
+                    contributing = IsContributingOpen(leftBound);
+                }
+                else
+                {
+                    SetWindCountForClosedPathEdge(leftBound);
+                    contributing = IsContributingClosed(leftBound);
+                }
+
+                if (rightBound != null)
+                {
+                    rightBound.windCount = leftBound.windCount;
+                    rightBound.windCount2 = leftBound.windCount2;
+                    InsertRightEdge(leftBound, rightBound); ///////
+
+                    if (contributing)
+                    {
+                        AddLocalMinPoly(leftBound, rightBound, leftBound.bot, true);
+                        if (!IsHorizontal(leftBound))
+                            CheckJoinLeft(leftBound, leftBound.bot);
+                    }
+
+                    while (rightBound.nextInAEL != null &&
+                        IsValidAelOrder(rightBound.nextInAEL, rightBound))
+                    {
+                        IntersectEdges(rightBound, rightBound.nextInAEL, rightBound.bot);
+                        SwapPositionsInAEL(rightBound, rightBound.nextInAEL);
+                    }
+
+                    if (IsHorizontal(rightBound))
+                        PushHorz(rightBound);
+                    else
+                    {
+                        CheckJoinRight(rightBound, rightBound.bot);
+                        InsertScanline(rightBound.top.Y);
+                    }
+                }
+                else if (contributing)
+                    StartOpenPath(leftBound, leftBound.bot);
+
+                if (IsHorizontal(leftBound))
+                    PushHorz(leftBound);
+                else
+                    InsertScanline(leftBound.top.Y);
+            } // while (HasLocMinAtY())
+        }
+
+        /// <summary>
+        /// Puts the horizontal edge on the list of horizontals to process at this scanline.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void PushHorz(Active ae)
+        {
+            ae.nextInSEL = _sel;
+            _sel = ae;
+        }
+
+        /// <summary>
+        /// Takes the horizontal put on the list last; false when the list is empty.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool PopHorz(out Active ae)
+        {
+            ae = _sel;
+            if (_sel == null) return false;
+            _sel = _sel.nextInSEL;
+            return true;
+        }
+
+        /// <summary>
+        /// Starts an output path at pt, where the two edges meet at a local minimum of the answer, and gives it to
+        /// both. A closed path is owned by the output path of the nearest hot edge to its left, and its front and back
+        /// edges are set so that it winds as an outer or as a hole of that owner; isNew tells a local minimum of the
+        /// input from one made by two edges crossing. Returns the first point of the path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private OutPt AddLocalMinPoly(Active ae1, Active ae2, Point64 pt, bool isNew = false)
+        {
+            OutRec outrec = NewOutRec();
+            ae1.outrec = outrec;
+            ae2.outrec = outrec;
+
+            if (IsOpen(ae1))
+            {
+                outrec.owner = null;
+                outrec.isOpen = true;
+                if (ae1.windDx > 0)
+                    SetSides(outrec, ae1, ae2);
+                else
+                    SetSides(outrec, ae2, ae1);
+            }
+            else
+            {
+                outrec.isOpen = false;
+                Active prevHotEdge = GetPrevHotEdge(ae1);
+                // e.windDx is the winding direction of the **input** paths
+                // and unrelated to the winding direction of output polygons.
+                // Output orientation is determined by e.outrec.frontE which is
+                // the ascending edge (see AddLocalMinPoly).
+                if (prevHotEdge != null)
+                {
+                    if (_using_polytree)
+                        SetOwner(outrec, prevHotEdge.outrec);
+                    outrec.owner = prevHotEdge.outrec;
+                    if (OutrecIsAscending(prevHotEdge) == isNew)
+                        SetSides(outrec, ae2, ae1);
+                    else
+                        SetSides(outrec, ae1, ae2);
+                }
+                else
+                {
+                    outrec.owner = null;
+                    if (isNew)
+                        SetSides(outrec, ae1, ae2);
+                    else
+                        SetSides(outrec, ae2, ae1);
+                }
+            }
+
+            OutPt op = _outPtPool.Add(pt, outrec);
+            outrec.pts = op;
+            return op;
+        }
+
+        /// <summary>
+        /// Ends the output paths of two edges that meet at pt, a local maximum of the answer, splitting joined edges
+        /// first. When the edges share a path it is closed (and given its owner in a polytree); when they add to two,
+        /// the two are joined into one. Returns the point added; null, with the sweep marked failed, when both edges
+        /// add to the same side of their paths and neither is an open end.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private OutPt AddLocalMaxPoly(Active ae1, Active ae2, Point64 pt)
+        {
+            if (IsJoined(ae1)) Split(ae1, pt);
+            if (IsJoined(ae2)) Split(ae2, pt);
+
+            if (IsFront(ae1) == IsFront(ae2))
+            {
+                if (IsOpenEnd(ae1))
+                    SwapFrontBackSides(ae1.outrec);
+                else if (IsOpenEnd(ae2))
+                    SwapFrontBackSides(ae2.outrec);
+                else
+                {
+                    _succeeded = false;
+                    return null;
+                }
+            }
+
+            OutPt result = AddOutPt(ae1, pt);
+            if (ae1.outrec == ae2.outrec)
+            {
+                OutRec outrec = ae1.outrec;
+                outrec.pts = result;
+
+                if (_using_polytree)
+                {
+                    Active e = GetPrevHotEdge(ae1);
+                    if (e == null)
+                        outrec.owner = null;
+                    else
+                        SetOwner(outrec, e.outrec);
+                    // nb: outRec.owner here is likely NOT the real
+                    // owner but this will be fixed in DeepCheckOwner()
+                }
+                UncoupleOutRec(ae1);
+            }
+            // and to preserve the winding orientation of outrec ...
+            else if (IsOpen(ae1))
+            {
+                if (ae1.windDx < 0)
+                    JoinOutrecPaths(ae1, ae2);
+                else
+                    JoinOutrecPaths(ae2, ae1);
+            }
+            else if (ae1.outrec.idx < ae2.outrec.idx)
+                JoinOutrecPaths(ae1, ae2);
+            else
+                JoinOutrecPaths(ae2, ae1);
+            return result;
+        }
+
+        /// <summary>
+        /// Joins the output path of ae2 onto that of ae1 where the two edges meet, then empties the path of ae2 and
+        /// makes the path of ae1 its owner. Neither edge adds to a path afterwards: both are maxima about to leave the
+        /// active edge list.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void JoinOutrecPaths(Active ae1, Active ae2)
+        {
+            // join ae2 outrec path onto ae1 outrec path and then delete ae2 outrec path
+            // pointers. (NB Only very rarely do the joining ends share the same coords.)
+            OutPt p1Start = ae1.outrec.pts;
+            OutPt p2Start = ae2.outrec.pts;
+            OutPt p1End = p1Start.next;
+            OutPt p2End = p2Start.next;
+            if (IsFront(ae1))
+            {
+                p2End.prev = p1Start;
+                p1Start.next = p2End;
+                p2Start.next = p1End;
+                p1End.prev = p2Start;
+                ae1.outrec.pts = p2Start;
+                // nb: if IsOpen(e1) then e1 & e2 must be a 'maximaPair'
+                ae1.outrec.frontEdge = ae2.outrec.frontEdge;
+                if (ae1.outrec.frontEdge != null)
+                    ae1.outrec.frontEdge.outrec = ae1.outrec;
+            }
+            else
+            {
+                p1End.prev = p2Start;
+                p2Start.next = p1End;
+                p1Start.next = p2End;
+                p2End.prev = p1Start;
+
+                ae1.outrec.backEdge = ae2.outrec.backEdge;
+                if (ae1.outrec.backEdge != null)
+                    ae1.outrec.backEdge.outrec = ae1.outrec;
+            }
+
+            // after joining, the ae2.OutRec must contains no vertices ...
+            ae2.outrec.frontEdge = null;
+            ae2.outrec.backEdge = null;
+            ae2.outrec.pts = null;
+            ae1.outrec.outPtCount += ae2.outrec.outPtCount;
+            SetOwner(ae2.outrec, ae1.outrec);
+
+            if (IsOpenEnd(ae1))
+            {
+                ae2.outrec.pts = ae1.outrec.pts;
+                ae1.outrec.pts = null;
+            }
+
+            // and ae1 and ae2 are maxima and are about to be dropped from the Actives list.
+            ae1.outrec = null;
+            ae2.outrec = null;
+        }
+
+        /// <summary>
+        /// Adds the point to the side of the output path the edge adds to, its front or its back, unless it repeats the
+        /// point already at that end; returns the output point there.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private OutPt AddOutPt(Active ae, Point64 pt)
+        {
+
+            // Outrec.OutPts: a circular doubly-linked-list of POutPt where ...
+            // opFront[.Prev]* ~~~> opBack & opBack == opFront.Next
+            OutRec outrec = ae.outrec;
+            bool toFront = IsFront(ae);
+            OutPt opFront = outrec.pts;
+            OutPt opBack = opFront.next;
+
+            switch (toFront)
+            {
+                case true when (pt == opFront.pt):
+                    return opFront;
+                case false when (pt == opBack.pt):
+                    return opBack;
+            }
+
+            OutPt newOp = _outPtPool.Add(pt, outrec);
+            opBack.prev = newOp;
+            newOp.prev = opFront;
+            newOp.next = opBack;
+            opFront.next = newOp;
+            if (toFront) outrec.pts = newOp;
+            return newOp;
+        }
+
+        /// <summary>
+        /// A new, empty output path, its index its place in the list of output paths.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private OutRec NewOutRec()
+        {
+            int idx = _outrecList.Count;
+            OutRec result = _outrecList.Add();
+            result.idx = idx;
+            return result;
+        }
+
+        /// <summary>
+        /// Starts an open output path at pt for the edge, which adds to its front or its back by the way it winds;
+        /// returns the first point.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private OutPt StartOpenPath(Active ae, Point64 pt)
+        {
+            OutRec outrec = NewOutRec();
+            outrec.isOpen = true;
+            if (ae.windDx > 0)
+            {
+                outrec.frontEdge = ae;
+                outrec.backEdge = null;
+            }
+            else
+            {
+                outrec.frontEdge = null;
+                outrec.backEdge = ae;
+            }
+
+            ae.outrec = outrec;
+            OutPt op = _outPtPool.Add(pt, outrec);
+            outrec.pts = op;
+            return op;
+        }
+
+        /// <summary>
+        /// Moves the edge on to the next edge of its bound, its top becoming its bottom, and splits it from any join. A
+        /// horizontal is left for the horizontals (a closed one trimmed of the collinear points it runs through); any
+        /// other edge makes its new top a scanline and is checked for joins with its neighbours.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void UpdateEdgeIntoAEL(Active ae)
+        {
+            ae.bot = ae.top;
+            ae.vertexTop = NextVertex(ae);
+            ae.top = ae.vertexTop.pt;
+            ae.curX = ae.bot.X;
+            SetDx(ae);
+
+            if (IsJoined(ae)) Split(ae, ae.bot);
+
+            if (IsHorizontal(ae))
+            {
+                if (!IsOpen(ae)) TrimHorz(ae, PreserveCollinear);
+                return;
+            }
+            InsertScanline(ae.top.Y);
+
+            CheckJoinLeft(ae, ae.bot);
+            CheckJoinRight(ae, ae.bot, true); // (#500)
+        }
+
+        /// <summary>
+        /// The edge that rose from the same local minimum as e, the other bound, looked for to either side of e among
+        /// the edges at its bottom and past horizontals; null when there is none.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Active FindEdgeWithMatchingLocMin(Active e)
+        {
+            Active result = e.nextInAEL;
+            while (result != null)
+            {
+                if (result.localMin == e.localMin) return result;
+                if (!IsHorizontal(result) && e.bot != result.bot) result = null;
+                else result = result.nextInAEL;
+            }
+            result = e.prevInAEL;
+            while (result != null)
+            {
+                if (result.localMin == e.localMin) return result;
+                if (!IsHorizontal(result) && e.bot != result.bot) return null;
+                result = result.prevInAEL;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Two edges crossing at pt, about to swap places: updates their winding counts and, by what the counts and the
+        /// operation say, starts, extends, ends or swaps output paths there. An open path crossing a closed edge starts
+        /// or ends an open output path instead.
+        /// </summary>
+        private void IntersectEdges(Active ae1, Active ae2, Point64 pt)
+        {
+            OutPt resultOp = null;
+            // MANAGE OPEN PATH INTERSECTIONS SEPARATELY ...
+            if (_hasOpenPaths && (IsOpen(ae1) || IsOpen(ae2)))
+            {
+                if (IsOpen(ae1) && IsOpen(ae2)) return;
+                // the following line avoids duplicating quite a bit of code
+                if (IsOpen(ae2)) SwapActives(ref ae1, ref ae2);
+                if (IsJoined(ae2)) Split(ae2, pt); // needed for safety
+
+                if (_cliptype == ClipType.Union)
+                {
+                    if (!IsHotEdge(ae2)) return;
+                }
+                else if (ae2.localMin.polytype == PathType.Subject) return;
+
+                switch (_fillrule)
+                {
+                    case FillRule.Positive:
+                        if (ae2.windCount != 1) return;
+                        break;
+                    case FillRule.Negative:
+                        if (ae2.windCount != -1) return;
+                        break;
+                    default:
+                        if (Math.Abs(ae2.windCount) != 1) return;
+                        break;
+                }
+
+                // toggle contribution ...
+                if (IsHotEdge(ae1))
+                {
+                    resultOp = AddOutPt(ae1, pt);
+                    if (IsFront(ae1))
+                        ae1.outrec.frontEdge = null;
+                    else
+                        ae1.outrec.backEdge = null;
+                    ae1.outrec = null;
+                }
+
+                // horizontal edges can pass under open paths at a LocMins
+                else if (pt == ae1.localMin.vertex.pt &&
+                    !IsOpenEnd(ae1.localMin.vertex))
+                {
+                    // find the other side of the LocMin and
+                    // if it's 'hot' join up with it ...
+                    Active ae3 = FindEdgeWithMatchingLocMin(ae1);
+                    if (ae3 != null && IsHotEdge(ae3))
+                    {
+                        ae1.outrec = ae3.outrec;
+                        if (ae1.windDx > 0)
+                            SetSides(ae3.outrec, ae1, ae3);
+                        else
+                            SetSides(ae3.outrec, ae3, ae1);
+                        return;
+                    }
+
+                    resultOp = StartOpenPath(ae1, pt);
+                }
+                else
+                    resultOp = StartOpenPath(ae1, pt);
+
+                return;
+            }
+
+            // MANAGING CLOSED PATHS FROM HERE ON
+            if (IsJoined(ae1)) Split(ae1, pt);
+            if (IsJoined(ae2)) Split(ae2, pt);
+
+            // UPDATE WINDING COUNTS...
+
+            int oldE1WindCount, oldE2WindCount;
+            if (ae1.localMin.polytype == ae2.localMin.polytype)
+            {
+                if (_fillrule == FillRule.EvenOdd)
+                {
+                    oldE1WindCount = ae1.windCount;
+                    ae1.windCount = ae2.windCount;
+                    ae2.windCount = oldE1WindCount;
+                }
+                else
+                {
+                    if (ae1.windCount + ae2.windDx == 0)
+                        ae1.windCount = -ae1.windCount;
+                    else
+                        ae1.windCount += ae2.windDx;
+                    if (ae2.windCount - ae1.windDx == 0)
+                        ae2.windCount = -ae2.windCount;
+                    else
+                        ae2.windCount -= ae1.windDx;
+                }
+            }
+            else
+            {
+                if (_fillrule != FillRule.EvenOdd)
+                    ae1.windCount2 += ae2.windDx;
+                else
+                    ae1.windCount2 = (ae1.windCount2 == 0 ? 1 : 0);
+                if (_fillrule != FillRule.EvenOdd)
+                    ae2.windCount2 -= ae1.windDx;
+                else
+                    ae2.windCount2 = (ae2.windCount2 == 0 ? 1 : 0);
+            }
+
+            switch (_fillrule)
+            {
+                case FillRule.Positive:
+                    oldE1WindCount = ae1.windCount;
+                    oldE2WindCount = ae2.windCount;
+                    break;
+                case FillRule.Negative:
+                    oldE1WindCount = -ae1.windCount;
+                    oldE2WindCount = -ae2.windCount;
+                    break;
+                default:
+                    oldE1WindCount = Math.Abs(ae1.windCount);
+                    oldE2WindCount = Math.Abs(ae2.windCount);
+                    break;
+            }
+
+            bool e1WindCountIs0or1 = oldE1WindCount == 0 || oldE1WindCount == 1;
+            bool e2WindCountIs0or1 = oldE2WindCount == 0 || oldE2WindCount == 1;
+
+            if ((!IsHotEdge(ae1) && !e1WindCountIs0or1) ||
+                (!IsHotEdge(ae2) && !e2WindCountIs0or1)) return;
+
+            // NOW PROCESS THE INTERSECTION ...
+
+            // if both edges are 'hot' ...
+            if (IsHotEdge(ae1) && IsHotEdge(ae2))
+            {
+                if ((oldE1WindCount != 0 && oldE1WindCount != 1) || (oldE2WindCount != 0 && oldE2WindCount != 1) ||
+                        (ae1.localMin.polytype != ae2.localMin.polytype && _cliptype != ClipType.Xor))
+                {
+                    resultOp = AddLocalMaxPoly(ae1, ae2, pt);
+                }
+                else if (IsFront(ae1) || (ae1.outrec == ae2.outrec))
+                {
+                    // this 'else if' condition isn't strictly needed but
+                    // it's sensible to split polygons that only touch at
+                    // a common vertex (not at common edges).
+                    resultOp = AddLocalMaxPoly(ae1, ae2, pt);
+                    AddLocalMinPoly(ae1, ae2, pt);
+                }
+                else
+                {
+                    // can't treat as maxima & minima
+                    resultOp = AddOutPt(ae1, pt);
+                    AddOutPt(ae2, pt);
+                    SwapOutrecs(ae1, ae2);
+                }
+            }
+
+            // if one or other edge is 'hot' ...
+            else if (IsHotEdge(ae1))
+            {
+                resultOp = AddOutPt(ae1, pt);
+                SwapOutrecs(ae1, ae2);
+            }
+            else if (IsHotEdge(ae2))
+            {
+                resultOp = AddOutPt(ae2, pt);
+                SwapOutrecs(ae1, ae2);
+            }
+
+            // neither edge is 'hot'
+            else
+            {
+                long e1Wc2, e2Wc2;
+                switch (_fillrule)
+                {
+                    case FillRule.Positive:
+                        e1Wc2 = ae1.windCount2;
+                        e2Wc2 = ae2.windCount2;
+                        break;
+                    case FillRule.Negative:
+                        e1Wc2 = -ae1.windCount2;
+                        e2Wc2 = -ae2.windCount2;
+                        break;
+                    default:
+                        e1Wc2 = Math.Abs(ae1.windCount2);
+                        e2Wc2 = Math.Abs(ae2.windCount2);
+                        break;
+                }
+
+                if (!IsSamePolyType(ae1, ae2))
+                {
+                    resultOp = AddLocalMinPoly(ae1, ae2, pt);
+                }
+                else if (oldE1WindCount == 1 && oldE2WindCount == 1)
+                {
+                    resultOp = null;
+                    switch (_cliptype)
+                    {
+                        case ClipType.Union:
+                            if (e1Wc2 > 0 && e2Wc2 > 0) return;
+                            resultOp = AddLocalMinPoly(ae1, ae2, pt);
+                            break;
+
+                        case ClipType.Difference:
+                            if (((GetPolyType(ae1) == PathType.Clip) && (e1Wc2 > 0) && (e2Wc2 > 0)) ||
+                                    ((GetPolyType(ae1) == PathType.Subject) && (e1Wc2 <= 0) && (e2Wc2 <= 0)))
+                            {
+                                resultOp = AddLocalMinPoly(ae1, ae2, pt);
+                            }
+
+                            break;
+
+                        case ClipType.Xor:
+                            resultOp = AddLocalMinPoly(ae1, ae2, pt);
+                            break;
+
+                        default: // ClipType.Intersection:
+                            if (e1Wc2 <= 0 || e2Wc2 <= 0) return;
+                            resultOp = AddLocalMinPoly(ae1, ae2, pt);
+                            break;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Takes the edge out of the active edge list and keeps it for reuse; nothing when it is out already.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DeleteFromAEL(Active ae)
+        {
+            Active prev = ae.prevInAEL;
+            Active next = ae.nextInAEL;
+            if (prev == null && next == null && (ae != _actives)) return; // already deleted
+            if (prev != null)
+                prev.nextInAEL = next;
+            else
+                _actives = next;
+            if (next != null) next.prevInAEL = prev;
+            // delete &ae;
+            PoolDeletedActive(ae);
+        }
+
+        /// <summary>
+        /// Empties the edge and keeps it to be used again.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void PoolDeletedActive(Active ae)
+        {
+            //clear refs to allow GC
+            ae.bot = new Point64();
+            ae.top = new Point64();
+            ae.dx = 0.0;
+            ae.windCount = 0;
+            ae.windCount2 = 0;
+            ae.outrec = null;
+            ae.prevInAEL = null;
+            ae.nextInAEL = null;
+            ae.prevInSEL = null;
+            ae.nextInSEL = null;
+            ae.jump = null;
+            ae.vertexTop = null;
+            ae.localMin = new LocalMinima();
+            ae.isLeftBound = false;
+            ae.joinWith = JoinWith.None;
+            _freeActives.Push(ae);
+        }
+
+        /// <summary>
+        /// An edge to use: one kept for reuse, or a new one.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Active NewActive()
+        {
+            Active ae;
+            if (_freeActives.Count == 0)
+            {
+                ae = new Active();
+            }
+            else
+            {
+                //recycle active from free list
+                ae = _freeActives.Pop();
+            }
+            return ae;
+        }
+
+        /// <summary>
+        /// Sets the X of every active edge at the top of the scanbeam and copies the active edge list into the sorted
+        /// edge list, ready to find where edges cross.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void AdjustCurrXAndCopyToSEL(long topY)
+        {
+            Active ae = _actives;
+            _sel = ae;
+            while (ae != null)
+            {
+                ae.prevInSEL = ae.prevInAEL;
+                ae.nextInSEL = ae.nextInAEL;
+                ae.jump = ae.nextInSEL;
+                // it is safe to ignore 'joined' edges here because
+                // if necessary they will be split in IntersectEdges()
+                ae.curX = TopX(ae, topY);
+                // NB don't update ae.curr.Y yet (see AddNewIntersectNode)
+                ae = ae.nextInAEL;
+            }
+        }
+
+        /// <summary>
+        /// Runs the sweep. At each scanline, from the largest Y to the smallest, it starts the bounds of the local
+        /// minima there and processes the horizontals, then finds and processes the crossings within the scanbeam and
+        /// the edges that end at its top; when the sweep is done it joins the output paths that meet along horizontals.
+        /// It stops where the sweep fails, and does nothing for NoClip.
+        /// </summary>
+        protected void ExecuteInternal(ClipType ct, FillRule fillRule)
+        {
+            if (ct == ClipType.NoClip) return;
+            _fillrule = fillRule;
+            _cliptype = ct;
+            Reset();
+            if (!PopScanline(out long y)) return;
+            while (_succeeded)
+            {
+                InsertLocalMinimaIntoAEL(y);
+                Active ae;
+                while (PopHorz(out ae)) DoHorizontal(ae);
+                if (_horzSegList.Count > 0)
+                {
+                    ConvertHorzSegsToJoins();
+                    _horzSegList.Clear();
+                }
+                _currentBotY = y; // bottom of scanbeam
+                if (!PopScanline(out y))
+                    break; // y new top of scanbeam
+                DoIntersections(y);
+                DoTopOfScanbeam(y);
+                while (PopHorz(out ae)) DoHorizontal(ae);
+            }
+            if (_succeeded) ProcessHorzJoins();
+        }
+
+        /// <summary>
+        /// Finds the edges that cross within the scanbeam up to topY and processes the crossings in order.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DoIntersections(long topY)
+        {
+            if (!BuildIntersectList(topY)) return;
+            ProcessIntersectList();
+            DisposeIntersectNodes();
+        }
+
+        /// <summary>
+        /// Empties the list of crossings.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DisposeIntersectNodes()
+        {
+            _intersectList.Clear();
+        }
+
+        /// <summary>
+        /// Adds the crossing of the two edges to the list. When the lines through them cross outside the scanbeam, as
+        /// rounding can make them, the point is brought back: onto the nearest point of an edge that is nearly
+        /// horizontal, or else to the top or the bottom of the scanbeam along the steeper edge.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void AddNewIntersectNode(Active ae1, Active ae2, long topY)
+        {
+            if (!InternalClipper.GetLineIntersectPt(
+                ae1.bot, ae1.top, ae2.bot, ae2.top, out Point64 ip))
+                    ip = new Point64(ae1.curX, topY);
+
+            if (ip.Y > _currentBotY || ip.Y < topY)
+            {
+                double absDx1 = Math.Abs(ae1.dx);
+                double absDx2 = Math.Abs(ae2.dx);
+                switch (absDx1 > 100)
+                {
+                    case true when absDx2 > 100:
+                    {
+                        if (absDx1 > absDx2)
+                            ip = InternalClipper.GetClosestPtOnSegment(ip, ae1.bot, ae1.top);
+                        else
+                            ip = InternalClipper.GetClosestPtOnSegment(ip, ae2.bot, ae2.top);
+                        break;
+                    }
+                    case true:
+                        ip = InternalClipper.GetClosestPtOnSegment(ip, ae1.bot, ae1.top);
+                        break;
+                    default:
+                    {
+                        if (absDx2 > 100)
+                            ip = InternalClipper.GetClosestPtOnSegment(ip, ae2.bot, ae2.top);
+                        else
+                        {
+                            if (ip.Y < topY) ip.Y = topY;
+                            else ip.Y = _currentBotY;
+                            if (absDx1 < absDx2) ip.X = TopX(ae1, ip.Y);
+                            else ip.X = TopX(ae2, ip.Y);
+                        }
+
+                        break;
+                    }
+                }
+            }
+            IntersectNode node = new IntersectNode(ip, ae1, ae2);
+            _intersectList.Add(node);
+        }
+
+        /// <summary>
+        /// Takes the edge out of the sorted edge list and returns the edge after it.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Active ExtractFromSEL(Active ae)
+        {
+            Active res = ae.nextInSEL;
+            if (res != null)
+                res.prevInSEL = ae.prevInSEL;
+            ae.prevInSEL.nextInSEL = res;
+            return res;
+        }
+
+        /// <summary>
+        /// Inserts ae1 into the sorted edge list just before ae2.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Insert1Before2InSEL(Active ae1, Active ae2)
+        {
+            ae1.prevInSEL = ae2.prevInSEL;
+            if (ae1.prevInSEL != null)
+                ae1.prevInSEL.nextInSEL = ae1;
+            ae1.nextInSEL = ae2;
+            ae2.prevInSEL = ae1;
+        }
+
+        /// <summary>
+        /// Finds every pair of edges that cross between the bottom and the top of the scanbeam, by a stable merge sort
+        /// of the edges on their X at its top in which every swap of neighbours is a crossing; false when none cross.
+        /// </summary>
+        private bool BuildIntersectList(long topY)
+        {
+            if (_actives?.nextInAEL == null) return false;
+
+            // Calculate edge positions at the top of the current scanbeam, and from this
+            // we will determine the intersections required to reach these new positions.
+            AdjustCurrXAndCopyToSEL(topY);
+
+            // Find all edge intersections in the current scanbeam using a stable merge
+            // sort that ensures only adjacent edges are intersecting. Intersect info is
+            // stored in FIntersectList ready to be processed in ProcessIntersectList.
+            // Re merge sorts see https://stackoverflow.com/a/46319131/359538
+
+            Active left = _sel;
+
+            while (left.jump != null)
+            {
+                Active prevBase = null;
+                while (left?.jump != null)
+                {
+                    Active currBase = left;
+                    Active right = left.jump;
+                    Active lEnd = right;
+                    Active rEnd = right.jump;
+                    left.jump = rEnd;
+                    while (left != lEnd && right != rEnd)
+                    {
+                        if (right.curX < left.curX)
+                        {
+                            Active tmp = right.prevInSEL;
+                            for (; ; )
+                            {
+                                AddNewIntersectNode(tmp, right, topY);
+                                if (tmp == left) break;
+                                tmp = tmp.prevInSEL;
+                            }
+
+                            tmp = right;
+                            right = ExtractFromSEL(tmp);
+                            lEnd = right;
+                            Insert1Before2InSEL(tmp, left);
+                            if (left != currBase) continue;
+                            currBase = tmp;
+                            currBase.jump = rEnd;
+                            if (prevBase == null) _sel = currBase;
+                            else prevBase.jump = currBase;
+                        }
+                        else left = left.nextInSEL;
+                    }
+
+                    prevBase = currBase;
+                    left = rEnd;
+                }
+                left = _sel;
+            }
+
+            return _intersectList.Count > 0;
+        }
+
+        /// <summary>
+        /// Processes the crossings from the bottom of the scanbeam up, reordering them where needed so that the two
+        /// edges of each are neighbours when they cross. Each crossing updates the output paths, swaps its edges and
+        /// checks them for joins.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ProcessIntersectList()
+        {
+            // We now have a list of intersections required so that edges will be
+            // correctly positioned at the top of the scanbeam. However, it's important
+            // that edge intersections are processed from the bottom up, but it's also
+            // crucial that intersections only occur between adjacent edges.
+
+            // First we do a quicksort so intersections proceed in a bottom up order ...
+            _intersectList.Sort(new IntersectListSort());
+
+            // Now as we process these intersections, we must sometimes adjust the order
+            // to ensure that intersecting edges are always adjacent ...
+            for (int i = 0; i < _intersectList.Count; ++i)
+            {
+                if (!EdgesAdjacentInAEL(_intersectList[i]))
+                {
+                    int j = i + 1;
+                    while (!EdgesAdjacentInAEL(_intersectList[j])) j++;
+                    // swap
+                    (_intersectList[j], _intersectList[i]) =
+                        (_intersectList[i], _intersectList[j]);
+                }
+
+                IntersectNode node = _intersectList[i];
+                IntersectEdges(node.edge1, node.edge2, node.pt);
+                SwapPositionsInAEL(node.edge1, node.edge2);
+
+                node.edge1.curX = node.pt.X;
+                node.edge2.curX = node.pt.X;
+                CheckJoinLeft(node.edge2, node.pt, true);
+                CheckJoinRight(node.edge1, node.pt, true);
+            }
+        }
+
+        /// <summary>
+        /// Swaps two neighbouring edges in the active edge list, ae1 being just to the left of ae2.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SwapPositionsInAEL(Active ae1, Active ae2)
+        {
+            // preconditon: ae1 must be immediately to the left of ae2
+            Active next = ae2.nextInAEL;
+            if (next != null) next.prevInAEL = ae1;
+            Active prev = ae1.prevInAEL;
+            if (prev != null) prev.nextInAEL = ae2;
+            ae2.prevInAEL = prev;
+            ae2.nextInAEL = ae1;
+            ae1.prevInAEL = ae2;
+            ae1.nextInAEL = next;
+            if (ae2.prevInAEL == null) _actives = ae2;
+        }
+
+        /// <summary>
+        /// Whether the horizontal heads right, with the range of X it spans from its current X to its top. A horizontal
+        /// of no length heads right when the edge that shares its maximum lies to its right.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool ResetHorzDirection(Active horz, Vertex vertexMax,
+                out long leftX, out long rightX)
+        {
+            if (horz.bot.X == horz.top.X)
+            {
+                // the horizontal edge is going nowhere ...
+                leftX = horz.curX;
+                rightX = horz.curX;
+                Active ae = horz.nextInAEL;
+                while (ae != null && ae.vertexTop != vertexMax)
+                    ae = ae.nextInAEL;
+                return ae != null;
+            }
+
+            if (horz.curX < horz.top.X)
+            {
+                leftX = horz.curX;
+                rightX = horz.top.X;
+                return true;
+            }
+            leftX = horz.top.X;
+            rightX = horz.curX;
+            return false; // right to left
+        }
+
+        /// <summary>
+        /// Takes the horizontal on over the horizontal edges that follow it in its bound, up to a maximum: those that
+        /// turn straight back always, those going on the same way only when collinear points are not kept.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void TrimHorz(Active horzEdge, bool preserveCollinear)
+        {
+            bool wasTrimmed = false;
+            Point64 pt = NextVertex(horzEdge).pt;
+
+            while (pt.Y == horzEdge.top.Y)
+            {
+                // always trim 180 deg. spikes (in closed paths)
+                // but otherwise break if preserveCollinear = true
+                if (preserveCollinear &&
+                (pt.X < horzEdge.top.X) != (horzEdge.bot.X < horzEdge.top.X))
+                    break;
+
+                horzEdge.vertexTop = NextVertex(horzEdge);
+                horzEdge.top = pt;
+                wasTrimmed = true;
+                if (IsMaxima(horzEdge)) break;
+                pt = NextVertex(horzEdge).pt;
+            }
+            if (wasTrimmed) SetDx(horzEdge); // +/-infinity
+        }
+
+        /// <summary>
+        /// Starts a horizontal segment at the output point, unless its path is open.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void AddToHorzSegList(OutPt op)
+        {
+            if (op.outrec.isOpen) return;
+            _horzSegList.Add(new HorzSegment(op));
+        }
+
+        /// <summary>
+        /// The output point the edge added last: the front of its path when it is the front edge, else the back.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static OutPt GetLastOp(Active hotEdge)
+        {
+            OutRec outrec = hotEdge.outrec;
+            return (hotEdge == outrec.frontEdge) ?
+                outrec.pts : outrec.pts.next;
+        }
+
+        /// <summary>
+        /// Processes a horizontal edge at its scanline. It crosses the edges it passes on its way from one end to the
+        /// other, adding output points as it goes, and either ends at the maximum it shares with another edge or moves
+        /// on to the rest of its bound, horizontals after it included. The notes below show the layering.
+        /// </summary>
+        private void DoHorizontal(Active horz)
+        /*******************************************************************************
+         * Notes: Horizontal edges (HEs) at scanline intersections (i.e. at the top or  *
+         * bottom of a scanbeam) are processed as if layered. The order in which HEs    *
+         * are processed doesn't matter. HEs intersect with the bottom vertices of      *
+         * other HEs[#] and with non-horizontal edges [*]. Once these intersections     *
+         * are completed, intermediate HEs are 'promoted' to the next edge in their     *
+         * bounds, and they in turn may be intersected[%] by other HEs.                 *
+         *                                                                              *
+         * eg: 3 horizontals at a scanline:    /   |                     /           /  *
+         *              |                     /    |     (HE3)o ========%========== o   *
+         *              o ======= o(HE2)     /     |         /         /                *
+         *          o ============#=========*======*========#=========o (HE1)           *
+         *         /              |        /       |       /                            *
+         *******************************************************************************/
+        {
+            bool horzIsOpen = IsOpen(horz);
+            long Y = horz.bot.Y;
+
+            Vertex vertex_max = horzIsOpen ?
+                GetCurrYMaximaVertex_Open(horz) :
+                GetCurrYMaximaVertex(horz);
+
+            bool isLeftToRight =
+                ResetHorzDirection(horz, vertex_max, out long leftX, out long rightX);
 
             if (IsHotEdge(horz))
             {
-              while (horz.vertexTop != vertex_max)
-              {
-                AddOutPt(horz, horz.top);
+                OutPt op = AddOutPt(horz, new Point64(horz.curX, Y));
+                AddToHorzSegList(op);
+            }
+
+            for (; ; )
+            {
+                // loops through consec. horizontal edges (if open)
+                Active ae = isLeftToRight ? horz.nextInAEL : horz.prevInAEL;
+
+                while (ae != null)
+                {
+                    if (ae.vertexTop == vertex_max)
+                    {
+                        // do this first!!
+                        if (IsHotEdge(horz) && IsJoined(ae)) Split(ae, ae.top);
+
+                        if (IsHotEdge(horz))
+                        {
+                            while (horz.vertexTop != vertex_max)
+                            {
+                                AddOutPt(horz, horz.top);
+                                UpdateEdgeIntoAEL(horz);
+                            }
+                            if (isLeftToRight)
+                                AddLocalMaxPoly(horz, ae, horz.top);
+                            else
+                                AddLocalMaxPoly(ae, horz, horz.top);
+                        }
+                        DeleteFromAEL(ae);
+                        DeleteFromAEL(horz);
+                        return;
+                    }
+
+                    // if horzEdge is a maxima, keep going until we reach
+                    // its maxima pair, otherwise check for break conditions
+                    Point64 pt;
+                    if (vertex_max != horz.vertexTop || IsOpenEnd(horz))
+                    {
+                        // otherwise stop when 'ae' is beyond the end of the horizontal line
+                        if ((isLeftToRight && ae.curX > rightX) ||
+                                (!isLeftToRight && ae.curX < leftX)) break;
+
+                        if (ae.curX == horz.top.X && !IsHorizontal(ae))
+                        {
+                            pt = NextVertex(horz).pt;
+
+                            // to maximize the possibility of putting open edges into
+                            // solutions, we'll only break if it's past HorzEdge's end
+                            if (IsOpen(ae) && !IsSamePolyType(ae, horz) && !IsHotEdge(ae))
+                            {
+                                if ((isLeftToRight && (TopX(ae, pt.Y) > pt.X)) ||
+                                    (!isLeftToRight && (TopX(ae, pt.Y) < pt.X))) break;
+                            }
+                            // otherwise for edges at horzEdge's end, only stop when horzEdge's
+                            // outslope is greater than e's slope when heading right or when
+                            // horzEdge's outslope is less than e's slope when heading left.
+                            else if ((isLeftToRight && (TopX(ae, pt.Y) >= pt.X)) ||
+                                    (!isLeftToRight && (TopX(ae, pt.Y) <= pt.X))) break;
+                        }
+                    }
+
+                    pt = new Point64(ae.curX, Y);
+
+                    if (isLeftToRight)
+                    {
+                        IntersectEdges(horz, ae, pt);
+                        SwapPositionsInAEL(horz, ae);
+                        CheckJoinLeft(ae, pt);
+                        horz.curX = ae.curX;
+                        ae = horz.nextInAEL;
+                    }
+                    else
+                    {
+                        IntersectEdges(ae, horz, pt);
+                        SwapPositionsInAEL(ae, horz);
+                        CheckJoinRight(ae, pt);
+                        horz.curX = ae.curX;
+                        ae = horz.prevInAEL;
+                    }
+
+                    if (IsHotEdge(horz))
+                        AddToHorzSegList(GetLastOp(horz));
+
+                } // we've reached the end of this horizontal
+
+                // check if we've finished looping
+                // through consecutive horizontals
+                if (horzIsOpen && IsOpenEnd(horz)) // ie open at top
+                {
+                    if (IsHotEdge(horz))
+                    {
+                        AddOutPt(horz, horz.top);
+                        if (IsFront(horz))
+                            horz.outrec.frontEdge = null;
+                        else
+                            horz.outrec.backEdge = null;
+                        horz.outrec = null;
+                    }
+                    DeleteFromAEL(horz);
+                    return;
+                }
+                if (NextVertex(horz).pt.Y != horz.top.Y)
+                    break;
+
+                //still more horizontals in bound to process ...
+                if (IsHotEdge(horz))
+                    AddOutPt(horz, horz.top);
+
                 UpdateEdgeIntoAEL(horz);
-              }
-              if (isLeftToRight)
-                AddLocalMaxPoly(horz, ae, horz.top);
-              else
-                AddLocalMaxPoly(ae, horz, horz.top);
+
+                isLeftToRight = ResetHorzDirection(horz,
+                    vertex_max, out leftX, out rightX);
+
+            } // end for loop and end of (possible consecutive) horizontals
+
+            if (IsHotEdge(horz))
+            {
+                OutPt op = AddOutPt(horz, horz.top);
+                AddToHorzSegList(op);
             }
+
+            UpdateEdgeIntoAEL(horz); // this is the end of an intermediate horiz.
+        }
+
+        /// <summary>
+        /// Processes the top of the scanbeam at y. An edge that ends there either tops out at a maximum, which DoMaxima
+        /// handles, or moves on to the next edge of its bound, adding its top to its output path (a horizontal next is
+        /// put aside for later); every other edge takes its X at y.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DoTopOfScanbeam(long y)
+        {
+            _sel = null; // sel_ is reused to flag horizontals (see PushHorz below)
+            Active ae = _actives;
+            while (ae != null)
+            {
+                // NB 'ae' will never be horizontal here
+                if (ae.top.Y == y)
+                {
+                    ae.curX = ae.top.X;
+                    if (IsMaxima(ae))
+                    {
+                        ae = DoMaxima(ae); // TOP OF BOUND (MAXIMA)
+                        continue;
+                    }
+
+                    // INTERMEDIATE VERTEX ...
+                    if (IsHotEdge(ae))
+                        AddOutPt(ae, ae.top);
+                    UpdateEdgeIntoAEL(ae);
+                    if (IsHorizontal(ae))
+                        PushHorz(ae); // horizontals are processed later
+                }
+                else // i.e. not the top of the edge
+                    ae.curX = TopX(ae, y);
+
+                ae = ae.nextInAEL;
+            }
+        }
+
+        /// <summary>
+        /// Ends an edge at its maximum. At an open end its output path is ended there; otherwise the edges between it
+        /// and the other side of the same maximum are crossed, the output paths of the two are ended at the top, and
+        /// both leave the active edge list. Returns the edge to go on with.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Active DoMaxima(Active ae)
+        {
+            Active prevE = ae.prevInAEL;
+            Active nextE = ae.nextInAEL;
+
+            if (IsOpenEnd(ae))
+            {
+                if (IsHotEdge(ae)) AddOutPt(ae, ae.top);
+                if (IsHorizontal(ae)) return nextE;
+                if (IsHotEdge(ae))
+                {
+                    if (IsFront(ae))
+                        ae.outrec.frontEdge = null;
+                    else
+                        ae.outrec.backEdge = null;
+                    ae.outrec = null;
+                }
+                DeleteFromAEL(ae);
+                return nextE;
+            }
+
+            Active maxPair = GetMaximaPair(ae);
+            if (maxPair == null) return nextE; // eMaxPair is horizontal
+
+            if (IsJoined(ae)) Split(ae, ae.top);
+            if (IsJoined(maxPair)) Split(maxPair, maxPair.top);
+
+            // only non-horizontal maxima here.
+            // process any edges between maxima pair ...
+            while (nextE != maxPair)
+            {
+                IntersectEdges(ae, nextE, ae.top);
+                SwapPositionsInAEL(ae, nextE);
+                nextE = ae.nextInAEL;
+            }
+
+            if (IsOpen(ae))
+            {
+                if (IsHotEdge(ae))
+                    AddLocalMaxPoly(ae, maxPair, ae.top);
+                DeleteFromAEL(maxPair);
+                DeleteFromAEL(ae);
+                return (prevE != null ? prevE.nextInAEL : _actives);
+            }
+
+            // here ae.nextInAel == ENext == EMaxPair ...
+            if (IsHotEdge(ae))
+                AddLocalMaxPoly(ae, maxPair, ae.top);
+
             DeleteFromAEL(ae);
-            DeleteFromAEL(horz);
-            return;
-          }
+            DeleteFromAEL(maxPair);
+            return (prevE != null ? prevE.nextInAEL : _actives);
+        }
 
-          // if horzEdge is a maxima, keep going until we reach
-          // its maxima pair, otherwise check for break conditions
-          Point64 pt;
-          if (vertex_max != horz.vertexTop || IsOpenEnd(horz))
-          {
-            // otherwise stop when 'ae' is beyond the end of the horizontal line
-            if ((isLeftToRight && ae.curX > rightX) ||
-                (!isLeftToRight && ae.curX < leftX)) break;
+        /// <summary>
+        /// Whether the edge is joined with a neighbour.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsJoined(Active e)
+        {
+            return e.joinWith != JoinWith.None;
+        }
 
-            if (ae.curX == horz.top.X && !IsHorizontal(ae))
+        /// <summary>
+        /// Parts the edge from the neighbour it is joined with, starting a new output path for the two at currPt.
+        /// </summary>
+        private void Split(Active e, Point64 currPt)
+        {
+            if (e.joinWith == JoinWith.Right)
             {
-              pt = NextVertex(horz).pt;
-
-              // to maximize the possibility of putting open edges into
-              // solutions, we'll only break if it's past HorzEdge's end
-              if (IsOpen(ae) && !IsSamePolyType(ae, horz) && !IsHotEdge(ae))
-              {
-                if ((isLeftToRight && (TopX(ae, pt.Y) > pt.X)) ||
-                  (!isLeftToRight && (TopX(ae, pt.Y) < pt.X))) break;
-              }
-              // otherwise for edges at horzEdge's end, only stop when horzEdge's
-              // outslope is greater than e's slope when heading right or when
-              // horzEdge's outslope is less than e's slope when heading left.
-              else if ((isLeftToRight && (TopX(ae, pt.Y) >= pt.X)) ||
-                  (!isLeftToRight && (TopX(ae, pt.Y) <= pt.X))) break;
+                e.joinWith = JoinWith.None;
+                e.nextInAEL.joinWith = JoinWith.None;
+                AddLocalMinPoly(e, e.nextInAEL, currPt, true);
             }
-          }
-
-          pt = new Point64(ae.curX, Y);
-
-          if (isLeftToRight)
-          {
-            IntersectEdges(horz, ae, pt);
-            SwapPositionsInAEL(horz, ae);
-            CheckJoinLeft(ae, pt);
-            horz.curX = ae.curX;
-            ae = horz.nextInAEL;
-          }
-          else
-          {
-            IntersectEdges(ae, horz, pt);
-            SwapPositionsInAEL(ae, horz);
-            CheckJoinRight(ae, pt);
-            horz.curX = ae.curX;
-            ae = horz.prevInAEL;
-          }
-
-          if (IsHotEdge(horz))
-            AddToHorzSegList(GetLastOp(horz));
-
-        } // we've reached the end of this horizontal
-
-        // check if we've finished looping
-        // through consecutive horizontals
-        if (horzIsOpen && IsOpenEnd(horz)) // ie open at top
-        {
-          if (IsHotEdge(horz))
-          {
-            AddOutPt(horz, horz.top);
-            if (IsFront(horz))
-              horz.outrec.frontEdge = null;
             else
-              horz.outrec.backEdge = null;
-            horz.outrec = null;
-          }
-          DeleteFromAEL(horz);
-          return;
-        }
-        if (NextVertex(horz).pt.Y != horz.top.Y)
-          break;
-
-        //still more horizontals in bound to process ...
-        if (IsHotEdge(horz))
-          AddOutPt(horz, horz.top);
-
-        UpdateEdgeIntoAEL(horz);
-
-        isLeftToRight = ResetHorzDirection(horz,
-          vertex_max, out leftX, out rightX);
-
-      } // end for loop and end of (possible consecutive) horizontals
-
-      if (IsHotEdge(horz))
-      {
-        OutPt op = AddOutPt(horz, horz.top);
-        AddToHorzSegList(op);
-      }
-
-      UpdateEdgeIntoAEL(horz); // this is the end of an intermediate horiz.
-    }
-
-    /// <summary>
-    /// Processes the top of the scanbeam at y. An edge that ends there either tops out at a maximum, which DoMaxima
-    /// handles, or moves on to the next edge of its bound, adding its top to its output path (a horizontal next is put
-    /// aside for later); every other edge takes its X at y.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void DoTopOfScanbeam(long y)
-    {
-      _sel = null; // sel_ is reused to flag horizontals (see PushHorz below)
-      Active ae = _actives;
-      while (ae != null)
-      {
-        // NB 'ae' will never be horizontal here
-        if (ae.top.Y == y)
-        {
-          ae.curX = ae.top.X;
-          if (IsMaxima(ae))
-          {
-            ae = DoMaxima(ae); // TOP OF BOUND (MAXIMA)
-            continue;
-          }
-
-          // INTERMEDIATE VERTEX ...
-          if (IsHotEdge(ae))
-            AddOutPt(ae, ae.top);
-          UpdateEdgeIntoAEL(ae);
-          if (IsHorizontal(ae))
-            PushHorz(ae); // horizontals are processed later
-        }
-        else // i.e. not the top of the edge
-          ae.curX = TopX(ae, y);
-
-        ae = ae.nextInAEL;
-      }
-    }
-
-    /// <summary>
-    /// Ends an edge at its maximum. At an open end its output path is ended there; otherwise the edges between it and
-    /// the other side of the same maximum are crossed, the output paths of the two are ended at the top, and both leave
-    /// the active edge list. Returns the edge to go on with.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Active DoMaxima(Active ae)
-    {
-      Active prevE = ae.prevInAEL;
-      Active nextE = ae.nextInAEL;
-
-      if (IsOpenEnd(ae))
-      {
-        if (IsHotEdge(ae)) AddOutPt(ae, ae.top);
-        if (IsHorizontal(ae)) return nextE;
-        if (IsHotEdge(ae))
-        {
-          if (IsFront(ae))
-            ae.outrec.frontEdge = null;
-          else
-            ae.outrec.backEdge = null;
-          ae.outrec = null;
-        }
-        DeleteFromAEL(ae);
-        return nextE;
-      }
-
-      Active maxPair = GetMaximaPair(ae);
-      if (maxPair == null) return nextE; // eMaxPair is horizontal
-
-      if (IsJoined(ae)) Split(ae, ae.top);
-      if (IsJoined(maxPair)) Split(maxPair, maxPair.top);
-
-      // only non-horizontal maxima here.
-      // process any edges between maxima pair ...
-      while (nextE != maxPair)
-      {
-        IntersectEdges(ae, nextE, ae.top);
-        SwapPositionsInAEL(ae, nextE);
-        nextE = ae.nextInAEL;
-      }
-
-      if (IsOpen(ae))
-      {
-        if (IsHotEdge(ae))
-          AddLocalMaxPoly(ae, maxPair, ae.top);
-        DeleteFromAEL(maxPair);
-        DeleteFromAEL(ae);
-        return (prevE != null ? prevE.nextInAEL : _actives);
-      }
-
-      // here ae.nextInAel == ENext == EMaxPair ...
-      if (IsHotEdge(ae))
-        AddLocalMaxPoly(ae, maxPair, ae.top);
-
-      DeleteFromAEL(ae);
-      DeleteFromAEL(maxPair);
-      return (prevE != null ? prevE.nextInAEL : _actives);
-    }
-
-    /// <summary>
-    /// Whether the edge is joined with a neighbour.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsJoined(Active e)
-    {
-      return e.joinWith != JoinWith.None;
-    }
-
-    /// <summary>
-    /// Parts the edge from the neighbour it is joined with, starting a new output path for the two at currPt.
-    /// </summary>
-    private void Split(Active e, Point64 currPt)
-    {
-      if (e.joinWith == JoinWith.Right)
-      {
-        e.joinWith = JoinWith.None;
-        e.nextInAEL.joinWith = JoinWith.None;
-        AddLocalMinPoly(e, e.nextInAEL, currPt, true);
-      }
-      else
-      {
-        e.joinWith = JoinWith.None;
-        e.prevInAEL.joinWith = JoinWith.None;
-        AddLocalMinPoly(e.prevInAEL, e, currPt, true);
-      }
-    }
-
-    /// <summary>
-    /// Joins the output paths of the edge and its left neighbour where the two run on together from pt: both hot,
-    /// closed and not horizontal, at the same X (or, with checkCurrX, pt within half a unit of the neighbour) and
-    /// collinear. The two paths become one, or one path is closed, and the edges are marked joined; joins too near the
-    /// ends of the edges to matter are skipped.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void CheckJoinLeft(Active e,
-      Point64 pt, bool checkCurrX = false)
-    {
-      Active prev = e.prevInAEL;
-      if (prev == null ||
-        !IsHotEdge(e) || !IsHotEdge(prev) ||
-        IsHorizontal(e) || IsHorizontal(prev) ||
-        IsOpen(e) || IsOpen(prev)) return;
-      if ((pt.Y < e.top.Y + 2 || pt.Y < prev.top.Y + 2) &&  // avoid trivial joins
-        ((e.bot.Y > pt.Y) || (prev.bot.Y > pt.Y))) return;  // (#490)
-
-      if (checkCurrX)
-      {
-        if (Clipper2.PerpendicDistFromLineSqrd(pt, prev.bot, prev.top) > 0.25) return;
-      }
-      else if (e.curX != prev.curX) return;
-      if (!InternalClipper.IsCollinear(e.top, pt, prev.top)) return;
-
-      if (e.outrec.idx == prev.outrec.idx)
-        AddLocalMaxPoly(prev, e, pt);
-      else if (e.outrec.idx < prev.outrec.idx)
-        JoinOutrecPaths(e, prev);
-      else
-        JoinOutrecPaths(prev, e);
-      prev.joinWith = JoinWith.Right;
-      e.joinWith = JoinWith.Left;
-    }
-
-    /// <summary>
-    /// Joins the output paths of the edge and its right neighbour where the two run on together from pt: both hot,
-    /// closed and not horizontal, at the same X (or, with checkCurrX, pt within half a unit of the neighbour) and
-    /// collinear. The two paths become one, or one path is closed, and the edges are marked joined; joins too near the
-    /// ends of the edges to matter are skipped.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void CheckJoinRight(Active e,
-      Point64 pt, bool checkCurrX = false)
-    {
-      Active next = e.nextInAEL;
-      if (next == null ||
-        !IsHotEdge(e) || !IsHotEdge(next) ||
-        IsHorizontal(e) || IsHorizontal(next) ||
-        IsOpen(e) || IsOpen(next)) return;
-      if ((pt.Y < e.top.Y + 2 || pt.Y < next.top.Y + 2) &&  // avoid trivial joins
-        ((e.bot.Y > pt.Y) || (next.bot.Y > pt.Y)))  return; // (#490)
-
-      if (checkCurrX)
-      {
-        if (Clipper2.PerpendicDistFromLineSqrd(pt, next.bot, next.top) > 0.25) return;
-      }
-      else if (e.curX != next.curX) return;
-      if (!InternalClipper.IsCollinear(e.top, pt, next.top)) return;
-
-      if (e.outrec.idx == next.outrec.idx)
-        AddLocalMaxPoly(e, next, pt);
-      else if (e.outrec.idx < next.outrec.idx)
-        JoinOutrecPaths(e, next);
-      else
-        JoinOutrecPaths(next, e);
-      e.joinWith = JoinWith.Right;
-      next.joinWith = JoinWith.Left;
-    }
-
-    /// <summary>
-    /// Points every point of the ring of the output path back to the path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void FixOutRecPts(OutRec outrec)
-    {
-      OutPt op = outrec.pts;
-      do
-      {
-        op.outrec = outrec;
-        op = op.next;
-      } while (op != outrec.pts);
-    }
-
-    /// <summary>
-    /// Sets the left and the right points of the horizontal segment from its two ends, and whether it heads right;
-    /// false when the two ends have the same X.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool SetHorzSegHeadingForward(HorzSegment hs, OutPt opP, OutPt opN)
-    {
-      if (opP.pt.X == opN.pt.X) return false;
-      if (opP.pt.X < opN.pt.X)
-      {
-        hs.leftOp = opP;
-        hs.rightOp = opN;
-        hs.leftToRight = true;
-      }
-      else
-      {
-        hs.leftOp = opN;
-        hs.rightOp = opP;
-        hs.leftToRight = false;
-      }
-      return true;
-    }
-
-    /// <summary>
-    /// Stretches the horizontal segment over the whole horizontal run of its output path at its Y and claims its left
-    /// point for it; false when the run has no length or its left point belongs to another segment already.
-    /// </summary>
-    private static bool UpdateHorzSegment(HorzSegment hs)
-    {
-      OutPt op = hs.leftOp;
-      OutRec outrec = GetRealOutRec(op.outrec);
-      bool outrecHasEdges = outrec.frontEdge != null;
-      long curr_y = op.pt.Y;
-      OutPt opP = op, opN = op;
-      if (outrecHasEdges)
-      {
-        OutPt opA = outrec.pts, opZ = opA.next;
-        while (opP != opZ && opP.prev.pt.Y == curr_y)
-          opP = opP.prev;
-        while (opN != opA && opN.next.pt.Y == curr_y)
-          opN = opN.next;
-      }
-      else
-      {
-        while (opP.prev != opN && opP.prev.pt.Y == curr_y)
-          opP = opP.prev;
-        while (opN.next != opP && opN.next.pt.Y == curr_y)
-          opN = opN.next;
-      }
-      bool result =
-        SetHorzSegHeadingForward(hs, opP, opN) &&
-        hs.leftOp.horz == null;
-
-      if (result)
-        hs.leftOp.horz = hs;
-      else
-        hs.rightOp = null; // (for sorting)
-      return result;
-    }
-
-    /// <summary>
-    /// A copy of the output point, put into its ring just after it or just before it.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private OutPt DuplicateOp(OutPt op, bool insert_after)
-    {
-      OutPt result = _outPtPool.Add(op.pt, op.outrec);
-      if (insert_after)
-      {
-        result.next = op.next;
-        result.next.prev = result;
-        result.prev = op;
-        op.next = result;
-      }
-      else
-      {
-        result.prev = op.prev;
-        result.prev.next = result;
-        result.next = op;
-        op.prev = result;
-      }
-      return result;
-    }
-
-    /// <summary>
-    /// Orders horizontal segments by the X of their left point, those without a right point last.
-    /// </summary>
-    private static int HorzSegSort(HorzSegment hs1, HorzSegment hs2)
-    {
-      if (hs1 == null || hs2 == null) return 0;
-      if (hs1.rightOp == null)
-      {
-        return hs2.rightOp == null ? 0 : 1;
-      }
-      if (hs2.rightOp == null)
-        return -1;
-      return hs1.leftOp.pt.X.CompareTo(hs2.leftOp.pt.X);
-    }
-
-    /// <summary>
-    /// Pairs the horizontal segments of this scanline that overlap and head opposite ways, and records a join of their
-    /// output paths for each pair, at copies of the points where the overlap starts.
-    /// </summary>
-    private void ConvertHorzSegsToJoins()
-    {
-      int k = 0;
-      foreach (HorzSegment hs in _horzSegList)
-        if (UpdateHorzSegment(hs)) k++;
-      if (k < 2) return;
-      _horzSegList.Sort(HorzSegSort);
-
-      for (int i = 0; i < k -1; i++)
-      {
-        HorzSegment hs1 = _horzSegList[i];
-        // for each HorzSegment, find others that overlap
-        for (int j = i + 1; j < k; j++)
-        {
-          HorzSegment hs2 = _horzSegList[j];
-          if ((hs2.leftOp.pt.X >= hs1.rightOp.pt.X) ||
-            (hs2.leftToRight == hs1.leftToRight) ||
-            (hs2.rightOp.pt.X <= hs1.leftOp.pt.X)) continue;
-          long curr_y = hs1.leftOp.pt.Y;
-          if ((hs1).leftToRight)
-          {
-            while (hs1.leftOp.next.pt.Y == curr_y &&
-              hs1.leftOp.next.pt.X <= hs2.leftOp.pt.X)
-              hs1.leftOp = hs1.leftOp.next;
-            while (hs2.leftOp.prev.pt.Y == curr_y &&
-              hs2.leftOp.prev.pt.X <= hs1.leftOp.pt.X)
-              (hs2).leftOp = (hs2).leftOp.prev;
-            HorzJoin join = _horzJoinList.Add(
-              DuplicateOp((hs1).leftOp, true),
-              DuplicateOp((hs2).leftOp, false));
-          }
-          else
-          {
-            while (hs1.leftOp.prev.pt.Y == curr_y &&
-              hs1.leftOp.prev.pt.X <= hs2.leftOp.pt.X)
-              hs1.leftOp = hs1.leftOp.prev;
-            while (hs2.leftOp.next.pt.Y == curr_y &&
-              hs2.leftOp.next.pt.X <= (hs1).leftOp.pt.X)
-              hs2.leftOp = (hs2).leftOp.next;
-            HorzJoin join = _horzJoinList.Add(
-              DuplicateOp((hs2).leftOp, true),
-              DuplicateOp((hs1).leftOp, false));
-          }
-        }
-      }
-    }
-
-    /// <summary>
-    /// The points of the output ring as a path, without the points in the middle of straight horizontal or vertical
-    /// runs.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Path64 GetCleanPath(OutPt op)
-    {
-      Path64 result = new Path64();
-      OutPt op2 = op;
-      while (op2.next != op &&
-        ((op2.pt.X == op2.next.pt.X && op2.pt.X == op2.prev.pt.X) ||
-          (op2.pt.Y == op2.next.pt.Y && op2.pt.Y == op2.prev.pt.Y))) op2 = op2.next;
-      result.Add(op2.pt);
-      OutPt prevOp = op2;
-      op2 = op2.next;
-      while (op2 != op)
-      {
-        if ((op2.pt.X != op2.next.pt.X || op2.pt.X != prevOp.pt.X) &&
-          (op2.pt.Y != op2.next.pt.Y || op2.pt.Y != prevOp.pt.Y))
-        {
-          result.Add(op2.pt);
-          prevOp = op2;
-        }
-        op2 = op2.next;
-      }
-      return result;
-    }
-
-    /// <summary>
-    /// Where the point lies against the ring of output points, by the even-odd rule: on its boundary, inside or
-    /// outside. A ring of fewer than three points or with no height has nothing inside.
-    /// </summary>
-    private static PointInPolygonResult PointInOpPolygon(Point64 pt, OutPt op)
-    {
-      if (op == op.next || op.prev == op.next)
-        return PointInPolygonResult.IsOutside;
-
-      OutPt op2 = op;
-      do
-      {
-        if (op.pt.Y != pt.Y) break;
-        op = op.next;
-      } while (op != op2);
-      if (op.pt.Y == pt.Y) // not a proper polygon
-        return PointInPolygonResult.IsOutside;
-
-      // must be above or below to get here
-      bool isAbove = op.pt.Y < pt.Y, startingAbove = isAbove;
-      int val = 0;
-
-      op2 = op.next;
-      while (op2 != op)
-      {
-        if (isAbove)
-          while (op2 != op && op2.pt.Y < pt.Y) op2 = op2.next;
-        else
-          while (op2 != op && op2.pt.Y > pt.Y) op2 = op2.next;
-        if (op2 == op) break;
-
-        // must have touched or crossed the pt.Y horizontal
-        // and this must happen an even number of times
-
-        if (op2.pt.Y == pt.Y) // touching the horizontal
-        {
-          if (op2.pt.X == pt.X || (op2.pt.Y == op2.prev.pt.Y &&
-            (pt.X < op2.prev.pt.X) != (pt.X < op2.pt.X)))
-            return PointInPolygonResult.IsOn;
-          op2 = op2.next;
-          if (op2 == op) break;
-          continue;
-        }
-
-        if (op2.pt.X <= pt.X || op2.prev.pt.X <= pt.X)
-        {
-          if ((op2.prev.pt.X < pt.X && op2.pt.X < pt.X))
-            val = 1 - val; // toggle val
-          else
-          {
-            int d = InternalClipper.CrossProductSign(op2.prev.pt, op2.pt, pt);
-            if (d == 0) return PointInPolygonResult.IsOn;
-            if ((d < 0) == isAbove) val = 1 - val;
-          }
-        }
-        isAbove = !isAbove;
-        op2 = op2.next;
-      }
-
-      if (isAbove == startingAbove) return val == 0 ? PointInPolygonResult.IsOutside : PointInPolygonResult.IsInside;
-      {
-        int d = InternalClipper.CrossProductSign(op2.prev.pt, op2.pt, pt);
-        if (d == 0) return PointInPolygonResult.IsOn;
-        if ((d < 0) == isAbove) val = 1 - val;
-      }
-
-      return val == 0 ? PointInPolygonResult.IsOutside : PointInPolygonResult.IsInside;
-    }
-
-    /// <summary>
-    /// Whether the first ring of output points lies inside the second: two of its points in turn found on the same side
-    /// settle it, so that one misjudged through rounding does not; when that stays unclear, the two rings, without the
-    /// midpoints of their straight runs, are asked again.
-    /// </summary>
-    private static bool Path1InsidePath2(OutPt op1, OutPt op2)
-    {
-      // we need to make some accommodation for rounding errors
-      // so we won't jump if the first vertex is found outside
-      PointInPolygonResult pip = PointInPolygonResult.IsOn;
-      OutPt op = op1;
-      do
-      {
-        switch (PointInOpPolygon(op.pt, op2))
-        {
-          case PointInPolygonResult.IsOutside:
-            if (pip == PointInPolygonResult.IsOutside) return false;
-            pip = PointInPolygonResult.IsOutside;
-            break;
-          case PointInPolygonResult.IsInside:
-            if (pip == PointInPolygonResult.IsInside) return true;
-            pip = PointInPolygonResult.IsInside;
-            break;
-          default: break;
-        }
-        op = op.next;
-      } while (op != op1);
-      // result is unclear, so try again using cleaned paths
-      return InternalClipper.Path2ContainsPath1(GetCleanPath(op1), GetCleanPath(op2)); // (#973)
-    }
-
-    /// <summary>
-    /// Hands the paths split off fromOr over to toOr, all but toOr itself.
-    /// </summary>
-    private static void MoveSplits(OutRec fromOr, OutRec toOr)
-    {
-      if (fromOr.splits == null) return;
-      toOr.splits ??= new List<int>();
-      foreach (int i in fromOr.splits)
-        if (i != toOr.idx)
-          toOr.splits.Add(i);
-      fromOr.splits = null;
-    }
-
-    /// <summary>
-    /// Carries out the joins of output paths that meet along horizontals: two paths joined become one, and a path
-    /// joined to itself is split in two, the new one owned by the first or by the first's owner as the two nest.
-    /// </summary>
-    private void ProcessHorzJoins()
-    {
-      foreach (HorzJoin j in _horzJoinList)
-      {
-        OutRec or1 = GetRealOutRec(j.op1.outrec);
-        OutRec or2 = GetRealOutRec(j.op2.outrec);
-
-        OutPt op1b = j.op1.next;
-        OutPt op2b = j.op2.prev;
-        j.op1.next = j.op2;
-        j.op2.prev = j.op1;
-        op1b.prev = op2b;
-        op2b.next = op1b;
-
-        if (or1 == or2) // 'join' is really a split
-        {
-          or2 = NewOutRec();
-          or2.pts = op1b;
-          FixOutRecPts(or2);
-
-          //if or1->pts has moved to or2 then update or1->pts!!
-          if (or1.pts.outrec == or2)
-          {
-            or1.pts = j.op1;
-            or1.pts.outrec = or1;
-          }
-
-          if (_using_polytree)  //#498, #520, #584, D#576, #618
-          {
-            if (Path1InsidePath2(or1.pts, or2.pts))
             {
-              //swap or1's & or2's pts
-              (or2.pts, or1.pts) = (or1.pts, or2.pts);
-              FixOutRecPts(or1);
-              FixOutRecPts(or2);
-              //or2 is now inside or1
-              or2.owner = or1;
+                e.joinWith = JoinWith.None;
+                e.prevInAEL.joinWith = JoinWith.None;
+                AddLocalMinPoly(e.prevInAEL, e, currPt, true);
             }
-            else if (Path1InsidePath2(or2.pts, or1.pts))
-              or2.owner = or1;
+        }
+
+        /// <summary>
+        /// Joins the output paths of the edge and its left neighbour where the two run on together from pt: both hot,
+        /// closed and not horizontal, at the same X (or, with checkCurrX, pt within half a unit of the neighbour) and
+        /// collinear. The two paths become one, or one path is closed, and the edges are marked joined; joins too near
+        /// the ends of the edges to matter are skipped.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CheckJoinLeft(Active e,
+            Point64 pt, bool checkCurrX = false)
+        {
+            Active prev = e.prevInAEL;
+            if (prev == null ||
+                !IsHotEdge(e) || !IsHotEdge(prev) ||
+                IsHorizontal(e) || IsHorizontal(prev) ||
+                IsOpen(e) || IsOpen(prev)) return;
+            if ((pt.Y < e.top.Y + 2 || pt.Y < prev.top.Y + 2) &&  // avoid trivial joins
+                ((e.bot.Y > pt.Y) || (prev.bot.Y > pt.Y))) return;  // (#490)
+
+            if (checkCurrX)
+            {
+                if (Clipper2.PerpendicDistFromLineSqrd(pt, prev.bot, prev.top) > 0.25) return;
+            }
+            else if (e.curX != prev.curX) return;
+            if (!InternalClipper.IsCollinear(e.top, pt, prev.top)) return;
+
+            if (e.outrec.idx == prev.outrec.idx)
+                AddLocalMaxPoly(prev, e, pt);
+            else if (e.outrec.idx < prev.outrec.idx)
+                JoinOutrecPaths(e, prev);
             else
-              or2.owner = or1.owner;
-
-            or1.splits ??= new List<int>();
-            or1.splits.Add(or2.idx);
-          }
-          else
-            or2.owner = or1;
+                JoinOutrecPaths(prev, e);
+            prev.joinWith = JoinWith.Right;
+            e.joinWith = JoinWith.Left;
         }
-        else
+
+        /// <summary>
+        /// Joins the output paths of the edge and its right neighbour where the two run on together from pt: both hot,
+        /// closed and not horizontal, at the same X (or, with checkCurrX, pt within half a unit of the neighbour) and
+        /// collinear. The two paths become one, or one path is closed, and the edges are marked joined; joins too near
+        /// the ends of the edges to matter are skipped.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CheckJoinRight(Active e,
+            Point64 pt, bool checkCurrX = false)
         {
-          or2.pts = null;
-          if (_using_polytree)
-          {
-            SetOwner(or2, or1);
-            MoveSplits(or2, or1); //#618
-          }
-          else
-            or2.owner = or1;
+            Active next = e.nextInAEL;
+            if (next == null ||
+                !IsHotEdge(e) || !IsHotEdge(next) ||
+                IsHorizontal(e) || IsHorizontal(next) ||
+                IsOpen(e) || IsOpen(next)) return;
+            if ((pt.Y < e.top.Y + 2 || pt.Y < next.top.Y + 2) &&  // avoid trivial joins
+                ((e.bot.Y > pt.Y) || (next.bot.Y > pt.Y)))  return; // (#490)
+
+            if (checkCurrX)
+            {
+                if (Clipper2.PerpendicDistFromLineSqrd(pt, next.bot, next.top) > 0.25) return;
+            }
+            else if (e.curX != next.curX) return;
+            if (!InternalClipper.IsCollinear(e.top, pt, next.top)) return;
+
+            if (e.outrec.idx == next.outrec.idx)
+                AddLocalMaxPoly(e, next, pt);
+            else if (e.outrec.idx < next.outrec.idx)
+                JoinOutrecPaths(e, next);
+            else
+                JoinOutrecPaths(next, e);
+            e.joinWith = JoinWith.Right;
+            next.joinWith = JoinWith.Left;
         }
-      }
-    }
 
-    /// <summary>
-    /// Whether the two points lie less than two units apart along X and along Y.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool PtsReallyClose(Point64 pt1, Point64 pt2)
-    {
-      return (Math.Abs(pt1.X - pt2.X) < 2) && (Math.Abs(pt1.Y - pt2.Y) < 2);
-    }
-
-    /// <summary>
-    /// Whether the ring is a triangle with two of its corners less than two units apart along each axis.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsVerySmallTriangle(OutPt op)
-    {
-      return op.next.next == op.prev &&
-        (PtsReallyClose(op.prev.pt, op.next.pt) ||
-          PtsReallyClose(op.pt, op.next.pt) ||
-          PtsReallyClose(op.pt, op.prev.pt));
-    }
-
-    /// <summary>
-    /// Whether the ring can still be a closed path; here, whenever it has more than one point. Clipper2's C++ also
-    /// refuses a ring of two points and a triangle with two corners less than two units apart, but this test of the
-    /// triangle only runs on rings of two points, where it never holds, so both are left to BuildPath, which drops
-    /// them. Keep it so: written as the C++ has it, the test empties those rings in CleanCollinear, and BuildTree then
-    /// nests islands as holes in some polytrees, four in 600 000 random cases; TestCasesFoundHere holds one.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsValidClosedPath(OutPt op)
-    {
-      return (op != null && op.next != op &&
-        (op.next != op.prev || !IsVerySmallTriangle(op)));
-    }
-
-    /// <summary>
-    /// Takes the point out of its ring and returns the point after it, or null when it was the last.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static OutPt DisposeOutPt(OutPt op)
-    {
-      OutPt result = (op.next == op ? null : op.next);
-      op.prev.next = op.next;
-      op.next.prev = op.prev;
-      // op == null;
-      return result;
-    }
-
-    /// <summary>
-    /// Cleans a closed output path before it is handed back: removes points that repeat a neighbour, spikes, and,
-    /// unless collinear points are kept, points along straight runs; then undoes the places where it crosses itself. A
-    /// path that collapses on the way is emptied.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void CleanCollinear(OutRec outrec)
-    {
-      outrec = GetRealOutRec(outrec);
-
-      if (outrec == null || outrec.isOpen) return;
-
-      if(!IsValidClosedPath(outrec.pts))
-      {
-        outrec.pts = null;
-        return;
-      }
-
-      OutPt startOp = outrec.pts;
-      OutPt op2 = startOp;
-      for (; ; )
-      {
-        // NB if preserveCollinear == true, then only remove 180 deg. spikes
-        if ((InternalClipper.IsCollinear(op2.prev.pt, op2.pt, op2.next.pt)) &&
-          ((op2.pt == op2.prev.pt) || (op2.pt == op2.next.pt) || !PreserveCollinear ||
-          (InternalClipper.DotProduct(op2.prev.pt, op2.pt, op2.next.pt) < 0)))
+        /// <summary>
+        /// Points every point of the ring of the output path back to the path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void FixOutRecPts(OutRec outrec)
         {
-          if (op2 == outrec.pts)
-            outrec.pts = op2.prev;
-          op2 = DisposeOutPt(op2);
-          if (!IsValidClosedPath(op2))
-          {
-            outrec.pts = null;
-            return;
-          }
-          startOp = op2;
-          continue;
+            OutPt op = outrec.pts;
+            do
+            {
+                op.outrec = outrec;
+                op = op.next;
+            } while (op != outrec.pts);
         }
-        op2 = op2.next;
-        if (op2 == startOp) break;
-      }
-      FixSelfIntersects(outrec);
-    }
 
-    /// <summary>
-    /// Undoes a self-crossing of the output path, where the edge into splitOp crosses the edge after the next point:
-    /// the crossing point takes the place of splitOp and the point after it. The little triangle they cut off becomes
-    /// an output path of its own, with the same owner, when it has area and either winds the way the path does or is
-    /// larger than it; otherwise it is dropped. A path of area under two is emptied instead.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void DoSplitOp(OutRec outrec, OutPt splitOp)
-    {
-      // splitOp.prev <=> splitOp &&
-      // splitOp.next <=> splitOp.next.next are intersecting
-      OutPt prevOp = splitOp.prev;
-      OutPt nextNextOp = splitOp.next.next;
-      outrec.pts = prevOp;
-
-      InternalClipper.GetLineIntersectPt(
-          prevOp.pt, splitOp.pt, splitOp.next.pt, nextNextOp.pt, out Point64 ip);
-
-      double area1 = Area(prevOp);
-      double absArea1 = Math.Abs(area1);
-
-      if (absArea1 < 2)
-      {
-        outrec.pts = null;
-        return;
-      }
-
-      double area2 = AreaTriangle(ip, splitOp.pt, splitOp.next.pt);
-      double absArea2 = Math.Abs(area2);
-
-      // de-link splitOp and splitOp.next from the path
-      // while inserting the intersection point
-      if (ip == prevOp.pt || ip == nextNextOp.pt)
-      {
-        nextNextOp.prev = prevOp;
-        prevOp.next = nextNextOp;
-      }
-      else
-      {
-        OutPt newOp2 = _outPtPool.Add(ip, outrec);
-        newOp2.prev = prevOp;
-        newOp2.next = nextNextOp;
-        nextNextOp.prev = newOp2;
-        prevOp.next = newOp2;
-      }
-
-      // nb: area1 is the path's area *before* splitting, whereas area2 is
-      // the area of the triangle containing splitOp & splitOp.next.
-      // So the only way for these areas to have the same sign is if
-      // the split triangle is larger than the path containing prevOp or
-      // if there's more than one self=intersection.
-      if (!(absArea2 > 1) ||
-          (!(absArea2 > absArea1) &&
-           ((area2 > 0) != (area1 > 0)))) return;
-      OutRec newOutRec = NewOutRec();
-      newOutRec.owner = outrec.owner;
-      splitOp.outrec = newOutRec;
-      splitOp.next.outrec = newOutRec;
-
-      OutPt newOp = _outPtPool.Add(ip, newOutRec);
-      newOp.prev = splitOp.next;
-      newOp.next = splitOp;
-      newOutRec.pts = newOp;
-      splitOp.prev = newOp;
-      splitOp.next.next = newOp;
-
-      if (!_using_polytree) return;
-      if (Path1InsidePath2(prevOp, newOp))
-      {
-        newOutRec.splits ??= new List<int>();
-        newOutRec.splits.Add(outrec.idx);
-      }
-      else
-      {
-        outrec.splits ??= new List<int>();
-        outrec.splits.Add(newOutRec.idx);
-      }
-      //else { splitOp = null; splitOp.next = null; }
-    }
-
-    /// <summary>
-    /// Walks the closed output path and undoes, by DoSplitOp, every place where an edge crosses the edge after next;
-    /// where it also crosses the edge after that, a micro self-intersection, a copy of a point is put in instead. A
-    /// triangle cannot cross itself and is left alone. Upstream changed this after 2.0.0 (4da1564, #1067); the change
-    /// is not taken here, as TestCasesFoundHere shows why.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void FixSelfIntersects(OutRec outrec)
-    {
-      OutPt op2 = outrec.pts;
-      if (op2.prev == op2.next.next)
-        return; // because triangles can't self-intersect
-      for (; ; )
-      {
-        if (InternalClipper.SegsIntersect(op2.prev.pt,
-                op2.pt, op2.next.pt, op2.next.next.pt))
+        /// <summary>
+        /// Sets the left and the right points of the horizontal segment from its two ends, and whether it heads right;
+        /// false when the two ends have the same X.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool SetHorzSegHeadingForward(HorzSegment hs, OutPt opP, OutPt opN)
         {
-          if (InternalClipper.SegsIntersect(op2.prev.pt,
-                  op2.pt, op2.next.next.pt, op2.next.next.next.pt))
-          {
-            // adjacent intersections (ie a micro self-intersection)
-            op2 = DuplicateOp(op2, false);
-            op2.pt = op2.next.next.next.pt;
+            if (opP.pt.X == opN.pt.X) return false;
+            if (opP.pt.X < opN.pt.X)
+            {
+                hs.leftOp = opP;
+                hs.rightOp = opN;
+                hs.leftToRight = true;
+            }
+            else
+            {
+                hs.leftOp = opN;
+                hs.rightOp = opP;
+                hs.leftToRight = false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Stretches the horizontal segment over the whole horizontal run of its output path at its Y and claims its
+        /// left point for it; false when the run has no length or its left point belongs to another segment already.
+        /// </summary>
+        private static bool UpdateHorzSegment(HorzSegment hs)
+        {
+            OutPt op = hs.leftOp;
+            OutRec outrec = GetRealOutRec(op.outrec);
+            bool outrecHasEdges = outrec.frontEdge != null;
+            long curr_y = op.pt.Y;
+            OutPt opP = op, opN = op;
+            if (outrecHasEdges)
+            {
+                OutPt opA = outrec.pts, opZ = opA.next;
+                while (opP != opZ && opP.prev.pt.Y == curr_y)
+                    opP = opP.prev;
+                while (opN != opA && opN.next.pt.Y == curr_y)
+                    opN = opN.next;
+            }
+            else
+            {
+                while (opP.prev != opN && opP.prev.pt.Y == curr_y)
+                    opP = opP.prev;
+                while (opN.next != opP && opN.next.pt.Y == curr_y)
+                    opN = opN.next;
+            }
+            bool result =
+                SetHorzSegHeadingForward(hs, opP, opN) &&
+                hs.leftOp.horz == null;
+
+            if (result)
+                hs.leftOp.horz = hs;
+            else
+                hs.rightOp = null; // (for sorting)
+            return result;
+        }
+
+        /// <summary>
+        /// A copy of the output point, put into its ring just after it or just before it.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private OutPt DuplicateOp(OutPt op, bool insert_after)
+        {
+            OutPt result = _outPtPool.Add(op.pt, op.outrec);
+            if (insert_after)
+            {
+                result.next = op.next;
+                result.next.prev = result;
+                result.prev = op;
+                op.next = result;
+            }
+            else
+            {
+                result.prev = op.prev;
+                result.prev.next = result;
+                result.next = op;
+                op.prev = result;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Orders horizontal segments by the X of their left point, those without a right point last.
+        /// </summary>
+        private static int HorzSegSort(HorzSegment hs1, HorzSegment hs2)
+        {
+            if (hs1 == null || hs2 == null) return 0;
+            if (hs1.rightOp == null)
+            {
+                return hs2.rightOp == null ? 0 : 1;
+            }
+            if (hs2.rightOp == null)
+                return -1;
+            return hs1.leftOp.pt.X.CompareTo(hs2.leftOp.pt.X);
+        }
+
+        /// <summary>
+        /// Pairs the horizontal segments of this scanline that overlap and head opposite ways, and records a join of
+        /// their output paths for each pair, at copies of the points where the overlap starts.
+        /// </summary>
+        private void ConvertHorzSegsToJoins()
+        {
+            int k = 0;
+            foreach (HorzSegment hs in _horzSegList)
+                if (UpdateHorzSegment(hs)) k++;
+            if (k < 2) return;
+            _horzSegList.Sort(HorzSegSort);
+
+            for (int i = 0; i < k -1; i++)
+            {
+                HorzSegment hs1 = _horzSegList[i];
+                // for each HorzSegment, find others that overlap
+                for (int j = i + 1; j < k; j++)
+                {
+                    HorzSegment hs2 = _horzSegList[j];
+                    if ((hs2.leftOp.pt.X >= hs1.rightOp.pt.X) ||
+                        (hs2.leftToRight == hs1.leftToRight) ||
+                        (hs2.rightOp.pt.X <= hs1.leftOp.pt.X)) continue;
+                    long curr_y = hs1.leftOp.pt.Y;
+                    if ((hs1).leftToRight)
+                    {
+                        while (hs1.leftOp.next.pt.Y == curr_y &&
+                            hs1.leftOp.next.pt.X <= hs2.leftOp.pt.X)
+                            hs1.leftOp = hs1.leftOp.next;
+                        while (hs2.leftOp.prev.pt.Y == curr_y &&
+                            hs2.leftOp.prev.pt.X <= hs1.leftOp.pt.X)
+                            (hs2).leftOp = (hs2).leftOp.prev;
+                        HorzJoin join = _horzJoinList.Add(
+                            DuplicateOp((hs1).leftOp, true),
+                            DuplicateOp((hs2).leftOp, false));
+                    }
+                    else
+                    {
+                        while (hs1.leftOp.prev.pt.Y == curr_y &&
+                            hs1.leftOp.prev.pt.X <= hs2.leftOp.pt.X)
+                            hs1.leftOp = hs1.leftOp.prev;
+                        while (hs2.leftOp.next.pt.Y == curr_y &&
+                            hs2.leftOp.next.pt.X <= (hs1).leftOp.pt.X)
+                            hs2.leftOp = (hs2).leftOp.next;
+                        HorzJoin join = _horzJoinList.Add(
+                            DuplicateOp((hs2).leftOp, true),
+                            DuplicateOp((hs1).leftOp, false));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The points of the output ring as a path, without the points in the middle of straight horizontal or vertical
+        /// runs.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Path64 GetCleanPath(OutPt op)
+        {
+            Path64 result = new Path64();
+            OutPt op2 = op;
+            while (op2.next != op &&
+                ((op2.pt.X == op2.next.pt.X && op2.pt.X == op2.prev.pt.X) ||
+                    (op2.pt.Y == op2.next.pt.Y && op2.pt.Y == op2.prev.pt.Y))) op2 = op2.next;
+            result.Add(op2.pt);
+            OutPt prevOp = op2;
             op2 = op2.next;
-          }
-          else
-          {
-            if (op2 == outrec.pts || op2.next == outrec.pts)
-              outrec.pts = outrec.pts.prev;
-            DoSplitOp(outrec, op2);
-            if (outrec.pts == null) return;
-            op2 = outrec.pts;
-            // triangles can't self-intersect
-            if (op2.prev == op2.next.next) break;
-            continue;
-          }
+            while (op2 != op)
+            {
+                if ((op2.pt.X != op2.next.pt.X || op2.pt.X != prevOp.pt.X) &&
+                    (op2.pt.Y != op2.next.pt.Y || op2.pt.Y != prevOp.pt.Y))
+                {
+                    result.Add(op2.pt);
+                    prevOp = op2;
+                }
+                op2 = op2.next;
+            }
+            return result;
         }
 
-        op2 = op2.next;
-        if (op2 == outrec.pts) break;
-      }
-    }
-
-    /// <summary>
-    /// Writes the ring of output points into path, from the point after op on, or from op backwards when reversed,
-    /// points that repeat the one before skipped. False when there are too few: one point, two of a closed path, or a
-    /// closed path that is a very small triangle.
-    /// </summary>
-    internal static bool BuildPath(OutPt op, bool reverse, bool isOpen, Path64 path)
-    {
-      if (op == null || op.next == op || (!isOpen && op.next == op.prev)) return false;
-      path.Clear();
-
-      Point64 lastPt;
-      OutPt op2;
-      if (reverse)
-      {
-        lastPt = op.pt;
-        op2 = op.prev;
-      }
-      else
-      {
-        op = op.next;
-        lastPt = op.pt;
-        op2 = op.next;
-      }
-      path.Add(lastPt);
-
-      while (op2 != op)
-      {
-        if (op2.pt != lastPt)
+        /// <summary>
+        /// Where the point lies against the ring of output points, by the even-odd rule: on its boundary, inside or
+        /// outside. A ring of fewer than three points or with no height has nothing inside.
+        /// </summary>
+        private static PointInPolygonResult PointInOpPolygon(Point64 pt, OutPt op)
         {
-          lastPt = op2.pt;
-          path.Add(lastPt);
+            if (op == op.next || op.prev == op.next)
+                return PointInPolygonResult.IsOutside;
+
+            OutPt op2 = op;
+            do
+            {
+                if (op.pt.Y != pt.Y) break;
+                op = op.next;
+            } while (op != op2);
+            if (op.pt.Y == pt.Y) // not a proper polygon
+                return PointInPolygonResult.IsOutside;
+
+            // must be above or below to get here
+            bool isAbove = op.pt.Y < pt.Y, startingAbove = isAbove;
+            int val = 0;
+
+            op2 = op.next;
+            while (op2 != op)
+            {
+                if (isAbove)
+                    while (op2 != op && op2.pt.Y < pt.Y) op2 = op2.next;
+                else
+                    while (op2 != op && op2.pt.Y > pt.Y) op2 = op2.next;
+                if (op2 == op) break;
+
+                // must have touched or crossed the pt.Y horizontal
+                // and this must happen an even number of times
+
+                if (op2.pt.Y == pt.Y) // touching the horizontal
+                {
+                    if (op2.pt.X == pt.X || (op2.pt.Y == op2.prev.pt.Y &&
+                        (pt.X < op2.prev.pt.X) != (pt.X < op2.pt.X)))
+                        return PointInPolygonResult.IsOn;
+                    op2 = op2.next;
+                    if (op2 == op) break;
+                    continue;
+                }
+
+                if (op2.pt.X <= pt.X || op2.prev.pt.X <= pt.X)
+                {
+                    if ((op2.prev.pt.X < pt.X && op2.pt.X < pt.X))
+                        val = 1 - val; // toggle val
+                    else
+                    {
+                        int d = InternalClipper.CrossProductSign(op2.prev.pt, op2.pt, pt);
+                        if (d == 0) return PointInPolygonResult.IsOn;
+                        if ((d < 0) == isAbove) val = 1 - val;
+                    }
+                }
+                isAbove = !isAbove;
+                op2 = op2.next;
+            }
+
+            if (isAbove == startingAbove)
+                return val == 0 ? PointInPolygonResult.IsOutside : PointInPolygonResult.IsInside;
+            {
+                int d = InternalClipper.CrossProductSign(op2.prev.pt, op2.pt, pt);
+                if (d == 0) return PointInPolygonResult.IsOn;
+                if ((d < 0) == isAbove) val = 1 - val;
+            }
+
+            return val == 0 ? PointInPolygonResult.IsOutside : PointInPolygonResult.IsInside;
         }
-        if (reverse)
-          op2 = op2.prev;
-        else
-          op2 = op2.next;
-      }
 
-      return path.Count != 3 || isOpen || !IsVerySmallTriangle(op2);
-    }
-
-    /// <summary>
-    /// Hands the output paths back as paths: the open ones as they are, the closed ones cleaned of collinear points and
-    /// self-crossings first, outers counter-clockwise with Y up unless ReverseSolution is set.
-    /// </summary>
-    protected bool BuildPaths(Paths64 solutionClosed, Paths64 solutionOpen)
-    {
-      solutionClosed.Clear();
-      solutionOpen.Clear();
-      solutionClosed.EnsureCapacity(_outrecList.Count);
-      solutionOpen.EnsureCapacity(_outrecList.Count);
-
-      int i = 0;
-      // _outrecList.Count is not static here because
-      // CleanCollinear can indirectly add additional OutRec
-      while (i < _outrecList.Count)
-      {
-        OutRec outrec = _outrecList[i++];
-        if (outrec.pts == null) continue;
-
-        Path64 path = new Path64(outrec.outPtCount);
-        if (outrec.isOpen)
+        /// <summary>
+        /// Whether the first ring of output points lies inside the second: two of its points in turn found on the same
+        /// side settle it, so that one misjudged through rounding does not; when that stays unclear, the two rings,
+        /// without the midpoints of their straight runs, are asked again.
+        /// </summary>
+        private static bool Path1InsidePath2(OutPt op1, OutPt op2)
         {
-          if (BuildPath(outrec.pts, ReverseSolution, true, path))
-              solutionOpen.Add(path);
+            // we need to make some accommodation for rounding errors
+            // so we won't jump if the first vertex is found outside
+            PointInPolygonResult pip = PointInPolygonResult.IsOn;
+            OutPt op = op1;
+            do
+            {
+                switch (PointInOpPolygon(op.pt, op2))
+                {
+                    case PointInPolygonResult.IsOutside:
+                        if (pip == PointInPolygonResult.IsOutside) return false;
+                        pip = PointInPolygonResult.IsOutside;
+                        break;
+                    case PointInPolygonResult.IsInside:
+                        if (pip == PointInPolygonResult.IsInside) return true;
+                        pip = PointInPolygonResult.IsInside;
+                        break;
+                    default: break;
+                }
+                op = op.next;
+            } while (op != op1);
+            // result is unclear, so try again using cleaned paths
+            return InternalClipper.Path2ContainsPath1(GetCleanPath(op1), GetCleanPath(op2)); // (#973)
         }
-        else
+
+        /// <summary>
+        /// Hands the paths split off fromOr over to toOr, all but toOr itself.
+        /// </summary>
+        private static void MoveSplits(OutRec fromOr, OutRec toOr)
         {
-          CleanCollinear(outrec);
-          // closed paths should always return a Positive orientation
-          // except when ReverseSolution == true
-          if (BuildPath(outrec.pts, ReverseSolution, false, path))
-            solutionClosed.Add(path);
+            if (fromOr.splits == null) return;
+            toOr.splits ??= new List<int>();
+            foreach (int i in fromOr.splits)
+                if (i != toOr.idx)
+                    toOr.splits.Add(i);
+            fromOr.splits = null;
         }
-      }
-      return true;
-    }
 
-    /// <summary>
-    /// Makes sure the output path has its finished path and its bounds, cleaning it first; false when it has no points
-    /// or comes to none.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool CheckBounds(OutRec outrec)
-    {
-      if (outrec.pts == null) return false;
-      if (!outrec.bounds.IsEmpty()) return true;
-      CleanCollinear(outrec);
-      if (outrec.pts == null ||
-        !BuildPath(outrec.pts, ReverseSolution, false, outrec.path))
-          return false;
-      outrec.bounds = InternalClipper.GetBounds(outrec.path);
-      return true;
-    }
-
-    /// <summary>
-    /// Looks among the paths split off an owner, and those split off them, for one that holds the output path; makes it
-    /// the owner and returns true when it finds one.
-    /// </summary>
-    private bool CheckSplitOwner(OutRec outrec, List<int> splits)
-    {
-      // nb: use indexing (not an iterator) in case 'splits' is modified inside this loop (#1029)
-      for (int i = 0; i < splits.Count; i++)
-      {
-        OutRec split = _outrecList[splits[i]];
-        if (split.pts == null && split.splits != null &&
-          CheckSplitOwner(outrec, split.splits)) return true; //#942
-        split = GetRealOutRec(split);
-        if (split == null || split == outrec || split.recursiveSplit == outrec) continue;
-        split.recursiveSplit = outrec; //#599
-
-        if (split.splits != null && CheckSplitOwner(outrec, split.splits)) return true;
-
-        if (!CheckBounds(split) ||
-            !split.bounds.Contains(outrec.bounds) ||
-            !Path1InsidePath2(outrec.pts, split.pts)) continue;
-
-        if (!IsValidOwner(outrec, split)) // split is owned by outrec (#957)
-          split.owner = outrec.owner;
-
-        outrec.owner = split; //found in split
-        return true;
-      }
-      return false;
-    }
-
-    /// <summary>
-    /// Finds the real owner of the output path, the nearest one up its chain of owners, or among the paths split off
-    /// them, that holds it, and adds the path to the polytree under the owner's node, the owner's own node made first;
-    /// under polypath when it has no owner.
-    /// </summary>
-    private void RecursiveCheckOwners(OutRec outrec, PolyPathBase polypath)
-    {
-      // pre-condition: outrec will have valid bounds
-      // post-condition: if a valid path, outrec will have a polypath
-
-      if (outrec.polypath != null || outrec.bounds.IsEmpty()) return;
-
-      while (outrec.owner != null)
-      {
-        if (outrec.owner.splits != null &&
-          CheckSplitOwner(outrec, outrec.owner.splits)) break;
-        if (outrec.owner.pts != null && CheckBounds(outrec.owner) &&
-          Path1InsidePath2(outrec.pts, outrec.owner.pts)) break;
-        outrec.owner = outrec.owner.owner;
-      }
-
-      if (outrec.owner != null)
-      {
-        if (outrec.owner.polypath == null)
-          RecursiveCheckOwners(outrec.owner, polypath);
-        outrec.polypath = outrec.owner.polypath.AddChild(outrec.path);
-      }
-      else
-        outrec.polypath = polypath.AddChild(outrec.path);
-    }
-
-    /// <summary>
-    /// Hands the output back as a polytree, each closed path nested under the path it lies in, and the open paths as
-    /// paths.
-    /// </summary>
-    protected void BuildTree(PolyPathBase polytree, Paths64 solutionOpen)
-    {
-      polytree.Clear();
-      solutionOpen.Clear();
-      if (_hasOpenPaths)
-        solutionOpen.EnsureCapacity(_outrecList.Count);
-
-      int i = 0;
-      // _outrecList.Count is not static here because
-      // CheckBounds below can indirectly add additional
-      // OutRec (via FixOutRecPts & CleanCollinear)
-      while (i < _outrecList.Count)
-      {
-        OutRec outrec = _outrecList[i++];
-        if (outrec.pts == null) continue;
-
-        if (outrec.isOpen)
+        /// <summary>
+        /// Carries out the joins of output paths that meet along horizontals: two paths joined become one, and a path
+        /// joined to itself is split in two, the new one owned by the first or by the first's owner as the two nest.
+        /// </summary>
+        private void ProcessHorzJoins()
         {
-          Path64 open_path = new Path64(outrec.outPtCount);
-          if (BuildPath(outrec.pts, ReverseSolution, true, open_path))
-            solutionOpen.Add(open_path);
-          continue;
+            foreach (HorzJoin j in _horzJoinList)
+            {
+                OutRec or1 = GetRealOutRec(j.op1.outrec);
+                OutRec or2 = GetRealOutRec(j.op2.outrec);
+
+                OutPt op1b = j.op1.next;
+                OutPt op2b = j.op2.prev;
+                j.op1.next = j.op2;
+                j.op2.prev = j.op1;
+                op1b.prev = op2b;
+                op2b.next = op1b;
+
+                if (or1 == or2) // 'join' is really a split
+                {
+                    or2 = NewOutRec();
+                    or2.pts = op1b;
+                    FixOutRecPts(or2);
+
+                    //if or1->pts has moved to or2 then update or1->pts!!
+                    if (or1.pts.outrec == or2)
+                    {
+                        or1.pts = j.op1;
+                        or1.pts.outrec = or1;
+                    }
+
+                    if (_using_polytree)  //#498, #520, #584, D#576, #618
+                    {
+                        if (Path1InsidePath2(or1.pts, or2.pts))
+                        {
+                            //swap or1's & or2's pts
+                            (or2.pts, or1.pts) = (or1.pts, or2.pts);
+                            FixOutRecPts(or1);
+                            FixOutRecPts(or2);
+                            //or2 is now inside or1
+                            or2.owner = or1;
+                        }
+                        else if (Path1InsidePath2(or2.pts, or1.pts))
+                            or2.owner = or1;
+                        else
+                            or2.owner = or1.owner;
+
+                        or1.splits ??= new List<int>();
+                        or1.splits.Add(or2.idx);
+                    }
+                    else
+                        or2.owner = or1;
+                }
+                else
+                {
+                    or2.pts = null;
+                    if (_using_polytree)
+                    {
+                        SetOwner(or2, or1);
+                        MoveSplits(or2, or1); //#618
+                    }
+                    else
+                        or2.owner = or1;
+                }
+            }
         }
-        if (CheckBounds(outrec))
-          RecursiveCheckOwners(outrec, polytree);
-      }
-    }
 
-    /// <summary>
-    /// The bounds of every vertex added; the empty rectangle at the origin when there are none.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Rect64 GetBounds()
-    {
-      Rect64 bounds = Clipper2.InvalidRect64;
-      foreach (Vertex t in _vertexList)
-      {
-        Vertex v = t;
-        do
+        /// <summary>
+        /// Whether the two points lie less than two units apart along X and along Y.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool PtsReallyClose(Point64 pt1, Point64 pt2)
         {
-          if (v.pt.X < bounds.left) bounds.left = v.pt.X;
-          if (v.pt.X > bounds.right) bounds.right = v.pt.X;
-          if (v.pt.Y < bounds.top) bounds.top = v.pt.Y;
-          if (v.pt.Y > bounds.bottom) bounds.bottom = v.pt.Y;
-          v = v.next;
-        } while (v != t);
-      }
-      return bounds.IsEmpty() ? new Rect64(0, 0, 0, 0) : bounds;
-    }
-
-  } // ClipperBase class
-
-  /// <summary>
-  /// The clipper for paths of integers.
-  /// </summary>
-  internal class Clipper64 : ClipperBase
-  {
-    /// <summary>
-    /// Adds a path, as a subject or a clip, open or closed.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal new void AddPath(Path64 path, PathType polytype, bool isOpen = false)
-    {
-      base.AddPath(path, polytype, isOpen);
-    }
-
-    /// <summary>
-    /// Adds the local minima of paths converted once in the container, which has to outlive this clipper's use of them.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public new void AddReuseableData(ReuseableDataContainer64 reuseableData)
-    {
-      base.AddReuseableData(reuseableData);
-    }
-
-    /// <summary>
-    /// Adds the paths, as subjects or clips, open or closed.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal new void AddPaths(Paths64 paths, PathType polytype, bool isOpen = false)
-    {
-      base.AddPaths(paths, polytype, isOpen);
-    }
-
-    /// <summary>
-    /// Adds closed subject paths.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddSubject(Paths64 paths)
-    {
-      AddPaths(paths, PathType.Subject);
-    }
-
-    /// <summary>
-    /// Adds open subject paths.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddOpenSubject(Paths64 paths)
-    {
-      AddPaths(paths, PathType.Subject, true);
-    }
-
-    /// <summary>
-    /// Adds clip paths.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddClip(Paths64 paths)
-    {
-      AddPaths(paths, PathType.Clip);
-    }
-
-    /// <summary>
-    /// Runs the operation on the paths added and writes the closed and the open paths of the answer; false when the
-    /// sweep marked itself failed or threw, with what was built until then. The paths added stay, for another run.
-    /// </summary>
-    public bool Execute(ClipType clipType, FillRule fillRule,
-        Paths64 solutionClosed, Paths64 solutionOpen)
-    {
-      solutionClosed.Clear();
-      solutionOpen.Clear();
-      try
-      {
-        ExecuteInternal(clipType, fillRule);
-        BuildPaths(solutionClosed, solutionOpen);
-      }
-      catch
-      {
-        _succeeded = false;
-      }
-
-      ClearSolutionOnly();
-      return _succeeded;
-    }
-
-    /// <summary>
-    /// Runs the operation and writes the closed paths of the answer; open paths in it are dropped.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Execute(ClipType clipType, FillRule fillRule, Paths64 solutionClosed)
-    {
-      return Execute(clipType, fillRule, solutionClosed, new Paths64());
-    }
-
-    /// <summary>
-    /// Runs the operation and writes the closed paths of the answer as a polytree, each hole under the outer it lies in
-    /// and each island under its hole, and the open paths as paths; false when the sweep marked itself failed or threw.
-    /// </summary>
-    public bool Execute(ClipType clipType, FillRule fillRule, PolyTree64 polytree, Paths64 openPaths)
-    {
-      polytree.Clear();
-      openPaths.Clear();
-      _using_polytree = true;
-      try
-      {
-        ExecuteInternal(clipType, fillRule);
-        BuildTree(polytree, openPaths);
-      }
-      catch
-      {
-        _succeeded = false;
-      }
-
-      ClearSolutionOnly();
-      return _succeeded;
-    }
-
-    /// <summary>
-    /// Runs the operation into a polytree; open paths in the answer are dropped.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Execute(ClipType clipType, FillRule fillRule, PolyTree64 polytree)
-    {
-      return Execute(clipType, fillRule, polytree, new Paths64());
-    }
-
-  } // Clipper64 class
-
-  /// <summary>
-  /// The clipper for paths of doubles, the one GeometryHelper's regions use: the paths are rounded to a number of
-  /// decimal places, clipped as integers, and the answer is scaled back.
-  /// </summary>
-  internal class ClipperD : ClipperBase
-  {
-    private const string precision_range_error = "Error: Precision is out of range.";
-
-    private readonly double _scale;
-    private readonly double _invScale;
-
-    /// <summary>
-    /// A clipper that rounds to roundingDecimalPrecision decimal places, two unless given: coordinates are multiplied
-    /// by ten to that power and rounded half away from nought. It throws ClipperLibException outside -8 to 8.
-    /// </summary>
-    public ClipperD(int roundingDecimalPrecision = 2)
-    {
-      if (roundingDecimalPrecision < -8 || roundingDecimalPrecision > 8)
-        throw new ClipperLibException(precision_range_error);
-      _scale = Math.Pow(10, roundingDecimalPrecision);
-      _invScale = 1 / _scale;
-    }
-
-    /// <summary>
-    /// Adds a path rounded to the precision, as a subject or a clip, open or closed.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddPath(PathD path, PathType polytype, bool isOpen = false)
-    {
-      base.AddPath(Clipper2.ScalePath64(path, _scale), polytype, isOpen);
-    }
-
-    /// <summary>
-    /// Adds the paths rounded to the precision, as subjects or clips, open or closed.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddPaths(PathsD paths, PathType polytype, bool isOpen = false)
-    {
-      base.AddPaths(Clipper2.ScalePaths64(paths, _scale), polytype, isOpen);
-    }
-
-    /// <summary>
-    /// Adds a closed subject path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddSubject(PathD path)
-    {
-      AddPath(path, PathType.Subject);
-    }
-
-    /// <summary>
-    /// Adds an open subject path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddOpenSubject(PathD path)
-    {
-      AddPath(path, PathType.Subject, true);
-    }
-
-    /// <summary>
-    /// Adds a clip path.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddClip(PathD path)
-    {
-      AddPath(path, PathType.Clip);
-    }
-
-    /// <summary>
-    /// Adds closed subject paths.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddSubject(PathsD paths)
-    {
-      AddPaths(paths, PathType.Subject);
-    }
-
-    /// <summary>
-    /// Adds open subject paths.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddOpenSubject(PathsD paths)
-    {
-      AddPaths(paths, PathType.Subject, true);
-    }
-
-    /// <summary>
-    /// Adds clip paths.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddClip(PathsD paths)
-    {
-      AddPaths(paths, PathType.Clip);
-    }
-
-    /// <summary>
-    /// Runs the operation and writes the closed and the open paths of the answer, scaled back to doubles; false, with
-    /// both lists left empty, when the sweep marked itself failed or threw, as in Clipper2's C++. Clipper2 2.0.0's C#
-    /// answered true for a sweep that had marked itself failed, with what it had built until then; that is mended here.
-    /// </summary>
-    public bool Execute(ClipType clipType, FillRule fillRule,
-        PathsD solutionClosed, PathsD solutionOpen)
-    {
-      Paths64 solClosed64 = new Paths64(), solOpen64 = new Paths64();
-
-      bool success;
-      solutionClosed.Clear();
-      solutionOpen.Clear();
-      try
-      {
-        ExecuteInternal(clipType, fillRule);
-        success = _succeeded;
-        if (success) BuildPaths(solClosed64, solOpen64);
-      }
-      catch
-      {
-        success = false;
-      }
-
-      ClearSolutionOnly();
-      if (!success) return false;
-
-      solutionClosed.EnsureCapacity(solClosed64.Count);
-      foreach (Path64 path in solClosed64)
-        solutionClosed.Add(Clipper2.ScalePathD(path, _invScale));
-      solutionOpen.EnsureCapacity(solOpen64.Count);
-      foreach (Path64 path in solOpen64)
-        solutionOpen.Add(Clipper2.ScalePathD(path, _invScale));
-
-      return true;
-    }
-
-    /// <summary>
-    /// Runs the operation and writes the closed paths of the answer, scaled back to doubles; open paths in it are
-    /// dropped. This is the run GeometryHelper's regions make.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Execute(ClipType clipType, FillRule fillRule, PathsD solutionClosed)
-    {
-      return Execute(clipType, fillRule, solutionClosed, new PathsD());
-    }
-
-    /// <summary>
-    /// Runs the operation and writes the closed paths of the answer as a polytree of doubles, each hole under the outer
-    /// it lies in and each island under its hole, and the open paths as paths; false, with nothing written, when the
-    /// sweep marked itself failed or threw.
-    /// </summary>
-    public bool Execute(ClipType clipType, FillRule fillRule, PolyTreeD polytree, PathsD openPaths)
-    {
-      polytree.Clear();
-      openPaths.Clear();
-      _using_polytree = true;
-      (polytree as PolyPathD).Scale = _scale;
-      Paths64 oPaths = new Paths64();
-      bool success;
-      try
-      {
-        ExecuteInternal(clipType, fillRule);
-        success = _succeeded;
-        if (success) BuildTree(polytree, oPaths);
-      }
-      catch
-      {
-        success = false;
-      }
-      ClearSolutionOnly();
-      if (!success)
-      {
-        polytree.Clear();
-        return false;
-      }
-      if (oPaths.Count <= 0) return true;
-      openPaths.EnsureCapacity(oPaths.Count);
-      foreach (Path64 path in oPaths)
-        openPaths.Add(Clipper2.ScalePathD(path, _invScale));
-
-      return true;
-    }
-
-    /// <summary>
-    /// Runs the operation into a polytree of doubles; open paths in the answer are dropped.
-    /// </summary>
-    public bool Execute(ClipType clipType, FillRule fillRule, PolyTreeD polytree)
-    {
-      return Execute(clipType, fillRule, polytree, new PathsD());
-    }
-  } // ClipperD class
-
-  /// <summary>
-  /// A node of a polytree, the nesting of the closed paths of an answer: its parent, its children, its depth and
-  /// whether it is a hole. The root holds no path; the outers lie under it, their holes under them, the islands in
-  /// those holes under the holes, and so on.
-  /// </summary>
-  internal abstract class PolyPathBase : IEnumerable
-  {
-    internal PolyPathBase _parent;
-    internal List<PolyPathBase> _childs = new List<PolyPathBase>();
-
-    /// <summary>
-    /// Enumerates the children as they are when it is called.
-    /// </summary>
-    public IEnumerator GetEnumerator()
-    {
-      return new NodeEnumerator(_childs);
-    }
-
-    /// <summary>
-    /// Walks a copy of the children of a node.
-    /// </summary>
-    private class NodeEnumerator : IEnumerator
-    {
-      private int position = -1;
-      private readonly List<PolyPathBase> _nodes;
-
-      /// <summary>
-      /// An enumerator over a copy of the nodes, before the first.
-      /// </summary>
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public NodeEnumerator(List<PolyPathBase> nodes)
-      {
-        _nodes = new List<PolyPathBase>(nodes);
-      }
-
-      /// <summary>
-      /// Moves to the next node; false past the last.
-      /// </summary>
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public bool MoveNext()
-      {
-        position++;
-        return (position < _nodes.Count);
-      }
-
-      /// <summary>
-      /// Goes back to before the first node.
-      /// </summary>
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public void Reset()
-      {
-        position = -1;
-      }
-
-      /// <summary>
-      /// The node at the position; throws InvalidOperationException before the first or past the last.
-      /// </summary>
-      public object Current
-      {
-        get
-        {
-          if (position < 0 || position >= _nodes.Count)
-            throw new InvalidOperationException();
-          return _nodes[position];
+            return (Math.Abs(pt1.X - pt2.X) < 2) && (Math.Abs(pt1.Y - pt2.Y) < 2);
         }
-      }
 
-    }
+        /// <summary>
+        /// Whether the ring is a triangle with two of its corners less than two units apart along each axis.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsVerySmallTriangle(OutPt op)
+        {
+            return op.next.next == op.prev &&
+                (PtsReallyClose(op.prev.pt, op.next.pt) ||
+                    PtsReallyClose(op.pt, op.next.pt) ||
+                    PtsReallyClose(op.pt, op.prev.pt));
+        }
+
+        /// <summary>
+        /// Whether the ring can still be a closed path; here, whenever it has more than one point. Clipper2's C++ also
+        /// refuses a ring of two points and a triangle with two corners less than two units apart, but this test of the
+        /// triangle only runs on rings of two points, where it never holds, so both are left to BuildPath, which drops
+        /// them. Keep it so: written as the C++ has it, the test empties those rings in CleanCollinear, and BuildTree
+        /// then nests islands as holes in some polytrees, four in 600 000 random cases; TestCasesFoundHere holds one.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsValidClosedPath(OutPt op)
+        {
+            return (op != null && op.next != op &&
+                (op.next != op.prev || !IsVerySmallTriangle(op)));
+        }
+
+        /// <summary>
+        /// Takes the point out of its ring and returns the point after it, or null when it was the last.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static OutPt DisposeOutPt(OutPt op)
+        {
+            OutPt result = (op.next == op ? null : op.next);
+            op.prev.next = op.next;
+            op.next.prev = op.prev;
+            // op == null;
+            return result;
+        }
+
+        /// <summary>
+        /// Cleans a closed output path before it is handed back: removes points that repeat a neighbour, spikes, and,
+        /// unless collinear points are kept, points along straight runs; then undoes the places where it crosses
+        /// itself. A path that collapses on the way is emptied.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CleanCollinear(OutRec outrec)
+        {
+            outrec = GetRealOutRec(outrec);
+
+            if (outrec == null || outrec.isOpen) return;
+
+            if(!IsValidClosedPath(outrec.pts))
+            {
+                outrec.pts = null;
+                return;
+            }
+
+            OutPt startOp = outrec.pts;
+            OutPt op2 = startOp;
+            for (; ; )
+            {
+                // NB if preserveCollinear == true, then only remove 180 deg. spikes
+                if ((InternalClipper.IsCollinear(op2.prev.pt, op2.pt, op2.next.pt)) &&
+                    ((op2.pt == op2.prev.pt) || (op2.pt == op2.next.pt) || !PreserveCollinear ||
+                    (InternalClipper.DotProduct(op2.prev.pt, op2.pt, op2.next.pt) < 0)))
+                {
+                    if (op2 == outrec.pts)
+                        outrec.pts = op2.prev;
+                    op2 = DisposeOutPt(op2);
+                    if (!IsValidClosedPath(op2))
+                    {
+                        outrec.pts = null;
+                        return;
+                    }
+                    startOp = op2;
+                    continue;
+                }
+                op2 = op2.next;
+                if (op2 == startOp) break;
+            }
+            FixSelfIntersects(outrec);
+        }
+
+        /// <summary>
+        /// Undoes a self-crossing of the output path, where the edge into splitOp crosses the edge after the next
+        /// point: the crossing point takes the place of splitOp and the point after it. The little triangle they cut
+        /// off becomes an output path of its own, with the same owner, when it has area and either winds the way the
+        /// path does or is larger than it; otherwise it is dropped. A path of area under two is emptied instead.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DoSplitOp(OutRec outrec, OutPt splitOp)
+        {
+            // splitOp.prev <=> splitOp &&
+            // splitOp.next <=> splitOp.next.next are intersecting
+            OutPt prevOp = splitOp.prev;
+            OutPt nextNextOp = splitOp.next.next;
+            outrec.pts = prevOp;
+
+            InternalClipper.GetLineIntersectPt(
+                    prevOp.pt, splitOp.pt, splitOp.next.pt, nextNextOp.pt, out Point64 ip);
+
+            double area1 = Area(prevOp);
+            double absArea1 = Math.Abs(area1);
+
+            if (absArea1 < 2)
+            {
+                outrec.pts = null;
+                return;
+            }
+
+            double area2 = AreaTriangle(ip, splitOp.pt, splitOp.next.pt);
+            double absArea2 = Math.Abs(area2);
+
+            // de-link splitOp and splitOp.next from the path
+            // while inserting the intersection point
+            if (ip == prevOp.pt || ip == nextNextOp.pt)
+            {
+                nextNextOp.prev = prevOp;
+                prevOp.next = nextNextOp;
+            }
+            else
+            {
+                OutPt newOp2 = _outPtPool.Add(ip, outrec);
+                newOp2.prev = prevOp;
+                newOp2.next = nextNextOp;
+                nextNextOp.prev = newOp2;
+                prevOp.next = newOp2;
+            }
+
+            // nb: area1 is the path's area *before* splitting, whereas area2 is
+            // the area of the triangle containing splitOp & splitOp.next.
+            // So the only way for these areas to have the same sign is if
+            // the split triangle is larger than the path containing prevOp or
+            // if there's more than one self=intersection.
+            if (!(absArea2 > 1) ||
+                (!(absArea2 > absArea1) &&
+                    ((area2 > 0) != (area1 > 0)))) return;
+            OutRec newOutRec = NewOutRec();
+            newOutRec.owner = outrec.owner;
+            splitOp.outrec = newOutRec;
+            splitOp.next.outrec = newOutRec;
+
+            OutPt newOp = _outPtPool.Add(ip, newOutRec);
+            newOp.prev = splitOp.next;
+            newOp.next = splitOp;
+            newOutRec.pts = newOp;
+            splitOp.prev = newOp;
+            splitOp.next.next = newOp;
+
+            if (!_using_polytree) return;
+            if (Path1InsidePath2(prevOp, newOp))
+            {
+                newOutRec.splits ??= new List<int>();
+                newOutRec.splits.Add(outrec.idx);
+            }
+            else
+            {
+                outrec.splits ??= new List<int>();
+                outrec.splits.Add(newOutRec.idx);
+            }
+            //else { splitOp = null; splitOp.next = null; }
+        }
+
+        /// <summary>
+        /// Walks the closed output path and undoes, by DoSplitOp, every place where an edge crosses the edge after
+        /// next; where it also crosses the edge after that, a micro self-intersection, a copy of a point is put in
+        /// instead. A triangle cannot cross itself and is left alone. Upstream changed this after 2.0.0 (4da1564,
+        /// #1067); the change is not taken here, as TestCasesFoundHere shows why.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void FixSelfIntersects(OutRec outrec)
+        {
+            OutPt op2 = outrec.pts;
+            if (op2.prev == op2.next.next)
+                return; // because triangles can't self-intersect
+            for (; ; )
+            {
+                if (InternalClipper.SegsIntersect(op2.prev.pt,
+                                op2.pt, op2.next.pt, op2.next.next.pt))
+                {
+                    if (InternalClipper.SegsIntersect(op2.prev.pt,
+                                    op2.pt, op2.next.next.pt, op2.next.next.next.pt))
+                    {
+                        // adjacent intersections (ie a micro self-intersection)
+                        op2 = DuplicateOp(op2, false);
+                        op2.pt = op2.next.next.next.pt;
+                        op2 = op2.next;
+                    }
+                    else
+                    {
+                        if (op2 == outrec.pts || op2.next == outrec.pts)
+                            outrec.pts = outrec.pts.prev;
+                        DoSplitOp(outrec, op2);
+                        if (outrec.pts == null) return;
+                        op2 = outrec.pts;
+                        // triangles can't self-intersect
+                        if (op2.prev == op2.next.next) break;
+                        continue;
+                    }
+                }
+
+                op2 = op2.next;
+                if (op2 == outrec.pts) break;
+            }
+        }
+
+        /// <summary>
+        /// Writes the ring of output points into path, from the point after op on, or from op backwards when reversed,
+        /// points that repeat the one before skipped. False when there are too few: one point, two of a closed path, or
+        /// a closed path that is a very small triangle.
+        /// </summary>
+        internal static bool BuildPath(OutPt op, bool reverse, bool isOpen, Path64 path)
+        {
+            if (op == null || op.next == op || (!isOpen && op.next == op.prev)) return false;
+            path.Clear();
+
+            Point64 lastPt;
+            OutPt op2;
+            if (reverse)
+            {
+                lastPt = op.pt;
+                op2 = op.prev;
+            }
+            else
+            {
+                op = op.next;
+                lastPt = op.pt;
+                op2 = op.next;
+            }
+            path.Add(lastPt);
+
+            while (op2 != op)
+            {
+                if (op2.pt != lastPt)
+                {
+                    lastPt = op2.pt;
+                    path.Add(lastPt);
+                }
+                if (reverse)
+                    op2 = op2.prev;
+                else
+                    op2 = op2.next;
+            }
+
+            return path.Count != 3 || isOpen || !IsVerySmallTriangle(op2);
+        }
+
+        /// <summary>
+        /// Hands the output paths back as paths: the open ones as they are, the closed ones cleaned of collinear points
+        /// and self-crossings first, outers counter-clockwise with Y up unless ReverseSolution is set.
+        /// </summary>
+        protected bool BuildPaths(Paths64 solutionClosed, Paths64 solutionOpen)
+        {
+            solutionClosed.Clear();
+            solutionOpen.Clear();
+            solutionClosed.EnsureCapacity(_outrecList.Count);
+            solutionOpen.EnsureCapacity(_outrecList.Count);
+
+            int i = 0;
+            // _outrecList.Count is not static here because
+            // CleanCollinear can indirectly add additional OutRec
+            while (i < _outrecList.Count)
+            {
+                OutRec outrec = _outrecList[i++];
+                if (outrec.pts == null) continue;
+
+                Path64 path = new Path64(outrec.outPtCount);
+                if (outrec.isOpen)
+                {
+                    if (BuildPath(outrec.pts, ReverseSolution, true, path))
+                            solutionOpen.Add(path);
+                }
+                else
+                {
+                    CleanCollinear(outrec);
+                    // closed paths should always return a Positive orientation
+                    // except when ReverseSolution == true
+                    if (BuildPath(outrec.pts, ReverseSolution, false, path))
+                        solutionClosed.Add(path);
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Makes sure the output path has its finished path and its bounds, cleaning it first; false when it has no
+        /// points or comes to none.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool CheckBounds(OutRec outrec)
+        {
+            if (outrec.pts == null) return false;
+            if (!outrec.bounds.IsEmpty()) return true;
+            CleanCollinear(outrec);
+            if (outrec.pts == null ||
+                !BuildPath(outrec.pts, ReverseSolution, false, outrec.path))
+                    return false;
+            outrec.bounds = InternalClipper.GetBounds(outrec.path);
+            return true;
+        }
+
+        /// <summary>
+        /// Looks among the paths split off an owner, and those split off them, for one that holds the output path;
+        /// makes it the owner and returns true when it finds one.
+        /// </summary>
+        private bool CheckSplitOwner(OutRec outrec, List<int> splits)
+        {
+            // nb: use indexing (not an iterator) in case 'splits' is modified inside this loop (#1029)
+            for (int i = 0; i < splits.Count; i++)
+            {
+                OutRec split = _outrecList[splits[i]];
+                if (split.pts == null && split.splits != null &&
+                    CheckSplitOwner(outrec, split.splits)) return true; //#942
+                split = GetRealOutRec(split);
+                if (split == null || split == outrec || split.recursiveSplit == outrec) continue;
+                split.recursiveSplit = outrec; //#599
+
+                if (split.splits != null && CheckSplitOwner(outrec, split.splits)) return true;
+
+                if (!CheckBounds(split) ||
+                        !split.bounds.Contains(outrec.bounds) ||
+                        !Path1InsidePath2(outrec.pts, split.pts)) continue;
+
+                if (!IsValidOwner(outrec, split)) // split is owned by outrec (#957)
+                    split.owner = outrec.owner;
+
+                outrec.owner = split; //found in split
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Finds the real owner of the output path, the nearest one up its chain of owners, or among the paths split
+        /// off them, that holds it, and adds the path to the polytree under the owner's node, the owner's own node made
+        /// first; under polypath when it has no owner.
+        /// </summary>
+        private void RecursiveCheckOwners(OutRec outrec, PolyPathBase polypath)
+        {
+            // pre-condition: outrec will have valid bounds
+            // post-condition: if a valid path, outrec will have a polypath
+
+            if (outrec.polypath != null || outrec.bounds.IsEmpty()) return;
+
+            while (outrec.owner != null)
+            {
+                if (outrec.owner.splits != null &&
+                    CheckSplitOwner(outrec, outrec.owner.splits)) break;
+                if (outrec.owner.pts != null && CheckBounds(outrec.owner) &&
+                    Path1InsidePath2(outrec.pts, outrec.owner.pts)) break;
+                outrec.owner = outrec.owner.owner;
+            }
+
+            if (outrec.owner != null)
+            {
+                if (outrec.owner.polypath == null)
+                    RecursiveCheckOwners(outrec.owner, polypath);
+                outrec.polypath = outrec.owner.polypath.AddChild(outrec.path);
+            }
+            else
+                outrec.polypath = polypath.AddChild(outrec.path);
+        }
+
+        /// <summary>
+        /// Hands the output back as a polytree, each closed path nested under the path it lies in, and the open paths
+        /// as paths.
+        /// </summary>
+        protected void BuildTree(PolyPathBase polytree, Paths64 solutionOpen)
+        {
+            polytree.Clear();
+            solutionOpen.Clear();
+            if (_hasOpenPaths)
+                solutionOpen.EnsureCapacity(_outrecList.Count);
+
+            int i = 0;
+            // _outrecList.Count is not static here because
+            // CheckBounds below can indirectly add additional
+            // OutRec (via FixOutRecPts & CleanCollinear)
+            while (i < _outrecList.Count)
+            {
+                OutRec outrec = _outrecList[i++];
+                if (outrec.pts == null) continue;
+
+                if (outrec.isOpen)
+                {
+                    Path64 open_path = new Path64(outrec.outPtCount);
+                    if (BuildPath(outrec.pts, ReverseSolution, true, open_path))
+                        solutionOpen.Add(open_path);
+                    continue;
+                }
+                if (CheckBounds(outrec))
+                    RecursiveCheckOwners(outrec, polytree);
+            }
+        }
+
+        /// <summary>
+        /// The bounds of every vertex added; the empty rectangle at the origin when there are none.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Rect64 GetBounds()
+        {
+            Rect64 bounds = Clipper2.InvalidRect64;
+            foreach (Vertex t in _vertexList)
+            {
+                Vertex v = t;
+                do
+                {
+                    if (v.pt.X < bounds.left) bounds.left = v.pt.X;
+                    if (v.pt.X > bounds.right) bounds.right = v.pt.X;
+                    if (v.pt.Y < bounds.top) bounds.top = v.pt.Y;
+                    if (v.pt.Y > bounds.bottom) bounds.bottom = v.pt.Y;
+                    v = v.next;
+                } while (v != t);
+            }
+            return bounds.IsEmpty() ? new Rect64(0, 0, 0, 0) : bounds;
+        }
+
+    } // ClipperBase class
 
     /// <summary>
-    /// Whether the node is a hole: at an even depth, the root at depth nought excepted.
+    /// The clipper for paths of integers.
     /// </summary>
-    public bool IsHole => GetIsHole();
-
-    /// <summary>
-    /// A node under parent; the root has none.
-    /// </summary>
-    public PolyPathBase(PolyPathBase parent = null) { _parent = parent; }
-
-    /// <summary>
-    /// How many nodes lie above it, up to the root.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int GetLevel()
+    internal class Clipper64 : ClipperBase
     {
-      int result = 0;
-      PolyPathBase pp = _parent;
-      while (pp != null) { ++result; pp = pp._parent; }
-      return result;
-    }
+        /// <summary>
+        /// Adds a path, as a subject or a clip, open or closed.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal new void AddPath(Path64 path, PathType polytype, bool isOpen = false)
+        {
+            base.AddPath(path, polytype, isOpen);
+        }
+
+        /// <summary>
+        /// Adds the local minima of paths converted once in the container, which has to outlive this clipper's use of
+        /// them.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public new void AddReuseableData(ReuseableDataContainer64 reuseableData)
+        {
+            base.AddReuseableData(reuseableData);
+        }
+
+        /// <summary>
+        /// Adds the paths, as subjects or clips, open or closed.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal new void AddPaths(Paths64 paths, PathType polytype, bool isOpen = false)
+        {
+            base.AddPaths(paths, polytype, isOpen);
+        }
+
+        /// <summary>
+        /// Adds closed subject paths.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddSubject(Paths64 paths)
+        {
+            AddPaths(paths, PathType.Subject);
+        }
+
+        /// <summary>
+        /// Adds open subject paths.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddOpenSubject(Paths64 paths)
+        {
+            AddPaths(paths, PathType.Subject, true);
+        }
+
+        /// <summary>
+        /// Adds clip paths.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddClip(Paths64 paths)
+        {
+            AddPaths(paths, PathType.Clip);
+        }
+
+        /// <summary>
+        /// Runs the operation on the paths added and writes the closed and the open paths of the answer; false when the
+        /// sweep marked itself failed or threw, with what was built until then. The paths added stay, for another run.
+        /// </summary>
+        public bool Execute(ClipType clipType, FillRule fillRule,
+                Paths64 solutionClosed, Paths64 solutionOpen)
+        {
+            solutionClosed.Clear();
+            solutionOpen.Clear();
+            try
+            {
+                ExecuteInternal(clipType, fillRule);
+                BuildPaths(solutionClosed, solutionOpen);
+            }
+            catch
+            {
+                _succeeded = false;
+            }
+
+            ClearSolutionOnly();
+            return _succeeded;
+        }
+
+        /// <summary>
+        /// Runs the operation and writes the closed paths of the answer; open paths in it are dropped.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Execute(ClipType clipType, FillRule fillRule, Paths64 solutionClosed)
+        {
+            return Execute(clipType, fillRule, solutionClosed, new Paths64());
+        }
+
+        /// <summary>
+        /// Runs the operation and writes the closed paths of the answer as a polytree, each hole under the outer it
+        /// lies in and each island under its hole, and the open paths as paths; false when the sweep marked itself
+        /// failed or threw.
+        /// </summary>
+        public bool Execute(ClipType clipType, FillRule fillRule, PolyTree64 polytree, Paths64 openPaths)
+        {
+            polytree.Clear();
+            openPaths.Clear();
+            _using_polytree = true;
+            try
+            {
+                ExecuteInternal(clipType, fillRule);
+                BuildTree(polytree, openPaths);
+            }
+            catch
+            {
+                _succeeded = false;
+            }
+
+            ClearSolutionOnly();
+            return _succeeded;
+        }
+
+        /// <summary>
+        /// Runs the operation into a polytree; open paths in the answer are dropped.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Execute(ClipType clipType, FillRule fillRule, PolyTree64 polytree)
+        {
+            return Execute(clipType, fillRule, polytree, new Paths64());
+        }
+
+    } // Clipper64 class
 
     /// <summary>
-    /// Its depth: nought for the root, one for the outers, two for their holes, three for the islands in those, and so
-    /// on.
+    /// The clipper for paths of doubles, the one GeometryHelper's regions use: the paths are rounded to a number of
+    /// decimal places, clipped as integers, and the answer is scaled back.
     /// </summary>
-    public int Level => GetLevel();
-
-    /// <summary>
-    /// Whether its depth is even and not nought.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool GetIsHole()
+    internal class ClipperD : ClipperBase
     {
-      int lvl = GetLevel();
-      return lvl != 0 && (lvl & 1) == 0;
-    }
+        private const string precision_range_error = "Error: Precision is out of range.";
+
+        private readonly double _scale;
+        private readonly double _invScale;
+
+        /// <summary>
+        /// A clipper that rounds to roundingDecimalPrecision decimal places, two unless given: coordinates are
+        /// multiplied by ten to that power and rounded half away from nought. It throws ClipperLibException outside -8
+        /// to 8.
+        /// </summary>
+        public ClipperD(int roundingDecimalPrecision = 2)
+        {
+            if (roundingDecimalPrecision < -8 || roundingDecimalPrecision > 8)
+                throw new ClipperLibException(precision_range_error);
+            _scale = Math.Pow(10, roundingDecimalPrecision);
+            _invScale = 1 / _scale;
+        }
+
+        /// <summary>
+        /// Adds a path rounded to the precision, as a subject or a clip, open or closed.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddPath(PathD path, PathType polytype, bool isOpen = false)
+        {
+            base.AddPath(Clipper2.ScalePath64(path, _scale), polytype, isOpen);
+        }
+
+        /// <summary>
+        /// Adds the paths rounded to the precision, as subjects or clips, open or closed.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddPaths(PathsD paths, PathType polytype, bool isOpen = false)
+        {
+            base.AddPaths(Clipper2.ScalePaths64(paths, _scale), polytype, isOpen);
+        }
+
+        /// <summary>
+        /// Adds a closed subject path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddSubject(PathD path)
+        {
+            AddPath(path, PathType.Subject);
+        }
+
+        /// <summary>
+        /// Adds an open subject path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddOpenSubject(PathD path)
+        {
+            AddPath(path, PathType.Subject, true);
+        }
+
+        /// <summary>
+        /// Adds a clip path.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddClip(PathD path)
+        {
+            AddPath(path, PathType.Clip);
+        }
+
+        /// <summary>
+        /// Adds closed subject paths.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddSubject(PathsD paths)
+        {
+            AddPaths(paths, PathType.Subject);
+        }
+
+        /// <summary>
+        /// Adds open subject paths.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddOpenSubject(PathsD paths)
+        {
+            AddPaths(paths, PathType.Subject, true);
+        }
+
+        /// <summary>
+        /// Adds clip paths.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddClip(PathsD paths)
+        {
+            AddPaths(paths, PathType.Clip);
+        }
+
+        /// <summary>
+        /// Runs the operation and writes the closed and the open paths of the answer, scaled back to doubles; false,
+        /// with both lists left empty, when the sweep marked itself failed or threw, as in Clipper2's C++. Clipper2
+        /// 2.0.0's C# answered true for a sweep that had marked itself failed, with what it had built until then; that
+        /// is mended here.
+        /// </summary>
+        public bool Execute(ClipType clipType, FillRule fillRule,
+                PathsD solutionClosed, PathsD solutionOpen)
+        {
+            Paths64 solClosed64 = new Paths64(), solOpen64 = new Paths64();
+
+            bool success;
+            solutionClosed.Clear();
+            solutionOpen.Clear();
+            try
+            {
+                ExecuteInternal(clipType, fillRule);
+                success = _succeeded;
+                if (success) BuildPaths(solClosed64, solOpen64);
+            }
+            catch
+            {
+                success = false;
+            }
+
+            ClearSolutionOnly();
+            if (!success) return false;
+
+            solutionClosed.EnsureCapacity(solClosed64.Count);
+            foreach (Path64 path in solClosed64)
+                solutionClosed.Add(Clipper2.ScalePathD(path, _invScale));
+            solutionOpen.EnsureCapacity(solOpen64.Count);
+            foreach (Path64 path in solOpen64)
+                solutionOpen.Add(Clipper2.ScalePathD(path, _invScale));
+
+            return true;
+        }
+
+        /// <summary>
+        /// Runs the operation and writes the closed paths of the answer, scaled back to doubles; open paths in it are
+        /// dropped. This is the run GeometryHelper's regions make.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Execute(ClipType clipType, FillRule fillRule, PathsD solutionClosed)
+        {
+            return Execute(clipType, fillRule, solutionClosed, new PathsD());
+        }
+
+        /// <summary>
+        /// Runs the operation and writes the closed paths of the answer as a polytree of doubles, each hole under the
+        /// outer it lies in and each island under its hole, and the open paths as paths; false, with nothing written,
+        /// when the sweep marked itself failed or threw.
+        /// </summary>
+        public bool Execute(ClipType clipType, FillRule fillRule, PolyTreeD polytree, PathsD openPaths)
+        {
+            polytree.Clear();
+            openPaths.Clear();
+            _using_polytree = true;
+            (polytree as PolyPathD).Scale = _scale;
+            Paths64 oPaths = new Paths64();
+            bool success;
+            try
+            {
+                ExecuteInternal(clipType, fillRule);
+                success = _succeeded;
+                if (success) BuildTree(polytree, oPaths);
+            }
+            catch
+            {
+                success = false;
+            }
+            ClearSolutionOnly();
+            if (!success)
+            {
+                polytree.Clear();
+                return false;
+            }
+            if (oPaths.Count <= 0) return true;
+            openPaths.EnsureCapacity(oPaths.Count);
+            foreach (Path64 path in oPaths)
+                openPaths.Add(Clipper2.ScalePathD(path, _invScale));
+
+            return true;
+        }
+
+        /// <summary>
+        /// Runs the operation into a polytree of doubles; open paths in the answer are dropped.
+        /// </summary>
+        public bool Execute(ClipType clipType, FillRule fillRule, PolyTreeD polytree)
+        {
+            return Execute(clipType, fillRule, polytree, new PathsD());
+        }
+    } // ClipperD class
 
     /// <summary>
-    /// The number of its children.
+    /// A node of a polytree, the nesting of the closed paths of an answer: its parent, its children, its depth and
+    /// whether it is a hole. The root holds no path; the outers lie under it, their holes under them, the islands in
+    /// those holes under the holes, and so on.
     /// </summary>
-    public int Count => _childs.Count;
-
-    /// <summary>
-    /// Adds a child node holding the path and returns it.
-    /// </summary>
-    public abstract PolyPathBase AddChild(Path64 p);
-
-    /// <summary>
-    /// Removes its children.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Clear()
+    internal abstract class PolyPathBase : IEnumerable
     {
-      _childs.Clear();
-    }
+        internal PolyPathBase _parent;
+        internal List<PolyPathBase> _childs = new List<PolyPathBase>();
+
+        /// <summary>
+        /// Enumerates the children as they are when it is called.
+        /// </summary>
+        public IEnumerator GetEnumerator()
+        {
+            return new NodeEnumerator(_childs);
+        }
+
+        /// <summary>
+        /// Walks a copy of the children of a node.
+        /// </summary>
+        private class NodeEnumerator : IEnumerator
+        {
+            private int position = -1;
+            private readonly List<PolyPathBase> _nodes;
+
+            /// <summary>
+            /// An enumerator over a copy of the nodes, before the first.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public NodeEnumerator(List<PolyPathBase> nodes)
+            {
+                _nodes = new List<PolyPathBase>(nodes);
+            }
+
+            /// <summary>
+            /// Moves to the next node; false past the last.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool MoveNext()
+            {
+                position++;
+                return (position < _nodes.Count);
+            }
+
+            /// <summary>
+            /// Goes back to before the first node.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Reset()
+            {
+                position = -1;
+            }
+
+            /// <summary>
+            /// The node at the position; throws InvalidOperationException before the first or past the last.
+            /// </summary>
+            public object Current
+            {
+                get
+                {
+                    if (position < 0 || position >= _nodes.Count)
+                        throw new InvalidOperationException();
+                    return _nodes[position];
+                }
+            }
+
+        }
+
+        /// <summary>
+        /// Whether the node is a hole: at an even depth, the root at depth nought excepted.
+        /// </summary>
+        public bool IsHole => GetIsHole();
+
+        /// <summary>
+        /// A node under parent; the root has none.
+        /// </summary>
+        public PolyPathBase(PolyPathBase parent = null) { _parent = parent; }
+
+        /// <summary>
+        /// How many nodes lie above it, up to the root.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int GetLevel()
+        {
+            int result = 0;
+            PolyPathBase pp = _parent;
+            while (pp != null) { ++result; pp = pp._parent; }
+            return result;
+        }
+
+        /// <summary>
+        /// Its depth: nought for the root, one for the outers, two for their holes, three for the islands in those, and
+        /// so on.
+        /// </summary>
+        public int Level => GetLevel();
+
+        /// <summary>
+        /// Whether its depth is even and not nought.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool GetIsHole()
+        {
+            int lvl = GetLevel();
+            return lvl != 0 && (lvl & 1) == 0;
+        }
+
+        /// <summary>
+        /// The number of its children.
+        /// </summary>
+        public int Count => _childs.Count;
+
+        /// <summary>
+        /// Adds a child node holding the path and returns it.
+        /// </summary>
+        public abstract PolyPathBase AddChild(Path64 p);
+
+        /// <summary>
+        /// Removes its children.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            _childs.Clear();
+        }
+
+        /// <summary>
+        /// The node as a line of text, a polygon at an odd level and a hole at an even one, with its index among its
+        /// siblings and the number of its children, indented by its level; then the same for each child that has
+        /// children of its own.
+        /// </summary>
+        internal string ToStringInternal(int idx, int level)
+        {
+            string result = "", padding = "", plural = "s";
+            if (_childs.Count == 1) plural = "";
+            padding = padding.PadLeft(level * 2);
+            if ((level & 1) == 0)
+                result += $"{padding}+- hole ({idx}) contains {_childs.Count} nested polygon{plural}.\n";
+            else
+                result += $"{padding}+- polygon ({idx}) contains {_childs.Count} hole{plural}.\n";
+
+            for (int i = 0; i < Count; i++)
+                if (_childs[i].Count > 0)
+                    result += _childs[i].ToStringInternal(i, level +1);
+            return result;
+        }
+
+        /// <summary>
+        /// The nesting of the tree as text when asked of the root: the number of outers, then a line for each node that
+        /// has children. Empty for any other node.
+        /// </summary>
+        public override string ToString()
+        {
+            if (Level > 0) return ""; //only accept tree root
+            string plural = "s";
+            if (_childs.Count == 1) plural = "";
+            string result = $"Polytree with {_childs.Count} polygon{plural}.\n";
+            for (int i = 0; i < Count; i++)
+                if (_childs[i].Count > 0)
+                    result += _childs[i].ToStringInternal(i, 1);
+            return result + '\n';
+        }
+
+    } // PolyPathBase class
 
     /// <summary>
-    /// The node as a line of text, a polygon at an odd level and a hole at an even one, with its index among its
-    /// siblings and the number of its children, indented by its level; then the same for each child that has children
-    /// of its own.
+    /// A node of a polytree of integers, with its polygon.
     /// </summary>
-    internal string ToStringInternal(int idx, int level)
+    internal class PolyPath64 : PolyPathBase
     {
-      string result = "", padding = "", plural = "s";
-      if (_childs.Count == 1) plural = "";
-      padding = padding.PadLeft(level * 2);
-      if ((level & 1) == 0)
-        result += $"{padding}+- hole ({idx}) contains {_childs.Count} nested polygon{plural}.\n";
-      else
-        result += $"{padding}+- polygon ({idx}) contains {_childs.Count} hole{plural}.\n";
+        /// <summary>
+        /// The polygon of the node; null for the root.
+        /// </summary>
+        public Path64 Polygon { get; private set; }
 
-      for (int i = 0; i < Count; i++)
-        if (_childs[i].Count > 0)
-          result += _childs[i].ToStringInternal(i, level +1);
-      return result;
+        /// <summary>
+        /// A node under parent; the root has none.
+        /// </summary>
+        public PolyPath64(PolyPathBase parent = null) : base(parent) {}
+
+        /// <summary>
+        /// Adds a child node holding the path and returns it.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override PolyPathBase AddChild(Path64 p)
+        {
+            PolyPathBase newChild = new PolyPath64(this);
+            (newChild as PolyPath64).Polygon = p;
+            _childs.Add(newChild);
+            return newChild;
+        }
+
+        /// <summary>
+        /// The child at the index; throws InvalidOperationException out of range.
+        /// </summary>
+        public PolyPath64 this[int index]
+        {
+            get
+            {
+                if (index < 0 || index >= _childs.Count)
+                    throw new InvalidOperationException();
+                return (PolyPath64) _childs[index];
+            }
+        }
+
+        /// <summary>
+        /// The child at the index; throws InvalidOperationException out of range.
+        /// </summary>
+        public PolyPath64 Child(int index)
+        {
+            if (index < 0 || index >= _childs.Count)
+                throw new InvalidOperationException();
+            return (PolyPath64) _childs[index];
+        }
+
+        /// <summary>
+        /// The signed area of the polygon of the node and of all the nodes below it, holes, wound the other way,
+        /// counting against their outers.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public double Area()
+        {
+            double result = Polygon == null ? 0 : Clipper2.Area(Polygon);
+            foreach (PolyPathBase polyPathBase in _childs)
+            {
+                PolyPath64 child = (PolyPath64) polyPathBase;
+                result += child.Area();
+            }
+            return result;
+        }
     }
 
     /// <summary>
-    /// The nesting of the tree as text when asked of the root: the number of outers, then a line for each node that has
-    /// children. Empty for any other node.
+    /// A node of a polytree of doubles, with its polygon and the scale the paths of integers it is given are brought
+    /// back by.
     /// </summary>
-    public override string ToString()
+    internal class PolyPathD : PolyPathBase
     {
-      if (Level > 0) return ""; //only accept tree root
-      string plural = "s";
-      if (_childs.Count == 1) plural = "";
-      string result = $"Polytree with {_childs.Count} polygon{plural}.\n";
-      for (int i = 0; i < Count; i++)
-        if (_childs[i].Count > 0)
-          result += _childs[i].ToStringInternal(i, 1);
-      return result + '\n';
+        /// <summary>
+        /// The scale the clipper rounded by: paths of integers added under the node are divided by it, and its children
+        /// take it too.
+        /// </summary>
+        internal double Scale { get; set; }
+
+        /// <summary>
+        /// The polygon of the node; null for the root.
+        /// </summary>
+        public PathD Polygon { get; private set; }
+
+        /// <summary>
+        /// A node under parent; the root has none.
+        /// </summary>
+        public PolyPathD(PolyPathBase parent = null) : base(parent) {}
+
+        /// <summary>
+        /// Adds a child node holding the path of integers divided by the scale and returns it.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override PolyPathBase AddChild(Path64 p)
+        {
+            PolyPathBase newChild = new PolyPathD(this);
+            (newChild as PolyPathD).Scale = Scale;
+            (newChild as PolyPathD).Polygon = Clipper2.ScalePathD(p, 1 / Scale);
+            _childs.Add(newChild);
+            return newChild;
+        }
+
+        /// <summary>
+        /// Adds a child node holding the path of doubles as it is and returns it.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PolyPathBase AddChild(PathD p)
+        {
+            PolyPathBase newChild = new PolyPathD(this);
+            (newChild as PolyPathD).Scale = Scale;
+            (newChild as PolyPathD).Polygon = p;
+            _childs.Add(newChild);
+            return newChild;
+        }
+
+        /// <summary>
+        /// The child at the index; throws InvalidOperationException out of range.
+        /// </summary>
+        [IndexerName("Child")]
+        public PolyPathD this[int index]
+        {
+            get
+            {
+                if (index < 0 || index >= _childs.Count)
+                    throw new InvalidOperationException();
+                return (PolyPathD) _childs[index];
+            }
+        }
+
+        /// <summary>
+        /// The signed area of the polygon of the node and of all the nodes below it, holes, wound the other way,
+        /// counting against their outers.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public double Area()
+        {
+            double result = Polygon == null ? 0 : Clipper2.Area(Polygon);
+            foreach (PolyPathBase polyPathBase in _childs)
+            {
+                PolyPathD child = (PolyPathD) polyPathBase;
+                result += child.Area();
+            }
+            return result;
+        }
     }
 
-  } // PolyPathBase class
-
-  /// <summary>
-  /// A node of a polytree of integers, with its polygon.
-  /// </summary>
-  internal class PolyPath64 : PolyPathBase
-  {
     /// <summary>
-    /// The polygon of the node; null for the root.
+    /// The root of a polytree of integers.
     /// </summary>
-    public Path64 Polygon { get; private set; }
+    internal class PolyTree64 : PolyPath64 {}
 
     /// <summary>
-    /// A node under parent; the root has none.
+    /// The root of a polytree of doubles.
     /// </summary>
-    public PolyPath64(PolyPathBase parent = null) : base(parent) {}
-
-    /// <summary>
-    /// Adds a child node holding the path and returns it.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override PolyPathBase AddChild(Path64 p)
+    internal class PolyTreeD : PolyPathD
     {
-      PolyPathBase newChild = new PolyPath64(this);
-      (newChild as PolyPath64).Polygon = p;
-      _childs.Add(newChild);
-      return newChild;
+        /// <summary>
+        /// The scale the clipper rounded by.
+        /// </summary>
+        public new double Scale => base.Scale;
     }
 
     /// <summary>
-    /// The child at the index; throws InvalidOperationException out of range.
+    /// The exception the clipper throws for a precision out of range, from ClipperD's constructor and from the static
+    /// functions that round.
     /// </summary>
-    public PolyPath64 this[int index]
+    internal class ClipperLibException : Exception
     {
-      get
-      {
-        if (index < 0 || index >= _childs.Count)
-          throw new InvalidOperationException();
-        return (PolyPath64) _childs[index];
-      }
+        /// <summary>
+        /// An exception with the description.
+        /// </summary>
+        public ClipperLibException(string description) : base(description) {}
     }
-
-    /// <summary>
-    /// The child at the index; throws InvalidOperationException out of range.
-    /// </summary>
-    public PolyPath64 Child(int index)
-    {
-      if (index < 0 || index >= _childs.Count)
-        throw new InvalidOperationException();
-      return (PolyPath64) _childs[index];
-    }
-
-    /// <summary>
-    /// The signed area of the polygon of the node and of all the nodes below it, holes, wound the other way, counting
-    /// against their outers.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double Area()
-    {
-      double result = Polygon == null ? 0 : Clipper2.Area(Polygon);
-      foreach (PolyPathBase polyPathBase in _childs)
-      {
-        PolyPath64 child = (PolyPath64) polyPathBase;
-        result += child.Area();
-      }
-      return result;
-    }
-  }
-
-  /// <summary>
-  /// A node of a polytree of doubles, with its polygon and the scale the paths of integers it is given are brought back
-  /// by.
-  /// </summary>
-  internal class PolyPathD : PolyPathBase
-  {
-    /// <summary>
-    /// The scale the clipper rounded by: paths of integers added under the node are divided by it, and its children
-    /// take it too.
-    /// </summary>
-    internal double Scale { get; set; }
-
-    /// <summary>
-    /// The polygon of the node; null for the root.
-    /// </summary>
-    public PathD Polygon { get; private set; }
-
-    /// <summary>
-    /// A node under parent; the root has none.
-    /// </summary>
-    public PolyPathD(PolyPathBase parent = null) : base(parent) {}
-
-    /// <summary>
-    /// Adds a child node holding the path of integers divided by the scale and returns it.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override PolyPathBase AddChild(Path64 p)
-    {
-      PolyPathBase newChild = new PolyPathD(this);
-      (newChild as PolyPathD).Scale = Scale;
-      (newChild as PolyPathD).Polygon = Clipper2.ScalePathD(p, 1 / Scale);
-      _childs.Add(newChild);
-      return newChild;
-    }
-
-    /// <summary>
-    /// Adds a child node holding the path of doubles as it is and returns it.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PolyPathBase AddChild(PathD p)
-    {
-      PolyPathBase newChild = new PolyPathD(this);
-      (newChild as PolyPathD).Scale = Scale;
-      (newChild as PolyPathD).Polygon = p;
-      _childs.Add(newChild);
-      return newChild;
-    }
-
-    /// <summary>
-    /// The child at the index; throws InvalidOperationException out of range.
-    /// </summary>
-    [IndexerName("Child")]
-    public PolyPathD this[int index]
-    {
-      get
-      {
-        if (index < 0 || index >= _childs.Count)
-          throw new InvalidOperationException();
-        return (PolyPathD) _childs[index];
-      }
-    }
-
-    /// <summary>
-    /// The signed area of the polygon of the node and of all the nodes below it, holes, wound the other way, counting
-    /// against their outers.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double Area()
-    {
-      double result = Polygon == null ? 0 : Clipper2.Area(Polygon);
-      foreach (PolyPathBase polyPathBase in _childs)
-      {
-        PolyPathD child = (PolyPathD) polyPathBase;
-        result += child.Area();
-      }
-      return result;
-    }
-  }
-
-  /// <summary>
-  /// The root of a polytree of integers.
-  /// </summary>
-  internal class PolyTree64 : PolyPath64 {}
-
-  /// <summary>
-  /// The root of a polytree of doubles.
-  /// </summary>
-  internal class PolyTreeD : PolyPathD
-  {
-    /// <summary>
-    /// The scale the clipper rounded by.
-    /// </summary>
-    public new double Scale => base.Scale;
-  }
-
-  /// <summary>
-  /// The exception the clipper throws for a precision out of range, from ClipperD's constructor and from the static
-  /// functions that round.
-  /// </summary>
-  internal class ClipperLibException : Exception
-  {
-    /// <summary>
-    /// An exception with the description.
-    /// </summary>
-    public ClipperLibException(string description) : base(description) {}
-  }
 } // namespace
