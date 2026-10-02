@@ -1086,6 +1086,12 @@ namespace GeometryHelper.Core
         /// collected edges and cancels out, which is what keeps interior edges from being mistaken for
         /// section boundary.
         /// </para>
+        /// <para>
+        /// A plane that parts a body without crossing any of it — between two blocks of one body, or along the
+        /// edge where two parts of it meet, as a body cut through a corner of its notch touches itself — leaves
+        /// every edge on the plane run both ways within each half. Each half is closed as it is, and the body is
+        /// split with nothing to cap; it was taken before for a plane that misses the body.
+        /// </para>
         /// </remarks>
         public static bool TrySplitBy(GeoSolid3 solid, GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below, Tolerance tolerance)
         {
@@ -1211,7 +1217,10 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="pieces">The tolerance the caps are built within; see <see cref="LoopAssembly.ForPieces"/>.</param>
         /// <param name="caps">The faces closing the half.</param>
-        /// <returns>false when the edges left by the cut do not close into loops.</returns>
+        /// <returns>
+        /// false when the edges left by the cut do not close into loops; true with no caps when the half has no edge on the
+        /// plane its own faces do not run both ways.
+        /// </returns>
         private static bool TryBuildCaps(List<GeoFace3> halfFaces, GeoPlane3 cutter, GeoVector3 outward, Tolerance tolerance, Tolerance pieces, out List<GeoFace3> caps)
         {
             caps = new List<GeoFace3>();
@@ -1241,6 +1250,13 @@ namespace GeometryHelper.Core
             }
 
             LoopAssembly.CancelOpposedEdges(edges, tolerance);
+
+            // Every edge the half has on the plane run both ways by its own faces: the plane passes between parts of the
+            // body, or along the edge where two parts meet, and the half is closed as it is, with nothing to cap.
+            if (edges.Count == 0)
+            {
+                return true;
+            }
 
             if (edges.Count < 3)
             {

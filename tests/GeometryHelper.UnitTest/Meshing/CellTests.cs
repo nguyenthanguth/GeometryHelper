@@ -387,6 +387,23 @@ namespace GeometryHelper.UnitTest.Meshing
         }
 
         [Fact]
+        public void ACutBetweenTwoArmsOfAPieceSeparatesThem()
+        {
+            // A U with its arms along X: the column of cells over the arms holds both, apart, and the cut along Y between them
+            // touches neither.
+            var u = new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(800, 1000), Q(800, 2000), Q(2000, 2000), Q(2000, 3000), Q(0, 3000));
+            GeoSolid3 body = Prism(u, 0, 500);
+            GeoCellGrid3 grid = body.ToCells(CellOptions3.Grid(1000, 1500, 0), Tolerance);
+
+            Assert.Equal(4, grid.CellCount);
+            Assert.Single(grid.GetCellsAt(1, 0, 0));
+            Assert.Single(grid.GetCellsAt(1, 1, 0));
+            Assert.Equal(1000.0 * 1000 * 500, grid.GetCellsAt(1, 0, 0)[0].Volume, 3);
+            Assert.Equal(1000.0 * 1000 * 500, grid.GetCellsAt(1, 1, 0)[0].Volume, 3);
+            CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.Volume, Tolerance.EqualPoint, Tolerance);
+        }
+
+        [Fact]
         public void OpeningsAreCutInFirst()
         {
             GeoSolid3 slab = Prism(Rect(0, 0, 12000, 8000), 3000, 3250);
