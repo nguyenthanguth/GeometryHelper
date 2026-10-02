@@ -34,11 +34,11 @@ These, and nothing else:
 3. Every type declared directly in the namespace is `internal` instead of `public` (24 types). They are not part of
    GeometryHelper's API, and a project that references both GeometryHelper and the Clipper2 package sees the package's
    types only. Members keep their `public`.
-4. `#nullable enable` at the top of `PooledList.cs`. Upstream turns nullable reference types on in its project file,
-   GeometryHelper does not.
-5. Each file opens with two lines saying where it comes from, its copyright and its licence, in place of upstream's
-   banner of author, date, website, purpose and thanks. The copyright line and the licence stay: the Boost licence asks
-   both of every copy of the source.
+4. No nullable reference types, as in the rest of GeometryHelper: upstream turns them on in its project file, and its
+   annotations (`OutPt?` and the like, 119 of them) and null-forgiving operators (`x!`, 176) are removed.
+5. No banner at the top of the files: upstream's author, date, website, purpose and thanks are gone, and the copyright
+   of Angus Johnson is in [LICENSE](LICENSE), above the licence. The Boost licence asks both of every copy of the
+   source, so they stay beside the files.
 6. The doc comments of `PooledList.cs` are plain comments.
 7. LF line endings and no byte order mark, as every file in this repository.
 8. The Z variant is gone: every `#if USINGZ` branch, the namespace it named and the note on it at the top of the static
@@ -51,7 +51,7 @@ These, and nothing else:
     input, and where it hands back its own argument rather than a copy.
 
 Compiled into GeometryHelper, what is kept gives the IL of the package again, but for those names, the visibility of
-the 24 types, the two hash codes, and one delegate. GeometryHelper is built with the latest C#, whose compiler, from
+the 24 types, the two hash codes, the nullable metadata, and one delegate. GeometryHelper is built with the latest C#, whose compiler, from
 C# 11 on, keeps the `Comparison` that `ClipperBase.ConvertHorzSegsToJoins` sorts with in a static field instead of
 making a new one on each call (upstream builds with C# 8). `HorzSegSort` is static and holds no state, so the sort is
 the same.
@@ -93,7 +93,8 @@ with it and without it.
 
 ## Licence
 
-Boost Software License 1.0, in [LICENSE](LICENSE), with the copyright of Angus Johnson at the top of each file. The
-licence asks both of every copy of the source, and nothing of compiled code alone. GeometryHelper's package carries this
+Boost Software License 1.0, in [LICENSE](LICENSE) with the copyright of Angus Johnson; Clipper2's tests and their
+cases carry the same in `tests/GeometryHelper.UnitTest/Clipper/LICENSE`. The licence asks both of every copy of the
+source, and nothing of compiled code alone. GeometryHelper's package carries this
 folder compiled and without its source (its files are left out of the sources embedded in the DLL, see `EmbeddedFiles`
 in `GeometryHelper.csproj`), so the package needs no notice of it.

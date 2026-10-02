@@ -1,4 +1,3 @@
-#nullable enable
 using System.Linq;
 using GeometryHelper.Clipper;
 using Xunit;
@@ -13,7 +12,7 @@ namespace GeometryHelper.UnitTest.Clipper
     {
         private static void PolyPathContainsPoint(PolyPath64 pp, Point64 pt, ref int counter)
         {
-            if (Clipper2.PointInPolygon(pt, pp.Polygon!) != PointInPolygonResult.IsOutside)
+            if (Clipper2.PointInPolygon(pt, pp.Polygon) != PointInPolygonResult.IsOutside)
             {
                 if (pp.IsHole) --counter; else ++counter;
             }
@@ -40,8 +39,8 @@ namespace GeometryHelper.UnitTest.Clipper
         {
             foreach (PolyPath64 child in pp.Cast<PolyPath64>())
             {
-                foreach (Point64 pt in child.Polygon!)
-                    if (Clipper2.PointInPolygon(pt, pp.Polygon!) == PointInPolygonResult.IsOutside)
+                foreach (Point64 pt in child.Polygon)
+                    if (Clipper2.PointInPolygon(pt, pp.Polygon) == PointInPolygonResult.IsOutside)
                         return false;
                 if (child.Count > 0 && !PolyPathFullyContainsChildren(child))
                     return false;

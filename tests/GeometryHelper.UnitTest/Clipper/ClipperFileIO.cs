@@ -1,8 +1,3 @@
-// From the test utilities of Clipper2 2.0.0 by Angus Johnson (https://github.com/AngusJohnson/Clipper2),
-// changed for GeometryHelper's tests. Copyright (c) Angus Johnson 2010-2022.
-// Boost Software License 1.0, in src/GeometryHelper/Clipper/LICENSE.
-
-#nullable enable
 using System;
 using System.IO;
 using System.Diagnostics;
@@ -13,7 +8,7 @@ namespace GeometryHelper.UnitTest.Clipper
 
   internal static class ClipperFileIO
   {
-    public static Paths64 PathFromStr(string? s)
+    public static Paths64 PathFromStr(string s)
     {
       if (s == null) return new Paths64();
       Path64 p = new Path64();
@@ -68,7 +63,7 @@ namespace GeometryHelper.UnitTest.Clipper
     //------------------------------------------------------------------------------
 
     public static bool LoadTestNum(string filename, int num,
-      Paths64? subj, Paths64? subj_open, Paths64? clip,
+      Paths64 subj, Paths64 subj_open, Paths64 clip,
       out ClipType ct, out FillRule fillRule, out long area, out int count, out string caption)
     {
       if (subj == null) subj = new Paths64(); else subj.Clear();
@@ -92,7 +87,7 @@ namespace GeometryHelper.UnitTest.Clipper
       }
       while (true)
       {
-        string? s = reader.ReadLine();
+        string s = reader.ReadLine();
         if (s == null) break;
         
         if (s.IndexOf("CAPTION: ", StringComparison.Ordinal) == 0)
@@ -147,7 +142,7 @@ namespace GeometryHelper.UnitTest.Clipper
         {
           s = reader.ReadLine();
           if (s == null) break;
-          Paths64? paths = PathFromStr(s); //0 or 1 path
+          Paths64 paths = PathFromStr(s); //0 or 1 path
           if (paths == null || paths.Count == 0)
           {
             if (GetIdx == 3) return result;
@@ -174,8 +169,8 @@ namespace GeometryHelper.UnitTest.Clipper
     }
     //-----------------------------------------------------------------------
 
-    public static void SaveClippingOp(string filename, Paths64? subj,
-      Paths64? subj_open, Paths64? clip, ClipType ct, FillRule fillRule, bool append)
+    public static void SaveClippingOp(string filename, Paths64 subj,
+      Paths64 subj_open, Paths64 clip, ClipType ct, FillRule fillRule, bool append)
     {
       StreamWriter writer;
       try

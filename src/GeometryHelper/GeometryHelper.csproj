@@ -189,7 +189,7 @@
        Its clipping engine, from Clipper2 2.0.0, is compiled in from Clipper\, internal, rather than
        referenced as a package; the README there says where it comes from and what was changed. The package
        carries it as compiled code only, of which the Boost licence asks no notice; its source here keeps the
-       copyright line at the top of each file and the LICENSE beside them. -->
+       copyright and the licence in the LICENSE beside it. -->
   <ItemGroup>
     <EmbeddedFiles Include="@(Compile)" />
     <EmbeddedFiles Remove="Clipper\**" />

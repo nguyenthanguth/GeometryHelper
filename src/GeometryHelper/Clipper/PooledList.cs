@@ -1,7 +1,3 @@
-// From Clipper2 2.0.0 by Angus Johnson (https://github.com/AngusJohnson/Clipper2), changed for GeometryHelper.
-// Copyright (c) Angus Johnson 2010-2025. Boost Software License 1.0, in LICENSE beside this file.
-
-#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,7 +9,7 @@ namespace GeometryHelper.Clipper
   internal class VertexPoolList : PooledList<Vertex>
   {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vertex Add(Point64 point, VertexFlags flags, Vertex? prev)
+    public Vertex Add(Point64 point, VertexFlags flags, Vertex prev)
     {
       TryGrow();
       Vertex poolVtx = _items[_size];
@@ -249,7 +245,7 @@ namespace GeometryHelper.Clipper
     {
       private readonly PooledList<T2> _list;
       private int _index;
-      private T2? _current;
+      private T2 _current;
       
       public ListEnumerator(PooledList<T2> list)
       {
@@ -258,9 +254,9 @@ namespace GeometryHelper.Clipper
         _current = default;
       }
 
-      public T2 Current => _current!;
+      public T2 Current => _current;
 
-      object IEnumerator.Current => _current!;
+      object IEnumerator.Current => _current;
 
       public void Dispose()
       {

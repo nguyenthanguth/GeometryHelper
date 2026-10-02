@@ -1,7 +1,3 @@
-// From Clipper2 2.0.0 by Angus Johnson (https://github.com/AngusJohnson/Clipper2), changed for GeometryHelper.
-// Copyright (c) Angus Johnson 2010-2025. Boost Software License 1.0, in LICENSE beside this file.
-
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -129,7 +125,7 @@ namespace GeometryHelper.Clipper
     /// and holes clockwise. Nothing comes back without a subject; the clip may be missing.
     /// </summary>
     public static Paths64 BooleanOp(ClipType clipType,
-      Paths64? subject, Paths64? clip, FillRule fillRule)
+      Paths64 subject, Paths64 clip, FillRule fillRule)
     {
       Paths64 solution = new Paths64();
       if (subject == null) return solution;
@@ -146,7 +142,7 @@ namespace GeometryHelper.Clipper
     /// hole. Nothing is added without a subject; the clip may be missing.
     /// </summary>
     public static void BooleanOp(ClipType clipType,
-      Paths64? subject, Paths64? clip, 
+      Paths64 subject, Paths64 clip, 
       PolyTree64 polytree, FillRule fillRule)
     {
       if (subject == null) return;
@@ -162,7 +158,7 @@ namespace GeometryHelper.Clipper
     /// clockwise, with the coordinates rounded to <c>precision</c> decimal places, from -8 to 8, the answer scaled
     /// back. The clip may be missing.
     /// </summary>
-    public static PathsD BooleanOp(ClipType clipType, PathsD subject, PathsD? clip, 
+    public static PathsD BooleanOp(ClipType clipType, PathsD subject, PathsD clip, 
       FillRule fillRule, int precision = 2)
     {
       PathsD solution = new PathsD();
@@ -180,7 +176,7 @@ namespace GeometryHelper.Clipper
     /// without a subject; the clip may be missing.
     /// </summary>
     public static void BooleanOp(ClipType clipType,
-      PathsD? subject, PathsD? clip,
+      PathsD subject, PathsD clip,
       PolyTreeD polytree, FillRule fillRule, int precision = 2)
     {
       if (subject == null) return;
@@ -840,7 +836,7 @@ namespace GeometryHelper.Clipper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AddPolyNodeToPaths(PolyPath64 polyPath, Paths64 paths)
     {
-      if (polyPath.Polygon!.Count > 0)
+      if (polyPath.Polygon.Count > 0)
         paths.Add(polyPath.Polygon);
       for (int i = 0; i < polyPath.Count; i++)
         AddPolyNodeToPaths((PolyPath64) polyPath._childs[i], paths);
@@ -865,7 +861,7 @@ namespace GeometryHelper.Clipper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddPolyNodeToPathsD(PolyPathD polyPath, PathsD paths)
     {
-      if (polyPath.Polygon!.Count > 0)
+      if (polyPath.Polygon.Count > 0)
         paths.Add(polyPath.Polygon);
       for (int i = 0; i < polyPath.Count; i++)
         AddPolyNodeToPathsD((PolyPathD) polyPath._childs[i], paths);

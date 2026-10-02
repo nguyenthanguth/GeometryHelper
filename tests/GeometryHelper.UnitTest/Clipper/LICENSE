@@ -1,5 +1,5 @@
-The source files in this folder are Clipper2's (https://github.com/AngusJohnson/Clipper2),
-changed for GeometryHelper as README.md lists.
+The tests, the test utility and the test cases in this folder are Clipper2's
+(https://github.com/AngusJohnson/Clipper2), moved to xUnit and changed for GeometryHelper's tests.
 
 Copyright (c) 2010-2025 Angus Johnson
 

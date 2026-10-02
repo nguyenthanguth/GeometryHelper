@@ -1,7 +1,3 @@
-// From Clipper2 2.0.0 by Angus Johnson (https://github.com/AngusJohnson/Clipper2), changed for GeometryHelper.
-// Copyright (c) Angus Johnson 2010-2025. Boost Software License 1.0, in LICENSE beside this file.
-
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -76,7 +72,7 @@ namespace GeometryHelper.Clipper
 
     }
 
-    public readonly override bool Equals(object? obj)
+    public readonly override bool Equals(object obj)
     {
       if (obj != null && obj is Point64 p)
         return this == p;
@@ -148,7 +144,7 @@ namespace GeometryHelper.Clipper
         !InternalClipper.IsAlmostZero(lhs.y - rhs.y);
     }
 
-    public readonly override bool Equals(object? obj)
+    public readonly override bool Equals(object obj)
     {
       if (obj != null && obj is PointD p)
         return this == p;

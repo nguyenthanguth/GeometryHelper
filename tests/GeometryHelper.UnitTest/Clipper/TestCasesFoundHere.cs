@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using GeometryHelper.Clipper;
 using Xunit;
