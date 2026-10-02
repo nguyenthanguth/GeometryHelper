@@ -1,8 +1,21 @@
-The source files in this folder are Clipper2's (https://github.com/AngusJohnson/Clipper2),
-changed for GeometryHelper as README.md lists.
+# Third-party notices
+
+GeometryHelper holds code that comes from another project. Its notice follows.
+
+## Clipper2
+
+The clipping engine of [Clipper2](https://github.com/AngusJohnson/Clipper2) 2.0.0, by Angus Johnson, from the C#
+library of commit `f39457d` of 17 December 2025, changed for GeometryHelper: renamed, trimmed to what GeometryHelper
+calls, made internal, without nullable annotations, and commented.
+
+- `src/GeometryHelper/Internal/Clipper`: the engine, compiled into GeometryHelper. The package carries it as compiled
+  code only, without its source.
+- `tests/GeometryHelper.UnitTest/Clipper`: Clipper2's C# tests, the utility that reads their cases, and the cases,
+  moved to xUnit.
 
 Copyright (c) 2010-2025 Angus Johnson
 
+```text
 Boost Software License - Version 1.0 - August 17th, 2003
 
 Permission is hereby granted, free of charge, to any person or organization
@@ -26,3 +39,4 @@ SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
 FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
+```

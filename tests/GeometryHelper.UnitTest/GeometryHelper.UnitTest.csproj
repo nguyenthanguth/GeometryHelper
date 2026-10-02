@@ -26,7 +26,7 @@
   </PropertyGroup>
 
   <!-- Clipper2's clipping engine is what the library resolves regions in the plane with, compiled into it from
-       src/GeometryHelper/Clipper; tests reach that copy through InternalsVisibleTo. The copy has no
+       src/GeometryHelper/Internal/Clipper; tests reach that copy through InternalsVisibleTo. The copy has no
        offset, so the tests that compare the library's own offsets with Clipper2's, as an independent second
        opinion, take the Clipper2 package instead, under the extern alias Clipper2Package so that the two never
        mix, and call its static front ClipperPackage: in GeometryHelper's namespaces a bare Clipper is the

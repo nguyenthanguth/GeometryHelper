@@ -47,8 +47,8 @@ One direction, no cycles. Every bridge is built on `GeometryHelper` and none of 
 another, except that the Tekla bridge reads IFC reference models through the IFC one.
 
 `GeometryHelper` carries the clipping engine of [Clipper2](https://github.com/AngusJohnson/Clipper2) 2.0.0,
-compiled in from its source in [src/GeometryHelper/Clipper](src/GeometryHelper/Clipper/README.md), where
-it can be mended.
+compiled in from its source in [src/GeometryHelper/Internal/Clipper](src/GeometryHelper/Internal/Clipper), where
+it can be mended; its notice is in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 It resolves offsets and boolean regions in the plane on integers, so an answer never depends on rounding
 luck. Its types are internal, so the package depends on nothing and a project that also references the
 Clipper2 package sees that one only. The solid half does the same work with its own winding-number

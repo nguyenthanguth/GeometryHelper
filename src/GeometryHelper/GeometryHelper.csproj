@@ -176,7 +176,7 @@
     </PackageReleaseNotes>
 
     <!-- 3. Embed source code and Debug symbols into DLL to support F12 original code viewing. Every source but
-         those under Clipper\ is embedded (EmbeddedFiles, below), so that the package carries Clipper2 as
+         those under Internal\Clipper\ is embedded (EmbeddedFiles, below), so that the package carries Clipper2 as
          compiled code only. -->
     <DebugType>embedded</DebugType>
     <GenerateDependencyFile>false</GenerateDependencyFile>
@@ -186,13 +186,13 @@
   <!-- Clipper2 (Angus Johnson, Boost Software License) resolves regions in the plane: the booleans of
        Boolean2 and the raw loops an offset builds. It works on integers, so its answers do not depend on
        rounding luck. The solid half keeps its own winding-number solver, under Internal\Planar.
-       Its clipping engine, from Clipper2 2.0.0, is compiled in from Clipper\, internal, rather than
-       referenced as a package; the README there says where it comes from and what was changed. The package
-       carries it as compiled code only, of which the Boost licence asks no notice; its source here keeps the
-       copyright and the licence in the LICENSE beside it. -->
+       Its clipping engine, from Clipper2 2.0.0, is compiled in from Internal\Clipper\, internal, rather than
+       referenced as a package. The package carries it as compiled code only, of which the Boost licence asks
+       no notice; where it comes from, its copyright and its licence are in THIRD-PARTY-NOTICES.md, at the
+       root of the repository. -->
   <ItemGroup>
     <EmbeddedFiles Include="@(Compile)" />
-    <EmbeddedFiles Remove="Clipper\**" />
+    <EmbeddedFiles Remove="Internal\Clipper\**" />
   </ItemGroup>
 
   <ItemGroup>
