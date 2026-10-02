@@ -483,6 +483,91 @@ namespace GeometryHelper.UnitTest.Meshing
             return null;
         }
 
+        /// <summary>
+        /// A random loop with arcs: a star some of whose sides bulge, laid on a random plane, meshed every way and held to what a
+        /// mesh of its ring flattened in space promises, its corners and the points of its arcs among the vertices.
+        /// </summary>
+        public static string ArcsOne(int caseSeed, out int made)
+        {
+            made = 0;
+            var r = new Random(caseSeed);
+            int n = 3 + r.Next(8);
+            double size = 500 + r.NextDouble() * 4000;
+            List<GeoPoint2> outer = Star(r, n, 0.55 * size, size, 0, 0);
+            double[] bulges = outer.Select(_ => r.Next(3) == 0 ? (r.NextDouble() - 0.5) * 0.6 : 0.0).ToArray();
+            bool far = r.Next(5) == 0;
+            GeoTransform3 placed = Placement(r, far);
+            var plane = new GeoCoordinateSystem3(placed.Transform(new GeoPoint3(0, 0, 0)), placed.Transform(GeoVector3.XAxis), placed.Transform(GeoVector3.YAxis));
+            GeoPolygonArc3 loop;
+
+            try
+            {
+                loop = new GeoPolygonArc3(plane, new GeoPolygonArc2(outer, bulges));
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+
+            double area = Math.Abs(loop.ToPolygonArc2().Flatten(0.0).SignedArea);
+            MeshOptions options = RandomOptions(r, Math.Sqrt(area), out string optionsWhat);
+            MeshPlacement3 placement = RandomPlacement(r, loop.Normal, loop[0], Math.Sqrt(area), out string placementWhat);
+            string where = $"[arcs {n} size {size:F0} bulges {string.Join(",", bulges.Select(b => b.ToString("F2")))} far {far}; {optionsWhat}; {placementWhat}]";
+            GeoMesh3 mesh;
+
+            try
+            {
+                mesh = loop.ToMesh(options, placement, Tol);
+            }
+            catch (ArgumentException e) when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
+            {
+                return null;
+            }
+            catch (Exception e)
+            {
+                return $"threw {e.GetType().Name}: {e.Message} {where}";
+            }
+
+            made = mesh.FaceCount;
+
+            // The ring the loop is meshed as: its corners where it has them, and the points of each arc between.
+            var ring = new List<GeoPoint3>();
+
+            for (int i = 0; i < loop.EdgeCount; i++)
+            {
+                GeoEdge3 edge = loop.GetEdgeAt(i);
+                ring.Add(loop[i]);
+
+                if (edge.IsArc)
+                {
+                    GeoPolyline3 points = edge.ToArc().ToPolylineByChordTolerance(options.ChordTolerance);
+
+                    for (int j = 1; j + 1 < points.VertexCount; j++)
+                    {
+                        ring.Add(points[j]);
+                    }
+                }
+            }
+
+            GeoPolygon3 polygon;
+
+            try
+            {
+                polygon = new GeoPolygon3(ring, Tol);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+
+            if (polygon.Normal.DotProduct(mesh.Normal) < 0)
+            {
+                polygon = polygon.Flip();
+            }
+
+            return CheckPlanar(new GeoFace3(polygon), options, placement, mesh, where);
+        }
+
         #endregion
 
         #region Cells
@@ -633,6 +718,220 @@ namespace GeometryHelper.UnitTest.Meshing
             return CheckCells(body, options, grid, where);
         }
 
+        /// <summary>
+        /// A random box, along the world's axes or turned, now and then thinner along one of them than the snap distance, cut
+        /// as a box and as the body it is along the same axes: the two grids hold the same cells, the same volumes, whole alike.
+        /// </summary>
+        public static string BoxesOne(int caseSeed, out int made)
+        {
+            made = 0;
+            var r = new Random(caseSeed);
+            double size = 200 + r.NextDouble() * 3000;
+            var sides = new[] { size * (0.2 + r.NextDouble()), size * (0.2 + r.NextDouble()), size * (0.2 + r.NextDouble()) };
+            int thin = r.Next(3) == 0 ? r.Next(3) : -1;
+
+            if (thin >= 0)
+            {
+                sides[thin] = Math.Pow(10, -1.5 + 3 * r.NextDouble());
+            }
+
+            bool far = r.Next(5) == 0;
+            bool turned = r.Next(2) == 0;
+            GeoTransform3 placed = turned ? Placement(r, far) : GeoTransform3.Translation(new GeoVector3((r.NextDouble() - 0.5) * (far ? 7E6 : 5000), (r.NextDouble() - 0.5) * (far ? 7E6 : 5000), (r.NextDouble() - 0.5) * 5000));
+            var axes = new GeoCoordinateSystem3(placed.Transform(new GeoPoint3(0, 0, 0)), placed.Transform(GeoVector3.XAxis), placed.Transform(GeoVector3.YAxis));
+            var box = new GeoObb3(axes, sides[0], sides[1], sides[2]);
+
+            if (box.IsDegenerate(Tol))
+            {
+                return null;
+            }
+
+            CellOptions3 options = RandomCellOptions(r, size, out string optionsWhat);
+
+            if (thin >= 0 && r.Next(2) == 0)
+            {
+                // A snap distance as thick as the box is thin, or more.
+                options = new CellOptions3(options.X, options.Y, options.Z, options.Joint, sides[thin] * (0.5 + 2.5 * r.NextDouble()));
+                optionsWhat += $" snap {options.SnapDistance:F3}";
+            }
+
+            MeshPlacement3 placement = r.Next(2) == 0 ? MeshPlacement3.Own : MeshPlacement3.World;
+
+            if (r.Next(3) == 0)
+            {
+                placement = placement.At(box.Center.Add(new GeoVector3((r.NextDouble() - 0.5) * size, (r.NextDouble() - 0.5) * size, (r.NextDouble() - 0.5) * size)));
+            }
+
+            string where = $"[box {sides[0]:F3} x {sides[1]:F3} x {sides[2]:F3} turned {turned} far {far}; {optionsWhat}; {placement}]";
+            GeoCellGrid3 boxes;
+
+            try
+            {
+                boxes = box.ToCells(options, placement, Tol);
+            }
+            catch (ArgumentException e) when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
+            {
+                return null;
+            }
+            catch (Exception e)
+            {
+                return $"threw {e.GetType().Name}: {e.Message} {where}";
+            }
+
+            made = boxes.CellCount;
+
+            // The same box as a body, cut along the axes the box's grid stands on.
+            GeoSolid3 body = CellGrid3.BoxSolid(box);
+            MeshPlacement3 same = MeshPlacement3.Frame(boxes.Frame);
+
+            if (placement.Origin.HasValue)
+            {
+                same = same.At(placement.Origin.Value);
+            }
+
+            GeoCellGrid3 cells;
+
+            try
+            {
+                cells = body.ToCells(options, same, Tol);
+            }
+            catch (Exception e)
+            {
+                return $"as a body threw {e.GetType().Name}: {e.Message} {where}";
+            }
+
+            if (cells.CellCount != boxes.CellCount)
+            {
+                return $"as a box {boxes.CellCount} cells, as a body {cells.CellCount} {where}";
+            }
+
+            for (int c = 0; c < boxes.CellCount; c++)
+            {
+                GeoCell3 a = boxes.Cells[c], b = cells.Cells[c];
+
+                if (a.I != b.I || a.J != b.J || a.K != b.K || a.Piece != b.Piece)
+                {
+                    return $"as a box {a}, as a body {b} {where}";
+                }
+
+                if (Math.Abs(a.Volume - b.Volume) > 1E-9 * Math.Max(1, a.Volume) + 1E-14 * (box.Center.ToVector().Length + size) * a.Solid.SurfaceArea)
+                {
+                    return $"as a box {a} holds {a.Volume:R}, as a body {b.Volume:R} {where}";
+                }
+
+                if (a.IsWhole != b.IsWhole)
+                {
+                    return $"as a box {a}, as a body {b} {where}";
+                }
+            }
+
+            bool jointed = options.Joint > Tol.EqualPoint;
+
+            // Measured from far out, each place along an axis is good to the rounding of the coordinates there.
+            double rounding = 1E-14 * (box.Center.ToVector().Length + size) * box.SurfaceArea + 1E-9 * Math.Max(1, box.Volume);
+
+            if (!jointed && Math.Abs(boxes.Volume - box.Volume) > rounding)
+            {
+                return $"the cells hold {boxes.Volume:R}, the box {box.Volume:R} {where}";
+            }
+
+            return CheckCells(body, options, boxes, where);
+        }
+
+        /// <summary>
+        /// A random body with a part thinner than the snap distance, or than four point tolerances: an L standing on a flange
+        /// as thin, a plate as thin, or a column with a ledge as thin, turned and moved; cut every way.
+        /// </summary>
+        public static string ThinOne(int caseSeed, out int made)
+        {
+            made = 0;
+            var r = new Random(caseSeed);
+            double size = 300 + r.NextDouble() * 2000;
+            double thin = Math.Pow(10, -1.3 + 2.5 * r.NextDouble());
+            int shape = r.Next(3);
+            bool far = r.Next(5) == 0;
+            GeoTransform3 placed = Placement(r, far);
+            GeoSolid3 body;
+            string what;
+
+            try
+            {
+                switch (shape)
+                {
+                    case 0:
+                    {
+                        // An L standing in XZ, its flange as thin along Z, its web 0.1 of it wide.
+                        var l = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(size, 0, 0), new GeoPoint3(size, 0, thin), new GeoPoint3(0.1 * size, 0, thin), new GeoPoint3(0.1 * size, 0, 0.6 * size), new GeoPoint3(0, 0, 0.6 * size) };
+                        body = GeoSolid3.Extrude(new GeoPolygon3(l, Tol), new GeoVector3(0, 0.3 * size, 0), Tol);
+                        what = $"L flange {thin:F3} size {size:F0}";
+                        break;
+                    }
+
+                    case 1:
+                    {
+                        var plate = new List<GeoPoint3> { new GeoPoint3(0, 0, 0), new GeoPoint3(size, 0, 0), new GeoPoint3(size, 0.7 * size, 0), new GeoPoint3(0, 0.7 * size, 0) };
+                        body = GeoSolid3.Extrude(new GeoPolygon3(plate, Tol), new GeoVector3(0, 0, thin), Tol);
+                        what = $"plate {thin:F3} size {size:F0}";
+                        break;
+                    }
+
+                    default:
+                    {
+                        GeoSolid3 column = new GeoObb3(new GeoPoint3(0, 0, 0.5 * size), 0.2 * size, 0.2 * size, size).ToSolid();
+                        double at = size * (0.2 + 0.6 * r.NextDouble());
+                        GeoSolid3 ledge = new GeoObb3(new GeoPoint3(0.2 * size, 0, at + 0.5 * thin), 0.2 * size, 0.2 * size, thin).ToSolid();
+
+                        if (!column.TryUnion(ledge, out body, Tol))
+                        {
+                            return null;
+                        }
+
+                        what = $"column with a ledge {thin:F3} at {at:F1} size {size:F0}";
+                        break;
+                    }
+                }
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+
+            body = body.TransformBy(placed);
+
+            if (!body.IsClosed(Tol))
+            {
+                return null;
+            }
+
+            CellOptions3 options = RandomCellOptions(r, size, out string optionsWhat);
+
+            if (r.Next(2) == 0)
+            {
+                options = new CellOptions3(options.X, options.Y, options.Z, options.Joint, thin * (0.5 + 2.5 * r.NextDouble()));
+                optionsWhat += $" snap {options.SnapDistance:F3}";
+            }
+
+            MeshPlacement3 placement = RandomPlacement(r, GeoVector3.ZAxis, body.Faces[0].Boundary[0], size, out string placementWhat);
+            string where = $"[{what} far {far}; {optionsWhat}; {placementWhat}]";
+            GeoCellGrid3 grid;
+
+            try
+            {
+                grid = body.ToCells(options, placement, Tol);
+            }
+            catch (ArgumentException e) when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
+            {
+                return null;
+            }
+            catch (Exception e)
+            {
+                return $"threw {e.GetType().Name}: {e.Message} {where}";
+            }
+
+            made = grid.CellCount;
+            return CheckCells(body, options, grid, where);
+        }
+
         private static string CheckCells(GeoSolid3 body, CellOptions3 options, GeoCellGrid3 grid, string where)
         {
             double net = body.Openings.Count > 0 ? body.GetNetVolume(Tol) : body.Volume;
@@ -680,12 +979,15 @@ namespace GeometryHelper.UnitTest.Meshing
                     return $"{cell} is not closed {where}";
                 }
 
-                if (Math.Abs(cell.Solid.Volume - cell.Volume) > 1E-9 * Math.Max(1, cell.Volume))
+                GeoObb3 box = cell.Box;
+
+                // A box's cell measures itself by arithmetic, its body by its faces, each corner of which is good to the
+                // rounding of the coordinates where it stands.
+                if (Math.Abs(cell.Solid.Volume - cell.Volume) > 1E-9 * Math.Max(1, cell.Volume) + 1E-14 * box.Center.ToVector().Length * cell.Solid.SurfaceArea)
                 {
                     return $"{cell} says {cell.Volume}, its body {cell.Solid.Volume} {where}";
                 }
 
-                GeoObb3 box = cell.Box;
 
                 // A cut moved onto a corner by the snap distance, then not made short of a tip past it: four point tolerances,
                 // or between cells a joint apart the point tolerance.
@@ -879,7 +1181,17 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             if (grid.CellCount == 0)
             {
-                return body.Openings.Count > 0 ? null : "no cells " + where;
+                // A body may lie wholly in a joint, as a plate thinner than the joint on the middle of its axis does; then no
+                // point of it lies well inside a cell's box.
+                if (body.Openings.Count > 0 || (jointed && (grid.CountX == 0 || grid.CountY == 0 || grid.CountZ == 0)))
+                {
+                    return null;
+                }
+
+                if (!jointed)
+                {
+                    return "no cells " + where;
+                }
             }
 
             GeoAabb3 bounds = GeoAabb3.Empty;

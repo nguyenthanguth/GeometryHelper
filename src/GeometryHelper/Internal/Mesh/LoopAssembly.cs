@@ -393,6 +393,21 @@ namespace GeometryHelper.Core
                 tolerance.EqualPlanar);
 
         /// <summary>
+        /// Gets the tolerance the pieces of a face cut in two are built within: the one given, with three times its planar
+        /// tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A face a hair out of flat stands within the planar tolerance of its plane, and so does every piece of it, whose
+        /// corners are the face's and points on its sides. But a polygon is measured from a corner of its own, about the
+        /// normal of its own corners: from a corner a hair one way, a corner a hair the other stands off by twice the
+        /// tolerance, and the normal of a piece lopsided about the face turns that a little more. Measured so, a piece of a
+        /// face of a turned column was 0.0146 out of flat, it was refused, and the half it belonged to could not close. A
+        /// piece can be no further out of flat than the face it is cut from.
+        /// </remarks>
+        internal static Tolerance ForFacePieces(Tolerance tolerance)
+            => new Tolerance(tolerance.EqualPoint, tolerance.EqualVector, tolerance.EqualAngleRad, 3.0 * tolerance.EqualPlanar);
+
+        /// <summary>
         /// Builds a polygon from a walked loop, matching the orientation asked for.
         /// </summary>
         /// <returns>null when the loop is too small or too thin to be a polygon.</returns>

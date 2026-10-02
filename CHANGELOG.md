@@ -104,6 +104,12 @@ threw on a face thinner than the global point tolerance whose corners the clippi
 back to laid the face out checked against the global tolerance, which took its two long sides for one. A strip 300 long
 and 0.006 wide is covered within a tolerance of a ten-thousandth now.
 
+**FIXED.** `GeoSolid3.TrySplitBy` and `GeoFace3.TrySplitBy` refused a cut through a face a hair out of flat where a piece of
+the face, measured from a corner of its own and about its own normal, stood further out of flat than the planar
+tolerance: from a corner a hair one way, one a hair the other stands off by twice it. The piece was dropped, the half it
+belonged to could not close, and a piece of a turned column with a ledge, 0.0146 out of flat so measured, was not cut. A
+piece can be no further out of flat than the face it is cut from, and is built within three times the planar tolerance.
+
 **FIXED.** `GeoSolid3.Locate` and `Contains` threw another ray when a crossing landed within twice the point tolerance of
 a face's outer rim, but not of the rim of one of its holes: a ray leaving through the wall of a hole and rising through
 the hole a hair short of its rim was counted by the face the hole is cut in, and the point came out of the body. The

@@ -606,8 +606,10 @@ namespace GeometryHelper.Core
                 return FaceCut.Above;
             }
 
-            above = LoopAssembly.AssembleFaces(CutRings(face, cutter, cutLine, 1, tolerance), face.Normal, pieces);
-            below = LoopAssembly.AssembleFaces(CutRings(face, cutter, cutLine, -1, tolerance), face.Normal, pieces);
+            // A piece of a face is as flat as the face, measured from its own corner a little less so.
+            Tolerance flat = LoopAssembly.ForFacePieces(pieces);
+            above = LoopAssembly.AssembleFaces(CutRings(face, cutter, cutLine, 1, tolerance), face.Normal, flat);
+            below = LoopAssembly.AssembleFaces(CutRings(face, cutter, cutLine, -1, tolerance), face.Normal, flat);
             return FaceCut.Crossed;
         }
 

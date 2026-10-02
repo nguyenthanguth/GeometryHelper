@@ -387,26 +387,19 @@ namespace GeometryHelper.Core
 
             Layout layout = Lay(box.GetCorners(), axes, options, origin, tolerance);
 
-            double snap = Reach(options, layout, tolerance);
+            double reach = Reach(options, layout, tolerance);
 
-            // Along each axis, what of each cell the box holds: a cut within the snap distance of a side of the box moves onto
-            // it, so that the slice between goes to the cell beside.
+            // Along each axis, what of each cell the box holds, cut as a body's piece is cut, one cut after another along the
+            // axis: a cut within reach of a side of what is left of the box is not made, and the slice stays with the cell
+            // beside. The box's section is the same whatever the cuts along the other axes, so each axis is cut on its own.
             var low = new double[3][];
             var high = new double[3][];
 
             for (int a = 0; a < 3; a++)
             {
-                Lines lines = layout.Lines[a];
-                double min = layout.Min[a];
-                double max = layout.Max[a];
-                low[a] = new double[lines.Count];
-                high[a] = new double[lines.Count];
-
-                for (int i = 0; i < lines.Count; i++)
-                {
-                    low[a][i] = Snap(Math.Max(lines.Starts[i], min), min, max, snap);
-                    high[a][i] = Snap(Math.Min(lines.Ends[i], max), min, max, snap);
-                }
+                low[a] = new double[layout.Lines[a].Count];
+                high[a] = new double[layout.Lines[a].Count];
+                Spans(layout.Lines[a], layout.Min[a], layout.Max[a], reach, tolerance.EqualPoint, low[a], high[a]);
             }
 
             var cells = new List<GeoCell3>();
@@ -460,17 +453,89 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// A place along an axis within the box's span, moved onto a side of the box within the snap distance of it, the
-        /// nearer where both are, and the far one where they are as near: as a body's cut is moved and kept off a slice.
+        /// Where each cell of a line takes a box's span from and to along the axis, cut one after another as
+        /// <see cref="Along"/> cuts a piece: a cell that takes nothing ends where it starts.
         /// </summary>
-        private static double Snap(double at, double min, double max, double snap)
+        /// <param name="lines">The cells along the axis.</param>
+        /// <param name="min">Where the box starts along the axis.</param>
+        /// <param name="max">Where it ends.</param>
+        /// <param name="reach">How near a side of what is left a cut is not made.</param>
+        /// <param name="near">The point tolerance, within which a slice either side of a cut is as thick as the other.</param>
+        /// <param name="low">Where each cell's part starts.</param>
+        /// <param name="high">Where it ends.</param>
+        private static void Spans(Lines lines, double min, double max, double reach, double near, double[] low, double[] high)
         {
-            if (max - at <= snap && max - at <= at - min)
+            // What is left of the box: from here to its far side, while anything is.
+            double from = min;
+            bool left = true;
+
+            for (int i = 0; i < lines.Count; i++)
             {
-                return max;
+                low[i] = high[i] = left ? from : max;
+
+                if (!left)
+                {
+                    continue;
+                }
+
+                // What lies before the cell, in the joint before it or before the first, is no cell's.
+                if (i == 0 || lines.Starts[i] != lines.Ends[i - 1])
+                {
+                    int before = Decide(lines.Starts[i], from, max, reach, near);
+
+                    if (before < 0)
+                    {
+                        left = false;
+                        low[i] = high[i] = max;
+                        continue;
+                    }
+
+                    if (before == 0)
+                    {
+                        from = lines.Starts[i];
+                    }
+                }
+
+                int end = Decide(lines.Ends[i], from, max, reach, near);
+                low[i] = from;
+                high[i] = end < 0 ? max : end == 0 ? lines.Ends[i] : from;
+
+                if (end < 0)
+                {
+                    left = false;
+                }
+                else if (end == 0)
+                {
+                    from = lines.Ends[i];
+                }
+            }
+        }
+
+        /// <summary>
+        /// How a cut at a place meets what is left of a box from one side to the other, as <see cref="Split"/> meets a piece:
+        /// -1 when all of it goes below, 1 when all of it goes above, and 0 when the cut is made.
+        /// </summary>
+        private static int Decide(double at, double lo, double hi, double reach, double near)
+        {
+            if (at <= lo)
+            {
+                return 1;
             }
 
-            return at - min <= snap ? min : at;
+            if (at >= hi)
+            {
+                return -1;
+            }
+
+            double over = hi - at;
+            double under = at - lo;
+
+            if (over <= reach || under <= reach)
+            {
+                return over <= reach && (under > reach || under >= over - near) ? -1 : 1;
+            }
+
+            return 0;
         }
 
         private static bool Same(double a, double b, Tolerance tolerance) => Math.Abs(a - b) <= tolerance.EqualPoint;
@@ -801,13 +866,15 @@ namespace GeometryHelper.Core
 
             // Within the snap distance of the piece's far side, or four point tolerances, the cut would take off no more than
             // a slice, which stays on: a tip a hair past the plane is a piece the size of the tolerance, which the cut cannot
-            // keep, and a cell no one wants. A piece that thin both ways goes whole to the side holding more of it.
+            // keep, and a cell no one wants. A piece that thin both ways goes whole to the side holding more of it, the one
+            // below where they hold as much within the point tolerance, as a plate on the line through its middle does: the
+            // rounding of where its corners were cut would otherwise choose.
             double over = highest - at;
             double under = at - lowest;
 
             if (over <= cutting.Reach || under <= cutting.Reach)
             {
-                return over <= cutting.Reach && (under > cutting.Reach || under >= over) ? new Cut { Below = piece } : new Cut { Above = piece };
+                return over <= cutting.Reach && (under > cutting.Reach || under >= over - cutting.Tolerance.EqualPoint) ? new Cut { Below = piece } : new Cut { Above = piece };
             }
 
             if (!double.IsNaN(nearest))
