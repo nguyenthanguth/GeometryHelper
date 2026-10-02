@@ -297,6 +297,12 @@ namespace GeometryHelper.Core
         private const double Tip = 4.0;
 
         /// <summary>
+        /// How many point tolerances past a cut the cut refused may leave a part of the piece standing, as the point of a
+        /// needle, for the piece to stay whole without a word.
+        /// </summary>
+        private const double Needle = 100.0;
+
+        /// <summary>
         /// How near a corner a cut is moved onto it: the options' distance, or the point tolerance if more. Between cells a
         /// joint apart, the point tolerance alone: the cuts bound the joints, and moved onto a corner within the joint they
         /// would carry a cell into it.
@@ -751,6 +757,15 @@ namespace GeometryHelper.Core
             if (Splition3.TrySplitBy(piece, plane, out GeoSolid3 above, out GeoSolid3 below, cutting.Tolerance))
             {
                 return new Cut { Below = below, Above = above, Made = true, At = at };
+            }
+
+            // The point of a needle past the plane, however deep, can be thinner across than the point tolerance where the
+            // plane meets it: the cut can keep no piece of it, and the piece stays whole on the side holding the rest.
+            double past = Math.Min(highest - at, at - lowest);
+
+            if (past <= Needle * cutting.Tolerance.EqualPoint)
+            {
+                return highest - at < at - lowest ? new Cut { Below = piece } : new Cut { Above = piece };
             }
 
             // A cut the body would not take, which a closed body should never give: the piece goes whole to the side of its

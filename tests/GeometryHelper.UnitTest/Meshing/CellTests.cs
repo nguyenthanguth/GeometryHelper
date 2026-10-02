@@ -368,6 +368,25 @@ namespace GeometryHelper.UnitTest.Meshing
         }
 
         [Fact]
+        public void TheTipOfANeedleThinnerThanTheToleranceStaysWithTheRest()
+        {
+            // A needle 800 long on a base 25 across, its point a quarter of a millimetre past the line between two cells:
+            // across the line it is eight thousandths wide, less than the point tolerance, and no piece can be cut there.
+            GeoPoint3 a = P(200, 0, 0), b = P(200, 25, 0), c = P(200, 0, 25), d = P(1000.244, 5, 5);
+            var needle = new GeoSolid3(
+                new GeoFace3(new GeoPolygon3(a, c, b)),
+                new GeoFace3(new GeoPolygon3(a, b, d)),
+                new GeoFace3(new GeoPolygon3(b, c, d)),
+                new GeoFace3(new GeoPolygon3(c, a, d)));
+            GeoCellGrid3 grid = needle.ToCells(CellOptions3.Grid(800, 0, 0), Tolerance);
+
+            Assert.True(needle.IsClosed(Tolerance));
+            Assert.True(needle.GetSignedVolume() > 0);
+            Assert.Equal(1, grid.CellCount);
+            Assert.Equal(needle.Volume, grid.Volume, 6);
+        }
+
+        [Fact]
         public void ALargerSnapDistanceTakesThickerSlicesToTheCellBeside()
         {
             // The step 30 past the line: with the point tolerance it leaves a slice 30 thick, with 50 it does not.
