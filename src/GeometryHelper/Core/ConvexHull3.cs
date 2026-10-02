@@ -161,9 +161,19 @@ namespace GeometryHelper.Core
 
             foreach (Face face in faces)
             {
-                if (face.Alive)
+                if (!face.Alive)
                 {
-                    triangles.Add(new GeoFace3(new GeoPolygon3(p[face.A], p[face.B], p[face.C])));
+                    continue;
+                }
+
+                // Built as they are, from their corners and the normal they were found with. A polygon reads its area
+                // against the vector tolerance, and refused a face a tenth of a millimetre across, which the corners of a
+                // body a boolean left made on its hull: the hull threw, and the box fitted round the body with it.
+                GeoVector3 twice = p[face.A].GetVectorTo(p[face.B]).CrossProduct(p[face.A].GetVectorTo(p[face.C]));
+
+                if (twice.Length > 0.0)
+                {
+                    triangles.Add(new GeoFace3(GeoPolygon3.FromValidated(new[] { p[face.A], p[face.B], p[face.C] }, face.Normal, 0.5 * twice.Length)));
                 }
             }
 
