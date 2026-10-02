@@ -686,11 +686,15 @@ namespace GeometryHelper.UnitTest.Meshing
                 }
 
                 GeoObb3 box = cell.Box;
-                double reach = Math.Max(snap, 4 * Tol.EqualPoint) + 3 * Tol.EqualPoint + 1E-9 * (box.Center.ToVector().Length + box.SizeX + box.SizeY + box.SizeZ);
 
-                // The point of a needle a cut could not take off stays with the cell: no more than a couple of corners, and
-                // no further out than a hundred point tolerances.
-                var outside = new HashSet<GeoPoint3>();
+                // A cut moved onto a corner by the snap distance, then not made short of a tip past it: four point tolerances,
+                // or between cells a joint apart the point tolerance.
+                double tip = (jointed ? 1.0 : 4.0) * Tol.EqualPoint;
+                double reach = snap + tip + 3 * Tol.EqualPoint + 1E-9 * (box.Center.ToVector().Length + box.SizeX + box.SizeY + box.SizeZ);
+
+                // The point of a needle a cut could not take off stays with the cell: no more than a couple of corners, each
+                // counted once however its faces round it, and no further out than a hundred point tolerances.
+                var outside = new List<GeoPoint3>();
 
                 foreach (GeoFace3 face in cell.Solid.Faces)
                 {
@@ -701,7 +705,10 @@ namespace GeometryHelper.UnitTest.Meshing
 
                         if (beyond > reach)
                         {
-                            outside.Add(corner);
+                            if (!outside.Any(o => o.IsEqualTo(corner, Tol)))
+                            {
+                                outside.Add(corner);
+                            }
 
                             if (beyond > 100 * Tol.EqualPoint + reach || outside.Count > 2)
                             {
@@ -717,7 +724,155 @@ namespace GeometryHelper.UnitTest.Meshing
                 }
             }
 
-            return CoversCells(body, grid, jointed, where);
+            return CoversCells(body, grid, jointed, where) ?? Neighbours(grid, jointed, where);
+        }
+
+        /// <summary>
+        /// The neighbours: none with joints; otherwise each other's, never a cell's own, cut apart by one plane, and every
+        /// pair of a small grid sharing a clear area of a plane between them among them.
+        /// </summary>
+        private static string Neighbours(GeoCellGrid3 grid, bool jointed, string where)
+        {
+            var adjacent = new List<HashSet<int>>(grid.CellCount);
+
+            for (int n = 0; n < grid.CellCount; n++)
+            {
+                adjacent.Add(new HashSet<int>(grid.GetAdjacentCells(n)));
+            }
+
+            for (int n = 0; n < grid.CellCount; n++)
+            {
+                if (jointed && adjacent[n].Count > 0)
+                {
+                    return $"{grid.Cells[n]} has neighbours across a joint {where}";
+                }
+
+                foreach (int m in adjacent[n])
+                {
+                    if (m == n || !adjacent[m].Contains(n))
+                    {
+                        return $"{grid.Cells[n]} and {grid.Cells[m]} are not each other's neighbours {where}";
+                    }
+
+                    if (CutPlane(grid.Cells[n], grid.Cells[m]) < 0)
+                    {
+                        return $"{grid.Cells[n]} and {grid.Cells[m]} are neighbours no plane cut apart {where}";
+                    }
+                }
+            }
+
+            if (jointed || grid.CellCount > 60)
+            {
+                return null;
+            }
+
+            double clear = 100 * Tol.EqualPoint * Tol.EqualPoint;
+
+            for (int n = 0; n < grid.CellCount; n++)
+            {
+                for (int m = n + 1; m < grid.CellCount; m++)
+                {
+                    if (!adjacent[n].Contains(m) && CutPlane(grid.Cells[n], grid.Cells[m]) >= 0)
+                    {
+                        double shared = SharedArea(grid, grid.Cells[n], grid.Cells[m]);
+
+                        if (shared > clear)
+                        {
+                            return $"{grid.Cells[n]} and {grid.Cells[m]} share {shared:R} of a plane and are not neighbours {where}";
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>The axis along which one cut bounds two cells from opposite sides; -1 for none.</summary>
+        private static int CutPlane(GeoCell3 a, GeoCell3 b)
+        {
+            for (int axis = 0; axis < 3; axis++)
+            {
+                if ((!double.IsNaN(a.High[axis]) && Math.Abs(a.High[axis] - b.Low[axis]) <= Tol.EqualPoint)
+                    || (!double.IsNaN(b.High[axis]) && Math.Abs(b.High[axis] - a.Low[axis]) <= Tol.EqualPoint))
+                {
+                    return axis;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>The area two cells' faces share on the planes square to the grid's axes, worked out by Boolean2.</summary>
+        private static double SharedArea(GeoCellGrid3 grid, GeoCell3 a, GeoCell3 b)
+        {
+            GeoVector3[] directions = { grid.Frame.XAxis, grid.Frame.YAxis, grid.Frame.ZAxis };
+            double total = 0.0;
+
+            for (int axis = 0; axis < 3; axis++)
+            {
+                int u = (axis + 1) % 3, v = (axis + 2) % 3;
+                double At(GeoPoint3 p) => grid.Frame.Origin.GetVectorTo(p).DotProduct(directions[axis]);
+
+                GeoFace2 Lay(GeoFace3 face)
+                {
+                    GeoPolygon2 Ring(IReadOnlyList<GeoPoint3> ring)
+                    {
+                        GeoPoint2[] flat = ring.Select(p => { GeoVector3 o = grid.Frame.Origin.GetVectorTo(p); return new GeoPoint2(o.DotProduct(directions[u]), o.DotProduct(directions[v])); }).ToArray();
+                        GeoPolygon2 polygon = MeshLift3.LayOutPolygon(flat);
+
+                        if (polygon == null)
+                        {
+                            return null;
+                        }
+
+                        GeoPoint2[] corners = Enumerable.Range(0, polygon.VertexCount).Select(i => polygon[i]).ToArray();
+
+                        if (polygon.SignedArea < 0)
+                        {
+                            Array.Reverse(corners);
+                        }
+
+                        return new GeoPolygon2(corners, corners.Length);
+                    }
+
+                    GeoPolygon2 boundary = Ring(face.Boundary.Vertices);
+                    return boundary == null ? null : new GeoFace2(boundary, face.Holes.Select(h => Ring(h.Vertices)).Where(h => h != null));
+                }
+
+                foreach (GeoFace3 fa in a.Solid.Faces)
+                {
+                    double da = fa.Normal.DotProduct(directions[axis]);
+
+                    if (Math.Abs(da) < 1 - 1E-6)
+                    {
+                        continue;
+                    }
+
+                    double at = At(fa.Boundary[0]);
+
+                    if (fa.Boundary.Vertices.Any(p => Math.Abs(At(p) - at) > Tol.EqualPoint))
+                    {
+                        continue;
+                    }
+
+                    foreach (GeoFace3 fb in b.Solid.Faces)
+                    {
+                        if (fb.Normal.DotProduct(directions[axis]) * da > -(1 - 1E-6) || fb.Boundary.Vertices.Any(p => Math.Abs(At(p) - at) > Tol.EqualPoint))
+                        {
+                            continue;
+                        }
+
+                        GeoFace2 la = Lay(fa), lb = Lay(fb);
+
+                        if (la != null && lb != null)
+                        {
+                            total += Boolean2.Intersect(la, lb, Tol).Sum(f => f.Area);
+                        }
+                    }
+                }
+            }
+
+            return total;
         }
 
         private static string CoversCells(GeoSolid3 body, GeoCellGrid3 grid, bool jointed, string where)
@@ -740,6 +895,11 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoSolid3[] solids = grid.GetSolids();
             GeoAabb3[] boxes = solids.Select(s => s.GetAabb()).ToArray();
             var random = new Random(3);
+
+            // Where each line of cells runs along each axis, from the frame's origin; a point this far inside one of a cell's
+            // box along every axis is in no joint.
+            var lines = new[] { Lines(grid, 0), Lines(grid, 1), Lines(grid, 2) };
+            double inside = 6 * Tol.EqualPoint;
 
             for (int k = 0; k < 250; k++)
             {
@@ -774,9 +934,12 @@ namespace GeometryHelper.UnitTest.Meshing
                     continue;
                 }
 
-                if (inBody == PointLocation.Inside && (jointed ? count > 1 : count != 1))
+                GeoPoint3 local = grid.Frame.ToLocal(p);
+                bool inACell = jointed && InLine(lines[0], local.X, inside) && InLine(lines[1], local.Y, inside) && InLine(lines[2], local.Z, inside);
+
+                if (inBody == PointLocation.Inside && (jointed && !inACell ? count > 1 : count != 1))
                 {
-                    return $"a point {p} of the body lies in {count} cells {where}";
+                    return $"a point {p} of the body lies in {count} cells{(inACell ? ", in a cell's box" : string.Empty)} {where}";
                 }
 
                 if (inBody == PointLocation.OutSide && count != 0)
@@ -787,6 +950,27 @@ namespace GeometryHelper.UnitTest.Meshing
 
             return null;
         }
+
+        /// <summary>Where each line of cells along an axis starts and ends, from the grid's frame's origin.</summary>
+        private static (double Start, double End)[] Lines(GeoCellGrid3 grid, int axis)
+        {
+            int count = axis == 0 ? grid.CountX : axis == 1 ? grid.CountY : grid.CountZ;
+            var lines = new (double, double)[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                GeoObb3 box = grid.GetBox(axis == 0 ? i : 0, axis == 1 ? i : 0, axis == 2 ? i : 0);
+                GeoPoint3 centre = grid.Frame.ToLocal(box.Center);
+                double middle = axis == 0 ? centre.X : axis == 1 ? centre.Y : centre.Z;
+                double half = 0.5 * (axis == 0 ? box.SizeX : axis == 1 ? box.SizeY : box.SizeZ);
+                lines[i] = (middle - half, middle + half);
+            }
+
+            return lines;
+        }
+
+        private static bool InLine((double Start, double End)[] lines, double at, double inside)
+            => lines.Any(l => at > l.Start + inside && at < l.End - inside);
 
         #endregion
     }

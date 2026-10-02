@@ -532,20 +532,20 @@ namespace GeometryHelper.Core
         internal static void CancelOpposedEdges(List<GeoLine3> edges, Tolerance tolerance) => CancelOpposedEdges(edges, tolerance, out _);
 
         /// <summary>
-        /// Removes pairs of edges that run the same stretch in opposite directions, and says how far apart the ends of two
-        /// that cancelled stood at the most.
+        /// Removes pairs of edges that run the same stretch in opposite directions, and says how much area the pairs that
+        /// cancelled leave between them.
         /// </summary>
         /// <param name="edges">The edges, changed in place.</param>
         /// <param name="tolerance">The tolerance the ends of two edges that cancel meet within.</param>
-        /// <param name="widest">
-        /// The farthest the end of an edge stood from the start of the edge cancelling it, or its start from that one's end;
-        /// nought when none cancelled. One edge run both ways by the two faces sharing it gives the rounding of the points
-        /// a cut put on it; two edges a hair apart, the two sides of a sliver, give the sliver's width.
+        /// <param name="open">
+        /// The area of the four-sided figures each pair that cancelled makes with its ends, together; nought when none
+        /// cancelled. One edge run both ways by the two faces sharing it leaves the rounding of the points a cut put on it;
+        /// two edges a hair apart, the two sides of a sliver, leave the sliver.
         /// </param>
         /// <remarks>See <see cref="CancelOpposedEdges(List{GeoLine3}, Tolerance)"/>.</remarks>
-        internal static void CancelOpposedEdges(List<GeoLine3> edges, Tolerance tolerance, out double widest)
+        internal static void CancelOpposedEdges(List<GeoLine3> edges, Tolerance tolerance, out double open)
         {
-            widest = 0.0;
+            open = 0.0;
             SplitAtEdgeEnds(edges, tolerance);
 
             bool[] dropped = new bool[edges.Count];
@@ -583,7 +583,11 @@ namespace GeometryHelper.Core
                     {
                         dropped[i] = true;
                         dropped[j] = true;
-                        widest = Math.Max(widest, Math.Max(edges[i].StartPoint.DistanceTo(edges[j].EndPoint), edges[i].EndPoint.DistanceTo(edges[j].StartPoint)));
+
+                        // The figure the two run round, its area half the cross of its diagonals.
+                        GeoVector3 across = edges[i].StartPoint.GetVectorTo(edges[j].StartPoint);
+                        GeoVector3 back = edges[i].EndPoint.GetVectorTo(edges[j].EndPoint);
+                        open += 0.5 * across.CrossProduct(back).Length;
                         break;
                     }
                 }

@@ -85,7 +85,8 @@ of one body, or along the edge where two parts of a body meet, as a body cut thr
 itself. Each half is closed as it is, and was taken for one the plane misses. It is split now, with nothing to cap. A
 plane crossing a body where it is thinner than the point tolerance is still refused, as before: the two sides of the
 section stand within the tolerance of each other and their edges cancel as one edge run both ways would, but they are
-two edges, and the halves would be open by the sliver between them.
+two edges, and the halves would be open by the sliver between them. A sliver no larger than a square of the point
+tolerance, as a corner of the body the plane passes through leaves, is the size of the tolerance and taken for none.
 
 **FIXED.** `GeoSolid3.Section` gave, with the section, the face a plane lies along where it also cuts the body, and only
 when the plane faced away from the material there: along the floor of an L's notch, facing up it gave the floor with the

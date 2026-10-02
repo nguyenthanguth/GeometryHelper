@@ -1404,8 +1404,8 @@ namespace GeometryHelper.Core
         /// <param name="caps">The faces closing the half.</param>
         /// <returns>
         /// false when the edges left by the cut do not close into loops, or cancel only as the two sides of a sliver thinner
-        /// than the point tolerance do; true with no caps when the half has no edge on the plane its own faces do not run
-        /// both ways.
+        /// than the point tolerance and larger than a square of it do; true with no caps when the half has no edge on the
+        /// plane its own faces do not run both ways.
         /// </returns>
         private static bool TryBuildCaps(List<GeoFace3> halfFaces, GeoPlane3 cutter, GeoVector3 outward, Tolerance tolerance, Tolerance pieces, out List<GeoFace3> caps)
         {
@@ -1436,24 +1436,18 @@ namespace GeometryHelper.Core
             }
 
             int found = edges.Count;
-            double scale = 0.0;
-
-            foreach (GeoLine3 edge in edges)
-            {
-                GeoPoint3 start = edge.StartPoint;
-                scale = Math.Max(scale, Math.Max(Math.Abs(start.X), Math.Max(Math.Abs(start.Y), Math.Abs(start.Z))));
-            }
-
-            LoopAssembly.CancelOpposedEdges(edges, tolerance, out double widest);
+            LoopAssembly.CancelOpposedEdges(edges, tolerance, out double open);
 
             if (edges.Count == 0)
             {
                 // Every edge the half has on the plane run both ways by its own faces: the plane passes between parts of
                 // the body, or along the edge where two parts meet, and the half is closed as it is, with nothing to cap.
-                // Two faces sharing an edge run it both ways but for the rounding of the points the cut put on it, which
-                // grows with how far out the body lies; two edges further apart are the two sides of a section thinner
-                // than the point tolerance, and the half is open there by a sliver no cap can close.
-                return found == 0 || widest <= Math.Max(1E-9, 1E-13 * scale);
+                // Two faces sharing an edge run it both ways but for the rounding of the points the cut put on it; two
+                // edges a hair apart are the two sides of a section thinner than the point tolerance, and leave the half
+                // open by the sliver between them. One no larger than a square of the point tolerance, as a corner of the
+                // body the plane passes through leaves, is the size of the tolerance and taken for none; a longer one, as a
+                // wedge cut near its edge leaves, is a sliver no cap can close.
+                return found == 0 || open <= tolerance.EqualPoint * tolerance.EqualPoint;
             }
 
             if (edges.Count < 3)

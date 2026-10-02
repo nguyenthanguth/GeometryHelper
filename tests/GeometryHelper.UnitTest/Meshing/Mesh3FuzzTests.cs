@@ -22,13 +22,16 @@ namespace GeometryHelper.UnitTest.Meshing
         /// Bodies whose cutting once went wrong: a cut between the arms of a piece refused (1000015 to 1000297), volume lost
         /// to the tolerance band (2003059, 2014595), a body pinched along an edge refused (2011745), a ray grazing a hole's
         /// rim (2005903, 2016607), a tip a hair past a cut (4015293, 4017907, 5015694), a hole on a rim taken for material
-        /// (4017446), the point of a needle (9015982), and a hull with a face smaller than a polygon (13001387).
+        /// (4017446), the point of a needle (9015982), a hull with a face smaller than a polygon (13001387), the edge of a
+        /// blade past a cut, its corners each counted once (32019733), and a corner of a piece on a cut, which leaves a sliver
+        /// smaller than a square of the tolerance between edges that cancel (51003689).
         /// </summary>
         public static IEnumerable<object[]> CellSeedsThatFailed()
             => new[]
             {
                 1000015, 1000061, 1000065, 1000086, 1000103, 1000132, 1000172, 1000193, 1000220, 1000230, 1000280, 1000297,
                 2003059, 2005903, 2011745, 2014595, 2016607, 4015293, 4017446, 4017907, 5015694, 9015982, 13001387,
+                32019733, 51003689,
             }.Select(s => new object[] { s });
 
         public static IEnumerable<object[]> PlanarRun() => Enumerable.Range(1, 400).Select(s => new object[] { s });
