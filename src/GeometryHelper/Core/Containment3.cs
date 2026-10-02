@@ -607,6 +607,11 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// A point inside a hole is outside the face, and a point on the rim of a hole is on the face
         /// boundary, since the rim is as much an edge of the material as the outer loop is.
+        /// <para>
+        /// The holes are read in the plane of the boundary, as the face is: a hole may stand off that plane by
+        /// up to the planar tolerance, as one a modeller cut can, and read in its own plane it held nothing of
+        /// a point on the face's a thousandth below, so that a point in the hole was inside the material.
+        /// </para>
         /// </remarks>
         public static PointLocation Locate(GeoFace3 face, GeoPoint3 point, Tolerance tolerance)
         {
@@ -622,9 +627,11 @@ namespace GeometryHelper.Core
                 return outer;
             }
 
+            GeoPlane3 plane = face.Boundary.GetPlane();
+
             foreach (GeoPolygon3 hole in face.Holes)
             {
-                PointLocation inHole = Locate(hole, point, tolerance);
+                PointLocation inHole = LocateInPlane(hole, plane, point, tolerance);
 
                 if (inHole == PointLocation.OnSide)
                 {
@@ -638,6 +645,40 @@ namespace GeometryHelper.Core
             }
 
             return PointLocation.Inside;
+        }
+
+        /// <summary>
+        /// Locates a point against a ring laid onto a plane: within the point tolerance of a side, along the plane, it is on
+        /// it, and otherwise inside or outside as the ring winds about it there.
+        /// </summary>
+        private static PointLocation LocateInPlane(GeoPolygon3 ring, GeoPlane3 plane, GeoPoint3 point, Tolerance tolerance)
+        {
+            GeoVector3 normal = plane.Normal;
+            GeoVector3 Laid(GeoPoint3 p)
+            {
+                GeoVector3 offset = plane.Origin.GetVectorTo(p);
+                return offset.Subtract(normal.Multiply(offset.DotProduct(normal)));
+            }
+
+            GeoVector3 at = Laid(point);
+            double reachSquared = tolerance.EqualPoint * tolerance.EqualPoint;
+            IReadOnlyList<GeoPoint3> corners = ring.Vertices;
+
+            for (int i = 0; i < corners.Count; i++)
+            {
+                GeoVector3 a = Laid(corners[i]);
+                GeoVector3 side = Laid(corners[(i + 1) % corners.Count]).Subtract(a);
+                GeoVector3 toPoint = at.Subtract(a);
+                double lengthSquared = side.LengthSquared;
+                double t = lengthSquared > 0.0 ? Math.Max(0.0, Math.Min(1.0, toPoint.DotProduct(side) / lengthSquared)) : 0.0;
+
+                if (toPoint.Subtract(side.Multiply(t)).LengthSquared <= reachSquared)
+                {
+                    return PointLocation.OnSide;
+                }
+            }
+
+            return IsInsideLoop(corners, plane, point) ? PointLocation.Inside : PointLocation.OutSide;
         }
 
         /// <summary>
