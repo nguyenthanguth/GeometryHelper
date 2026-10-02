@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper.Clipper;
+using GeometryHelper.Enums;
 using Xunit;
 
 namespace GeometryHelper.UnitTest.Clipper
@@ -142,6 +143,32 @@ namespace GeometryHelper.UnitTest.Clipper
             public ReusingClipperD(ReuseableDataContainer64 data) : base(0)
             {
                 AddReuseableData(data);
+            }
+        }
+
+        /// <summary>
+        /// The regions of the library went on with what such a sweep had built, and nothing told of it: they get nothing
+        /// now, and a warning says why.
+        /// </summary>
+        [Fact]
+        public void ClipperRegion_ASweepThatFailed_GivesNothing_AndWarns()
+        {
+            List<(GeometryHelperLogLevel Level, string Message)> written = new List<(GeometryHelperLogLevel Level, string Message)>();
+            bool enabled = GeometryHelperLog.Enable;
+            GeometryHelperLog.Enable = true;
+            GeometryHelperLog.Writer = (level, message, exception) => written.Add((level, message));
+
+            try
+            {
+                PathsD solution = GeometryHelper.Core.ClipperRegion.Run(new ReusingClipperD(DataTheSweepFailsOn()), ClipType.Difference, FillRule.Negative);
+
+                Assert.Empty(solution);
+                Assert.Contains(written, w => w.Level == GeometryHelperLogLevel.Warn && w.Message.Contains("Clipper2"));
+            }
+            finally
+            {
+                GeometryHelperLog.Writer = null;
+                GeometryHelperLog.Enable = enabled;
             }
         }
     }

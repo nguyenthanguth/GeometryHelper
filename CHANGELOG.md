@@ -46,6 +46,11 @@ last digit is worth a hundredth. A polygon a tenth of a millimetre across there 
 wrong winding, a strip of 0.9 mm2 as 0.8984375, and the centroid of a triangle 0.3 mm across 110 km off. They are taken
 from the first vertex now, as the planar internals already took theirs, and `GeoFace2.Area` with them.
 
+**FIXED.** Where Clipper2's sweep fails, the booleans, offsets and meshes of the plane get no region, and a warning in
+`GeometryHelperLog` says so; they went on before with the part built until the sweep failed, which the engine reported
+as an answer. No case has been seen to fail: 16 million random clips, open paths and coordinates up to 2E18 among them,
+never made the sweep fail.
+
 **CHANGED.** The package depends on no other package. The clipping engine of Clipper2 2.0.0, which resolves the
 regions of the plane, is compiled in from its source, `src/GeometryHelper/Internal/Clipper`, instead of referenced as the
 Clipper2 package, so that it can be mended here. Only what GeometryHelper calls is kept: the core, the engine, the
@@ -55,11 +60,11 @@ references the Clipper2 package as well sees that one only. A project that used 
 dependency references the Clipper2 package itself now. Built into GeometryHelper as it came, the engine gave the IL of
 the package, but for the hash codes of its points, which nothing reads, and one delegate the newer compiler keeps
 instead of making it on each call, so every answer was the same. Faults found in it since are mended here, each held by
-a test in `TestFixedHere` that failed before; they change no answer GeometryHelper gives. The package carries it
-compiled, without its source, which the Boost licence asks no notice of. Clipper2's own tests run with the suite; test
-16 of its polygons, which Clipper2 2.0.0 fails upstream as well (#1067), is skipped. Upstream's later change for it is
-not taken: it mends that case and puts the union of loops crossing themselves that `TestCasesFoundHere` holds 1.2 % over
-its area, while it changed none of 40 000 random cases at four and six decimals.
+a test in `TestFixedHere` that failed before; they change no answer GeometryHelper gives, but for a region whose sweep
+fails, above. The package carries it compiled, without its source, which the Boost licence asks no notice of. Clipper2's
+own tests run with the suite; test 16 of its polygons, which Clipper2 2.0.0 fails upstream as well (#1067), is skipped.
+Upstream's later change for it is not taken: it mends that case and puts the union of loops crossing themselves that
+`TestCasesFoundHere` holds 1.2 % over its area, while it changed none of 40 000 random cases at four and six decimals.
 
 ## 9.0.2
 

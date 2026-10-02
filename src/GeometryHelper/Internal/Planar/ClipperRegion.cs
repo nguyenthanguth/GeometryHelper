@@ -84,8 +84,7 @@ namespace GeometryHelper.Core
                 inputs.AddRange(clipLoops);
             }
 
-            PathsD solution = new PathsD();
-            clipper.Execute(clipType, rule, solution);
+            PathsD solution = Run(clipper, clipType, rule);
 
             ExactPoints exact = new ExactPoints(inputs, precision);
             double straight = GetStraightness(tolerance, precision);
@@ -129,8 +128,7 @@ namespace GeometryHelper.Core
             clipper.AddClip(ToPaths(clipLoops));
             inputs.AddRange(clipLoops);
 
-            PathsD solution = new PathsD();
-            clipper.Execute(clipType, rule, solution);
+            PathsD solution = Run(clipper, clipType, rule);
 
             // Clipper2 crosses two long edges in its integers a few steps of its grid off where they cross: a cell's side
             // and an edge running a metre past it were crossed four steps off, and the cell beside it, whose crossing was
@@ -228,8 +226,7 @@ namespace GeometryHelper.Core
             ClipperD clipper = new ClipperD(precision) { PreserveCollinear = true };
             clipper.AddSubject(ToPaths(inputs));
 
-            PathsD solution = new PathsD();
-            clipper.Execute(ClipType.Union, rule, solution);
+            PathsD solution = Run(clipper, ClipType.Union, rule);
 
             ExactPoints exact = new ExactPoints(inputs, precision);
             List<List<GeoPoint2>> result = new List<List<GeoPoint2>>(solution.Count);
@@ -247,6 +244,23 @@ namespace GeometryHelper.Core
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Runs the clipper and gives the closed paths of its answer. A sweep that fails, which no case tried has made it
+        /// do, gives none, and a warning says so, rather than the part built before it failed passing for the region.
+        /// </summary>
+        public static PathsD Run(ClipperD clipper, ClipType clipType, Clipper.FillRule rule)
+        {
+            PathsD solution = new PathsD();
+
+            if (!clipper.Execute(clipType, rule, solution))
+            {
+                solution.Clear();
+                GeometryHelperLog.Warn($"Planar region: Clipper2 failed to resolve a {clipType} under the {rule} fill rule, so it is left empty.");
+            }
+
+            return solution;
         }
 
         #region Regions of the library's shapes
