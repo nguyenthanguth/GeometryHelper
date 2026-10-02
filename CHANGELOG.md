@@ -1,7 +1,7 @@
 # Changelog
 
-The release notes of the GeometryHelper package in full, newest first. The package carries a summary of them,
-since nuget.org takes no more than 35,000 characters of notes. GeometryHelper.IfcConvert,
+The release notes of the GeometryHelper package in full, newest first. The package carries the notes of its own
+release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
 ## Unreleased
