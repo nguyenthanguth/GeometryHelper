@@ -1339,5 +1339,29 @@ namespace GeometryHelper.UnitTest.Solid
             GeoObb3 box = GeoObb3.Fit(plate.Faces.SelectMany(face => face.Boundary.Vertices));
             Assert.Equal(200.0 * 100 * 20, box.Volume, 6);
         }
+
+        [Fact]
+        public void ReadingTheFacesMoreThanOneWay()
+        {
+            GeoSolid3 plate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(200, 100, 20)).ToObb().ToSolid()
+                .WithOpenings(new[] { new GeoAabb3(new GeoPoint3(90, 40, -1), new GeoPoint3(110, 60, 21)).ToObb().ToSolid() });
+
+            double net = Measure3.Volume(plate, VolumeMethod.Surface);
+            double gross = Measure3.GrossVolume(plate, VolumeMethod.Fan);
+            double kg = Measure3.Mass(plate, 7.85E-6, VolumeMethod.Surface);
+            double skin = Measure3.SurfaceArea(plate, AreaMethod.Faces);
+            GeoPoint3 mid = Measure3.Centroid(plate, VolumeMethod.FlatFaces);
+
+            MeasureComparison3 every = Measure3.Compare(plate);
+
+            Assert.Equal(200.0 * 100 * 20 - 20.0 * 20 * 20, net, 6);
+            Assert.Equal(plate.Volume, gross, 6);
+            Assert.Equal(7.85E-6 * net, kg, 9);
+            Assert.Equal(2 * (200.0 * 100 - 400) + 2 * 20 * (200 + 100) + 4 * 20 * 20, skin, 6);
+            Assert.True(mid.DistanceTo(new GeoPoint3(100, 50, 10)) < 1E-9);
+            Assert.Equal(net, every.GetVolume(VolumeMethod.Fan), 6);
+            Assert.True(every.VolumeSpread < 1E-6);
+            Assert.True(every.ReferenceSpread < 1E-6);
+        }
     }
 }

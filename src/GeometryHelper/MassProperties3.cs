@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper
@@ -19,10 +20,11 @@ namespace GeometryHelper
         private readonly double[] _moments;
         private readonly GeoVector3[] _axes;
 
-        internal MassProperties3(double density, double volume, GeoPoint3 centroid, double surfaceArea,
+        internal MassProperties3(double density, VolumeMethod method, double volume, GeoPoint3 centroid, double surfaceArea,
             double ixx, double iyy, double izz, double ixy, double iyz, double izx, double[] moments, GeoVector3[] axes)
         {
             Density = density;
+            Method = method;
             Volume = volume;
             Centroid = centroid;
             SurfaceArea = surfaceArea;
@@ -39,6 +41,9 @@ namespace GeometryHelper
         /// <summary>Gets the density the mass and the moments were worked out for.</summary>
         public double Density { get; }
 
+        /// <summary>Gets how the faces were read for the volume, the centroid and the moments.</summary>
+        public VolumeMethod Method { get; }
+
         /// <summary>Gets the volume of the material, openings taken out.</summary>
         public double Volume { get; }
 
@@ -48,7 +53,10 @@ namespace GeometryHelper
         /// <summary>Gets the centre of the material's volume, which is its centre of mass.</summary>
         public GeoPoint3 Centroid { get; }
 
-        /// <summary>Gets the area of where the material ends, the walls of its openings included.</summary>
+        /// <summary>
+        /// Gets the area of where the material ends, the walls of its openings included: each face's area as its outline
+        /// gives it, as <see cref="AreaMethod.Faces"/> sums it.
+        /// </summary>
         public double SurfaceArea { get; }
 
         /// <summary>Gets the moment of inertia about the axis through the centroid parallel to X.</summary>

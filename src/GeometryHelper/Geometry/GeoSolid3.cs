@@ -156,6 +156,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the total area of the bounding faces, without counting the openings.
         /// </summary>
+        /// <remarks>
+        /// Each face's area as its outline gives it. <see cref="Measure3.SurfaceArea(GeoSolid3, Enums.AreaMethod, Tolerance)"/>
+        /// gives the material's, the walls of its openings included, and measures it other ways too.
+        /// </remarks>
         public double SurfaceArea
         {
             get
@@ -181,6 +185,11 @@ namespace GeometryHelper.Geometry
         /// the parts outside the body cancel — which is why no reference point has to be chosen. The
         /// result is reported unsigned so that faces wound inwards give the same answer as faces wound
         /// outwards; a shell that does not close gives a number with no meaning either way.
+        /// <para>
+        /// Each face is taken as the fan of its boundary from its first corner, which is exact for a flat face and the
+        /// quickest. <see cref="Measure3"/> measures the volume other ways too, of the material or of the faces, and sets
+        /// the ways side by side where a face a hair out of flat makes them part.
+        /// </para>
         /// </remarks>
         public double Volume => Math.Abs(GetSignedVolume());
 

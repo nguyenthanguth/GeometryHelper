@@ -1,61 +1,41 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Core
 {
     /// <summary>
-    /// The mass properties of a body, integrated exactly over its faces.
+    /// The mass properties of a body, integrated over its faces.
     /// </summary>
     /// <remarks>
     /// The divergence theorem turns each integral over the volume — of 1, x, y, z, and their squares and products
     /// — into a sum over the triangles of its surface, worked in closed form after Eberly's "Polyhedral Mass
     /// Properties". The coordinates are taken from the middle of the body's box, so a part far from the origin
-    /// loses nothing to the size of its coordinates. The material is what is integrated: openings come out.
+    /// loses nothing to the size of its coordinates. Which triangles stand for the faces is the method's; see
+    /// <see cref="VolumeMethod"/>. The faces are read as they are: the openings are <see cref="Measure3"/>'s.
     /// </remarks>
     internal static class Mass3
     {
-        internal static MassProperties3 Of(GeoSolid3 solid, double density, Tolerance tolerance)
+        /// <summary>
+        /// The mass properties of a body's faces as they are, read by a method.
+        /// </summary>
+        internal static MassProperties3 Of(GeoSolid3 body, double density, VolumeMethod method, Tolerance tolerance)
         {
-            if (solid == null)
-            {
-                throw new ArgumentNullException(nameof(solid));
-            }
-
-            Guard.Positive(density, nameof(density), "A density has to be a positive number.");
-
-            GeoSolid3 material = Material3.Whole(solid, tolerance);
-            GeoPoint3 origin = material.GetAabb().Center;
-            var sums = new double[10];
-
-            foreach (GeoTriangle3 triangle in material.Triangulate(tolerance))
-            {
-                Accumulate(sums, origin.GetVectorTo(triangle.A), origin.GetVectorTo(triangle.B), origin.GetVectorTo(triangle.C));
-            }
-
-            double[] scale = { 1.0 / 6, 1.0 / 24, 1.0 / 24, 1.0 / 24, 1.0 / 60, 1.0 / 60, 1.0 / 60, 1.0 / 120, 1.0 / 120, 1.0 / 120 };
-
-            // A surface wound inwards integrates to the negative of everything; the body is the same body.
-            double sign = sums[0] < 0.0 ? -1.0 : 1.0;
-
-            for (int i = 0; i < sums.Length; i++)
-            {
-                sums[i] *= scale[i] * sign;
-            }
-
+            GeoPoint3 origin = body.GetAabb().Center;
+            double[] sums = Integrate(Triangles(body, method, tolerance), origin);
             double volume = sums[0];
             double surface = 0.0;
 
-            foreach (GeoFace3 face in material.Faces)
+            foreach (GeoFace3 face in body.Faces)
             {
                 surface += face.Area;
             }
 
             if (!(volume > 0.0))
             {
-                return new MassProperties3(density, 0.0, origin, surface, 0, 0, 0, 0, 0, 0, new double[3],
-                    new[] { GeoVector3.XAxis, GeoVector3.YAxis, GeoVector3.ZAxis });
+                return Nothing(density, method, origin, surface);
             }
 
             double cx = sums[1] / volume, cy = sums[2] / volume, cz = sums[3] / volume;
@@ -76,9 +56,188 @@ namespace GeometryHelper.Core
 
             Eigen(tensor, out double[] moments, out GeoVector3[] axes);
 
-            return new MassProperties3(density, volume, origin.Add(new GeoVector3(cx, cy, cz)), surface,
+            return new MassProperties3(density, method, volume, origin.Add(new GeoVector3(cx, cy, cz)), surface,
                 ixx, iyy, izz, ixy, iyz, izx, moments, axes);
         }
+
+        /// <summary>
+        /// The mass properties of no material at all: no volume, at a point.
+        /// </summary>
+        internal static MassProperties3 Nothing(double density, VolumeMethod method, GeoPoint3 at, double surface)
+            => new MassProperties3(density, method, 0.0, at, surface, 0, 0, 0, 0, 0, 0, new double[3],
+                new[] { GeoVector3.XAxis, GeoVector3.YAxis, GeoVector3.ZAxis });
+
+        /// <summary>
+        /// The ten volume integrals of the triangles of a surface about a point: the volume, its first moments and its
+        /// second, signed so that the volume comes out positive whichever way the surface is wound.
+        /// </summary>
+        internal static double[] Integrate(IEnumerable<(GeoPoint3 A, GeoPoint3 B, GeoPoint3 C)> triangles, GeoPoint3 origin)
+        {
+            var sums = new double[10];
+            double volume = 0.0;
+
+            foreach ((GeoPoint3 a, GeoPoint3 b, GeoPoint3 c) in triangles)
+            {
+                GeoVector3 p0 = origin.GetVectorTo(a), p1 = origin.GetVectorTo(b), p2 = origin.GetVectorTo(c);
+                Accumulate(sums, p0, p1, p2);
+                volume += p0.TripleProduct(p1, p2);
+            }
+
+            // The volume as each tetrahedron gives it, the three ways of reading the divergence theorem together, rather
+            // than the one Eberly's sums use for it: they agree where the surface closes, and where it does not quite, as
+            // faces read flat each on its own leave it, the volume is the one Volume measures.
+            sums[0] = volume;
+
+            double[] scale = { 1.0 / 6, 1.0 / 24, 1.0 / 24, 1.0 / 24, 1.0 / 60, 1.0 / 60, 1.0 / 60, 1.0 / 120, 1.0 / 120, 1.0 / 120 };
+
+            // A surface wound inwards integrates to the negative of everything; the body is the same body.
+            double sign = sums[0] < 0.0 ? -1.0 : 1.0;
+
+            for (int i = 0; i < sums.Length; i++)
+            {
+                sums[i] *= scale[i] * sign;
+            }
+
+            return sums;
+        }
+
+        /// <summary>
+        /// The volume the triangles of a surface enclose, measured from a point: positive whichever way it is wound.
+        /// </summary>
+        internal static double Volume(IEnumerable<(GeoPoint3 A, GeoPoint3 B, GeoPoint3 C)> triangles, GeoPoint3 origin)
+        {
+            double sum = 0.0;
+
+            foreach ((GeoPoint3 a, GeoPoint3 b, GeoPoint3 c) in triangles)
+            {
+                sum += origin.GetVectorTo(a).TripleProduct(origin.GetVectorTo(b), origin.GetVectorTo(c));
+            }
+
+            return Math.Abs(sum) / 6.0;
+        }
+
+        /// <summary>
+        /// The triangles a method reads a body's faces as, each wound as its face is, a hole's taken away.
+        /// </summary>
+        internal static IEnumerable<(GeoPoint3 A, GeoPoint3 B, GeoPoint3 C)> Triangles(GeoSolid3 body, VolumeMethod method, Tolerance tolerance)
+        {
+            switch (method)
+            {
+                case VolumeMethod.Fan:
+                    return Fans(body);
+                case VolumeMethod.Surface:
+                    return InFaces(body, tolerance);
+                case VolumeMethod.FlatFaces:
+                    return Flattened(body, tolerance);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown way of reading the faces of a body.");
+            }
+        }
+
+        private static IEnumerable<(GeoPoint3, GeoPoint3, GeoPoint3)> Fans(GeoSolid3 body)
+        {
+            foreach (GeoFace3 face in body.Faces)
+            {
+                foreach (GeoTriangle3 triangle in face.Boundary.Triangulate())
+                {
+                    yield return (triangle.A, triangle.B, triangle.C);
+                }
+
+                // A hole is wound as the boundary is, so its fan is taken the other way round.
+                foreach (GeoPolygon3 hole in face.Holes)
+                {
+                    foreach (GeoTriangle3 triangle in hole.Triangulate())
+                    {
+                        yield return (triangle.A, triangle.C, triangle.B);
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<(GeoPoint3, GeoPoint3, GeoPoint3)> InFaces(GeoSolid3 body, Tolerance tolerance)
+        {
+            foreach (GeoFace3 face in body.Faces)
+            {
+                foreach (GeoTriangle3 triangle in face.TriangulateSurface(tolerance))
+                {
+                    yield return (triangle.A, triangle.B, triangle.C);
+                }
+            }
+        }
+
+        private static IEnumerable<(GeoPoint3, GeoPoint3, GeoPoint3)> Flattened(GeoSolid3 body, Tolerance tolerance)
+        {
+            foreach (GeoFace3 face in body.Faces)
+            {
+                GeoTriangle3[] triangles = face.TriangulateSurface(tolerance);
+
+                // A face with no area to lean a plane on is read as it is.
+                if (!TryGetFlatPlane(face, out GeoPoint3 middle, out GeoVector3 normal))
+                {
+                    foreach (GeoTriangle3 triangle in triangles)
+                    {
+                        yield return (triangle.A, triangle.B, triangle.C);
+                    }
+
+                    continue;
+                }
+
+                foreach (GeoTriangle3 triangle in triangles)
+                {
+                    yield return (Lay(triangle.A, middle, normal), Lay(triangle.B, middle, normal), Lay(triangle.C, middle, normal));
+                }
+            }
+        }
+
+        /// <summary>
+        /// The plane a face is read flat in, as Newell's method fits one: square to its area, through the middle of its
+        /// corners.
+        /// </summary>
+        /// <returns>false when the face has no area to say which way the plane faces.</returns>
+        internal static bool TryGetFlatPlane(GeoFace3 face, out GeoPoint3 middle, out GeoVector3 normal)
+        {
+            // Measured from a corner of the face, as everything here is measured from near where it stands.
+            GeoPoint3 first = face.Boundary[0];
+            GeoVector3 area = face.Boundary.Normal.Multiply(face.Boundary.Area);
+            GeoVector3 sum = new GeoVector3(0, 0, 0);
+            int count = 0;
+
+            foreach (GeoPoint3 corner in face.Boundary.Vertices)
+            {
+                sum = sum.Add(first.GetVectorTo(corner));
+                count++;
+            }
+
+            // A hole is wound as the boundary is, so its area is taken away.
+            foreach (GeoPolygon3 hole in face.Holes)
+            {
+                area = area.Subtract(hole.Normal.Multiply(hole.Area));
+
+                foreach (GeoPoint3 corner in hole.Vertices)
+                {
+                    sum = sum.Add(first.GetVectorTo(corner));
+                    count++;
+                }
+            }
+
+            middle = first.Add(sum.Divide(count));
+            double length = area.Length;
+
+            if (!(length > 0.0) || double.IsInfinity(length))
+            {
+                normal = new GeoVector3(0, 0, 0);
+                return false;
+            }
+
+            normal = area.Divide(length);
+            return true;
+        }
+
+        /// <summary>
+        /// Lays a point onto a plane along its normal.
+        /// </summary>
+        private static GeoPoint3 Lay(GeoPoint3 point, GeoPoint3 middle, GeoVector3 normal)
+            => point.Add(normal.Multiply(-middle.GetVectorTo(point).DotProduct(normal)));
 
         /// <summary>
         /// Adds one triangle's share of the ten volume integrals, before their constant factors.

@@ -817,6 +817,42 @@ Like every other question, both read the material: a bolt hole comes out of the 
 and is a hole in the section. A section is one face per region the plane cuts, facing along the plane's normal;
 a plane that misses the body, or only lies along one of its faces, gives none.
 
+**Reading the faces more than one way.** `Measure3` measures a body by the method asked, and every method side by side:
+
+```csharp
+double net    = Measure3.Volume(plate, VolumeMethod.Surface);        // the material, openings cut in
+double gross  = Measure3.GrossVolume(plate, VolumeMethod.Fan);       // the faces alone, as plate.Volume gives it
+double kg     = Measure3.Mass(plate, 7.85E-6, VolumeMethod.Surface); // the density times the material's volume
+double skin   = Measure3.SurfaceArea(plate, AreaMethod.Faces);       // the walls of the openings included
+GeoPoint3 mid = Measure3.Centroid(plate, VolumeMethod.FlatFaces);
+
+MeasureComparison3 every = Measure3.Compare(plate);
+every.GetVolume(VolumeMethod.Fan);   // each method's volume, centroid and surface area
+every.VolumeSpread;                  // how far apart the methods come
+every.ReferenceSpread;               // how far the faces fall short of closing
+```
+
+| `VolumeMethod` | Each face read as | |
+|---|---|---|
+| `Fan` | the fan of its boundary from its first corner, less its holes' | the quickest; what `GeoSolid3.Volume` sums |
+| `Surface` | the triangles lying in it, on its own corners, holes left open | a closed surface of triangles; what `GetMassProperties` sums |
+| `FlatFaces` | flat, on the plane square to its area through the middle of its corners | rests on no triangulation |
+
+Over flat faces the three give the same volume, centroid and moments but for the rounding, as the divergence theorem
+is exact for them. They part only over a face a hair out of flat, as the planar tolerance lets one be, and such a face
+is no one surface: a face of four corners with one of them lifted holds a third of the lift times its area more split
+along the diagonal through that corner, a sixth more split along the other, and a quarter more read flat. So the
+spread is the answer to which is right — it says how far the faces leave the volume open — and where it matters,
+`Surface` is the reading that stays consistent: cut a body in two, and the halves read so hold what it held, where the
+fans of their concave faces counted a ten-thousandth more. `ReferenceSpread` is the other doubt: faces that meet within
+the tolerance but not on one another, as copies of one edge a few thousandths apart, leave gaps that the volume holds
+or not depending on where it is measured from. Both spreads are the rounding for a body whose flat faces close.
+
+`AreaMethod.Faces` gives each face's area as its outline does, read flat, and `AreaMethod.Surface` the area of the
+triangles lying in it, a hair more where the face is out of flat. The volume, mass, centroid and surface area are the
+material's, openings cut in, and a body its openings take whole holds nothing; `GrossVolume` and `GrossSurfaceArea`
+read the faces alone, as a gross weight does.
+
 A body cut into many pieces at once, the blocks, bays or lifts of a grid, is what `ToCells` gives, described with
 [meshing in space](mesh3.md).
 

@@ -251,6 +251,19 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void ABodyItsOpeningsTakeWholeWeighsNothing()
+        {
+            // An opening larger than the plate every way leaves no material. Read as the faces it was given, the plate
+            // weighed what it would without the opening.
+            GeoSolid3 plate = Box(0, 0, 0, 100, 100, 20).WithOpenings(new[] { Box(-10, -10, -10, 110, 110, 30) });
+            MassProperties3 mass = plate.GetMassProperties(7.85E-6);
+
+            Assert.Equal(0.0, mass.Volume);
+            Assert.Equal(0.0, mass.Mass);
+            Assert.Equal(0.0, mass.SurfaceArea);
+        }
+
+        [Fact]
         public void AMomentAboutAnotherAxisGoesByTheParallelAxisTheorem()
         {
             MassProperties3 mass = Box(0, 0, 0, 100, 60, 20).GetMassProperties();

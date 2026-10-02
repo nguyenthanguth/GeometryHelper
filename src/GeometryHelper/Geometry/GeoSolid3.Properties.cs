@@ -1,5 +1,6 @@
 using System;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -23,13 +24,15 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="density">The mass of a unit of volume; in kilograms per cubic millimetre, steel is 7.85E-6.</param>
         /// <param name="tolerance">The tolerance the openings are cut in and the surface meshed to.</param>
-        /// <returns>The properties; openings are taken out of every one of them.</returns>
+        /// <returns>The properties; openings are taken out of every one of them, and a body they take whole holds none.</returns>
         /// <remarks>
         /// Every integral is exact for the body's faces, taken over the surface by the divergence theorem, and the
-        /// body is read as its material: a plate's bolt holes come out of its weight and move its centroid.
+        /// body is read as its material: a plate's bolt holes come out of its weight and move its centroid. The faces
+        /// are read as the triangles lying in them, <see cref="VolumeMethod.Surface"/>; <see cref="Measure3"/> reads them
+        /// other ways too, and sets the ways side by side.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the density is not a positive number.</exception>
-        public MassProperties3 GetMassProperties(double density, Tolerance tolerance) => Mass3.Of(this, density, tolerance);
+        public MassProperties3 GetMassProperties(double density, Tolerance tolerance) => Measure3.MassProperties(this, density, VolumeMethod.Surface, tolerance);
 
         /// <summary>
         /// Gets where a plane cuts the material, using the default tolerance.

@@ -20,7 +20,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// A piece of a box with a box taken out, turned: the edge its faces 0 and 4 share runs between corners 0.0045 apart
         /// at the top and 0.0063 at the foot.
         /// </summary>
-        private static GeoSolid3 Piece()
+        internal static GeoSolid3 Piece()
         {
             GeoPoint3[][] faces =
             {
@@ -36,6 +36,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             return new GeoSolid3(faces.Select(f => new GeoFace3(new GeoPolygon3(f, Tolerance))));
         }
 
+        /// <summary>The plane the piece is cut by.</summary>
+        internal static GeoPlane3 Plane() => new GeoPlane3(P(-1118.4862657678493, 1836.2587416680656, 1707.7401903945895), new GeoVector3(0.52072587539184489, 0.060365686211387375, 0.85158707518704468));
+
         [Fact]
         public void APlaneAtASlantToAnEdgeSharedWithinTheToleranceCutsTheBody()
         {
@@ -43,7 +46,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // other's: the difference, 0.0045, put the two crossings 0.0112 apart along the edge. The rim is closed across
             // the gap.
             GeoSolid3 piece = Piece();
-            var plane = new GeoPlane3(P(-1118.4862657678493, 1836.2587416680656, 1707.7401903945895), new GeoVector3(0.52072587539184489, 0.060365686211387375, 0.85158707518704468));
+            GeoPlane3 plane = Plane();
 
             Assert.True(piece.IsClosed(Tolerance));
             Assert.True(piece.TrySplitBy(plane, out GeoSolid3 above, out GeoSolid3 below, Tolerance));

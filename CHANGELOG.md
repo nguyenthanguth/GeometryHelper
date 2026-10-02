@@ -72,6 +72,19 @@ bodies cut without joints, a median of two parts in ten million million. The OBJ
 turns right at no corner as one polygon, and a `GeoCellGrid3`, each cell an object of its own. The guide `docs/mesh3.md`
 describes it all, and `docs/mesh3-report.md` draws and measures its cases and how they were checked.
 
+**NEW.** `Measure3` measures a body by the method asked, and every method side by side: the `Volume`, `Mass`, `Centroid`,
+`MassProperties` and `SurfaceArea` of its material, openings cut in, and the `GrossVolume` and `GrossSurfaceArea` of its
+faces alone. `VolumeMethod` says how the faces are read: `Fan`, the fan of each face's boundary from its first corner,
+as `GeoSolid3.Volume` sums it; `Surface`, the triangles lying in each face, as `GetMassProperties` sums them; and
+`FlatFaces`, each face laid onto the plane square to its area through the middle of its corners, as Newell's method
+fits one, which rests on no triangulation. `AreaMethod` says how an area is: `Faces`, each outline's read flat, or
+`Surface`, the triangles'. Over flat faces every method gives the same but for the rounding. Over a face a hair out of
+flat they part, as such a face is no one surface: one of four corners with a corner lifted holds a third of the lift
+times its area more split along one diagonal, a sixth along the other, and a quarter read flat. `Measure3.Compare` gives
+a `MeasureComparison3`: each method's volume, centroid and area, how far apart they come, and how far the faces fall
+short of closing, as the volume moves measured from each corner of the body's box. `MassProperties3.Method` says which
+reading gave the properties.
+
 **FIXED.** `GeoFace3.Locate` and `Contains`, and `GeoPoint3.LocateIn` a face, read each hole in the hole's own plane.
 A hole may stand off the boundary's plane by up to the planar tolerance, as one a modeller cut can, and a point on the
 face's plane a thousandth below stood further than the tolerance from the hole's: a point in the hole was inside the
@@ -152,6 +165,12 @@ summed their shoelace from the origin, where the products of coordinates seven k
 last digit is worth a hundredth. A polygon a tenth of a millimetre across there came out with no area at all, or the
 wrong winding, a strip of 0.9 mm2 as 0.8984375, and the centroid of a triangle 0.3 mm across 110 km off. They are taken
 from the first vertex now, as the planar internals already took theirs, and `GeoFace2.Area` with them.
+
+**FIXED.** `GeoSolid3.GetMassProperties` of a body its openings take whole gave the mass of its faces, as if it had no
+openings: a plate inside an opening larger than it every way weighed what the plate does. Nothing is left, and it gives
+nothing. Openings that cannot be cut in are still left out, now with a warning in `GeometryHelperLog`. The volume is the
+one the tetrahedra give, read the three ways of the divergence theorem together, rather than the one way Eberly's sums
+read it: the same where the faces close, but for the rounding.
 
 **FIXED.** Where Clipper2's sweep fails, the booleans, offsets and meshes of the plane get no region, and a warning in
 `GeometryHelperLog` says so; they went on before with the part built until the sweep failed, which the engine reported

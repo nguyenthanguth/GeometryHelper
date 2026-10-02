@@ -20,7 +20,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// A piece of a column lying on its side with a ledge 0.109 thick standing up from it, turned and moved: a bar of its
         /// cells before it was cut across.
         /// </summary>
-        private static GeoSolid3 Piece()
+        internal static GeoSolid3 Piece()
         {
             GeoPoint3[][] faces =
             {
@@ -39,6 +39,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             return new GeoSolid3(faces.Select(f => new GeoFace3(new GeoPolygon3(f, Tolerance))));
         }
 
+        /// <summary>The plane the piece is cut by.</summary>
+        internal static GeoPlane3 Plane() => new GeoPlane3(P(-606.50538686328423, 973.7326319746096, 1095.5852041721971), new GeoVector3(-0.010369337942062018, -0.13262867904180142, -0.99111155291736464));
+
         [Fact]
         public void ACapWithACornerAHairOffThePlaneClosesEachHalf()
         {
@@ -46,7 +49,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // section has a finger as wide as the ledge, and that corner at its tip turned the normal of the cap's corners
             // 8E-5 from the plane's, which over the cap's length put its far corners 0.058 off it.
             GeoSolid3 piece = Piece();
-            var plane = new GeoPlane3(P(-606.50538686328423, 973.7326319746096, 1095.5852041721971), new GeoVector3(-0.010369337942062018, -0.13262867904180142, -0.99111155291736464));
+            GeoPlane3 plane = Plane();
 
             Assert.True(piece.IsClosed(Tolerance));
             Assert.True(piece.TrySplitBy(plane, out GeoSolid3 above, out GeoSolid3 below, Tolerance));

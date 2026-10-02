@@ -43,10 +43,10 @@ beam.TryTrimTo(wall, LineEnd.End, out GeoLine3 cut);      // (0,0,0) -> (2500,0,
 
 | Namespace | Holds |
 |---|---|
-| `GeometryHelper` | `Tolerance`, `Angle`, `OffsetOptions`, `GeometryHelperLog` |
-| `GeometryHelper.Enums` | `PointLocation`, `PlaneSide`, `LineSide`, `LineEnd`, `LineExtension`, `OffsetJoin` |
+| `GeometryHelper` | `Tolerance`, `Angle`, `OffsetOptions`, `GeometryHelperLog`, `MassProperties3`, `MeasureComparison3` |
+| `GeometryHelper.Enums` | `PointLocation`, `PlaneSide`, `LineSide`, `LineEnd`, `LineExtension`, `OffsetJoin`, `VolumeMethod`, `AreaMethod` |
 | `GeometryHelper.Geometry` | 30 immutable shapes: `GeoPoint2` … `GeoFace2` in the plane, `GeoPoint3` … `GeoSolid3` in space, arcs and the chains that carry them, and a transformation and a local coordinate system for each dimension |
-| `GeometryHelper.Core` | 34 operation classes, each dimension mirroring the other: `Boolean2`/`Boolean3`, `Offset2`/`Offset3`, `Distance2`/`Distance3`, … plus `Arc2`, `Corner2` for chamfering and rounding, and `PlanarMap`, which carries flat shapes between the two |
+| `GeometryHelper.Core` | 35 operation classes, each dimension mirroring the other: `Boolean2`/`Boolean3`, `Offset2`/`Offset3`, `Distance2`/`Distance3`, … plus `Arc2`, `Corner2` for chamfering and rounding, `PlanarMap`, which carries flat shapes between the two, and `Measure3`, a body's volume, mass and area read more than one way |
 | `GeometryHelper.Spatial` | `GeoBvh2` and `GeoBvh3`, the bounding volume hierarchies for large chains and meshes |
 | `GeometryHelper.Extension` | turning raw point lists into geometry |
 | `GeometryHelper.Arranging` | label placement: `Arranger`, `ArrangeItem`, `ArrangeResult`, `ArrangeOptions`, five algorithms |
