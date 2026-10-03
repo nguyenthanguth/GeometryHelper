@@ -22,10 +22,9 @@ namespace GeometryHelper.Core
     /// <para>
     /// The volume, the mass, the centroid and the surface area are the material's: every opening is cut in first, so a
     /// bolt hole comes out of the weight, moves the centroid, and its walls add to the surface. A body its openings take
-    /// whole holds nothing. Where the openings cannot be cut in, the faces are measured as they are, and the log says so.
-    /// <see cref="GrossVolume(GeoSolid3, VolumeMethod, Tolerance)"/> and
-    /// <see cref="GrossSurfaceArea(GeoSolid3, AreaMethod, Tolerance)"/> read the faces alone, openings and all, as a gross
-    /// weight does.
+    /// whole holds nothing. The material is the one <see cref="GeoSolid3.GetVolume(Tolerance)"/> measures, cut once for
+    /// a tolerance and kept by the body, so measuring it every way costs one cut. An opening that cannot be cut in is
+    /// left in the material, the log warns of it, and <see cref="MeasureComparison3.OpeningsCut"/> says so.
     /// </para>
     /// <para>
     /// A density is the mass of a unit of volume in the model's units: for a model in millimetres weighed in kilograms,
@@ -56,32 +55,6 @@ namespace GeometryHelper.Core
             GeoSolid3 material = Material(solid, tolerance, out _);
 
             return material == null ? 0.0 : Mass3.Volume(Mass3.Triangles(material, method, tolerance), material.GetAabb().Center);
-        }
-
-        /// <summary>
-        /// Gets the volume a body's faces enclose by a method, its openings not taken out, using the default tolerance.
-        /// </summary>
-        public static double GrossVolume(GeoSolid3 solid, VolumeMethod method) => GrossVolume(solid, method, Tolerance.Global);
-
-        /// <summary>
-        /// Gets the volume a body's faces enclose by a method, its openings not taken out.
-        /// </summary>
-        /// <param name="solid">The body, closed; the volume of a surface that does not close means nothing.</param>
-        /// <param name="method">How the faces are read.</param>
-        /// <param name="tolerance">The tolerance the faces are broken into triangles within.</param>
-        /// <returns>The volume, positive whichever way the faces are wound.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the method is not one of <see cref="VolumeMethod"/>.</exception>
-        /// <remarks>
-        /// <see cref="GeoSolid3.Volume"/> is this by <see cref="VolumeMethod.Fan"/>, measured from the first corner of the
-        /// body rather than from the middle of its box: where the faces close, the same but for the rounding.
-        /// </remarks>
-        public static double GrossVolume(GeoSolid3 solid, VolumeMethod method, Tolerance tolerance)
-        {
-            Check(solid);
-            Check(method);
-
-            return Mass3.Volume(Mass3.Triangles(solid, method, tolerance), solid.GetAabb().Center);
         }
 
         #endregion
@@ -183,29 +156,6 @@ namespace GeometryHelper.Core
             GeoSolid3 material = Material(solid, tolerance, out _);
 
             return material == null ? 0.0 : Area(material, method, tolerance);
-        }
-
-        /// <summary>
-        /// Gets the area of a body's faces by a method, its openings not cut in, using the default tolerance.
-        /// </summary>
-        public static double GrossSurfaceArea(GeoSolid3 solid, AreaMethod method) => GrossSurfaceArea(solid, method, Tolerance.Global);
-
-        /// <summary>
-        /// Gets the area of a body's faces by a method, its openings not cut in.
-        /// </summary>
-        /// <param name="solid">The body.</param>
-        /// <param name="method">How the faces are read.</param>
-        /// <param name="tolerance">The tolerance the faces are broken into triangles within.</param>
-        /// <returns>The area.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the method is not one of <see cref="AreaMethod"/>.</exception>
-        /// <remarks><see cref="GeoSolid3.SurfaceArea"/> is this by <see cref="AreaMethod.Faces"/>.</remarks>
-        public static double GrossSurfaceArea(GeoSolid3 solid, AreaMethod method, Tolerance tolerance)
-        {
-            Check(solid);
-            Check(method);
-
-            return Area(solid, method, tolerance);
         }
 
         private static double Area(GeoSolid3 body, AreaMethod method, Tolerance tolerance)
@@ -317,32 +267,14 @@ namespace GeometryHelper.Core
         #region Material
 
         /// <summary>
-        /// The material of a body: its faces with every opening cut in; null where the openings take all of it, and the
-        /// faces as they are, warned of, where the openings cannot be cut in.
+        /// The material of a body, the body's own cut: its faces with every opening cut in; null where the openings take
+        /// all of it; and any opening that cannot be cut in left in, warned of, with <paramref name="cut"/> false.
         /// </summary>
         private static GeoSolid3 Material(GeoSolid3 solid, Tolerance tolerance, out bool cut)
         {
             Check(solid);
-            cut = true;
 
-            if (solid.Openings.Count == 0)
-            {
-                return solid;
-            }
-
-            if (Boolean3.TryCutOpenings(solid, solid.Openings, out GeoSolid3 material, tolerance, out Exception failure))
-            {
-                return material;
-            }
-
-            if (failure == null)
-            {
-                return null;
-            }
-
-            cut = false;
-            GeometryHelperLog.Warn("Measure3: the openings could not be cut into the body; it is measured without them.", failure);
-            return new GeoSolid3(solid.Faces);
+            return solid.GetMaterial(tolerance, out cut);
         }
 
         private static void Check(GeoSolid3 solid)

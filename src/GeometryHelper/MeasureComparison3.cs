@@ -84,8 +84,8 @@ namespace GeometryHelper
         public double ReferenceSpread { get; }
 
         /// <summary>
-        /// Gets whether the openings were cut in, or there were none: false where they could not be, and the faces were
-        /// measured as they are.
+        /// Gets whether every opening was cut in, or there were none: false where one could not be, and was measured as
+        /// material, as the log warns.
         /// </summary>
         public bool OpeningsCut { get; }
 

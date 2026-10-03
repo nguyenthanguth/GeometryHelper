@@ -821,7 +821,6 @@ a plane that misses the body, or only lies along one of its faces, gives none.
 
 ```csharp
 double net    = Measure3.Volume(plate, VolumeMethod.Surface);        // the material, openings cut in
-double gross  = Measure3.GrossVolume(plate, VolumeMethod.Fan);       // the faces alone, as plate.Volume gives it
 double kg     = Measure3.Mass(plate, 7.85E-6, VolumeMethod.Surface); // the density times the material's volume
 double skin   = Measure3.SurfaceArea(plate, AreaMethod.Faces);       // the walls of the openings included
 GeoPoint3 mid = Measure3.Centroid(plate, VolumeMethod.FlatFaces);
@@ -852,8 +851,8 @@ or not depending on where it is measured from. Both spreads are the rounding for
 
 `AreaMethod.Faces` gives each face's area as its outline does, read flat, and `AreaMethod.Surface` the area of the
 triangles lying in it, a hair more where the face is out of flat. The volume, mass, centroid and surface area are the
-material's, openings cut in, and a body its openings take whole holds nothing; `GrossVolume` and `GrossSurfaceArea`
-read the faces alone, as a gross weight does.
+material's, openings cut in, and a body its openings take whole holds nothing. The material is the one the body's
+own `GetVolume` measures, cut once and kept, so measuring it every way costs one cut.
 
 A body cut into many pieces at once, the blocks, bays or lifts of a grid, is what `ToCells` gives, described with
 [meshing in space](mesh3.md).
