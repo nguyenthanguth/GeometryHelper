@@ -96,14 +96,14 @@ namespace GeometryHelper.Core
 
             try
             {
-                if (Unite(first, second, out result, tolerance))
+                if (Unite(first, second, out result, tolerance, out string unworkable))
                 {
                     outcome = BooleanOutcome.Made;
                     return true;
                 }
 
                 // Two bodies always leave a union, so none is a union not worked out.
-                GeometryHelperLog.Warn("A solid union glued into no body and is reported as not made.");
+                GeometryHelperLog.Warn($"A solid union could not be worked out: {unworkable ?? "it glued into no body"}; it is reported as not made.");
                 outcome = BooleanOutcome.NotWorkedOut;
                 return false;
             }
@@ -114,9 +114,10 @@ namespace GeometryHelper.Core
             }
         }
 
-        private static bool Unite(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance)
+        private static bool Unite(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable)
         {
             result = null;
+            unworkable = null;
 
             if (!first.GetAabb().CollidesWith(second.GetAabb(), tolerance))
             {
@@ -147,6 +148,14 @@ namespace GeometryHelper.Core
             {
                 bool? found = CombineCuttingOne(a, b, true, tolerance, out result, out _);
 
+                // A union one body cut gave of a volume no union can have is worked out by cutting both instead.
+                if (result != null && Implausible("union", result, a, b, tolerance) is string why)
+                {
+                    GeometryHelperLog.Debug($"Boolean3: cutting one body {why}; both are cut by every plane of both instead.");
+                    found = null;
+                    result = null;
+                }
+
                 if (found.HasValue)
                 {
                     return found.Value;
@@ -165,7 +174,20 @@ namespace GeometryHelper.Core
 
             kept.AddRange(FacesOfCells(SplitIntoCells(second, planes, tolerance), second, first, false, tolerance));
 
-            return GlueOrKeep(kept, openCut, tolerance, out result);
+            if (!GlueOrKeep(kept, openCut, tolerance, out result))
+            {
+                return false;
+            }
+
+            unworkable = Implausible("union", result, first, second, tolerance);
+
+            if (unworkable != null)
+            {
+                result = null;
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -215,9 +237,21 @@ namespace GeometryHelper.Core
 
             try
             {
-                bool shared = Share(first, second, out result, tolerance);
-                outcome = shared ? BooleanOutcome.Made : BooleanOutcome.Empty;
-                return shared;
+                if (Share(first, second, out result, tolerance, out string unworkable))
+                {
+                    outcome = BooleanOutcome.Made;
+                    return true;
+                }
+
+                if (unworkable != null)
+                {
+                    GeometryHelperLog.Warn($"A solid intersection could not be worked out: {unworkable}; it is reported as not made.");
+                    outcome = BooleanOutcome.NotWorkedOut;
+                    return false;
+                }
+
+                outcome = BooleanOutcome.Empty;
+                return false;
             }
             catch (Exception exception) when (IsUnworkable(exception))
             {
@@ -226,9 +260,10 @@ namespace GeometryHelper.Core
             }
         }
 
-        private static bool Share(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance)
+        private static bool Share(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable)
         {
             result = null;
+            unworkable = null;
 
             if (!first.GetAabb().CollidesWith(second.GetAabb(), tolerance))
             {
@@ -279,6 +314,23 @@ namespace GeometryHelper.Core
                 && closedClean && otherResult.IsClosed(tolerance))
             {
                 result = otherResult;
+            }
+
+            // A common part of a volume no intersection can have is worked out the other way round, whatever it costs.
+            if (Implausible("intersection", result, first, second, tolerance) is string why)
+            {
+                GeometryHelperLog.Debug($"Boolean3: cutting one body {why}; the other is cut instead.");
+
+                if (TryGlue(CellsInside(other, cut, otherKnives, tolerance, out _, out _), tolerance, out GeoSolid3 otherWay)
+                    && Implausible("intersection", otherWay, first, second, tolerance) == null)
+                {
+                    result = otherWay;
+                    return true;
+                }
+
+                unworkable = why;
+                result = null;
+                return false;
             }
 
             return true;
@@ -354,9 +406,21 @@ namespace GeometryHelper.Core
 
             try
             {
-                bool left = TakeAway(subject, tool, out result, tolerance);
-                outcome = left ? BooleanOutcome.Made : BooleanOutcome.Empty;
-                return left;
+                if (TakeAway(subject, tool, out result, tolerance, out string unworkable))
+                {
+                    outcome = BooleanOutcome.Made;
+                    return true;
+                }
+
+                if (unworkable != null)
+                {
+                    GeometryHelperLog.Warn($"A solid difference could not be worked out: {unworkable}; it is reported as not made.");
+                    outcome = BooleanOutcome.NotWorkedOut;
+                    return false;
+                }
+
+                outcome = BooleanOutcome.Empty;
+                return false;
             }
             catch (Exception exception) when (IsUnworkable(exception))
             {
@@ -365,9 +429,10 @@ namespace GeometryHelper.Core
             }
         }
 
-        private static bool TakeAway(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance)
+        private static bool TakeAway(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out string unworkable)
         {
             result = null;
+            unworkable = null;
 
             if (!subject.GetAabb().CollidesWith(tool.GetAabb(), tolerance))
             {
@@ -395,6 +460,14 @@ namespace GeometryHelper.Core
                     return true;
                 }
 
+                // What is left of one body cut, of a volume no difference can leave, is worked out by cutting both instead.
+                if (result != null && Implausible("difference", result, a, b, tolerance) is string why)
+                {
+                    GeometryHelperLog.Debug($"Boolean3: cutting one body {why}; both are cut by every plane of both instead.");
+                    found = null;
+                    result = null;
+                }
+
                 if (found.HasValue)
                 {
                     return found.Value;
@@ -407,7 +480,85 @@ namespace GeometryHelper.Core
 
             List<GeoFace3> kept = FacesOfCells(SplitIntoCells(subject, planes, tolerance), subject, tool, false, tolerance);
 
-            return GlueOrKeep(kept, openCut, tolerance, out result);
+            if (!GlueOrKeep(kept, openCut, tolerance, out result))
+            {
+                return false;
+            }
+
+            unworkable = Implausible("difference", result, subject, tool, tolerance);
+
+            if (unworkable != null)
+            {
+                result = null;
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Says why the volume of what a boolean of two bodies gave is one the operation cannot give; null where it can.
+        /// </summary>
+        /// <param name="operation">"difference", "union" or "intersection".</param>
+        /// <param name="result">What the boolean gave.</param>
+        /// <param name="first">The first body; for a difference, the one material is taken from.</param>
+        /// <param name="second">The second body; for a difference, the one taken away.</param>
+        /// <param name="tolerance">The tolerance of the work.</param>
+        /// <remarks>
+        /// <para>
+        /// A difference leaves no more than the body it was taken from, and no less than that less the whole of the body
+        /// taken away; a union holds the larger of the two and no more than both; a common part holds no more than the
+        /// smaller. Each within the tolerance times the area it can move across: the tool's for a difference, the smaller
+        /// body's otherwise, where the corners of the two stand within the tolerance of each other and are made one, and a
+        /// hair more for the rounding. A slab from a model less a wall that only touched it once came back 1 172 944 cubic
+        /// millimetres larger than it was, where the wall's area allows 188 650.
+        /// </para>
+        /// <para>
+        /// The volumes are the faces', which bound the material from above. A body still carrying openings, as the
+        /// bodies cut by every plane of both can, holds less than its faces, so no bound from below is asked of it.
+        /// </para>
+        /// </remarks>
+        internal static string Implausible(string operation, GeoSolid3 result, GeoSolid3 first, GeoSolid3 second, Tolerance tolerance)
+        {
+            double v = result.GrossVolume;
+            double v1 = first.GrossVolume;
+            double v2 = second.GrossVolume;
+            double rounding = 1E-9 * (Math.Abs(v1) + Math.Abs(v2));
+            bool whole = first.Openings.Count == 0 && second.Openings.Count == 0;
+            double low, high, slack;
+
+            switch (operation)
+            {
+                case "difference":
+                    slack = tolerance.EqualPoint * second.GrossSurfaceArea + rounding;
+                    low = whole ? v1 - v2 - slack : double.NegativeInfinity;
+                    high = v1 + slack;
+                    break;
+
+                case "union":
+                    slack = tolerance.EqualPoint * Math.Min(first.GrossSurfaceArea, second.GrossSurfaceArea) + rounding;
+                    low = whole ? Math.Max(v1, v2) - slack : double.NegativeInfinity;
+                    high = v1 + v2 + slack;
+                    break;
+
+                default:
+                    slack = tolerance.EqualPoint * Math.Min(first.GrossSurfaceArea, second.GrossSurfaceArea) + rounding;
+                    low = -slack;
+                    high = Math.Min(v1, v2) + slack;
+                    break;
+            }
+
+            if (v > high)
+            {
+                return $"gave a volume of {v:R} where a {operation} of bodies of {v1:R} and {v2:R} holds no more than {high:R}";
+            }
+
+            if (v < low)
+            {
+                return $"gave a volume of {v:R} where a {operation} of bodies of {v1:R} and {v2:R} holds no less than {low:R}";
+            }
+
+            return null;
         }
 
         /// <summary>

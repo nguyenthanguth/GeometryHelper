@@ -138,7 +138,17 @@ namespace GeometryHelper.Core
 
             try
             {
-                return TakeAway(body, opening, out material, tolerance);
+                if (TakeAway(body, opening, out material, tolerance, out string unworkable))
+                {
+                    return true;
+                }
+
+                if (unworkable != null)
+                {
+                    failure = new InvalidOperationException($"The opening could not be taken out: cutting it {unworkable}.");
+                }
+
+                return false;
             }
             catch (Exception exception) when (IsUnworkable(exception))
             {

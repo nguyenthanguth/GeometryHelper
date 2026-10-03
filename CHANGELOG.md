@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A union, a difference or an intersection whose result holds a volume the operation cannot give is not
+handed back: a difference leaving more than the body it was taken from, or less than that less the whole tool; a union
+holding less than the larger body or more than both; a common part larger than the smaller body, each beyond the
+tolerance times the area it can move across, the tool's for a difference and the smaller body's otherwise. Found cutting
+one body, such a result is worked out by cutting both, or the other, instead; found every way, it is reported as not
+worked out, with a warning, and `BooleanOutcome.NotWorkedOut`. A slab from a model less a wall that only touched it came
+back once 1 172 944 cubic millimetres larger than it was, where the wall's area allows 188 650.
+
 **NEW.** `TrySubtract`, `TryIntersect` and `TryUnion`, of `Boolean3` and of `GeoSolid3`, each with an overload giving a
 `BooleanOutcome`: `Made`, `Empty` or `NotWorkedOut`. `false` comes back both where nothing is left and where the answer
 could not be worked out, which only the log told apart, and a net volume worked out by taking cutters off a part one
