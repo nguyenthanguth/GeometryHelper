@@ -90,7 +90,11 @@ namespace GeometryHelper.Core
             if (!first.GetAabb().CollidesWith(second.GetAabb(), tolerance))
             {
                 // Nothing to resolve: the two shells simply sit side by side. Neither body reaches the
-                // other, so whatever each has carved out of itself is still carved out of the pair.
+                // other, so whatever each has carved out of itself is still carved out of the pair. Each is
+                // wound outwards, or one wound inwards would take its volume off the other's.
+                first = first.TurnOutwards();
+                second = second.TurnOutwards();
+
                 List<GeoFace3> apart = new List<GeoFace3>(first.Faces);
                 apart.AddRange(second.Faces);
 
@@ -498,16 +502,31 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets a body as a boolean works on it: every face flat within the planar tolerance of the work.
+        /// Gets a body as a boolean works on it: wound outwards, its openings too, and every face flat within the planar
+        /// tolerance of the work.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// A boolean reads which way the faces are wound: the faces a cut lays across a cell face out of it, the cells
+        /// are kept by the side of the other body they fall on, and two faces meet back to back where they face apart.
+        /// A body wound inwards came back in cells with its own faces facing in and the new ones out, a tool wound
+        /// inwards was taken for material, and a plate less a duct so wound held more than the plate. Turned the right
+        /// way out first, either is the body it is.
+        /// </para>
+        /// <para>
         /// A face can be flat only to the wider planar tolerance a caller allowed: a modeller's cut leaves some a
         /// few hundredths out, as Tekla Structures left the top face of a notched beam 0.04 mm out at one corner.
         /// Cut at the tighter tolerance of the work, a piece of such a face is refused as not flat and leaves a
         /// hole. It is split into triangles on its own corners first instead, each exactly flat, which keeps the
-        /// body closed and moves nothing. A body with every face flat enough comes back as it is.
+        /// body closed and moves nothing. A body wound outwards with every face flat enough comes back as it is.
+        /// </para>
         /// </remarks>
-        internal static GeoSolid3 FlatForWork(GeoSolid3 solid, Tolerance work)
+        internal static GeoSolid3 FlatForWork(GeoSolid3 solid, Tolerance work) => Flat(solid.TurnOutwards(), work);
+
+        /// <summary>
+        /// Gets a body with every face flat within the planar tolerance of the work, its openings too.
+        /// </summary>
+        private static GeoSolid3 Flat(GeoSolid3 solid, Tolerance work)
         {
             List<GeoFace3> faces = null;
 
@@ -555,7 +574,7 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < solid.Openings.Count; i++)
             {
-                GeoSolid3 flat = FlatForWork(solid.Openings[i], work);
+                GeoSolid3 flat = Flat(solid.Openings[i], work);
 
                 if (openings == null && !ReferenceEquals(flat, solid.Openings[i]))
                 {
@@ -746,7 +765,7 @@ namespace GeometryHelper.Core
 
                 foreach (GeoSolid3 cell in cells)
                 {
-                    if (Splition3.TrySplitBy(cell, plane, out GeoSolid3 above, out GeoSolid3 below, tolerance))
+                    if (Splition3.TrySplitCell(cell, plane, out GeoSolid3 above, out GeoSolid3 below, tolerance))
                     {
                         divided.Add(above);
                         divided.Add(below);
@@ -763,7 +782,7 @@ namespace GeometryHelper.Core
                         // its own side, or is cut; only a piece the plane crosses and cannot cut is left unclean.
                         foreach (GeoSolid3 piece in Shells3.Split(cell, tolerance))
                         {
-                            if (Splition3.TrySplitBy(piece, plane, out GeoSolid3 pieceAbove, out GeoSolid3 pieceBelow, tolerance))
+                            if (Splition3.TrySplitCell(piece, plane, out GeoSolid3 pieceAbove, out GeoSolid3 pieceBelow, tolerance))
                             {
                                 divided.Add(pieceAbove);
                                 divided.Add(pieceBelow);

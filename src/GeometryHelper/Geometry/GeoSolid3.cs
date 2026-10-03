@@ -31,6 +31,11 @@ namespace GeometryHelper.Geometry
         // GetMaterial. Written whole or not at all, so a reader sees one cut or none.
         private volatile MaterialCut _material;
 
+        // Whether TurnOutwards found this body, its openings and all, wound outwards already, or made it so: every
+        // boolean asks, and a prepared body is asked once for each pair it is in. The body cannot change, so neither
+        // can the answer.
+        private volatile bool _woundOutwards;
+
         /// <summary>
         /// Gets the read-only list of faces bounding the solid.
         /// </summary>
@@ -163,11 +168,17 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Which way a closed surface is wound is the sign of the volume it encloses: positive where its faces face out
         /// of it. A modeller can hand a body over the other way round, and a mirror turns every face over. The measures
-        /// read a body either way the same, but a boolean, and which side of a face a point is on, read the winding.
-        /// The faces of a surface that does not close are turned by the same sign, which there says little.
+        /// read a body either way the same, but the booleans, the cuts and where two bodies lie against each other read
+        /// the winding, and turn their bodies so first. The faces of a surface that does not close are turned by the same
+        /// sign, which there says little. The answer is kept with the body, so asking again costs nothing.
         /// </remarks>
         public GeoSolid3 TurnOutwards()
         {
+            if (_woundOutwards)
+            {
+                return this;
+            }
+
             bool turn = GetSignedVolume() < 0.0;
             var openings = new List<GeoSolid3>(_openings.Length);
             bool changed = turn;
@@ -181,6 +192,7 @@ namespace GeometryHelper.Geometry
 
             if (!changed)
             {
+                _woundOutwards = true;
                 return this;
             }
 
@@ -191,7 +203,7 @@ namespace GeometryHelper.Geometry
                 faces.Add(turn ? face.Flip() : face);
             }
 
-            return new GeoSolid3(faces, openings);
+            return new GeoSolid3(faces, openings) { _woundOutwards = true };
         }
 
         #region Measurements

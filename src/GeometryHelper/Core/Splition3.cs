@@ -1104,6 +1104,29 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // The caps face out of each half, as the faces of a body wound outwards do: one wound inwards came back in
+            // halves with its own faces facing in and the caps out, a plate 20 thick cut at 5 into 50 000 and 16 667.
+            if (TrySplitCell(solid.TurnOutwards(), cutter, out above, out below, tolerance))
+            {
+                return true;
+            }
+
+            above = solid;
+            below = solid;
+            return false;
+        }
+
+        /// <summary>
+        /// Splits a body wound outwards, as the cells of a boolean are, by a plane.
+        /// </summary>
+        /// <param name="solid">The body, wound outwards; it is not turned.</param>
+        /// <param name="cutter">The cutting plane.</param>
+        /// <param name="above">The part on the side the plane's normal points to; the body itself when the method returns false.</param>
+        /// <param name="below">The part on the other side; the body itself when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the plane parts the body; otherwise, false.</returns>
+        internal static bool TrySplitCell(GeoSolid3 solid, GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below, Tolerance tolerance)
+        {
             above = solid;
             below = solid;
 
@@ -1377,7 +1400,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoSolid3 opening in solid.Openings)
             {
-                if (TrySplitBy(opening, cutter, out GeoSolid3 openingAbove, out GeoSolid3 openingBelow, tolerance))
+                if (TrySplitCell(opening, cutter, out GeoSolid3 openingAbove, out GeoSolid3 openingBelow, tolerance))
                 {
                     upper.Add(openingAbove);
                     lower.Add(openingBelow);

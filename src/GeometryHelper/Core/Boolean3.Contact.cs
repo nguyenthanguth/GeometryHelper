@@ -63,8 +63,10 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            GeoSolid3 ours = Material3.Near(first, secondBox, tolerance);
-            GeoSolid3 theirs = Material3.Near(second, firstBox, tolerance);
+            // Two faces lie against each other where they face each other, which reads which way each body is wound:
+            // a block on a plate, one of them wound inwards, faced the same way as the plate and did not touch it.
+            GeoSolid3 ours = Material3.Near(first.TurnOutwards(), secondBox, tolerance);
+            GeoSolid3 theirs = Material3.Near(second.TurnOutwards(), firstBox, tolerance);
 
             // The patches found so far, grouped by the plane they lie in, so that each plane's are joined.
             var byPlane = new List<List<GeoFace3>>();

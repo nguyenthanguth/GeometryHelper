@@ -105,10 +105,15 @@ area more split along one diagonal, a sixth along the other, and a quarter read 
 of closing, as the volume moves measured from each corner of the body's box. `MassProperties3.Method` says which reading
 gave the properties.
 
-**FIXED.** `TryCutOpenings` on a body wound inwards cut it into the wrong material: its cells came back with its own
-faces facing in and those the cuts laid across them facing out, and a 100 by 100 by 20 plate with a hole 20 square
-through it came back whole, 200 000 where 192 000 is left, or 186 667 with the hole off the middle. The body is turned
-outwards before it is cut.
+**FIXED.** A body wound inwards came out of every operation that reads the winding wrong. `TryCutOpenings` cut its cells
+with its own faces facing in and the cuts' faces out, and a 100 by 100 by 20 plate with a hole 20 square through it came
+back whole, 200 000 where 192 000 is left. The booleans took a tool so wound for material: the plate less a duct wound
+inwards held 202 667 for 192 000, the two together 193 867 for 200 800 and their common part 2 667 for 8 000, and two
+bodies apart, one of them wound inwards, joined into nothing. `TrySplitBy` cut the plate 20 thick at 5 into 50 000 and
+16 667 for 150 000 and 50 000; a block standing on a plate, one of the two wound inwards, did not lie against it by
+`TryGetContact`; and the clash of the plate and the duct held a third of its volume. Each turns its bodies outwards
+first, as the meshing did, and gives back bodies wound outwards; a prepared body is turned once, and `TurnOutwards`
+keeps its answer with the body, so the clash check runs as fast as before.
 
 **FIXED.** `GeoFace3.Locate` and `Contains`, and `GeoPoint3.LocateIn` a face, read each hole in the hole's own plane.
 A hole may stand off the boundary's plane by up to the planar tolerance, as one a modeller cut can, and a point on the

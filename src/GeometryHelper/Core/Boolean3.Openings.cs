@@ -130,9 +130,7 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The way back where cutting every opening in at once cannot be worked out or leaves the material open: a
         /// difference tries more ways of cutting and keeps the one that closes, and an opening that will not come out
-        /// keeps none of the others in. A difference reads which way the faces are wound, as cutting the openings in
-        /// does not, so both bodies are turned outwards first: a hole wound inwards was taken for material, and added
-        /// to the body.
+        /// keeps none of the others in.
         /// </remarks>
         internal static bool TryTakeOut(GeoSolid3 body, GeoSolid3 opening, out GeoSolid3 material, Tolerance tolerance, out Exception failure)
         {
@@ -140,7 +138,7 @@ namespace GeometryHelper.Core
 
             try
             {
-                return TakeAway(body.TurnOutwards(), opening.TurnOutwards(), out material, tolerance);
+                return TakeAway(body, opening, out material, tolerance);
             }
             catch (Exception exception) when (IsUnworkable(exception))
             {
@@ -153,11 +151,9 @@ namespace GeometryHelper.Core
         private static bool CutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance)
         {
             // The body carrying only the openings being cut, so that a cell is judged against exactly those, and
-            // both as the cut works on them; see ForWork and FlatForWork. Wound outwards, as the faces a cut lays
-            // across a cell are: a body wound inwards came back in cells with the old faces facing in and the new
-            // ones out, and glued into the wrong material.
+            // both as the cut works on them, wound outwards and flat; see ForWork and FlatForWork.
             tolerance = ForWork(tolerance);
-            GeoSolid3 owner = FlatForWork(new GeoSolid3(solid.Faces, openings).TurnOutwards(), tolerance);
+            GeoSolid3 owner = FlatForWork(new GeoSolid3(solid.Faces, openings), tolerance);
             GeoSolid3 gross = new GeoSolid3(owner.Faces);
             openings = owner.Openings;
 
@@ -176,7 +172,7 @@ namespace GeometryHelper.Core
                         // A cell out of the opening's reach is wholly outside it, so none of its planes need
                         // cut it: that is what keeps a plate with many holes from becoming a grid.
                         if (cell.GetAabb().CollidesWith(reach, tolerance)
-                            && Splition3.TrySplitBy(cell, plane, out GeoSolid3 above, out GeoSolid3 below, tolerance))
+                            && Splition3.TrySplitCell(cell, plane, out GeoSolid3 above, out GeoSolid3 below, tolerance))
                         {
                             divided.Add(above);
                             divided.Add(below);

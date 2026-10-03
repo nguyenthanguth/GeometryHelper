@@ -62,8 +62,9 @@ namespace GeometryHelper.Spatial
         {
             Solid = solid ?? throw new ArgumentNullException(nameof(solid));
 
-            // Openings that take all the material leave the gross body, as every query of the body does.
-            Material = Material3.Whole(solid, tolerance);
+            // Openings that take all the material leave the gross body, as every query of the body does. Wound outwards
+            // once here, as the convexity, the parting faces and every boolean of a pair read it.
+            Material = Material3.Whole(solid, tolerance).TurnOutwards();
             Box = Material.GetAabb();
             _surface = Material.Triangulate(tolerance);
             Index = new GeoBvh3(_surface);
@@ -77,7 +78,7 @@ namespace GeometryHelper.Spatial
         public GeoSolid3 Solid { get; }
 
         /// <summary>
-        /// Gets the body with its openings cut in: where its material actually ends.
+        /// Gets the body with its openings cut in: where its material actually ends, wound outwards.
         /// </summary>
         public GeoSolid3 Material { get; }
 
