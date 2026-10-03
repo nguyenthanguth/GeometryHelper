@@ -188,11 +188,11 @@ A review of the code since, and the harder fuzz, found these, each fixed with a 
 ## Limits
 
 - The volumes of the cells add up to the body's but for the tolerance times the area cut, as above.
-- A cell's volume is its body's `Volume`, the fan of each face's corners, which reads each face flat through its first
+- A cell's volume is its body's `GetVolume()`, the fan of each face's corners, which reads each face flat through its first
   corner. A face a hair out of flat then counts a third of its area times how far that corner stands off the face's
   middle plane, and a cut through a corner of a thin part leaves large faces with a corner so: the two halves of a piece
   of a column with a ledge hold it to a hundred-millionth read as the triangles lying in their faces, and to a
-  ten-thousandth by `Volume`. `Measure3` reads a cell the other ways.
+  ten-thousandth by `GetVolume()`. `Measure3` reads a cell the other ways.
 - A cell keeps the point of a needle a cut could not take off: a part thinner across than the point tolerance where the cut
   meets it, standing up to a hundred point tolerances past the cell's box.
 - The cells are bodies of their own. Neighbours meet on the planes between them, but a vertex of one does not have to be a

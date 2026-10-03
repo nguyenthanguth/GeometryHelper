@@ -210,7 +210,7 @@ foreach (string ifcFile in ifcFiles)
 
         foreach (GeoSolid3 s in geom.Solids)
         {
-            Console.WriteLine($"  Solid Faces: {s.Faces.Count}, Volume: {s.Volume:F4} m3");
+            Console.WriteLine($"  Solid Faces: {s.Faces.Count}, Volume: {s.GetVolume():F4} m3");
         }
 
         foreach (GeoFace3 surface in geom.OpenSurfaces)

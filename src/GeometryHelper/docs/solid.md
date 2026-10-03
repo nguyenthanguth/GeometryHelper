@@ -167,18 +167,28 @@ GeoSolid3 duct = new GeoAabb3(new GeoPoint3(4, 4, 4), new GeoPoint3(6, 6, 6)).To
 
 GeoSolid3 pierced = slab.WithOpenings(new[] { duct });
 
-pierced.Volume;          // 1000 — the faces, duct and all
-pierced.GetNetVolume();  //  992 — the duct cut out
-pierced.IsClosed();      // true
+pierced.GetVolume();       // 992 — the duct cut out
+pierced.GetSurfaceArea();  // 624 — the outside, and the walls of the duct
+pierced.GetCentroid();     // (5, 5, 5)
+pierced.IsClosed();        // true
 
 pierced.Locate(new GeoPoint3(1, 1, 1)); // Inside
 pierced.Locate(new GeoPoint3(5, 5, 5)); // OutSide — inside the duct
 ```
 
-`Volume` is measured by the divergence theorem, so it does not depend on where the solid sits and is
-reported unsigned: faces wound inwards give the same answer as faces wound outwards. It does depend on the
-boundary being closed, which is what `IsClosed()` is for: every stretch of every edge shared by an even
-number of faces. A long edge beside two short ones is matched stretch by stretch, and two blocks meeting
+`GetVolume`, `GetSurfaceArea` and `GetCentroid` measure the material: the faces with every opening cut out, the
+walls of the openings part of the surface. A body without openings — every part `GeometryHelper.TeklaConvert`
+reads is one, its cuts already in its faces — is measured by its faces at once, and nothing is cut. A body with
+openings has them cut out once for the tolerance, and the cut is kept, so the three, `GetMassProperties` and
+`Measure3` describe one material for the price of one cut. An opening that cannot be cut out is left in the material
+and the log warns of it; `TryGetVolume` says whether the volume can be trusted, every opening cut out and the
+material closed.
+
+The volume is measured by the divergence theorem, so it does not depend on where the solid sits and is
+reported unsigned: faces wound inwards give the same answer as faces wound outwards, and `TurnOutwards()` turns
+such a body the right way out for the booleans and the containment queries, which read the winding. It does
+depend on the boundary being closed, which is what `IsClosed()` is for: every stretch of every edge shared by an
+even number of faces. A long edge beside two short ones is matched stretch by stretch, and two blocks meeting
 along an edge put four faces on it and are closed; a missing face leaves a stretch with one, and a fin
 standing off the surface one with three.
 
@@ -571,7 +581,7 @@ A solid is cut the same way, and the two halves come back closed:
 GeoSolid3 cube = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(10, 10, 10)).ToObb().ToSolid();
 
 cube.TrySplitBy(GeoPlane3.XY.Offset(4), out GeoSolid3 upper, out GeoSolid3 lower);
-// upper.Volume == 600, lower.Volume == 400, both IsClosed()
+// upper.GetVolume() == 600, lower.GetVolume() == 400, both IsClosed()
 ```
 
 The body may be concave and its faces may carry holes. Each face is cut on its own, and the new surface
@@ -833,7 +843,7 @@ every.ReferenceSpread;               // how far the faces fall short of closing
 
 | `VolumeMethod` | Each face read as | |
 |---|---|---|
-| `Fan` | the fan of its boundary from its first corner, less its holes' | the quickest; what `GeoSolid3.Volume` sums |
+| `Fan` | the fan of its boundary from its first corner, less its holes' | the quickest; what `GeoSolid3.GetVolume` sums |
 | `Surface` | the triangles lying in it, on its own corners, holes left open | a closed surface of triangles; what `GetMassProperties` sums |
 | `FlatFaces` | flat, on the plane square to its area through the middle of its corners | rests on no triangulation |
 
@@ -1433,13 +1443,13 @@ using GeometryHelper.TeklaConvert;
 
 teklaSolid.TryToGeoSolid3(out GeoSolid3 body, tolerance);
 
-body.Volume;
+body.GetVolume();
 body.TrySubtract(otherBody, out GeoSolid3 left);
 ```
 
 Three things are checked rather than trusted on the way in. A Tekla coordinate system whose Y axis is not
 quite square to its X axis is squared up. Each face is turned to agree with the normal Tekla gives it, and
-the finished body is turned inside out if its signed volume says the whole surface arrived reversed —
+the finished body is turned the right way out, as `TurnOutwards()` turns one, if the whole surface arrived reversed —
 without that, volume still measures the same but every containment query answers backwards. And a face
 that cannot be made sense of is skipped rather than thrown on, which leaves the body no longer closed, so
 ask `IsClosed()` before trusting a volume.

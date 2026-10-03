@@ -6,13 +6,25 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
-**BREAKING.** `GeoSolid3.NetVolume` is removed. It took each opening's whole volume off the body's, so an opening drawn
-past the body, as a through hole is, took off what is not there, and two that overlap took their overlap off twice: a
-plate with a hole drawn a millimetre past each face measured 191 200 for 192 000. The volume of the material is
-`GetNetVolume()`, or `Measure3.Volume` and `Measure3.Mass`, which cut the openings in. `Volume` and `SurfaceArea` are
-those of the faces, which are the body's own where it has no openings, as every part GeometryHelper.TeklaConvert reads
-has none, its cuts and holes in its faces: a slab cut by five other parts matched Tekla's VOLUME_NET to 5E-12 and its
-AREA to 5E-12. `GeoSolid3.ToString` names the openings rather than taking their volumes off.
+**BREAKING.** A body is measured as its material. `GeoSolid3.GetVolume()`, `GetSurfaceArea()` and `GetCentroid()`, each
+also within a tolerance, give the volume, area and centre of the faces with every opening cut out, the walls of the
+openings part of the surface, and `TryGetVolume` says whether the volume can be trusted: every opening cut out and the
+material closed. The material is cut once for a tolerance and kept by the body, so measuring it every way,
+`GetMassProperties` and `Measure3` with the rest, costs one cut and describes one body. The openings are cut at once,
+and where that cannot be worked out or opens a body that closed, one at a time by a difference; one that will not come
+out is left in and warned of. A body without openings is measured by its faces at once and nothing is cut: every part
+GeometryHelper.TeklaConvert reads is one, its cuts already in its faces, and a slab cut by five other parts matched
+Tekla's VOLUME_NET to 5E-12 and its AREA to 5E-12.
+
+Removed, as they read the faces alone and so gave a body with openings the faces' volume, area and centre, duct and all,
+as if they were its own: `GeoSolid3.Volume`, `SurfaceArea` and `Centroid`; `NetVolume`, which took each opening's whole
+volume off, so that an opening drawn past the body, as a through hole is, took off what is not there and two that
+overlap took their overlap off twice, a plate with a hole drawn a millimetre past each face measuring 191 200 for
+192 000; and `GetNetVolume()`, which took the openings out one difference at a time and one it could not take out off
+whole.
+`GetSignedVolume()` is internal: what it was public for, which way a body is wound, `TurnOutwards()` sets right, giving
+the body wound outwards, its openings too, and the same body back where nothing had to be turned. `GeoSolid3.ToString`
+calls the faces' volume of a body with openings its gross volume.
 
 **NEW.** `GeoTriangle2`, the triangle of the plane, as `GeoTriangle3` is the triangle of space: its signed area and
 winding, perimeter, centroid, angles, circumcircle and incircle, barycentric coordinates, where a point is, moves and
@@ -80,18 +92,23 @@ bodies cut without joints, a median of two parts in ten million million. The OBJ
 turns right at no corner as one polygon, and a `GeoCellGrid3`, each cell an object of its own. The guide `docs/mesh3.md`
 describes it all, and `docs/mesh3-report.md` draws and measures its cases and how they were checked.
 
-**NEW.** `Measure3` measures a body by the method asked, and every method side by side: the `Volume`, `Mass`, `Centroid`,
-`MassProperties` and `SurfaceArea` of its material, openings cut in, and the `GrossVolume` and `GrossSurfaceArea` of its
-faces alone. `VolumeMethod` says how the faces are read: `Fan`, the fan of each face's boundary from its first corner,
-as `GeoSolid3.Volume` sums it; `Surface`, the triangles lying in each face, as `GetMassProperties` sums them; and
-`FlatFaces`, each face laid onto the plane square to its area through the middle of its corners, as Newell's method
-fits one, which rests on no triangulation. `AreaMethod` says how an area is: `Faces`, each outline's read flat, or
-`Surface`, the triangles'. Over flat faces every method gives the same but for the rounding. Over a face a hair out of
-flat they part, as such a face is no one surface: one of four corners with a corner lifted holds a third of the lift
-times its area more split along one diagonal, a sixth along the other, and a quarter read flat. `Measure3.Compare` gives
-a `MeasureComparison3`: each method's volume, centroid and area, how far apart they come, and how far the faces fall
-short of closing, as the volume moves measured from each corner of the body's box. `MassProperties3.Method` says which
-reading gave the properties.
+**NEW.** `Measure3` measures a body by the method asked, and every method side by side: the `Volume`, `Mass`,
+`Centroid`, `MassProperties` and `SurfaceArea` of its material, openings cut in, the material the body's own `GetVolume`
+measures. `VolumeMethod` says how the faces are read: `Fan`, the fan of each face's boundary from its first corner, as
+`GeoSolid3.GetVolume` sums it; `Surface`, the triangles lying in each face, as `GetMassProperties` sums them; and
+`FlatFaces`, each face laid onto the plane square to its area through the middle of its corners, as Newell's method fits
+one, which rests on no triangulation. `AreaMethod` says how an area is: `Faces`, each outline's read flat, or `Surface`,
+the triangles'. Over flat faces every method gives the same but for the rounding. Over a face a hair out of flat they
+part, as such a face is no one surface: one of four corners with a corner lifted holds a third of the lift times its
+area more split along one diagonal, a sixth along the other, and a quarter read flat. `Measure3.Compare` gives a
+`MeasureComparison3`: each method's volume, centroid and area, how far apart they come, and how far the faces fall short
+of closing, as the volume moves measured from each corner of the body's box. `MassProperties3.Method` says which reading
+gave the properties.
+
+**FIXED.** `TryCutOpenings` on a body wound inwards cut it into the wrong material: its cells came back with its own
+faces facing in and those the cuts laid across them facing out, and a 100 by 100 by 20 plate with a hole 20 square
+through it came back whole, 200 000 where 192 000 is left, or 186 667 with the hole off the middle. The body is turned
+outwards before it is cut.
 
 **FIXED.** `GeoFace3.Locate` and `Contains`, and `GeoPoint3.LocateIn` a face, read each hole in the hole's own plane.
 A hole may stand off the boundary's plane by up to the planar tolerance, as one a modeller cut can, and a point on the

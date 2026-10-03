@@ -118,7 +118,7 @@ GeoLine3 line = segment.ToGeoLine3();
 
 if (teklaSolid.TryToGeoSolid3(out GeoSolid3 body))
 {
-    double volume = body.Volume;
+    double volume = body.GetVolume();
     body.TrySubtract(otherBody, out GeoSolid3 remainder);
 }
 

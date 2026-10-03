@@ -85,7 +85,7 @@ namespace GeometryHelper.Core
 
             // The volume as each tetrahedron gives it, the three ways of reading the divergence theorem together, rather
             // than the one Eberly's sums use for it: they agree where the surface closes, and where it does not quite, as
-            // faces read flat each on its own leave it, the volume is the one Volume measures.
+            // faces read flat each on its own leave it, the volume is the one Measure3.Volume measures.
             sums[0] = volume;
 
             double[] scale = { 1.0 / 6, 1.0 / 24, 1.0 / 24, 1.0 / 24, 1.0 / 60, 1.0 / 60, 1.0 / 60, 1.0 / 120, 1.0 / 120, 1.0 / 120 };

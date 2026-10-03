@@ -114,6 +114,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 pierced = slab.WithOpenings(new[] { duct });
 
             Assert.Equal(992.0, pierced.GetVolume(), 6);
+            Assert.Equal(624.0, pierced.GetSurfaceArea(), 6);
+            Assert.True(pierced.GetCentroid().DistanceTo(new GeoPoint3(5, 5, 5)) < 1E-9);
             Assert.True(pierced.IsClosed());
 
             Assert.Equal(PointLocation.Inside, pierced.Locate(new GeoPoint3(1, 1, 1)));
