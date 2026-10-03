@@ -60,7 +60,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(Box(0, 0, 0, 100, 100, 100).TryUnion(Tilted(), out GeoSolid3 union));
 
             Assert.Equal(0, Sheets(union));
-            Assert.Equal(1010000.0, union.Volume, 3);
+            Assert.Equal(1010000.0, union.GetVolume(), 3);
         }
 
         [Fact]
@@ -79,7 +79,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(Box(0, 0, 0, 100, 100, 100).TryUnion(Tilted(), out GeoSolid3 union));
 
             GeoSolid3 piece = Assert.Single(union.SplitShells());
-            Assert.Equal(union.Volume, piece.Volume, 3);
+            Assert.Equal(union.GetVolume(), piece.GetVolume(), 3);
         }
 
         [Fact]
@@ -92,8 +92,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(0, Sheets(bitten));
             Assert.Equal(0, Sheets(outside));
-            Assert.Equal(990000.0, bitten.Volume, 3);
-            Assert.Equal(10000.0, outside.Volume, 3);
+            Assert.Equal(990000.0, bitten.GetVolume(), 3);
+            Assert.Equal(10000.0, outside.GetVolume(), 3);
         }
 
         [Fact]
@@ -150,7 +150,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoSolid3 piece = Assert.Single(sheeted.SplitShells());
             Assert.Equal(8, piece.Faces.Count);
-            Assert.Equal(1000000.0, piece.Volume, 3);
+            Assert.Equal(1000000.0, piece.GetVolume(), 3);
         }
 
         [Fact]

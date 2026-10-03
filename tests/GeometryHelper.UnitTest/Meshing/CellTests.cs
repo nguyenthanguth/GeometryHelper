@@ -380,7 +380,7 @@ namespace GeometryHelper.UnitTest.Meshing
                 Assert.Equal(byBox.Cells[n].Volume, byBody.Cells[n].Volume, 3);
             }
 
-            CellAssert.IsSound(byBody, p => solid.Locate(p, Tolerance), solid.Volume, Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(byBody, p => solid.Locate(p, Tolerance), solid.GetVolume(), Tolerance.EqualPoint, Tolerance);
         }
 
         [Fact]
@@ -394,7 +394,7 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(24, grid.CellCount);
             Assert.Equal(24, Whole(grid));
             Assert.All(grid.Cells, c => Assert.True(Extent(c, grid.Frame, 0) > 499.99, $"{c} is {Extent(c, grid.Frame, 0)} along X"));
-            CellAssert.IsSound(grid, p => footing.Locate(p, Tolerance), footing.Volume, Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(grid, p => footing.Locate(p, Tolerance), footing.GetVolume(), Tolerance.EqualPoint, Tolerance);
         }
 
         [Fact]
@@ -411,8 +411,8 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoCellGrid3 lifts = pyramid.ToCells(CellOptions3.Layers(500), Tolerance);
 
             Assert.Equal(2, lifts.CellCount);
-            Assert.Equal(pyramid.Volume, lifts.Volume, 3);
-            CellAssert.IsSound(lifts, p => pyramid.Locate(p, Tolerance), pyramid.Volume, 4 * Tolerance.EqualPoint, Tolerance);
+            Assert.Equal(pyramid.GetVolume(), lifts.Volume, 3);
+            CellAssert.IsSound(lifts, p => pyramid.Locate(p, Tolerance), pyramid.GetVolume(), 4 * Tolerance.EqualPoint, Tolerance);
         }
 
         [Fact]
@@ -431,7 +431,7 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.True(needle.IsClosed(Tolerance));
             Assert.True(needle.GetSignedVolume() > 0);
             Assert.Equal(1, grid.CellCount);
-            Assert.Equal(needle.Volume, grid.Volume, 6);
+            Assert.Equal(needle.GetVolume(), grid.Volume, 6);
         }
 
         [Fact]
@@ -443,8 +443,8 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoSolid3 body = GeoSolid3.Extrude(new GeoPolygon3(l.Select(p => P(p.X, 0, p.Y)), Tolerance), new GeoVector3(0, 100, 0), Tolerance);
             GeoCellGrid3 grid = body.ToCells(new CellOptions3(CellAxis.BySize(200), CellAxis.Whole, CellAxis.BySize(100), 0, 6), Tolerance);
 
-            Assert.Equal(5.45E6, body.Volume, 3);
-            CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.Volume, 6, Tolerance);
+            Assert.Equal(5.45E6, body.GetVolume(), 3);
+            CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.GetVolume(), 6, Tolerance);
         }
 
         [Fact]
@@ -459,7 +459,7 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoCell3 ledge = Assert.Single(grid.Cells, c => c.I == 1);
             Assert.Equal(2, ledge.K);
             Assert.Equal(100.0 * 100 * 3, ledge.Volume, 3);
-            CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.Volume, 10, Tolerance);
+            CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.GetVolume(), 10, Tolerance);
         }
 
         [Fact]
@@ -471,14 +471,14 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoCellGrid3 grid = body.ToCells(CellOptions3.Grid(100, 0, 0), Tolerance);
 
             GeoCell3 cell = Assert.Single(grid.Cells);
-            Assert.Equal(body.Volume, cell.Volume, 3);
+            Assert.Equal(body.GetVolume(), cell.Volume, 3);
 
             // So too with a snap distance of 60 and the slope from 159.99 to 160.02.
             GeoSolid3 longer = Prism(new GeoPolygon2(Q(0, 0), Q(159.99, 0), Q(160.02, 100), Q(0, 100)), 0, 100);
             GeoCellGrid3 snapped = longer.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole, 0, 60), Tolerance);
 
             Assert.All(snapped.Cells, c => Assert.True(Extent(c, snapped.Frame, 0) > 4 * Tolerance.EqualPoint, $"{c} is {Extent(c, snapped.Frame, 0)} along X"));
-            CellAssert.IsSound(snapped, p => longer.Locate(p, Tolerance), longer.Volume, 60, Tolerance);
+            CellAssert.IsSound(snapped, p => longer.Locate(p, Tolerance), longer.GetVolume(), 60, Tolerance);
         }
 
         [Fact]
@@ -493,8 +493,8 @@ namespace GeometryHelper.UnitTest.Meshing
 
             Assert.Contains(tight.Cells, c => Extent(c, tight.Frame, 0) < 31);
             Assert.All(snapped.Cells, c => Assert.True(Extent(c, snapped.Frame, 0) > 450, $"{c} is {Extent(c, snapped.Frame, 0)} along X"));
-            CellAssert.IsSound(tight, p => footing.Locate(p, Tolerance), footing.Volume, Tolerance.EqualPoint, Tolerance);
-            CellAssert.IsSound(snapped, p => footing.Locate(p, Tolerance), footing.Volume, 50, Tolerance);
+            CellAssert.IsSound(tight, p => footing.Locate(p, Tolerance), footing.GetVolume(), Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(snapped, p => footing.Locate(p, Tolerance), footing.GetVolume(), 50, Tolerance);
         }
 
         [Fact]
@@ -508,14 +508,14 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoCell3[] arms = grid.GetCellsAt(0, 1, 0);
             Assert.Equal(2, arms.Length);
             Assert.Equal(new[] { 0, 1 }, arms.Select(c => c.Piece).ToArray());
-            Assert.True(grid.Frame.ToLocal(arms[0].Solid.Centroid).X < grid.Frame.ToLocal(arms[1].Solid.Centroid).X, "the pieces come in turn along X");
+            Assert.True(grid.Frame.ToLocal(arms[0].Solid.GetCentroid()).X < grid.Frame.ToLocal(arms[1].Solid.GetCentroid()).X, "the pieces come in turn along X");
             Assert.All(arms, a => Assert.Equal(1000.0 * 1000 * 500, a.Volume, 3));
 
             // The base meets both arms, the arms do not meet each other.
             Assert.Equal(new[] { 1, 2 }, grid.GetAdjacentCells(0));
             Assert.Equal(new[] { 0 }, grid.GetAdjacentCells(1));
             Assert.Equal(new[] { 0 }, grid.GetAdjacentCells(2));
-            CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.Volume, Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.GetVolume(), Tolerance.EqualPoint, Tolerance);
         }
 
         [Fact]
@@ -532,7 +532,7 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Single(grid.GetCellsAt(1, 1, 0));
             Assert.Equal(1000.0 * 1000 * 500, grid.GetCellsAt(1, 0, 0)[0].Volume, 3);
             Assert.Equal(1000.0 * 1000 * 500, grid.GetCellsAt(1, 1, 0)[0].Volume, 3);
-            CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.Volume, Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.GetVolume(), Tolerance.EqualPoint, Tolerance);
         }
 
         [Fact]
@@ -545,8 +545,8 @@ namespace GeometryHelper.UnitTest.Meshing
 
             Assert.Equal(4, bays.CellCount);
             Assert.Equal(0, Whole(bays));
-            Assert.Equal(pierced.GetNetVolume(Tolerance), bays.Volume, 0);
-            CellAssert.IsSound(bays, p => pierced.Locate(p, Tolerance), pierced.GetNetVolume(Tolerance), Tolerance.EqualPoint, Tolerance);
+            Assert.Equal(SubtractedVolume.Of(pierced, Tolerance), bays.Volume, 0);
+            CellAssert.IsSound(bays, p => pierced.Locate(p, Tolerance), SubtractedVolume.Of(pierced, Tolerance), Tolerance.EqualPoint, Tolerance);
         }
 
         [Fact]
@@ -572,7 +572,7 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoCellGrid3 grid = ell.WithOpenings(new[] { sliver }).ToCells(CellOptions3.Grid(500, 500, 500), Tolerance);
 
             Assert.Equal(ell.ToCells(CellOptions3.Grid(500, 500, 500), Tolerance).CellCount, grid.CellCount);
-            Assert.InRange(grid.Volume, ell.Volume - sliver.Volume, ell.Volume + 1E-6);
+            Assert.InRange(grid.Volume, ell.GetVolume() - sliver.GetVolume(), ell.GetVolume() + 1E-6);
             Assert.All(grid.Cells, cell => Assert.True(cell.Solid.IsClosed(Tolerance), $"{cell} is not closed"));
             Assert.All(_warnings, w => Assert.Contains("could not be cut into it", w));
             _warnings.Clear();
@@ -615,7 +615,7 @@ namespace GeometryHelper.UnitTest.Meshing
                 Assert.Equal(27, grid.CellCount);
                 Assert.Equal(27, Whole(grid));
                 Assert.All(grid.Cells, c => Assert.True(c.Solid.GetSignedVolume() > 0.0, $"{c} is wound inwards"));
-                CellAssert.IsSound(grid, p => InBox(region, p), box.Volume, Tolerance.EqualPoint, Tolerance);
+                CellAssert.IsSound(grid, p => InBox(region, p), box.GetVolume(), Tolerance.EqualPoint, Tolerance);
             }
 
             // An L with a shaft through it, mirrored with it.
@@ -623,7 +623,7 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoSolid3 shafted = ell.WithOpenings(new[] { Prism(Rect(300, 300, 700, 700), -100, 600) }).TransformBy(mirror);
             GeoCellGrid3 cells = shafted.ToCells(CellOptions3.Grid(500, 500, 0), Tolerance);
 
-            Assert.Equal(ell.Volume - 400.0 * 400 * 500, cells.Volume, 3);
+            Assert.Equal(ell.GetVolume() - 400.0 * 400 * 500, cells.Volume, 3);
             Assert.All(cells.Cells, c => Assert.True(c.Solid.GetSignedVolume() > 0.0, $"{c} is wound inwards"));
         }
 
@@ -681,7 +681,7 @@ namespace GeometryHelper.UnitTest.Meshing
 
             Assert.Equal(64, grid.CellCount);
             Assert.Equal(16, Whole(grid));
-            CellAssert.IsSound(grid, p => cylinder.Locate(p, Tolerance), cylinder.Volume, Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(grid, p => cylinder.Locate(p, Tolerance), cylinder.GetVolume(), Tolerance.EqualPoint, Tolerance);
         }
 
         [Fact]
@@ -697,8 +697,8 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(1.0, upright.Frame.ZAxis.Z, 12);
             Assert.Equal(Math.Cos(Math.PI / 6), upright.Frame.XAxis.X, 9);
             Assert.True(Whole(world) < 18);
-            CellAssert.IsSound(upright, p => wall.Locate(p, Tolerance), wall.Volume, Tolerance.EqualPoint, Tolerance);
-            CellAssert.IsSound(world, p => wall.Locate(p, Tolerance), wall.Volume, Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(upright, p => wall.Locate(p, Tolerance), wall.GetVolume(), Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(world, p => wall.Locate(p, Tolerance), wall.GetVolume(), Tolerance.EqualPoint, Tolerance);
         }
 
         [Fact]
@@ -712,7 +712,7 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(Math.Cos(20 * Math.PI / 180), grid.Frame.XAxis.X, 9);
             Assert.Equal(5, grid.CellCount);
             Assert.Equal(5, Whole(grid));
-            CellAssert.IsSound(grid, p => beam.Locate(p, Tolerance), beam.Volume, Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(grid, p => beam.Locate(p, Tolerance), beam.GetVolume(), Tolerance.EqualPoint, Tolerance);
         }
 
         [Fact]
@@ -724,13 +724,13 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(Math.Sqrt(0.5), along.Frame.XAxis.X, 12);
             Assert.Equal(Math.Sqrt(0.5), along.Frame.XAxis.Y, 12);
             Assert.Equal(1.0, along.Frame.ZAxis.Z, 12);
-            CellAssert.IsSound(along, p => block.Locate(p, Tolerance), block.Volume, Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(along, p => block.Locate(p, Tolerance), block.GetVolume(), Tolerance.EqualPoint, Tolerance);
 
             var frame = new GeoCoordinateSystem3(P(0, 0, 0), new GeoVector3(0, 1, 0), new GeoVector3(0, 0, 1));
             GeoCellGrid3 framed = block.ToCells(CellOptions3.Grid(700, 700, 700), MeshPlacement3.Frame(frame), Tolerance);
             Assert.Equal(frame.XAxis, framed.Frame.XAxis);
             Assert.Equal(frame.ZAxis, framed.Frame.ZAxis);
-            CellAssert.IsSound(framed, p => block.Locate(p, Tolerance), block.Volume, Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(framed, p => block.Locate(p, Tolerance), block.GetVolume(), Tolerance.EqualPoint, Tolerance);
         }
 
         [Fact]
@@ -744,7 +744,7 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(0.0, grid.Frame.Origin.Y % 1000.0, 6);
             Assert.Equal(4, grid.CountX);
             Assert.Equal(3, grid.CountY);
-            CellAssert.IsSound(grid, p => footing.Locate(p, Tolerance), footing.Volume, Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(grid, p => footing.Locate(p, Tolerance), footing.GetVolume(), Tolerance.EqualPoint, Tolerance);
         }
 
         [Fact]
@@ -799,7 +799,7 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoSolid3 plate = GeometryHelper.Core.CellGrid3.BoxSolid(new GeoAabb3(P(0, 0, 0), P(1000, 100, 0.005)).ToObb());
             GeoCellGrid3 grid = plate.ToCells(CellOptions3.Grid(495, 0, 0, joint: 10), Tolerance);
 
-            Assert.Equal(plate.Volume, grid.Volume, 9);
+            Assert.Equal(plate.GetVolume(), grid.Volume, 9);
             Assert.NotEmpty(_warnings);
             Assert.All(_warnings, w => Assert.Contains("could not be made", w));
             _warnings.Clear();

@@ -86,7 +86,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             Assert.True(SolidConvert.TryAssemble(faces, out GeoSolid3 plate));
 
             Assert.True(plate.IsClosed(Default));
-            Assert.InRange(plate.Volume, (200.0 * 200.0 - 40.0 * 40.0) * 20.0 * 0.99, (200.0 * 200.0 - 40.0 * 40.0) * 20.0 * 1.01);
+            Assert.InRange(plate.GetVolume(), (200.0 * 200.0 - 40.0 * 40.0) * 20.0 * 0.99, (200.0 * 200.0 - 40.0 * 40.0) * 20.0 * 1.01);
             Assert.Equal(PointLocation.OutSide, plate.Locate(P(100, 100, 10), Default));
             Assert.Equal(PointLocation.Inside, plate.Locate(P(40, 40, 10), Default));
         }

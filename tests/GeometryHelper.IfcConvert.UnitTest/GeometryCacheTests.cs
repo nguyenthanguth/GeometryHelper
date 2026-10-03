@@ -270,7 +270,7 @@ END-ISO-10303-21;
                     // Default scale: volume in model units (m3) = 1.0
                     var optsDefault = new IfcConvertOptions { ScaleFactor = 1.0 };
                     GeoSolid3 solidMetres = model.GetSolid(WallGuid, optsDefault);
-                    Assert.Equal(1.0, solidMetres.Volume, 2);
+                    Assert.Equal(1.0, solidMetres.GetVolume(), 2);
 
                     // Scale 1000x (m -> mm): volume = 1.0 * 1000^3 = 1e9
                     var optsMm = new IfcConvertOptions { ScaleFactor = 1000.0 };

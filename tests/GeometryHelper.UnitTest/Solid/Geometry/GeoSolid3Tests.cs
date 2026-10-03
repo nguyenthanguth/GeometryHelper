@@ -136,9 +136,10 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoSolid3 cube = MakeUnitCube();
 
-            Assert.Equal(1000.0, cube.Volume, 6);
-            Assert.Equal(600.0, cube.SurfaceArea, 6);
-            Assert.Equal(1000.0, cube.GetNetVolume(), 6);
+            Assert.Equal(1000.0, cube.GetVolume(), 6);
+            Assert.Equal(600.0, cube.GetSurfaceArea(), 6);
+            Assert.True(cube.TryGetVolume(out double volume));
+            Assert.Equal(1000.0, volume, 6);
         }
 
         [Fact]
@@ -156,7 +157,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoFace3(new GeoPolygon3(c, a, d)));
 
             // One sixth of the box spanned by the three edges at the right-angled corner.
-            Assert.Equal(36.0, tetrahedron.Volume, 6);
+            Assert.Equal(36.0, tetrahedron.GetVolume(), 6);
             Assert.True(tetrahedron.IsClosed());
         }
 
@@ -166,7 +167,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 atOrigin = MakeUnitCube();
             GeoSolid3 farAway = atOrigin.TransformBy(GeoTransform3.Translation(new GeoVector3(10000.0, -5000.0, 3000.0)));
 
-            Assert.Equal(atOrigin.Volume, farAway.Volume, 3);
+            Assert.Equal(atOrigin.GetVolume(), farAway.GetVolume(), 3);
         }
 
         [Fact]
@@ -175,8 +176,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 cube = MakeUnitCube();
             GeoSolid3 rotated = cube.TransformBy(GeoTransform3.RotationAxis(new GeoVector3(1.0, 1.0, 1.0), 0.7));
 
-            Assert.Equal(cube.Volume, rotated.Volume, 6);
-            Assert.Equal(cube.SurfaceArea, rotated.SurfaceArea, 6);
+            Assert.Equal(cube.GetVolume(), rotated.GetVolume(), 6);
+            Assert.Equal(cube.GetSurfaceArea(), rotated.GetSurfaceArea(), 6);
         }
 
         [Fact]
@@ -185,7 +186,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 cube = MakeUnitCube();
             GeoSolid3 scaled = cube.TransformBy(GeoTransform3.Scaling(2.0));
 
-            Assert.Equal(cube.Volume * 8.0, scaled.Volume, 5);
+            Assert.Equal(cube.GetVolume() * 8.0, scaled.GetVolume(), 5);
         }
 
         [Fact]
@@ -201,26 +202,27 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoSolid3 insideOut = new GeoSolid3(inverted);
 
-            Assert.Equal(cube.Volume, insideOut.Volume, 6);
+            Assert.Equal(cube.GetVolume(), insideOut.GetVolume(), 6);
             Assert.Equal(cube.GetSignedVolume(), -insideOut.GetSignedVolume(), 6);
         }
 
         [Fact]
         public void CentroidOfACubeIsItsMiddle()
         {
-            Assert.True(MakeUnitCube().Centroid.IsEqualTo(new GeoPoint3(5.0, 5.0, 5.0), new Tolerance(1E-6, 1E-6)));
+            Assert.True(MakeUnitCube().GetCentroid().IsEqualTo(new GeoPoint3(5.0, 5.0, 5.0), new Tolerance(1E-6, 1E-6)));
         }
 
         [Fact]
-        public void AnOpeningIsSubtractedFromTheNetVolume()
+        public void AnOpeningIsSubtractedFromTheVolume()
         {
             GeoSolid3 slab = MakeBoxSolid(GeoPoint3.Origin, new GeoPoint3(10.0, 10.0, 10.0));
             GeoSolid3 duct = MakeBoxSolid(new GeoPoint3(4.0, 4.0, 4.0), new GeoPoint3(6.0, 6.0, 6.0));
 
             GeoSolid3 withOpening = slab.WithOpenings(new[] { duct });
 
-            Assert.Equal(1000.0, withOpening.Volume, 6);
-            Assert.Equal(1000.0 - 8.0, withOpening.GetNetVolume(), 6);
+            Assert.Equal(1000.0, withOpening.GrossVolume, 6);
+            Assert.Equal(1000.0 - 8.0, withOpening.GetVolume(), 6);
+            Assert.Equal(600.0 + 24.0, withOpening.GetSurfaceArea(), 6);
         }
 
         [Fact]
@@ -254,7 +256,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 rotated = MakeUnitCube()
                 .TransformBy(GeoTransform3.RotationAxis(new GeoVector3(1.0, 2.0, 3.0), 0.9));
 
-            GeoPoint3 centre = rotated.Centroid;
+            GeoPoint3 centre = rotated.GetCentroid();
 
             Assert.Equal(PointLocation.Inside, rotated.Locate(centre));
             Assert.Equal(PointLocation.OutSide, rotated.Locate(centre.Add(new GeoVector3(100.0, 0.0, 0.0))));
@@ -340,7 +342,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.NotSame(cube, copy);
             Assert.Equal(cube, copy);
-            Assert.Equal(cube.Volume, copy.Volume, 9);
+            Assert.Equal(cube.GetVolume(), copy.GetVolume(), 9);
         }
 
         [Fact]

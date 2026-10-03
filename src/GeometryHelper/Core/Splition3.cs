@@ -1384,7 +1384,7 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                if (cutter.SignedDistanceTo(opening.Centroid) >= 0.0)
+                if (cutter.SignedDistanceTo(opening.GrossCentroid) >= 0.0)
                 {
                     upper.Add(opening);
                 }

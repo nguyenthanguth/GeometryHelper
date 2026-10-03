@@ -93,7 +93,7 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoSolid3 a = ConvexPart(rng), b = ConvexPart(rng);
 
                 GeoSolid3[] exact = Boolean3.Intersect(a, b, Tight);
-                double exactVolume = exact.Sum(p => p.Volume);
+                double exactVolume = exact.Sum(p => p.GetVolume());
                 overlapping += exactVolume > 1.0 ? 1 : 0;
 
                 if (!Boolean3.TryIntersectConvex(a, b, Tol, out GeoSolid3[] clipped))
@@ -110,10 +110,10 @@ namespace GeometryHelper.UnitTest.Solid
                 // as much volume, at most, as every face moved out or in by the point tolerance.
                 double surface = piece.Faces.Sum(f => f.Area);
                 double allowed = Tol.EqualPoint * surface;
-                Assert.True(Math.Abs(exactVolume - piece.Volume) <= allowed, $"volume {piece.Volume}, exactly {exactVolume}, allowed {allowed}");
+                Assert.True(Math.Abs(exactVolume - piece.GetVolume()) <= allowed, $"volume {piece.GetVolume()}, exactly {exactVolume}, allowed {allowed}");
 
-                GeoPoint3 middle = exact.Length == 1 ? exact[0].Centroid : piece.Centroid;
-                Assert.True(middle.DistanceTo(piece.Centroid) <= allowed / piece.Volume * 10.0 + 1E-9, $"middles {middle} and {piece.Centroid}");
+                GeoPoint3 middle = exact.Length == 1 ? exact[0].GetCentroid() : piece.GetCentroid();
+                Assert.True(middle.DistanceTo(piece.GetCentroid()) <= allowed / piece.GetVolume() * 10.0 + 1E-9, $"middles {middle} and {piece.GetCentroid()}");
             }
 
             Assert.True(answered > 80 && answered >= overlapping * 8 / 10, $"clipping answered {answered} of {overlapping} overlapping pairs");
@@ -133,7 +133,7 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 GeoSolid3 a = ConvexPart(rng), b = ConvexPart(rng);
 
-                if (!Boolean3.TryIntersectConvex(a, b, Tol, out GeoSolid3[] clipped) || clipped[0].Volume < 500)
+                if (!Boolean3.TryIntersectConvex(a, b, Tol, out GeoSolid3[] clipped) || clipped[0].GetVolume() < 500)
                 {
                     continue;
                 }
@@ -164,7 +164,7 @@ namespace GeometryHelper.UnitTest.Solid
 
                 double counted = boxVolume * both / samples;
                 double error = boxVolume * Math.Sqrt(Math.Max(both, 1)) / samples;
-                Assert.True(Math.Abs(counted - piece.Volume) <= 5.0 * error, $"counted {counted} +/- {error}, clipped {piece.Volume}");
+                Assert.True(Math.Abs(counted - piece.GetVolume()) <= 5.0 * error, $"counted {counted} +/- {error}, clipped {piece.GetVolume()}");
             }
 
             Assert.True(checkedPairs >= 8, $"only {checkedPairs} pairs checked");
@@ -185,7 +185,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             // In by a millimetre: plainly a region, and the clipping answers.
             Assert.True(Boolean3.TryIntersectConvex(Block(0, 0, 0, 50, 50, 50), Block(49, 10, 10, 90, 40, 40), Tol, out GeoSolid3[] slab));
-            Assert.Equal(1.0 * 30 * 30, Assert.Single(slab).Volume, 6);
+            Assert.Equal(1.0 * 30 * 30, Assert.Single(slab).GetVolume(), 6);
         }
 
         /// <summary>
@@ -213,9 +213,9 @@ namespace GeometryHelper.UnitTest.Solid
             foreach (KeyValuePair<int, (GeoSolid3, GeoSolid3)> pair in missed)
             {
                 (GeoSolid3 a, GeoSolid3 b) = pair.Value;
-                double exact = Boolean3.Intersect(a, b, Tight).Sum(p => p.Volume);
-                double plain = Boolean3.Intersect(a, b, Tol).Sum(p => p.Volume);
-                double otherWay = Boolean3.Intersect(b, a, Tol).Sum(p => p.Volume);
+                double exact = Boolean3.Intersect(a, b, Tight).Sum(p => p.GetVolume());
+                double plain = Boolean3.Intersect(a, b, Tol).Sum(p => p.GetVolume());
+                double otherWay = Boolean3.Intersect(b, a, Tol).Sum(p => p.GetVolume());
 
                 Assert.True(exact > 50, $"pair {pair.Key}: the tight boolean gives only {exact}");
                 Assert.True(Math.Abs(plain - exact) <= 1E-3 * exact, $"pair {pair.Key}: {plain}, exactly {exact}");
@@ -237,19 +237,19 @@ namespace GeometryHelper.UnitTest.Solid
             foreach ((int seed, int index) in new[] { (7, 1716), (7, 9492), (5, 642), (5, 996), (5, 1185) })
             {
                 (GeoSolid3 a, GeoSolid3 b) = PairOf(seed, index);
-                double shared = Boolean3.Intersect(a, b, Tight).Sum(p => p.Volume);
-                double allowed = 1E-6 * (a.Volume + b.Volume);
+                double shared = Boolean3.Intersect(a, b, Tight).Sum(p => p.GetVolume());
+                double allowed = 1E-6 * (a.GetVolume() + b.GetVolume());
                 string pair = $"seed {seed}, pair {index}";
 
-                Assert.True(Math.Abs(Boolean3.Intersect(a, b, Tol).Sum(p => p.Volume) - shared) <= allowed, $"{pair}: the first with the second");
-                Assert.True(Math.Abs(Boolean3.Intersect(b, a, Tol).Sum(p => p.Volume) - shared) <= allowed, $"{pair}: the second with the first");
+                Assert.True(Math.Abs(Boolean3.Intersect(a, b, Tol).Sum(p => p.GetVolume()) - shared) <= allowed, $"{pair}: the first with the second");
+                Assert.True(Math.Abs(Boolean3.Intersect(b, a, Tol).Sum(p => p.GetVolume()) - shared) <= allowed, $"{pair}: the second with the first");
 
                 Assert.True(Boolean3.TryUnion(a, b, out GeoSolid3 union, Tol), pair);
-                Assert.True(Math.Abs(union.Volume - (a.Volume + b.Volume - shared)) <= allowed, $"{pair}: union {union.Volume}");
+                Assert.True(Math.Abs(union.GetVolume() - (a.GetVolume() + b.GetVolume() - shared)) <= allowed, $"{pair}: union {union.GetVolume()}");
                 Assert.True(union.IsClosed(), $"{pair}: the union is open");
 
                 Assert.True(Boolean3.TrySubtract(a, b, out GeoSolid3 rest, Tol), pair);
-                Assert.True(Math.Abs(rest.Volume - (a.Volume - shared)) <= allowed, $"{pair}: difference {rest.Volume}");
+                Assert.True(Math.Abs(rest.GetVolume() - (a.GetVolume() - shared)) <= allowed, $"{pair}: difference {rest.GetVolume()}");
                 Assert.True(rest.IsClosed(), $"{pair}: the difference is open");
             }
         }
@@ -308,7 +308,7 @@ namespace GeometryHelper.UnitTest.Solid
                         continue;
                     }
 
-                    double shared = Boolean3.Intersect(prepared[i].Material, prepared[j].Material, Tol).Sum(p => p.Volume);
+                    double shared = Boolean3.Intersect(prepared[i].Material, prepared[j].Material, Tol).Sum(p => p.GetVolume());
                     byHand.Add((i, j, shared > 0 ? ClashKind.Hard : ClashKind.Touch, shared));
                 }
             }

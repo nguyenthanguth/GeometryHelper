@@ -61,7 +61,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // the cut leaves, a corner of each a hair off their middle planes, hold 560 mm3 more between them, a
             // ten-thousandth.
             Assert.InRange((Material(above) + Material(below)) / Material(piece), 1 - 1E-7, 1 + 1E-7);
-            Assert.InRange((above.Volume + below.Volume) / piece.Volume, 1 - 2E-4, 1 + 2E-4);
+            Assert.InRange((above.GetVolume() + below.GetVolume()) / piece.GetVolume(), 1 - 2E-4, 1 + 2E-4);
 
             // Each cap lies in the plane, facing out of its half along the plane's normal.
             GeoFace3 belowCap = Assert.Single(below.Faces, f => f.Boundary.Vertices.All(v => Math.Abs(plane.SignedDistanceTo(v)) <= Tolerance.EqualPlanar));

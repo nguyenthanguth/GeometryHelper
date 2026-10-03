@@ -42,9 +42,9 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoSolid3 solid = box.ToSolid();
 
                 // The box knows its own volume from its sizes; the solid works it out from its faces.
-                Assert.Equal(box.Volume, solid.Volume, 6);
+                Assert.Equal(box.Volume, solid.GetVolume(), 6);
                 Assert.Equal(sx * sy * sz, box.Volume, 6);
-                Assert.Equal(box.SurfaceArea, solid.SurfaceArea, 6);
+                Assert.Equal(box.SurfaceArea, solid.GetSurfaceArea(), 6);
                 Assert.True(solid.IsClosed());
 
                 // Eight corners, each at the box centre plus or minus half of each axis.

@@ -63,7 +63,7 @@ namespace GeometryHelper.IfcConvert.Models
         /// <summary>
         /// Gets the sum of volumes of all converted solid bodies.
         /// </summary>
-        public double TotalVolume => _solids.Sum(s => s.Volume);
+        public double TotalVolume => _solids.Sum(s => s.GetVolume());
 
         /// <summary>
         /// Gets whether this product has at least one closed solid body.

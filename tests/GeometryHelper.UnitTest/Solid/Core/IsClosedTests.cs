@@ -46,7 +46,7 @@ namespace GeometryHelper.UnitTest.Solid
             var cube = new GeoSolid3(CubeWithSplitTop());
 
             Assert.True(cube.IsClosed());
-            Assert.Equal(1000000.0, cube.Volume, 6);
+            Assert.Equal(1000000.0, cube.GetVolume(), 6);
         }
 
         [Fact]
@@ -70,7 +70,7 @@ namespace GeometryHelper.UnitTest.Solid
             });
 
             Assert.True(block.IsClosed());
-            Assert.InRange(block.Volume, 3000000.0 - 100.0, 3000000.0 + 100.0);
+            Assert.InRange(block.GetVolume(), 3000000.0 - 100.0, 3000000.0 + 100.0);
         }
 
         [Fact]

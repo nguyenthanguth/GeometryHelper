@@ -11,7 +11,7 @@ namespace GeometryHelper.Enums
     {
         /// <summary>
         /// Each face's area as its outline gives it, less its holes': the length of its area vector, the area of the face
-        /// read flat. What <see cref="Geometry.GeoSolid3.SurfaceArea"/> and <see cref="Geometry.GeoFace3.Area"/> give.
+        /// read flat. What <see cref="Geometry.GeoSolid3.GetSurfaceArea(Tolerance)"/> and <see cref="Geometry.GeoFace3.Area"/> give.
         /// </summary>
         Faces,
 

@@ -34,7 +34,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoSolid3 box = GeoSolid3.Extrude(Square(100), new GeoVector3(0, 0, 50));
 
-            Assert.Equal(500000.0, box.Volume, 6);
+            Assert.Equal(500000.0, box.GetVolume(), 6);
             Assert.True(box.GetSignedVolume() > 0);
             Assert.True(box.IsClosed());
             Assert.Equal(PointLocation.Inside, box.Locate(new GeoPoint3(50, 50, 25)));
@@ -57,7 +57,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoSolid3 leaning = GeoSolid3.Extrude(Square(100), new GeoVector3(0, 30, 40));
 
-            Assert.Equal(100.0 * 100 * 40, leaning.Volume, 6);
+            Assert.Equal(100.0 * 100 * 40, leaning.GetVolume(), 6);
             Assert.True(leaning.IsClosed());
         }
 
@@ -67,7 +67,7 @@ namespace GeometryHelper.UnitTest.Solid
             var hole = new GeoPolygon3(new GeoPoint3(40, 40, 0), new GeoPoint3(60, 40, 0), new GeoPoint3(60, 60, 0), new GeoPoint3(40, 60, 0));
             GeoSolid3 plate = GeoSolid3.Extrude(new GeoFace3(Square(100), new[] { hole }), new GeoVector3(0, 0, 10));
 
-            Assert.Equal((10000.0 - 400.0) * 10, plate.Volume, 6);
+            Assert.Equal((10000.0 - 400.0) * 10, plate.GetVolume(), 6);
             Assert.True(plate.IsClosed());
             Assert.Equal(PointLocation.OutSide, plate.Locate(new GeoPoint3(50, 50, 5)));
             Assert.Equal(PointLocation.Inside, plate.Locate(new GeoPoint3(20, 20, 5)));
@@ -86,7 +86,7 @@ namespace GeometryHelper.UnitTest.Solid
             var placement = new GeoCoordinateSystem3(new GeoPoint3(10, 20, 30), GeoVector3.YAxis, GeoVector3.ZAxis);
             GeoSolid3 member = GeoSolid3.Extrude(Rectangle(0, 0, 40, 20), placement, -15);
 
-            Assert.Equal(40.0 * 20 * 15, member.Volume, 6);
+            Assert.Equal(40.0 * 20 * 15, member.GetVolume(), 6);
 
             GeoAabb3 box = member.GetAabb();
             Assert.True(box.Min.DistanceTo(new GeoPoint3(-5, 20, 30)) < 1E-9);
@@ -103,7 +103,7 @@ namespace GeometryHelper.UnitTest.Solid
             // The fillets are cut into chords a thousandth from the arc, which takes a sliver off the true area:
             // under two thirds of a thousandth times the arc length, for each fillet.
             double sliver = 4 * (2.0 / 3.0) * 0.001 * (Math.PI / 2 * 10);
-            Assert.InRange(plate.Volume, (outline.Area - sliver) * 20, outline.Area * 20);
+            Assert.InRange(plate.GetVolume(), (outline.Area - sliver) * 20, outline.Area * 20);
             Assert.True(plate.IsClosed());
         }
 
@@ -113,7 +113,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 bolt = GeoSolid3.Cylinder(new GeoPoint3(10, 20, 30), new GeoPoint3(70, -10, 90), 8, 48);
             double length = new GeoPoint3(10, 20, 30).DistanceTo(new GeoPoint3(70, -10, 90));
 
-            Assert.Equal(RegularArea(48, 8) * length, bolt.Volume, 6);
+            Assert.Equal(RegularArea(48, 8) * length, bolt.GetVolume(), 6);
             Assert.True(bolt.IsClosed());
             Assert.Equal(PointLocation.Inside, bolt.Locate(new GeoPoint3(40, 5, 60)));
             Assert.Throws<ArgumentOutOfRangeException>(() => GeoSolid3.Cylinder(GeoPoint3.Origin, new GeoPoint3(0, 0, 1), 1, 2));
@@ -127,7 +127,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 bar = GeoSolid3.Pipe(path, 8, 0.01);
             int sides = Tessellation.SegmentsForChordTolerance(8, 2 * Math.PI, 0.01);
 
-            Assert.Equal(RegularArea(sides, 8) * 1000, bar.Volume, 5);
+            Assert.Equal(RegularArea(sides, 8) * 1000, bar.GetVolume(), 5);
             Assert.True(bar.IsClosed());
         }
 
@@ -146,7 +146,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(bar.IsClosed());
 
             // With the section centred on the path, the mitre adds outside the bend what it takes from inside.
-            Assert.Equal(RegularArea(sides, 8) * 2000, bar.Volume, 3);
+            Assert.Equal(RegularArea(sides, 8) * 2000, bar.GetVolume(), 3);
         }
 
         [Fact]
@@ -157,7 +157,7 @@ namespace GeometryHelper.UnitTest.Solid
             var path = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(500, 0, 0), new GeoPoint3(500, 400, 0), new GeoPoint3(500, 400, 300));
             GeoSolid3 bar = GeoSolid3.Sweep(Rectangle(-10, -5, 10, 5), path);
 
-            Assert.Equal(20.0 * 10 * 1200, bar.Volume, 5);
+            Assert.Equal(20.0 * 10 * 1200, bar.GetVolume(), 5);
             Assert.True(bar.IsClosed());
         }
 
@@ -169,7 +169,7 @@ namespace GeometryHelper.UnitTest.Solid
             int sides = Tessellation.SegmentsForChordTolerance(8, 2 * Math.PI, 0.01);
             double length = centreLine.ToPolyline3(0.01).Length;
 
-            Assert.Equal(RegularArea(sides, 8) * length, bar.Volume, 4);
+            Assert.Equal(RegularArea(sides, 8) * length, bar.GetVolume(), 4);
             Assert.True(bar.IsClosed());
 
             // The middle of every bend is inside the bar, and the corner the bend rounds off is not.
@@ -210,7 +210,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 tube = GeoSolid3.Revolve(Rectangle(10, 0, 20, 30), placement, 2 * Math.PI, 0.01);
             int steps = Tessellation.SegmentsForChordTolerance(20, 2 * Math.PI, 0.01);
 
-            Assert.Equal(30 * (RegularArea(steps, 20) - RegularArea(steps, 10)), tube.Volume, 5);
+            Assert.Equal(30 * (RegularArea(steps, 20) - RegularArea(steps, 10)), tube.GetVolume(), 5);
             Assert.True(tube.IsClosed());
             Assert.Equal(PointLocation.Inside, tube.Locate(new GeoPoint3(0, 15, 15)));
             Assert.Equal(PointLocation.OutSide, tube.Locate(new GeoPoint3(0, 15, 0)));
@@ -224,7 +224,7 @@ namespace GeometryHelper.UnitTest.Solid
             int steps = Tessellation.SegmentsForChordTolerance(20, Math.PI / 2, 0.01);
             double wedge = Math.Sin(Math.PI / 2 / steps) / 2;
 
-            Assert.Equal(30 * steps * wedge * (20 * 20 - 10 * 10), quarter.Volume, 5);
+            Assert.Equal(30 * steps * wedge * (20 * 20 - 10 * 10), quarter.GetVolume(), 5);
             Assert.True(quarter.IsClosed());
         }
 
@@ -235,7 +235,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 pier = GeoSolid3.Revolve(Rectangle(0, 0, 10, 30), placement, 2 * Math.PI, 0.01);
             int steps = Tessellation.SegmentsForChordTolerance(10, 2 * Math.PI, 0.01);
 
-            Assert.Equal(30 * RegularArea(steps, 10), pier.Volume, 5);
+            Assert.Equal(30 * RegularArea(steps, 10), pier.GetVolume(), 5);
             Assert.True(pier.IsClosed());
             Assert.Equal(PointLocation.Inside, pier.Locate(new GeoPoint3(0, 15, 0)));
         }

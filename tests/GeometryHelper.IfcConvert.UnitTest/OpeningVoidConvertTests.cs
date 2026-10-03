@@ -66,7 +66,7 @@ END-ISO-10303-21;
                     Assert.NotEmpty(geom.Solids);
 
                     // Uncut wall volume: 1.0 x 0.5 x 2.0 = 1.0 m3
-                    Assert.Equal(1.0, geom.Solids[0].Volume, 2);
+                    Assert.Equal(1.0, geom.Solids[0].GetVolume(), 2);
                 }
             }
             finally
@@ -99,7 +99,7 @@ END-ISO-10303-21;
                     Assert.NotEmpty(geom.Solids);
 
                     // Cut wall volume: 1.0 m3 - (0.4 x 0.4 x 1.0 m3) = 0.84 m3
-                    double netVolume = geom.Solids.Sum(s => s.Volume);
+                    double netVolume = geom.Solids.Sum(s => s.GetVolume());
                     Assert.True(netVolume < 1.0, "Volume must be smaller after opening is subtracted");
                     Assert.Equal(0.84, netVolume, 1);
                 }

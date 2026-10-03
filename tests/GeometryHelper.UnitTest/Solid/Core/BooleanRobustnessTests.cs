@@ -26,12 +26,12 @@ namespace GeometryHelper.UnitTest.Solid
             for (int k = 0; k < BeamWithOpenings.Openings.Length; k++)
             {
                 GeoSolid3 opening = BeamWithOpenings.Read(BeamWithOpenings.Openings[k]);
-                double common = beam.TryIntersect(opening, out GeoSolid3 shared, tolerance) ? shared.Volume : 0.0;
+                double common = beam.TryIntersect(opening, out GeoSolid3 shared, tolerance) ? shared.GetVolume() : 0.0;
 
                 Assert.True(beam.TrySubtract(opening, out GeoSolid3 rest, tolerance), $"opening {k}");
 
                 // What the opening takes away is what the two have in common.
-                Assert.InRange(beam.Volume - rest.Volume, common - 5E-5 * beam.Volume, common + 5E-5 * beam.Volume);
+                Assert.InRange(beam.GetVolume() - rest.GetVolume(), common - 5E-5 * beam.GetVolume(), common + 5E-5 * beam.GetVolume());
 
                 // The fifteenth left a seam where two faces of the web run a hundredth of a millimetre apart, the point
                 // tolerance itself, and the sixteenth was cut from that; slivers thinner than twice the tolerance are
@@ -42,7 +42,7 @@ namespace GeometryHelper.UnitTest.Solid
             }
 
             // The geometry engine, cutting all sixteen on the exact B-rep, leaves 25 137 804 mm3.
-            Assert.InRange(beam.Volume, 25137804.0 * 0.9999, 25137804.0 * 1.0001);
+            Assert.InRange(beam.GetVolume(), 25137804.0 * 0.9999, 25137804.0 * 1.0001);
         }
 
         [Fact]
@@ -58,7 +58,7 @@ namespace GeometryHelper.UnitTest.Solid
             };
             GeoSolid3 u = Prism(outline, 0.2, fine);
 
-            Assert.NotEqual(PointLocation.Inside, u.Locate(u.Centroid, fine));
+            Assert.NotEqual(PointLocation.Inside, u.Locate(u.GetCentroid(), fine));
             Assert.True(Boolean3.TryGetInteriorPoint(u, fine, out GeoPoint3 inside));
             Assert.Equal(PointLocation.Inside, u.Locate(inside, fine));
         }

@@ -121,11 +121,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             Assert.Same(l, l.GetMaterial(Tolerance, out bool whole));
             Assert.True(whole);
-            Assert.Equal(l.Volume, l.GetVolume(Tolerance));
-            Assert.Equal(l.SurfaceArea, l.GetSurfaceArea(Tolerance));
-            Assert.Equal(l.Centroid, l.GetCentroid(Tolerance));
+            Assert.Equal(l.GrossVolume, l.GetVolume(Tolerance));
+            Assert.Equal(l.GrossSurfaceArea, l.GetSurfaceArea(Tolerance));
+            Assert.Equal(l.GrossCentroid, l.GetCentroid(Tolerance));
             Assert.True(l.TryGetVolume(out double volume, Tolerance));
-            Assert.Equal(l.Volume, volume);
+            Assert.Equal(l.GrossVolume, volume);
         }
 
         [Fact]
@@ -165,7 +165,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Another tolerance is another cut, and a copy of the body starts without any.
             GeoSolid3 finer = plate.GetMaterial(new Tolerance(1E-3, 1E-3), out _);
             Assert.NotSame(material, finer);
-            Assert.Equal(192000.0, finer.Volume, 6);
+            Assert.Equal(192000.0, finer.GetVolume(), 6);
             Assert.NotSame(material, plate.Clone().GetMaterial(Tolerance, out _));
         }
 
@@ -186,8 +186,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(whole);
             Assert.True(material.IsClosed(Tolerance));
             Assert.True(pierced.TryGetVolume(out double volume, Tolerance));
-            Assert.Equal(difference.Volume, volume, 6);
-            Assert.InRange(volume, ell.Volume - sliver.Volume, ell.Volume);
+            Assert.Equal(difference.GetVolume(), volume, 6);
+            Assert.InRange(volume, ell.GetVolume() - sliver.GetVolume(), ell.GetVolume());
         }
 
         [Fact]

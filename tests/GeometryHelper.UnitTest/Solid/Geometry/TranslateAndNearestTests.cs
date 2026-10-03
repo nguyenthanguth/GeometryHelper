@@ -89,8 +89,8 @@ namespace GeometryHelper.UnitTest.Solid
             var chain = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0));
             GeoFace3 face = Pierced();
 
-            Assert.Equal(cube.Volume, cube.Translate(by).Volume, 6);
-            Assert.True(cube.Translate(by).Centroid.IsEqualTo(cube.Centroid.Add(by), Loose));
+            Assert.Equal(cube.GetVolume(), cube.Translate(by).GetVolume(), 6);
+            Assert.True(cube.Translate(by).GetCentroid().IsEqualTo(cube.GetCentroid().Add(by), Loose));
 
             Assert.True(obb.Translate(by).Center.IsEqualTo(obb.Center.Add(by), Loose));
             Assert.Equal(polygon.Area, polygon.Translate(by).Area, 6);

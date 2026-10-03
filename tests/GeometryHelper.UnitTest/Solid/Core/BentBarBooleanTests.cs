@@ -74,7 +74,7 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// What the two bodies share, from the intersection, which never cut the bar by its own planes.
         /// </summary>
-        private static double Shared(GeoSolid3 a, GeoSolid3 b) => Boolean3.Intersect(a, b).Sum(piece => piece.Volume);
+        private static double Shared(GeoSolid3 a, GeoSolid3 b) => Boolean3.Intersect(a, b).Sum(piece => piece.GetVolume());
 
         /// <summary>
         /// The cut welds corners within the point tolerance, which at the default hundredth moves what a bar and a
@@ -82,7 +82,7 @@ namespace GeometryHelper.UnitTest.Solid
         /// counted twice shows in the thousandths.
         /// </summary>
         private static void AssertVolume(double expected, GeoSolid3 actual, double scale)
-            => Assert.True(Math.Abs(actual.Volume - expected) <= 5E-6 * scale, $"volume {actual.Volume}, expected {expected}");
+            => Assert.True(Math.Abs(actual.GetVolume() - expected) <= 5E-6 * scale, $"volume {actual.GetVolume()}, expected {expected}");
 
         [Theory]
         [MemberData(nameof(Pairs))]
@@ -93,7 +93,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(a.TryUnion(b, out GeoSolid3 union));
 
             Assert.True(union.IsClosed());
-            AssertVolume(a.Volume + b.Volume - Shared(a, b), union, a.Volume + b.Volume);
+            AssertVolume(a.GetVolume() + b.GetVolume() - Shared(a, b), union, a.GetVolume() + b.GetVolume());
         }
 
         [Theory]
@@ -108,8 +108,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(aLessB.IsClosed());
             Assert.True(bLessA.IsClosed());
-            AssertVolume(a.Volume - shared, aLessB, a.Volume + b.Volume);
-            AssertVolume(b.Volume - shared, bLessA, a.Volume + b.Volume);
+            AssertVolume(a.GetVolume() - shared, aLessB, a.GetVolume() + b.GetVolume());
+            AssertVolume(b.GetVolume() - shared, bLessA, a.GetVolume() + b.GetVolume());
         }
 
         /// <summary>
@@ -134,9 +134,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(union.IsClosed());
             Assert.True(plateLessHook.IsClosed());
             Assert.True(hookLessPlate.IsClosed());
-            AssertVolume(plate.Volume + hook.Volume - shared, union, plate.Volume + hook.Volume);
-            AssertVolume(plate.Volume - shared, plateLessHook, plate.Volume + hook.Volume);
-            AssertVolume(hook.Volume - shared, hookLessPlate, plate.Volume + hook.Volume);
+            AssertVolume(plate.GetVolume() + hook.GetVolume() - shared, union, plate.GetVolume() + hook.GetVolume());
+            AssertVolume(plate.GetVolume() - shared, plateLessHook, plate.GetVolume() + hook.GetVolume());
+            AssertVolume(hook.GetVolume() - shared, hookLessPlate, plate.GetVolume() + hook.GetVolume());
 
             // The three took minutes when both bodies were cut by every plane of both.
             Assert.True(watch.Elapsed.TotalSeconds < 30, $"{watch.Elapsed.TotalSeconds:0.0} s");
@@ -159,7 +159,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(PointLocation.OutSide, union.Locate(new GeoPoint3(44, 44, 5)));
             Assert.Equal(PointLocation.Inside, union.Locate(new GeoPoint3(50, 50, 5)));
             Assert.Equal(PointLocation.Inside, union.Locate(new GeoPoint3(20, 20, 5)));
-            AssertVolume(100 * 100 * 10 - 20 * 20 * 10 + bar.Volume, union, plate.Volume + bar.Volume);
+            AssertVolume(100 * 100 * 10 - 20 * 20 * 10 + bar.GetVolume(), union, plate.GetVolume() + bar.GetVolume());
         }
 
         /// <summary>
@@ -182,7 +182,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             // The plate, less both holes, less the part of the tool standing over material: 10 x 10 of it lies
             // over the plate, the other 10 x 10 over the hole.
-            AssertVolume(100 * 100 * 10 - 20 * 20 * 10 - 10 * 10 * 10 - 10 * 10 * 10, result, plate.Volume + tool.Volume);
+            AssertVolume(100 * 100 * 10 - 20 * 20 * 10 - 10 * 10 * 10 - 10 * 10 * 10, result, plate.GetVolume() + tool.GetVolume());
         }
     }
 }

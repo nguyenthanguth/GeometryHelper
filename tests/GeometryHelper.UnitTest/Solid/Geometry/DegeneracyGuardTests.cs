@@ -149,9 +149,9 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoFace3(new GeoPolygon3(a, b, c)),
                 new GeoFace3(new GeoPolygon3(c, b, a)));
 
-            Assert.Equal(0.0, sheet.Volume, 9);
+            Assert.Equal(0.0, sheet.GetVolume(), 9);
 
-            GeoPoint3 centroid = sheet.Centroid;
+            GeoPoint3 centroid = sheet.GetCentroid();
 
             AssertFinite(centroid);
             Assert.True(centroid.IsEqualTo(new GeoPoint3(2, 2, 0)));
@@ -162,7 +162,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoSolid3 box = Boxes.Unit(0, 0, 0, 4, 6, 8);
 
-            Assert.True(box.Centroid.IsEqualTo(new GeoPoint3(2, 3, 4)));
+            Assert.True(box.GetCentroid().IsEqualTo(new GeoPoint3(2, 3, 4)));
         }
 
         private static void AssertFinite(GeoPoint3 point)

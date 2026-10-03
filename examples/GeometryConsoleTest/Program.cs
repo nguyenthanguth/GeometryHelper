@@ -100,7 +100,7 @@ namespace GeometryConsoleTest
                         // Closed manifold solid bodies
                         foreach (GeoSolid3 s in geom.Solids)
                         {
-                            Console.WriteLine($"    Solid Faces: {s.Faces.Count}, Volume: {s.Volume:F4} m3");
+                            Console.WriteLine($"    Solid Faces: {s.Faces.Count}, Volume: {s.GetVolume():F4} m3");
                         }
                     }
 
@@ -149,7 +149,7 @@ namespace GeometryConsoleTest
                 var optionsWithVoids = new IfcConvertOptions { TargetUnit = LengthUnit.Meters, ApplyVoids = true };
                 IReadOnlyList<GeoSolid3> wallSolids = model.GetSolidsByType("IfcWall", optionsWithVoids);
                 Console.WriteLine();
-                Console.WriteLine($"Converted {wallSolids.Count} wall solid(s) with openings cut: {wallSolids.Sum(s => s.Volume):F4} m3");
+                Console.WriteLine($"Converted {wallSolids.Count} wall solid(s) with openings cut: {wallSolids.Sum(s => s.GetVolume()):F4} m3");
 
                 if (firstSolidGuid != null)
                 {
@@ -168,8 +168,8 @@ namespace GeometryConsoleTest
 
                     // 8. CoordinateSpace: Local keeps the product's own frame, Global applies its placement
                     GeoSolid3 globalSolid = model.GetSolid(firstSolidGuid, options);
-                    Console.WriteLine($"Local centroid: {localFirst?.Centroid}");
-                    Console.WriteLine($"Global centroid: {globalSolid?.Centroid}");
+                    Console.WriteLine($"Local centroid: {localFirst?.GetCentroid()}");
+                    Console.WriteLine($"Global centroid: {globalSolid?.GetCentroid()}");
                 }
 
                 Console.WriteLine();

@@ -78,7 +78,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 var solid = model.GetSolid("0000000000000000000002");
                 Assert.NotNull(solid);
                 Assert.True(solid.IsClosed());
-                Assert.Equal((1.0 - 0.16) * 0.1, solid.Volume, 9);
+                Assert.Equal((1.0 - 0.16) * 0.1, solid.GetVolume(), 9);
             });
         }
     }

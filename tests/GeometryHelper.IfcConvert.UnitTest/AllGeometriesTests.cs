@@ -185,7 +185,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
                 Assert.NotEmpty(all);
                 Assert.Equal(enumerated.Count, all.Count);
-                Assert.Equal(enumerated.Select(solid => solid.Volume), all.Select(solid => solid.Volume));
+                Assert.Equal(enumerated.Select(solid => solid.GetVolume()), all.Select(solid => solid.GetVolume()));
                 Assert.Equal(enumerated.Select(solid => solid.Faces.Count), all.Select(solid => solid.Faces.Count));
             }
         }

@@ -177,7 +177,7 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Equal(collides, prepared.CollidesWith(probe));
                 Assert.Equal(plate.DistanceTo(probe), prepared.DistanceTo(preparedProbe), 6);
                 Assert.Equal(plate.DistanceTo(probe), prepared.DistanceTo(probe), 6);
-                Assert.Equal(plate.Intersect(probe).Sum(piece => piece.Volume), prepared.Intersect(preparedProbe).Sum(piece => piece.Volume), 6);
+                Assert.Equal(plate.Intersect(probe).Sum(piece => piece.GetVolume()), prepared.Intersect(preparedProbe).Sum(piece => piece.GetVolume()), 6);
             }
         }
 
@@ -203,7 +203,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 swallowed = Box(0, 0, 0, 10, 10, 10).WithOpenings(new[] { Box(-1, -1, -1, 11, 11, 11) });
             GeoPreparedSolid3 prepared = swallowed.Prepare();
 
-            Assert.Equal(1000.0, prepared.Material.Volume, 9);
+            Assert.Equal(1000.0, prepared.Material.GetVolume(), 9);
             Assert.Equal(swallowed.DistanceTo(new GeoPoint3(20, 5, 5)), prepared.DistanceTo(new GeoPoint3(20, 5, 5)), 9);
         }
     }

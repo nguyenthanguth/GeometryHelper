@@ -15,8 +15,8 @@ namespace GeometryHelper.UnitTest.Solid
     /// <remarks>
     /// A body keeps its openings as whole bodies subtracted from it, so a plate with a bolt hole has a top face
     /// that is a whole square. The claim here is that the cut body is the same material with no openings: the
-    /// test that earns its keep is the one holding its volume to <see cref="GeoSolid3.GetNetVolume()"/>, which
-    /// works the same thing out by a different road — one subtraction per opening.
+    /// test that earns its keep is the one holding its volume to <see cref="SubtractedVolume"/>, which works the
+    /// same thing out by a different road — one subtraction per opening.
     /// </remarks>
     public class CutOpeningsTests
     {
@@ -37,10 +37,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(plate.TryCutOpenings(out GeoSolid3 material));
 
             Assert.Empty(material.Openings);
-            Assert.Equal(100.0 * 100 * 20 - 20.0 * 20 * 20, material.Volume, 6);
+            Assert.Equal(100.0 * 100 * 20 - 20.0 * 20 * 20, material.GetVolume(), 6);
 
             // Two roads to the same material: one subtraction per opening, and one cut of them all.
-            Assert.Equal(plate.GetNetVolume(), material.Volume, 6);
+            Assert.Equal(SubtractedVolume.Of(plate, Tolerance.Global), material.GrossVolume, 6);
         }
 
         [Fact]
@@ -126,8 +126,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(plate.TryCutOpenings(out GeoSolid3 material));
             watch.Stop();
 
-            Assert.Equal(1020.0 * 100 * 20 - 20 * (20.0 * 20 * 20), material.Volume, 3);
-            Assert.Equal(plate.GetNetVolume(), material.Volume, 3);
+            Assert.Equal(1020.0 * 100 * 20 - 20 * (20.0 * 20 * 20), material.GetVolume(), 3);
+            Assert.Equal(SubtractedVolume.Of(plate, Tolerance.Global), material.GrossVolume, 3);
 
             // Generous on purpose: this is a guard against the grid, not a benchmark.
             Assert.True(watch.ElapsedMilliseconds < 20000, $"took {watch.ElapsedMilliseconds} ms");
@@ -136,7 +136,7 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TwoOpeningsThatOverlapAreOneRegionOfNoMaterial()
         {
-            // Two holes overlapping each other: the cheap property counts the overlap twice, the cut does not.
+            // Two holes overlapping each other: taking each off whole would count the overlap twice, the cut does not.
             GeoSolid3 plate = Box(0, 0, 0, 100, 100, 20).WithOpenings(new[]
             {
                 Box(30, 40, -1, 60, 60, 21),
@@ -146,8 +146,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(plate.TryCutOpenings(out GeoSolid3 material));
 
             // The two together cover 30..80 by 40..60 through the plate.
-            Assert.Equal(100.0 * 100 * 20 - 50.0 * 20 * 20, material.Volume, 6);
-            Assert.Equal(plate.GetNetVolume(), material.Volume, 6);
+            Assert.Equal(100.0 * 100 * 20 - 50.0 * 20 * 20, material.GetVolume(), 6);
+            Assert.Equal(SubtractedVolume.Of(plate, Tolerance.Global), material.GrossVolume, 6);
         }
 
         [Fact]
@@ -158,7 +158,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(hollow.TryCutOpenings(out GeoSolid3 material));
 
-            Assert.Equal(100.0 * 100 * 100 - 50.0 * 50 * 50, material.Volume, 6);
+            Assert.Equal(100.0 * 100 * 100 - 50.0 * 50 * 50, material.GetVolume(), 6);
             Assert.Equal(PointLocation.OutSide, material.Locate(new GeoPoint3(50, 50, 50)));
             Assert.Equal(PointLocation.Inside, material.Locate(new GeoPoint3(10, 10, 10)));
         }
@@ -174,7 +174,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(inwards.TryCutOpenings(out GeoSolid3 material));
 
-            Assert.Equal(100.0 * 100 * 20 - 20.0 * 20 * 20, material.Volume, 6);
+            Assert.Equal(100.0 * 100 * 20 - 20.0 * 20 * 20, material.GetVolume(), 6);
             Assert.True(material.IsClosed());
             Assert.Equal(PointLocation.OutSide, material.Locate(new GeoPoint3(50, 50, 10)));
             Assert.Equal(PointLocation.Inside, material.Locate(new GeoPoint3(20, 20, 10)));
@@ -205,7 +205,7 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Empty(warnings);
 
                 // Most of the sliver is outside the L: what of it is inside, under a twentieth of a cubic millimetre, is gone.
-                Assert.InRange(ell.Volume - material.Volume, 0.0, 0.1);
+                Assert.InRange(ell.GetVolume() - material.GetVolume(), 0.0, 0.1);
             }
             finally
             {
@@ -220,7 +220,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(plate.TryCutOpenings(out GeoSolid3 a));
             Assert.True(plate.TryCutOpenings(out GeoSolid3 b, Tolerance.Global));
-            Assert.Equal(a.Volume, b.Volume, 9);
+            Assert.Equal(a.GetVolume(), b.GetVolume(), 9);
 
             Assert.Equal(plate.TriangulateSurface().Length, plate.TriangulateSurface(Tolerance.Global).Length);
 

@@ -34,21 +34,21 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 plate = Box(0, 0, 0, 100, 100, 20);
 
             Assert.True(Boolean3.TrySubtract(plate, Box(30, 40, -1, 60, 60, 21), out GeoSolid3 frame));
-            Assert.Equal(188000.0, frame.Volume, 3);
+            Assert.Equal(188000.0, frame.GetVolume(), 3);
 
             // The second hole overlaps the first by ten, so it takes away twenty by twenty by twenty more.
             Assert.True(Boolean3.TrySubtract(frame, Box(50, 40, -1, 80, 60, 21), out GeoSolid3 slotted));
-            Assert.Equal(180000.0, slotted.Volume, 3);
+            Assert.Equal(180000.0, slotted.GetVolume(), 3);
 
             // The strip left of the old hole is material, which is exactly what the bug threw away.
             Assert.Equal(PointLocation.Inside, slotted.Locate(new GeoPoint3(20, 50, 10)));
             Assert.Equal(PointLocation.OutSide, slotted.Locate(new GeoPoint3(55, 50, 10)));
             Assert.Equal(PointLocation.OutSide, slotted.Locate(new GeoPoint3(70, 50, 10)));
 
-            // And the net volume, which subtracts one opening at a time, agrees now.
+            // And the plate's own volume, its two openings cut out, agrees.
             GeoSolid3 withOpenings = plate.WithOpenings(new[] { Box(30, 40, -1, 60, 60, 21), Box(50, 40, -1, 80, 60, 21) });
 
-            Assert.Equal(180000.0, withOpenings.GetNetVolume(), 3);
+            Assert.Equal(180000.0, withOpenings.GetVolume(), 3);
         }
 
         [Fact]
@@ -59,7 +59,7 @@ namespace GeometryHelper.UnitTest.Solid
             var pieces = Shells3.Split(two, Loose);
 
             Assert.Equal(2, pieces.Count);
-            Assert.Equal(two.Volume, pieces.Sum(piece => piece.Volume), 6);
+            Assert.Equal(two.GetVolume(), pieces.Sum(piece => piece.GetVolume()), 6);
             Assert.All(pieces, piece => Assert.Equal(6, piece.Faces.Count));
         }
 
@@ -89,7 +89,7 @@ namespace GeometryHelper.UnitTest.Solid
             var pieces = Shells3.Split(two, Loose);
 
             Assert.Equal(2, pieces.Count);
-            Assert.All(pieces, piece => Assert.Equal(1000000.0, piece.Volume, 3));
+            Assert.All(pieces, piece => Assert.Equal(1000000.0, piece.GetVolume(), 3));
         }
 
         [Fact]
@@ -125,7 +125,7 @@ namespace GeometryHelper.UnitTest.Solid
             var pieces = Shells3.Split(two, Loose);
 
             Assert.Equal(2, pieces.Count);
-            Assert.All(pieces, piece => Assert.Equal(1000000.0, piece.Volume, 3));
+            Assert.All(pieces, piece => Assert.Equal(1000000.0, piece.GetVolume(), 3));
         }
 
         [Fact]
@@ -167,12 +167,12 @@ namespace GeometryHelper.UnitTest.Solid
             var cavityFaces = inner.Faces.Select(face => new GeoFace3(face.Boundary.Flip()));
             var hollow = new GeoSolid3(outer.Faces.Concat(cavityFaces));
 
-            Assert.Equal(1000000.0 - 125000.0, hollow.Volume, 3);
+            Assert.Equal(1000000.0 - 125000.0, hollow.GetVolume(), 3);
 
             var pieces = Shells3.Split(hollow, Loose);
 
             Assert.Single(pieces);
-            Assert.Equal(hollow.Volume, pieces[0].Volume, 3);
+            Assert.Equal(hollow.GetVolume(), pieces[0].GetVolume(), 3);
 
             // A hollow block beside a plain one is two pieces, and the cavity stays with the hollow one.
             GeoSolid3 beside = Box(500, 0, 0, 600, 100, 100);
@@ -181,8 +181,8 @@ namespace GeometryHelper.UnitTest.Solid
             var two = Shells3.Split(both, Loose);
 
             Assert.Equal(2, two.Count);
-            Assert.Contains(two, piece => Math.Abs(piece.Volume - hollow.Volume) < 1E-3);
-            Assert.Contains(two, piece => Math.Abs(piece.Volume - 1000000.0) < 1E-3);
+            Assert.Contains(two, piece => Math.Abs(piece.GetVolume() - hollow.GetVolume()) < 1E-3);
+            Assert.Contains(two, piece => Math.Abs(piece.GetVolume() - 1000000.0) < 1E-3);
         }
 
         [Fact]

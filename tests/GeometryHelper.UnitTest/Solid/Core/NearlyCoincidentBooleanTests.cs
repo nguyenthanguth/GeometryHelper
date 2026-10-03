@@ -35,7 +35,7 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Equal(VolumeFrom(half, new GeoPoint3(-500, -500, -500)), VolumeFrom(half, new GeoPoint3(500, 700, 900)), 6);
             }
 
-            Assert.Equal(plate.Volume, above.Volume + below.Volume, 6);
+            Assert.Equal(plate.GetVolume(), above.GetVolume() + below.GetVolume(), 6);
         }
 
         [Fact]
@@ -50,14 +50,14 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(slab.TrySubtract(beside, out GeoSolid3 rest, Tolerance));
             Assert.True(slab.TryIntersect(beside, out GeoSolid3 shared, Tolerance));
-            double taken = slab.Volume - rest.Volume;
+            double taken = slab.GetVolume() - rest.GetVolume();
 
             // What the two have in common is the strip 0.025 deep along the north face, and the corner 0.0165 deep at its
             // west end; the corner is thinner than twice the tolerance, and either answer is right for it.
             double strip = (4200 - 0.0165) * 0.025 * 1100;
             double corner = 0.0165 * 100 * 1100;
             Assert.InRange(taken, strip - 1, strip + corner + 1);
-            Assert.Equal(shared.Volume, taken, 0);
+            Assert.Equal(shared.GetVolume(), taken, 0);
             Assert.True(rest.IsClosed(Tolerance));
         }
 
@@ -128,7 +128,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3[] pieces = Boolean3.SplitShells(body, Tolerance);
 
             Assert.Equal(2, pieces.Length);
-            Assert.Equal(body.Volume, pieces.Sum(piece => piece.Volume), 6);
+            Assert.Equal(body.GetVolume(), pieces.Sum(piece => piece.GetVolume()), 6);
         }
 
         /// <summary>

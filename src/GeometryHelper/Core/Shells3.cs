@@ -625,12 +625,12 @@ namespace GeometryHelper.Core
 
                 for (int o = 0; o < outer.Count; o++)
                 {
-                    if (outer[o].Volume < smallest
+                    if (outer[o].GrossVolume < smallest
                         && outer[o].GetAabb().Contains(witness, tolerance)
                         && Containment3.Locate(outer[o], witness, tolerance) != PointLocation.OutSide)
                     {
                         home = o;
-                        smallest = outer[o].Volume;
+                        smallest = outer[o].GrossVolume;
                     }
                 }
 
@@ -659,12 +659,12 @@ namespace GeometryHelper.Core
 
                 for (int o = 0; o < outer.Count; o++)
                 {
-                    if (outer[o].Volume < smallest
+                    if (outer[o].GrossVolume < smallest
                         && outer[o].GetAabb().Contains(witness, tolerance)
                         && Containment3.Locate(outer[o], witness, tolerance) != PointLocation.OutSide)
                     {
                         home = o;
-                        smallest = outer[o].Volume;
+                        smallest = outer[o].GrossVolume;
                     }
                 }
 

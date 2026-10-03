@@ -92,8 +92,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 Assert.NotNull(solid);
                 Assert.True(solid.IsClosed(), "solid is not closed");
 
-                double error = Math.Abs(solid.Volume - expected) / expected;
-                Assert.True(error < 0.001, $"volume {solid.Volume} vs expected {expected} ({error:P3} off)");
+                double error = Math.Abs(solid.GetVolume() - expected) / expected;
+                Assert.True(error < 0.001, $"volume {solid.GetVolume()} vs expected {expected} ({error:P3} off)");
             });
         }
 
@@ -116,7 +116,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 Assert.NotNull(solid);
                 Assert.Equal(6, solid.Faces.Count);
                 Assert.True(solid.IsClosed(), "solid is not closed");
-                Assert.Equal(10.0 * 10.0 * 2000.0 * 1e-9, solid.Volume, 12);
+                Assert.Equal(10.0 * 10.0 * 2000.0 * 1e-9, solid.GetVolume(), 12);
             });
         }
 
@@ -130,8 +130,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 Assert.True(solid != null, name + ": no solid");
                 Assert.True(solid.IsClosed(), name + ": solid is not closed");
 
-                double error = Math.Abs(solid.Volume - expectedVolume) / expectedVolume;
-                Assert.True(error < 0.01, $"{name}: volume {solid.Volume:F5} vs expected {expectedVolume:F5} ({error:P2} off)");
+                double error = Math.Abs(solid.GetVolume() - expectedVolume) / expectedVolume;
+                Assert.True(error < 0.01, $"{name}: volume {solid.GetVolume():F5} vs expected {expectedVolume:F5} ({error:P2} off)");
             });
         }
     }

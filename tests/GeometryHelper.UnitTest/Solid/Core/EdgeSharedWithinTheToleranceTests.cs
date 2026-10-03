@@ -55,7 +55,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The piece holds its volume only to the crack between the two copies of the edge: measured from one corner or
             // another it holds 3 168 463 to 3 168 503, and the halves, each from a corner of its own, 31 more. Measured from
             // the same corner, the halves hold what the piece does.
-            Assert.InRange((above.Volume + below.Volume) / piece.Volume, 1 - 2E-5, 1 + 2E-5);
+            Assert.InRange((above.GetVolume() + below.GetVolume()) / piece.GetVolume(), 1 - 2E-5, 1 + 2E-5);
 
             foreach (GeoPoint3 corner in piece.Faces.SelectMany(f => f.Boundary.Vertices))
             {

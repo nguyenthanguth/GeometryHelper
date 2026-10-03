@@ -139,8 +139,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(a.TryUnion(b, out GeoSolid3 union));
             Assert.True(b.TrySubtract(a, out GeoSolid3 rest));
 
-            Assert.Equal(a.Volume + b.Volume - shared.Volume, union.Volume, 6);
-            Assert.Equal(b.Volume - shared.Volume, rest.Volume, 6);
+            Assert.Equal(a.GetVolume() + b.GetVolume() - shared.GetVolume(), union.GetVolume(), 6);
+            Assert.Equal(b.GetVolume() - shared.GetVolume(), rest.GetVolume(), 6);
         }
 
         [Fact]
@@ -173,14 +173,14 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 GeoSolid3 a = Next();
                 GeoSolid3 b = Next();
-                double both = a.TryIntersect(b, out GeoSolid3 shared) ? shared.Volume : 0.0;
-                double slack = 1E-7 * (a.Volume + b.Volume);
+                double both = a.TryIntersect(b, out GeoSolid3 shared) ? shared.GetVolume() : 0.0;
+                double slack = 1E-7 * (a.GetVolume() + b.GetVolume());
 
                 Assert.True(a.TryUnion(b, out GeoSolid3 union), $"pair {k}");
-                Assert.True(Math.Abs(union.Volume + both - a.Volume - b.Volume) < slack, $"pair {k}: union");
-                Assert.True(Math.Abs((a.TrySubtract(b, out GeoSolid3 ab) ? ab.Volume : 0.0) - (a.Volume - both)) < slack, $"pair {k}: a - b");
-                Assert.True(Math.Abs((b.TrySubtract(a, out GeoSolid3 ba) ? ba.Volume : 0.0) - (b.Volume - both)) < slack, $"pair {k}: b - a");
-                Assert.True(Math.Abs(a.Intersect(b).Sum(piece => piece.Volume) - both) < slack, $"pair {k}: pieces");
+                Assert.True(Math.Abs(union.GetVolume() + both - a.GetVolume() - b.GetVolume()) < slack, $"pair {k}: union");
+                Assert.True(Math.Abs((a.TrySubtract(b, out GeoSolid3 ab) ? ab.GetVolume() : 0.0) - (a.GetVolume() - both)) < slack, $"pair {k}: a - b");
+                Assert.True(Math.Abs((b.TrySubtract(a, out GeoSolid3 ba) ? ba.GetVolume() : 0.0) - (b.GetVolume() - both)) < slack, $"pair {k}: b - a");
+                Assert.True(Math.Abs(a.Intersect(b).Sum(piece => piece.GetVolume()) - both) < slack, $"pair {k}: pieces");
             }
         }
     }

@@ -528,8 +528,8 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.True(plate.TryCutOpenings(out GeoSolid3 material));
                 Assert.True(material.IsClosed());
                 // Each hole is a prism running right through the plate, 20 of its 50 inside it, and no two meet.
-                double expected = 500.0 * 500.0 * 20.0 - holes.Sum(hole => hole.Volume * 20.0 / 50.0);
-                Assert.Equal(expected, material.Volume, 6);
+                double expected = 500.0 * 500.0 * 20.0 - holes.Sum(hole => hole.GetVolume() * 20.0 / 50.0);
+                Assert.Equal(expected, material.GetVolume(), 6);
 
                 foreach (GeoPoint3 c in centres)
                 {

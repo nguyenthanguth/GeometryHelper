@@ -228,13 +228,13 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(10, subdivided.Faces.Count);
             Assert.True(subdivided.IsClosed());
-            Assert.Equal(1000.0, subdivided.Volume, 6);
+            Assert.Equal(1000.0, subdivided.GetVolume(), 6);
 
             GeoSolid3 tidied = Merge3.CoplanarFaces(subdivided);
 
             Assert.Equal(6, tidied.Faces.Count);
-            Assert.Equal(subdivided.Volume, tidied.Volume, 6);
-            Assert.Equal(subdivided.SurfaceArea, tidied.SurfaceArea, 6);
+            Assert.Equal(subdivided.GetVolume(), tidied.GetVolume(), 6);
+            Assert.Equal(subdivided.GetSurfaceArea(), tidied.GetSurfaceArea(), 6);
             Assert.True(tidied.IsClosed());
         }
 
@@ -256,7 +256,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 tidied = Merge3.CoplanarFaces(upper);
 
             Assert.True(tidied.Faces.Count <= upper.Faces.Count);
-            Assert.Equal(upper.Volume, tidied.Volume, 6);
+            Assert.Equal(upper.GetVolume(), tidied.GetVolume(), 6);
             Assert.True(tidied.IsClosed());
         }
 
@@ -267,7 +267,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 tidied = Merge3.CoplanarFaces(cube);
 
             Assert.Equal(6, tidied.Faces.Count);
-            Assert.Equal(cube.Volume, tidied.Volume, 6);
+            Assert.Equal(cube.GetVolume(), tidied.GetVolume(), 6);
         }
 
         [Fact]

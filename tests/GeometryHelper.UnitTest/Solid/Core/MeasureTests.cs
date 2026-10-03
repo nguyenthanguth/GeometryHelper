@@ -153,7 +153,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             Assert.True(box.IsClosed(Tolerance));
             Assert.Equal(1E5 + (start == 0 ? third : sixth), Measure3.Volume(box, VolumeMethod.Fan, Tolerance), 6);
-            Assert.Equal(box.Volume, Measure3.Volume(box, VolumeMethod.Fan, Tolerance), 6);
+            Assert.Equal(box.GetVolume(), Measure3.Volume(box, VolumeMethod.Fan, Tolerance), 6);
             Assert.Equal(1E5 + quarter, Measure3.Volume(box, VolumeMethod.FlatFaces, Tolerance), 5);
 
             // The fan reads the top flat through its first corner, which stands a quarter of the lift off the top's middle

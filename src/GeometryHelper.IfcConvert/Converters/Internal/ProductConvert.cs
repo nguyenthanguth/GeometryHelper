@@ -349,7 +349,7 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             foreach (GeoSolid3 solid in solids)
             {
                 double area = solid.Faces.Sum(f => f.Area);
-                if (area > 0.0 && solid.Volume <= options.Tolerance.EqualPoint * area)
+                if (area > 0.0 && solid.GetVolume(options.Tolerance) <= options.Tolerance.EqualPoint * area)
                 {
                     dropped++;
                     continue;

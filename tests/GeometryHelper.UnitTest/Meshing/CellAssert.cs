@@ -48,7 +48,7 @@ namespace GeometryHelper.UnitTest.Meshing
 
                 GeoSolid3 solid = cell.Solid;
                 Assert.True(solid.IsClosed(tolerance), $"{cell} is not closed");
-                Assert.True(Math.Abs(solid.Volume - cell.Volume) <= 1E-9 * Math.Max(1.0, cell.Volume), $"{cell} says {cell.Volume:R}, its body holds {solid.Volume:R}");
+                Assert.True(Math.Abs(solid.GetVolume() - cell.Volume) <= 1E-9 * Math.Max(1.0, cell.Volume), $"{cell} says {cell.Volume:R}, its body holds {solid.GetVolume():R}");
 
                 GeoObb3 box = grid.GetBox(cell.I, cell.J, cell.K);
                 Assert.True(box.IsEqualTo(cell.Box, new Tolerance(1E-9, 1E-9)), $"{cell} stands in {cell.Box}, the grid lays {box} there");

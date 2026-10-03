@@ -95,16 +95,16 @@ END-ISO-10303-21;
                     Assert.NotNull(solid);
 
                     // Box dimensions: 1.0 (X) x 0.5 (Y) x 2.0 (Z extrusion) = 1.0 m3
-                    Assert.True(solid.Volume > 0, "Solid volume must be strictly positive");
-                    Assert.Equal(1.0, solid.Volume, 2);
+                    Assert.True(solid.GetVolume() > 0, "Solid volume must be strictly positive");
+                    Assert.Equal(1.0, solid.GetVolume(), 2);
 
                     // A standard rectangular box has 6 planar boundary faces
                     Assert.Equal(6, solid.Faces.Count);
 
                     // Verify centroid is near (0, 0, 1.0) because profile is centered at (0,0) and extruded by 2.0 along +Z
-                    Assert.Equal(0.0, solid.Centroid.X, 1);
-                    Assert.Equal(0.0, solid.Centroid.Y, 1);
-                    Assert.Equal(1.0, solid.Centroid.Z, 1);
+                    Assert.Equal(0.0, solid.GetCentroid().X, 1);
+                    Assert.Equal(0.0, solid.GetCentroid().Y, 1);
+                    Assert.Equal(1.0, solid.GetCentroid().Z, 1);
                 }
             }
             finally
@@ -132,7 +132,7 @@ END-ISO-10303-21;
                     GeoSolid3 solid = model.GetSolid(wallGuid);
                     Assert.NotNull(solid);
                     Assert.Equal(6, solid.Faces.Count);
-                    Assert.Equal(1.0, solid.Volume, 2);
+                    Assert.Equal(1.0, solid.GetVolume(), 2);
 
                     // 2. GetSolids returns collection
                     var solids = model.GetSolids(wallGuid);

@@ -141,7 +141,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(plate.CollidesWith(fat));
             Assert.Equal(0.0, plate.DistanceTo(fat), 9);
             Assert.True(plate.TryIntersect(fat, out GeoSolid3 bite));
-            Assert.Equal(30.0 * 30 * 20 - 20.0 * 20 * 20, bite.Volume, 3);
+            Assert.Equal(30.0 * 30 * 20 - 20.0 * 20 * 20, bite.GetVolume(), 3);
 
             // A pin grazing one wall exactly touches, and that is contact.
             GeoSolid3 grazing = Box(40, 45, -50, 50, 55, 50);

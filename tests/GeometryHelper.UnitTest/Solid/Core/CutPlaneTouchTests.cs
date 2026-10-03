@@ -96,12 +96,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoSolid3 body = Prism(TangentialVertexProfile(), 3.0);
 
-            Assert.Equal(120.0, body.Volume, 9);
+            Assert.Equal(120.0, body.GetVolume(), 9);
             Assert.True(body.TrySplitBy(CutAtY(0), out GeoSolid3 above, out GeoSolid3 below));
 
-            Assert.Equal(72.0, above.Volume, 9);
-            Assert.Equal(48.0, below.Volume, 9);
-            Assert.Equal(body.Volume, above.Volume + below.Volume, 9);
+            Assert.Equal(72.0, above.GetVolume(), 9);
+            Assert.Equal(48.0, below.GetVolume(), 9);
+            Assert.Equal(body.GetVolume(), above.GetVolume() + below.GetVolume(), 9);
 
             Assert.True(above.IsClosed());
             Assert.True(below.IsClosed());
@@ -121,7 +121,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(Boolean3.TrySubtract(body, tool, out GeoSolid3 rest));
 
-            Assert.Equal(72.0, rest.Volume, 9);
+            Assert.Equal(72.0, rest.GetVolume(), 9);
             Assert.True(rest.IsClosed());
         }
 
@@ -170,12 +170,12 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(4, 4, 0), new GeoPoint3(4, 10, 0), new GeoPoint3(0, 10, 0)
             }, 6.0);
 
-            Assert.Equal(384.0, body.Volume, 9);
+            Assert.Equal(384.0, body.GetVolume(), 9);
             Assert.True(body.TrySplitBy(CutAtY(4), out GeoSolid3 above, out GeoSolid3 below));
 
-            Assert.Equal(144.0, above.Volume, 9);
-            Assert.Equal(240.0, below.Volume, 9);
-            Assert.Equal(body.Volume, above.Volume + below.Volume, 9);
+            Assert.Equal(144.0, above.GetVolume(), 9);
+            Assert.Equal(240.0, below.GetVolume(), 9);
+            Assert.Equal(body.GetVolume(), above.GetVolume() + below.GetVolume(), 9);
 
             Assert.True(above.IsClosed());
             Assert.True(below.IsClosed());
@@ -248,12 +248,12 @@ namespace GeometryHelper.UnitTest.Solid
             }, 2.0);
 
             Assert.True(Boolean3.TrySubtract(slab, cavity, out GeoSolid3 hollow));
-            Assert.Equal(392.0, hollow.Volume, 9);
+            Assert.Equal(392.0, hollow.GetVolume(), 9);
 
             // y = 1 holds one wall of the cavity, so the cut runs along it.
             Assert.True(hollow.TrySplitBy(CutAtY(1), out GeoSolid3 above, out GeoSolid3 below));
 
-            Assert.Equal(hollow.Volume, above.Volume + below.Volume, 9);
+            Assert.Equal(hollow.GetVolume(), above.GetVolume() + below.GetVolume(), 9);
             Assert.True(above.IsClosed());
             Assert.True(below.IsClosed());
         }
@@ -280,10 +280,10 @@ namespace GeometryHelper.UnitTest.Solid
             }, 3.0);
 
             Assert.True(Boolean3.TrySubtract(slab, first, out GeoSolid3 once));
-            Assert.Equal(400.0 - 8.0, once.Volume, 9);
+            Assert.Equal(400.0 - 8.0, once.GetVolume(), 9);
 
             Assert.True(Boolean3.TrySubtract(once, second, out GeoSolid3 twice));
-            Assert.Equal(400.0 - 8.0 - 12.0, twice.Volume, 9);
+            Assert.Equal(400.0 - 8.0 - 12.0, twice.GetVolume(), 9);
             Assert.True(twice.IsClosed());
         }
 
@@ -312,8 +312,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             // The corner is a tetrahedron whose legs are the depth times root three: root three over two times the
             // depth cubed.
-            Assert.Equal(Math.Sqrt(3.0) / 2.0 * depth * depth * depth, below.Volume, 15);
-            Assert.Equal(1000.0, above.Volume + below.Volume, 9);
+            Assert.Equal(Math.Sqrt(3.0) / 2.0 * depth * depth * depth, below.GetVolume(), 15);
+            Assert.Equal(1000.0, above.GetVolume() + below.GetVolume(), 9);
             Assert.True(above.IsClosed());
             Assert.True(below.IsClosed());
         }

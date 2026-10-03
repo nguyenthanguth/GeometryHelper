@@ -197,7 +197,7 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 .Select(body => (Body: body, Box: body.GetAabb()))
                 .OrderBy(b => b.Box.Min.X).ThenBy(b => b.Box.Min.Y).ThenBy(b => b.Box.Min.Z)
                 .ThenBy(b => b.Box.Max.X).ThenBy(b => b.Box.Max.Y).ThenBy(b => b.Box.Max.Z)
-                .ThenBy(b => b.Body.Volume).ThenBy(b => b.Body.Faces.Count)
+                .ThenBy(b => b.Body.GetVolume(options.Tolerance)).ThenBy(b => b.Body.Faces.Count)
                 .Select(b => b.Body)
                 .ToList();
         }

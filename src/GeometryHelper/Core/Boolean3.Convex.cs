@@ -196,7 +196,7 @@ namespace GeometryHelper.Core
             {
                 return false;
             }
-            double volume = region.Volume;
+            double volume = region.GrossVolume;
             double area = 0.0;
 
             foreach (GeoFace3 face in faces)

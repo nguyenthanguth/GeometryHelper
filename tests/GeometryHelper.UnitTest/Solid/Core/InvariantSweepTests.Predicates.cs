@@ -251,8 +251,8 @@ namespace GeometryHelper.UnitTest.Solid
                 try { body = Prism(prof, 4.0); }
                 catch (ArgumentException) { continue; }
 
-                double expected = body.Volume * Math.Abs(mixed.GetDeterminant());
-                double actual = body.TransformBy(mixed).Volume;
+                double expected = body.GetVolume() * Math.Abs(mixed.GetDeterminant());
+                double actual = body.TransformBy(mixed).GetVolume();
                 if (Math.Abs(expected - actual) > 1E-6 * Math.Max(1.0, expected)) { volumeBad++; }
             }
 

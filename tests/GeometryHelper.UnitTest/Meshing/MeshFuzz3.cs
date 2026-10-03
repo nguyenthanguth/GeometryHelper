@@ -822,7 +822,7 @@ namespace GeometryHelper.UnitTest.Meshing
                     return $"as a box {a}, as a body {b} {where}";
                 }
 
-                if (Math.Abs(a.Volume - b.Volume) > 1E-9 * Math.Max(1, a.Volume) + 1E-14 * (box.Center.ToVector().Length + size) * a.Solid.SurfaceArea)
+                if (Math.Abs(a.Volume - b.Volume) > 1E-9 * Math.Max(1, a.Volume) + 1E-14 * (box.Center.ToVector().Length + size) * a.Solid.GetSurfaceArea())
                 {
                     return $"as a box {a} holds {a.Volume:R}, as a body {b.Volume:R} {where}";
                 }
@@ -942,19 +942,19 @@ namespace GeometryHelper.UnitTest.Meshing
 
         private static string CheckCells(GeoSolid3 body, CellOptions3 options, GeoCellGrid3 grid, string where)
         {
-            double net = body.Openings.Count > 0 ? body.GetNetVolume(Tol) : body.Volume;
+            double net = SubtractedVolume.Of(body, Tol);
             bool jointed = options.Joint > Tol.EqualPoint;
             double snap = jointed ? Tol.EqualPoint : Math.Max(options.SnapDistance, Tol.EqualPoint);
 
             // A face within the tolerance of a cut is taken as lying in it, and the wedge between goes with it: the cells
             // hold the body's volume but for the tolerance times the area cut.
-            double cutArea = grid.Cells.Sum(c => c.Solid.SurfaceArea) - body.SurfaceArea;
+            double cutArea = grid.Cells.Sum(c => c.Solid.GrossSurfaceArea) - body.GrossSurfaceArea;
             double slack = Tol.EqualPoint * Math.Max(0, cutArea) + 1E-9 * Math.Max(1, net);
 
             // And measured from far out, the body's volume is good to the rounding of the coordinates where it stands: a box
             // 0.036 thick two thousand kilometres out holds as a body three billionths more or less than its cells say.
             GeoAabb3 extent = body.GetAabb();
-            slack += 1E-14 * (extent.Center.ToVector().Length + extent.Min.DistanceTo(extent.Max)) * body.SurfaceArea;
+            slack += 1E-14 * (extent.Center.ToVector().Length + extent.Min.DistanceTo(extent.Max)) * body.GrossSurfaceArea;
 
             if (!jointed && Math.Abs(grid.Volume - net) > slack)
             {
@@ -996,9 +996,9 @@ namespace GeometryHelper.UnitTest.Meshing
 
                 // A box's cell measures itself by arithmetic, its body by its faces, each corner of which is good to the
                 // rounding of the coordinates where it stands.
-                if (Math.Abs(cell.Solid.Volume - cell.Volume) > 1E-9 * Math.Max(1, cell.Volume) + 1E-14 * box.Center.ToVector().Length * cell.Solid.SurfaceArea)
+                if (Math.Abs(cell.Solid.GetVolume() - cell.Volume) > 1E-9 * Math.Max(1, cell.Volume) + 1E-14 * box.Center.ToVector().Length * cell.Solid.GetSurfaceArea())
                 {
-                    return $"{cell} says {cell.Volume}, its body {cell.Solid.Volume} {where}";
+                    return $"{cell} says {cell.Volume}, its body {cell.Solid.GetVolume()} {where}";
                 }
 
                 // A cut moved onto a corner by the snap distance, then not made short of a tip past it: four point tolerances,

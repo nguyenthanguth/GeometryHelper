@@ -37,7 +37,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             if (wedge.TrySplitBy(new GeoPlane3(P(0, 0.1, 0), GeoVector3.YAxis), out GeoSolid3 above, out GeoSolid3 below, Tolerance))
             {
-                Assert.Equal(wedge.Volume, above.Volume + below.Volume, 1);
+                Assert.Equal(wedge.GetVolume(), above.GetVolume() + below.GetVolume(), 1);
             }
         }
 
@@ -49,7 +49,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(Boolean3.TrySubtract(wedge, Box(-100, -100, -100, 3100, 0.1, 400), out GeoSolid3 rest, Tolerance));
 
             // The tip the box takes holds 0.75; left on, it is within the tolerance of the section the box ends at.
-            Assert.True(Math.Abs(wedge.Volume - rest.Volume) <= 1.0, $"the rest holds {rest.Volume:R} of {wedge.Volume:R}");
+            Assert.True(Math.Abs(wedge.GetVolume() - rest.GetVolume()) <= 1.0, $"the rest holds {rest.GetVolume():R} of {wedge.GetVolume():R}");
         }
 
         [Fact]
@@ -63,7 +63,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             if (tube.TrySplitBy(new GeoPlane3(P(0, 0, 25), GeoVector3.ZAxis), out GeoSolid3 above, out GeoSolid3 below, Tolerance))
             {
-                Assert.Equal(tube.Volume, above.Volume + below.Volume, 3);
+                Assert.Equal(tube.GetVolume(), above.GetVolume() + below.GetVolume(), 3);
             }
         }
 
@@ -82,8 +82,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoSolid3 moved = body.TransformBy(move);
 
             Assert.True(moved.TrySplitBy(new GeoPlane3(P(0, 0, 0), GeoVector3.YAxis).TransformBy(move), out GeoSolid3 above, out GeoSolid3 below, Tolerance));
-            Assert.Equal(1.0, above.Volume / 1.2E8, 9);
-            Assert.Equal(1.0, below.Volume / 1.5E8, 9);
+            Assert.Equal(1.0, above.GetVolume() / 1.2E8, 9);
+            Assert.Equal(1.0, below.GetVolume() / 1.5E8, 9);
         }
     }
 }

@@ -171,7 +171,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
 
             // (100, 0, 0) turns to (0, 100, 0) and moves to (1000, -1900, 300).
             Assert.Contains(Vertices(moved.Solids[0]), v => v.IsEqualTo(new GeoPoint3(1000, -1900, 300)));
-            Assert.Equal(original.Solids[0].Volume, moved.Solids[0].Volume, 6);
+            Assert.Equal(original.Solids[0].GetVolume(), moved.Solids[0].GetVolume(), 6);
             Assert.True(moved.Placement.IsEqualTo(move * placement));
 
             // The geometry it came from, which may sit in the cache, is untouched.

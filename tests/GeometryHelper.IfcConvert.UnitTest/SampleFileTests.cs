@@ -27,7 +27,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
         }
 
         private static double PhysicalVolume(IfcStoreCache model, IfcConvertOptions options = null) =>
-            model.GetAllSolids(options).Sum(s => s.Volume);
+            model.GetAllSolids(options).Sum(s => s.GetVolume());
 
         private static void AssertRelative(double expected, double actual, double tolerance, string what)
         {
@@ -62,8 +62,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
                     Assert.NotNull(geometry.Warnings);
                     foreach (var solid in geometry.Solids)
                     {
-                        Assert.True(solid.Volume > 0.0 && !double.IsNaN(solid.Volume) && !double.IsInfinity(solid.Volume),
-                            $"{geometry.IfcType} {geometry.GlobalId}: volume {solid.Volume}");
+                        Assert.True(solid.GetVolume() > 0.0 && !double.IsNaN(solid.GetVolume()) && !double.IsInfinity(solid.GetVolume()),
+                            $"{geometry.IfcType} {geometry.GlobalId}: volume {solid.GetVolume()}");
                         Assert.True(solid.GetSignedVolume() > 0.0,
                             $"{geometry.IfcType} {geometry.GlobalId}: faces point inwards");
                     }
@@ -119,7 +119,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
             WithModel("slab-openings.ifc", model =>
             {
-                double whole = model.GetSolidsByType("IfcSlab", new IfcConvertOptions { ApplyVoids = false }).Sum(s => s.Volume);
+                double whole = model.GetSolidsByType("IfcSlab", new IfcConvertOptions { ApplyVoids = false }).Sum(s => s.GetVolume());
                 var cutGeometry = model.GetGeometriesByType("IfcSlab", new IfcConvertOptions { ApplyVoids = true }).Single();
 
                 Assert.Empty(cutGeometry.Warnings);

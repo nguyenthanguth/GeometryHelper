@@ -469,9 +469,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(above.IsClosed());
             Assert.True(below.IsClosed());
-            Assert.Equal(600.0, above.Volume, 4);
-            Assert.Equal(400.0, below.Volume, 4);
-            Assert.Equal(cube.Volume, above.Volume + below.Volume, 4);
+            Assert.Equal(600.0, above.GetVolume(), 4);
+            Assert.Equal(400.0, below.GetVolume(), 4);
+            Assert.Equal(cube.GetVolume(), above.GetVolume() + below.GetVolume(), 4);
         }
 
         [Fact]
@@ -482,8 +482,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(cube.TrySplitBy(cutter, out GeoSolid3 above, out GeoSolid3 below));
 
-            Assert.True(cutter.SignedDistanceTo(above.Centroid) > 0.0);
-            Assert.True(cutter.SignedDistanceTo(below.Centroid) < 0.0);
+            Assert.True(cutter.SignedDistanceTo(above.GetCentroid()) > 0.0);
+            Assert.True(cutter.SignedDistanceTo(below.GetCentroid()) < 0.0);
         }
 
         [Fact]
@@ -496,8 +496,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(cube.TrySplitBy(cutter, out GeoSolid3 above, out GeoSolid3 below));
 
-            Assert.Equal(cube.Volume, above.Volume + below.Volume, 4);
-            Assert.Equal(above.Volume, below.Volume, 4);
+            Assert.Equal(cube.GetVolume(), above.GetVolume() + below.GetVolume(), 4);
+            Assert.Equal(above.GetVolume(), below.GetVolume(), 4);
         }
 
         [Fact]
@@ -525,15 +525,15 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 lShape = MakeLShapedSolid();
 
             Assert.True(lShape.IsClosed());
-            Assert.Equal(384.0, lShape.Volume, 4);
+            Assert.Equal(384.0, lShape.GetVolume(), 4);
 
             Assert.True(lShape.TrySplitBy(GeoPlane3.XY.Offset(3.0), out GeoSolid3 above, out GeoSolid3 below));
 
             Assert.True(above.IsClosed());
             Assert.True(below.IsClosed());
-            Assert.Equal(192.0, above.Volume, 4);
-            Assert.Equal(192.0, below.Volume, 4);
-            Assert.Equal(lShape.Volume, above.Volume + below.Volume, 4);
+            Assert.Equal(192.0, above.GetVolume(), 4);
+            Assert.Equal(192.0, below.GetVolume(), 4);
+            Assert.Equal(lShape.GetVolume(), above.GetVolume() + below.GetVolume(), 4);
         }
 
         [Fact]
@@ -549,8 +549,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(below.IsClosed());
 
             // Above the cut only the leg survives: 4 wide, 3 deep, 6 tall.
-            Assert.Equal(72.0, above.Volume, 4);
-            Assert.Equal(lShape.Volume, above.Volume + below.Volume, 4);
+            Assert.Equal(72.0, above.GetVolume(), 4);
+            Assert.Equal(lShape.GetVolume(), above.GetVolume() + below.GetVolume(), 4);
         }
 
         [Fact]
@@ -569,9 +569,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(foot.IsClosed());
 
             // The foot is 10 by 4 by 6, the leg 4 by 6 by 6.
-            Assert.Equal(240.0, foot.Volume, 4);
-            Assert.Equal(144.0, leg.Volume, 4);
-            Assert.Equal(lShape.Volume, foot.Volume + leg.Volume, 4);
+            Assert.Equal(240.0, foot.GetVolume(), 4);
+            Assert.Equal(144.0, leg.GetVolume(), 4);
+            Assert.Equal(lShape.GetVolume(), foot.GetVolume() + leg.GetVolume(), 4);
         }
 
         [Fact]
@@ -618,10 +618,10 @@ namespace GeometryHelper.UnitTest.Solid
             foreach (GeoSolid3 cell in cells)
             {
                 Assert.True(cell.IsClosed());
-                total += cell.Volume;
+                total += cell.GetVolume();
             }
 
-            Assert.Equal(lShape.Volume, total, 4);
+            Assert.Equal(lShape.GetVolume(), total, 4);
         }
 
         [Fact]
@@ -631,7 +631,7 @@ namespace GeometryHelper.UnitTest.Solid
             // section is therefore two loops rather than one.
             GeoSolid3 uShape = MakeUShapedSolid();
 
-            Assert.Equal(360.0, uShape.Volume, 4);
+            Assert.Equal(360.0, uShape.GetVolume(), 4);
 
             GeoPlane3 cutter = new GeoPlane3(new GeoPoint3(0, 7, 0), GeoVector3.YAxis);
 
@@ -639,8 +639,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(above.IsClosed());
             Assert.True(below.IsClosed());
-            Assert.Equal(90.0, above.Volume, 4);
-            Assert.Equal(270.0, below.Volume, 4);
+            Assert.Equal(90.0, above.GetVolume(), 4);
+            Assert.Equal(270.0, below.GetVolume(), 4);
 
             // Two arms, so two caps: the upper half has both of them.
             Assert.Equal(2, CountFacesOnPlane(above, cutter));
@@ -653,13 +653,13 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 tube = MakeTubeSolid();
 
             Assert.True(tube.IsClosed());
-            Assert.Equal(840.0, tube.Volume, 4);
+            Assert.Equal(840.0, tube.GetVolume(), 4);
 
             Assert.True(tube.TrySplitBy(GeoPlane3.XY.Offset(5.0), out GeoSolid3 above, out GeoSolid3 below));
 
-            Assert.Equal(420.0, above.Volume, 4);
-            Assert.Equal(420.0, below.Volume, 4);
-            Assert.Equal(tube.Volume, above.Volume + below.Volume, 4);
+            Assert.Equal(420.0, above.GetVolume(), 4);
+            Assert.Equal(420.0, below.GetVolume(), 4);
+            Assert.Equal(tube.GetVolume(), above.GetVolume() + below.GetVolume(), 4);
 
             GeoFace3 cap = FindFaceOnPlane(above, GeoPlane3.XY.Offset(5.0));
             Assert.Single(cap.Holes);

@@ -136,7 +136,7 @@ namespace GeometryHelper.UnitTest.Common
 
             Assert.Equal(12, skin.Faces.Count);
             Assert.Equal(6, skin.MergeCoplanarFaces().Faces.Count);
-            Assert.Equal(cube.Volume, skin.MergeCoplanarFaces().Volume, 6);
+            Assert.Equal(cube.GetVolume(), skin.MergeCoplanarFaces().GetVolume(), 6);
 
             // The collection form answers the same about the faces on their own.
             Assert.Equal(6, skin.Faces.MergeCoplanar().Length);

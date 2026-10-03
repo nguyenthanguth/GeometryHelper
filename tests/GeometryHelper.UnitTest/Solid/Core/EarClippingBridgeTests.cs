@@ -53,13 +53,13 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 slab = Slab(4.66E-8, 300.0);
 
             Assert.True(slab.IsClosed(Tolerance));
-            Assert.InRange(slab.Triangulate(Tolerance).Sum(t => t.Area), slab.SurfaceArea * (1 - 1E-12), slab.SurfaceArea * (1 + 1E-12));
+            Assert.InRange(slab.Triangulate(Tolerance).Sum(t => t.Area), slab.GetSurfaceArea() * (1 - 1E-12), slab.GetSurfaceArea() * (1 + 1E-12));
 
             // The mass properties are summed over that mesh. The volume came out right all the same, being summed along x
             // and the face lying level, but the centroid stood 2.6 mm off the middle of the slab's thickness.
             MassProperties3 mass = slab.GetMassProperties(1.0, Tolerance);
-            Assert.InRange(mass.Volume, slab.Volume * (1 - 1E-9), slab.Volume * (1 + 1E-9));
-            Assert.Equal(slab.Centroid.Z, mass.Centroid.Z, 6);
+            Assert.InRange(mass.Volume, slab.GetVolume() * (1 - 1E-9), slab.GetVolume() * (1 + 1E-9));
+            Assert.Equal(slab.GetCentroid().Z, mass.Centroid.Z, 6);
         }
 
         /// <summary>

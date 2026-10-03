@@ -130,7 +130,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 Assert.True(body.IsClosed());
 
                 double full = (200.0 * 200.0 - 40.0 * 40.0) * 20.0;
-                Assert.InRange(body.Volume, full * 0.99, full * 1.01);
+                Assert.InRange(body.GetVolume(), full * 0.99, full * 1.01);
                 Assert.Equal(PointLocation.OutSide, body.Locate(new GeoPoint3(100, 100, 10)));
                 Assert.Equal(PointLocation.Inside, body.Locate(new GeoPoint3(40, 40, 10)));
             });
@@ -149,7 +149,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
                 // Less what the corner written low takes off the top, about the top's area times a third of the dip.
                 double full = 290 * 1.9942 * 78;
-                Assert.InRange(body.Volume, full - 0.1, full);
+                Assert.InRange(body.GetVolume(), full - 0.1, full);
             });
         }
     }

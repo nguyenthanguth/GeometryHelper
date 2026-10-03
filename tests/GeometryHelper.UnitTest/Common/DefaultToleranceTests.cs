@@ -88,7 +88,7 @@ namespace GeometryHelper.UnitTest.Common
 
             // 30 m of 3000 x 400, less two notches and three openings, each 600 x 800 through the 400.
             double concrete = 30000.0 * 3000.0 * 400.0 - 5 * 600.0 * 800.0 * 400.0;
-            Assert.InRange(beam.Volume, concrete * 0.99999, concrete * 1.00001);
+            Assert.InRange(beam.GetVolume(), concrete * 0.99999, concrete * 1.00001);
         }
 
         [Fact]

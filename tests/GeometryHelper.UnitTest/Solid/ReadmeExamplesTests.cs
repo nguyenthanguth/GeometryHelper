@@ -113,8 +113,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoSolid3 pierced = slab.WithOpenings(new[] { duct });
 
-            Assert.Equal(1000.0, pierced.Volume, 6);
-            Assert.Equal(992.0, pierced.GetNetVolume(), 6);
+            Assert.Equal(992.0, pierced.GetVolume(), 6);
             Assert.True(pierced.IsClosed());
 
             Assert.Equal(PointLocation.Inside, pierced.Locate(new GeoPoint3(1, 1, 1)));
@@ -202,8 +201,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 cube = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(10, 10, 10)).ToObb().ToSolid();
 
             Assert.True(cube.TrySplitBy(GeoPlane3.XY.Offset(4), out GeoSolid3 upper, out GeoSolid3 lower));
-            Assert.Equal(600.0, upper.Volume, 4);
-            Assert.Equal(400.0, lower.Volume, 4);
+            Assert.Equal(600.0, upper.GetVolume(), 4);
+            Assert.Equal(400.0, lower.GetVolume(), 4);
             Assert.True(upper.IsClosed());
             Assert.True(lower.IsClosed());
         }
@@ -367,8 +366,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 tidied = Merge3.CoplanarFaces(subdivided);
 
             Assert.Equal(6, tidied.Faces.Count);
-            Assert.Equal(subdivided.Volume, tidied.Volume, 6);
-            Assert.Equal(subdivided.SurfaceArea, tidied.SurfaceArea, 6);
+            Assert.Equal(subdivided.GetVolume(), tidied.GetVolume(), 6);
+            Assert.Equal(subdivided.GetSurfaceArea(), tidied.GetSurfaceArea(), 6);
         }
 
         [Fact]
@@ -400,9 +399,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(first.TryIntersect(second, out GeoSolid3 shared));
             Assert.True(first.TrySubtract(tool, out GeoSolid3 left));
 
-            Assert.Equal(125.0, shared.Volume, 4);
-            Assert.Equal(875.0, left.Volume, 4);
-            Assert.Equal(1875.0, joined.Volume, 4);
+            Assert.Equal(125.0, shared.GetVolume(), 4);
+            Assert.Equal(875.0, left.GetVolume(), 4);
+            Assert.Equal(1875.0, joined.GetVolume(), 4);
 
             // Nothing at all is an outcome, reported as false rather than as an empty body.
             GeoSolid3 farAway = new GeoAabb3(new GeoPoint3(50, 50, 50), new GeoPoint3(60, 60, 60)).ToObb().ToSolid();
@@ -870,7 +869,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             var by = new GeoVector3(11, -23, 37);
 
-            Assert.Equal(slab.Volume, slab.Translate(by).Volume, 6);
+            Assert.Equal(slab.GetVolume(), slab.Translate(by).GetVolume(), 6);
             Assert.True(beside.Translate(by).IsEqualTo(beside.TransformBy(GeoTransform3.Translation(by))));
             Assert.True(GeoPlane3.XY.Translate(by).Normal.IsParallelTo(GeoPlane3.XY.Normal));
         }
@@ -959,7 +958,7 @@ namespace GeometryHelper.UnitTest.Solid
             var second = new GeoObb3(new GeoPoint3(50, 0, 0), 100, 100, 100);
 
             Assert.True(first.TryUnion(second, out GeoSolid3 both));
-            Assert.Equal(150.0 * 100.0 * 100.0, both.Volume, 3);
+            Assert.Equal(150.0 * 100.0 * 100.0, both.GetVolume(), 3);
 
             Assert.True(first.TryExpand(10.0, out GeoObb3 bigger));
             Assert.Equal(120.0, bigger.SizeY, 6);
@@ -1155,7 +1154,7 @@ namespace GeometryHelper.UnitTest.Solid
                 foreach (GeoSolid3 clash in clashes)
                 {
                     clashCount++;
-                    overlapTotal += clash.Volume;
+                    overlapTotal += clash.GetVolume();
                 }
             }
 
@@ -1310,11 +1309,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 member = GeoSolid3.Sweep(section, path);
             GeoSolid3 ring = GeoSolid3.Revolve(profile, placement, 2 * Math.PI, 0.1);
 
-            Assert.Equal(300.0 * 200 * 20, plate.Volume, 6);
-            Assert.Equal(100.0 * 100 * 200, slab.Volume, 6);
+            Assert.Equal(300.0 * 200 * 20, plate.GetVolume(), 6);
+            Assert.Equal(100.0 * 100 * 200, slab.GetVolume(), 6);
             Assert.True(bolt.CollidesWith(plate));
             Assert.All(new[] { plate, slab, bolt, bar, member, ring }, body => Assert.True(body.IsClosed()));
-            Assert.Equal(100.0 * 200 * 3000, member.Volume, 6);
+            Assert.Equal(100.0 * 200 * 3000, member.GetVolume(), 6);
 
             // The member stands upright: its section's Y is the world's Z.
             Assert.Equal(200.0, member.GetAabb().Max.Z - member.GetAabb().Min.Z, 9);

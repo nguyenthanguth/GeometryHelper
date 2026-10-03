@@ -42,7 +42,7 @@ namespace GeometryHelper.Geometry
         {
             GeoSolid3 material = GetMaterial(tolerance, out _);
 
-            return material == null ? 0.0 : material.Volume;
+            return material == null ? 0.0 : material.GrossVolume;
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace GeometryHelper.Geometry
                 return false;
             }
 
-            volume = material == null ? 0.0 : material.Volume;
+            volume = material == null ? 0.0 : material.GrossVolume;
             return true;
         }
 
@@ -98,7 +98,7 @@ namespace GeometryHelper.Geometry
         {
             GeoSolid3 material = GetMaterial(tolerance, out _);
 
-            return material == null ? 0.0 : material.SurfaceArea;
+            return material == null ? 0.0 : material.GrossSurfaceArea;
         }
 
         /// <summary>

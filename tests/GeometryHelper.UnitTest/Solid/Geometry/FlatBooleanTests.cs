@@ -266,20 +266,20 @@ namespace GeometryHelper.UnitTest.Solid
             var second = new GeoObb3(new GeoPoint3(50, 0, 0), 100, 100, 100);
 
             Assert.True(first.TryUnion(second, out GeoSolid3 joined));
-            Assert.Equal(150.0 * 100.0 * 100.0, joined.Volume, 3);
+            Assert.Equal(150.0 * 100.0 * 100.0, joined.GetVolume(), 3);
 
             Assert.True(first.TryIntersect(second, out GeoSolid3 shared));
-            Assert.Equal(50.0 * 100.0 * 100.0, shared.Volume, 3);
+            Assert.Equal(50.0 * 100.0 * 100.0, shared.GetVolume(), 3);
 
             Assert.True(first.TrySubtract(second, out GeoSolid3 left));
-            Assert.Equal(50.0 * 100.0 * 100.0, left.Volume, 3);
+            Assert.Equal(50.0 * 100.0 * 100.0, left.GetVolume(), 3);
 
             // A turned box is exact too: six flat faces, nothing fitted.
             var turned = new GeoObb3(new GeoPoint3(0, 0, 0), 100, 100, 100,
                 new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0));
 
             Assert.True(turned.TryIntersect(turned, out GeoSolid3 itself));
-            Assert.Equal(turned.Volume, itself.Volume, 3);
+            Assert.Equal(turned.Volume, itself.GetVolume(), 3);
         }
 
         [Fact]
@@ -290,13 +290,13 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(box.TryUnion(body, out GeoSolid3 fromTheBox));
             Assert.True(body.TryUnion(box, out GeoSolid3 fromTheBody));
-            Assert.Equal(fromTheBox.Volume, fromTheBody.Volume, 3);
+            Assert.Equal(fromTheBox.GetVolume(), fromTheBody.GetVolume(), 3);
 
             // Subtract is not symmetric, and each way round takes the other one away.
             Assert.True(box.TrySubtract(body, out GeoSolid3 boxLeft));
             Assert.True(body.TrySubtract(box, out GeoSolid3 bodyLeft));
-            Assert.Equal(50.0 * 100.0 * 100.0, boxLeft.Volume, 3);
-            Assert.Equal(50.0 * 100.0 * 100.0, bodyLeft.Volume, 3);
+            Assert.Equal(50.0 * 100.0 * 100.0, boxLeft.GetVolume(), 3);
+            Assert.Equal(50.0 * 100.0 * 100.0, bodyLeft.GetVolume(), 3);
 
             Assert.Throws<ArgumentNullException>(() => box.TryUnion((GeoObb3)null, out _));
             Assert.Throws<ArgumentNullException>(() => box.TrySubtract((GeoObb3)null, out _));
@@ -313,7 +313,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Taking away a body that touches nothing leaves the box whole.
             Assert.True(first.TrySubtract(apart, out GeoSolid3 whole));
-            Assert.Equal(first.Volume, whole.Volume, 3);
+            Assert.Equal(first.Volume, whole.GetVolume(), 3);
         }
 
         [Fact]
@@ -339,7 +339,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(
                 box.TryUnion(box, out GeoSolid3 a),
                 box.TryUnion(box, out GeoSolid3 b, global));
-            Assert.Equal(a.Volume, b.Volume, 3);
+            Assert.Equal(a.GetVolume(), b.GetVolume(), 3);
 
             Assert.Throws<ArgumentNullException>(() => Boolean3.Union((GeoPolygon3)null, first));
             Assert.Throws<ArgumentNullException>(() => Boolean3.Union(first, (GeoPolygon3)null));

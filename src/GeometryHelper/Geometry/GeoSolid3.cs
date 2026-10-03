@@ -12,7 +12,7 @@ namespace GeometryHelper.Geometry
     /// The faces are expected to be wound so their normals point out of the body, and to close it without
     /// gaps. Neither is enforced, because checking costs a full pass over every edge and most solids come
     /// from a modeller that already guarantees it; <see cref="IsClosed()"/> is there for the ones that do
-    /// not. What the guarantees buy is <see cref="Volume"/> and <see cref="Contains(GeoPoint3)"/>: both
+    /// not. What the guarantees buy is <see cref="GetVolume()"/> and <see cref="Contains(GeoPoint3)"/>: both
     /// read the body as a filled region and neither means anything for a shell with a hole in it.
     /// </para>
     /// <para>
@@ -158,16 +158,14 @@ namespace GeometryHelper.Geometry
         #region Measurements
 
         /// <summary>
-        /// Gets the total area of the bounding faces, without counting the openings.
+        /// Gets the total area of the bounding faces, the openings not cut out.
         /// </summary>
         /// <remarks>
-        /// Each face's area as its outline gives it: the true area of a body without openings, as every part
-        /// GeometryHelper.TeklaConvert reads is, its cuts and holes in its faces. A slab cut by five other parts matched
-        /// Tekla's AREA to five parts in a million million. Where a body carries openings,
-        /// <see cref="Measure3.SurfaceArea(GeoSolid3, Enums.AreaMethod, Tolerance)"/> gives its material's, the walls of
-        /// its openings included, and measures it other ways too.
+        /// Each face's area as its outline gives it: the area of the material where the body has no openings, and the
+        /// quick way to it that <see cref="GetSurfaceArea(Tolerance)"/> takes then. Where it has openings, the faces run
+        /// straight across them and this is no area of anything; only the material is.
         /// </remarks>
-        public double SurfaceArea
+        internal double GrossSurfaceArea
         {
             get
             {
@@ -183,7 +181,7 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Gets the gross volume enclosed by the bounding faces, ignoring the openings.
+        /// Gets the volume the bounding faces enclose, the openings not cut out.
         /// </summary>
         /// <remarks>
         /// This is the divergence theorem: the volume of a closed body equals a sum over its surface, and
@@ -193,71 +191,13 @@ namespace GeometryHelper.Geometry
         /// result is reported unsigned so that faces wound inwards give the same answer as faces wound
         /// outwards; a shell that does not close gives a number with no meaning either way.
         /// <para>
-        /// It is the true volume of a body without openings, as every part GeometryHelper.TeklaConvert reads is, its cuts
-        /// and holes in its faces: a slab cut by five other parts matched Tekla's VOLUME_NET to five parts in a million
-        /// million. Where a body carries openings, <see cref="GetNetVolume()"/> and
-        /// <see cref="Measure3.Volume(GeoSolid3, Enums.VolumeMethod, Tolerance)"/> cut them in and measure what is left.
-        /// </para>
-        /// <para>
         /// Each face is taken as the fan of its boundary from its first corner, which is exact for a flat face and the
-        /// quickest, and the way Tekla Structures reports a part's volume. <see cref="Measure3"/> measures the volume
-        /// other ways too, of the material or of the faces, and sets the ways side by side where a face a hair out of flat
-        /// makes them part.
+        /// quickest, and the way Tekla Structures reports a part's volume. It is the volume of the material where the
+        /// body has no openings, and the quick way to it that <see cref="GetVolume(Tolerance)"/> takes then; where it has
+        /// openings, it is no volume of anything, the openings not taken out.
         /// </para>
         /// </remarks>
-        public double Volume => Math.Abs(GetSignedVolume());
-
-        /// <summary>
-        /// Gets the volume of the material actually left once every opening is cut out, using the default
-        /// tolerance.
-        /// </summary>
-        public double GetNetVolume() => GetNetVolume(Tolerance.Global);
-
-        /// <summary>
-        /// Gets the volume of the material actually left once every opening is cut out, within a
-        /// tolerance.
-        /// </summary>
-        /// <param name="tolerance">The tolerance the cutting is carried out with.</param>
-        /// <returns>The volume of the body with its openings removed, or zero when nothing is left.</returns>
-        /// <remarks>
-        /// The openings are removed as shapes, not as numbers: the part of an opening reaching outside the
-        /// body costs nothing, as a through hole drawn past the faces it runs between does, and two openings
-        /// overlapping each other are not counted twice. The openings are taken out one after another, so
-        /// each is measured against what the ones before it left.
-        /// <para>
-        /// The cutting is a full boolean subtraction per opening, which is why this is a method and takes a
-        /// tolerance. An opening that cannot be cut out has its whole volume taken off, rather than the
-        /// measurement abandoned.
-        /// </para>
-        /// </remarks>
-        public double GetNetVolume(Tolerance tolerance)
-        {
-            if (_openings.Length == 0)
-            {
-                return Volume;
-            }
-
-            // The gross body: the openings are what is being cut out, so they must not also be carried
-            // along as openings of the thing being cut.
-            GeoSolid3 remaining = new GeoSolid3(_faces);
-            double deducted = 0.0;
-
-            foreach (GeoSolid3 opening in _openings)
-            {
-                if (Boolean3.TrySubtract(remaining, opening, out GeoSolid3 cut, tolerance))
-                {
-                    remaining = cut;
-                    continue;
-                }
-
-                // The subtraction gave nothing back: either the opening swallowed what was left of the
-                // body, or the cut could not be resolved. Taking the opening off whole covers both, since
-                // a body swallowed by its own opening lands on zero once the clamp below is applied.
-                deducted += opening.Volume;
-            }
-
-            return Math.Max(0.0, remaining.Volume - deducted);
-        }
+        internal double GrossVolume => Math.Abs(GetSignedVolume());
 
         /// <summary>
         /// Gets the signed volume enclosed by the bounding faces. It is positive when the face normals
@@ -316,7 +256,8 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Gets the centroid of the solid, ignoring the openings.
+        /// Gets the centroid of the bounding faces, ignoring the openings: the material's where there are none, as
+        /// <see cref="GetCentroid(Tolerance)"/> gives it.
         /// </summary>
         /// <remarks>
         /// Each surface triangle is taken with the world origin as the apex of a tetrahedron, exactly as
@@ -325,7 +266,7 @@ namespace GeometryHelper.Geometry
         /// answer does not depend on where the origin is. A body with no volume has no centroid to
         /// average, and the centroid of its vertices comes back instead.
         /// </remarks>
-        public GeoPoint3 Centroid => GetGrossCentroid(Tolerance.Global);
+        internal GeoPoint3 GrossCentroid => GetGrossCentroid(Tolerance.Global);
 
         /// <summary>
         /// Gets the centroid of the bounding faces, ignoring the openings, judging a body with no volume within a
@@ -561,14 +502,13 @@ namespace GeometryHelper.Geometry
         /// <para>
         /// Every question this library asks of a body takes its openings into account already. Cutting them in
         /// is for a body that will be asked <b>many</b> questions: the queries that need it do the cutting each
-        /// time, and a caller checking one plate against a hundred bolts is better off cutting the plate once
-        /// and asking the result — the same bargain as <see cref="BuildIndex()"/>, and for the same reason: the
-        /// body is a value, so it keeps no cache of its own.
+        /// time, of the openings near the question, and a caller checking one plate against a hundred bolts is
+        /// better off cutting the plate once and asking the result — the same bargain as <see cref="BuildIndex()"/>.
+        /// The body keeps only the cut its measures take, <see cref="GetVolume(Tolerance)"/> and the rest.
         /// </para>
         /// <para>
-        /// The answer holds the same material, so its <see cref="Volume"/> is what
-        /// <see cref="GetNetVolume()"/> measures, an opening drawn past a face, as a through hole usually is, taking
-        /// off only what lies in the body.
+        /// The answer is the material <see cref="GetVolume(Tolerance)"/> measures where the openings can all be cut in
+        /// at once: an opening drawn past a face, as a through hole usually is, takes off only what lies in the body.
         /// </para>
         /// </remarks>
         public bool TryCutOpenings(out GeoSolid3 material, Tolerance tolerance) => Boolean3.TryCutOpenings(this, out material, tolerance);
@@ -952,11 +892,15 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Returns a string that represents the current solid.
         /// </summary>
+        /// <remarks>
+        /// The volume is the faces' alone, which is the material's where there are no openings. Where there are, it is
+        /// called the gross volume: cutting them out is a boolean, and no work for a string a debugger shows.
+        /// </remarks>
         public override string ToString()
         {
             return _openings.Length == 0
-                ? $"Solid3(Faces: {_faces.Length}, Volume: {Volume:0.###})"
-                : $"Solid3(Faces: {_faces.Length}, Openings: {_openings.Length}, Volume: {Volume:0.###})";
+                ? $"Solid3(Faces: {_faces.Length}, Volume: {GrossVolume:0.###})"
+                : $"Solid3(Faces: {_faces.Length}, Openings: {_openings.Length}, GrossVolume: {GrossVolume:0.###})";
         }
 
         #region Combining with a body

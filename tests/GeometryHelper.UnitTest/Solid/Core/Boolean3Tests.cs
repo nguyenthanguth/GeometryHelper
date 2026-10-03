@@ -33,7 +33,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Assert.True(Cube().TryIntersect(Offset(), out GeoSolid3 shared));
 
-            Assert.Equal(125.0, shared.Volume, 4);
+            Assert.Equal(125.0, shared.GetVolume(), 4);
             Assert.True(shared.IsClosed());
             Assert.Equal(6, shared.Faces.Count);
         }
@@ -51,7 +51,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(cube.TryIntersect(Box(new GeoPoint3(-5, -5, -5), new GeoPoint3(15, 15, 15)), out GeoSolid3 shared));
 
-            Assert.Equal(cube.Volume, shared.Volume, 4);
+            Assert.Equal(cube.GetVolume(), shared.GetVolume(), 4);
         }
 
         [Fact]
@@ -60,7 +60,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(Cube().TryIntersect(Offset(), out GeoSolid3 first));
             Assert.True(Offset().TryIntersect(Cube(), out GeoSolid3 second));
 
-            Assert.Equal(first.Volume, second.Volume, 4);
+            Assert.Equal(first.GetVolume(), second.GetVolume(), 4);
         }
 
         /// <summary>
@@ -75,11 +75,11 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(800, 60, 450), new GeoPoint3(800, 60, 200), new GeoPoint3(800, 400, 200)).Fillet(40);
             GeoSolid3 bar = GeoSolid3.Pipe(centreLine, 8, 0.1);
             GeoSolid3 plate = Box(new GeoPoint3(0, -100, 285), new GeoPoint3(2000, 100, 300));
-            double section = GeoSolid3.Pipe(new GeoPolyline3(GeoPoint3.Origin, new GeoPoint3(0, 0, 100)), 8, 0.1).Volume / 100;
+            double section = GeoSolid3.Pipe(new GeoPolyline3(GeoPoint3.Origin, new GeoPoint3(0, 0, 100)), 8, 0.1).GetVolume() / 100;
 
             Assert.True(bar.TryIntersect(plate, out GeoSolid3 shared));
 
-            Assert.Equal(section * 15, shared.Volume, 6);
+            Assert.Equal(section * 15, shared.GetVolume(), 6);
             Assert.True(shared.IsClosed());
             Assert.InRange(shared.GetAabb().Min.Z, 285 - 1E-9, 300);
             Assert.InRange(shared.GetAabb().Max.Z, 285, 300 + 1E-9);
@@ -100,8 +100,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(stirrup.TryIntersect(beam, out GeoSolid3 shared));
             Assert.True(beam.TryIntersect(stirrup, out GeoSolid3 sharedTheOtherWay));
 
-            Assert.Equal(stirrup.Volume, shared.Volume, 6);
-            Assert.Equal(stirrup.Volume, sharedTheOtherWay.Volume, 6);
+            Assert.Equal(stirrup.GetVolume(), shared.GetVolume(), 6);
+            Assert.Equal(stirrup.GetVolume(), sharedTheOtherWay.GetVolume(), 6);
         }
 
         #endregion
@@ -113,7 +113,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Assert.True(Cube().TrySubtract(Offset(), out GeoSolid3 left));
 
-            Assert.Equal(1000.0 - 125.0, left.Volume, 4);
+            Assert.Equal(1000.0 - 125.0, left.GetVolume(), 4);
             Assert.True(left.IsClosed());
         }
 
@@ -137,7 +137,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(Cube().TrySubtract(bar, out GeoSolid3 pierced));
 
-            Assert.Equal(1000.0 - 4.0 * 4.0 * 10.0, pierced.Volume, 4);
+            Assert.Equal(1000.0 - 4.0 * 4.0 * 10.0, pierced.GetVolume(), 4);
             Assert.True(pierced.IsClosed());
 
             Assert.Equal(PointLocation.OutSide, pierced.Locate(new GeoPoint3(5, 5, 5)));
@@ -152,7 +152,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(Cube().TrySubtract(pocket, out GeoSolid3 hollowed));
 
-            Assert.Equal(1000.0 - 4.0 * 4.0 * 6.0, hollowed.Volume, 4);
+            Assert.Equal(1000.0 - 4.0 * 4.0 * 6.0, hollowed.GetVolume(), 4);
             Assert.True(hollowed.IsClosed());
 
             Assert.Equal(PointLocation.OutSide, hollowed.Locate(new GeoPoint3(5, 5, 8)));
@@ -166,7 +166,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(cube.TrySubtract(Box(new GeoPoint3(50, 50, 50), new GeoPoint3(60, 60, 60)), out GeoSolid3 left));
 
-            Assert.Equal(cube.Volume, left.Volume, 6);
+            Assert.Equal(cube.GetVolume(), left.GetVolume(), 6);
         }
 
         [Fact]
@@ -184,7 +184,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Assert.True(Cube().TryUnion(Offset(), out GeoSolid3 joined));
 
-            Assert.Equal(1000.0 + 1000.0 - 125.0, joined.Volume, 4);
+            Assert.Equal(1000.0 + 1000.0 - 125.0, joined.GetVolume(), 4);
             Assert.True(joined.IsClosed());
         }
 
@@ -194,7 +194,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(Cube().TryUnion(Offset(), out GeoSolid3 first));
             Assert.True(Offset().TryUnion(Cube(), out GeoSolid3 second));
 
-            Assert.Equal(first.Volume, second.Volume, 4);
+            Assert.Equal(first.GetVolume(), second.GetVolume(), 4);
         }
 
         [Fact]
@@ -204,7 +204,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(Cube().TryUnion(apart, out GeoSolid3 joined));
 
-            Assert.Equal(2000.0, joined.Volume, 4);
+            Assert.Equal(2000.0, joined.GetVolume(), 4);
             Assert.True(joined.IsClosed());
             Assert.Equal(PointLocation.Inside, joined.Locate(new GeoPoint3(5, 5, 5)));
             Assert.Equal(PointLocation.Inside, joined.Locate(new GeoPoint3(55, 55, 55)));
@@ -219,7 +219,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(lower.TryUnion(upper, out GeoSolid3 whole));
 
-            Assert.Equal(1000.0, whole.Volume, 4);
+            Assert.Equal(1000.0, whole.GetVolume(), 4);
             Assert.Equal(6, whole.Faces.Count);
             Assert.True(whole.IsClosed());
         }
@@ -238,7 +238,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(first.TryUnion(second, out GeoSolid3 joined));
             Assert.True(first.TryIntersect(second, out GeoSolid3 shared));
 
-            Assert.Equal(first.Volume + second.Volume, joined.Volume + shared.Volume, 4);
+            Assert.Equal(first.GetVolume() + second.GetVolume(), joined.GetVolume() + shared.GetVolume(), 4);
         }
 
         [Fact]
@@ -252,7 +252,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(first.TryIntersect(second, out GeoSolid3 shared));
             Assert.True(first.TryUnion(second, out GeoSolid3 joined));
 
-            Assert.Equal(joined.Volume, onlyFirst.Volume + onlySecond.Volume + shared.Volume, 4);
+            Assert.Equal(joined.GetVolume(), onlyFirst.GetVolume() + onlySecond.GetVolume() + shared.GetVolume(), 4);
         }
 
         [Fact]
@@ -265,8 +265,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(Cube().TrySubtract(turned.ToSolid(), out GeoSolid3 pierced));
 
             Assert.True(pierced.IsClosed());
-            Assert.True(pierced.Volume < 1000.0);
-            Assert.True(pierced.Volume > 0.0);
+            Assert.True(pierced.GetVolume() < 1000.0);
+            Assert.True(pierced.GetVolume() > 0.0);
             Assert.Equal(PointLocation.OutSide, pierced.Locate(new GeoPoint3(5, 5, 5)));
         }
 
@@ -286,10 +286,10 @@ namespace GeometryHelper.UnitTest.Solid
             // A bar through the foot of the L.
             GeoSolid3 bar = Box(new GeoPoint3(6, 1, -5), new GeoPoint3(8, 3, 11));
 
-            Assert.Equal(384.0, lShape.Volume, 4);
+            Assert.Equal(384.0, lShape.GetVolume(), 4);
             Assert.True(lShape.TrySubtract(bar, out GeoSolid3 pierced));
 
-            Assert.Equal(384.0 - 2.0 * 2.0 * 6.0, pierced.Volume, 4);
+            Assert.Equal(384.0 - 2.0 * 2.0 * 6.0, pierced.GetVolume(), 4);
             Assert.True(pierced.IsClosed());
         }
 

@@ -49,14 +49,14 @@ namespace GeometryHelper.UnitTest.Solid
                 catch (ArgumentException) { continue; }
 
                 // Moving a body does not change how big it is.
-                Assert.Equal(here.Volume, there.Volume, 6);
-                Assert.Equal(here.SurfaceArea, there.SurfaceArea, 6);
+                Assert.Equal(here.GetVolume(), there.GetVolume(), 6);
+                Assert.Equal(here.GetSurfaceArea(), there.GetSurfaceArea(), 6);
                 Assert.True(there.IsClosed(), $"the body stopped closing at {offset:0.###e0}");
 
                 // Nor where its middle is, relative to itself.
-                GeoPoint3 expected = here.Centroid.Add(shift);
-                Assert.True(there.Centroid.IsEqualTo(expected, Tol),
-                            $"centroid drifted by {there.Centroid.DistanceTo(expected):0.#########} at {offset:0.###e0}");
+                GeoPoint3 expected = here.GetCentroid().Add(shift);
+                Assert.True(there.GetCentroid().IsEqualTo(expected, Tol),
+                            $"centroid drifted by {there.GetCentroid().DistanceTo(expected):0.#########} at {offset:0.###e0}");
 
                 // Cutting it in half is the same operation wherever it sits.
                 var cutHere = new GeoPlane3(GeoPoint3.Origin, GeoVector3.YAxis);
@@ -69,9 +69,9 @@ namespace GeometryHelper.UnitTest.Solid
 
                 if (splitHere)
                 {
-                    Assert.Equal(upHere.Volume, upThere.Volume, 6);
-                    Assert.Equal(loHere.Volume, loThere.Volume, 6);
-                    Assert.Equal(there.Volume, upThere.Volume + loThere.Volume, 6);
+                    Assert.Equal(upHere.GetVolume(), upThere.GetVolume(), 6);
+                    Assert.Equal(loHere.GetVolume(), loThere.GetVolume(), 6);
+                    Assert.Equal(there.GetVolume(), upThere.GetVolume() + loThere.GetVolume(), 6);
                 }
             }
         }

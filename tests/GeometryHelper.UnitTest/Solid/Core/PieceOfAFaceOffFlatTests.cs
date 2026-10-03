@@ -50,7 +50,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(below.IsClosed(Tolerance));
             // The faces a hair out of flat hold their volume only as far as their corners say: as it is triangulated, a face
             // 0.007 off its plane over 70 000 mm2 moves it by a couple of hundred cubic millimetres.
-            Assert.InRange((above.Volume + below.Volume) / piece.Volume, 1 - 1E-5, 1 + 1E-5);
+            Assert.InRange((above.GetVolume() + below.GetVolume()) / piece.GetVolume(), 1 - 1E-5, 1 + 1E-5);
         }
     }
 }

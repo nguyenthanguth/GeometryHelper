@@ -969,7 +969,7 @@ namespace GeometryHelper.Core
         {
             point = GeoPoint3.Origin;
 
-            GeoPoint3 centroid = solid.Centroid;
+            GeoPoint3 centroid = solid.GrossCentroid;
 
             if (Containment3.Locate(solid, centroid, tolerance) == PointLocation.Inside)
             {

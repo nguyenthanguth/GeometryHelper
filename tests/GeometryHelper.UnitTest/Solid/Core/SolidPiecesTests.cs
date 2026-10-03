@@ -31,11 +31,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3[] clashes = plates.Intersect(beam);
 
             Assert.Equal(2, clashes.Length);
-            Assert.All(clashes, clash => Assert.Equal(30.0 * 20 * 10, clash.Volume, 3));
+            Assert.All(clashes, clash => Assert.Equal(30.0 * 20 * 10, clash.GetVolume(), 3));
 
             // The same volume as the one-body answer, split where it really is split.
             Assert.True(plates.TryIntersect(beam, out GeoSolid3 whole));
-            Assert.Equal(whole.Volume, clashes.Sum(clash => clash.Volume), 3);
+            Assert.Equal(whole.GetVolume(), clashes.Sum(clash => clash.GetVolume()), 3);
 
             // Each clash sits in its own plate.
             Assert.Single(clashes, clash => clash.GetAabb().Max.X <= 30.0 + 1E-6);
@@ -48,7 +48,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3[] shared = Box(0, 0, 0, 100, 100, 100).Intersect(Box(50, 50, 50, 150, 150, 150));
 
             Assert.Single(shared);
-            Assert.Equal(50.0 * 50 * 50, shared[0].Volume, 3);
+            Assert.Equal(50.0 * 50 * 50, shared[0].GetVolume(), 3);
         }
 
         [Fact]
@@ -78,7 +78,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3[] shared = body.Intersect(probe);
 
             Assert.Equal(2, shared.Length);
-            Assert.All(shared, piece => Assert.Equal(50.0 * 50 * 60, piece.Volume, 3));
+            Assert.All(shared, piece => Assert.Equal(50.0 * 50 * 60, piece.GetVolume(), 3));
         }
 
         [Fact]
@@ -89,7 +89,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3[] pieces = two.SplitShells();
 
             Assert.Equal(2, pieces.Length);
-            Assert.Equal(two.Volume, pieces.Sum(piece => piece.Volume), 3);
+            Assert.Equal(two.GetVolume(), pieces.Sum(piece => piece.GetVolume()), 3);
 
             // A body in one piece comes back alone.
             Assert.Single(Box(0, 0, 0, 10, 10, 10).SplitShells());
@@ -99,7 +99,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(hollow.TryCutOpenings(out GeoSolid3 cut));
             Assert.Single(cut.SplitShells());
-            Assert.Equal(1000000.0 - 125000.0, cut.SplitShells()[0].Volume, 3);
+            Assert.Equal(1000000.0 - 125000.0, cut.SplitShells()[0].GetVolume(), 3);
         }
 
         [Fact]

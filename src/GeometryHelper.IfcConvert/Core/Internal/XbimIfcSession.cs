@@ -147,7 +147,7 @@ namespace GeometryHelper.IfcConvert.Core.Internal
                 return null;
             }
 
-            return geometry.Solids.OrderByDescending(s => s.Volume).FirstOrDefault();
+            return geometry.Solids.OrderByDescending(s => s.GetVolume()).FirstOrDefault();
         }
 
         public IReadOnlyList<GeoSolid3> GetSolids(string guid, IfcConvertOptions options)

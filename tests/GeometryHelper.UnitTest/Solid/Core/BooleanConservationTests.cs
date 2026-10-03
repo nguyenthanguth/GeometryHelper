@@ -84,17 +84,17 @@ namespace GeometryHelper.UnitTest.Solid
 
                 if (!Boolean3.TryUnion(a, b, out GeoSolid3 union)) { continue; }
 
-                double shared = Boolean3.TryIntersect(a, b, out GeoSolid3 both) ? both.Volume : 0.0;
-                double aOnly = Boolean3.TrySubtract(a, b, out GeoSolid3 left) ? left.Volume : 0.0;
-                double bOnly = Boolean3.TrySubtract(b, a, out GeoSolid3 right) ? right.Volume : 0.0;
+                double shared = Boolean3.TryIntersect(a, b, out GeoSolid3 both) ? both.GetVolume() : 0.0;
+                double aOnly = Boolean3.TrySubtract(a, b, out GeoSolid3 left) ? left.GetVolume() : 0.0;
+                double bOnly = Boolean3.TrySubtract(b, a, out GeoSolid3 right) ? right.GetVolume() : 0.0;
 
                 cases++;
 
                 // |A| + |B| = |A union B| + |A intersect B|, and each body is its own share plus what it
                 // keeps to itself.
-                worst = Math.Max(worst, Math.Abs(a.Volume + b.Volume - union.Volume - shared));
-                worst = Math.Max(worst, Math.Abs(aOnly + shared - a.Volume));
-                worst = Math.Max(worst, Math.Abs(bOnly + shared - b.Volume));
+                worst = Math.Max(worst, Math.Abs(a.GetVolume() + b.GetVolume() - union.GetVolume() - shared));
+                worst = Math.Max(worst, Math.Abs(aOnly + shared - a.GetVolume()));
+                worst = Math.Max(worst, Math.Abs(bOnly + shared - b.GetVolume()));
             }
 
             Assert.True(cases > 100, $"only {cases} usable cases");
@@ -127,10 +127,10 @@ namespace GeometryHelper.UnitTest.Solid
             }, 3.0);
 
             Assert.True(Boolean3.TrySubtract(slab, first, out GeoSolid3 once));
-            Assert.Equal(392.0, once.Volume, 9);
+            Assert.Equal(392.0, once.GetVolume(), 9);
 
             Assert.True(Boolean3.TrySubtract(once, second, out GeoSolid3 twice));
-            Assert.Equal(380.0, twice.Volume, 9);
+            Assert.Equal(380.0, twice.GetVolume(), 9);
             Assert.True(twice.IsClosed());
         }
 

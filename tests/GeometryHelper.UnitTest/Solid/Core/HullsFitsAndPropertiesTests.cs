@@ -82,7 +82,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 hull = ConvexHull3.Of(points);
 
             Assert.Equal(6, hull.Faces.Count);
-            Assert.Equal(1000000.0, hull.Volume, 6);
+            Assert.Equal(1000000.0, hull.GetVolume(), 6);
             Assert.True(hull.IsClosed());
         }
 
@@ -174,7 +174,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoAabb3 square = GeoAabb3.FromPoints(points);
 
             Assert.True(fitted.Volume <= square.Volume + 1E-6);
-            Assert.True(fitted.Volume >= ConvexHull3.Of(points).Volume - 1E-6);
+            Assert.True(fitted.Volume >= ConvexHull3.Of(points).GetVolume() - 1E-6);
             Assert.All(points, p => Assert.True(fitted.Contains(p)));
         }
 

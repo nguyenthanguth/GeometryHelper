@@ -154,9 +154,10 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 before = body.Clone();
 
             // Everything that measures, tests or meshes the body, run once each.
-            double _ = body.Volume + body.SurfaceArea + body.GetNetVolume();
+            double _ = body.GetVolume() + body.GetSurfaceArea();
+            body.TryGetVolume(out _);
             body.GetAabb();
-            body.Centroid.ToString();
+            body.GetCentroid().ToString();
             body.IsClosed();
             body.Triangulate();
             body.Contains(new GeoPoint3(1, 2, 3));
@@ -164,6 +165,15 @@ namespace GeometryHelper.UnitTest.Solid
             body.DistanceTo(new GeoPoint3(50, 50, 50));
 
             Assert.True(body.Equals(before), "measuring a body changed it");
+
+            // A body with an opening keeps the cut its measures take, and is still the body it was.
+            GeoSolid3 pierced = body.WithOpenings(new[] { new GeoObb3(new GeoPoint3(1, 2, 3), 1, 1, 10).ToSolid() });
+            GeoSolid3 piercedBefore = pierced.Clone();
+            double ____ = pierced.GetVolume() + pierced.GetSurfaceArea();
+            pierced.GetCentroid();
+
+            Assert.True(pierced.Equals(piercedBefore), "measuring a body with an opening changed it");
+            Assert.Equal(piercedBefore.GetHashCode(), pierced.GetHashCode());
 
             var chain = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(5, 0, 0), new GeoPoint3(5, 5, 0));
             GeoPolyline3 chainBefore = chain.Clone();

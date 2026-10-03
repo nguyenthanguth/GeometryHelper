@@ -63,7 +63,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 plate = Plate(alongTheBoundary);
 
             Assert.True(plate.IsClosed());
-            Assert.Equal(96.0, plate.Volume, 9);
+            Assert.Equal(96.0, plate.GetVolume(), 9);
         }
 
         [Fact]
@@ -87,10 +87,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Contains(material.Faces, face => face.Holes.Count > 0);
 
             double expected = (100000.0 * 50 - 1000.0 * 85) / 99000.0;
-            Assert.Equal(99000.0, material.Volume, 6);
-            Assert.Equal(expected, material.Centroid.X, 9);
-            Assert.Equal(expected, material.Centroid.Y, 9);
-            Assert.Equal(5.0, material.Centroid.Z, 9);
+            Assert.Equal(99000.0, material.GetVolume(), 6);
+            Assert.Equal(expected, material.GetCentroid().X, 9);
+            Assert.Equal(expected, material.GetCentroid().Y, 9);
+            Assert.Equal(5.0, material.GetCentroid().Z, 9);
         }
     }
 }

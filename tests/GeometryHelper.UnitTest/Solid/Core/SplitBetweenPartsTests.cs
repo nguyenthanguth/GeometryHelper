@@ -24,8 +24,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
             var both = new GeoSolid3(System.Linq.Enumerable.Concat(low.Faces, high.Faces));
 
             Assert.True(both.TrySplitBy(AtY(1500), out GeoSolid3 above, out GeoSolid3 below, Tolerance));
-            Assert.Equal(1E9, above.Volume, 3);
-            Assert.Equal(1E9, below.Volume, 3);
+            Assert.Equal(1E9, above.GetVolume(), 3);
+            Assert.Equal(1E9, below.GetVolume(), 3);
             Assert.True(above.IsClosed(Tolerance));
             Assert.True(below.IsClosed(Tolerance));
             Assert.True(above.GetAabb().Min.Y >= 2000 - 1E-9);
@@ -41,9 +41,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoSolid3 body = GeoSolid3.Extrude(section, new GeoVector3(0, 0, 600), Tolerance);
 
             Assert.True(body.TrySplitBy(AtY(0), out GeoSolid3 above, out GeoSolid3 below, Tolerance));
-            Assert.Equal(body.Volume, above.Volume + below.Volume, 3);
-            Assert.Equal(0.5 * 400 * 1000 * 600, above.Volume, 3);
-            Assert.Equal(0.5 * 500 * 1000 * 600, below.Volume, 3);
+            Assert.Equal(body.GetVolume(), above.GetVolume() + below.GetVolume(), 3);
+            Assert.Equal(0.5 * 400 * 1000 * 600, above.GetVolume(), 3);
+            Assert.Equal(0.5 * 500 * 1000 * 600, below.GetVolume(), 3);
             Assert.True(above.IsClosed(Tolerance));
             Assert.True(below.IsClosed(Tolerance));
         }

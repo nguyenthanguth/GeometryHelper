@@ -264,8 +264,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 solid = box.ToSolid();
 
             Assert.Equal(6, solid.Faces.Count);
-            Assert.Equal(box.Volume, solid.Volume, 6);
-            Assert.Equal(box.SurfaceArea, solid.SurfaceArea, 6);
+            Assert.Equal(box.Volume, solid.GetVolume(), 6);
+            Assert.Equal(box.SurfaceArea, solid.GetSurfaceArea(), 6);
             Assert.True(solid.IsClosed());
         }
 
@@ -277,7 +277,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(1.0, 1.0, 1.0),
                 new GeoVector3(0.0, 1.0, 0.0));
 
-            Assert.Equal(box.Volume, box.ToSolid().Volume, 6);
+            Assert.Equal(box.Volume, box.ToSolid().GetVolume(), 6);
             Assert.True(box.ToSolid().IsClosed());
         }
 

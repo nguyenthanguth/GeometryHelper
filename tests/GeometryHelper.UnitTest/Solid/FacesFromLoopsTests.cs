@@ -114,7 +114,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(3 + 3 * 2, body.Faces.Count);
             Assert.True(body.IsClosed(Default));
-            Assert.InRange(body.Volume, 1E6, 1E6 + 12000.0);
+            Assert.InRange(body.GetVolume(), 1E6, 1E6 + 12000.0);
         }
 
         [Fact]
@@ -129,7 +129,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(beam.Faces.Count > 26);
             Assert.True(beam.IsClosed(Default));
             double concrete = 30000.0 * 3000.0 * 400.0 - 5 * 600.0 * 800.0 * 400.0;
-            Assert.InRange(beam.Volume, concrete * 0.99999, concrete * 1.00001);
+            Assert.InRange(beam.GetVolume(), concrete * 0.99999, concrete * 1.00001);
 
             GeoFace3 cut = Assert.Single(beam.Section(new GeoPlane3(DefaultToleranceTests.Start, GeoVector3.YAxis), Default));
             Assert.Equal(3, cut.Holes.Count);

@@ -71,7 +71,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 Assert.True(body.IsClosed());
 
                 // The end is a ten-square with a roof two high on it: 110, ten deep.
-                Assert.Equal(1100.0, body.Volume, 6);
+                Assert.Equal(1100.0, body.GetVolume(), 6);
             });
         }
     }

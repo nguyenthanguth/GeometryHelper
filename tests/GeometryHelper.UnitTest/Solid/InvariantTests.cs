@@ -62,8 +62,8 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 GeoSolid3 moved = cube.TransformBy(motion);
 
-                Assert.Equal(cube.Volume, moved.Volume, 4);
-                Assert.Equal(cube.SurfaceArea, moved.SurfaceArea, 4);
+                Assert.Equal(cube.GetVolume(), moved.GetVolume(), 4);
+                Assert.Equal(cube.GetSurfaceArea(), moved.GetSurfaceArea(), 4);
                 Assert.True(moved.IsClosed());
             }
         }

@@ -82,7 +82,7 @@ namespace GeometryHelper.UnitTest.Solid
 
                     if (q % 2 == 0)
                     {
-                        GeoPoint3 aim = body.Centroid;
+                        GeoPoint3 aim = body.GetCentroid();
                         dir = origin.GetVectorTo(new GeoPoint3(
                             aim.X + rng.NextDouble() * 4 - 2,
                             aim.Y + rng.NextDouble() * 4 - 2,

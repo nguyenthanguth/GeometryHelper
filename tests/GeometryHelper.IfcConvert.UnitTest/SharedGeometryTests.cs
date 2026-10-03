@@ -90,8 +90,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 foreach ((string guid, GeoPoint3 middle) in Placed)
                 {
                     GeoSolid3 cube = Assert.Single(model.GetSolids(guid));
-                    Assert.Equal(1.0, cube.Volume, 9);
-                    Assert.True(cube.Centroid.DistanceTo(middle) < 1E-9, $"{guid} is at {cube.Centroid}, not {middle}");
+                    Assert.Equal(1.0, cube.GetVolume(), 9);
+                    Assert.True(cube.GetCentroid().DistanceTo(middle) < 1E-9, $"{guid} is at {cube.GetCentroid()}, not {middle}");
                 }
 
                 Assert.Equal(1, SolidConvert.BuiltItemCount(model.GetProduct("0000000000000000000A01").Model));
@@ -106,9 +106,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 GeoSolid3 metres = Assert.Single(model.GetSolids("0000000000000000000B01"));
                 GeoSolid3 millimetres = Assert.Single(model.GetSolids("0000000000000000000B01", new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters }));
 
-                Assert.Equal(1.0, metres.Volume, 9);
-                Assert.Equal(1E9, millimetres.Volume, 3);
-                Assert.True(millimetres.Centroid.DistanceTo(new GeoPoint3(10500, 500, 500)) < 1E-6, $"{millimetres.Centroid}");
+                Assert.Equal(1.0, metres.GetVolume(), 9);
+                Assert.Equal(1E9, millimetres.GetVolume(), 3);
+                Assert.True(millimetres.GetCentroid().DistanceTo(new GeoPoint3(10500, 500, 500)) < 1E-6, $"{millimetres.GetCentroid()}");
                 Assert.Equal(2, SolidConvert.BuiltItemCount(model.GetProduct("0000000000000000000B01").Model));
             });
         }
@@ -121,7 +121,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 string[] guids = Enumerable.Range(0, 64).Select(k => Placed[k % Placed.Length].Guid).ToArray();
                 var middles = new GeoPoint3[guids.Length];
 
-                Parallel.For(0, guids.Length, k => middles[k] = model.GetSolids(guids[k]).Single().Centroid);
+                Parallel.For(0, guids.Length, k => middles[k] = model.GetSolids(guids[k]).Single().GetCentroid());
 
                 for (int k = 0; k < guids.Length; k++)
                 {

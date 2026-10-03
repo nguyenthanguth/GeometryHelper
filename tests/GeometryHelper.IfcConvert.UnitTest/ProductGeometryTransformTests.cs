@@ -62,7 +62,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
             // The two faces the corner lies in come as triangles on their corners where the plate had them as one face
             // each: the dip of a hundredth over a square metre is all that can differ.
-            Assert.InRange(body.Volume, plate.Volume * 0.999, plate.Volume * 1.001);
+            Assert.InRange(body.GetVolume(), plate.GetVolume() * 0.999, plate.GetVolume() * 1.001);
         }
 
         [Fact]

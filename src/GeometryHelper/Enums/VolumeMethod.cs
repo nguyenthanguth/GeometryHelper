@@ -18,7 +18,7 @@ namespace GeometryHelper.Enums
     {
         /// <summary>
         /// The fan of each face's boundary from its first corner, less the fans of its holes: what
-        /// <see cref="Geometry.GeoSolid3.Volume"/> sums, and the quickest. Whatever the face's shape, its fan sums to the
+        /// <see cref="Geometry.GeoSolid3.GetVolume(Tolerance)"/> sums, and the quickest. Whatever the face's shape, its fan sums to the
         /// face read flat through that corner, a third of its area vector against it, so over a face a hair out of flat
         /// the volume moves by a third of the face's area times how far its first corner stands off its middle plane.
         /// Tekla Structures reports the volume of a part read so.

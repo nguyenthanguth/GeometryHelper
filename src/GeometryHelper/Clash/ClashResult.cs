@@ -136,8 +136,8 @@ namespace GeometryHelper.Clash
 
             foreach (GeoSolid3 overlap in overlaps)
             {
-                double piece = overlap.Volume;
-                GeoPoint3 centre = overlap.Centroid;
+                double piece = overlap.GrossVolume;
+                GeoPoint3 centre = overlap.GrossCentroid;
 
                 volume += piece;
                 x += centre.X * piece;
@@ -145,7 +145,7 @@ namespace GeometryHelper.Clash
                 z += centre.Z * piece;
             }
 
-            GeoPoint3 location = volume > 0.0 ? new GeoPoint3(x / volume, y / volume, z / volume) : overlaps[0].Centroid;
+            GeoPoint3 location = volume > 0.0 ? new GeoPoint3(x / volume, y / volume, z / volume) : overlaps[0].GrossCentroid;
 
             return new ClashResult(first, second, ClashKind.Hard, location)
             {

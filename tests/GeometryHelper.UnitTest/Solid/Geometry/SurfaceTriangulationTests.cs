@@ -269,7 +269,7 @@ namespace GeometryHelper.UnitTest.Solid
                 meshed += triangle.Area;
             }
 
-            Assert.Equal(body.SurfaceArea, meshed, 9);
+            Assert.Equal(body.GetSurfaceArea(), meshed, 9);
         }
 
         [Fact]
@@ -277,7 +277,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoSolid3 body = Extrude(UShape(), 1.0);
 
-            Assert.Equal(52.0, body.Volume, 9);
+            Assert.Equal(52.0, body.GetVolume(), 9);
             Assert.True(body.IsClosed());
 
             // The fan is still what the signed sums are built on, and it is still reachable.

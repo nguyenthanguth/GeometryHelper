@@ -236,7 +236,7 @@ END-ISO-10303-21;
                     Assert.NotEmpty(geomGlobal.Solids);
 
                     // Wall_B is placed at (10, 0, 5) — centroid X should be near 10
-                    var centroid = geomGlobal.Solids[0].Centroid;
+                    var centroid = geomGlobal.Solids[0].GetCentroid();
                     Assert.True(centroid.X > 5.0, $"Global X centroid should be ~10, but was {centroid.X}");
                     Assert.True(centroid.Z > 1.0, $"Global Z centroid should be ~6, but was {centroid.Z}");
                 }
@@ -267,7 +267,7 @@ END-ISO-10303-21;
 
                     // In Local space, the geometry is not displaced by the (10,0,5) placement
                     // centroid X should be near 0 (centered on X axis in local space)
-                    var centroid = geomLocal.Solids[0].Centroid;
+                    var centroid = geomLocal.Solids[0].GetCentroid();
                     Assert.True(Math.Abs(centroid.X) < 2.0, $"Local X centroid should be near 0, but was {centroid.X}");
                 }
             }
@@ -296,7 +296,7 @@ END-ISO-10303-21;
                     Assert.NotNull(localSolid);
 
                     // The X centroids must differ because placement offset is (10, 0, 5)
-                    double deltaX = Math.Abs(globalSolid.Centroid.X - localSolid.Centroid.X);
+                    double deltaX = Math.Abs(globalSolid.GetCentroid().X - localSolid.GetCentroid().X);
                     Assert.True(deltaX > 5.0, $"Centroid X difference between Global and Local should be large (>5), was {deltaX}");
                 }
             }

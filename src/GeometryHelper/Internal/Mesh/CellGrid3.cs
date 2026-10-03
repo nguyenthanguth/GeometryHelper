@@ -913,7 +913,7 @@ namespace GeometryHelper.Core
             // A cut the body would not take, which a closed body should never give: the piece goes whole to the side of its
             // middle, or where one side is a joint or past the cells to the side a cell takes, so that nothing of the body is
             // lost, and the grid says so.
-            bool toBelow = kept == Kept.Both ? origin.GetVectorTo(piece.Centroid).DotProduct(direction) < at : kept == Kept.Below;
+            bool toBelow = kept == Kept.Both ? origin.GetVectorTo(piece.GrossCentroid).DotProduct(direction) < at : kept == Kept.Below;
             GeometryHelperLog.Warn($"Cells: a cut square to the grid's {AxisNames[axis]} axis at {at} through a piece of the body could not be made; the piece is kept whole in the cell {(toBelow ? "below" : "above")}.");
 
             return toBelow ? new Cut { Below = piece } : new Cut { Above = piece };
@@ -980,7 +980,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoSolid3 shell in shells)
             {
-                parts.Add((shell, layout.Frame.ToLocal(shell.Centroid)));
+                parts.Add((shell, layout.Frame.ToLocal(shell.GrossCentroid)));
             }
 
             parts.Sort((a, b) =>
@@ -1009,7 +1009,7 @@ namespace GeometryHelper.Core
 
             for (int p = 0; p < parts.Count; p++)
             {
-                double volume = parts[p].Solid.Volume;
+                double volume = parts[p].Solid.GrossVolume;
 
                 // The body fills the cell but for a skin no thicker than the point tolerance: every face it has there lies on
                 // a side of the cell, as a box's whole cell is cut by none of its sides. The volume alone would let through a

@@ -93,7 +93,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(above.IsClosed());
             Assert.True(below.IsClosed());
-            Assert.Equal(slab.Volume, above.Volume + below.Volume, 9);
+            Assert.Equal(slab.GetVolume(), above.GetVolume() + below.GetVolume(), 9);
         }
 
         [Fact]
@@ -122,8 +122,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Empty(above.Openings);
             Assert.Empty(below.Openings);
-            Assert.Equal(100.0, above.Volume, 9);
-            Assert.Equal(100.0, below.Volume, 9);
+            Assert.Equal(100.0, above.GetVolume(), 9);
+            Assert.Equal(100.0, below.GetVolume(), 9);
         }
 
         #endregion
@@ -153,7 +153,7 @@ namespace GeometryHelper.UnitTest.Solid
             // The cavity is real geometry now, so the gross volume already accounts for it: the slab is
             // 200, the duct removes 8 and the tool removes 1.
             Assert.Empty(result.Openings);
-            Assert.Equal(191.0, result.Volume, 9);
+            Assert.Equal(191.0, result.GetVolume(), 9);
         }
 
         [Fact]
@@ -167,7 +167,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(PointLocation.OutSide, result.Locate(InsideTheDuct));
 
             // A 4 x 4 x 2 block of the slab, less the 2 x 2 x 2 the duct takes out of it.
-            Assert.Equal(24.0, result.Volume, 9);
+            Assert.Equal(24.0, result.GetVolume(), 9);
         }
 
         [Fact]
@@ -181,7 +181,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(PointLocation.OutSide, result.Locate(InsideTheDuct));
 
             // 14 x 10 x 2 across the two bodies, less the duct.
-            Assert.Equal(272.0, result.Volume, 9);
+            Assert.Equal(272.0, result.GetVolume(), 9);
         }
 
         [Fact]
@@ -205,30 +205,30 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(Boolean3.TrySubtract(slab, tool, out GeoSolid3 result));
 
-            Assert.Equal(199.0, result.Volume, 9);
+            Assert.Equal(199.0, result.GetVolume(), 9);
         }
 
         #endregion
 
-        #region Net volume
+        #region Volume of the material
 
         [Fact]
-        public void GetNetVolume_ClipsAProtrudingOpeningToTheBody()
+        public void GetVolume_ClipsAProtrudingOpeningToTheBody()
         {
             // The opening is 2 x 2 x 4 and only 2 x 2 x 2 of it lies in the slab.
-            Assert.Equal(192.0, SlabWithDuct().GetNetVolume(), 9);
+            Assert.Equal(192.0, SlabWithDuct().GetVolume(), 9);
         }
 
         [Fact]
-        public void GetNetVolume_TakesAnOpeningInsideTheBodyOffWhole()
+        public void GetVolume_TakesAnOpeningInsideTheBodyOffWhole()
         {
             GeoSolid3 slab = Box(0, 0, 0, 10, 10, 4).WithOpenings(new[] { Box(4, 4, 1, 6, 6, 3) });
 
-            Assert.Equal(392.0, slab.GetNetVolume(), 9);
+            Assert.Equal(392.0, slab.GetVolume(), 9);
         }
 
         [Fact]
-        public void GetNetVolume_CountsOverlappingOpeningsOnce()
+        public void GetVolume_CountsOverlappingOpeningsOnce()
         {
             GeoSolid3 slab = Box(0, 0, 0, 10, 10, 4).WithOpenings(new[]
             {
@@ -237,16 +237,16 @@ namespace GeometryHelper.UnitTest.Solid
             });
 
             // Two 4 x 4 x 2 openings sharing a 2 x 2 x 2 corner: 32 + 32 - 8 = 56 is really removed.
-            Assert.Equal(400.0 - 56.0, slab.GetNetVolume(), 9);
+            Assert.Equal(400.0 - 56.0, slab.GetVolume(), 9);
         }
 
         [Fact]
-        public void GetNetVolume_WithoutOpenings_IsTheGrossVolume()
+        public void GetVolume_WithoutOpenings_IsTheGrossVolume()
         {
             GeoSolid3 slab = Box(0, 0, 0, 10, 10, 2);
 
-            Assert.Equal(slab.Volume, slab.GetNetVolume(), 9);
-            Assert.Equal(200.0, slab.GetNetVolume(), 9);
+            Assert.Equal(slab.GrossVolume, slab.GetVolume(), 9);
+            Assert.Equal(200.0, slab.GetVolume(), 9);
         }
 
         #endregion

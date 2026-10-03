@@ -148,7 +148,7 @@ namespace GeometryHelper.UnitTest.Solid
                         continue;
                     }
 
-                    double shared = parts[i].Intersect(parts[j]).Sum(piece => piece.Volume);
+                    double shared = parts[i].Intersect(parts[j]).Sum(piece => piece.GetVolume());
                     byHand.Add((i, j, shared > 0 ? ClashKind.Hard : ClashKind.Touch, shared));
                 }
             }
@@ -192,7 +192,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             // The straight runs cross the web and the flange square, so each shares its section times the thickness
             // crossed; the bend lies clear of the steel.
-            double sectionArea = through.Volume / 600;
+            double sectionArea = through.GetVolume() / 600;
             Assert.Equal(sectionArea * 10, found[0].Volume, 6);
             Assert.Equal(sectionArea * 15, found[1].Volume, 6);
 

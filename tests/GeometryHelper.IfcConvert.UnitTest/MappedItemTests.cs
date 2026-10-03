@@ -59,9 +59,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
             {
                 var solid = model.GetSolid("0000000000000000000002");
                 Assert.NotNull(solid);
-                Assert.Equal(5.0, solid.Centroid.X, 3);
-                Assert.Equal(12.0, solid.Centroid.Y, 3);
-                Assert.Equal(1.0, solid.Centroid.Z, 3);
+                Assert.Equal(5.0, solid.GetCentroid().X, 3);
+                Assert.Equal(12.0, solid.GetCentroid().Y, 3);
+                Assert.Equal(1.0, solid.GetCentroid().Z, 3);
             });
         }
 
@@ -72,10 +72,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
             {
                 var solid = model.GetSolid("0000000000000000000002");
                 Assert.NotNull(solid);
-                Assert.Equal(1.0, solid.Volume, 3);
-                Assert.Equal(0.0, solid.Centroid.X, 3);
-                Assert.Equal(15.0, solid.Centroid.Y, 3);
-                Assert.Equal(1.0, solid.Centroid.Z, 3);
+                Assert.Equal(1.0, solid.GetVolume(), 3);
+                Assert.Equal(0.0, solid.GetCentroid().X, 3);
+                Assert.Equal(15.0, solid.GetCentroid().Y, 3);
+                Assert.Equal(1.0, solid.GetCentroid().Z, 3);
             });
         }
     }
