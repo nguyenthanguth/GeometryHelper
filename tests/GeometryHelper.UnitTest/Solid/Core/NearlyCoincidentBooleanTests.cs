@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.Core;
@@ -130,6 +131,58 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(2, pieces.Length);
             Assert.Equal(body.GetVolume(), pieces.Sum(piece => piece.GetVolume()), 6);
         }
+
+        [Fact]
+        public void ASlabWrappingTheCornerOfAnotherTakesTheWedgeTheyShareEitherWay()
+        {
+            // Taken from the slab that wraps the other's corner, the other took nothing: cut by the other's few planes it
+            // could not be cut through the corner, and the planes of both, cut by instead, held the other's long side for
+            // the face of the wedge, the two through one point and turned 0.32 milliradians, 5.8 apart at the far end.
+            WrappedCorner(out GeoSolid3 first, out GeoSolid3 second, out double wedge);
+
+            Assert.True(Boolean3.TrySubtract(first, second, out GeoSolid3 firstRest, Tolerance));
+            Assert.True(Boolean3.TrySubtract(second, first, out GeoSolid3 secondRest, Tolerance));
+            AssertNear(wedge, first.GetVolume() - firstRest.GetVolume(), "the first less the second");
+            AssertNear(wedge, second.GetVolume() - secondRest.GetVolume(), "the second less the first");
+            Assert.True(firstRest.IsClosed(Tolerance));
+            Assert.True(secondRest.IsClosed(Tolerance));
+
+            // The first with the second as an opening is the same material.
+            AssertNear(wedge, first.GetVolume() - first.WithOpenings(new[] { second }).GetVolume(Tolerance), "the second cut in as an opening");
+        }
+
+        /// <summary>
+        /// Two slabs as drawn side by side, the second wrapping a corner of the first: along the first's end a hair off it,
+        /// and from the corner, a hair outside it, along its long side at a slant, 5.8 into it 18 m on, so that the two
+        /// share a wedge 300 thick from nothing at the corner. An island of the second in the first's notch has square holes
+        /// in it, so that more of the second's planes come near the first than cutting the first by them was let cost.
+        /// </summary>
+        private static void WrappedCorner(out GeoSolid3 first, out GeoSolid3 second, out double wedge)
+        {
+            first = Slab(new[] { (0.0, 0.0), (18000.0, 0.0), (18000.0, 3000.0), (4000.0, 3000.0), (4000.0, 9000.0), (0.0, 9000.0) }, 6600, 7500, null);
+
+            double rise = 5.8 / 18000.0;
+            var wraps = Slab(new[] { (-3000.0, -5000.0), (21000.0, -5000.0), (21000.0, rise * 21000.0 - 0.00005), (-0.0003, -0.00005), (-0.0002, 9000.0), (-3000.0, 9000.0) }, 7200, 7500, null);
+            var holes = Enumerable.Range(0, 12).Select(k => new[] { (5300.0 + k * 700, 4300.0 + k * 230), (5700.0 + k * 700, 4300.0 + k * 230), (5700.0 + k * 700, 4700.0 + k * 230), (5300.0 + k * 700, 4700.0 + k * 230) });
+            var island = Slab(new[] { (5000.0, 4000.0), (17000.0, 4000.0), (17000.0, 8500.0), (5000.0, 8500.0) }, 7200, 7500, holes);
+            second = new GeoSolid3(wraps.Faces.Concat(island.Faces));
+            wedge = 0.5 * 5.8 * 18000.0 * 300.0;
+        }
+
+        /// <summary>A slab of an outline wound counter-clockwise in XY, holes and all, made as GeoSolid3.Extrude makes it.</summary>
+        private static GeoSolid3 Slab(IEnumerable<(double X, double Y)> outline, double bottom, double top, IEnumerable<IEnumerable<(double X, double Y)>> holes)
+        {
+            var boundary = new GeoPolygon3(outline.Select(p => new GeoPoint3(p.X, p.Y, bottom)), Tolerance);
+            var face = new GeoFace3(boundary, holes?.Select(h => new GeoPolygon3(h.Select(p => new GeoPoint3(p.X, p.Y, bottom)), Tolerance)), Tolerance);
+            return GeoSolid3.Extrude(face, new GeoVector3(0, 0, top - bottom), Tolerance);
+        }
+
+        /// <summary>
+        /// Holds a volume to what it should be within a ten-thousandth: the corner of the wedge, a hair outside the long side,
+        /// takes 270 of its 15.66 million, and the cuts round a hundred more.
+        /// </summary>
+        private static void AssertNear(double expected, double actual, string what)
+            => Assert.True(Math.Abs(actual - expected) <= 1E-4 * Math.Abs(expected), $"{what}: {actual:N1} for {expected:N1}");
 
         /// <summary>
         /// The plane eight ten-thousandths west of the L's notch edge at its north end and turned 0.424 microradians, so that

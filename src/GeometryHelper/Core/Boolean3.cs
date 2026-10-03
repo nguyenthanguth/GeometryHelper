@@ -636,27 +636,11 @@ namespace GeometryHelper.Core
         /// </remarks>
         private static List<GeoPlane3> SharedPlanes(GeoSolid3 first, GeoSolid3 second, Tolerance tolerance)
         {
-            List<GeoPlane3> planes = Splition3.CollectFacePlanes(first, tolerance);
-
-            foreach (GeoPlane3 plane in Splition3.CollectFacePlanes(second, tolerance))
-            {
-                bool known = false;
-
-                foreach (GeoPlane3 existing in planes)
-                {
-                    if (existing.IsEqualTo(plane, tolerance) || existing.IsEqualTo(plane.Flip(), tolerance))
-                    {
-                        known = true;
-                        break;
-                    }
-                }
-
-                if (!known)
-                {
-                    planes.Add(plane);
-                }
-            }
-
+            // One plane of the two only where they stand together over both bodies, which both are cut by them.
+            GeoAabb3 region = first.GetAabb().Union(second.GetAabb());
+            var planes = new List<GeoPlane3>();
+            Splition3.CollectFacePlanes(first, region, tolerance, planes);
+            Splition3.CollectFacePlanes(second, region, tolerance, planes);
             return planes;
         }
 
@@ -697,32 +681,15 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Adds to a list the planes not already in it of the faces of a body, and of its openings, that come near
-        /// a box.
+        /// a box: not one plane over the box with one in it; see <see cref="Splition3.IsOnePlaneOver"/>.
         /// </summary>
         private static void AddPlanesNear(GeoSolid3 solid, GeoAabb3 box, List<GeoPlane3> planes, Tolerance tolerance)
         {
             foreach (GeoFace3 face in solid.Faces)
             {
-                if (!face.GetAabb().CollidesWith(box, tolerance))
+                if (face.GetAabb().CollidesWith(box, tolerance))
                 {
-                    continue;
-                }
-
-                GeoPlane3 plane = face.GetPlane();
-                bool known = false;
-
-                foreach (GeoPlane3 existing in planes)
-                {
-                    if (existing.IsEqualTo(plane, tolerance) || existing.IsEqualTo(plane.Flip(), tolerance))
-                    {
-                        known = true;
-                        break;
-                    }
-                }
-
-                if (!known)
-                {
-                    planes.Add(plane);
+                    Splition3.AddPlane(face.GetPlane(), box, tolerance, planes);
                 }
             }
 

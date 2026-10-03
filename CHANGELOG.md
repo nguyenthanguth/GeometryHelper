@@ -178,6 +178,13 @@ and the sliver between the copies, 102.8 long, was left open above it. A cell of
 thousand random thin bodies. Where a bridged rim leaves its half open, a face across each sliver no wider than four
 point tolerances now closes it, and a half closed as it is is left so.
 
+**FIXED.** The booleans took two planes for one where they ran through one point with normals the tolerance lets pass:
+of a slab wrapping the corner of another, its face running from the corner along the other's long side, turned 0.32
+milliradians from it, stood 5.8 off it 18 m on and was never cut along. The slab less the other, worked out by cutting
+it by the planes of both, took nothing of the 15.79 million cubic millimetres the two share. Two planes are one now only
+where every corner of the box they cut stands as far from the one as from the other, within the planar tolerance; so for
+the planes of a body's faces and of its openings.
+
 **FIXED.** `GeoSolid3.Locate` and `Contains` threw another ray when a crossing landed within twice the point tolerance of
 a face's outer rim, but not of the rim of one of its holes: a ray leaving through the wall of a hole and rising through
 the hole a hair short of its rim was counted by the face the hole is cut in, and the point came out of the body. The

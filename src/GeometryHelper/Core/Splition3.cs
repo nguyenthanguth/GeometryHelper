@@ -2780,46 +2780,86 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// Several faces of a body often share a plane, and a face and one facing the other way describe
         /// the same flat place. Cutting by each of them separately would divide the region again for no
-        /// gain, so a plane already collected — in either direction — is not collected twice.
+        /// gain, so a plane already collected — in either direction — is not collected twice: one that stands
+        /// within the planar tolerance of it over the body's box; see <see cref="IsOnePlaneOver"/>.
         /// </remarks>
         internal static List<GeoPlane3> CollectFacePlanes(GeoSolid3 solid, Tolerance tolerance)
         {
             List<GeoPlane3> planes = new List<GeoPlane3>();
 
-            CollectFacePlanes(solid, tolerance, planes);
+            CollectFacePlanes(solid, solid.GetAabb(), tolerance, planes);
 
             return planes;
         }
 
         /// <summary>
-        /// Adds the distinct face planes of a body and of its openings to a running list.
+        /// Adds the face planes of a body and of its openings to a running list, those not one plane over a region with a
+        /// plane in it already.
         /// </summary>
-        private static void CollectFacePlanes(GeoSolid3 solid, Tolerance tolerance, List<GeoPlane3> planes)
+        internal static void CollectFacePlanes(GeoSolid3 solid, GeoAabb3 region, Tolerance tolerance, List<GeoPlane3> planes)
         {
             foreach (GeoFace3 face in solid.Faces)
             {
-                GeoPlane3 plane = face.GetPlane();
-                bool known = false;
-
-                foreach (GeoPlane3 existing in planes)
-                {
-                    if (existing.IsEqualTo(plane, tolerance) || existing.IsEqualTo(plane.Flip(), tolerance))
-                    {
-                        known = true;
-                        break;
-                    }
-                }
-
-                if (!known)
-                {
-                    planes.Add(plane);
-                }
+                AddPlane(face.GetPlane(), region, tolerance, planes);
             }
 
             foreach (GeoSolid3 opening in solid.Openings)
             {
-                CollectFacePlanes(opening, tolerance, planes);
+                CollectFacePlanes(opening, region, tolerance, planes);
             }
+        }
+
+        /// <summary>
+        /// Adds a plane to a list unless one in it already is one plane with it over a region.
+        /// </summary>
+        internal static void AddPlane(GeoPlane3 plane, GeoAabb3 region, Tolerance tolerance, List<GeoPlane3> planes)
+        {
+            foreach (GeoPlane3 existing in planes)
+            {
+                if (IsOnePlaneOver(existing, plane, region, tolerance))
+                {
+                    return;
+                }
+            }
+
+            planes.Add(plane);
+        }
+
+        /// <summary>
+        /// Whether two planes are one flat place over a region, either way round: every corner of the region's box as far
+        /// from the one as from the other, within the planar tolerance.
+        /// </summary>
+        /// <remarks>
+        /// Two planes whose normals agree within the tolerance and that pass through one point are one plane only near
+        /// that point: the face of a slab running from the corner of another along its side, turned 0.32 milliradians
+        /// from it, stood 5.8 off it 18 m on, and taken for it was never cut along; the slab the two share a wedge of took
+        /// none of it from the other. How far apart two planes stand is linear in the point, so over a box it is
+        /// greatest at a corner, and the corners settle it.
+        /// </remarks>
+        internal static bool IsOnePlaneOver(GeoPlane3 one, GeoPlane3 other, GeoAabb3 region, Tolerance tolerance)
+        {
+            if (region.IsEmpty)
+            {
+                return one.IsEqualTo(other, tolerance) || one.IsEqualTo(other.Flip(), tolerance);
+            }
+
+            bool same = true;
+            bool turned = true;
+
+            foreach (GeoPoint3 corner in region.GetCorners())
+            {
+                double a = one.SignedDistanceTo(corner);
+                double b = other.SignedDistanceTo(corner);
+                same = same && Math.Abs(a - b) <= tolerance.EqualPlanar;
+                turned = turned && Math.Abs(a + b) <= tolerance.EqualPlanar;
+
+                if (!same && !turned)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
