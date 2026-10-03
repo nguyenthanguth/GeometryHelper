@@ -896,7 +896,7 @@ namespace GeometryHelper.Core
 
             var plane = new GeoPlane3(origin.Add(direction.Multiply(at)), direction);
 
-            if (Splition3.TrySplitBy(piece, plane, out GeoSolid3 above, out GeoSolid3 below, cutting.Tolerance))
+            if (Splition3.TrySplitCell(piece, plane, out GeoSolid3 above, out GeoSolid3 below, cutting.Tolerance))
             {
                 return new Cut { Below = below, Above = above, Made = true, At = at };
             }
