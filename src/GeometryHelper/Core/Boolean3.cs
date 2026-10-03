@@ -395,6 +395,15 @@ namespace GeometryHelper.Core
             bool aFirst = union ? cuttingA.Count <= cuttingB.Count : cuttingA.Count <= 2 * cuttingB.Count + 16;
             GeoSolid3 open = null;
             bool misjudged = false;
+            bool anyClean = false;
+
+            // A cut that left a cell whole where a plane crossed it, its cells judged alike on both sides of every such plane
+            // (see Misjudged), is taken where neither body cuts cleanly, rather than cutting both by every plane of both. A
+            // slab from a model whose outline ran down to a needle, its tip 0.0136 past the face of a wall the slab otherwise
+            // stood clear of, could be cut cleanly neither way; cut by every plane of both, it came out open and 1 172 944
+            // cubic millimetres larger than it was, where nothing of either lay in the other.
+            List<GeoSolid3> consistentCells = null;
+            bool consistentCutA = false;
 
             for (int attempt = 0; attempt < 2; attempt++)
             {
@@ -419,47 +428,97 @@ namespace GeometryHelper.Core
                 if (!clean)
                 {
                     misjudged = Misjudged(cells, stuck, cut, whole, within, tolerance);
+
+                    if (!misjudged && consistentCells == null)
+                    {
+                        consistentCells = cells;
+                        consistentCutA = cutA;
+                    }
+
                     continue;
                 }
 
-                List<GeoFace3> kept = FacesOfCells(cells, cut, whole, within, tolerance, out bool anyInside);
+                anyClean = true;
+                bool? settled = Settle(cells, cutA, a, b, union, tolerance, ref open, out result, out untouched);
 
-                if (!union && !anyInside)
+                if (settled.HasValue)
                 {
-                    untouched = true;
-                    return true;
+                    return settled.Value;
                 }
+            }
 
-                if (within)
+            if (!anyClean && consistentCells != null)
+            {
+                bool? settled = Settle(consistentCells, consistentCutA, a, b, union, tolerance, ref open, out result, out untouched);
+
+                if (settled.HasValue)
                 {
-                    for (int i = 0; i < kept.Count; i++)
-                    {
-                        kept[i] = kept[i].Flip();
-                    }
+                    return settled.Value;
                 }
-
-                if (union || within)
-                {
-                    kept.AddRange(whole.Faces);
-                }
-
-                if (!TryGlue(kept, tolerance, out result))
-                {
-                    return false;
-                }
-
-                // Cut cleanly and still open, two closed bodies can close cut the other way round, or both cut: a beam
-                // turned a hundredth of a degree off the axes, less an opening, came out open with the beam cut and
-                // closed with the opening cut. The open one is kept in case nothing does better.
-                if (result.IsClosed(tolerance) || !a.IsClosed(tolerance) || !b.IsClosed(tolerance))
-                {
-                    return true;
-                }
-
-                open = open ?? result;
             }
 
             result = open;
+            return null;
+        }
+
+        /// <summary>
+        /// Keeps the wanted cells of the body one way of a union or a difference cut, and glues them, with the other body
+        /// where the result takes it whole; see <see cref="CombineCuttingOne"/>.
+        /// </summary>
+        /// <param name="cells">The cells of the body cut.</param>
+        /// <param name="cutA">Whether the body cut is <paramref name="a"/>.</param>
+        /// <param name="a">The first body; for a difference, the one material is taken from.</param>
+        /// <param name="b">The second body; for a difference, the one taken away.</param>
+        /// <param name="union">true for the union, false for <paramref name="a"/> less <paramref name="b"/>.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="open">An open result found before, or this one where it comes out open and none was.</param>
+        /// <param name="result">The result, when there is one.</param>
+        /// <param name="untouched">For a difference, true when no material of the body cut lies within the other.</param>
+        /// <returns>Whether anything is left; null when two closed bodies came out open this way.</returns>
+        private static bool? Settle(List<GeoSolid3> cells, bool cutA, GeoSolid3 a, GeoSolid3 b, bool union, Tolerance tolerance, ref GeoSolid3 open, out GeoSolid3 result, out bool untouched)
+        {
+            result = null;
+            untouched = false;
+
+            GeoSolid3 cut = cutA ? a : b;
+            GeoSolid3 whole = cutA ? b : a;
+            bool within = !union && !cutA;
+
+            List<GeoFace3> kept = FacesOfCells(cells, cut, whole, within, tolerance, out bool anyInside);
+
+            if (!union && !anyInside)
+            {
+                untouched = true;
+                return true;
+            }
+
+            if (within)
+            {
+                for (int i = 0; i < kept.Count; i++)
+                {
+                    kept[i] = kept[i].Flip();
+                }
+            }
+
+            if (union || within)
+            {
+                kept.AddRange(whole.Faces);
+            }
+
+            if (!TryGlue(kept, tolerance, out result))
+            {
+                return false;
+            }
+
+            // Cut cleanly and still open, two closed bodies can close cut the other way round, or both cut: a beam
+            // turned a hundredth of a degree off the axes, less an opening, came out open with the beam cut and
+            // closed with the opening cut. The open one is kept in case nothing does better.
+            if (result.IsClosed(tolerance) || !a.IsClosed(tolerance) || !b.IsClosed(tolerance))
+            {
+                return true;
+            }
+
+            open = open ?? result;
             return null;
         }
 

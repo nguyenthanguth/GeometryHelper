@@ -169,6 +169,24 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void TwoBodiesEachWithANeedlePastTheOther_TakeNothingFromEachOther()
+        {
+            // As a slab can come from a model: its outline runs down to a needle six hundredths wide at its foot and 850 long,
+            // its tip 0.0136 past the face of a wall the slab otherwise stands clear of; and the wall has a needle of its own up
+            // past the slab's edge. Each tip is too thin to cut where the other's face crosses it, so neither body could be cut
+            // cleanly, and the difference cut both by every plane of both: of a slab and a wall from a Tekla model, that gave
+            // the slab back open and 1 172 944 cubic millimetres larger. Nothing of either lies in the other.
+            var pieces = new Tolerance(0.01, 0.01 * 0.01 * 0.125, Tolerance.DefaultEqualAngleRad, 0.01);
+            GeoSolid3 slab = Prism(new[] { P(0, 850), P(5000, 850), P(5000.03, -0.0136), P(5000.06, 850), P(30000, 850), P(30000, 15000), P(0, 15000) }, 0, 300, pieces);
+            GeoSolid3 wall = Prism(new[] { P(2000, -1750), P(9000, -1750), P(9000, 0), P(3000.06, 0), P(3000.03, 850.0136), P(3000, 0), P(2000, 0) }, -500, 800, pieces);
+
+            Assert.True(slab.TrySubtract(wall, out GeoSolid3 slabLeft, Tolerance));
+            Assert.Same(slab, slabLeft);
+            Assert.True(wall.TrySubtract(slab, out GeoSolid3 wallLeft, Tolerance));
+            Assert.Same(wall, wallLeft);
+        }
+
+        [Fact]
         public void AWallLessTheWallOverItsEnd_AHairToTheSide_IsTheWallLeft()
         {
             // As a model gives two walls, the second over the last 1.8 m of the first and 0.014 to the side of it, which a

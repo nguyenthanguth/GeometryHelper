@@ -30,6 +30,14 @@ short of the wall left. A difference cuts the body material is taken from now wh
 planes of cutting the other and sixteen more, and the rest is the box it should be, closed within 0.01. Of 864 pairs of
 slabs from a Tekla model, two differences come 317 and 79 cubic millimetres nearer what the two share, and none further.
 
+**FIXED.** A union or a difference neither body of which could be cut cleanly, a plane crossing a cell of each and
+leaving it whole, cut both bodies by every plane of both, and that could go wrong. Of a slab from a Tekla model whose
+outline ran down to a needle, its tip 0.0136 past the face of a wall the slab otherwise stood clear of, the slab less
+the wall came out open and 1 172 944 cubic millimetres larger than it was; two other pairs of the model's slabs grew by
+118 887 and, at a tolerance of 0.05, 890 199. A cut whose cells are judged alike on both sides of every plane that
+crossed one and could not cut it is taken now where neither body cuts cleanly, as a clean one is: the slab comes back as
+it was, as the wall less the slab did, the second pair as well, and the third takes 99 336 away.
+
 ## 10.0.0
 
 **BREAKING.** A body is measured as its material. `GeoSolid3.GetVolume()`, `GetSurfaceArea()` and `GetCentroid()`, each
