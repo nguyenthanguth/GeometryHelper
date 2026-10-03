@@ -1236,12 +1236,20 @@ namespace GeometryHelper.Core
         /// when the two copies match vertex for vertex, which they need not; see
         /// <see cref="CancelBackToBack"/> for the pairs that do not. The survivors are then merged where they
         /// are coplanar and touching, which undoes the subdivision the cutting introduced.
+        /// <para>
+        /// Taking from two faces the area they share is worked out in the plane, where a piece of either is dropped as a seam
+        /// when it is no wider on average than the point tolerance, and two edges within the tolerance of each other leave a
+        /// needle between them; the faces beside keep their edges all the same, and a skin closed before it is open after.
+        /// Each sliver it is open by, no wider than four point tolerances, is closed by a face across it, where that closes
+        /// the skin; see <see cref="LoopAssembly.TryCloseSlivers"/>.
+        /// </para>
         /// </remarks>
         private static bool TryGlue(List<GeoFace3> faces, Tolerance tolerance, out GeoSolid3 result)
         {
             result = null;
 
-            List<GeoFace3> skin = CancelBackToBack(DropMatchedPairs(faces, tolerance), tolerance);
+            List<GeoFace3> paired = DropMatchedPairs(faces, tolerance);
+            List<GeoFace3> skin = CancelBackToBack(paired, tolerance);
 
             if (skin.Count < 4)
             {
@@ -1249,7 +1257,61 @@ namespace GeometryHelper.Core
             }
 
             result = Merge3.CoplanarFaces(new GeoSolid3(skin), tolerance);
+
+            if (result.IsClosed(tolerance))
+            {
+                return true;
+            }
+
+            // Merging the faces of a plane joins their outlines within the tolerance, where corners a hair apart are one point
+            // to the merged face and two to the faces beside it: the skin of the common part of two bent bars, closed, came
+            // out open by edges a hundredth long. A merge that opens a closed skin is not made.
+            var glued = new GeoSolid3(skin);
+
+            if (glued.IsClosed(tolerance))
+            {
+                result = glued;
+                return true;
+            }
+
+            // The skin open where the faces were closed before the cancelling is closed across the slivers it left.
+            if (!ReferenceEquals(skin, paired) && TryCloseBackToBackGaps(skin, paired, tolerance, out GeoSolid3 healed))
+            {
+                GeoSolid3 merged = Merge3.CoplanarFaces(healed, tolerance);
+                result = merged.IsClosed(tolerance) ? merged : healed;
+            }
+
             return true;
+        }
+
+        /// <summary>
+        /// Closes the slivers taking faces lying back to back from each other left a skin open by, where the faces were closed
+        /// before and the slivers close them again.
+        /// </summary>
+        /// <remarks>
+        /// A union of an I 11 long and a prism of twelve sides passing the corner of its flange came out open twice. Taken
+        /// from the end of the I, the prism's face there left a corner of it 0.0006 square millimetres across, every side of
+        /// it longer than the point tolerance, which the clipping took for a seam and dropped, while the faces beside it kept
+        /// their edges round it. And a corner of the prism stood 0.002 off the flange's edge, so that taken from the flange's
+        /// side, its face left a needle 5.9 long beside that edge, on the piece of the side kept. Each is a sliver, and a face
+        /// across each closes the union.
+        /// </remarks>
+        private static bool TryCloseBackToBackGaps(List<GeoFace3> skin, List<GeoFace3> before, Tolerance tolerance, out GeoSolid3 closed)
+        {
+            closed = null;
+
+            if (!new GeoSolid3(before).IsClosed(tolerance)
+                || !LoopAssembly.TryCloseSlivers(skin, tolerance, LoopAssembly.ForPieces(tolerance), out List<GeoFace3> slivers)
+                || slivers.Count == 0)
+            {
+                return false;
+            }
+
+            var faces = new List<GeoFace3>(skin);
+            faces.AddRange(slivers);
+            closed = new GeoSolid3(faces);
+
+            return closed.IsClosed(tolerance);
         }
 
         /// <summary>

@@ -170,10 +170,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         [Fact]
-        public void AnOpeningTheCutLeavesOpenIsTakenOutByADifference()
+        public void ASliverOfAnOpeningAtTheStepOfAnL_IsCutInClosed_AsADifferenceTakesItOut()
         {
-            // A sliver of an opening at the step of an L, most of it outside: cut in with the others it leaves the
-            // material open along the step; taken out by a difference, which tries more ways, the material closes.
+            // A sliver of an opening at the step of an L, most of it outside. Cut in with the others it left the material
+            // open along the step, and it was taken out by a difference instead, which tries more ways; the gluing closes
+            // the sliver the cut is open by now, and the two agree but for the rounding.
             GeoSolid3 sliver = GeometryHelper.UnitTest.Meshing.CellTests.OpeningSliver();
             var plan = new GeoPolygon3(new[] { Q(0, 0), Q(65, 0), Q(65, 62), Q(40, 62), Q(40, 142), Q(0, 142) }.Select(q => P(q.X, q.Y, 0)), Tolerance);
             GeoSolid3 ell = GeoSolid3.Extrude(plan, new GeoVector3(0, 0, 1777), Tolerance);
@@ -186,7 +187,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(whole);
             Assert.True(material.IsClosed(Tolerance));
             Assert.True(pierced.TryGetVolume(out double volume, Tolerance));
-            Assert.Equal(difference.GetVolume(), volume, 6);
+            Assert.True(Math.Abs(volume - difference.GetVolume()) <= 1E-9 * volume, $"{volume:R} against {difference.GetVolume():R}");
             Assert.InRange(volume, ell.GetVolume() - sliver.GetVolume(), ell.GetVolume());
         }
 

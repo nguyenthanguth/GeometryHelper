@@ -4,6 +4,20 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**FIXED.** The union, the difference, the intersection and the cutting of openings glued a result open where they take
+from two faces lying back to back the area the two share. Worked out in the plane, a piece of either face no wider on
+average than the point tolerance was dropped as a seam, a corner of the end of an I 0.0006 square millimetres across
+among them, every side of it longer than the tolerance, while the faces beside it kept their edges round it; and two
+edges within the tolerance of each other left a needle between them on the piece kept, 5.9 long beside the I's flange.
+The union of the I and a prism of twelve sides passing the corner of its flange was open by both. Each such sliver, no
+wider than four point tolerances, is closed by a face across it now, where the faces were closed before the cancelling
+and that closes them again. And merging the faces of a plane joins their outlines within the tolerance, where corners a
+hair apart are one point to the merged face and two to the faces beside it: the common part of two bent bars crossing,
+closed before the merge, came out open by edges a hundredth long. A merge that opens a closed result is not made, and
+the result keeps the faces it was glued from.
+
 ## 10.0.0
 
 **BREAKING.** A body is measured as its material. `GeoSolid3.GetVolume()`, `GetSurfaceArea()` and `GetCentroid()`, each
