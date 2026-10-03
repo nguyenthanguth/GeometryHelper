@@ -118,6 +118,39 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Takes one opening out of a body by a difference, handing back a cut that cannot be worked out rather than
+        /// warning of it.
+        /// </summary>
+        /// <param name="body">The body, without openings.</param>
+        /// <param name="opening">The opening; the material inside it, its own openings, stays.</param>
+        /// <param name="material">The body less the opening; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="failure">What was thrown where the cut could not be worked out; null otherwise.</param>
+        /// <returns>true when some material is left; false when the opening takes all of it, or the cut cannot be worked out.</returns>
+        /// <remarks>
+        /// The way back where cutting every opening in at once cannot be worked out or leaves the material open: a
+        /// difference tries more ways of cutting and keeps the one that closes, and an opening that will not come out
+        /// keeps none of the others in. A difference reads which way the faces are wound, as cutting the openings in
+        /// does not, so both bodies are turned outwards first: a hole wound inwards was taken for material, and added
+        /// to the body.
+        /// </remarks>
+        internal static bool TryTakeOut(GeoSolid3 body, GeoSolid3 opening, out GeoSolid3 material, Tolerance tolerance, out Exception failure)
+        {
+            failure = null;
+
+            try
+            {
+                return TakeAway(Outwards(body), Outwards(opening), out material, tolerance);
+            }
+            catch (Exception exception) when (IsUnworkable(exception))
+            {
+                failure = exception;
+                material = null;
+                return false;
+            }
+        }
+
+        /// <summary>
         /// The body wound outwards: itself, or every face turned over where the whole surface is wound inwards.
         /// </summary>
         private static GeoSolid3 Outwards(GeoSolid3 body)

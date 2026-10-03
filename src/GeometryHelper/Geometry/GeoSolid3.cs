@@ -27,6 +27,10 @@ namespace GeometryHelper.Geometry
         private readonly GeoSolid3[] _openings;
         private readonly GeoAabb3 _box;
 
+        // The material last cut for the openings, kept so that measuring the body every way costs one cut; see
+        // GetMaterial. Written whole or not at all, so a reader sees one cut or none.
+        private volatile MaterialCut _material;
+
         /// <summary>
         /// Gets the read-only list of faces bounding the solid.
         /// </summary>
@@ -321,66 +325,69 @@ namespace GeometryHelper.Geometry
         /// answer does not depend on where the origin is. A body with no volume has no centroid to
         /// average, and the centroid of its vertices comes back instead.
         /// </remarks>
-        public GeoPoint3 Centroid
+        public GeoPoint3 Centroid => GetGrossCentroid(Tolerance.Global);
+
+        /// <summary>
+        /// Gets the centroid of the bounding faces, ignoring the openings, judging a body with no volume within a
+        /// tolerance.
+        /// </summary>
+        internal GeoPoint3 GetGrossCentroid(Tolerance tolerance)
         {
-            get
+            // Measured from a corner of the body rather than from the world origin, for the reason
+            // GetReferencePoint gives: far from the origin the sum otherwise cancels away its own
+            // accuracy. The offset is added back at the end.
+            GeoPoint3 apex = GetReferencePoint();
+
+            double totalVolume = 0.0;
+            double x = 0.0;
+            double y = 0.0;
+            double z = 0.0;
+
+            foreach (GeoFace3 face in _faces)
             {
-                // Measured from a corner of the body rather than from the world origin, for the reason
-                // GetReferencePoint gives: far from the origin the sum otherwise cancels away its own
-                // accuracy. The offset is added back at the end.
-                GeoPoint3 apex = GetReferencePoint();
+                Add(face.Triangulate(), 1.0);
 
-                double totalVolume = 0.0;
-                double x = 0.0;
-                double y = 0.0;
-                double z = 0.0;
-
-                foreach (GeoFace3 face in _faces)
+                // A hole in a face is material that is not there, and is wound as the boundary is, so
+                // it is taken away as the volume takes it away.
+                foreach (GeoPolygon3 hole in face.Holes)
                 {
-                    Add(face.Triangulate(), 1.0);
-
-                    // A hole in a face is material that is not there, and is wound as the boundary is, so
-                    // it is taken away as the volume takes it away.
-                    foreach (GeoPolygon3 hole in face.Holes)
-                    {
-                        Add(hole.Triangulate(), -1.0);
-                    }
+                    Add(hole.Triangulate(), -1.0);
                 }
-
-                void Add(GeoTriangle3[] triangles, double sign)
-                {
-                    foreach (GeoTriangle3 triangle in triangles)
-                    {
-                        GeoVector3 a = apex.GetVectorTo(triangle.A);
-                        GeoVector3 b = apex.GetVectorTo(triangle.B);
-                        GeoVector3 c = apex.GetVectorTo(triangle.C);
-
-                        double volume = sign * a.TripleProduct(b, c) / 6.0;
-
-                        // The fourth vertex of each tetrahedron is the apex, which sits at the origin of
-                        // these vectors, so it adds nothing and the centroid is a quarter of the way
-                        // along the other three.
-                        totalVolume += volume;
-                        x += volume * (a.X + b.X + c.X) * 0.25;
-                        y += volume * (a.Y + b.Y + c.Y) * 0.25;
-                        z += volume * (a.Z + b.Z + c.Z) * 0.25;
-                    }
-                }
-
-                // The total is a volume, so it is judged against a length tolerance cubed. Against
-                // double.Epsilon only an exactly zero total would fall back, and a shell that nearly
-                // closes on itself can leave one small enough to overflow the division yet far above
-                // that.
-                double point = Tolerance.Global.EqualPoint;
-                double volumeEpsilon = point * point * point;
-
-                if (Math.Abs(totalVolume) <= volumeEpsilon)
-                {
-                    return GetVertexAverage();
-                }
-
-                return apex.Add(new GeoVector3(x / totalVolume, y / totalVolume, z / totalVolume));
             }
+
+            void Add(GeoTriangle3[] triangles, double sign)
+            {
+                foreach (GeoTriangle3 triangle in triangles)
+                {
+                    GeoVector3 a = apex.GetVectorTo(triangle.A);
+                    GeoVector3 b = apex.GetVectorTo(triangle.B);
+                    GeoVector3 c = apex.GetVectorTo(triangle.C);
+
+                    double volume = sign * a.TripleProduct(b, c) / 6.0;
+
+                    // The fourth vertex of each tetrahedron is the apex, which sits at the origin of
+                    // these vectors, so it adds nothing and the centroid is a quarter of the way
+                    // along the other three.
+                    totalVolume += volume;
+                    x += volume * (a.X + b.X + c.X) * 0.25;
+                    y += volume * (a.Y + b.Y + c.Y) * 0.25;
+                    z += volume * (a.Z + b.Z + c.Z) * 0.25;
+                }
+            }
+
+            // The total is a volume, so it is judged against a length tolerance cubed. Against
+            // double.Epsilon only an exactly zero total would fall back, and a shell that nearly
+            // closes on itself can leave one small enough to overflow the division yet far above
+            // that.
+            double point = tolerance.EqualPoint;
+            double volumeEpsilon = point * point * point;
+
+            if (Math.Abs(totalVolume) <= volumeEpsilon)
+            {
+                return GetVertexAverage();
+            }
+
+            return apex.Add(new GeoVector3(x / totalVolume, y / totalVolume, z / totalVolume));
         }
 
         /// <summary>
