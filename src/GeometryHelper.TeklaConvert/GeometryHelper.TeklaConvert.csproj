@@ -29,6 +29,15 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 10.0.0
+      - GeometryHelper.TeklaConvert reads as before: it is released at 10.0.0 with GeometryHelper, which BREAKS code
+        that measures a body: GeoSolid3.Volume, SurfaceArea and Centroid are GetVolume(), GetSurfaceArea() and
+        GetCentroid() now, the material of a body with its openings cut out. A body TryToGeoSolid3 reads has its cuts in
+        its faces and no openings, so it measures as before: a slab cut by five other parts matched VOLUME_NET and AREA
+        to 5E-12.
+      - GeometryHelper's booleans no longer lose the wedge two slabs share where one wraps the other's corner at a
+        slant: 15.79 million cubic millimetres, of which the difference took none.
+
       NEW IN 9.0.2
       - Nothing in GeometryHelper.TeklaConvert itself changed: it is released at 9.0.2 with GeometryHelper, which
         meshes the faces of bodies read with TryToGeoSolid3 round every hole, a slab's pits among them, where it laid

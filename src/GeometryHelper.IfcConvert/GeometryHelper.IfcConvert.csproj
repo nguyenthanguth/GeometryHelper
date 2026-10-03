@@ -19,6 +19,14 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 10.0.0
+      - GeometryHelper.IfcConvert reads as before: it is released at 10.0.0 with GeometryHelper, which BREAKS code that
+        measures a body: GeoSolid3.Volume, SurfaceArea and Centroid are GetVolume(), GetSurfaceArea() and GetCentroid()
+        now, the material of a body with its openings cut out. The bodies converted here carry no openings, cut in or
+        left out as ApplyVoids says, so they measure as before, and IfcProductGeometry.TotalVolume with them.
+      - The openings the geometry engine cannot cut are cut by GeometryHelper's booleans, which no longer take two faces
+        a fraction of a milliradian apart for one plane, nor misread a body wound inwards.
+
       NEW IN 9.0.2
       - Nothing in GeometryHelper.IfcConvert itself changed: it is released at 9.0.2 with GeometryHelper, whose surface
         meshes of faces with holes no longer lay triangles across the holes.
