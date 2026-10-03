@@ -70,15 +70,46 @@ namespace GeometryHelper.Core
         /// measures and answers containment correctly because each shell is closed and wound outwards.
         /// </remarks>
         public static bool TryUnion(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance)
+            => TryUnion(first, second, out result, tolerance, out _);
+
+        /// <summary>
+        /// Joins two solids into one, saying how it came out, using the default tolerance.
+        /// </summary>
+        public static bool TryUnion(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, out BooleanOutcome outcome)
+            => TryUnion(first, second, out result, Tolerance.Global, out outcome);
+
+        /// <summary>
+        /// Joins two solids into one, within a tolerance, saying how it came out.
+        /// </summary>
+        /// <param name="first">The first body.</param>
+        /// <param name="second">The second body.</param>
+        /// <param name="result">The combined body.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="outcome">
+        /// <see cref="BooleanOutcome.Made"/> with the result, or <see cref="BooleanOutcome.NotWorkedOut"/>: two bodies
+        /// always leave a union.
+        /// </param>
+        /// <returns>false when the two could not be combined into a closed body, which is logged.</returns>
+        public static bool TryUnion(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
         {
             Guard(first, second);
 
             try
             {
-                return Unite(first, second, out result, tolerance);
+                if (Unite(first, second, out result, tolerance))
+                {
+                    outcome = BooleanOutcome.Made;
+                    return true;
+                }
+
+                // Two bodies always leave a union, so none is a union not worked out.
+                GeometryHelperLog.Warn("A solid union glued into no body and is reported as not made.");
+                outcome = BooleanOutcome.NotWorkedOut;
+                return false;
             }
             catch (Exception exception) when (IsUnworkable(exception))
             {
+                outcome = BooleanOutcome.NotWorkedOut;
                 return Unworkable("union", exception, out result);
             }
         }
@@ -158,15 +189,39 @@ namespace GeometryHelper.Core
         /// beam is cut by a handful of the beam's planes rather than the beam by the hundreds of the bar's.
         /// </remarks>
         public static bool TryIntersect(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance)
+            => TryIntersect(first, second, out result, tolerance, out _);
+
+        /// <summary>
+        /// Gets the part two solids have in common, saying how it came out, using the default tolerance.
+        /// </summary>
+        public static bool TryIntersect(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, out BooleanOutcome outcome)
+            => TryIntersect(first, second, out result, Tolerance.Global, out outcome);
+
+        /// <summary>
+        /// Gets the part two solids have in common, within a tolerance, saying how it came out.
+        /// </summary>
+        /// <param name="first">The first body.</param>
+        /// <param name="second">The second body.</param>
+        /// <param name="result">The part they share.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="outcome">
+        /// <see cref="BooleanOutcome.Made"/> with the result, <see cref="BooleanOutcome.Empty"/> where the two share no
+        /// volume, or <see cref="BooleanOutcome.NotWorkedOut"/> where it could not be worked out, which is logged.
+        /// </param>
+        /// <returns>false when the two bodies share no volume, or when it cannot be worked out.</returns>
+        public static bool TryIntersect(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
         {
             Guard(first, second);
 
             try
             {
-                return Share(first, second, out result, tolerance);
+                bool shared = Share(first, second, out result, tolerance);
+                outcome = shared ? BooleanOutcome.Made : BooleanOutcome.Empty;
+                return shared;
             }
             catch (Exception exception) when (IsUnworkable(exception))
             {
+                outcome = BooleanOutcome.NotWorkedOut;
                 return Unworkable("intersection", exception, out result);
             }
         }
@@ -272,15 +327,40 @@ namespace GeometryHelper.Core
         /// A tool that misses the subject changes nothing, and the subject comes back unaltered.
         /// </remarks>
         public static bool TrySubtract(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance)
+            => TrySubtract(subject, tool, out result, tolerance, out _);
+
+        /// <summary>
+        /// Takes one solid out of another, saying how it came out, using the default tolerance.
+        /// </summary>
+        public static bool TrySubtract(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, out BooleanOutcome outcome)
+            => TrySubtract(subject, tool, out result, Tolerance.Global, out outcome);
+
+        /// <summary>
+        /// Takes one solid out of another, within a tolerance, saying how it came out.
+        /// </summary>
+        /// <param name="subject">The body to cut material from.</param>
+        /// <param name="tool">The body to remove.</param>
+        /// <param name="result">What is left of the subject.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="outcome">
+        /// <see cref="BooleanOutcome.Made"/> with what is left, <see cref="BooleanOutcome.Empty"/> where the tool took the
+        /// whole subject, or <see cref="BooleanOutcome.NotWorkedOut"/> where it could not be worked out, which is logged:
+        /// nothing left takes a net volume to nought, where no answer is a step to work out some other way.
+        /// </param>
+        /// <returns>false when nothing is left, or when it cannot be worked out.</returns>
+        public static bool TrySubtract(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
         {
             Guard(subject, tool);
 
             try
             {
-                return TakeAway(subject, tool, out result, tolerance);
+                bool left = TakeAway(subject, tool, out result, tolerance);
+                outcome = left ? BooleanOutcome.Made : BooleanOutcome.Empty;
+                return left;
             }
             catch (Exception exception) when (IsUnworkable(exception))
             {
+                outcome = BooleanOutcome.NotWorkedOut;
                 return Unworkable("difference", exception, out result);
             }
         }

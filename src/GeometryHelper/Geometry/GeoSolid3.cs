@@ -735,6 +735,18 @@ namespace GeometryHelper.Geometry
         public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance) => Boolean3.TryUnion(this, other, out result, tolerance);
 
         /// <summary>
+        /// Joins this solid with another, saying how it came out, using the default tolerance.
+        /// </summary>
+        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, out BooleanOutcome outcome) => Boolean3.TryUnion(this, other, out result, out outcome);
+
+        /// <summary>
+        /// Joins this solid with another, within a tolerance, saying how it came out; see
+        /// <see cref="Boolean3.TryUnion(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/>.
+        /// </summary>
+        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
+            => Boolean3.TryUnion(this, other, out result, tolerance, out outcome);
+
+        /// <summary>
         /// Gets the part this solid shares with another, using the default tolerance.
         /// </summary>
         public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result) => Boolean3.TryIntersect(this, other, out result);
@@ -743,6 +755,18 @@ namespace GeometryHelper.Geometry
         /// Gets the part this solid shares with another, within a tolerance.
         /// </summary>
         public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance) => Boolean3.TryIntersect(this, other, out result, tolerance);
+
+        /// <summary>
+        /// Gets the part this solid shares with another, saying how it came out, using the default tolerance.
+        /// </summary>
+        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, out BooleanOutcome outcome) => Boolean3.TryIntersect(this, other, out result, out outcome);
+
+        /// <summary>
+        /// Gets the part this solid shares with another, within a tolerance, saying how it came out; see
+        /// <see cref="Boolean3.TryIntersect(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/>.
+        /// </summary>
+        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
+            => Boolean3.TryIntersect(this, other, out result, tolerance, out outcome);
 
         /// <summary>
         /// Gets every separate region this body shares with another, one body each.
@@ -799,6 +823,18 @@ namespace GeometryHelper.Geometry
         /// Takes another solid out of this one, within a tolerance.
         /// </summary>
         public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance) => Boolean3.TrySubtract(this, tool, out result, tolerance);
+
+        /// <summary>
+        /// Takes another solid out of this one, saying how it came out, using the default tolerance.
+        /// </summary>
+        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, out BooleanOutcome outcome) => Boolean3.TrySubtract(this, tool, out result, out outcome);
+
+        /// <summary>
+        /// Takes another solid out of this one, within a tolerance, saying how it came out; see
+        /// <see cref="Boolean3.TrySubtract(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/>.
+        /// </summary>
+        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
+            => Boolean3.TrySubtract(this, tool, out result, tolerance, out outcome);
 
         #endregion
 

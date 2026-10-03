@@ -730,6 +730,19 @@ Each reports `false` when the answer is nothing at all — two bodies that never
 body swallowed whole leaves nothing behind. That is an outcome rather than a failure, which is why it
 comes back as `false` rather than as an exception or an empty body.
 
+`false` is also what comes back where the answer could not be worked out, which the log says why. The
+overloads taking an `out BooleanOutcome` tell the two apart, as a net volume worked out by taking cutters
+off a part one after another needs: nothing left takes the part to nought, where no answer is a step to
+work out some other way.
+
+```csharp
+if (!part.TrySubtract(cutter, out GeoSolid3 left, tolerance, out BooleanOutcome outcome)
+    && outcome == BooleanOutcome.NotWorkedOut)
+{
+    // No answer: not nothing left. Work this step out some other way.
+}
+```
+
 The method is the cutting above carried up a dimension. For a union or a difference both bodies are
 divided by one shared set of planes — the face planes of each of them together — which leaves cells that
 are each wholly inside or wholly outside the other, since the surface of a body never leaves the planes of

@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `TrySubtract`, `TryIntersect` and `TryUnion`, of `Boolean3` and of `GeoSolid3`, each with an overload giving a
+`BooleanOutcome`: `Made`, `Empty` or `NotWorkedOut`. `false` comes back both where nothing is left and where the answer
+could not be worked out, which only the log told apart, and a net volume worked out by taking cutters off a part one
+after another reads the two the opposite way: nothing left takes the part to nought, where no answer is a step to work
+out some other way. A union that glues into no body is warned of now as not worked out, as its documentation said it
+was.
+
 **FIXED.** The union, the difference, the intersection and the cutting of openings glued a result open where they take
 from two faces lying back to back the area the two share. Worked out in the plane, a piece of either face no wider on
 average than the point tolerance was dropped as a seam, a corner of the end of an I 0.0006 square millimetres across
