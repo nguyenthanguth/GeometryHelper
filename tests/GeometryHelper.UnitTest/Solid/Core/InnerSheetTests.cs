@@ -176,6 +176,47 @@ namespace GeometryHelper.UnitTest.Solid
             }
         }
 
+        [Fact]
+        public void AFaceLyingAgainstTwoThatOverlap_IsCancelledWithTheNearer_AndTheOtherIsKept()
+        {
+            // The thin end of a wedge a cutter's face left on a slab, the face crossing the slab's wall at a slant: the
+            // wedge's face, facing into the slab, lies in the cutter's plane against the slab beyond it, and against the
+            // wedge's own far side, the slab's wall, a few hundredths off. Taken from each, it took the wall with it as
+            // well as the face it lay against in its own plane, and the slab was left open by the wall.
+            var tolerance = new Tolerance(0.05, 0.01, Tolerance.DefaultEqualAngleRad, 0.05);
+            GeoFace3 wall = new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 0), P(750, 0, 0), P(750, 0, 400), P(0, 0, 400) }, tolerance));
+            GeoFace3 wedge = new GeoFace3(new GeoPolygon3(new[] { P(0, 0.03, 0), P(0, 0.03, 400), P(750, 0, 400), P(750, 0, 0) }, tolerance));
+            GeoFace3 beyond = wedge.Flip();
+
+            Assert.True(wall.Normal.IsCodirectionalTo(GeoVector3.YAxis.Negate(), tolerance));
+            Assert.True(wedge.Normal.Y > 0.999);
+
+            foreach (List<GeoFace3> faces in new[]
+            {
+                new List<GeoFace3> { wall, wedge, beyond },
+                new List<GeoFace3> { beyond, wedge, wall },
+                new List<GeoFace3> { wedge, wall, beyond },
+            })
+            {
+                // The wedge and the slab beyond it, in one plane, take each other; the wall is the boundary, and stays.
+                GeoFace3 left = Assert.Single(Boolean3.CancelBackToBack(faces, tolerance));
+
+                Assert.Same(wall, left);
+            }
+        }
+
+        [Fact]
+        public void AFaceLyingAgainstTwoPiecesThatDoNotOverlap_IsCancelledWithBoth()
+        {
+            // One copy of a face between two kept cells in one piece, the other in two: all three go.
+            Tolerance tolerance = Tolerance.Default;
+            GeoFace3 whole = new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 0), P(100, 0, 0), P(100, 100, 0), P(0, 100, 0) }, tolerance));
+            GeoFace3 first = new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 0), P(0, 100, 0), P(40, 100, 0), P(40, 0, 0) }, tolerance));
+            GeoFace3 second = new GeoFace3(new GeoPolygon3(new[] { P(40, 0, 0), P(40, 100, 0), P(100, 100, 0), P(100, 0, 0) }, tolerance));
+
+            Assert.Empty(Boolean3.CancelBackToBack(new List<GeoFace3> { whole, first, second }, tolerance));
+        }
+
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
         [Fact]

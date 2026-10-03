@@ -1708,6 +1708,16 @@ namespace GeometryHelper.Core
         /// the other laid out in it (<see cref="SubtractLaidOut"/>): a small face a hair out of a long one's plane
         /// lies in it, but the long one's far end stands off the small one's by more than the tolerance.
         /// </para>
+        /// <para>
+        /// What a face shares goes with one face lying against it, the nearest, and not with each. A cell thinner than the
+        /// tolerance lies against its neighbour on one side and against its own far side on the other, both within the
+        /// tolerance of it: the thin end of a wedge a cutter's face left on a slab, where the face crossed the slab's own
+        /// at 5E-5 rad, lay against the slab beyond the cutter's face, in that face's plane, and against the slab's wall,
+        /// a few hundredths off it. Taken from each, the wedge's face took the wall with it as well as the slab's face against it, and
+        /// the slab was left open by a wall 750 long and 400 high. A face lying against two that overlap each other is
+        /// paired with the nearer, the one in its own plane where there is one, and a pair is cancelled only where each
+        /// takes the other.
+        /// </para>
         /// </remarks>
         internal static List<GeoFace3> CancelBackToBack(List<GeoFace3> faces, Tolerance tolerance)
         {
@@ -1779,6 +1789,8 @@ namespace GeometryHelper.Core
                 (against[j] = against[j] ?? new List<int>()).Add(i);
             }
 
+            PairNearestOnly(faces, planes, against, tolerance);
+
             var kept = new List<GeoFace3>(count);
 
             for (int i = 0; i < count; i++)
@@ -1813,6 +1825,101 @@ namespace GeometryHelper.Core
             }
 
             return kept;
+        }
+
+        /// <summary>
+        /// Keeps of the faces lying back to back with each face those it shares area with first: where two of them overlap
+        /// each other, the nearer, and a pair only where each keeps the other; see <see cref="CancelBackToBack"/>.
+        /// </summary>
+        /// <remarks>
+        /// The faces against one face that overlap no other against it, as the two pieces a cut left of one copy, are all
+        /// kept, in the order they came, so that a face is cut as it was.
+        /// </remarks>
+        private static void PairNearestOnly(List<GeoFace3> faces, GeoPlane3[] planes, List<int>[] against, Tolerance tolerance)
+        {
+            int count = faces.Count;
+            var keeps = new HashSet<int>[count];
+            bool any = false;
+            double speck = tolerance.EqualPoint * tolerance.EqualPoint;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (against[i] == null || against[i].Count < 2)
+                {
+                    continue;
+                }
+
+                // Nearest first: how far the two planes stand apart over the two faces, a face's middle from the other's
+                // plane each way round; ties as they came.
+                GeoPoint3 middle = faces[i].Centroid;
+                List<int> partners = against[i];
+                var apart = new double[partners.Count];
+                var order = new int[partners.Count];
+
+                for (int k = 0; k < partners.Count; k++)
+                {
+                    int j = partners[k];
+                    apart[k] = Math.Abs(planes[i].SignedDistanceTo(faces[j].Centroid)) + Math.Abs(planes[j].SignedDistanceTo(middle));
+                    order[k] = k;
+                }
+
+                Array.Sort(order, (x, y) => apart[x] != apart[y] ? apart[x].CompareTo(apart[y]) : x.CompareTo(y));
+
+                var taken = new List<int>();
+
+                foreach (int k in order)
+                {
+                    int j = partners[k];
+                    bool overlaps = false;
+
+                    foreach (int t in taken)
+                    {
+                        if (LiesIn(planes[t], faces[j], tolerance) && AreaOf(Intersect(faces[t], faces[j], tolerance)) > speck
+                            || LiesIn(planes[j], faces[t], tolerance) && AreaOf(Intersect(faces[j], faces[t], tolerance)) > speck)
+                        {
+                            overlaps = true;
+                            break;
+                        }
+                    }
+
+                    if (!overlaps)
+                    {
+                        taken.Add(j);
+                    }
+                }
+
+                if (taken.Count < against[i].Count)
+                {
+                    keeps[i] = new HashSet<int>(taken);
+                    any = true;
+                }
+            }
+
+            if (!any)
+            {
+                return;
+            }
+
+            // A pair stands only where each face keeps the other, in the order the faces came.
+            for (int i = 0; i < count; i++)
+            {
+                if (against[i] == null)
+                {
+                    continue;
+                }
+
+                var paired = new List<int>(against[i].Count);
+
+                foreach (int j in against[i])
+                {
+                    if ((keeps[i] == null || keeps[i].Contains(j)) && (keeps[j] == null || keeps[j].Contains(i)))
+                    {
+                        paired.Add(j);
+                    }
+                }
+
+                against[i] = paired.Count == 0 ? null : paired;
+            }
         }
 
         private static double AreaOf(GeoFace3[] faces)

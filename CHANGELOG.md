@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A union, a difference or an intersection left a body open where a face of the one crossed a face of the other
+at a slant, a few hundredths apart at the thin end: a cell thinner than the tolerance there lay against its neighbour,
+in its own plane, and against its own far side, and the gluing took what it shared from each, so that its face took the
+wall with it as well as the face lying against it. A slab of a Tekla model sitting in the opening of another, the
+opening's wall crossing the slab's at 5E-5 rad, came out without 750 by 400 of its wall, and read from the faces left
+2.9 cubic metres short. What a face shares goes with the nearest face lying against it now, and a face lying against two
+that overlap is paired with the nearer only. The slab closes, 99 543 cubic millimetres taken of the wedge of 139 388 the
+two share, and every other result of the 20 596 cuts of that model's parts, of 864 pairs of slabs and of 3 000 random
+pairs came out as before.
+
 **FIXED.** A union, a difference or an intersection cut within a tolerance wider than the default came out closed within
 it and open within the default, where a plane of one body passed within the tolerance of a face of the other: the pieces
 cut along the plane met the face's own on copies of their edges a few hundredths apart. Of 10 314 cuts within 0.05 of
