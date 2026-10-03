@@ -168,6 +168,26 @@ namespace GeometryHelper.UnitTest.Solid
             AssertNear(first.GetVolume() + second.GetVolume() - wedge, both.GetVolume(), "the two together");
         }
 
+        [Fact]
+        public void AWallLessTheWallOverItsEnd_AHairToTheSide_IsTheWallLeft()
+        {
+            // As a model gives two walls, the second over the last 1.8 m of the first and 0.014 to the side of it, which a
+            // tolerance of 0.05 takes for nothing. Cut, the second, fewer of the first's planes reaching it, was the body cut,
+            // and the first was kept whole less the second's cells within it: its faces less those of the second lying
+            // against them left the new end with the second's sides, the first's sides their own, and its floor a needle
+            // 0.014 wide reaching back past the end. The rest closed within 0.05 only, and fell 255 000 cubic millimetres
+            // short of the wall left.
+            var cutting = new Tolerance(0.05, 0.01, Tolerance.DefaultEqualAngleRad, 0.05);
+            GeoSolid3 wall = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(51660, 1800, 2200)).ToObb().ToSolid();
+            GeoSolid3 over = new GeoAabb3(new GeoPoint3(49860, -0.014, 0), new GeoPoint3(51660, 1800 - 0.014, 2200)).ToObb().ToSolid();
+            double left = 49860.0 * 1800 * 2200;
+            double strip = 0.014 * 1800 * 2200;
+
+            Assert.True(Boolean3.TrySubtract(wall, over, out GeoSolid3 rest, cutting));
+            Assert.True(rest.IsClosed(Tolerance));
+            Assert.InRange(rest.GetVolume(), left - 1.0, left + strip + 1.0);
+        }
+
         /// <summary>
         /// Two slabs as drawn side by side, the second wrapping a corner of the first: along the first's end a hair off it,
         /// and from the corner, a hair outside it, along its long side at a slant, 5.8 into it 18 m on, so that the two

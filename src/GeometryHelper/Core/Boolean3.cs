@@ -364,7 +364,8 @@ namespace GeometryHelper.Core
         /// instead. An open result found on the way is then left in <paramref name="result"/>.
         /// </returns>
         /// <remarks>
-        /// The body cut is the one fewer planes of the other come near, as for an intersection. A union keeps the
+        /// The body cut is the one fewer planes of the other come near, as for an intersection, but a difference cuts the
+        /// body material is taken from where that costs about the same as cutting the other. A union keeps the
         /// cells of it beyond the other, and the other whole. For a difference, cutting the body material is taken
         /// from keeps its cells beyond the other; cutting the body taken away keeps the other whole and the cells
         /// within it turned inside out, which are the walls of the cavity and take away the part of the whole
@@ -384,7 +385,14 @@ namespace GeometryHelper.Core
 
             List<GeoPlane3> cuttingA = PlanesNear(b, a.GetAabb(), tolerance);
             List<GeoPlane3> cuttingB = PlanesNear(a, b.GetAabb(), tolerance);
-            bool aFirst = cuttingA.Count <= cuttingB.Count;
+
+            // A difference cuts the body material is taken from first where that costs about the same: its cells beyond
+            // the other are the result as they are, where the body taken away cut leaves the other whole, its faces less
+            // those of the cells lying against them, worked out in the plane. Two walls from a model, the second over the
+            // last 1.8 m of the first and 0.014 to the side, which a tolerance of 0.05 takes for nothing, gave the first's
+            // new end the second's sides, its own sides their own, and its floor a needle 0.014 wide reaching back past the
+            // end: closed within 0.05 only, and 255 000 cubic millimetres short of the wall left.
+            bool aFirst = union ? cuttingA.Count <= cuttingB.Count : cuttingA.Count <= 2 * cuttingB.Count + 16;
             GeoSolid3 open = null;
             bool misjudged = false;
 

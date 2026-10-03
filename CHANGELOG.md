@@ -20,6 +20,16 @@ the result keeps the faces it was glued from, where they are no more than four t
 with holes less another, cut into cells, left 42 590 faces where the merge gave 270, and every question asked of it
 after, and every cut, took seconds.
 
+**FIXED.** `TrySubtract` cut the body taken away wherever fewer planes of the other reached it than reached the body
+material is taken from, and kept that body whole less the cells within it: its faces less those of the cells lying
+against them, worked out in the plane, mixed the corners of the two where they lay within the tolerance of each other.
+Of two walls from a model, the second over the last 1.8 m of the first and 0.014 to the side of it, which a tolerance of
+0.05 takes for nothing, the first's new end took the second's sides, its sides kept their own, and its floor kept a
+needle 0.014 wide reaching back past the end: the rest was closed within 0.05 only, and fell 255 000 cubic millimetres
+short of the wall left. A difference cuts the body material is taken from now where that costs no more than twice the
+planes of cutting the other and sixteen more, and the rest is the box it should be, closed within 0.01. Of 864 pairs of
+slabs from a Tekla model, two differences come 317 and 79 cubic millimetres nearer what the two share, and none further.
+
 ## 10.0.0
 
 **BREAKING.** A body is measured as its material. `GeoSolid3.GetVolume()`, `GetSurfaceArea()` and `GetCentroid()`, each
