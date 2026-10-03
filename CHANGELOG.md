@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A union, a difference or an intersection cut within a tolerance wider than the default came out closed within
+it and open within the default, where a plane of one body passed within the tolerance of a face of the other: the pieces
+cut along the plane met the face's own on copies of their edges a few hundredths apart. Of 10 314 cuts within 0.05 of
+the parts of a Tekla model by the parts they meet, 14 came out open within 0.01 so, by copies 0.010 to 0.048 apart, and
+so did 13 of its parts cut by all they meet one after another. The corners of a result open within the default, or
+within its own tolerance where that is the finer, are made one now where they stand within its tolerance of each other,
+each group at the corner of it that moves the volume least, and a corner within the tolerance of another face's edge is
+put on that edge; what comes of it is kept where it closes within the default and within its own tolerance, and holds
+its volume within the tolerance times its area. The 14 and the 13 close within 0.01, and set beside the same cuts within
+a thousandth the 14 came out 41% nearer in all, 8 of them nearer and 6 further. Two more of the parts cut one after
+another, open within their own tolerance where two faces had a bend at two places, 18.28 and 0.021 apart, close too. A
+result closed within the default is left as it is.
+
 **NEW.** `GeoSolid3.Validate()` says where a body's faces do not close, and why, as a `SolidValidation3`: whether the
 faces bound a body, closed, wound alike and outwards, and each `SolidIssue3` found, with its `SolidIssueKind`, where it
 is, how large and the faces it is of. A stretch of edge an odd number of faces meet on is an `OpenEdge`; one the faces

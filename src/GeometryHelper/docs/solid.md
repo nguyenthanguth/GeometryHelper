@@ -780,6 +780,17 @@ near it, and of its own openings — and the one it cuts is the one fewer planes
 planes of its own bend as well came apart into thousands of cells, since every plane of a bend runs on
 through the rest of the bar; cut by a beam's handful, it is a few.
 
+**What comes back closes within the default tolerance.** Two faces of a result meeting on an edge each have it
+where their own planes put it. Where a plane of one body passes within the tolerance of a face of the other, the
+two copies stand a few hundredths apart: closed within the tolerance the boolean was given, open read within a
+finer one. A result open within the default, or within its own tolerance where that is the finer, has its corners
+within its tolerance of each other made one, each group at the corner of it that moves the volume least, and each
+corner within the tolerance of another face's edge put on that edge. What comes of it is kept where it closes within the
+default and within its own tolerance, and holds its volume within the tolerance times its area. Of 10 314 cuts within
+0.05 of the parts of a Tekla model by the parts they meet, 14 came out open within 0.01 that way; they close now. A
+result open within its own tolerance is welded too, where that closes it, and one closed within the default is left
+as it is. `Validate()` shows where a body is open, and why.
+
 **Flat shapes and boxes.** Two areas in one plane are combined by the plane library and the answer lifted
 back, so it is exact; and a box is combined through the body it bounds, which is six flat faces and no
 fitting at all.

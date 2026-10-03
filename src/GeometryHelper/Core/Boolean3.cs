@@ -158,6 +158,7 @@ namespace GeometryHelper.Core
 
                 if (found.HasValue)
                 {
+                    result = Weld3.Sealed(result, tolerance);
                     return found.Value;
                 }
 
@@ -187,6 +188,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
+            result = Weld3.Sealed(result, tolerance);
             return true;
         }
 
@@ -324,7 +326,7 @@ namespace GeometryHelper.Core
                 if (TryGlue(CellsInside(other, cut, otherKnives, tolerance, out _, out _), tolerance, out GeoSolid3 otherWay)
                     && Implausible("intersection", otherWay, first, second, tolerance) == null)
                 {
-                    result = otherWay;
+                    result = Weld3.Sealed(otherWay, tolerance);
                     return true;
                 }
 
@@ -333,6 +335,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
+            result = Weld3.Sealed(result, tolerance);
             return true;
         }
 
@@ -470,6 +473,7 @@ namespace GeometryHelper.Core
 
                 if (found.HasValue)
                 {
+                    result = Weld3.Sealed(result, tolerance);
                     return found.Value;
                 }
 
@@ -493,6 +497,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
+            result = Weld3.Sealed(result, tolerance);
             return true;
         }
 
