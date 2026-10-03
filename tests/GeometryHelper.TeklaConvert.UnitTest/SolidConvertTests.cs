@@ -117,7 +117,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
 
             Assert.True(SolidConvert.TryAssemble(faces, out GeoSolid3 cube));
 
-            Assert.Equal(1E6, cube.GetSignedVolume(), 6);
+            Assert.Same(cube, cube.TurnOutwards());
+            Assert.Equal(1E6, cube.GetVolume(), 6);
             Assert.Equal(PointLocation.Inside, cube.Locate(P(50, 50, 50), Default));
         }
 

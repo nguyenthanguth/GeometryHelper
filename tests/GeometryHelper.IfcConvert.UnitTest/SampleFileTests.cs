@@ -64,7 +64,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
                     {
                         Assert.True(solid.GetVolume() > 0.0 && !double.IsNaN(solid.GetVolume()) && !double.IsInfinity(solid.GetVolume()),
                             $"{geometry.IfcType} {geometry.GlobalId}: volume {solid.GetVolume()}");
-                        Assert.True(solid.GetSignedVolume() > 0.0,
+                        Assert.True(ReferenceEquals(solid, solid.TurnOutwards()),
                             $"{geometry.IfcType} {geometry.GlobalId}: faces point inwards");
                     }
                 }
@@ -194,7 +194,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 var doors = model.GetGeometriesByType("IfcDoor");
 
                 Assert.Contains(doors, d => d.Warnings.Any(w => w.Contains("enclosing no volume")));
-                Assert.All(doors.SelectMany(d => d.Solids), s => Assert.True(s.GetSignedVolume() > 0.0));
+                Assert.All(doors.SelectMany(d => d.Solids), s => Assert.Same(s, s.TurnOutwards()));
             });
         }
 

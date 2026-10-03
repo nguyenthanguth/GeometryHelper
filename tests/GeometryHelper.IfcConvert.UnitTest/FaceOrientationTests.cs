@@ -33,7 +33,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
             var solid = new GeoSolid3(FaceOrientation.Orient(faces, Tolerance.Global));
 
-            Assert.Equal(1.0, solid.GetSignedVolume(), 9);
+            Assert.Same(solid, solid.TurnOutwards());
+            Assert.Equal(1.0, solid.GetVolume(), 9);
             Assert.All(solid.Faces, f =>
             {
                 GeoPoint3 centre = new GeoPoint3(f.Boundary.Vertices.Average(v => v.X), f.Boundary.Vertices.Average(v => v.Y), f.Boundary.Vertices.Average(v => v.Z));
@@ -47,7 +48,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
         {
             var faces = OutwardCube().Select(f => f.Flip()).ToList();
             var solid = new GeoSolid3(FaceOrientation.Orient(faces, Tolerance.Global));
-            Assert.Equal(1.0, solid.GetSignedVolume(), 9);
+            Assert.Same(solid, solid.TurnOutwards());
+            Assert.Equal(1.0, solid.GetVolume(), 9);
         }
 
         // 1 x 1 x 0.1 plate with a 0.4 x 0.4 square hole: purely planar, read face by face.

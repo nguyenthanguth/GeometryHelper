@@ -155,6 +155,45 @@ namespace GeometryHelper.Geometry
             return new GeoSolid3(_faces, combined);
         }
 
+        /// <summary>
+        /// Gets this solid wound outwards, its openings too: every face turned over where the whole surface faces into
+        /// the body.
+        /// </summary>
+        /// <returns>This solid itself where nothing had to be turned, so that the same body back says it was the right way out.</returns>
+        /// <remarks>
+        /// Which way a closed surface is wound is the sign of the volume it encloses: positive where its faces face out
+        /// of it. A modeller can hand a body over the other way round, and a mirror turns every face over. The measures
+        /// read a body either way the same, but a boolean, and which side of a face a point is on, read the winding.
+        /// The faces of a surface that does not close are turned by the same sign, which there says little.
+        /// </remarks>
+        public GeoSolid3 TurnOutwards()
+        {
+            bool turn = GetSignedVolume() < 0.0;
+            var openings = new List<GeoSolid3>(_openings.Length);
+            bool changed = turn;
+
+            foreach (GeoSolid3 opening in _openings)
+            {
+                GeoSolid3 outwards = opening.TurnOutwards();
+                openings.Add(outwards);
+                changed |= !ReferenceEquals(outwards, opening);
+            }
+
+            if (!changed)
+            {
+                return this;
+            }
+
+            var faces = new List<GeoFace3>(_faces.Length);
+
+            foreach (GeoFace3 face in _faces)
+            {
+                faces.Add(turn ? face.Flip() : face);
+            }
+
+            return new GeoSolid3(faces, openings);
+        }
+
         #region Measurements
 
         /// <summary>
@@ -200,10 +239,11 @@ namespace GeometryHelper.Geometry
         internal double GrossVolume => Math.Abs(GetSignedVolume());
 
         /// <summary>
-        /// Gets the signed volume enclosed by the bounding faces. It is positive when the face normals
-        /// point outwards and negative when they point inwards.
+        /// Gets the signed volume enclosed by the bounding faces, the openings not cut out. It is positive when the face
+        /// normals point outwards and negative when they point inwards: which way the body is wound, which
+        /// <see cref="TurnOutwards"/> sets right, and not a volume of anything with openings.
         /// </summary>
-        public double GetSignedVolume()
+        internal double GetSignedVolume()
         {
             GeoPoint3 apex = GetReferencePoint();
             double total = 0.0;

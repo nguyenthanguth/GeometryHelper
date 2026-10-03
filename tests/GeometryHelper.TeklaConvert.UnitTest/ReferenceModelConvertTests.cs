@@ -364,7 +364,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
 
                 GeoSolid3 body = Assert.Single(moved.Solids);
                 Assert.Equal(box.Faces.Count, body.Faces.Count);
-                Assert.Equal(1e6, body.GetSignedVolume(), 3);
+                Assert.Same(body, body.TurnOutwards());
+                Assert.Equal(1e6, body.GetVolume(), 3);
                 Assert.Empty(moved.Warnings);
                 Assert.Empty(log.Entries);
             }

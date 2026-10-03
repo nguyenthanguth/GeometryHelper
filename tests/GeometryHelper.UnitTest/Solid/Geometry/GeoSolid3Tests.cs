@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
@@ -204,6 +205,37 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(cube.GetVolume(), insideOut.GetVolume(), 6);
             Assert.Equal(cube.GetSignedVolume(), -insideOut.GetSignedVolume(), 6);
+        }
+
+        [Fact]
+        public void TurningOutwardsTurnsOnlyWhatFacesIn()
+        {
+            GeoSolid3 cube = MakeUnitCube();
+            GeoSolid3 hole = MakeBoxSolid(new GeoPoint3(4.0, 4.0, -1.0), new GeoPoint3(6.0, 6.0, 11.0));
+            GeoSolid3 holeInwards = new GeoSolid3(hole.Faces.Select(f => f.Flip()));
+            GeoSolid3 insideOut = new GeoSolid3(cube.Faces.Select(f => f.Flip()));
+
+            // Wound outwards already, openings and all: the same body back.
+            Assert.Same(cube, cube.TurnOutwards());
+            GeoSolid3 pierced = cube.WithOpenings(new[] { hole });
+            Assert.Same(pierced, pierced.TurnOutwards());
+
+            // Wound inwards: every face turned over, and only those.
+            GeoSolid3 turned = insideOut.TurnOutwards();
+            Assert.True(turned.GetSignedVolume() > 0.0);
+            Assert.True(turned.IsEqualTo(cube));
+            Assert.Equal(PointLocation.Inside, turned.Locate(new GeoPoint3(5, 5, 5)));
+
+            // An opening wound inwards in a body wound outwards: the opening turned, the faces of the body kept as they are.
+            GeoSolid3 fixedOpening = cube.WithOpenings(new[] { holeInwards }).TurnOutwards();
+            Assert.True(fixedOpening.Openings[0].GetSignedVolume() > 0.0);
+            Assert.Equal(cube.Faces, fixedOpening.Faces);
+            Assert.Equal(1000.0 - 2.0 * 2.0 * 10.0, fixedOpening.GetVolume(), 6);
+
+            // Both wound inwards: both turned.
+            GeoSolid3 both = insideOut.WithOpenings(new[] { holeInwards }).TurnOutwards();
+            Assert.True(both.GetSignedVolume() > 0.0);
+            Assert.True(both.Openings[0].GetSignedVolume() > 0.0);
         }
 
         [Fact]

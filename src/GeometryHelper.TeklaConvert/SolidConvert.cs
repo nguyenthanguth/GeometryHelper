@@ -108,24 +108,10 @@ namespace GeometryHelper.TeklaConvert
                 return false;
             }
 
-            GeoSolid3 body = new GeoSolid3(faces);
-
             // A surface that came in wound the other way encloses the same volume with the opposite sign.
             // Turning it over costs one pass and saves every later query from being wrong about which side
             // of the body a point is on.
-            if (body.GetSignedVolume() < 0.0)
-            {
-                List<GeoFace3> flipped = new List<GeoFace3>(faces.Count);
-
-                foreach (GeoFace3 face in faces)
-                {
-                    flipped.Add(face.Flip());
-                }
-
-                body = new GeoSolid3(flipped);
-            }
-
-            result = body;
+            result = new GeoSolid3(faces).TurnOutwards();
             return true;
         }
 

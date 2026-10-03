@@ -34,7 +34,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
             GeoSolid3 body = Assert.Single(moved.Solids);
             Assert.Equal(box.Faces.Count, body.Faces.Count);
-            Assert.Equal(1e6, body.GetSignedVolume(), 3);
+            Assert.Same(body, body.TurnOutwards());
+            Assert.Equal(1e6, body.GetVolume(), 3);
             Assert.Empty(moved.Warnings);
         }
 
@@ -90,7 +91,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
             // (100, 0, 0) turns to (0, 100, 0) and moves to (1000, -1900, 300); so does the surface's (10, 0, 0).
             Assert.Contains(Vertices(moved.Solids[0]), v => v.IsEqualTo(new GeoPoint3(1000, -1900, 300)));
             Assert.Contains(moved.OpenSurfaces[0].Boundary.Vertices, v => v.IsEqualTo(new GeoPoint3(1000, -1990, 300)));
-            Assert.Equal(original.Solids[0].GetSignedVolume(), moved.Solids[0].GetSignedVolume(), 6);
+            Assert.Same(moved.Solids[0], moved.Solids[0].TurnOutwards());
+            Assert.Equal(original.Solids[0].GetVolume(), moved.Solids[0].GetVolume(), 6);
             Assert.True(moved.Placement.IsEqualTo(move * placement));
 
             // The geometry it came from, which may sit in a cache, is untouched.
@@ -108,7 +110,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
             GeoSolid3 body = Assert.Single(mirrored.Solids);
             Assert.Contains(Vertices(body), v => v.IsEqualTo(new GeoPoint3(-100, 0, 0)));
-            Assert.Equal(original.Solids[0].GetSignedVolume(), body.GetSignedVolume(), 6);
+            Assert.Same(body, body.TurnOutwards());
+            Assert.Equal(original.Solids[0].GetVolume(), body.GetVolume(), 6);
         }
 
         [Fact]

@@ -487,24 +487,7 @@ namespace GeometryHelper.Core
         /// The body the faces bound, wound outwards: turned inside out when its signed volume says the faces were
         /// built the other way round.
         /// </summary>
-        private static GeoSolid3 Outwards(List<GeoFace3> faces)
-        {
-            var body = new GeoSolid3(faces);
-
-            if (body.GetSignedVolume() >= 0.0)
-            {
-                return body;
-            }
-
-            var flipped = new List<GeoFace3>(faces.Count);
-
-            foreach (GeoFace3 face in faces)
-            {
-                flipped.Add(face.Flip());
-            }
-
-            return new GeoSolid3(flipped);
-        }
+        private static GeoSolid3 Outwards(List<GeoFace3> faces) => new GeoSolid3(faces).TurnOutwards();
 
         private static GeoPolygon3 Placed(GeoPolygon2 polygon, GeoCoordinateSystem3 placement)
         {

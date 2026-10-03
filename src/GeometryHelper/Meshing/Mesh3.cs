@@ -380,7 +380,7 @@ namespace GeometryHelper.Meshing
                 throw new ArgumentException("The body is not closed, so it holds no volume to cut into cells; mend it first, as GeoSolid3.IsClosed says.", nameof(solid));
             }
 
-            solid = Outwards(solid);
+            solid = solid.TurnOutwards();
             GeoSolid3 material = solid;
             IReadOnlyList<GeoSolid3> left = new GeoSolid3[0];
 
@@ -507,38 +507,6 @@ namespace GeometryHelper.Meshing
             {
                 throw new ArgumentNullException(nameof(placement));
             }
-        }
-
-        /// <summary>
-        /// A body wound outwards, its openings too: one wound inwards, as a mirror leaves it, turned the right way out, which
-        /// the cutting reads its faces as.
-        /// </summary>
-        private static GeoSolid3 Outwards(GeoSolid3 solid)
-        {
-            bool turn = solid.GetSignedVolume() < 0.0;
-            var openings = new List<GeoSolid3>(solid.Openings.Count);
-            bool changed = turn;
-
-            foreach (GeoSolid3 opening in solid.Openings)
-            {
-                GeoSolid3 outwards = Outwards(opening);
-                openings.Add(outwards);
-                changed |= !ReferenceEquals(outwards, opening);
-            }
-
-            if (!changed)
-            {
-                return solid;
-            }
-
-            var faces = new List<GeoFace3>(solid.Faces.Count);
-
-            foreach (GeoFace3 face in solid.Faces)
-            {
-                faces.Add(turn ? face.Flip() : face);
-            }
-
-            return new GeoSolid3(faces, openings);
         }
 
         private static List<GeoPoint3> Corners(GeoSolid3 solid)

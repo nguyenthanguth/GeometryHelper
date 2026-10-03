@@ -71,20 +71,8 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 transformedOpenings.Add(opening.Transform(transform, tol));
             }
 
-            GeoSolid3 result = new GeoSolid3(transformedFaces, transformedOpenings);
-
-            if (result.GetSignedVolume() < 0.0)
-            {
-                List<GeoFace3> flipped = new List<GeoFace3>(result.Faces.Count);
-                foreach (GeoFace3 f in result.Faces)
-                {
-                    flipped.Add(f.Flip());
-                }
-
-                result = new GeoSolid3(flipped, result.Openings);
-            }
-
-            return result;
+            // A mirroring transform turns every face over.
+            return new GeoSolid3(transformedFaces, transformedOpenings).TurnOutwards();
         }
 
         /// <summary>
