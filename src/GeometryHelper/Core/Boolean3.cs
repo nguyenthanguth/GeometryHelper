@@ -1265,7 +1265,14 @@ namespace GeometryHelper.Core
 
             // Merging the faces of a plane joins their outlines within the tolerance, where corners a hair apart are one point
             // to the merged face and two to the faces beside it: the skin of the common part of two bent bars, closed, came
-            // out open by edges a hundredth long. A merge that opens a closed skin is not made.
+            // out open by edges a hundredth long. A merge that opens a closed skin is not made, where the skin is not too
+            // many faces to be a result: a slab with holes less another, cut into cells, left a skin of 42 590 faces where
+            // the merge gave 270, and every question asked of it after, and every cut, took seconds.
+            if (skin.Count > Math.Max(4 * result.Faces.Count, 2048))
+            {
+                return true;
+            }
+
             var glued = new GeoSolid3(skin);
 
             if (glued.IsClosed(tolerance))

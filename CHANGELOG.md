@@ -16,7 +16,9 @@ wider than four point tolerances, is closed by a face across it now, where the f
 and that closes them again. And merging the faces of a plane joins their outlines within the tolerance, where corners a
 hair apart are one point to the merged face and two to the faces beside it: the common part of two bent bars crossing,
 closed before the merge, came out open by edges a hundredth long. A merge that opens a closed result is not made, and
-the result keeps the faces it was glued from.
+the result keeps the faces it was glued from, where they are no more than four times the faces merged, or 2 048: a slab
+with holes less another, cut into cells, left 42 590 faces where the merge gave 270, and every question asked of it
+after, and every cut, took seconds.
 
 ## 10.0.0
 
