@@ -169,6 +169,15 @@ of a box with a box taken out kept such a piece whole, 56 mm out of its box. The
 the rim leaves open and the start nearest it are each other's nearest within four point tolerances. The two crossings
 are not put on one point: that took the two sides of a tube's wall thinner than the tolerance for one, and cut it.
 
+**FIXED.** `GeoSolid3.TrySplitBy` and the cells left a half open beside a rim closed across that gap. Where a face of
+the body runs between two cuts a hair apart, the strip of it between them narrows to nothing, and cut across where it is
+narrower than the point tolerance it was taken for no width: its piece kept one corner of the narrow end and the cap the
+other, and the faces beside the strip shared their edge on copies 0.0095 apart at its foot. Cut across again, the
+strip's two crossings 0.0036 apart were one point, on the far copy; the rim was closed across the 0.0119 to the other,
+and the sliver between the copies, 102.8 long, was left open above it. A cell of a thin L came out so, one in ten
+thousand random thin bodies. Where a bridged rim leaves its half open, a face across each sliver no wider than four
+point tolerances now closes it, and a half closed as it is is left so.
+
 **FIXED.** `GeoSolid3.Locate` and `Contains` threw another ray when a crossing landed within twice the point tolerance of
 a face's outer rim, but not of the rim of one of its holes: a ray leaving through the wall of a hole and rising through
 the hole a hair short of its rim was counted by the face the hole is cut in, and the point came out of the body. The

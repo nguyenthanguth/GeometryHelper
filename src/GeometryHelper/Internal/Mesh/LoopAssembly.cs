@@ -140,6 +140,166 @@ namespace GeometryHelper.Core
             return true;
         }
 
+        /// <summary>
+        /// Closes the slivers a half of a cut is left open by where its rim was bridged: each strip between two copies of an
+        /// edge that stood further apart at the cut than the tolerance, closed by a face across it.
+        /// </summary>
+        /// <param name="faces">The faces of the half, its caps included.</param>
+        /// <param name="tolerance">The tolerance deciding which corners are one point.</param>
+        /// <param name="pieces">The tolerance the closing faces are built within; see <see cref="ForPieces"/>.</param>
+        /// <param name="slivers">The faces closing the slivers, none where nothing is open; null when the method returns false.</param>
+        /// <returns>
+        /// false when the edges left open do not chain into loops one way only, or a loop is no sliver: wider across than
+        /// <see cref="Bridge"/> point tolerances, or no face.
+        /// </returns>
+        /// <remarks>
+        /// Two faces sharing an edge on copies a hair apart are closed across it, the corners at each end one point within
+        /// the tolerance. A cut takes each copy as it finds it, and where a face's two crossings stand within the tolerance
+        /// of each other they are one corner, the one on the far copy as often as not: the crossings were left 0.0119
+        /// apart, the rim was bridged, and the strip between the copies, from the cut up to where they meet, was a sliver no
+        /// face covered, 102.8 long. It is a piece of a face of the body all the same, and a face across it closes the half,
+        /// where one point for both copies would take the two sides of a wall thinner than the tolerance for one. A loop of
+        /// no area is an edge run beside two that make it up, which the surface closes as it is, and is passed over.
+        /// </remarks>
+        internal static bool TryCloseSlivers(List<GeoFace3> faces, Tolerance tolerance, Tolerance pieces, out List<GeoFace3> slivers)
+        {
+            slivers = null;
+
+            var welder = new VertexWelder(tolerance);
+            var points = new Dictionary<int, GeoPoint3>();
+            var runs = new Dictionary<long, int>();
+
+            int Index(GeoPoint3 point)
+            {
+                int index = welder.GetIndex(point);
+
+                if (!points.ContainsKey(index))
+                {
+                    points.Add(index, point);
+                }
+
+                return index;
+            }
+
+            foreach (GeoFace3 face in faces)
+            {
+                foreach (IReadOnlyList<GeoPoint3> ring in EnumerateMaterialRings(face))
+                {
+                    for (int i = 0; i < ring.Count; i++)
+                    {
+                        int from = Index(ring[i]);
+                        int to = Index(ring[(i + 1) % ring.Count]);
+
+                        if (from != to)
+                        {
+                            long run = Run(from, to);
+                            runs[run] = (runs.TryGetValue(run, out int seen) ? seen : 0) + 1;
+                        }
+                    }
+                }
+            }
+
+            // In a closed surface every edge is run as often one way as the other. One run more often one way is open, and
+            // the face closing it runs it the other way: each such edge, from its end to its start, by where it leaves.
+            var leaving = new Dictionary<int, List<int>>();
+
+            foreach (KeyValuePair<long, int> run in runs)
+            {
+                int from = (int)(run.Key >> 32);
+                int to = (int)(run.Key & 0xFFFFFFFF);
+
+                for (int extra = run.Value - (runs.TryGetValue(Run(to, from), out int back) ? back : 0); extra > 0; extra--)
+                {
+                    if (!leaving.TryGetValue(to, out List<int> ends))
+                    {
+                        ends = new List<int>();
+                        leaving.Add(to, ends);
+                    }
+
+                    ends.Add(from);
+                }
+            }
+
+            var closing = new List<GeoFace3>();
+
+            while (leaving.Count > 0)
+            {
+                int start = 0;
+
+                foreach (int key in leaving.Keys)
+                {
+                    start = key;
+                    break;
+                }
+
+                var loop = new List<GeoPoint3> { points[start] };
+                int at = start;
+
+                while (true)
+                {
+                    // Two ways on from one corner is no strip between two copies of an edge.
+                    if (!leaving.TryGetValue(at, out List<int> ends) || ends.Count != 1)
+                    {
+                        return false;
+                    }
+
+                    int next = ends[0];
+                    leaving.Remove(at);
+
+                    if (next == start)
+                    {
+                        break;
+                    }
+
+                    loop.Add(points[next]);
+                    at = next;
+                }
+
+                if (loop.Count < 3)
+                {
+                    return false;
+                }
+
+                // The loop's area against its longest edge: how wide across it is.
+                GeoVector3 area = new GeoVector3(0.0, 0.0, 0.0);
+                double longest = 0.0;
+
+                for (int i = 0; i < loop.Count; i++)
+                {
+                    GeoPoint3 a = loop[i];
+                    GeoPoint3 b = loop[(i + 1) % loop.Count];
+                    area = area.Add(loop[0].GetVectorTo(a).CrossProduct(loop[0].GetVectorTo(b)));
+                    longest = Math.Max(longest, a.DistanceTo(b));
+                }
+
+                double size = 0.5 * area.Length;
+
+                if (size <= tolerance.EqualPoint * tolerance.EqualPoint)
+                {
+                    continue;
+                }
+
+                if (!(2.0 * size <= Bridge * tolerance.EqualPoint * longest))
+                {
+                    return false;
+                }
+
+                GeoFace3[] across = Loops3.ToFaces(loop, null, pieces);
+
+                if (across.Length == 0)
+                {
+                    return false;
+                }
+
+                closing.AddRange(across);
+            }
+
+            slivers = closing;
+            return true;
+        }
+
+        private static long Run(int from, int to) => ((long)from << 32) | (uint)to;
+
         private static GeoPoint3 Nearest(List<GeoPoint3> points, GeoPoint3 to)
         {
             GeoPoint3 nearest = points[0];

@@ -181,6 +181,7 @@ A review of the code since, and the harder fuzz, found these, each fixed with a 
 | A piece of a face a hair out of flat measured from its own corner | `GeoSolid3.TrySplitBy` | a piece of a column with a ledge was refused, 0.0146 out of flat so measured |
 | A cap measured about the normal of its own corners | `GeoSolid3.TrySplitBy`, `Section` | a cut through a corner of a ledge 0.109 thick was refused, and a cell reached 39 mm out of its box |
 | An edge two faces share within the tolerance crossed on each copy | `GeoSolid3.TrySplitBy`, `Section` | the crossings of copies a hair apart, met at a slant, stood 0.0112 apart and the rim did not close; a cell of a box with a box taken out reached 56 mm out of its box |
+| The strip between two copies of an edge left open beside a rim closed across them | `GeoSolid3.TrySplitBy`, the cells | an L's flange end ran between two cuts of the grid a hair apart, and the cell cut across the strip a second time was open by a sliver of it 102.8 long |
 | A point no ray could place called outside | `GeoSolid3.Locate` | a point of a cell of a plate 0.035 thick, 0.013 in from its side, lay in no cell |
 | Edges swept along X | `SplitShells`, the booleans, the cells | a drum of 4 096 sides took 11 s, and 800 slabs of a drum 42 s; 0.04 s and 3.7 s now |
 | A rim's ends sorted along X | cutting, merging | a cap of 16 384 edges square to X took half a second; a twentieth now |

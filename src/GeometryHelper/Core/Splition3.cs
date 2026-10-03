@@ -1366,17 +1366,55 @@ namespace GeometryHelper.Core
             // rims usually describe the same shape, but not when the cutting plane holds a face of the body
             // already: there the two halves meet the plane over different areas, and one cap cannot serve
             // for both. Cutting an L-shaped prism along the plane of its own notch is exactly that case.
-            if (!TryBuildCaps(upperFaces, cutter, cutter.Normal.Negate(), tolerance, pieces, out upperCaps))
+            if (!TryBuildCaps(upperFaces, cutter, cutter.Normal.Negate(), tolerance, pieces, out upperCaps, out bool upperBridged))
             {
                 return false;
             }
 
-            if (!TryBuildCaps(lowerFaces, cutter, cutter.Normal, tolerance, pieces, out lowerCaps))
+            if (!TryBuildCaps(lowerFaces, cutter, cutter.Normal, tolerance, pieces, out lowerCaps, out bool lowerBridged))
             {
                 return false;
+            }
+
+            // A rim closed across the gap between two copies of an edge, where they crossed the plane further apart than the
+            // tolerance, leaves the strip between them open beside the cap; see LoopAssembly.TryCloseSlivers.
+            if (upperBridged)
+            {
+                CloseSlivers(upperFaces, upperCaps, tolerance, pieces);
+            }
+
+            if (lowerBridged)
+            {
+                CloseSlivers(lowerFaces, lowerCaps, tolerance, pieces);
             }
 
             return upperFaces.Count + upperCaps.Count >= 4 && lowerFaces.Count + lowerCaps.Count >= 4;
+        }
+
+        /// <summary>
+        /// Adds to a half the faces closing the slivers its bridged rim left open beside its caps, where they close it.
+        /// </summary>
+        /// <remarks>
+        /// A half closed within the tolerance as it is, the copies of the edge no further apart beside the cap than the
+        /// tolerance, is left as it is: the crack between them is the body's own, and the halves hold what it holds.
+        /// </remarks>
+        private static void CloseSlivers(List<GeoFace3> halfFaces, List<GeoFace3> caps, Tolerance tolerance, Tolerance pieces)
+        {
+            var all = new List<GeoFace3>(halfFaces);
+            all.AddRange(caps);
+
+            if (all.Count < 4 || new GeoSolid3(all).IsClosed(tolerance)
+                || !LoopAssembly.TryCloseSlivers(all, tolerance, pieces, out List<GeoFace3> slivers) || slivers.Count == 0)
+            {
+                return;
+            }
+
+            all.AddRange(slivers);
+
+            if (new GeoSolid3(all).IsClosed(tolerance))
+            {
+                halfFaces.AddRange(slivers);
+            }
         }
 
         /// <summary>
@@ -1427,14 +1465,16 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="pieces">The tolerance the caps are built within; see <see cref="LoopAssembly.ForPieces"/>.</param>
         /// <param name="caps">The faces closing the half.</param>
+        /// <param name="bridged">Whether the rim was closed across a gap between two copies of an edge; see <see cref="LoopAssembly.TryBridgeGaps"/>.</param>
         /// <returns>
         /// false when the edges left by the cut do not close into loops, or cancel only as the two sides of a sliver thinner
         /// than the point tolerance and larger than a square of it do; true with no caps when the half has no edge on the
         /// plane its own faces do not run both ways.
         /// </returns>
-        private static bool TryBuildCaps(List<GeoFace3> halfFaces, GeoPlane3 cutter, GeoVector3 outward, Tolerance tolerance, Tolerance pieces, out List<GeoFace3> caps)
+        private static bool TryBuildCaps(List<GeoFace3> halfFaces, GeoPlane3 cutter, GeoVector3 outward, Tolerance tolerance, Tolerance pieces, out List<GeoFace3> caps, out bool bridged)
         {
             caps = new List<GeoFace3>();
+            bridged = false;
 
             List<GeoLine3> edges = new List<GeoLine3>();
 
@@ -1484,11 +1524,15 @@ namespace GeometryHelper.Core
             // face, or a vertex where several rim edges meet would send the walk onto the wrong outline.
             // A gap a hair wide where two faces crossed the edge they share on copies of it is closed across; see
             // LoopAssembly.TryBridgeGaps.
-            if (!LoopAssembly.TryChainLoops(edges, outward, tolerance, out List<List<GeoPoint3>> loops)
-                && !(LoopAssembly.TryBridgeGaps(edges, tolerance, out List<GeoLine3> bridged) && LoopAssembly.TryChainLoops(bridged, outward, tolerance, out loops)))
+            if (!LoopAssembly.TryChainLoops(edges, outward, tolerance, out List<List<GeoPoint3>> loops))
             {
-                // An open chain means the surface did not close, so the section cannot be trusted.
-                return false;
+                if (!LoopAssembly.TryBridgeGaps(edges, tolerance, out List<GeoLine3> joined) || !LoopAssembly.TryChainLoops(joined, outward, tolerance, out loops))
+                {
+                    // An open chain means the surface did not close, so the section cannot be trusted.
+                    return false;
+                }
+
+                bridged = true;
             }
 
             // A plane taking a corner off leaves a cap as small as the slivers beside it, and one refused would
