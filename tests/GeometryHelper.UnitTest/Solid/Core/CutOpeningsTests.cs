@@ -164,6 +164,23 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void ABodyWoundInwardsHasItsOpeningsCutAsItsOutwardSelfHas()
+        {
+            // The plate with every face turned over: its cells came back with its own faces facing in and the faces the
+            // cuts laid across them facing out, and glued into the wrong material, the whole plate of 200 000 here and
+            // 186 667 with the hole off the middle, where 192 000 is left.
+            GeoSolid3 plate = Plate();
+            GeoSolid3 inwards = new GeoSolid3(plate.Faces.Select(f => f.Flip()), plate.Openings);
+
+            Assert.True(inwards.TryCutOpenings(out GeoSolid3 material));
+
+            Assert.Equal(100.0 * 100 * 20 - 20.0 * 20 * 20, material.Volume, 6);
+            Assert.True(material.IsClosed());
+            Assert.Equal(PointLocation.OutSide, material.Locate(new GeoPoint3(50, 50, 10)));
+            Assert.Equal(PointLocation.Inside, material.Locate(new GeoPoint3(20, 20, 10)));
+        }
+
+        [Fact]
         public void FacesTheToleranceTakesForOnePlaneButWhoseOutlineIsNotFlatAreLeftUnmerged()
         {
             // A sliver of an opening turned a hair, flush with the floor and a side of an L and across its step: gluing the

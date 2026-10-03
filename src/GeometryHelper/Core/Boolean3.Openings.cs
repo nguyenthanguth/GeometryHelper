@@ -117,12 +117,34 @@ namespace GeometryHelper.Core
             }
         }
 
+        /// <summary>
+        /// The body wound outwards: itself, or every face turned over where the whole surface is wound inwards.
+        /// </summary>
+        private static GeoSolid3 Outwards(GeoSolid3 body)
+        {
+            if (body.GetSignedVolume() >= 0.0)
+            {
+                return body;
+            }
+
+            var faces = new List<GeoFace3>(body.Faces.Count);
+
+            foreach (GeoFace3 face in body.Faces)
+            {
+                faces.Add(face.Flip());
+            }
+
+            return new GeoSolid3(faces, body.Openings);
+        }
+
         private static bool CutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance)
         {
             // The body carrying only the openings being cut, so that a cell is judged against exactly those, and
-            // both as the cut works on them; see ForWork and FlatForWork.
+            // both as the cut works on them; see ForWork and FlatForWork. Wound outwards, as the faces a cut lays
+            // across a cell are: a body wound inwards came back in cells with the old faces facing in and the new
+            // ones out, and glued into the wrong material.
             tolerance = ForWork(tolerance);
-            GeoSolid3 owner = FlatForWork(new GeoSolid3(solid.Faces, openings), tolerance);
+            GeoSolid3 owner = FlatForWork(Outwards(new GeoSolid3(solid.Faces, openings)), tolerance);
             GeoSolid3 gross = new GeoSolid3(owner.Faces);
             openings = owner.Openings;
 
