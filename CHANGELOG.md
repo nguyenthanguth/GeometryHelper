@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `GeoSolid3.Validate()` says where a body's faces do not close, and why, as a `SolidValidation3`: whether the
+faces bound a body, closed, wound alike and outwards, and each `SolidIssue3` found, with its `SolidIssueKind`, where it
+is, how large and the faces it is of. A stretch of edge an odd number of faces meet on is an `OpenEdge`; one the faces
+on it run the same way is a `SameWayEdge`, a face wound the wrong way round, which `IsClosed` counts as closed; faces
+wound inwards are `InsideOut`, and faces enclosing nothing thicker than the tolerance `NoVolume`. Edges four faces meet
+on, short edges, faces thinner than the tolerance and faces out of flat are noted, and leave the body valid. The edges
+are matched as `IsClosed` matches them, and the two agreed on all 1 989 parts of a Tekla model and on the 10 313 cuts of
+them within 0.05 by the parts they meet, within 0.05 and within 0.01.
+
 **CHANGED.** A union, a difference or an intersection whose result holds a volume the operation cannot give is not
 handed back: a difference leaving more than the body it was taken from, or less than that less the whole tool; a union
 holding less than the larger body or more than both; a common part larger than the smaller body, each beyond the

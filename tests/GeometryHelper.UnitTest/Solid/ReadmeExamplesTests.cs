@@ -123,6 +123,21 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void ABodyAskedWhereItIsOpen()
+        {
+            GeoSolid3 slab = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(10, 10, 10)).ToObb().ToSolid();
+            GeoSolid3 lidless = new GeoSolid3(slab.Faces.Where(face => face.Normal.Z < 0.5));
+
+            SolidValidation3 check = lidless.Validate();
+
+            Assert.False(check.IsValid);
+            Assert.Equal(4, check.Issues.Count);
+            Assert.All(check.Issues, issue => Assert.Equal(SolidIssueKind.OpenEdge, issue.Kind));
+            Assert.All(check.Issues, issue => Assert.Equal(10.0, issue.Size, 9));
+            Assert.Equal("SolidIssue3[OpenEdge 10 long at (5, 10, 10), face 2; 1 one way, 0 the other]", check.Issues[0].ToString());
+        }
+
+        [Fact]
         public void EveryOperationIsReachableBothWays()
         {
             var line = new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0));

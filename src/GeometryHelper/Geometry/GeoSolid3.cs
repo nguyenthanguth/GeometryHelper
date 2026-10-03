@@ -628,6 +628,38 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Checks the faces of the solid, using the default tolerance.
+        /// </summary>
+        public SolidValidation3 Validate() => Validate(Tolerance.Global);
+
+        /// <summary>
+        /// Checks the faces of the solid within a tolerance: where they do not close, where faces meeting on an edge run
+        /// it the same way, which way they are wound, and the short edges, thin faces, faces out of flat and edges four
+        /// faces meet on that are worth knowing about.
+        /// </summary>
+        /// <param name="tolerance">The tolerance edges are matched within, as <see cref="IsClosed(Tolerance)"/> matches them.</param>
+        /// <returns>Whether the faces bound a body, and each thing found, with where it is.</returns>
+        /// <remarks>
+        /// <see cref="IsClosed(Tolerance)"/> answers yes or no; this says where. A body a boolean cut within five hundredths
+        /// and found open within a hundredth shows the stretches it is open along and the faces on them, so the corners that
+        /// are one point to one face and two to another can be read off. The openings are bodies of their own, and are
+        /// checked by asking them.
+        /// <code>
+        /// part.TrySubtract(cutter, out GeoSolid3 rest, new Tolerance(0.05, 0.01, Tolerance.DefaultEqualAngleRad, 0.05));
+        /// SolidValidation3 check = rest.Validate(); // within the default tolerance, a hundredth
+        ///
+        /// if (!check.IsValid)
+        /// {
+        ///     foreach (SolidIssue3 issue in check.Issues)
+        ///     {
+        ///         Console.WriteLine(issue); // SolidIssue3[OpenEdge 0.0134 long at (1250, 300, 2700), face 12; 1 one way, 0 the other]
+        ///     }
+        /// }
+        /// </code>
+        /// </remarks>
+        public SolidValidation3 Validate(Tolerance tolerance) => SolidValidation3.Of(this, tolerance);
+
+        /// <summary>
         /// Tallies how many times each edge of one ring is used, matching vertices within a tolerance.
         /// </summary>
         private static void CountRingEdges(GeoPolygon3 ring, VertexWelder welder, Dictionary<long, int> edgeCounts)

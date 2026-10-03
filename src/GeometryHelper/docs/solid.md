@@ -192,6 +192,22 @@ even number of faces. A long edge beside two short ones is matched stretch by st
 along an edge put four faces on it and are closed; a missing face leaves a stretch with one, and a fin
 standing off the surface one with three.
 
+`Validate()` says where. It matches the edges as `IsClosed()` does, and gives a `SolidValidation3`: whether the faces
+bound a body, closed, wound alike and outwards, and each thing found, a `SolidIssue3` with its kind, where it is, how
+large, and the faces it is of. A stretch of edge an odd number of faces meet on is an `OpenEdge`. A stretch the two
+faces on it run the same way is a `SameWayEdge`: a face wound the wrong way round, which `IsClosed()` counts as
+closed. Faces wound inwards are `InsideOut`. Edges four faces meet on, short edges, faces thinner than the tolerance
+and faces out of flat are noted, and leave the body valid.
+
+```csharp
+GeoSolid3 lidless = new GeoSolid3(slab.Faces.Where(face => face.Normal.Z < 0.5)); // the slab without its top
+
+SolidValidation3 check = lidless.Validate();
+check.IsValid;     // false
+check.Issues;      // four OpenEdge stretches round the rim of the gap, each 10 long
+check.Issues[0];   // SolidIssue3[OpenEdge 10 long at (5, 10, 10), face 2; 1 one way, 0 the other]
+```
+
 **Every question takes the openings into account.** The faces of a pierced body run straight across its
 openings — a plate's top face is a whole square even where a bolt hole passes through it — so nothing reads
 the faces alone as where the material ends. A pin through a bolt hole touches nothing, a ray down the hole

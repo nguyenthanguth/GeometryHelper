@@ -48,6 +48,9 @@ namespace GeometryHelper.Core
             public GeoPoint3 End;
             public int Face;
 
+            /// <summary>Whether the edge is one of a hole, wound as the outline is, with its face on the right.</summary>
+            public bool Hole;
+
             /// <summary>The direction from the edge into the face it belongs to, in the plane of the face.</summary>
             public GeoVector3 Inward;
 
@@ -244,6 +247,7 @@ namespace GeometryHelper.Core
                     Start = start,
                     End = end,
                     Face = face,
+                    Hole = isHole,
                     Inward = inward,
                     Normal = normal,
                 });
@@ -469,6 +473,220 @@ namespace GeometryHelper.Core
             GeoVector3 offset = origin.GetVectorTo(point);
 
             return offset.Subtract(unit.Multiply(offset.DotProduct(unit))).Length;
+        }
+
+        /// <summary>
+        /// A stretch of one line edges of the faces lie along, and how they cover it.
+        /// </summary>
+        internal struct Stretch
+        {
+            /// <summary>Where it starts, on the line of the longest edge along it.</summary>
+            public GeoPoint3 Start;
+
+            /// <summary>Where it ends.</summary>
+            public GeoPoint3 End;
+
+            /// <summary>How many of the edges covering it run from its start to its end, their face on the left.</summary>
+            public int Forward;
+
+            /// <summary>How many run from its end to its start.</summary>
+            public int Backward;
+
+            /// <summary>The faces the edges covering it belong to, by index, each once, lowest first.</summary>
+            public int[] Faces;
+        }
+
+        /// <summary>
+        /// Every stretch of edge the faces do not close up along as two faces wound alike do: covered by an odd number of
+        /// edges, by not as many one way as the other, or by more than two.
+        /// </summary>
+        /// <remarks>
+        /// The edges are matched as <see cref="ClosesUp"/> matches them, by overlap along a line, so the faces close up
+        /// exactly where no stretch is covered an odd number of times. Each edge is taken the way it runs with its face on
+        /// the left, a hole's the other way round from how it is wound, and the two faces meeting on a stretch of a body
+        /// wound alike run it once each way. Neighbouring stretches covered alike, by the same faces, are one.
+        /// </remarks>
+        internal static List<Stretch> UnevenStretches(IReadOnlyList<GeoFace3> faces, Tolerance tolerance)
+        {
+            List<Segment> segments = CollectSegments(faces, tolerance);
+            int[] line = new int[segments.Count];
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                line[i] = i;
+            }
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                Segment a = segments[i];
+
+                for (int j = i + 1; j < segments.Count && segments[j].Low <= a.High; j++)
+                {
+                    if (Overlap(a, segments[j], tolerance))
+                    {
+                        Union(line, i, j);
+                    }
+                }
+            }
+
+            // Taken in the order the sweep met them, so the same faces give the same stretches in the same order.
+            var groups = new Dictionary<int, List<int>>();
+            var lines = new List<List<int>>();
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                int root = Find(line, i);
+
+                if (!groups.TryGetValue(root, out List<int> members))
+                {
+                    members = new List<int>();
+                    groups.Add(root, members);
+                    lines.Add(members);
+                }
+
+                members.Add(i);
+            }
+
+            var found = new List<Stretch>();
+
+            foreach (List<int> members in lines)
+            {
+                AddUneven(segments, members, tolerance, found);
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Adds the stretches of one line its edges do not close up along.
+        /// </summary>
+        private static void AddUneven(List<Segment> segments, List<int> members, Tolerance tolerance, List<Stretch> found)
+        {
+            // Along the longest of them, whose direction is the truest; see Overlap.
+            Segment first = segments[members[0]];
+
+            foreach (int m in members)
+            {
+                if (segments[m].Start.GetVectorTo(segments[m].End).LengthSquared > first.Start.GetVectorTo(first.End).LengthSquared)
+                {
+                    first = segments[m];
+                }
+            }
+
+            GeoPoint3 origin = first.Start;
+
+            // Every member is longer than the point tolerance, so it has a length to divide by; see EvenAlong.
+            GeoVector3 along = first.Start.GetVectorTo(first.End);
+            GeoVector3 axis = along.Divide(along.Length);
+
+            var stops = new List<double>();
+
+            foreach (int m in members)
+            {
+                stops.Add(origin.GetVectorTo(segments[m].Start).DotProduct(axis));
+                stops.Add(origin.GetVectorTo(segments[m].End).DotProduct(axis));
+            }
+
+            stops.Sort();
+
+            var covering = new List<int>();
+            bool pending = false;
+            Stretch run = default;
+
+            for (int k = 0; k + 1 < stops.Count; k++)
+            {
+                // A stretch no longer than the tolerance is the corners of two edges that are one point, as EvenAlong
+                // reads it.
+                if (stops[k + 1] - stops[k] <= tolerance.EqualPoint)
+                {
+                    continue;
+                }
+
+                double middle = (stops[k] + stops[k + 1]) * 0.5;
+                int forward = 0, backward = 0;
+                covering.Clear();
+
+                foreach (int m in members)
+                {
+                    Segment s = segments[m];
+                    double t0 = origin.GetVectorTo(s.Start).DotProduct(axis);
+                    double t1 = origin.GetVectorTo(s.End).DotProduct(axis);
+
+                    if (!(middle > Math.Min(t0, t1) && middle < Math.Max(t0, t1)))
+                    {
+                        continue;
+                    }
+
+                    // A hole is wound as the outline is, its face on its right, so it runs the other way round with
+                    // its face on its left.
+                    if ((t1 > t0) != s.Hole)
+                    {
+                        forward++;
+                    }
+                    else
+                    {
+                        backward++;
+                    }
+
+                    if (!covering.Contains(s.Face))
+                    {
+                        covering.Add(s.Face);
+                    }
+                }
+
+                int count = forward + backward;
+                bool uneven = count % 2 != 0 || forward != backward || count > 2;
+
+                covering.Sort();
+
+                if (pending && uneven && run.Forward == forward && run.Backward == backward && SameFaces(run.Faces, covering))
+                {
+                    run.End = origin.Add(axis.Multiply(stops[k + 1]));
+                    continue;
+                }
+
+                if (pending)
+                {
+                    found.Add(run);
+                    pending = false;
+                }
+
+                if (uneven)
+                {
+                    run = new Stretch
+                    {
+                        Start = origin.Add(axis.Multiply(stops[k])),
+                        End = origin.Add(axis.Multiply(stops[k + 1])),
+                        Forward = forward,
+                        Backward = backward,
+                        Faces = covering.ToArray(),
+                    };
+                    pending = true;
+                }
+            }
+
+            if (pending)
+            {
+                found.Add(run);
+            }
+        }
+
+        private static bool SameFaces(int[] faces, List<int> other)
+        {
+            if (faces.Length != other.Count)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < faces.Length; i++)
+            {
+                if (faces[i] != other[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
