@@ -185,6 +185,13 @@ it by the planes of both, took nothing of the 15.79 million cubic millimetres th
 where every corner of the box they cut stands as far from the one as from the other, within the planar tolerance; so for
 the planes of a body's faces and of its openings.
 
+**FIXED.** `TryIntersect` and the booleans kept a cell a plane crossed and could not cut whole, judged by one point of
+it, where the other body lay the other way to its other side: the slab wrapping the other's corner, cut by the other's
+planes, held the tip of the wedge the two share and the part of the slab beyond the other's end in one cell joined at
+the corner, which the other's end could not cut, and the common part lost 6.4 m of the wedge, 1.97 million of its 15.79
+million cubic millimetres. Where a point of such a cell on each side of the plane is judged apart, the other body is cut
+instead, whatever that costs.
+
 **FIXED.** `GeoSolid3.Locate` and `Contains` threw another ray when a crossing landed within twice the point tolerance of
 a face's outer rim, but not of the rim of one of its holes: a ray leaving through the wall of a hole and rising through
 the hole a hair short of its rim was counted by the face the hole is cut in, and the point came out of the body. The

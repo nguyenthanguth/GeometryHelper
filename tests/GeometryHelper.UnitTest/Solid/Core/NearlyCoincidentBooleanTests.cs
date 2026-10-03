@@ -151,6 +151,23 @@ namespace GeometryHelper.UnitTest.Solid
             AssertNear(wedge, first.GetVolume() - first.WithOpenings(new[] { second }).GetVolume(Tolerance), "the second cut in as an opening");
         }
 
+        [Fact]
+        public void ASlabWrappingTheCornerOfAnotherSharesTheWholeWedgeWithIt()
+        {
+            // The common part lost the wedge's tip, 6.4 m of it narrower than 2 mm: the slab wrapping the corner, cut by the
+            // other's planes, kept the tip and the part of it beyond the other's end in one cell the other's end could not
+            // cut, and one point of that cell, beyond the end, said the cell was outside the other.
+            WrappedCorner(out GeoSolid3 first, out GeoSolid3 second, out double wedge);
+
+            Assert.True(Boolean3.TryIntersect(first, second, out GeoSolid3 shared, Tolerance));
+            AssertNear(wedge, shared.GetVolume(), "the common part");
+            Assert.True(shared.IsClosed(Tolerance));
+            AssertNear(wedge, Boolean3.Intersect(first, second, Tolerance).Sum(piece => piece.GetVolume()), "the pieces shared");
+
+            Assert.True(Boolean3.TryUnion(first, second, out GeoSolid3 both, Tolerance));
+            AssertNear(first.GetVolume() + second.GetVolume() - wedge, both.GetVolume(), "the two together");
+        }
+
         /// <summary>
         /// Two slabs as drawn side by side, the second wrapping a corner of the first: along the first's end a hair off it,
         /// and from the corner, a hair outside it, along its long side at a slant, 5.8 into it 18 m on, so that the two
