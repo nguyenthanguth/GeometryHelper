@@ -57,6 +57,17 @@ none standing up is taken; with none, the first. Blocking that wide on every fac
 good ears onto the sliver along a straight run with a corner lifted on it, which stood up instead, and changed what chained
 cuts of a Tekla slab were left with within a hundredth until one of them could not be worked out.
 
+**FIXED.** A union or a difference of solids that came out open with one body cut cleanly went on to cut both bodies by
+every plane of both, without cutting the other body first where that took more planes: a slab of a Tekla model cut by the
+49 planes of another slab it meets came out open, and cut by the 305 planes of both, into 50 033 cells, open again, in 12
+seconds, where the other slab cut by the 234 planes of the first, into 3 833 cells, closes in 2. The other way round is
+cut now whatever it costs where the first came out open. And where neither body cuts cleanly, of the two cuts whose cells
+are judged alike on both sides of the planes that could not cut them only the first was taken: a slab less another slab it
+meets, within a thousandth, came out open by 22 edges, where the second closes; the second is taken now where the first
+does not close. Within a thousandth, of the 1 989 parts of a Tekla model cut one after another by the parts they meet, 4
+come out open where 6 did; of 667 038 cuts of a selection of 79 864 parts, 28 where 33 did, and none is not worked out
+where 1 was; within a hundredth, as many as before.
+
 **CHANGED.** `ToCells` keeps the point of a needle a cut cannot be made through with the rest of its piece, without a
 warning, as far as a thousand point tolerances past the cut, where it was a hundred: a needle tapering at one in five
 hundred is thinner than the tolerance for five hundred tolerances of its point.

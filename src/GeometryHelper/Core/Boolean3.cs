@@ -642,9 +642,10 @@ namespace GeometryHelper.Core
             // (see Misjudged), is taken where neither body cuts cleanly, rather than cutting both by every plane of both. A
             // slab from a model whose outline ran down to a needle, its tip 0.0136 past the face of a wall the slab otherwise
             // stood clear of, could be cut cleanly neither way; cut by every plane of both, it came out open and 1 172 944
-            // cubic millimetres larger than it was, where nothing of either lay in the other.
-            List<GeoSolid3> consistentCells = null;
-            bool consistentCutA = false;
+            // cubic millimetres larger than it was, where nothing of either lay in the other. Both ways are taken in turn, as
+            // clean ones are: a slab of a Tekla model less another slab it meets, within a thousandth, came out open by 22
+            // edges the first way and closed the other.
+            List<(List<GeoSolid3> Cells, bool CutA)> consistent = null;
 
             // A result closed with faces wound against each other is kept while the other way round is tried; see Settle.
             GeoSolid3 crossed = null;
@@ -656,8 +657,11 @@ namespace GeometryHelper.Core
 
                 // The other way round only when it costs about the same: a bar's hundreds of planes would cut a
                 // beam into thousands of cells again. Or whatever it costs, where the first way misjudged a cell it
-                // could not cut; see Misjudged.
-                if (attempt == 1 && knives.Count > 2 * (cutA ? cuttingB : cuttingA).Count + 16 && !misjudged)
+                // could not cut; see Misjudged. Or where the first way came out open, when both would be cut by every
+                // plane of both next: a slab cut cleanly by the 49 planes of another slab it meets came out open, and cut
+                // by the 305 planes of both, into 50 033 cells, open again, where the other slab cut by the 234 planes of
+                // the first, into 3 833 cells, closed.
+                if (attempt == 1 && knives.Count > 2 * (cutA ? cuttingB : cuttingA).Count + 16 && !misjudged && open == null)
                 {
                     break;
                 }
@@ -673,10 +677,9 @@ namespace GeometryHelper.Core
                 {
                     misjudged = Misjudged(cells, stuck, cut, whole, within, tolerance);
 
-                    if (!misjudged && consistentCells == null)
+                    if (!misjudged)
                     {
-                        consistentCells = cells;
-                        consistentCutA = cutA;
+                        (consistent = consistent ?? new List<(List<GeoSolid3>, bool)>(2)).Add((cells, cutA));
                     }
 
                     continue;
@@ -691,13 +694,21 @@ namespace GeometryHelper.Core
                 }
             }
 
-            if (!anyClean && consistentCells != null)
+            // Once the first has found material of either body within the other, open or wound against itself, the second
+            // is taken only where it closes: one finding nothing, or nothing glued, says less than the one before.
+            if (!anyClean && consistent != null)
             {
-                bool? settled = Settle(consistentCells, consistentCutA, a, b, union, tolerance, ref open, ref crossed, out result, out untouched);
-
-                if (settled.HasValue)
+                foreach ((List<GeoSolid3> cells, bool cutA) in consistent)
                 {
-                    return settled.Value;
+                    bool found = open != null || crossed != null;
+                    bool? settled = Settle(cells, cutA, a, b, union, tolerance, ref open, ref crossed, out result, out untouched);
+
+                    if (settled.HasValue && (!found || settled.Value && !untouched))
+                    {
+                        return settled.Value;
+                    }
+
+                    untouched = false;
                 }
             }
 
