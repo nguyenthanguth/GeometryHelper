@@ -73,5 +73,22 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(common.IsClosed());
             AssertNear(shared, common.GetVolume(), a.GetVolume() + b.GetVolume(), "the common part");
         }
+
+        [Theory]
+        [InlineData(1E-2)]
+        [InlineData(1E-3)]
+        [InlineData(1E-4)]
+        public void TwoBentBarsCrossing_ShareWhatTheyShareWithinATolerance(double within)
+        {
+            // Within a thousandth the planes of the first bar crossed 33 cells of the second they could not cut, and the
+            // cells either side of some of them were judged apart; cut by the planes of the second, every cell left so was
+            // judged alike, and that is the way taken now. Cut the first way, the common part lost an eighth.
+            var tolerance = new Tolerance(within, 1E-2 * within, Tolerance.DefaultEqualAngleRad, within);
+            (GeoSolid3 a, GeoSolid3 b) = CrossingBars();
+
+            Assert.True(a.TryIntersect(b, out GeoSolid3 common, tolerance));
+            Assert.True(common.IsClosed(tolerance));
+            AssertNear(Shared(a, b), common.GetVolume(tolerance), a.GetVolume() + b.GetVolume(), "the common part");
+        }
     }
 }

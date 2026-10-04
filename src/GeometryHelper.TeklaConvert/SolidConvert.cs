@@ -59,7 +59,7 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="result">The converted body when the method returns true.</param>
         /// <param name="tolerance">
         /// The tolerance; its planar threshold decides how far from flat a face may be and still come as
-        /// one face. The default is a hundredth of a millimetre; a face further out, as Tekla's own cuts
+        /// one face. The default is a thousandth of a millimetre; a face further out, as Tekla's own cuts
         /// leave some, comes as triangles on its own corners.
         /// </param>
         /// <returns>false when too little survived to make a body of at least four faces.</returns>

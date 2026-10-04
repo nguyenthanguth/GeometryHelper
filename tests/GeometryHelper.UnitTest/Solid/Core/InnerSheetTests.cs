@@ -156,13 +156,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASmallFaceAHairOffALongOnesPlaneIsTakenFromItEitherWayRound()
         {
-            // A face 30 m long, and a small one lying back to back on it with one corner 0.008 mm up: the small face lies
-            // in the long one's plane, but the long one's far end stands most of a millimetre off the small one's. Met one
+            // A face 30 m long, and a small one lying back to back on it with one corner 0.0008 mm up: the small face lies
+            // in the long one's plane, but the long one's far end stands most of a tenth of a millimetre off the small
+            // one's, far past the tolerance. Met one
             // way round, taking the long face from the small one refused the pair as lying in different planes, and the
             // boolean threw; met the other, the pair was never found, and the two stayed in the body as a sheet.
             Tolerance tolerance = Tolerance.Default;
             var along = new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 0), P(30000, 0, 0), P(30000, 400, 0), P(0, 400, 0) }, tolerance));
-            var against = new GeoFace3(new GeoPolygon3(new[] { P(100, 100, 0), P(100, 300, 0), P(300, 300, 0.008), P(300, 100, 0) }, tolerance));
+            var against = new GeoFace3(new GeoPolygon3(new[] { P(100, 100, 0), P(100, 300, 0), P(300, 300, 0.0008), P(300, 100, 0) }, tolerance));
 
             foreach (List<GeoFace3> faces in new[] { new List<GeoFace3> { along, against }, new List<GeoFace3> { against, along } })
             {

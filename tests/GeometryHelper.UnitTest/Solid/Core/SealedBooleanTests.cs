@@ -165,16 +165,16 @@ namespace GeometryHelper.UnitTest.Solid.Core
             var open = new GeoSolid3(box.Faces.Skip(1));
             Assert.Same(open, Weld3.Sealed(open, Wide));
 
-            // A top 0.005 off its sides' corner: closed within the default, as a boolean within the default promises, though
-            // not within a thousandth.
+            // A top 0.0005 off its sides' corner: closed within the default, as a boolean within the default promises, though
+            // not within a ten-thousandth.
             var faces = new List<GeoFace3>(box.Faces.Where(face => face.Normal.Z < 0.5))
             {
-                Face(Pieces, new GeoPoint3(0, 0, 10), new GeoPoint3(10, 0, 10), new GeoPoint3(10, 10.005, 10), new GeoPoint3(0, 10, 10)),
+                Face(Pieces, new GeoPoint3(0, 0, 10), new GeoPoint3(10, 0, 10), new GeoPoint3(10, 10.0005, 10), new GeoPoint3(0, 10, 10)),
             };
             var nearly = new GeoSolid3(faces);
 
             Assert.True(nearly.IsClosed());
-            Assert.False(nearly.IsClosed(new Tolerance(0.001, 0.001)));
+            Assert.False(nearly.IsClosed(new Tolerance(1E-4, 1E-6, Tolerance.DefaultEqualAngleRad, 1E-4)));
             Assert.Same(nearly, Weld3.Sealed(nearly, Wide));
             Assert.Same(nearly, Weld3.Sealed(nearly, Tolerance.Global));
         }

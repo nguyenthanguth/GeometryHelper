@@ -293,12 +293,17 @@ namespace GeometryHelper.Core
             // other way, the trouble falls elsewhere, so the other body is cut before that is settled for, when that
             // costs about the same: a bar's hundreds of planes would cut a beam into thousands of cells again.
             // Slivers were the common cause, and the cut keeps those now; see LoopAssembly.ForPieces. Where the one
-            // point misjudged part of the cell, the other body is cut whatever it costs; see Misjudged.
+            // point misjudged part of the cell, the other body is cut whatever it costs; see Misjudged. Cut cleanly
+            // neither way, the other way is taken where its cells are judged alike on both sides of every plane that could
+            // not cut them and this way's are not, as a difference takes it. Of two bars bent twice and crossing, cut within
+            // a thousandth, the second was cut first, by the planes of the first, which crossed 33 of its cells and could
+            // not cut them, and the common part lost an eighth; the first cut by the planes of the second left 7 cells so,
+            // each judged alike, and the common part came out as it is.
             if (!clean && (otherWayAffordable || misjudged))
             {
-                List<GeoFace3> otherWay = CellsInside(other, cut, otherKnives, tolerance, out bool otherClean, out _);
+                List<GeoFace3> otherWay = CellsInside(other, cut, otherKnives, tolerance, out bool otherClean, out bool otherMisjudged);
 
-                if (otherClean)
+                if (otherClean || (misjudged && !otherMisjudged))
                 {
                     kept = otherWay;
                 }
@@ -641,6 +646,9 @@ namespace GeometryHelper.Core
             List<GeoSolid3> consistentCells = null;
             bool consistentCutA = false;
 
+            // A result closed with faces wound against each other is kept while the other way round is tried; see Settle.
+            GeoSolid3 crossed = null;
+
             for (int attempt = 0; attempt < 2; attempt++)
             {
                 bool cutA = aFirst == (attempt == 0);
@@ -675,7 +683,7 @@ namespace GeometryHelper.Core
                 }
 
                 anyClean = true;
-                bool? settled = Settle(cells, cutA, a, b, union, tolerance, ref open, out result, out untouched);
+                bool? settled = Settle(cells, cutA, a, b, union, tolerance, ref open, ref crossed, out result, out untouched);
 
                 if (settled.HasValue)
                 {
@@ -685,12 +693,22 @@ namespace GeometryHelper.Core
 
             if (!anyClean && consistentCells != null)
             {
-                bool? settled = Settle(consistentCells, consistentCutA, a, b, union, tolerance, ref open, out result, out untouched);
+                bool? settled = Settle(consistentCells, consistentCutA, a, b, union, tolerance, ref open, ref crossed, out result, out untouched);
 
                 if (settled.HasValue)
                 {
                     return settled.Value;
                 }
+            }
+
+            // Wound against itself and done no better the other way round, the result is as it was before such a result
+            // was turned down: on the parts of a Tekla model most come of slivers and hold their volume, and cutting both
+            // bodies by every plane of both instead took minutes and came out open.
+            if (crossed != null)
+            {
+                result = crossed;
+                untouched = false;
+                return true;
             }
 
             result = open;
@@ -708,10 +726,16 @@ namespace GeometryHelper.Core
         /// <param name="union">true for the union, false for <paramref name="a"/> less <paramref name="b"/>.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="open">An open result found before, or this one where it comes out open and none was.</param>
+        /// <param name="crossed">
+        /// A result closed with faces wound against each other found before, or this one where it comes out so and none was.
+        /// </param>
         /// <param name="result">The result, when there is one.</param>
         /// <param name="untouched">For a difference, true when no material of the body cut lies within the other.</param>
-        /// <returns>Whether anything is left; null when two closed bodies came out open this way.</returns>
-        private static bool? Settle(List<GeoSolid3> cells, bool cutA, GeoSolid3 a, GeoSolid3 b, bool union, Tolerance tolerance, ref GeoSolid3 open, out GeoSolid3 result, out bool untouched)
+        /// <returns>
+        /// Whether anything is left; null when two closed bodies came out open this way, or closed with faces wound against
+        /// each other.
+        /// </returns>
+        private static bool? Settle(List<GeoSolid3> cells, bool cutA, GeoSolid3 a, GeoSolid3 b, bool union, Tolerance tolerance, ref GeoSolid3 open, ref GeoSolid3 crossed, out GeoSolid3 result, out bool untouched)
         {
             result = null;
             untouched = false;
@@ -749,12 +773,28 @@ namespace GeometryHelper.Core
             // Cut cleanly and still open, two closed bodies can close cut the other way round, or both cut: a beam
             // turned a hundredth of a degree off the axes, less an opening, came out open with the beam cut and
             // closed with the opening cut. The open one is kept in case nothing does better.
-            if (result.IsClosed(tolerance) || !a.IsClosed(tolerance) || !b.IsClosed(tolerance))
+            if (!result.IsClosed(tolerance))
+            {
+                if (!a.IsClosed(tolerance) || !b.IsClosed(tolerance))
+                {
+                    return true;
+                }
+
+                open = open ?? result;
+                return null;
+            }
+
+            // Closed with faces wound against each other, which bodies wound alike cannot give, the other way round is tried
+            // too, and this one kept in case it does no better: a beam from an IFC model less an opening whose side lay
+            // against the web within the tolerance, cut within a thousandth, kept the web twice over a strip 6.6 wide, its
+            // two copies facing the same way, and the next opening cut from it came out open, and its common part with the
+            // beam as nothing; cut the other way round, it closes wound alike.
+            if (Shells3.ClosesAlike(result.Faces, tolerance) || !Shells3.ClosesAlike(a.Faces, tolerance) || !Shells3.ClosesAlike(b.Faces, tolerance))
             {
                 return true;
             }
 
-            open = open ?? result;
+            crossed = crossed ?? result;
             return null;
         }
 

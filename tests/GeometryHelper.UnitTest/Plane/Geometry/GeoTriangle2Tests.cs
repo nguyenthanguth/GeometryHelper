@@ -127,10 +127,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void DegeneracyIsTwiceTheAreaAgainstTheVectorTolerance()
         {
-            var sliver = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(1000, 0), new GeoPoint2(500, 1E-6));
+            var sliver = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(1000, 0), new GeoPoint2(500, 1E-9));
             var thin = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(1000, 0), new GeoPoint2(500, 1E-4));
 
-            // Twice the area: 1E-3 against 0.01, and 0.1 against 0.01.
+            // Twice the area: 1E-6 against 1E-5, and 0.1 against 1E-5.
             Assert.True(sliver.IsDegenerate(Tolerance));
             Assert.False(thin.IsDegenerate(Tolerance));
             Assert.False(thin.IsDegenerate(new Tolerance()));
@@ -177,7 +177,7 @@ namespace GeometryHelper.UnitTest.Plane
             GeoTriangle2 t = Right();
 
             Assert.Equal(PointLocation.Inside, t.Locate(new GeoPoint2(1, 1), Tolerance));
-            Assert.Equal(PointLocation.OnSide, t.Locate(new GeoPoint2(2, 0.005), Tolerance));
+            Assert.Equal(PointLocation.OnSide, t.Locate(new GeoPoint2(2, 0.0005), Tolerance));
             Assert.Equal(PointLocation.OnSide, t.Locate(new GeoPoint2(2, 1.5), Tolerance));
             Assert.Equal(PointLocation.OnSide, t.Locate(t.C, Tolerance));
             Assert.Equal(PointLocation.OutSide, t.Locate(new GeoPoint2(3, 3), Tolerance));
@@ -205,7 +205,7 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(PointLocation.OnSide, flat.Locate(new GeoPoint2(6, 0), Tolerance));
             Assert.Equal(PointLocation.OutSide, flat.Locate(new GeoPoint2(6, 1), Tolerance));
-            Assert.Equal(PointLocation.OnSide, point.Locate(new GeoPoint2(1, 1.005), Tolerance));
+            Assert.Equal(PointLocation.OnSide, point.Locate(new GeoPoint2(1, 1.0005), Tolerance));
             Assert.Equal(PointLocation.OutSide, point.Locate(new GeoPoint2(1, 2), Tolerance));
         }
 
@@ -289,8 +289,8 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.True(t.IsEqualTo(rolled, Tolerance));
             Assert.False(t.IsEqualTo(t.Reverse(), Tolerance));
-            Assert.True(t.IsEqualTo(t.Translate(new GeoVector2(0.004, 0)), Tolerance));
-            Assert.False(t.IsEqualTo(t.Translate(new GeoVector2(0.02, 0)), Tolerance));
+            Assert.True(t.IsEqualTo(t.Translate(new GeoVector2(0.0004, 0)), Tolerance));
+            Assert.False(t.IsEqualTo(t.Translate(new GeoVector2(0.002, 0)), Tolerance));
         }
 
         [Fact]

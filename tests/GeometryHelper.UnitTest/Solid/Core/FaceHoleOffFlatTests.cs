@@ -15,63 +15,63 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        /// <summary>A square of 1000 on z = 0 with a square hole of 200 in its middle, the hole's corners 0.0095 above.</summary>
+        /// <summary>A square of 1000 on z = 0 with a square hole of 200 in its middle, the hole's corners 0.00095 above.</summary>
         private static GeoFace3 Face()
         {
             var boundary = new GeoPolygon3(new[] { P(0, 0, 0), P(1000, 0, 0), P(1000, 1000, 0), P(0, 1000, 0) }, Tolerance);
-            var hole = new GeoPolygon3(new[] { P(400, 400, 0.0095), P(400, 600, 0.0095), P(600, 600, 0.0095), P(600, 400, 0.0095) }, Tolerance);
+            var hole = new GeoPolygon3(new[] { P(400, 400, 0.00095), P(400, 600, 0.00095), P(600, 600, 0.00095), P(600, 400, 0.00095) }, Tolerance);
             return new GeoFace3(boundary, new[] { hole }, Tolerance);
         }
 
         [Fact]
         public void APointInTheHoleIsOutsideTheFaceWhereverTheHoleStandsWithinTheTolerance()
         {
-            // A thousandth below the face's plane, so 0.0105 from the hole's own: the face holds it within its tolerance,
-            // and the hole is where it stands.
-            Assert.Equal(PointLocation.OutSide, Face().Locate(P(500, 500, -0.001), Tolerance));
+            // A ten-thousandth below the face's plane, so 0.00105 from the hole's own: the face holds it within its
+            // tolerance, and the hole is where it stands.
+            Assert.Equal(PointLocation.OutSide, Face().Locate(P(500, 500, -0.0001), Tolerance));
             Assert.Equal(PointLocation.OutSide, Face().Locate(P(500, 500, 0.0), Tolerance));
         }
 
         [Fact]
         public void APointOnTheHolesRimIsOnTheFacesSide()
         {
-            Assert.Equal(PointLocation.OnSide, Face().Locate(P(400, 500, -0.001), Tolerance));
+            Assert.Equal(PointLocation.OnSide, Face().Locate(P(400, 500, -0.0001), Tolerance));
         }
 
         [Fact]
         public void APointOfTheMaterialIsInsideTheFace()
         {
-            Assert.Equal(PointLocation.Inside, Face().Locate(P(200, 200, -0.001), Tolerance));
-            Assert.Equal(PointLocation.OutSide, Face().Locate(P(200, 200, -0.02), Tolerance));
+            Assert.Equal(PointLocation.Inside, Face().Locate(P(200, 200, -0.0001), Tolerance));
+            Assert.Equal(PointLocation.OutSide, Face().Locate(P(200, 200, -0.002), Tolerance));
         }
 
         [Fact]
         public void TheMaterialNearestAPointOverTheHoleIsOnItsRim()
         {
-            // A hole whose corners stand 0.0095, 0.0095, 0.0095 and -0.0047 off the face, and a point on the face 2 into it:
+            // A hole whose corners stand 0.00095, 0.00095, 0.00095 and -0.00047 off the face, and a point on the face 2 into it:
             // its distance and its nearest point read the hole in the hole's own plane, which held nothing of it there, and
             // gave the foot of the perpendicular, in the hole.
             var boundary = new GeoPolygon3(new[] { P(0, 0, 10), P(100, 0, 10), P(100, 100, 10), P(0, 100, 10) }, Tolerance);
-            var hole = new GeoPolygon3(new[] { P(40, 50, 10.0095), P(60, 50, 10.0095), P(60, 60, 10.0095), P(40, 60, 9.9953) }, Tolerance);
+            var hole = new GeoPolygon3(new[] { P(40, 50, 10.00095), P(60, 50, 10.00095), P(60, 60, 10.00095), P(40, 60, 9.99953) }, Tolerance);
             var face = new GeoFace3(boundary, new[] { hole }, Tolerance);
             GeoPoint3 over = P(50, 52, 10);
 
             Assert.Equal(PointLocation.OutSide, face.Locate(over, Tolerance));
             Assert.Equal(2.0, face.DistanceTo(over, Tolerance), 2);
             Assert.Equal(50.0, face.GetClosestPointOnBoundary(over, Tolerance).Y, 2);
-            // Two above it, the nearest material is the rim, which stands 0.0095 above the face there.
-            Assert.Equal(System.Math.Sqrt(4 + 1.9905 * 1.9905), face.DistanceTo(P(50, 52, 12), Tolerance), 6);
+            // Two above it, the nearest material is the rim, which stands 0.00095 above the face there.
+            Assert.Equal(System.Math.Sqrt(4 + 1.99905 * 1.99905), face.DistanceTo(P(50, 52, 12), Tolerance), 6);
         }
 
         [Fact]
         public void APointInAHoleThroughAPlateIsOutOfThePlate()
         {
-            // A plate 100 by 100 by 10 with a hole through it at x 40..60, y 50..60, the hole's top corners standing 0.0095,
-            // 0.0095, 0.0095 and -0.0047 off the top: a point 2 into the hole at the level of the top was taken for one on
+            // A plate 100 by 100 by 10 with a hole through it at x 40..60, y 50..60, the hole's top corners standing 0.00095,
+            // 0.00095, 0.00095 and -0.00047 off the top: a point 2 into the hole at the level of the top was taken for one on
             // the top face, so on the plate's side.
             GeoPoint3[] outer = { P(0, 0, 0), P(100, 0, 0), P(100, 100, 0), P(0, 100, 0) };
             GeoPoint3[] low = { P(40, 50, 0), P(60, 50, 0), P(60, 60, 0), P(40, 60, 0) };
-            GeoPoint3[] high = { P(40, 50, 10.0095), P(60, 50, 10.0095), P(60, 60, 10.0095), P(40, 60, 9.9953) };
+            GeoPoint3[] high = { P(40, 50, 10.00095), P(60, 50, 10.00095), P(60, 60, 10.00095), P(40, 60, 9.99953) };
             var up = new GeoVector3(0, 0, 10);
             var faces = new System.Collections.Generic.List<GeoFace3>
             {

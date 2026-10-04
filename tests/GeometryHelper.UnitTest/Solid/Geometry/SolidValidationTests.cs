@@ -172,8 +172,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AChamferThinnerThanTheTolerance_IsNoted_AndTheBodyStaysValid()
         {
-            // The edge of a box along y at x = 10, z = 10, cut off 0.004 each way.
-            const double c = 0.004;
+            // The edge of a box along y at x = 10, z = 10, cut off 0.0004 each way.
+            const double c = 0.0004;
             var faces = new[]
             {
                 FineFace(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 10, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(10, 0, 0)),
@@ -193,7 +193,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             SolidIssue3 sliver = Assert.Single(check.Issues, i => i.Kind == SolidIssueKind.SliverFace);
             Assert.Equal(3, Assert.Single(sliver.Faces));
-            Assert.InRange(sliver.Size, 0.005, 0.006);
+            Assert.InRange(sliver.Size, 0.0005, 0.0006);
 
             // Its two ends, and the corner of each end of the box they meet.
             Assert.Equal(4, Of(check, SolidIssueKind.ShortEdge).Count());
@@ -205,8 +205,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(2, line.Forward);
             Assert.Equal(2, line.Backward);
 
-            // Within a thousandth the chamfer is a face like any other.
-            Assert.Empty(chamfered.Validate(new Tolerance(0.001, 0.001)).Issues);
+            // Within a ten-thousandth the chamfer is a face like any other.
+            Assert.Empty(chamfered.Validate(new Tolerance(1E-4, 1E-6, Tolerance.DefaultEqualAngleRad, 1E-4)).Issues);
         }
 
         [Fact]

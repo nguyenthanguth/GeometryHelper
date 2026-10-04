@@ -144,12 +144,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [InlineData(1)]
         public void AFaceOfFourCornersWithOneLiftedHoldsWhatItsReadingSays(int start)
         {
-            // The top, 100 square, has a corner lifted 0.008: split along the diagonal through that corner it holds a third
-            // of the lift times its area more, 26.67; along the other a sixth, 13.33; read flat a quarter, 20, between.
+            // The top, 100 square, has a corner lifted 0.0008: split along the diagonal through that corner it holds a third
+            // of the lift times its area more, 2.667; along the other a sixth, 1.333; read flat a quarter, 2, between.
             // The fan from the top's first corner splits it through that corner when the loop starts at (0, 0) and along
             // the other diagonal when it starts at (100, 0).
-            GeoSolid3 box = LiftedBox(0.008, start);
-            double third = 1E4 * 0.008 / 3, sixth = 1E4 * 0.008 / 6, quarter = 1E4 * 0.008 / 4;
+            const double lift = 0.0008;
+            GeoSolid3 box = LiftedBox(lift, start);
+            double third = 1E4 * lift / 3, sixth = 1E4 * lift / 6, quarter = 1E4 * lift / 4;
 
             Assert.True(box.IsClosed(Tolerance));
             Assert.Equal(1E5 + (start == 0 ? third : sixth), Measure3.Volume(box, VolumeMethod.Fan, Tolerance), 6);
@@ -159,7 +160,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The fan reads the top flat through its first corner, which stands a quarter of the lift off the top's middle
             // plane, above it from (0, 0) and below it from (100, 0): a third of that times the area apart from flat.
             double fan = Measure3.Volume(box, VolumeMethod.Fan, Tolerance), flat = Measure3.Volume(box, VolumeMethod.FlatFaces, Tolerance);
-            Assert.Equal((start == 0 ? 1 : -1) * 1E4 * (0.008 / 4) / 3, fan - flat, 6);
+            Assert.Equal((start == 0 ? 1 : -1) * 1E4 * (lift / 4) / 3, fan - flat, 6);
 
             double surface = Measure3.Volume(box, VolumeMethod.Surface, Tolerance);
             Assert.True(Math.Abs(surface - (1E5 + third)) < 1E-6 || Math.Abs(surface - (1E5 + sixth)) < 1E-6, $"{surface} is neither split");
@@ -178,22 +179,31 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void TheHalvesOfACutHoldThePieceReadAsTheTrianglesInTheirFaces()
         {
             // A piece of a column with a ledge cut through a corner of the ledge's tip: the faces round the section are
-            // concave and a hair out of flat. Read as the triangles lying in them, the halves hold the piece; read as fans
-            // they hold 560 mm3 more, and read flat 87 more.
+            // concave and a hair out of flat, within a hundredth. Read as the triangles lying in them, the halves hold the
+            // piece; read as fans they hold 560 mm3 more, and read flat 87 more. Cut within the default, a thousandth, the
+            // faces are split into the triangles lying in them, and every reading holds the piece.
+            var hundredth = new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01);
             GeoSolid3 piece = CapAHairOffThePlaneTests.Piece();
-            Assert.True(piece.TrySplitBy(CapAHairOffThePlaneTests.Plane(), out GeoSolid3 above, out GeoSolid3 below, Tolerance));
+            Assert.True(piece.TrySplitBy(CapAHairOffThePlaneTests.Plane(), out GeoSolid3 above, out GeoSolid3 below, hundredth));
 
-            double Sum(VolumeMethod method) => Measure3.Volume(above, method, Tolerance) + Measure3.Volume(below, method, Tolerance);
-            double whole = Measure3.Volume(piece, VolumeMethod.Surface, Tolerance);
+            double Sum(VolumeMethod method) => Measure3.Volume(above, method, hundredth) + Measure3.Volume(below, method, hundredth);
+            double whole = Measure3.Volume(piece, VolumeMethod.Surface, hundredth);
 
             Assert.InRange(Sum(VolumeMethod.Surface) / whole, 1 - 1E-7, 1 + 1E-7);
             Assert.InRange(Sum(VolumeMethod.Fan) - whole, 400, 700);
             Assert.InRange(Sum(VolumeMethod.FlatFaces) - whole, 60, 120);
 
             // The piece's faces are flat, and its methods agree; the halves' are not, and theirs part.
-            Assert.True(Measure3.Compare(piece, Tolerance).VolumeSpread < 1E-6);
-            Assert.True(Measure3.Compare(above, Tolerance).VolumeSpread > 100);
-            Assert.True(Measure3.Compare(below, Tolerance).VolumeSpread > 100);
+            Assert.True(Measure3.Compare(piece, hundredth).VolumeSpread < 1E-6);
+            Assert.True(Measure3.Compare(above, hundredth).VolumeSpread > 100);
+            Assert.True(Measure3.Compare(below, hundredth).VolumeSpread > 100);
+
+            Assert.True(piece.TrySplitBy(CapAHairOffThePlaneTests.Plane(), out GeoSolid3 fineAbove, out GeoSolid3 fineBelow, Tolerance));
+            foreach (VolumeMethod method in Methods)
+            {
+                double sum = Measure3.Volume(fineAbove, method, Tolerance) + Measure3.Volume(fineBelow, method, Tolerance);
+                Assert.InRange(sum / whole, 1 - 1E-7, 1 + 1E-7);
+            }
         }
 
         [Fact]

@@ -315,7 +315,12 @@ namespace GeometryHelper.Core
         /// How many point tolerances past a cut the cut refused may leave a part of the piece standing, as the point of a
         /// needle, for the piece to stay whole without a word.
         /// </summary>
-        private const double Needle = 100.0;
+        /// <remarks>
+        /// A needle is thinner than the tolerance for as many tolerances of its point as it tapers slowly: the face of an L
+        /// turned 0.002 off the grid left a sliver along a line of cells tapering at one in five hundred, and a cut across
+        /// it 0.42 from its point, within a thousandth, could not be made.
+        /// </remarks>
+        private const double Needle = 1000.0;
 
         /// <summary>
         /// How near a corner a cut is moved onto it: the options' distance, or the point tolerance if more. Between cells a

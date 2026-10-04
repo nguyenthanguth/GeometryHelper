@@ -24,14 +24,28 @@ namespace GeometryHelper
     public readonly struct Tolerance : IEquatable<Tolerance>
     {
         /// <summary>
-        /// Default tolerance when comparing points: a hundredth of a millimetre in a model in millimetres.
+        /// Default tolerance when comparing points: a thousandth of a millimetre in a model in millimetres.
         /// </summary>
-        public const double DefaultEqualPoint = 0.01;
+        /// <remarks>
+        /// Fine enough that two parts a hundredth apart are apart and a thin overlap holds what it holds: the common parts
+        /// of 218 pairs of slabs from a Tekla model came out within 450 cubic millimetres of the exact volume at the
+        /// median, and within 1 084 when the default was a hundredth. Not finer: the faces of a Tekla model stand off flat
+        /// and off one another by up to a few ten-thousandths of a millimetre, and below a thousandth they are cut as the
+        /// slivers they then are, many times slower and more often left open.
+        /// </remarks>
+        public const double DefaultEqualPoint = 1E-3;
 
         /// <summary>
-        /// Default tolerance when comparing vectors.
+        /// Default tolerance when comparing vectors: a hundred-thousandth.
         /// </summary>
-        public const double DefaultEqualVector = 0.01;
+        /// <remarks>
+        /// Two directions this far apart turn the far side of a face a hundred millimetres across by the point threshold. The
+        /// vector threshold is also the length below which a vector has no direction and the area below which a loop is no
+        /// polygon, so it is set well below the point threshold: at a thousandth, a triangle 0.005 by 0.08 of a millimetre
+        /// that Tekla Structures gives at the end of each of 1 791 girders of one model was refused for its area of 0.0002,
+        /// and every one of the girders came out open.
+        /// </remarks>
+        public const double DefaultEqualVector = 1E-5;
 
         /// <summary>
         /// Default tolerance when comparing angles for parallelism / perpendicularity, in radians (1 degree in radians).
@@ -39,7 +53,7 @@ namespace GeometryHelper
         public const double DefaultEqualAngleRad = Math.PI / 180.0;
 
         /// <summary>
-        /// Default distance threshold for deciding whether a set of points lies on a common plane: a hundredth of a
+        /// Default distance threshold for deciding whether a set of points lies on a common plane: a thousandth of a
         /// millimetre in a model in millimetres, the same as <see cref="DefaultEqualPoint"/>.
         /// </summary>
         /// <remarks>
@@ -50,7 +64,7 @@ namespace GeometryHelper
         /// conversions keep it as triangles on its own corners (<see cref="Geometry.GeoFace3.FromLoops(System.Collections.Generic.IEnumerable{Geometry.GeoPoint3}, System.Collections.Generic.IEnumerable{System.Collections.Generic.IEnumerable{Geometry.GeoPoint3}}, Tolerance)"/>),
         /// so the body stays closed and nothing is taken as flat that is not.
         /// </remarks>
-        public const double DefaultEqualPlanar = 0.01;
+        public const double DefaultEqualPlanar = 1E-3;
 
         /// <summary>
         /// Gets the default tolerance: <see cref="DefaultEqualPoint"/>, <see cref="DefaultEqualVector"/>,

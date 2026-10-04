@@ -130,7 +130,8 @@ namespace GeometryHelper.Core
         {
             triangles = null;
 
-            List<Node> outer = Project(boundary, frame);
+            double low = double.PositiveInfinity, high = double.NegativeInfinity;
+            List<Node> outer = Project(boundary, frame, ref low, ref high);
 
             if (outer.Count < 3)
             {
@@ -149,7 +150,7 @@ namespace GeometryHelper.Core
 
             foreach (IReadOnlyList<GeoPoint3> hole in holes)
             {
-                List<Node> ring = Project(hole, frame);
+                List<Node> ring = Project(hole, frame, ref low, ref high);
 
                 if (ring.Count < 3)
                 {
@@ -176,19 +177,22 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            return TryClip(outer, tolerance, out triangles);
+            return TryClip(outer, tolerance, high - low, out triangles);
         }
 
         /// <summary>
-        /// Maps a ring into the 2D frame of the face, keeping each original point alongside.
+        /// Maps a ring into the 2D frame of the face, keeping each original point alongside, and widens the span of the
+        /// heights its corners stand at over the frame's plane.
         /// </summary>
-        private static List<Node> Project(IReadOnlyList<GeoPoint3> vertices, GeoCoordinateSystem3 frame)
+        private static List<Node> Project(IReadOnlyList<GeoPoint3> vertices, GeoCoordinateSystem3 frame, ref double low, ref double high)
         {
             List<Node> nodes = new List<Node>(vertices.Count);
 
             foreach (GeoPoint3 vertex in vertices)
             {
                 GeoPoint3 local = frame.ToLocal(vertex);
+                low = Math.Min(low, local.Z);
+                high = Math.Max(high, local.Z);
 
                 // The local Z is dropped rather than checked. For a face, coplanarity was settled when the
                 // polygon and the face were built, and what little is left of it is the deviation those
@@ -656,7 +660,10 @@ namespace GeometryHelper.Core
         /// <para>
         /// On an edge means within the point tolerance of it, measured from that edge, while another ear can be found:
         /// an ear passing a corner closer than that would leave a triangle thinner than the tolerance, which on loops out
-        /// of flat, seen from a frame of their own, can stand up across the loop. When none can be found, within a
+        /// of flat, seen from a frame of their own, can stand up across the loop. On a loop further out of flat than the
+        /// tolerance, within how far out of flat it is: an L with its inner corner a millimetre up, read within a
+        /// thousandth, took the ear across its diagonal that the inner corner, seen from the frame, passed 0.005 outside,
+        /// and what was left closed with a triangle standing up along that diagonal. When none can be found, within a
         /// millionth of the tolerance, the reach of rounding: a corner that close outside an ear is passed by, not cut
         /// through. Read as the point tolerance times the width of the face, as an area, and with nothing to fall back
         /// to, a corner a tenth of a millimetre outside an edge 100 mm long blocked it on a plate a metre across, and
@@ -666,7 +673,7 @@ namespace GeometryHelper.Core
         /// edges of every such ear along a needle of a hole.
         /// </para>
         /// </remarks>
-        private static bool TryClip(List<Node> loop, Tolerance tolerance, out GeoTriangle3[] triangles)
+        private static bool TryClip(List<Node> loop, Tolerance tolerance, double offFlat, out GeoTriangle3[] triangles)
         {
             triangles = null;
 
@@ -678,9 +685,9 @@ namespace GeometryHelper.Core
             // millimetres and one in metres.
             double areaEpsilon = tolerance.EqualPoint * Extent(working);
 
-            // How near an ear's edge a corner blocks it: within the point tolerance while another ear can be found, within
-            // rounding when none can.
-            double near = tolerance.EqualPoint;
+            // How near an ear's edge a corner blocks it: within the point tolerance, or how far out of flat the loop is
+            // where that is further, while another ear can be found; within rounding when none can.
+            double near = Math.Max(tolerance.EqualPoint, offFlat);
             double rounding = tolerance.EqualPoint * 1E-6;
             double blocking = near;
 

@@ -6,6 +6,58 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**BREAKING.** The default tolerance is a thousandth of a millimetre for points and for flatness:
+`Tolerance.DefaultEqualPoint` and `DefaultEqualPlanar` are 1E-3, and `DefaultEqualVector` is 1E-5, each 1E-2 before; the
+angle stays one degree. `Tolerance.Default` and `Tolerance.Global`, which starts as it, are what every overload without a
+tolerance reads. Use the default for results as exact as the corners of a model in millimetres are:
+- Of 218 pairs of slabs from a Tekla model that share material, the common part came out within 450 cubic millimetres
+  of the exact volume at the median, and within 2 882 for nine pairs in ten, where within a hundredth it came within
+  1 084 and 11 861.
+- The 79 864 parts of a Tekla model read closed, live from Tekla Structures. Of their 667 038 cuts by the parts they meet,
+  32 came out open and 1 could not be worked out, where within a hundredth, of 703 236, 93 came out open and 63 could not
+  be worked out; 20 and 18 took more than a minute each, and all of them 271 seconds on 24 threads, where within a
+  hundredth they took 232.
+- On a model of 1 989 parts, cutting each part by the parts it meets took 33 seconds, where within a hundredth it took
+  24. Two IFC models of steelwork, 141 464 and 129 403 bodies, read closed, the second with 7 of its products warned of
+  with their openings cut, where within a hundredth 12 were.
+- A finer default is not more exact on such models: Tekla Structures gives faces a few ten-thousandths of a millimetre
+  out of flat, and parts touching across gaps as thin, and below a thousandth those are cut as the slivers they then
+  are. The 1 989 parts took over 250 seconds within 1E-4 or 1E-5, 34 and 41 of their cuts more than a minute each.
+- The vector threshold is far below the point threshold because it is also the area below which a loop is no polygon:
+  with a thousandth for both, a triangle 0.005 by 0.08 of a millimetre that Tekla gives at the end of each of 1 791
+  girders of that model was refused for its area of 0.0002, and every one of the girders read open.
+
+What changes: two points 0.001 to 0.01 apart are two points, a face that far out of flat is no polygon and is read by
+`GeoFace3.FromLoops` as triangles on its corners, a body whose faces meet on copies of an edge that far apart is open, and
+a thin overlap of two parts that thick is material a boolean takes away or keeps, where it was taken for touching. A
+tolerance passed in is unchanged, and a boolean within one still welds its result until it closes within the default
+too, a thousandth now: of 10 314 cuts within 0.05 of the parts of a Tekla model, 23 took a different volume than with
+the old default, the most by 2.5%. To have a hundredth back, pass `new Tolerance(0.01, 0.01,
+Tolerance.DefaultEqualAngleRad, 0.01)` or set it as `Tolerance.Global`; net volumes to match the ones Tekla Structures
+reports want 0.05, as before.
+Geometry in metres wants `new Tolerance(1E-6, 1E-8, Tolerance.DefaultEqualAngleRad, 1E-6)`.
+
+**FIXED.** A difference or a union could come back closed with faces wound against each other, which `IsClosed` reads as
+closed: a beam from an IFC model less an opening whose side lay against the web within the tolerance, cut within a
+thousandth, kept the web twice over a strip 6.6 wide, its two copies facing the same way, and the next opening cut from it
+came out open, its common part with the beam as nothing. Such a result is cut the other way round too, and the other is
+taken where it closes wound alike; the beam takes its sixteen openings so. Where the other way does no better, the result
+is kept as it was: on the parts of a Tekla model most such results come of slivers and hold their volume.
+
+**FIXED.** An intersection cut cleanly neither way took the cells of the first body cut even where cells the planes could
+not cut had been judged apart across them, and the other way round they had not: of two bars bent twice and crossing,
+within a thousandth, the common part lost an eighth. The other way is taken then, as a difference takes it.
+
+**FIXED.** A face out of flat, split into triangles on its corners by `GeoFace3.FromLoops`, the booleans and the meshes,
+could come with a triangle standing up across it: an L with its inner corner a millimetre up, read within a thousandth,
+took the ear across its diagonal that the inner corner, seen from the face's frame, passed 0.005 outside, and closed with a
+triangle along the diagonal facing sideways. A corner blocks an ear within how far its loop is out of flat, where that is
+further than the tolerance.
+
+**CHANGED.** `ToCells` keeps the point of a needle a cut cannot be made through with the rest of its piece, without a
+warning, as far as a thousand point tolerances past the cut, where it was a hundred: a needle tapering at one in five
+hundred is thinner than the tolerance for five hundred tolerances of its point.
+
 **FIXED.** `GeoFace3.Flip()` and `Clone()` checked a face's holes against the plane of its boundary again, within the
 global tolerance: a face made within a wider tolerance, a hole 0.03 off the plane within 0.05, could not be turned over
 or copied, and `GeoSolid3.TurnOutwards()` threw on a body with such a face. Neither changes what was checked when the

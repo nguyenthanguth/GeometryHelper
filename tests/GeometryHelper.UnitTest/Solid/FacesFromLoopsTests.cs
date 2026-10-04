@@ -64,14 +64,20 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.All(faces, face => Assert.True(face.Normal.Z < -0.99));
         }
 
-        [Fact]
-        public void AnLOutOfFlatIsCoveredWithoutItsNotch()
+        [Theory]
+        [InlineData(1E-2)]
+        [InlineData(1E-3)]
+        [InlineData(1E-4)]
+        public void AnLOutOfFlatIsCoveredWithoutItsNotch(double within)
         {
             // 100 x 100 less the quarter at the top right, its inner corner a millimetre up. A fan from any corner but
-            // the inner one reaches across the notch.
+            // the inner one reaches across the notch. Seen from its frame, the inner corner stands 0.005 off the diagonal
+            // from (0, 100) to (100, 0); within a thousandth that let the ear across the diagonal be taken, and what was
+            // left closed with a triangle standing up along it, its normal across the face.
+            var tolerance = new Tolerance(within, 1E-2 * within, Tolerance.DefaultEqualAngleRad, within);
             GeoPoint3[] l = { P(0, 0, 0), P(100, 0, 0), P(100, 50, 0), P(50, 50, 1), P(50, 100, 0), P(0, 100, 0) };
 
-            GeoFace3[] faces = GeoFace3.FromLoops(l, null, Default);
+            GeoFace3[] faces = GeoFace3.FromLoops(l, null, tolerance);
 
             Assert.Equal(4, faces.Length);
             Assert.InRange(faces.Sum(face => face.Area), 7500.0 * 0.99999, 7500.0 * 1.001);

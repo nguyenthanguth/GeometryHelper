@@ -214,12 +214,12 @@ namespace GeometryHelper.UnitTest.Meshing
         public void ACutWithinTheSnapDistanceOfASideGoesOntoIt()
         {
             // A box a hair over two cells long: the hair is no cell of its own, but part of the last.
-            var box = new GeoAabb3(P(0, 0, 0), P(1000.005, 500, 500));
+            var box = new GeoAabb3(P(0, 0, 0), P(1000.0005, 500, 500));
             GeoCellGrid3 grid = box.ToCells(CellOptions3.Grid(500, 500, 500), Tolerance);
 
             Assert.Equal(2, grid.CellCount);
             Assert.Equal(2, Whole(grid));
-            Assert.Equal(500.005 * 500 * 500, grid.Cells[1].Volume, 3);
+            Assert.Equal(500.0005 * 500 * 500, grid.Cells[1].Volume, 3);
 
             // A snap distance of 50 takes a slice of 30 into the cell beside, which is no longer whole.
             var longer = new GeoAabb3(P(0, 0, 0), P(1030, 500, 500));
@@ -386,8 +386,8 @@ namespace GeometryHelper.UnitTest.Meshing
         [Fact]
         public void AStepAHairOffAGridLineLeavesNoSliver()
         {
-            // An L-shaped footing whose step stands five thousandths past the line between two cells.
-            var l = new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(1000.005, 1000), Q(1000.005, 2000), Q(0, 2000));
+            // An L-shaped footing whose step stands five ten-thousandths past the line between two cells.
+            var l = new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(1000.0005, 1000), Q(1000.0005, 2000), Q(0, 2000));
             GeoSolid3 footing = Prism(l, 0, 800);
             GeoCellGrid3 grid = footing.ToCells(CellOptions3.Grid(500, 500, 400), Tolerance);
 
@@ -400,14 +400,14 @@ namespace GeometryHelper.UnitTest.Meshing
         [Fact]
         public void ATipAHairPastACutStaysWithTheRest()
         {
-            // A pyramid whose apex stands fourteen thousandths past the second line of lifts, a little more than the point
+            // A pyramid whose apex stands fourteen ten-thousandths past the second line of lifts, a little more than the point
             // tolerance a cut is snapped within: cut off, the tip would be a piece the size of the tolerance.
             var pyramid = new GeoSolid3(
                 new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(0, 1000, 0), P(1000, 1000, 0), P(1000, 0, 0))),
-                new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(1000, 0, 0), P(500, 500, 1000.014))),
-                new GeoFace3(new GeoPolygon3(P(1000, 0, 0), P(1000, 1000, 0), P(500, 500, 1000.014))),
-                new GeoFace3(new GeoPolygon3(P(1000, 1000, 0), P(0, 1000, 0), P(500, 500, 1000.014))),
-                new GeoFace3(new GeoPolygon3(P(0, 1000, 0), P(0, 0, 0), P(500, 500, 1000.014))));
+                new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(1000, 0, 0), P(500, 500, 1000.0014))),
+                new GeoFace3(new GeoPolygon3(P(1000, 0, 0), P(1000, 1000, 0), P(500, 500, 1000.0014))),
+                new GeoFace3(new GeoPolygon3(P(1000, 1000, 0), P(0, 1000, 0), P(500, 500, 1000.0014))),
+                new GeoFace3(new GeoPolygon3(P(0, 1000, 0), P(0, 0, 0), P(500, 500, 1000.0014))));
             GeoCellGrid3 lifts = pyramid.ToCells(CellOptions3.Layers(500), Tolerance);
 
             Assert.Equal(2, lifts.CellCount);
@@ -418,9 +418,9 @@ namespace GeometryHelper.UnitTest.Meshing
         [Fact]
         public void TheTipOfANeedleThinnerThanTheToleranceStaysWithTheRest()
         {
-            // A needle 800 long on a base 25 across, its point a quarter of a millimetre past the line between two cells:
-            // across the line it is eight thousandths wide, less than the point tolerance, and no piece can be cut there.
-            GeoPoint3 a = P(200, 0, 0), b = P(200, 25, 0), c = P(200, 0, 25), d = P(1000.244, 5, 5);
+            // A needle 800 long on a base 25 across, its point a fortieth of a millimetre past the line between two cells:
+            // across the line it is eight ten-thousandths wide, less than the point tolerance, and no piece can be cut there.
+            GeoPoint3 a = P(200, 0, 0), b = P(200, 25, 0), c = P(200, 0, 25), d = P(1000.0244, 5, 5);
             var needle = new GeoSolid3(
                 new GeoFace3(new GeoPolygon3(a, c, b)),
                 new GeoFace3(new GeoPolygon3(a, b, d)),
@@ -465,9 +465,9 @@ namespace GeometryHelper.UnitTest.Meshing
         [Fact]
         public void ACutMovedOntoACornerTakesNoTipOffTheFarSide()
         {
-            // The end of the body slopes from 100.008 to 100.042: the cut at 100 is moved onto the corner at 100.008, and from
-            // there would take off a slice 0.034 thick, less than four point tolerances.
-            GeoSolid3 body = Prism(new GeoPolygon2(Q(0, 0), Q(100.008, 0), Q(100.042, 100), Q(0, 100)), 0, 100);
+            // The end of the body slopes from 100.0008 to 100.0042: the cut at 100 is moved onto the corner at 100.0008, and
+            // from there would take off a slice 0.0034 thick, less than four point tolerances.
+            GeoSolid3 body = Prism(new GeoPolygon2(Q(0, 0), Q(100.0008, 0), Q(100.0042, 100), Q(0, 100)), 0, 100);
             GeoCellGrid3 grid = body.ToCells(CellOptions3.Grid(100, 0, 0), Tolerance);
 
             GeoCell3 cell = Assert.Single(grid.Cells);
@@ -659,8 +659,8 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(box.Cells.Select(c => c.IsWhole), body.Cells.Select(c => c.IsWhole));
             Assert.Equal(2, Whole(body));
 
-            // A step five thousandths past a line is within the tolerance of it: the cells either side are whole.
-            GeoSolid3 footing = Prism(new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(1000.005, 1000), Q(1000.005, 2000), Q(0, 2000)), 0, 800);
+            // A step five ten-thousandths past a line is within the tolerance of it: the cells either side are whole.
+            GeoSolid3 footing = Prism(new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(1000.0005, 1000), Q(1000.0005, 2000), Q(0, 2000)), 0, 800);
             Assert.All(footing.ToCells(CellOptions3.Grid(500, 500, 400), Tolerance).Cells, c => Assert.True(c.IsWhole, $"{c} is not whole"));
         }
 
@@ -796,7 +796,7 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             // A plate thinner than the point tolerance, so that no cut through it can be made, and each is warned of. Its middle
             // stands in the joint between the first two cells: kept whole on the side of its middle, it went with the joint.
-            GeoSolid3 plate = GeometryHelper.Core.CellGrid3.BoxSolid(new GeoAabb3(P(0, 0, 0), P(1000, 100, 0.005)).ToObb());
+            GeoSolid3 plate = GeometryHelper.Core.CellGrid3.BoxSolid(new GeoAabb3(P(0, 0, 0), P(1000, 100, 0.0005)).ToObb());
             GeoCellGrid3 grid = plate.ToCells(CellOptions3.Grid(495, 0, 0, joint: 10), Tolerance);
 
             Assert.Equal(plate.GetVolume(), grid.Volume, 9);

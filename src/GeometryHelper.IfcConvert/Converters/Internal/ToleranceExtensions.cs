@@ -11,9 +11,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// Returns the tolerance to construct <c>GeoPolygon3</c> instances with.
         /// <para>
         /// <c>GeoPolygon3</c> rejects a loop whose area is below <see cref="Tolerance.EqualVector"/>, reading that
-        /// value as an area. With the default 1e-2 and geometry output in metres that threshold is 10,000 mm2, so real
-        /// faces of steel parts (a 10 x 10 mm bar end, the triangles lining a bolt hole) would be dropped silently
-        /// and the solid left open. Here the area threshold is tied to the point tolerance instead
+        /// value as an area. With a vector threshold of 1e-2, the default up to 10.0.0, and geometry output in metres that
+        /// threshold is 10,000 mm2, so real faces of steel parts (a 10 x 10 mm bar end, the triangles lining a bolt hole)
+        /// would be dropped silently and the solid left open; with the default 1e-5 it is still 10 mm2. Here the area threshold is tied to the point tolerance instead
         /// (EqualPoint squared), which is scale-consistent with the output unit. All other fields are unchanged.
         /// </para>
         /// </summary>

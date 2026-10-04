@@ -10,6 +10,13 @@ algorithms that run on the 2D half. Written in C# and targeting `netstandard2.0`
 Every comparison that floating point error can affect takes a `Tolerance`, because coordinates that come
 out of a BIM model are never exact.
 
+**Use the default tolerance.** The overloads without a tolerance read `Tolerance.Global`, which starts as
+`Tolerance.Default`: a thousandth of a millimetre for points and for flatness, in a model in millimetres. That is as
+exact as the corners of a modelled part are: two parts a hundredth apart are apart, and a thin overlap holds what it
+holds. A finer tolerance cuts as slivers the few ten-thousandths a modeller's rounding leaves faces off flat and parts
+apart, many times slower; a coarser one, passed to the call that needs it, takes what touches within it for touching.
+Never `new Tolerance()`: made so, every threshold is 0.
+
 ## Installation
 
 ```bash

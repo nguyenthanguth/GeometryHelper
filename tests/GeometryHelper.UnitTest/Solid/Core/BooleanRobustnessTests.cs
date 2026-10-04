@@ -35,14 +35,39 @@ namespace GeometryHelper.UnitTest.Solid
 
                 // The fifteenth left a seam where two faces of the web run a hundredth of a millimetre apart, the point
                 // tolerance itself, and the sixteenth was cut from that; slivers thinner than twice the tolerance are
-                // kept and judged by their middle now, and the beam stays closed throughout.
+                // kept and judged by their middle now, and the beam stays closed throughout, and wound alike.
                 Assert.True(rest.IsClosed(tolerance), $"open after opening {k}");
+                Assert.True(rest.Validate(tolerance).IsWoundAlike, $"wound against itself after opening {k}");
 
                 beam = rest;
             }
 
             // The geometry engine, cutting all sixteen on the exact B-rep, leaves 25 137 804 mm3.
             Assert.InRange(beam.GetVolume(), 25137804.0 * 0.9999, 25137804.0 * 1.0001);
+        }
+
+        [Fact]
+        public void TheBeamTakesItsOpeningsWoundAlikeWithinAThousandth()
+        {
+            // Within a thousandth the second opening, its side against the web within the tolerance, left the web twice over
+            // a strip 6.6 wide, its two copies facing the same way: closed as IsClosed reads it, and wound against itself. The
+            // third opening cut from that came out open, and the common part of the two came out as nothing.
+            var thousandth = new Tolerance(1E-3, 1E-5, Tolerance.DefaultEqualAngleRad, 1E-3);
+            GeoSolid3 beam = BeamWithOpenings.Read(BeamWithOpenings.Beam);
+
+            for (int k = 0; k < 3; k++)
+            {
+                GeoSolid3 opening = BeamWithOpenings.Read(BeamWithOpenings.Openings[k]);
+
+                Assert.True(beam.TryIntersect(opening, out GeoSolid3 shared, thousandth), $"opening {k}");
+                Assert.True(beam.TrySubtract(opening, out GeoSolid3 rest, thousandth), $"opening {k}");
+
+                SolidValidation3 check = rest.Validate(thousandth);
+                Assert.True(check.IsClosed && check.IsWoundAlike, $"after opening {k}: {check}");
+                Assert.InRange(beam.GetVolume() - rest.GetVolume(), shared.GetVolume() - 5E-5 * beam.GetVolume(), shared.GetVolume() + 5E-5 * beam.GetVolume());
+
+                beam = rest;
+            }
         }
 
         [Fact]

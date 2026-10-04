@@ -15,19 +15,35 @@ compares coordinates with `==`.
 
 | Threshold | Default | Measures |
 |---|---|---|
-| `EqualPoint` | `1E-2` | Distance below which two points are the same point. |
-| `EqualVector` | `1E-2` | Difference below which two vectors are the same vector; also the length below which a vector has no direction, and the area below which a loop is no polygon. |
+| `EqualPoint` | `1E-3` | Distance below which two points are the same point. |
+| `EqualVector` | `1E-5` | Difference below which two vectors are the same vector; also the length below which a vector has no direction, and the area below which a loop is no polygon. |
 | `EqualAngleRad` | 1° | Angular difference for parallel and perpendicular tests. |
-| `EqualPlanar` | `1E-2` | Distance from a plane below which a point counts as lying on it. |
+| `EqualPlanar` | `1E-3` | Distance from a plane below which a point counts as lying on it. |
 
-**The defaults suit a model in millimetres:** a hundredth of a millimetre for points and for
-flatness alike, so a point that is one with another is on every plane that other is on. A modeller's
-own cuts leave faces further out of flat than that: Tekla Structures left the top face of a notched
-beam 0.04 mm out at one corner. Refused as not flat, such a face was a hole in the beam, which then
-gave no section and a fifth too little volume; the Tekla and IFC conversions read it instead as
-triangles on its own corners (`GeoFace3.FromLoops`, see [space](solid.md)), and the beam closes.
-Geometry in metres wants the defaults a thousand times smaller, and a tolerance of its own:
-`new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 1E-5)`.
+**Use the defaults.** They suit a model in millimetres: a thousandth of a millimetre for points and for
+flatness alike, so a point that is one with another is on every plane that other is on. That is as fine as
+the corners of a modelled part are exact to. Two parts a hundredth apart are apart, and a thin overlap holds
+what it holds: of 218 pairs of slabs from a Tekla model that share material, the common part came out within
+450 cubic millimetres of the exact volume at the median, where the default up to 10.0.0, a hundredth, came
+within 1 084. A finer tolerance is no more exact. Tekla Structures gives faces a few ten-thousandths of a
+millimetre out of flat and parts touching across gaps as thin, and below a thousandth those are cut as the
+slivers they then are: cutting each part of a model of 1 989 parts by the parts it meets took 24 seconds within a
+hundredth, 33 within a thousandth, and over 250 within 1E-4 or 1E-5, where 34 and 41 of the cuts took more than a
+minute each.
+
+A modeller's own cuts leave faces further out of flat than the tolerance: Tekla Structures left the top face
+of a notched beam 0.04 mm out at one corner. Refused as not flat, such a face was a hole in the beam, which
+then gave no section and a fifth too little volume; the Tekla and IFC conversions read it instead as triangles
+on its own corners (`GeoFace3.FromLoops`, see [space](solid.md)), and the beam closes.
+
+The vector threshold is far below the point threshold because it is also the area below which a loop is no
+polygon: Tekla Structures gives a triangle 0.005 by 0.08 of a millimetre at the end of each of 1 791 girders of
+one model, which a vector threshold of a thousandth refused for its area of 0.0002, leaving every girder open.
+
+Pass a coarser tolerance only to the call that needs it. Within one, what touches within it is taken for touching:
+net volumes to match the ones Tekla Structures reports come from booleans within 0.05. Geometry in metres wants
+the point and planar thresholds a thousand times smaller, set once for the program:
+`new Tolerance(1E-6, 1E-8, Tolerance.DefaultEqualAngleRad, 1E-6)`.
 
 `Tolerance.Default` is the four defaults together. `Tolerance.Global` starts as it, and it stays the
 defaults whatever `Tolerance.Global` is set to. `new Tolerance()` is not the defaults: `Tolerance` is a
@@ -53,7 +69,7 @@ still go by the angle.
 
 ```csharp
 // One setting for both libraries: here, for a model in metres.
-Tolerance.Global = new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 1E-5);
+Tolerance.Global = new Tolerance(1E-6, 1E-8, Tolerance.DefaultEqualAngleRad, 1E-6);
 
 // Or pass one explicitly, which is what to do when a single operation needs to be looser or
 // tighter than the rest of the program.

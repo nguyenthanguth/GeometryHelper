@@ -10,9 +10,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
     /// slant to that edge: each face put the crossing on its own copy of the edge, and the two crossings stood further
     /// apart than the tolerance, so the rim of the cut did not close.
     /// </summary>
+    /// <remarks>
+    /// The pieces came from booleans as they are, their copies of an edge a few thousandths apart, so they are cut within
+    /// a hundredth, the default when they were found; within the default now, a thousandth, the copies are apart.
+    /// </remarks>
     public class EdgeSharedWithinTheToleranceTests
     {
-        private static readonly Tolerance Tolerance = Tolerance.Default;
+        private static readonly Tolerance Tolerance = new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01);
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 

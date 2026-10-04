@@ -68,12 +68,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ThePointsTheStripsMakeLieOnTheEdgesAsTheyRunInSpace()
         {
-            // The corners stand a thousandth either side of the plane in turn, as a face flat only within the tolerance has
-            // them. A point a strip line makes on an edge taken on the plane stood off the edge by as much, and a sliver
+            // The corners stand a ten-thousandth either side of the plane in turn, as a face flat only within the tolerance
+            // has them. A point a strip line makes on an edge taken on the plane stood off the edge by as much, and a sliver
             // between it and the corner beside it stood up across the strip.
             GeoPoint3 Q(double u, double v, double w) => Frame.ToGlobal(new GeoPoint3(u, v, w));
-            var boundary = new GeoPolygon3(new[] { Q(0, 0, 1E-3), Q(300, 0, -1E-3), Q(300, 100, 1E-3), Q(120, 100, -1E-3), Q(120, 250, 1E-3), Q(0, 250, -1E-3) }, Tolerance);
-            var hole = new GeoPolygon3(new[] { Q(30, 40, -1E-3), Q(50, 40, 1E-3), Q(50, 60, -1E-3), Q(30, 60, 1E-3) }, Tolerance);
+            var boundary = new GeoPolygon3(new[] { Q(0, 0, 1E-4), Q(300, 0, -1E-4), Q(300, 100, 1E-4), Q(120, 100, -1E-4), Q(120, 250, 1E-4), Q(0, 250, -1E-4) }, Tolerance);
+            var hole = new GeoPolygon3(new[] { Q(30, 40, -1E-4), Q(50, 40, 1E-4), Q(50, 60, -1E-4), Q(30, 60, 1E-4) }, Tolerance);
             var face = new GeoFace3(boundary, new[] { hole }, Tolerance);
 
             GeoTriangle3[] triangles = StripTriangulation.Triangulate(face, Tolerance);

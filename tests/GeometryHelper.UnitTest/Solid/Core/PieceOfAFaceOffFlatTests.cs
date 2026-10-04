@@ -10,9 +10,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
     /// does, but measured from a corner of its own and about its own normal it can stand further, and a piece refused left
     /// the half it belongs to open.
     /// </summary>
+    /// <remarks>
+    /// The piece came from a model as it is, its hair 0.007, so it is cut within a hundredth, the default when it was found.
+    /// </remarks>
     public class PieceOfAFaceOffFlatTests
     {
-        private static readonly Tolerance Tolerance = Tolerance.Default;
+        private static readonly Tolerance Tolerance = new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01);
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 

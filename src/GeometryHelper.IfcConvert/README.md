@@ -180,7 +180,7 @@ using GeometryHelper.Geometry;
 
 string[] ifcFiles = { @"C:\Models\Building-A.ifc", @"C:\Models\Building-B.ifc" };
 // Tolerances are in the output unit, and the default suits millimetres: in metres, a thousand times smaller.
-var metres = new Tolerance(1E-5, 1E-5, Tolerance.DefaultEqualAngleRad, 1E-5);
+var metres = new Tolerance(1E-6, 1E-8, Tolerance.DefaultEqualAngleRad, 1E-6);
 var options = new IfcConvertOptions { TargetUnit = LengthUnit.Meters, Tolerance = metres };
 
 foreach (string ifcFile in ifcFiles)

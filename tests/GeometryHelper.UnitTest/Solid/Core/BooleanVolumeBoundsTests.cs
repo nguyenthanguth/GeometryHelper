@@ -11,7 +11,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
     /// </summary>
     /// <remarks>
     /// A plate 100 by 100 by 20 (200 000, its area 28 000) and a post 20 by 20 by 30 (12 000, its area 3 200), at the
-    /// default tolerance: the post's area allows 32 either way. The results are boxes of the volume asked about.
+    /// default tolerance: the post's area allows 3.2 either way. The results are boxes of the volume asked about.
     /// </remarks>
     public class BooleanVolumeBoundsTests
     {
@@ -31,9 +31,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void ADifferenceLeavesNoMoreThanItsSubject_AndNoLessThanItLessTheWholeTool()
         {
             Assert.Null(Boolean3.Implausible("difference", Holding(200000 - 8000), Plate, Post, Tolerance));
-            Assert.Null(Boolean3.Implausible("difference", Holding(200000 + 30), Plate, Post, Tolerance));
-            Assert.Contains("no more than", Boolean3.Implausible("difference", Holding(200000 + 100), Plate, Post, Tolerance));
-            Assert.Contains("no less than", Boolean3.Implausible("difference", Holding(200000 - 12000 - 100), Plate, Post, Tolerance));
+            Assert.Null(Boolean3.Implausible("difference", Holding(200000 + 3), Plate, Post, Tolerance));
+            Assert.Contains("no more than", Boolean3.Implausible("difference", Holding(200000 + 10), Plate, Post, Tolerance));
+            Assert.Contains("no less than", Boolean3.Implausible("difference", Holding(200000 - 12000 - 10), Plate, Post, Tolerance));
         }
 
         [Fact]

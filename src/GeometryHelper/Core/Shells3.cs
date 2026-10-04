@@ -497,6 +497,32 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Determines whether faces close up wound alike: every stretch of every edge shared by an even number of them, as
+        /// many running it one way as the other.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="ClosesUp"/> asks only the first. A face turned the wrong way round closes up as well, and so do two
+        /// faces lying over each other facing the same way, and either encloses the wrong volume.
+        /// </remarks>
+        internal static bool ClosesAlike(IReadOnlyList<GeoFace3> faces, Tolerance tolerance)
+        {
+            if (faces.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (Stretch stretch in UnevenStretches(faces, tolerance))
+            {
+                if ((stretch.Forward + stretch.Backward) % 2 != 0 || stretch.Forward != stretch.Backward)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Every stretch of edge the faces do not close up along as two faces wound alike do: covered by an odd number of
         /// edges, by not as many one way as the other, or by more than two.
         /// </summary>

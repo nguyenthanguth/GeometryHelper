@@ -646,7 +646,7 @@ namespace GeometryHelper.Geometry
         /// checked by asking them.
         /// <code>
         /// part.TrySubtract(cutter, out GeoSolid3 rest, new Tolerance(0.05, 0.01, Tolerance.DefaultEqualAngleRad, 0.05));
-        /// SolidValidation3 check = rest.Validate(); // within the default tolerance, a hundredth
+        /// SolidValidation3 check = rest.Validate(); // within the default tolerance, a thousandth
         ///
         /// if (!check.IsValid)
         /// {

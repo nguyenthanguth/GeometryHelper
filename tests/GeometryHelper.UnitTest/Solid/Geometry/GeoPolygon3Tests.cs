@@ -74,12 +74,13 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>
-        /// A face of a steel girder in an IFC file, as read in the girder's own frame: one corner a hundredth below the
-        /// other seven, flat at the default planar tolerance with nothing to spare.
+        /// A face of a steel girder in an IFC file, as read in the girder's own frame, one corner below the other seven: a
+        /// hundredth in the file, at the edge of the default as it was then; a thousandth here, flat at the default planar
+        /// tolerance with nothing to spare.
         /// </summary>
         internal static readonly GeoPoint3[] GirderFace =
         {
-            new GeoPoint3(7989.99999991793, 20, 189.99), new GeoPoint3(7954.99999991793, 20, 190),
+            new GeoPoint3(7989.99999991793, 20, 189.99900000000002), new GeoPoint3(7954.99999991793, 20, 190),
             new GeoPoint3(257.000004518777, 19.99999999959249, 190), new GeoPoint3(257.00003389886115, 149.999999999622, 190),
             new GeoPoint3(7954.99999991793, 150, 190), new GeoPoint3(7989.99999991793, 150, 190),
             new GeoPoint3(7992.99999991793, 150, 190), new GeoPoint3(7992.99999991793, 20, 190),

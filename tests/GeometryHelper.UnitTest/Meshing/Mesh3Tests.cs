@@ -389,7 +389,7 @@ namespace GeometryHelper.UnitTest.Meshing
             // The disc a default circle is, with no radius and no normal: its frame was laid on the normal, and refused.
             Assert.Equal(0, default(GeoCircle3).ToMesh(MeshKind.Triangles).FaceCount);
             Assert.Equal(0, default(GeoCircle3).ToMesh(MeshOptions.Grid(10, 10), MeshPlacement3.Own, Tolerance).FaceCount);
-            Assert.Equal(0, new GeoCircle3(P(1, 2, 3), GeoVector3.ZAxis, 0.005).ToMesh(MeshKind.Convex).FaceCount);
+            Assert.Equal(0, new GeoCircle3(P(1, 2, 3), GeoVector3.ZAxis, 0.0005).ToMesh(MeshKind.Convex).FaceCount);
         }
 
         [Fact]
@@ -502,9 +502,9 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(polygon.Area, loop.Area, 6);
             Assert.All(corners, c => Assert.Contains(c, loop.Vertices));
 
-            // A loop a hair out of flat, two of its corners 0.0126 apart in space and 0.004 in its plane, at the default
+            // A loop a hair out of flat, two of its corners 0.00126 apart in space and 0.0004 in its plane, at the default
             // tolerance: its grid covered nine tenths of it.
-            GeoPoint3[] tilted = { P(0, 0, 0), P(1000, 0, -0.006), P(1000, 0.004, 0.006), P(1000, 1000, 0), P(0, 1000, 0) };
+            GeoPoint3[] tilted = { P(0, 0, 0), P(1000, 0, -0.0006), P(1000, 0.0004, 0.0006), P(1000, 1000, 0), P(0, 1000, 0) };
             GeoMesh3 grid = new GeoPolygonArc3(tilted).ToMesh(MeshOptions.Grid(300, 300), Tolerance);
 
             Assert.Equal(new GeoPolygon3(tilted, Tolerance).ToMesh(MeshOptions.Grid(300, 300), Tolerance).Area, grid.Area, 6);
@@ -545,10 +545,10 @@ namespace GeometryHelper.UnitTest.Meshing
         [Fact]
         public void TheTrianglesOfAShapeAHairOutOfFlatHoldTheirOwnCorners()
         {
-            // Corners up to 0.0089 off the plane through the first: a triangle of the mesh turned about the mesh's normal, its
+            // Corners up to 0.00089 off the plane through the first: a triangle of the mesh turned about the mesh's normal, its
             // plane through its first corner, which stood off its others by more than the tolerance it holds them within.
             var polygon = new GeoPolygon3(
-                new[] { P(1162.6, 1637.3, 0.0003), P(1289.7, 1951.2, 0.0042), P(300, 2064.8, -0.0012), P(-232.5, 2022, -0.0062), P(-2183.5, 751.7, 0.0085), P(-1062.7, -1443.7, -0.0014), P(-485.3, -2080.2, -0.0089), P(1999, -600.1, 0) },
+                new[] { P(1162.6, 1637.3, 0.00003), P(1289.7, 1951.2, 0.00042), P(300, 2064.8, -0.00012), P(-232.5, 2022, -0.00062), P(-2183.5, 751.7, 0.00085), P(-1062.7, -1443.7, -0.00014), P(-485.3, -2080.2, -0.00089), P(1999, -600.1, 0) },
                 Tolerance);
             GeoMesh3 mesh = polygon.ToMesh(MeshOptions.Triangles, Tolerance);
 
@@ -562,8 +562,8 @@ namespace GeometryHelper.UnitTest.Meshing
         [Fact]
         public void AFaceAHairOutOfFlatKeepsItsCornersAndItsSides()
         {
-            // A slab face from a modeller: its corners stand up to 4 thousandths off the plane.
-            var corners = new[] { P(0, 0, 0.004), P(6000, 0, -0.003), P(6000, 4000, 0.002), P(0, 4000, -0.004) };
+            // A slab face from a modeller: its corners stand up to 4 ten-thousandths off the plane.
+            var corners = new[] { P(0, 0, 0.0004), P(6000, 0, -0.0003), P(6000, 4000, 0.0002), P(0, 4000, -0.0004) };
             var face = new GeoFace3(new GeoPolygon3(corners, Tolerance), null, Tolerance);
             GeoMesh3 mesh = face.ToMesh(MeshOptions.Grid(700, 700), Tolerance);
 

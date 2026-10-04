@@ -42,12 +42,13 @@ namespace GeometryHelper.IfcConvert.UnitTest
         [Fact]
         public void TransformBy_AFaceAtTheEdgeOfFlat_IsKeptAndTheBodyStaysClosed()
         {
-            // A face of a steel girder of a Tekla IFC, one corner a hundredth below the other seven: flat at the default
-            // planar tolerance with nothing to spare. Placed 600 m out, the conversion rebuilt it where it landed, the
-            // low corner came a rounding past the tolerance, and the face was left out: the girder came out open.
+            // A face of a steel girder of a Tekla IFC, one corner below the other seven, a hundredth in the file and a
+            // thousandth here: flat at the default planar tolerance with nothing to spare. Placed 600 m out, the conversion
+            // rebuilt it where it landed, the low corner came a rounding past the tolerance, and the face was left out: the
+            // girder came out open.
             GeoPoint3[] corners =
             {
-                new GeoPoint3(7989.99999991793, 20, 189.99), new GeoPoint3(7954.99999991793, 20, 190),
+                new GeoPoint3(7989.99999991793, 20, 189.99900000000002), new GeoPoint3(7954.99999991793, 20, 190),
                 new GeoPoint3(257.000004518777, 19.99999999959249, 190), new GeoPoint3(257.00003389886115, 149.999999999622, 190),
                 new GeoPoint3(7954.99999991793, 150, 190), new GeoPoint3(7989.99999991793, 150, 190),
                 new GeoPoint3(7992.99999991793, 150, 190), new GeoPoint3(7992.99999991793, 20, 190),
@@ -62,7 +63,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
             Assert.Empty(moved.Warnings);
 
             // The two faces the corner lies in come as triangles on their corners where the plate had them as one face
-            // each: the dip of a hundredth over a square metre is all that can differ.
+            // each: the dip of a thousandth over a square metre is all that can differ.
             Assert.InRange(body.GetVolume(), plate.GetVolume() * 0.999, plate.GetVolume() * 1.001);
         }
 

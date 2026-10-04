@@ -639,8 +639,9 @@ namespace GeometryHelper.UnitTest.Meshing
 
                 case 5:
                 {
-                    // An L whose step stands a hair to either side of where a line of cells is likely to fall.
-                    double step = Math.Round(0.5 * size / 100) * 100 + (r.NextDouble() - 0.5) * 0.04;
+                    // An L whose step stands a hair to either side of where a line of cells is likely to fall: up to two point
+                    // tolerances.
+                    double step = Math.Round(0.5 * size / 100) * 100 + (r.NextDouble() - 0.5) * 4 * Tol.EqualPoint;
                     var l = new List<GeoPoint3> { new GeoPoint3(0, 0, 0), new GeoPoint3(size, 0, 0), new GeoPoint3(size, 0.5 * size, 0), new GeoPoint3(step, 0.5 * size, 0), new GeoPoint3(step, size, 0), new GeoPoint3(0, size, 0) };
                     what = $"L step {step:F4} size {size:F0} far {far}";
                     return GeoSolid3.Extrude(new GeoPolygon3(l, Tol), new GeoVector3(0, 0, 0.6 * size), Tol).TransformBy(placed);
@@ -1007,7 +1008,9 @@ namespace GeometryHelper.UnitTest.Meshing
                 double reach = snap + tip + 3 * Tol.EqualPoint + 1E-9 * (box.Center.ToVector().Length + box.SizeX + box.SizeY + box.SizeZ);
 
                 // The point of a needle a cut could not take off stays with the cell: no more than a couple of corners, each
-                // counted once however its faces round it, and no further out than a hundred point tolerances.
+                // counted once however its faces round it, and no further out than a thousand point tolerances. The cut is
+                // not made where the needle is thinner than the tolerance, so a needle tapering at one in five hundred keeps
+                // five hundred tolerances of its point past the cut, as a face of an L turned 0.002 off the grid left one.
                 var outside = new List<GeoPoint3>();
 
                 foreach (GeoFace3 face in cell.Solid.Faces)
@@ -1024,7 +1027,7 @@ namespace GeometryHelper.UnitTest.Meshing
                                 outside.Add(corner);
                             }
 
-                            if (beyond > 100 * Tol.EqualPoint + reach || outside.Count > 2)
+                            if (beyond > 1000 * Tol.EqualPoint + reach || outside.Count > 2)
                             {
                                 return $"{cell} reaches out of its cell to {local} (extents {box.ExtentX:F3} {box.ExtentY:F3} {box.ExtentZ:F3}) {where}";
                             }

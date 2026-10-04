@@ -99,8 +99,8 @@ namespace GeometryHelper.UnitTest.Solid
         public void AWedgeTooThinToCutDoesNotSpoilTheCut()
         {
             // A slab with a row of ten pits, and an L-shaped one round two sides of it, a hair into it along its north face:
-            // a hundredth of a millimetre at the west end, nothing three metres on, and the L ends before that. The end of
-            // the L crosses the wedge where it is two thousandths across, which cuts nothing, a piece that thin being no
+            // a thousandth of a millimetre at the west end, nothing three metres on, and the L ends before that. The end of
+            // the L crosses the wedge where it is two ten-thousandths across, which cuts nothing, a piece that thin being no
             // polygon. Counted as a cut that failed, it threw the cut away, the pits made cutting the L the other way too
             // dear to try, and both were cut by every plane of both.
             var pits = Enumerable.Range(0, 10).Select(k => new[] { P(200 + 220 * k, 400), P(300 + 220 * k, 400), P(300 + 220 * k, 500), P(200 + 220 * k, 500) }).ToArray();
@@ -252,9 +252,9 @@ namespace GeometryHelper.UnitTest.Solid
             => plane.Origin.X - plane.Normal.Y / plane.Normal.X * (y - plane.Origin.Y);
 
         /// <summary>
-        /// The south edge of the slab beside: 0.0119 inside the north face of the other at x = 0, meeting it at x = 2930.
+        /// The south edge of the slab beside: 0.00119 inside the north face of the other at x = 0, meeting it at x = 2930.
         /// </summary>
-        private static double Edge(double x) => 1000 - 0.0119 + 0.0119 * x / 2930;
+        private static double Edge(double x) => 1000 - 0.00119 + 0.00119 * x / 2930;
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0.0);
 
