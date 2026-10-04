@@ -16,7 +16,9 @@ tolerance reads. Use the default for results as exact as the corners of a model 
 - The 79 864 parts of a Tekla model read closed, live from Tekla Structures. Of their 667 038 cuts by the parts they meet,
   9 came out open and none could not be worked out, where within a hundredth, of 703 236, 54 came out open and 63 could
   not be worked out; 24 and 17 took more than a minute each, and all of them 318 seconds on 24 threads, where within a
-  hundredth they took 226.
+  hundredth they took 226. Cut one after another by the parts they meet, though, 122 of the parts came out open and 6
+  could not be worked out, where within a hundredth 44 and 17 did: each cut leaves what is thinner than a hundredth and
+  thicker than a thousandth for the next to cut.
 - On a model of 1 989 parts, cutting each part by the parts it meets took 18 seconds, where within a hundredth it took
   12.5, none of the cuts open either way; cut one after another, 1 of the parts came out open, and none within a
   hundredth. Two IFC models of steelwork, 141 464 and 129 403 bodies, read closed, the second with 7 of its products
