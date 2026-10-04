@@ -122,6 +122,42 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void AFaceMadeWithinAWiderToleranceThanTheGlobalOneTurnsOverAndCopies()
+        {
+            // A hole 0.03 off the plane of its boundary lies on it within 0.05 and not within the global tolerance. The
+            // face was made within 0.05, and turning it over or copying it changes nothing that was checked then, as it
+            // changes nothing for its polygons.
+            Tolerance wide = new Tolerance(0.05, 0.01, Tolerance.DefaultEqualAngleRad, 0.05);
+
+            GeoPolygon3 boundary = new GeoPolygon3(new[]
+            {
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(10.0, 0.0, 0.0),
+                new GeoPoint3(10.0, 10.0, 0.0),
+                new GeoPoint3(0.0, 10.0, 0.0),
+            }, wide);
+
+            GeoPolygon3 hole = new GeoPolygon3(new[]
+            {
+                new GeoPoint3(4.0, 4.0, 0.03),
+                new GeoPoint3(6.0, 4.0, 0.03),
+                new GeoPoint3(6.0, 6.0, 0.03),
+                new GeoPoint3(4.0, 6.0, 0.03),
+            }, wide);
+
+            GeoFace3 face = new GeoFace3(boundary, new[] { hole }, wide);
+
+            GeoFace3 turned = face.Flip();
+            GeoFace3 copy = face.Clone();
+
+            Assert.True(turned.Normal.IsEqualTo(face.Normal.Negate()));
+            Assert.Single(turned.Holes);
+            Assert.Equal(face.Area, turned.Area, 12);
+            Assert.Single(copy.Holes);
+            Assert.Equal(face.Area, copy.Area, 12);
+        }
+
+        [Fact]
         public void ASolidCopyCarriesItsFacesAndOpenings()
         {
             GeoSolid3 slab = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(10.0, 10.0, 10.0)).ToObb().ToSolid();

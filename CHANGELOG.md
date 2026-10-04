@@ -6,6 +6,11 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `GeoFace3.Flip()` and `Clone()` checked a face's holes against the plane of its boundary again, within the
+global tolerance: a face made within a wider tolerance, a hole 0.03 off the plane within 0.05, could not be turned over
+or copied, and `GeoSolid3.TurnOutwards()` threw on a body with such a face. Neither changes what was checked when the
+face was made, so neither checks it again, as `GeoPolygon3.Flip()` and `Clone()` do not.
+
 **FIXED.** A union, a difference or an intersection left a body open where a face of the one crossed a face of the other
 at a slant, a few hundredths apart at the thin end: a cell thinner than the tolerance there lay against its neighbour,
 in its own plane, and against its own far side, and the gluing took what it shared from each, so that its face took the

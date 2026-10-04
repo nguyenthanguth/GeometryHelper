@@ -151,6 +151,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Creates a copy of this face.
         /// </summary>
+        /// <remarks>
+        /// The copy is not checked again: its holes lie on the plane of its boundary within the tolerance the face was
+        /// made with, which need not be the global one.
+        /// </remarks>
         public GeoFace3 Clone()
         {
             GeoPolygon3[] copies = new GeoPolygon3[_holes.Length];
@@ -160,7 +164,7 @@ namespace GeometryHelper.Geometry
                 copies[i] = _holes[i].Clone();
             }
 
-            return new GeoFace3(Boundary.Clone(), copies);
+            return new GeoFace3(Boundary.Clone(), copies, Area);
         }
 
         /// <summary>
@@ -171,6 +175,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the face with its orientation reversed, holes included.
         /// </summary>
+        /// <remarks>
+        /// Turning a face over changes nothing that was checked when it was made, so nothing is checked again: within
+        /// the global tolerance, a face made within a wider one could otherwise not be turned over.
+        /// </remarks>
         public GeoFace3 Flip()
         {
             GeoPolygon3[] flipped = new GeoPolygon3[_holes.Length];
@@ -180,7 +188,7 @@ namespace GeometryHelper.Geometry
                 flipped[i] = _holes[i].Flip();
             }
 
-            return new GeoFace3(Boundary.Flip(), flipped);
+            return new GeoFace3(Boundary.Flip(), flipped, Area);
         }
 
         /// <summary>
