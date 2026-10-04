@@ -27,9 +27,9 @@ what it holds: of 218 pairs of slabs from a Tekla model that share material, the
 450 cubic millimetres of the exact volume at the median, where the default up to 10.0.0, a hundredth, came
 within 1 084. A finer tolerance is no more exact. Tekla Structures gives faces a few ten-thousandths of a
 millimetre out of flat and parts touching across gaps as thin, and below a thousandth those are cut as the
-slivers they then are: cutting each part of a model of 1 989 parts by the parts it meets took 24 seconds within a
-hundredth, 33 within a thousandth, and over 250 within 1E-4 or 1E-5, where 34 and 41 of the cuts took more than a
-minute each.
+slivers they then are: cutting each part of a model of 1 989 parts by the parts it meets took 12.5 seconds within
+a hundredth, 18 within a thousandth, and 225 and 251 within 1E-4 and 1E-5, where 31 and 36 of the cuts took more
+than a minute each.
 
 A modeller's own cuts leave faces further out of flat than the tolerance: Tekla Structures left the top face
 of a notched beam 0.04 mm out at one corner. Refused as not flat, such a face was a hole in the beam, which

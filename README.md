@@ -73,8 +73,8 @@ corners allow.
   of the exact volume at the median, where the default up to 10.0.0, a hundredth, came within 1 084.
 - **Not finer.** Tekla Structures gives faces a few ten-thousandths of a millimetre out of flat, and parts touching
   across gaps as thin. Below a thousandth those are cut as the slivers they then are: on a model of 1 989 parts,
-  cutting each part by the parts it meets took 24 seconds within a hundredth, 33 within a thousandth, and over 250
-  within 1E-4 or 1E-5, where 34 and 41 of the cuts took more than a minute each.
+  cutting each part by the parts it meets took 12.5 seconds within a hundredth, 18 within a thousandth, and 225 and
+  251 within 1E-4 and 1E-5, where 31 and 36 of the cuts took more than a minute each.
 - **Pass another one only for a reason, to the call that needs it.** A coarser tolerance takes what a modeller
   gives as touching for touching: net volumes to match the ones Tekla Structures reports come from booleans within
   0.05. A model in metres wants the point and planar thresholds a thousand times smaller,

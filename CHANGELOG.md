@@ -14,15 +14,16 @@ tolerance reads. Use the default for results as exact as the corners of a model 
   of the exact volume at the median, and within 2 882 for nine pairs in ten, where within a hundredth it came within
   1 084 and 11 861.
 - The 79 864 parts of a Tekla model read closed, live from Tekla Structures. Of their 667 038 cuts by the parts they meet,
-  32 came out open and 1 could not be worked out, where within a hundredth, of 703 236, 93 came out open and 63 could not
-  be worked out; 20 and 18 took more than a minute each, and all of them 271 seconds on 24 threads, where within a
-  hundredth they took 232.
-- On a model of 1 989 parts, cutting each part by the parts it meets took 33 seconds, where within a hundredth it took
-  24. Two IFC models of steelwork, 141 464 and 129 403 bodies, read closed, the second with 7 of its products warned of
-  with their openings cut, where within a hundredth 12 were.
+  9 came out open and none could not be worked out, where within a hundredth, of 703 236, 54 came out open and 63 could
+  not be worked out; 24 and 17 took more than a minute each, and all of them 318 seconds on 24 threads, where within a
+  hundredth they took 226.
+- On a model of 1 989 parts, cutting each part by the parts it meets took 18 seconds, where within a hundredth it took
+  12.5, none of the cuts open either way; cut one after another, 1 of the parts came out open, and none within a
+  hundredth. Two IFC models of steelwork, 141 464 and 129 403 bodies, read closed, the second with 7 of its products
+  warned of with their openings cut, where within a hundredth 12 were.
 - A finer default is not more exact on such models: Tekla Structures gives faces a few ten-thousandths of a millimetre
   out of flat, and parts touching across gaps as thin, and below a thousandth those are cut as the slivers they then
-  are. The 1 989 parts took over 250 seconds within 1E-4 or 1E-5, 34 and 41 of their cuts more than a minute each.
+  are. The 1 989 parts took 225 and 251 seconds within 1E-4 and 1E-5, 31 and 36 of their cuts more than a minute each.
 - The vector threshold is far below the point threshold because it is also the area below which a loop is no polygon:
   with a thousandth for both, a triangle 0.005 by 0.08 of a millimetre that Tekla gives at the end of each of 1 791
   girders of that model was refused for its area of 0.0002, and every one of the girders read open.
@@ -67,6 +68,20 @@ meets, within a thousandth, came out open by 22 edges, where the second closes; 
 does not close. Within a thousandth, of the 1 989 parts of a Tekla model cut one after another by the parts they meet, 4
 come out open where 6 did; of 667 038 cuts of a selection of 79 864 parts, 28 where 33 did, and none is not worked out
 where 1 was; within a hundredth, as many as before.
+
+**FIXED.** A boolean of solids that came out open by copies of an edge a little further apart than its tolerance stayed
+open: a slab of a Tekla model, cut one after another within a thousandth by the parts it meets, had a face stepped by
+0.00107 where two faces lying back to back across the step were taken from each other, and the faces either side met on
+copies of an edge 0.00107 apart, which the weld within the tolerance could not make one. Where that weld does not close
+what a boolean gives, the corners of the edges still open, and those only, are welded within twice the tolerance, and
+then four times, and the faces built again within the tolerance, so that one a corner moved takes off flat comes as
+triangles; what comes of it is kept only where it closes within the tolerance and holds its volume within the wider
+reach times its area. Within a thousandth, of the 1 989 parts of that model cut one after another by the parts they
+meet, 1 comes out open where 4 did, and none of their 10 198 cuts pair by pair where 1 did; of 667 038 cuts of a
+selection of 79 864 parts, 10 where 28 did; within a hundredth, of 703 236, 54 where 93 did. A result closed so can lie
+further from the exact one than the open one did, as far as the reach times its area allows: the warped tops of girders
+less the girders over them, within a hundredth, took within 3.2 % of what the two share, where open they took within
+1.6 %.
 
 **CHANGED.** `ToCells` keeps the point of a needle a cut cannot be made through with the rest of its piece, without a
 warning, as far as a thousand point tolerances past the cut, where it was a hundred: a needle tapering at one in five

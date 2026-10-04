@@ -39,13 +39,26 @@ namespace GeometryHelper.Core
     /// corner and its top at another 18.28 further along, the edges past the bend on two lines the tolerance could not take
     /// for one, and each corner put on the other's edge closed it.
     /// </para>
+    /// <para>
+    /// Where that does not close it, the corners of the edges still left unpaired, and those only, are taken together
+    /// within twice the tolerance, and then four times, as far as a sliver is closed across (see
+    /// <see cref="LoopAssembly.TryCloseSlivers"/>), the rest within the tolerance as before. The faces are built again
+    /// within the tolerance itself, so that one a corner moved takes off flat comes as triangles on its corners, and what
+    /// comes of it is kept on the same terms, its volume held within the wider reach times its area. A slab of a Tekla
+    /// model, cut one after another by the parts it meets within a thousandth, had a face stepped by 0.00107 where two
+    /// faces lying back to back across the step had been taken from each other, and the faces either side of the step met
+    /// on copies of an edge 0.00107 apart: open within a thousandth, and closed welded within two. Of eight such cuts of
+    /// slabs of two Tekla models that came out open, six close so; the two left open share slivers two to six thousandths
+    /// thick with what cuts them, which a cut within a thousandth takes for material.
+    /// </para>
     /// </remarks>
     internal static class Weld3
     {
         /// <summary>
         /// Gets a body a boolean made, open within the default tolerance or within its own where that is the finer, with its
-        /// corners within its tolerance of each other made one and put on the edges they stand on, where that closes it; the
-        /// body as it is otherwise.
+        /// corners within its tolerance of each other made one and put on the edges they stand on, where that closes it, or
+        /// failing that the corners of the edges left open within up to four times the tolerance; the body as it is
+        /// otherwise.
         /// </summary>
         internal static GeoSolid3 Sealed(GeoSolid3 solid, Tolerance work)
         {
@@ -57,7 +70,22 @@ namespace GeometryHelper.Core
                 return solid;
             }
 
-            return TryWeld(solid, work, check, out GeoSolid3 welded) ? welded : solid;
+            if (TryWeld(solid, work, check, out GeoSolid3 welded))
+            {
+                return welded;
+            }
+
+            // The corners of the edges still left unpaired then, and those only, within twice the tolerance, and then four
+            // times, as far as a sliver is bridged; see the remarks on the class.
+            for (double wide = 2.0 * work.EqualPoint; wide <= LoopAssembly.Bridge * work.EqualPoint; wide *= 2.0)
+            {
+                if (TryWeld(solid, work, check, wide, out welded))
+                {
+                    return welded;
+                }
+            }
+
+            return solid;
         }
 
         /// <summary>
@@ -65,6 +93,14 @@ namespace GeometryHelper.Core
         /// within the finer one, or moves its volume further than the tolerance times its area.
         /// </summary>
         internal static bool TryWeld(GeoSolid3 solid, Tolerance work, Tolerance fine, out GeoSolid3 welded)
+            => TryWeld(solid, work, fine, work.EqualPoint, out welded);
+
+        /// <summary>
+        /// Welds the corners of a body's faces within a tolerance, and the corners of the edges that leaves unpaired within a
+        /// wider reach; false where what comes of it does not close within the tolerance and within the finer one, or moves
+        /// its volume further than the wider reach times its area.
+        /// </summary>
+        private static bool TryWeld(GeoSolid3 solid, Tolerance work, Tolerance fine, double wide, out GeoSolid3 welded)
         {
             welded = null;
             IReadOnlyList<GeoFace3> faces = solid.Faces;
@@ -107,7 +143,22 @@ namespace GeometryHelper.Core
                 }
             }
 
-            bool[] cornered = PutCornersOnEdges(rings, points, reach);
+            if (wide > reach)
+            {
+                int[] wider = Representatives(points, corners, wide, Loose(rings));
+
+                foreach (List<List<int>> faceRings in rings)
+                {
+                    for (int r = 0; r < faceRings.Count; r++)
+                    {
+                        List<int> moved = Collapse(faceRings[r], wider, out bool changed);
+                        anyMoved |= changed;
+                        faceRings[r] = moved;
+                    }
+                }
+            }
+
+            bool[] cornered = PutCornersOnEdges(rings, points, wide);
 
             var built = new List<GeoFace3>(faces.Count);
             Tolerance pieces = LoopAssembly.ForPieces(work);
@@ -159,7 +210,7 @@ namespace GeometryHelper.Core
             double before = solid.GetSignedVolume();
             double after = candidate.GetSignedVolume();
 
-            if (Math.Abs(after - before) > reach * solid.GrossSurfaceArea + 1E-9 * Math.Abs(before))
+            if (Math.Abs(after - before) > wide * solid.GrossSurfaceArea + 1E-9 * Math.Abs(before))
             {
                 return false;
             }
@@ -207,6 +258,13 @@ namespace GeometryHelper.Core
         /// themselves.
         /// </summary>
         private static int[] Representatives(List<GeoPoint3> points, List<List<GeoVector3>> corners, double reach)
+            => Representatives(points, corners, reach, null);
+
+        /// <summary>
+        /// The position each point is welded to, as the overload without marks gives it, of the points marked only where
+        /// marks are given: every other point stays where it is.
+        /// </summary>
+        private static int[] Representatives(List<GeoPoint3> points, List<List<GeoVector3>> corners, double reach, bool[] only)
         {
             int count = points.Count;
             int[] parent = new int[count];
@@ -223,6 +281,11 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < count; i++)
             {
+                if (!Marked(only, i))
+                {
+                    continue;
+                }
+
                 GeoPoint3 p = points[i];
                 var cell = (Cell(p.X, reach), Cell(p.Y, reach), Cell(p.Z, reach));
                 cellOf[i] = cell;
@@ -240,6 +303,11 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < count; i++)
             {
+                if (!Marked(only, i))
+                {
+                    continue;
+                }
+
                 (long x, long y, long z) = cellOf[i];
 
                 for (long dx = -1; dx <= 1; dx++)
@@ -391,6 +459,43 @@ namespace GeometryHelper.Core
             changed |= kept.Count != ring.Count;
             return kept;
         }
+
+        /// <summary>
+        /// The corners of the edges an odd number of rings run, the edges a body is open by.
+        /// </summary>
+        private static bool[] Loose(List<List<int>>[] rings)
+        {
+            var counts = new Dictionary<long, int>();
+            int highest = -1;
+
+            foreach (List<List<int>> faceRings in rings)
+            {
+                foreach (List<int> ring in faceRings)
+                {
+                    for (int i = 0; i < ring.Count; i++)
+                    {
+                        long key = Key(ring[i], ring[(i + 1) % ring.Count]);
+                        counts[key] = (counts.TryGetValue(key, out int seen) ? seen : 0) + 1;
+                        highest = Math.Max(highest, ring[i]);
+                    }
+                }
+            }
+
+            var loose = new bool[highest + 1];
+
+            foreach (KeyValuePair<long, int> edge in counts)
+            {
+                if (edge.Value % 2 != 0)
+                {
+                    loose[(int)(edge.Key >> 32)] = true;
+                    loose[(int)(edge.Key & 0xFFFFFFFFL)] = true;
+                }
+            }
+
+            return loose;
+        }
+
+        private static bool Marked(bool[] only, int i) => only == null || i < only.Length && only[i];
 
         /// <summary>
         /// Puts each corner that stands within the tolerance of an edge, between its ends, on that edge, where the edge is

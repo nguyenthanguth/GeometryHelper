@@ -50,6 +50,60 @@ namespace GeometryHelper.UnitTest.Solid.Core
             return new GeoSolid3(faces);
         }
 
+        /// <summary>
+        /// A prism of an outline in plan from <paramref name="z0"/> up to <paramref name="z1"/>, its faces built as they stand.
+        /// </summary>
+        private static GeoSolid3 Prism(double z0, double z1, params (double X, double Y)[] plan)
+        {
+            var exact = new Tolerance(1E-6, 1E-10, Tolerance.DefaultEqualAngleRad, 1E-6);
+            var faces = new List<GeoFace3>
+            {
+                Face(exact, plan.Reverse().Select(p => new GeoPoint3(p.X, p.Y, z0)).ToArray()),
+                Face(exact, plan.Select(p => new GeoPoint3(p.X, p.Y, z1)).ToArray()),
+            };
+
+            for (int i = 0; i < plan.Length; i++)
+            {
+                (double X, double Y) a = plan[i], b = plan[(i + 1) % plan.Length];
+                faces.Add(Face(exact, new GeoPoint3(a.X, a.Y, z0), new GeoPoint3(b.X, b.Y, z0), new GeoPoint3(b.X, b.Y, z1), new GeoPoint3(a.X, a.Y, z1)));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        [Fact]
+        public void ASlabCutOneAfterAnotherByBlocksAHairIntoItsEdge_ClosesEachTime()
+        {
+            // A slab's edge at y = 0 met by five blocks one after another, as the parts of a model meet a slab: each block's
+            // face a few thousandths into the slab or off it, and turned a hair. Within a thousandth, the last cut left two
+            // copies of an edge 813 long 0.0010 to 0.0020 apart, one on each of the faces meeting there, and an edge 0.002
+            // long between them at the end: open, and no weld within the tolerance made the copies one.
+            Tolerance tolerance = Tolerance.Default;
+            GeoSolid3 slab = Prism(0, 300, (0, 0), (4005, 0), (4005, 3826), (0, 3826));
+            GeoSolid3[] blocks =
+            {
+                Prism(49, 700, (1690, -0.01), (1690, -1115), (4595, -1115), (4595, 0.01)),
+                Prism(101, 273, (441, 0.0075), (441, -2728), (2272, -2728), (2272, 0.0048)),
+                Prism(32, 700, (-2208, 0.01), (-2208, -1242), (1646.01, -1242), (1646.015, 0.0053)),
+                Prism(145, 700, (1523, 0), (1523, -2980), (3085, -2980), (3085, 0.004)),
+                Prism(22, 284, (2210, 0.002), (2210, -2106), (3108, -2106), (3108, 0.00204)),
+            };
+
+            GeoSolid3 left = slab;
+
+            foreach (GeoSolid3 block in blocks)
+            {
+                Assert.True(left.TrySubtract(block, out GeoSolid3 rest, tolerance, out BooleanOutcome outcome));
+                Assert.Equal(BooleanOutcome.Made, outcome);
+                Assert.True(rest.IsClosed(tolerance), rest.Validate(tolerance).ToString());
+                Assert.DoesNotContain(rest.Validate(tolerance).Issues, issue => issue.Kind == SolidIssueKind.NotFlatFace);
+                left = rest;
+            }
+
+            // The blocks take slivers no thicker than a hundredth from the slab's edge: a few hundred cubic millimetres.
+            Assert.InRange(slab.GetVolume(tolerance) - left.GetVolume(tolerance), 0.0, 4005.0 * 300.0 * 0.01);
+        }
+
         [Theory]
         [InlineData(0.0, 0.0113)]
         [InlineData(0.0, 0.045)]

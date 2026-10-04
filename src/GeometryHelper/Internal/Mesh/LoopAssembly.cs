@@ -47,7 +47,7 @@ namespace GeometryHelper.Core
         /// How many point tolerances apart the two ends of a gap in a rim may stand to be joined: the crossings of two copies
         /// of one edge a point tolerance apart, met at a slant of fifteen degrees.
         /// </summary>
-        private const double Bridge = 4.0;
+        internal const double Bridge = 4.0;
 
         /// <summary>
         /// Joins the ends a rim leaves open where two faces crossed the edge they share on copies of it a hair apart: each
