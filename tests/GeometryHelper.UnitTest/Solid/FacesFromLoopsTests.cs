@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using GeometryHelper;
 using GeometryHelper.Geometry;
 using GeometryHelper.UnitTest.Common;
@@ -81,6 +82,40 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(4, faces.Length);
             Assert.InRange(faces.Sum(face => face.Area), 7500.0 * 0.99999, 7500.0 * 1.001);
+            Assert.DoesNotContain(faces, face => CoversFromAbove(face, 75, 75));
+            Assert.All(faces, face => Assert.True(face.Normal.Z > 0.99));
+        }
+
+        [Theory]
+        [InlineData(1E-2)]
+        [InlineData(1E-3)]
+        [InlineData(1E-4)]
+        public void ACornLiftedOnAStraightRunLeavesNoTriangleStandingUp(double within)
+        {
+            // A wedge with a corner a millimetre up on the straight run from (60, 10) to (40, 10), and one a millimetre
+            // down at (40, 50): two millimetres out of flat. Every ear blocked within that, the inner corner at (40, 10),
+            // 1.96 from the edge of the ear at (60, 10), turned the clipping onto the sliver along the run, and its three
+            // corners closed with a triangle standing up along it.
+            var tolerance = new Tolerance(within, 1E-2 * within, Tolerance.DefaultEqualAngleRad, within);
+            GeoPoint3[] wedge = { P(0, 0, 0), P(60, 10, 0), P(50, 10, 1), P(40, 10, 0), P(40, 50, -1), P(30, 40, 0) };
+
+            GeoFace3[] faces = GeoFace3.FromLoops(wedge, null, tolerance);
+
+            Assert.Equal(4, faces.Length);
+            Assert.All(faces, face => Assert.True(face.Normal.Z > 0.5));
+        }
+
+        [Fact(Timeout = 30000)]
+        public async Task AnLOutOfFlatIsCoveredWithoutItsNotchWithinNoTolerance()
+        {
+            // Within nothing, the ear across the diagonal is taken first, and the L is clipped again blocking wider each
+            // time; ten times nothing is still nothing, and the clipping must not go on for ever.
+            var exact = new Tolerance(0.0, 0.0, 0.0, 0.0);
+            GeoPoint3[] l = { P(0, 0, 0), P(100, 0, 0), P(100, 50, 0), P(50, 50, 1), P(50, 100, 0), P(0, 100, 0) };
+
+            GeoFace3[] faces = await Task.Run(() => GeoFace3.FromLoops(l, null, exact));
+
+            Assert.Equal(4, faces.Length);
             Assert.DoesNotContain(faces, face => CoversFromAbove(face, 75, 75));
             Assert.All(faces, face => Assert.True(face.Normal.Z > 0.99));
         }

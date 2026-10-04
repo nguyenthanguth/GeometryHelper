@@ -51,8 +51,11 @@ within a thousandth, the common part lost an eighth. The other way is taken then
 **FIXED.** A face out of flat, split into triangles on its corners by `GeoFace3.FromLoops`, the booleans and the meshes,
 could come with a triangle standing up across it: an L with its inner corner a millimetre up, read within a thousandth,
 took the ear across its diagonal that the inner corner, seen from the face's frame, passed 0.005 outside, and closed with a
-triangle along the diagonal facing sideways. A corner blocks an ear within how far its loop is out of flat, where that is
-further than the tolerance.
+triangle along the diagonal facing sideways. Where a triangle stands up, more than 60° off the face's frame, the face is
+split again with every ear blocked ten times wider each time, up to how far it is out of flat, and the first split with
+none standing up is taken; with none, the first. Blocking that wide on every face out of flat turned the split away from
+good ears onto the sliver along a straight run with a corner lifted on it, which stood up instead, and changed what chained
+cuts of a Tekla slab were left with within a hundredth until one of them could not be worked out.
 
 **CHANGED.** `ToCells` keeps the point of a needle a cut cannot be made through with the rest of its piece, without a
 warning, as far as a thousand point tolerances past the cut, where it was a hundred: a needle tapering at one in five

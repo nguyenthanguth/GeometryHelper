@@ -177,7 +177,61 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            return TryClip(outer, tolerance, high - low, out triangles);
+            if (!TryClip(outer, tolerance, tolerance.EqualPoint, out triangles))
+            {
+                return false;
+            }
+
+            // Seen from the frame, a corner further than the point tolerance outside an ear's edge can still be a long way
+            // off it along the frame's Z, and the ear passing it leave a triangle standing up across the loop: an L with its
+            // inner corner a millimetre up, read within a thousandth, took the ear across its diagonal that the inner corner
+            // passed 0.005 outside, and what was left closed with a triangle standing up along that diagonal. Blocking every
+            // ear within how far out of flat the loops are did not do: it turned clipping away from good ears onto the sliver
+            // along a straight run with a corner lifted on it, which stood up instead, and on loops far out of flat it changed
+            // what the booleans were left with. So the loops are clipped again only when a triangle stands up, blocking ten
+            // times wider each time up to how far out of flat they are, and the first clipping with none standing up is
+            // taken; when there is none, the first is kept. Blocking starts no nearer than a millionth of how far out of flat
+            // they are, so that a tolerance of nothing, or next to it, cannot keep them being clipped again.
+            double offFlat = high - low;
+
+            if (offFlat > tolerance.EqualPoint && StandsUp(triangles, frame.ZAxis))
+            {
+                for (double near = Math.Max(10.0 * tolerance.EqualPoint, 1E-6 * offFlat); ; near *= 10.0)
+                {
+                    double blocking = Math.Min(near, offFlat);
+
+                    if (TryClip(outer, tolerance, blocking, out GeoTriangle3[] wider) && !StandsUp(wider, frame.ZAxis))
+                    {
+                        triangles = wider;
+                        break;
+                    }
+
+                    if (blocking >= offFlat)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Checks whether any of the triangles stands up off a frame's plane: faces more than 60 degrees away from its Z.
+        /// </summary>
+        private static bool StandsUp(GeoTriangle3[] triangles, GeoVector3 axis)
+        {
+            foreach (GeoTriangle3 triangle in triangles)
+            {
+                GeoVector3 area = triangle.GetAreaVector();
+
+                if (area.DotProduct(axis) < 0.5 * area.Length)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -658,12 +712,10 @@ namespace GeometryHelper.Core
         /// bridge would ever be accepted.
         /// </para>
         /// <para>
-        /// On an edge means within the point tolerance of it, measured from that edge, while another ear can be found:
-        /// an ear passing a corner closer than that would leave a triangle thinner than the tolerance, which on loops out
-        /// of flat, seen from a frame of their own, can stand up across the loop. On a loop further out of flat than the
-        /// tolerance, within how far out of flat it is: an L with its inner corner a millimetre up, read within a
-        /// thousandth, took the ear across its diagonal that the inner corner, seen from the frame, passed 0.005 outside,
-        /// and what was left closed with a triangle standing up along that diagonal. When none can be found, within a
+        /// On an edge means within <paramref name="near"/> of it, measured from that edge, while another ear can be found:
+        /// the point tolerance, or wider when loops out of flat are clipped again because a triangle stood up. An ear
+        /// passing a corner closer than the tolerance would leave a triangle thinner than it, which on loops out of flat,
+        /// seen from a frame of their own, can stand up across the loop. When none can be found, within a
         /// millionth of the tolerance, the reach of rounding: a corner that close outside an ear is passed by, not cut
         /// through. Read as the point tolerance times the width of the face, as an area, and with nothing to fall back
         /// to, a corner a tenth of a millimetre outside an edge 100 mm long blocked it on a plate a metre across, and
@@ -673,7 +725,7 @@ namespace GeometryHelper.Core
         /// edges of every such ear along a needle of a hole.
         /// </para>
         /// </remarks>
-        private static bool TryClip(List<Node> loop, Tolerance tolerance, double offFlat, out GeoTriangle3[] triangles)
+        private static bool TryClip(List<Node> loop, Tolerance tolerance, double near, out GeoTriangle3[] triangles)
         {
             triangles = null;
 
@@ -685,9 +737,8 @@ namespace GeometryHelper.Core
             // millimetres and one in metres.
             double areaEpsilon = tolerance.EqualPoint * Extent(working);
 
-            // How near an ear's edge a corner blocks it: within the point tolerance, or how far out of flat the loop is
-            // where that is further, while another ear can be found; within rounding when none can.
-            double near = Math.Max(tolerance.EqualPoint, offFlat);
+            // How near an ear's edge a corner blocks it: within near while another ear can be found, within rounding when
+            // none can.
             double rounding = tolerance.EqualPoint * 1E-6;
             double blocking = near;
 
