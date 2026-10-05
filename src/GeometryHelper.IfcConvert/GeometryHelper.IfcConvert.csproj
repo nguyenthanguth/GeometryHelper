@@ -19,6 +19,11 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 11.0.1
+      - GeometryHelper.IfcConvert is released at 11.0.1 with GeometryHelper, whose booleans of solids, which cut the
+        openings the geometry engine cannot, no longer hand back a closed result of the wrong volume where a plane could
+        not cut a cell, nor leave thin cells open, and work out faces with two corners one over the other.
+
       NEW IN 11.0.0
       - GeometryHelper.IfcConvert is released at 11.0.0 with GeometryHelper, whose default tolerance is a thousandth of
         a millimetre now, where it was a hundredth: this BREAKS code that relied on points 0.001 to 0.01 apart being one.

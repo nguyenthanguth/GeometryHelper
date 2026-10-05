@@ -14,40 +14,30 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 11.0.0
+      NEW IN 11.0.1
 
-      BREAKING: the default tolerance is a thousandth of a millimetre.
-      - Tolerance.DefaultEqualPoint and DefaultEqualPlanar are 1E-3 and DefaultEqualVector 1E-5, each 1E-2 before; the
-        angle stays one degree. Tolerance.Default, Tolerance.Global and every overload without a tolerance read them, so
-        two points 0.001 to 0.01 apart are two points now. Of 218 pairs of slabs of a Tekla model, the common part comes
-        within 450 cubic millimetres of the exact one at the median, where within a hundredth it came within 1 084. To
-        have a hundredth back, pass new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01) or set it as
-        Tolerance.Global.
+      FIXED, the booleans of solids
+      - With a SolidBooleanOptions.Contact, a face of the second body lying within the tolerance of a plane of the first
+        is left where it is: put onto it exactly, the plane of a slab's sloping face out of flat could not cut the slab,
+        and the difference took the cell along it whole, 61.88 litres where the two share 43.79, closed and valid.
+      - A cell a plane could not cut is found judged apart across it where its material on one side lies only near the
+        plane: the point beside the plane is the middle of the thickness as far as the plane. The common part of a slab
+        and a tool beneath it, 44.20 litres where the two share 40.43, is 40.43.
+      - A union or a difference cut by every plane of both no longer hands back a closed result of the wrong volume where
+        it misjudged such a cell: the open result of cutting one body is taken welded closed, or kept open where the two
+        disagree, which Validate then says.
+      - Two faces of one cell, its top and its bottom where it is thinner than the tolerance, are never taken for faces
+        lying back to back: blocks whose top was out of flat by a little more than the tolerance, less or united with a
+        box whose top lay along it, came out open.
+      - PlanarMap.FrameOf and GetFrame() take the first axis in the plane: a face with two corners a hair apart one over
+        the other made the axis its normal, no frame could be made, and a boolean gluing the face was not worked out.
 
-      NEW
-      - SolidBooleanOptions, taken by new overloads of TrySubtract, TryUnion and TryIntersect: the Tolerance, a Contact
-        within which a face of the second body lying parallel to one of the first is put onto it, so that parts drawn a
-        few thousandths into each other are cut as touching, and a Fallback tolerance a result that is not valid is
-        worked out again within. Cut within a thousandth alone, a Tekla part kept a skin of itself 0.0049 thick where a
-        cutter's face stood that far inside its own: 110 square metres of surface on a part of 119.
-      - GeoSolid3.TrySubtractAll: a part less every part it meets, each cut checked by Validate, and a SubtractReport
-        of the cuts taken within the fallback and those skipped. Of 79 864 parts of a Tekla model, within a thousandth,
-        with a contact and a fallback of a hundredth, 19 had a cut skipped, where within a thousandth alone 180 did.
-      - GeoSolid3.Validate() and SolidValidation3: whether the faces bound a body, and each issue, where and how large:
-        edges open or run the same way twice, faces inside out, no volume, slivers, faces out of flat.
-      - TrySubtract, TryIntersect and TryUnion with an out BooleanOutcome: Made, Empty or NotWorkedOut, which false
-        alone did not tell apart.
+      Of the 79 864 parts of a Tekla model, each cut one after another by the parts it meets within a thousandth with a
+      contact and a fallback of a hundredth, 17 have a cut skipped, where 19 had, 87 cuts are taken within the fallback,
+      where 136 were, and none comes out more than a litre from the same cuts within a hundredth, where two did.
 
-      FIXED AND CHANGED, the booleans of solids
-      - A result open by copies of an edge within the tolerance, or up to four times it, has those corners welded into
-        one where that closes it and holds its volume; slivers left where faces lying back to back are taken from each
-        other are closed; a merge that would open a result is not made.
-      - The other body is cut where the first cut comes out open; a consistent cut is taken where neither cuts cleanly;
-        an intersection takes the other way where this one misjudged a cell; a result closed with faces wound against
-        each other is tried the other way round too; what a face shares goes with the nearest face against it.
-      - A result holding a volume the operation cannot give is not handed back: NotWorkedOut, with a warning.
-      - A face out of flat is split into triangles without one standing up across it; GeoFace3.Flip() and Clone() no
-        longer check a face's holes again within the global tolerance.
+      KNOWN: a difference with a contact can come out larger than the body it was taken from by about how far a face of
+      that body is out of flat beyond the tolerance times its area, 1 254 cubic millimetres on a slab of 502 cubic metres.
 
       Details in CHANGELOG.md.
 
