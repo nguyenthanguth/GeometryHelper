@@ -124,7 +124,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void ACornerStandingOffTheEdgeOfTheFaceBeside_IsPutOnThatEdge()
         {
             // The top carries a corner of its own halfway along its front edge, 0.003 out from the front's straight top edge:
-            // no corner of the front is near it, and the front's edge is split there to meet it.
+            // no corner of the front is near it. The crack lies in the top's plane, and the corner is moved onto the front's
+            // edge within it, the edge split there; threaded into the front instead, it would fold the front under the top.
             GeoSolid3 body = ClosingTestBodies.BoxWithTheTopsFrontBentOut(0.003);
             Assert.Contains(body.Validate(Fine).Issues, issue => issue.Kind == SolidIssueKind.OpenEdge && issue.Faces.Count == 1 && issue.Size > 29.0);
 
@@ -199,8 +200,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.False(body.Validate(Fine).IsClosed);
         }
 
-        // Welded closed within a gap, filling nothing: another body, valid, no ring of it doubling back, each change a weld or
-        // a corner put on an edge.
+        // Welded closed within a gap, filling nothing: another body, valid, with no ring of it doubling back and no faces
+        // lying back to back, each change a weld or a corner put on an edge.
         private static SolidClosing3 AssertWelded(GeoSolid3 body, double gap, out GeoSolid3 closed)
         {
             Assert.True(body.TryClose(out closed, new SolidClosingOptions(Fine, gap), out SolidClosing3 report), report.ToString());
@@ -208,6 +209,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
             SolidValidation3 check = closed.Validate(Fine);
             Assert.True(check.IsValid, check.ToString());
             Assert.Equal(0, ClosingTestBodies.Needles(closed));
+            Assert.Equal(0, ClosingTestBodies.BackToBack(closed));
             Assert.Equal(ClosingFailure.None, report.Failure);
             Assert.Null(report.FailureLocation);
             Assert.Equal(0.0, report.AddedArea);

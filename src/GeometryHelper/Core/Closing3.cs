@@ -23,10 +23,12 @@ namespace GeometryHelper.Core
     /// and outwards, a shell inside another inwards, as a cavity. An edge left open past a fin, a face standing off the
     /// surface, stops the closing there. Edges left open running back alongside each other are the two sides of a gap, and
     /// the whole body is welded shut before any loop of it is read as a hole: corners across the gaps made one and corners
-    /// standing on open edges put on them, within the least reach that closes the body, up to the widest gap allowed; a gap
-    /// wider is a gap too wide. What is left open is followed round into loops, a corner two holes meet at stopping the
-    /// closing there, and a hole stops it where no fill is allowed. Any other body not valid after the welding is reported
-    /// still open.
+    /// standing off open edges put on them, moved onto them within their own face's plane where the crack lies there,
+    /// within the least reach that closes the body, up to the widest gap allowed; a gap wider is a gap too wide. No body is
+    /// taken with a ring running out to a corner and straight back, or with a face it was not given lying back to back with
+    /// another: both read valid, and neither is a body. What is left open is followed round into loops, a corner two holes
+    /// meet at stopping the closing there, and a hole stops it where no fill is allowed. Any other body not valid after the
+    /// welding is reported still open.
     /// </para>
     /// <para>
     /// Nothing thrown for a reason of the geometry leaves this: a shape the work builds refused by its constructor, or a
@@ -161,10 +163,17 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            // A ring running out to a corner and straight back reads valid, and is no face of a body.
+            // A ring running out to a corner and straight back reads valid, and is no face of a body; nor are two faces lying
+            // back to back that the body was not given so.
             if (NeedleAt(body.Faces, work.Tolerance.EqualPoint, out GeoPoint3 tip))
             {
                 work.Refuse(ClosingFailure.StillOpen, tip);
+                return false;
+            }
+
+            if (HasSkin(body.Faces, work.KeptTurned(), work.Tolerance, out GeoPoint3 skin))
+            {
+                work.Refuse(ClosingFailure.StillOpen, skin);
                 return false;
             }
 
@@ -382,6 +391,24 @@ namespace GeometryHelper.Core
                 List<GeoFace3> kept = Kept();
 
                 return kept.Count < 4 ? null : new GeoSolid3(kept, Solid.Openings);
+            }
+
+            /// <summary>
+            /// Gets, for each face kept, in the order given, whether it is turned over: a face new to the body.
+            /// </summary>
+            internal List<bool> KeptTurned()
+            {
+                var turned = new List<bool>(Faces.Count);
+
+                for (int f = 0; f < Faces.Count; f++)
+                {
+                    if (!Dropped[f])
+                    {
+                        turned.Add(Turned[f]);
+                    }
+                }
+
+                return turned;
             }
 
             /// <summary>

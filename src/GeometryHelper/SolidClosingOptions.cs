@@ -13,9 +13,9 @@ namespace GeometryHelper
     /// <remarks>
     /// <para>
     /// A body is closed with the least change that does it, and nothing is made up where the change is not certain.
-    /// Corners standing apart across a gap no wider than <see cref="MaxGap"/> are made one, a corner standing that near an
-    /// edge of another face is put on it, and the two sides of a crack no wider are joined by faces between them: none of
-    /// these moves the surface further than the gap. A hole is filled only where it encloses no more than
+    /// Corners standing apart across a gap no wider than <see cref="MaxGap"/> are made one, and a corner standing that near
+    /// an edge of another face left open is put on it: neither moves the surface further than the gap, and no face is
+    /// folded back onto another. A hole is filled only where it encloses no more than
     /// <see cref="MaxHoleArea"/>: by one face where it is flat, and by the triangles of least area across it where it is
     /// out of flat by no more than <see cref="MaxOffFlat"/>, as <see cref="Fill"/> allows. No hole is filled unless asked:
     /// the largest hole is nought by default.
@@ -38,8 +38,8 @@ namespace GeometryHelper
         /// </summary>
         /// <param name="tolerance">The tolerance the body is judged closed within, as <see cref="GeoSolid3.Validate(Tolerance)"/> judges it.</param>
         /// <param name="maxGap">
-        /// How far apart the corners across a gap may stand and still be made one, and how wide a crack may be and still be
-        /// stitched; see <see cref="MaxGap"/>.
+        /// How far apart the corners across a gap may stand and still be made one, and how far a corner may stand off an edge
+        /// and still be put on it; see <see cref="MaxGap"/>.
         /// </param>
         /// <param name="maxHoleArea">
         /// The most a hole may enclose and still be filled; see <see cref="MaxHoleArea"/>. Nought fills none, and
@@ -85,16 +85,24 @@ namespace GeometryHelper
         public Tolerance Tolerance { get; }
 
         /// <summary>
-        /// Gets how far apart the corners across a gap may stand and still be made one, and how wide a crack may be and
-        /// still be stitched.
+        /// Gets how far apart the corners across a gap may stand and still be made one, and how far a corner may stand off an
+        /// edge and still be put on it.
         /// </summary>
         /// <remarks>
-        /// The corners standing apart across a gap are welded within the point tolerance first, then within twice it, four
-        /// times, and so on up to this, the first reach that closes the body taken: a corner moves no further than it has
-        /// to. A corner standing within the reach of an edge of another face, between its ends, is put on that edge.
-        /// Where the corners of a crack do not pair, its two sides are joined by faces between them, where it is nowhere
-        /// wider than this. What the welds and stitches move of the volume is held to the reach times the area they
-        /// touched.
+        /// <para>
+        /// The corners of the edges left open are welded within the point tolerance first, then within twice it, four times,
+        /// and so on while below this, and within this last, the first reach that closes the body taken: a corner moves no
+        /// further than it has to. The corners of edges the body closes along stay where they are, so that a slot cut thinner
+        /// than this stays a slot. A corner standing within the reach of an edge left open of another face, between
+        /// its ends, is put on that edge: where the crack between them lies in the plane of the corner's face, the corner is
+        /// moved onto the edge within that plane, and otherwise the edge is bent through the corner where it stands.
+        /// </para>
+        /// <para>
+        /// A corner is put within the reach of an edge as the edge was, not of the pieces another corner put on it leaves: a
+        /// crack bowed 0.008 off an edge through five corners closes within a gap of 0.008, and not within one of 0.005. A
+        /// reach that would leave a ring running out to a corner and straight back, or a face lying back to back with
+        /// another, is not taken. What the faces moved sweep of the volume is held to the reach times their area.
+        /// </para>
         /// </remarks>
         public double MaxGap { get; }
 

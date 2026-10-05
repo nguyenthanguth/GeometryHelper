@@ -43,7 +43,7 @@ namespace GeometryHelper
         public IReadOnlyList<SolidRepair3> Repairs { get; }
 
         /// <summary>
-        /// Gets the area of the faces added, those stitching cracks and those filling holes; nought where none was.
+        /// Gets the area of the faces added to fill holes; nought where none was.
         /// </summary>
         public double AddedArea { get; }
 

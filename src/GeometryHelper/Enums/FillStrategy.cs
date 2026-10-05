@@ -22,7 +22,7 @@ namespace GeometryHelper.Enums
     {
         /// <summary>
         /// No hole is filled: a body open by one is not closed, and the report says
-        /// <see cref="ClosingFailure.HoleTooLarge"/>. Corners are still welded and put on edges, and cracks stitched.
+        /// <see cref="ClosingFailure.HoleTooLarge"/>. Corners are still welded and put on edges.
         /// </summary>
         None,
 

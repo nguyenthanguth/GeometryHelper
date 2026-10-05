@@ -27,16 +27,12 @@ namespace GeometryHelper.Enums
         Weld,
 
         /// <summary>
-        /// A corner standing on an edge of another face, between its ends, put on that edge, which is split there: a long
-        /// edge beside two short ones. The size is how far the corner stood off the edge.
+        /// A corner standing off an edge of another face, between its ends, put on that edge, which is split there: a long
+        /// edge beside two short ones. Where the crack between them lies in the plane of the corner's face, the corner is
+        /// moved onto the edge within that plane, and no face bends; otherwise the edge is bent through the corner where it
+        /// stands. The size is how far the corner stood off the edge.
         /// </summary>
         SplitEdge,
-
-        /// <summary>
-        /// The two sides of a crack, chains of open edges running side by side, joined by faces between them. The size is
-        /// the widest the crack was.
-        /// </summary>
-        Stitch,
 
         /// <summary>
         /// A hole filled, by one face where it is flat and by triangles where it is not. The size is the area of the faces

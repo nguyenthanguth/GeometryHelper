@@ -30,13 +30,13 @@ namespace GeometryHelper
 
         /// <summary>
         /// Gets where: the centroid of the face dropped or turned over, the point the corners were welded to, the corner put
-        /// on an edge, the middle of the crack stitched, or the centroid of the faces filling a hole.
+        /// on an edge where it now stands, or the centroid of the faces filling a hole.
         /// </summary>
         public GeoPoint3 Location { get; }
 
         /// <summary>
         /// Gets how large it was: the area dropped, turned over or filled; the furthest a corner of the group welded moved;
-        /// how far the corner put on an edge stood off it; or the widest the crack stitched was.
+        /// or how far the corner put on an edge stood off it.
         /// </summary>
         public double Size { get; }
 
@@ -53,8 +53,6 @@ namespace GeometryHelper
                     return string.Format(CultureInfo.InvariantCulture, "SolidRepair3[{0} moving {1:G4} at {2}]", Kind, Size, at);
                 case SolidRepairKind.SplitEdge:
                     return string.Format(CultureInfo.InvariantCulture, "SolidRepair3[{0} {1:G4} off the edge at {2}]", Kind, Size, at);
-                case SolidRepairKind.Stitch:
-                    return string.Format(CultureInfo.InvariantCulture, "SolidRepair3[{0} {1:G4} wide at {2}]", Kind, Size, at);
                 default:
                     return string.Format(CultureInfo.InvariantCulture, "SolidRepair3[{0} of {1:G4} in area at {2}]", Kind, Size, at);
             }

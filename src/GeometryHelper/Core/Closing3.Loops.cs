@@ -69,7 +69,7 @@ namespace GeometryHelper.Core
 
             foreach (Stretch stretch in stretches)
             {
-                int count = 0, forward = 0;
+                int count = 0, forward = 0, live = -1;
 
                 for (int r = 0; r < stretch.Faces.Length; r++)
                 {
@@ -81,6 +81,7 @@ namespace GeometryHelper.Core
                     }
 
                     count++;
+                    live = r;
 
                     if (stretch.Forward[r] != (turned != null && turned[face]))
                     {
@@ -101,7 +102,8 @@ namespace GeometryHelper.Core
 
                 if (count == 1)
                 {
-                    rims.Add(forward == 1 ? new Rim(stretch.End, stretch.Start) : new Rim(stretch.Start, stretch.End));
+                    (GeoPoint3 Start, GeoPoint3 End) edge = stretch.Edges[live];
+                    rims.Add(forward == 1 ? new Rim(stretch.End, stretch.Start, edge) : new Rim(stretch.Start, stretch.End, edge));
                 }
             }
 
@@ -588,10 +590,13 @@ namespace GeometryHelper.Core
             /// </summary>
             /// <param name="from">Where a face closing it would run it from: a corner of a face.</param>
             /// <param name="to">Where to: another.</param>
-            internal Rim(GeoPoint3 from, GeoPoint3 to)
+            /// <param name="edge">The corners of the edge of a face it lies along, which may run further than it.</param>
+            internal Rim(GeoPoint3 from, GeoPoint3 to, (GeoPoint3 Start, GeoPoint3 End) edge)
             {
                 From = from;
                 To = to;
+                EdgeStart = edge.Start;
+                EdgeEnd = edge.End;
             }
 
             /// <summary>Gets where a face closing it would run it from.</summary>
@@ -599,6 +604,15 @@ namespace GeometryHelper.Core
 
             /// <summary>Gets where to.</summary>
             internal GeoPoint3 To { get; }
+
+            /// <summary>
+            /// Gets where the edge of a face it lies along starts: an edge open only along a stretch of it has its corners
+            /// away from the stretch, where the faces beside it close.
+            /// </summary>
+            internal GeoPoint3 EdgeStart { get; }
+
+            /// <summary>Gets where that edge ends.</summary>
+            internal GeoPoint3 EdgeEnd { get; }
 
             /// <summary>Gets whether it is a side of a gap.</summary>
             internal bool IsGap { get; private set; }

@@ -52,13 +52,16 @@ namespace GeometryHelper.Core
 
             Welded best = null;
 
-            // Only corners near the edges left open move: the rest of the body is closed as it is.
-            var ends = new List<GeoPoint3>(2 * rims.Count);
+            // Only corners near the edges left open move: the rest of the body is closed as it is. An edge open along a
+            // stretch of it is open, its corners as well as the stretch's.
+            var ends = new List<GeoPoint3>(4 * rims.Count);
 
             foreach (Rim rim in rims)
             {
                 ends.Add(rim.From);
                 ends.Add(rim.To);
+                ends.Add(rim.EdgeStart);
+                ends.Add(rim.EdgeEnd);
             }
 
             foreach (double reach in Reaches(work.Tolerance.EqualPoint, work.Options.MaxGap))
@@ -139,7 +142,8 @@ namespace GeometryHelper.Core
         /// <param name="ends">The corners of the edges they leave open, as the check matches edges.</param>
         /// <param name="reach">The reach.</param>
         /// <returns>The body welded, valid or not, with what was done to it and the edges it leaves open; null where nothing
-        /// moved, fewer than four faces are left, a ring doubles back, or the volume moved further than allowed.</returns>
+        /// moved, fewer than four faces are left, a ring doubles back, a face lies back to back with another, or the volume
+        /// moved further than allowed.</returns>
         /// <remarks>
         /// <para>
         /// The corners are made one as <see cref="Weld3"/> makes them for the booleans, but only those of edges no ring
@@ -150,15 +154,19 @@ namespace GeometryHelper.Core
         /// however they chain, are a group, and each goes to the corner of it that takes the most of it within the reach and
         /// of those moves the volume least: a copy of a corner moved in the plane of its own face goes back onto the
         /// corner the faces beside it keep, and nothing tilts. Then each corner standing within the reach of an edge left
-        /// open, between its ends, is put on it, as the corner where a long edge meets two short ones. A face whose corners
-        /// moved is built again on them, as triangles on its own corners where they no longer lie flat.
+        /// open, between its ends, is put on it, as the corner where a long edge meets two short ones: moved onto it within
+        /// its own face's plane where the crack lies in that plane, and the edge bent through it otherwise; see
+        /// <see cref="PutCornersOnOpenEdges"/>. A face whose corners moved is built again on them, as triangles on its own
+        /// corners where they no longer lie flat.
         /// </para>
         /// <para>
         /// A ring running out to a corner and straight back is no face, though it reads valid: a corner 0.02 off the corner
         /// the faces beside it keep is 0.014 off the two edges of its face beside it, and put on both within a reach of
         /// 0.016, it closes the face by a needle out to the corner moved and back. Such a reach is not taken, and the next
-        /// welds the two. Nor is one whose faces built again sweep out more volume than the reach times their area, each
-        /// measured from where it was (see <see cref="Swept"/>): a corner moved no further than the reach sweeps no more.
+        /// welds the two. Nor is one that leaves a face built again lying back to back with another, a skin of no thickness
+        /// that reads valid too (see <see cref="HasSkin"/>), nor one whose faces built again sweep out more volume than the
+        /// reach times their area, each measured from where it was (see <see cref="Swept"/>): a corner moved no further than
+        /// the reach sweeps no more.
         /// </para>
         /// </remarks>
         private static Welded WeldWithin(Work work, List<GeoFace3> faces, List<GeoPoint3> ends, double reach)
@@ -229,8 +237,9 @@ namespace GeometryHelper.Core
                 }
             }
 
-            var put = new List<(int Corner, int From, int To)>();
-            bool[] cornered = PutCornersOnOpenEdges(rings, points, within, put, weldable);
+            // The welds as they were made, before any corner is put on an edge.
+            List<SolidRepair3> repairs = WeldRepairs(points, target);
+            bool[] cornered = PutCornersOnOpenEdges(rings, points, within, weldable, faces, tolerance, repairs);
 
             if (HasNeedle(rings, points, tolerance.EqualPoint))
             {
@@ -238,7 +247,7 @@ namespace GeometryHelper.Core
             }
 
             var built = new List<GeoFace3>(faces.Count);
-            var vanished = new List<int>();
+            var fresh = new List<bool>(faces.Count);
             Tolerance pieces = LoopAssembly.ForPieces(tolerance);
             bool changed = false;
             double touched = 0.0;
@@ -251,6 +260,7 @@ namespace GeometryHelper.Core
                 if (!cornered[f] && Weld3.Unchanged(faces[f], faceRings, points))
                 {
                     built.Add(faces[f]);
+                    fresh.Add(false);
                     continue;
                 }
 
@@ -264,14 +274,20 @@ namespace GeometryHelper.Core
 
                 if (made.Length == 0)
                 {
-                    vanished.Add(f);
+                    repairs.Add(new SolidRepair3(SolidRepairKind.Drop, faces[f].Centroid, faces[f].Area));
                     continue;
                 }
 
-                built.AddRange(made);
+                foreach (GeoFace3 piece in made)
+                {
+                    built.Add(piece);
+                    fresh.Add(true);
+                }
             }
 
-            if (!changed || built.Count < 4 || swept > within * touched)
+            // A face built again lying back to back with another is a skin of no thickness: a face folded under the one beside
+            // it, where a corner of that one was threaded through it.
+            if (!changed || built.Count < 4 || swept > within * touched || HasSkin(built, fresh, tolerance, out _))
             {
                 return null;
             }
@@ -301,20 +317,16 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return new Welded(built, Repairs(points, target, put, faces, vanished), body, check, left, gaps);
+            return new Welded(built, repairs, body, check, left, gaps);
         }
 
         /// <summary>
-        /// The changes a reach made, in the order it made them: one weld for each group of corners made one, at the corner
-        /// they went to and as large as the furthest of them moved; each corner put on an edge, as far as it stood off it;
-        /// and each face that came to nothing.
+        /// The welds a reach made: one for each group of corners made one, at the corner they went to and as large as the
+        /// furthest of them moved, in the order of the corners they went to.
         /// </summary>
-        /// <param name="points">Every corner, by position.</param>
+        /// <param name="points">Every corner, by position, where it was.</param>
         /// <param name="target">The position each went to.</param>
-        /// <param name="put">Each corner put on an edge, and the edge.</param>
-        /// <param name="faces">The faces as they were.</param>
-        /// <param name="vanished">The faces that came to nothing, by index.</param>
-        private static List<SolidRepair3> Repairs(List<GeoPoint3> points, int[] target, List<(int Corner, int From, int To)> put, List<GeoFace3> faces, List<int> vanished)
+        private static List<SolidRepair3> WeldRepairs(List<GeoPoint3> points, int[] target)
         {
             var repairs = new List<SolidRepair3>();
             var furthest = new Dictionary<int, double>();
@@ -347,17 +359,6 @@ namespace GeometryHelper.Core
             foreach (int to in groups)
             {
                 repairs.Add(new SolidRepair3(SolidRepairKind.Weld, points[to], furthest[to]));
-            }
-
-            foreach ((int corner, int from, int to) in put)
-            {
-                GeoPoint3 at = points[corner];
-                repairs.Add(new SolidRepair3(SolidRepairKind.SplitEdge, at, at.DistanceTo(NearestOnSegment(points[from], points[to], at))));
-            }
-
-            foreach (int f in vanished)
-            {
-                repairs.Add(new SolidRepair3(SolidRepairKind.Drop, faces[f].Centroid, faces[f].Area));
             }
 
             return repairs;
@@ -407,22 +408,36 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Puts each corner of an edge left open that stands within a reach of another edge left open, between its ends, on
-        /// that edge, as <see cref="Weld3"/> does for the booleans, each of two corners as near the start of an edge as the
-        /// other taken in the order of their positions. The rings are changed in place.
+        /// that edge, each of two corners as near the start of an edge as the other taken in the order of their positions:
+        /// moved onto it within the plane of its own face where the edge lies in that plane, and the edge split through it
+        /// where it stands otherwise. The rings and the corners are changed in place.
         /// </summary>
         /// <param name="rings">The rings of each face, by position.</param>
-        /// <param name="points">Every corner, by position.</param>
+        /// <param name="points">Every corner, by position; a corner moved onto an edge is moved here.</param>
         /// <param name="reach">The reach.</param>
-        /// <param name="put">Each corner put on an edge and the edge, added to in the order they are put.</param>
         /// <param name="open">For each position, whether it is a corner of an edge left open, as the check matches edges: only
         /// these are put on edges, and only edges between two of them split.</param>
+        /// <param name="faces">The faces, by index, as they were given to the step.</param>
+        /// <param name="tolerance">The tolerance, its planar part saying what lies in a face's plane.</param>
+        /// <param name="repairs">The changes so far, each corner put on an edge added, as far as it stood off the edge.</param>
         /// <returns>For each face, whether a corner was put on an edge of it.</returns>
         /// <remarks>
+        /// <para>
         /// Every corner is put within the reach of an edge as it stands after the welds, and the pieces a split leaves are
         /// not split again: put on the pieces of a split, a corner could stand within the reach of a piece and not of the
         /// edge, and a gap wider than the reach would close by steps no wider.
+        /// </para>
+        /// <para>
+        /// Where a crack lies in the plane of one face, its corners standing off the edge of the face beside it within that
+        /// plane, they are moved onto the edge, within their own face's plane, and the edge is split at them: both faces
+        /// stay flat. Split through a corner where it stands, the edge would bend out of its face's plane along the face
+        /// the corner is of, and the face built again on its corners would fold under that one as flat triangles lying
+        /// against it, a skin of no thickness. A corner is moved so only where the edge lies in the plane of every face it is
+        /// a corner of, and it is put on no other edge; otherwise it stays, and the edge is split through it: where it lies
+        /// in the plane of the edge's face, which stays flat, and where the crack is twisted between the two, which bends.
+        /// </para>
         /// </remarks>
-        private static bool[] PutCornersOnOpenEdges(List<List<int>>[] rings, List<GeoPoint3> points, double reach, List<(int Corner, int From, int To)> put, bool[] open)
+        private static bool[] PutCornersOnOpenEdges(List<List<int>>[] rings, List<GeoPoint3> points, double reach, bool[] open, List<GeoFace3> faces, Tolerance tolerance, List<SolidRepair3> repairs)
         {
             var cornered = new bool[rings.Length];
             var counts = new Dictionary<long, int>();
@@ -484,6 +499,10 @@ namespace GeometryHelper.Core
                 sorted[axis] = along;
             }
 
+            // Every edge to be split and the corners to be put on it, each edge as it stands, before any is split.
+            var splits = new List<(int Face, int Ring, int Index, List<int> On)>();
+            var edgesOf = new Dictionary<int, int>();
+
             for (int f = 0; f < rings.Length; f++)
             {
                 List<List<int>> faceRings = rings[f];
@@ -491,7 +510,6 @@ namespace GeometryHelper.Core
                 for (int r = 0; r < faceRings.Count; r++)
                 {
                     List<int> ring = faceRings[r];
-                    List<int> split = null;
 
                     for (int i = 0; i < ring.Count; i++)
                     {
@@ -500,35 +518,204 @@ namespace GeometryHelper.Core
                         bool unpaired = counts[EdgeKey(from, next)] % 2 != 0 && marked.Contains(from) && marked.Contains(next);
                         List<int> on = unpaired ? CornersOnEdge(points, from, next, sorted, reach) : null;
 
-                        if (on != null && split == null)
+                        if (on == null)
                         {
-                            split = new List<int>(ring.GetRange(0, i + 1));
-                        }
-                        else if (split != null)
-                        {
-                            split.Add(from);
+                            continue;
                         }
 
-                        if (on != null)
+                        splits.Add((f, r, i, on));
+
+                        foreach (int corner in on)
                         {
-                            split.AddRange(on);
-
-                            foreach (int corner in on)
-                            {
-                                put.Add((corner, from, next));
-                            }
+                            edgesOf[corner] = (edgesOf.TryGetValue(corner, out int seen) ? seen : 0) + 1;
                         }
-                    }
-
-                    if (split != null)
-                    {
-                        faceRings[r] = split;
-                        cornered[f] = true;
                     }
                 }
             }
 
+            if (splits.Count == 0)
+            {
+                return cornered;
+            }
+
+            // The faces each corner to be put on an edge is a corner of.
+            var facesOf = new Dictionary<int, List<int>>();
+
+            for (int f = 0; f < rings.Length; f++)
+            {
+                foreach (List<int> ring in rings[f])
+                {
+                    foreach (int id in ring)
+                    {
+                        if (!edgesOf.ContainsKey(id))
+                        {
+                            continue;
+                        }
+
+                        if (!facesOf.TryGetValue(id, out List<int> of))
+                        {
+                            of = new List<int>(3);
+                            facesOf.Add(id, of);
+                        }
+
+                        if (!of.Contains(f))
+                        {
+                            of.Add(f);
+                        }
+                    }
+                }
+            }
+
+            var planes = new Dictionary<int, GeoPlane3>();
+            var moveTo = new Dictionary<int, GeoPoint3>();
+
+            foreach ((int f, int r, int i, List<int> on) in splits)
+            {
+                List<int> ring = rings[f][r];
+                GeoPoint3 start = points[ring[i]];
+                GeoPoint3 end = points[ring[(i + 1) % ring.Count]];
+
+                foreach (int corner in on)
+                {
+                    GeoPoint3 foot = NearestOnSegment(start, end, points[corner]);
+                    bool moved = edgesOf[corner] == 1 && LiesInPlanesOf(start, end, facesOf[corner], faces, planes, tolerance.EqualPlanar);
+
+                    if (moved)
+                    {
+                        moveTo[corner] = foot;
+                    }
+
+                    repairs.Add(new SolidRepair3(SolidRepairKind.SplitEdge, moved ? foot : points[corner], points[corner].DistanceTo(foot)));
+                }
+            }
+
+            // Each ring split at its edges, the corners in order along each.
+            int s = 0;
+
+            while (s < splits.Count)
+            {
+                int f = splits[s].Face;
+                int r = splits[s].Ring;
+                List<int> ring = rings[f][r];
+                var split = new List<int>(ring.Count + 4);
+                int k = s;
+
+                for (int i = 0; i < ring.Count; i++)
+                {
+                    split.Add(ring[i]);
+
+                    if (k < splits.Count && splits[k].Face == f && splits[k].Ring == r && splits[k].Index == i)
+                    {
+                        split.AddRange(splits[k].On);
+                        k++;
+                    }
+                }
+
+                rings[f][r] = split;
+                cornered[f] = true;
+                s = k;
+            }
+
+            foreach (KeyValuePair<int, GeoPoint3> move in moveTo)
+            {
+                points[move.Key] = move.Value;
+            }
+
             return cornered;
+        }
+
+        /// <summary>
+        /// Determines whether both ends of an edge lie within the planar tolerance of the plane of each of some faces.
+        /// </summary>
+        /// <param name="start">Where the edge starts.</param>
+        /// <param name="end">Where it ends.</param>
+        /// <param name="of">The faces, by index.</param>
+        /// <param name="faces">Every face, by index.</param>
+        /// <param name="planes">The planes of the faces asked about so far, by index, added to here.</param>
+        /// <param name="planar">The planar tolerance.</param>
+        private static bool LiesInPlanesOf(GeoPoint3 start, GeoPoint3 end, List<int> of, List<GeoFace3> faces, Dictionary<int, GeoPlane3> planes, double planar)
+        {
+            foreach (int f in of)
+            {
+                if (!planes.TryGetValue(f, out GeoPlane3 plane))
+                {
+                    plane = faces[f].GetPlane();
+                    planes.Add(f, plane);
+                }
+
+                if (Math.Abs(plane.SignedDistanceTo(start)) > planar || Math.Abs(plane.SignedDistanceTo(end)) > planar)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// The cosine of the angle within which the normals of two faces are taken as facing straight at each other: about
+        /// two and a half degrees.
+        /// </summary>
+        private const double Facing = -0.999;
+
+        /// <summary>
+        /// Finds a face new to a body lying back to back with another, or another with it: the two facing opposite ways, the
+        /// middle of one on the other, a skin of no thickness that reads valid and holds no material.
+        /// </summary>
+        /// <param name="faces">The faces of the body.</param>
+        /// <param name="fresh">For each, whether it is new to the body, built or turned by the closing.</param>
+        /// <param name="tolerance">The tolerance a middle lies on a face within.</param>
+        /// <param name="at">The middle that lies on the other face; the origin where there is none.</param>
+        /// <returns>true where a face new to the body lies back to back with another.</returns>
+        /// <remarks>
+        /// Faces the body was given lying back to back are its own, as a sheet inside it is, and are not looked at: only a
+        /// pair one of which is new. The middle of a face is its centroid, as the boxes of the two first say may lie on it.
+        /// </remarks>
+        private static bool HasSkin(IReadOnlyList<GeoFace3> faces, IReadOnlyList<bool> fresh, Tolerance tolerance, out GeoPoint3 at)
+        {
+            int count = faces.Count;
+            var boxes = new GeoAabb3[count];
+            var middles = new GeoPoint3[count];
+
+            for (int f = 0; f < count; f++)
+            {
+                boxes[f] = faces[f].GetAabb();
+                middles[f] = faces[f].Centroid;
+            }
+
+            for (int f = 0; f < count; f++)
+            {
+                if (!fresh[f])
+                {
+                    continue;
+                }
+
+                GeoVector3 normal = faces[f].Normal;
+
+                for (int g = 0; g < count; g++)
+                {
+                    if (g == f || !(normal.DotProduct(faces[g].Normal) < Facing))
+                    {
+                        continue;
+                    }
+
+                    if (boxes[g].Contains(middles[f], tolerance) && faces[g].Locate(middles[f], tolerance) != PointLocation.OutSide)
+                    {
+                        at = middles[f];
+                        return true;
+                    }
+
+                    // A pair of two new faces is looked at from each.
+                    if (!fresh[g] && boxes[f].Contains(middles[g], tolerance) && faces[f].Locate(middles[g], tolerance) != PointLocation.OutSide)
+                    {
+                        at = middles[g];
+                        return true;
+                    }
+                }
+            }
+
+            at = GeoPoint3.Origin;
+            return false;
         }
 
         /// <summary>

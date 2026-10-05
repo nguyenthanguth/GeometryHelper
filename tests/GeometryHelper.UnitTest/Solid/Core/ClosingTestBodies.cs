@@ -425,5 +425,87 @@ namespace GeometryHelper.UnitTest.Solid.Core
         };
 
         #endregion
+
+        #region Bodies cracked along an edge
+
+        /// <summary>
+        /// How many faces of a body lie back to back with another, the middle of each on a face facing the other way: a
+        /// skin of no thickness, which reads valid and holds no material.
+        /// </summary>
+        internal static int BackToBack(GeoSolid3 solid)
+        {
+            IReadOnlyList<GeoFace3> faces = solid.Faces;
+            int count = 0;
+
+            for (int f = 0; f < faces.Count; f++)
+            {
+                GeoPoint3 middle = faces[f].Centroid;
+
+                for (int g = 0; g < faces.Count; g++)
+                {
+                    if (g != f && faces[g].Normal.DotProduct(faces[f].Normal) < -0.999 && faces[g].Locate(middle, Fine) != Enums.PointLocation.OutSide)
+                    {
+                        count++;
+                        break;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// The box with its top's front edge and its front's top edge each run through corners of their own between the
+        /// corners over (0, 0) and (30, 0), the top's given from x = 0 on and the front's from x = 30 back: cracked between
+        /// the two chains, and closed wherever they meet.
+        /// </summary>
+        internal static GeoSolid3 BoxCrackedAlongTheFront(IEnumerable<GeoPoint3> top, IEnumerable<GeoPoint3> front)
+        {
+            GeoPoint3[] c = Corners();
+            List<GeoFace3> faces = BoxFaces(c);
+            faces[Top] = Face(new[] { c[4] }.Concat(top).Concat(new[] { c[5], c[6], c[7] }).ToArray());
+            faces[Front] = Face(new[] { c[0], c[1], c[5] }.Concat(front).Concat(new[] { c[4] }).ToArray());
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// Corners at even steps along the front edge of the top of the box, as many as given, bowed off it along a direction
+        /// as a parabola, by as much as given at the middle: from x = 0 on, or from x = 30 back.
+        /// </summary>
+        internal static List<GeoPoint3> Bowed(int count, double sag, GeoVector3 toward, bool fromTheRight)
+        {
+            var points = new List<GeoPoint3>();
+
+            for (int i = 1; i <= count; i++)
+            {
+                double t = (double)i / (count + 1);
+                points.Add(new GeoPoint3(fromTheRight ? SizeX * (1.0 - t) : SizeX * t, 0, SizeZ).Add(toward.Multiply(4.0 * sag * t * (1.0 - t))));
+            }
+
+            return points;
+        }
+
+        /// <summary>
+        /// A prism a unit high over a polygon of as many sides as given round a circle, its top a polygon of as many corners
+        /// on the same circle: where the two do not share a corner, the top stands off the sides' top edges in its plane.
+        /// </summary>
+        internal static GeoSolid3 FacetedPrism(double radius, int sides, int topCorners)
+        {
+            GeoPoint3 At(double angle, double z) => new GeoPoint3(radius * Math.Cos(angle), radius * Math.Sin(angle), z);
+            GeoPoint3[] down = Enumerable.Range(0, sides).Select(k => At(2.0 * Math.PI * k / sides, 0.0)).ToArray();
+            GeoPoint3[] up = Enumerable.Range(0, sides).Select(k => At(2.0 * Math.PI * k / sides, 1.0)).ToArray();
+            GeoPoint3[] top = Enumerable.Range(0, topCorners).Select(k => At(2.0 * Math.PI * k / topCorners, 1.0)).ToArray();
+            var faces = new List<GeoFace3> { Face(down.Reverse().ToArray()), Face(top) };
+
+            for (int i = 0; i < sides; i++)
+            {
+                int j = (i + 1) % sides;
+                faces.Add(Face(down[i], down[j], up[j], up[i]));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        #endregion
     }
 }

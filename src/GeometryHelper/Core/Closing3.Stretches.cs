@@ -202,6 +202,7 @@ namespace GeometryHelper.Core
 
             var faces = new List<int>();
             var forward = new List<bool>();
+            var edges = new List<(GeoPoint3 Start, GeoPoint3 End)>();
 
             for (int k = 0; k + 1 < stops.Count; k++)
             {
@@ -214,6 +215,7 @@ namespace GeometryHelper.Core
                 double middle = (stops[k].At + stops[k + 1].At) * 0.5;
                 faces.Clear();
                 forward.Clear();
+                edges.Clear();
 
                 for (int m = 0; m < members.Count; m++)
                 {
@@ -224,13 +226,14 @@ namespace GeometryHelper.Core
 
                     Segment s = segments[members[m]];
                     faces.Add(s.Face);
+                    edges.Add((s.Start, s.End));
 
                     // A hole is wound as the boundary is, its face on its right, so it runs the other way round with its
                     // face on its left.
                     forward.Add((to[m] > from[m]) != s.Hole);
                 }
 
-                stretches.Add(new Stretch(stops[k].Point, stops[k + 1].Point, faces.ToArray(), forward.ToArray()));
+                stretches.Add(new Stretch(stops[k].Point, stops[k + 1].Point, faces.ToArray(), forward.ToArray(), edges.ToArray()));
             }
         }
 
@@ -447,12 +450,14 @@ namespace GeometryHelper.Core
             /// <param name="end">Where it ends: another.</param>
             /// <param name="faces">The face of each edge covering it.</param>
             /// <param name="forward">Whether each edge runs it from its start to its end, its face on the left.</param>
-            internal Stretch(GeoPoint3 start, GeoPoint3 end, int[] faces, bool[] forward)
+            /// <param name="edges">The corners each edge covering it runs between, as its ring runs them.</param>
+            internal Stretch(GeoPoint3 start, GeoPoint3 end, int[] faces, bool[] forward, (GeoPoint3 Start, GeoPoint3 End)[] edges)
             {
                 Start = start;
                 End = end;
                 Faces = faces;
                 Forward = forward;
+                Edges = edges;
             }
 
             /// <summary>Gets where it starts: a corner of a face.</summary>
@@ -466,6 +471,9 @@ namespace GeometryHelper.Core
 
             /// <summary>Gets whether each edge covering it runs it from its start to its end, its face on the left.</summary>
             internal bool[] Forward { get; }
+
+            /// <summary>Gets the corners each edge covering it runs between, as its ring runs them, in the order of the edges.</summary>
+            internal (GeoPoint3 Start, GeoPoint3 End)[] Edges { get; }
 
             /// <summary>Gets the middle of it.</summary>
             internal GeoPoint3 Middle => Start.GetMiddlePoint(End);

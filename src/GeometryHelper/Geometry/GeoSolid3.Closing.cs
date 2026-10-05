@@ -22,14 +22,15 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the options are null.</exception>
         /// <remarks>
         /// <para>
-        /// Each step is taken only where the ones before it did not close the body. Faces with no area, and the two of a
-        /// sheet lying back to back inside the body, are dropped, and faces turned over so that it is wound alike and
-        /// outwards. The open edges are followed round into loops. Corners standing apart across a gap are made one and
-        /// corners standing on an edge put on it, within the point tolerance, then twice it, four times, and so on up to
-        /// <see cref="SolidClosingOptions.MaxGap"/>. The two sides of a crack no wider are joined by faces between them.
-        /// A flat hole is filled by one face, and one a little out of flat by triangles, where the options allow. What comes
-        /// of it is checked: valid within the tolerance, no face added crossing one the body had, and the volume the welds
-        /// and stitches moved no more than the reach times the area they touched.
+        /// Each step is taken only where the ones before it did not close the body. Faces with no area, a face given twice
+        /// and the two of a sheet lying back to back inside the body are dropped, and faces turned over so that each shell
+        /// is wound alike and outwards. An open edge past a fin stops the closing. Corners standing apart across a gap are
+        /// made one and corners standing off an edge left open put on it, within the point tolerance, then twice it, four
+        /// times, and so on up to <see cref="SolidClosingOptions.MaxGap"/>; no reach is taken that runs a ring out to a corner
+        /// and straight back, or lays a face back to back with another. What is left open is followed round into loops: a
+        /// flat hole is filled by one face, and one a little out of flat by triangles, where the options allow. What comes of
+        /// it is checked: valid within the tolerance, no face added crossing one the body had, and the volume the welds moved
+        /// no more than the reach times the area they touched.
         /// </para>
         /// <para>
         /// Nothing is made up. Where closing the body is not certain, as where an open edge runs past a fin, a gap is wider
@@ -54,8 +55,8 @@ namespace GeometryHelper.Geometry
             => Closing3.TryClose(this, out closed, options, out report);
 
         /// <summary>
-        /// Closes this body where corners standing apart, a corner standing off an edge, or the two sides of a crack are
-        /// no further apart than a gap, filling no hole.
+        /// Closes this body where corners standing apart, or a corner standing off an edge, are no further apart than a gap,
+        /// filling no hole.
         /// </summary>
         /// <param name="closed">The body closed: this body itself where it was valid already; null when the method returns false.</param>
         /// <param name="tolerance">The tolerance the body is judged closed within.</param>
