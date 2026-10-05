@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The gluing of a union, a difference or an intersection of solids took two faces of one cell, its top and its
+bottom where it is thinner than the tolerance, for faces lying back to back, and took from each what they shared, which
+left the cell's edges round a hole: a block whose low step's top was out of flat by 0.0015, read as triangles, less a
+box whose top lay along it, came out open, 0.7 litres short, and their union 1.3. The faces of one cell, or of the body
+taken whole, are not paired with each other now. Of 40 such blocks each of six warps on a grid of 6 by 6, 15 came out
+open or not worked out within 0.0012 where 3 do now, and none came out wrong and valid either way. A cell thinner than
+the tolerance is kept as the material it is: within a thousandth alone, a part of a Tekla model kept a sheet of 0.0008
+it lost before, 4.3 square metres more surface on 2 151; with a contact of a hundredth, as many parts as before.
+
 **FIXED.** `PlanarMap.FrameOf`, and with it `GetFrame()` of a polygon or a face, took its first axis towards the first
 corner standing apart from the first, out of the plane or not: two corners a hair apart one over the other, as a face
 a cut leaves of a top out of flat can have, made the axis the normal itself, and no frame could be made. The gluing of

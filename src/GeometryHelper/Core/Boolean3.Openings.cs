@@ -197,7 +197,9 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return TryGlue(FacesOfCells(OnePieceEach(cells, tolerance), owner, tolerance), tolerance, out material);
+            var owners = new List<int>();
+            List<GeoFace3> faces = FacesOfCells(OnePieceEach(cells, tolerance), owner, tolerance, owners);
+            return TryGlue(faces, owners, tolerance, out material);
         }
 
         #endregion

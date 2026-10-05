@@ -472,7 +472,7 @@ namespace GeometryHelper.Core
         /// that plane whether or not all of it lies there.
         /// </summary>
         /// <remarks>
-        /// For the gluing of a boolean (<see cref="CancelBackToBack"/>), which pairs two faces when either lies in the plane
+        /// For the gluing of a boolean (<see cref="CancelBackToBack(List{GeoFace3}, Tolerance)"/>), which pairs two faces when either lies in the plane
         /// of the other. A small face a hair out of a long one's plane lies in it, but the long one's far end can stand
         /// millimetres off the small one's, and taking the long face from the small one was refused as lying in another
         /// plane, which threw out the whole boolean. Near the small face, where anything is taken from it, the two planes

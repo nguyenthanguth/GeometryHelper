@@ -54,10 +54,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             List<GeoFace3> cells = Box(0, 0, 0, 10, 10, 10).Faces.ToList();
             var open = new GeoSolid3(Box(0, 0, 0, 10, 10, 9).Faces.Skip(1));
 
-            Assert.True(Boolean3.GlueOrKeep(new List<GeoFace3>(cells), open, true, Fine, out GeoSolid3 kept));
+            Assert.True(Boolean3.GlueOrKeep(new List<GeoFace3>(cells), null, open, true, Fine, out GeoSolid3 kept));
             Assert.Same(open, kept);
 
-            Assert.True(Boolean3.GlueOrKeep(new List<GeoFace3>(cells), open, false, Fine, out GeoSolid3 glued));
+            Assert.True(Boolean3.GlueOrKeep(new List<GeoFace3>(cells), null, open, false, Fine, out GeoSolid3 glued));
             Assert.True(glued.IsClosed(Fine));
             Assert.Equal(1000.0, glued.GetVolume(Fine), 6);
         }

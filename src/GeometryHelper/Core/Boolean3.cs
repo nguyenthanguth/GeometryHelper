@@ -168,17 +168,19 @@ namespace GeometryHelper.Core
             List<GeoPlane3> planes = SharedPlanes(first, second, tolerance);
 
             List<GeoFace3> kept = new List<GeoFace3>();
+            var owners = new List<int>();
 
             // All of the first body, and only the part of the second that reaches beyond it: the shared
             // region belongs to the union once, and it is already carried by the first.
-            kept.AddRange(FacesOfCells(SplitIntoCells(first, planes, tolerance), first, tolerance));
+            List<GeoSolid3> firstCells = SplitIntoCells(first, planes, tolerance);
+            kept.AddRange(FacesOfCells(firstCells, first, tolerance, owners));
 
             var stuck = new List<GeoPlane3>();
             List<GeoSolid3> cells = SplitIntoCells(second, planes, tolerance, out bool clean, stuck);
             bool misjudged = !clean && Misjudged(cells, stuck, second, first, false, tolerance);
-            kept.AddRange(FacesOfCells(cells, second, first, false, tolerance));
+            kept.AddRange(FacesOfCells(cells, second, first, false, tolerance, owners, firstCells.Count));
 
-            if (!GlueOrKeep(kept, openCut, misjudged, tolerance, out result))
+            if (!GlueOrKeep(kept, owners, openCut, misjudged, tolerance, out result))
             {
                 return false;
             }
@@ -288,7 +290,7 @@ namespace GeometryHelper.Core
             List<GeoPlane3> knives = firstIsCut ? cuttingFirst : cuttingSecond;
             List<GeoPlane3> otherKnives = firstIsCut ? cuttingSecond : cuttingFirst;
 
-            List<GeoFace3> kept = CellsInside(cut, other, knives, tolerance, out bool clean, out bool misjudged);
+            List<GeoFace3> kept = CellsInside(cut, other, knives, tolerance, out bool clean, out bool misjudged, out List<int> owners);
             bool otherWayAffordable = otherKnives.Count <= 2 * knives.Count + 16;
 
             // A plane can still cross a cell and leave it whole where the cut does not close — a body running
@@ -304,15 +306,16 @@ namespace GeometryHelper.Core
             // each judged alike, and the common part came out as it is.
             if (!clean && (otherWayAffordable || misjudged))
             {
-                List<GeoFace3> otherWay = CellsInside(other, cut, otherKnives, tolerance, out bool otherClean, out bool otherMisjudged);
+                List<GeoFace3> otherWay = CellsInside(other, cut, otherKnives, tolerance, out bool otherClean, out bool otherMisjudged, out List<int> otherOwners);
 
                 if (otherClean || (misjudged && !otherMisjudged))
                 {
                     kept = otherWay;
+                    owners = otherOwners;
                 }
             }
 
-            if (!TryGlue(kept, tolerance, out result))
+            if (!TryGlue(kept, owners, tolerance, out result))
             {
                 return false;
             }
@@ -320,7 +323,7 @@ namespace GeometryHelper.Core
             // Cut cleanly and still open, two closed bodies can close cut the other way round, as a difference can;
             // see CombineCuttingOne.
             if (clean && otherWayAffordable && !result.IsClosed(tolerance) && first.IsClosed(tolerance) && second.IsClosed(tolerance)
-                && TryGlue(CellsInside(other, cut, otherKnives, tolerance, out bool closedClean, out _), tolerance, out GeoSolid3 otherResult)
+                && TryGlue(CellsInside(other, cut, otherKnives, tolerance, out bool closedClean, out _, out List<int> closedOwners), closedOwners, tolerance, out GeoSolid3 otherResult)
                 && closedClean && otherResult.IsClosed(tolerance))
             {
                 result = otherResult;
@@ -331,7 +334,7 @@ namespace GeometryHelper.Core
             {
                 GeometryHelperLog.Debug($"Boolean3: cutting one body {why}; the other is cut instead.");
 
-                if (TryGlue(CellsInside(other, cut, otherKnives, tolerance, out _, out _), tolerance, out GeoSolid3 otherWay)
+                if (TryGlue(CellsInside(other, cut, otherKnives, tolerance, out _, out _, out List<int> otherWayOwners), otherWayOwners, tolerance, out GeoSolid3 otherWay)
                     && Implausible("intersection", otherWay, first, second, tolerance) == null)
                 {
                     result = Weld3.Sealed(otherWay, tolerance);
@@ -356,12 +359,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="clean">false when a plane crossed a cell and still left it whole.</param>
         /// <param name="misjudged">Whether such a cell holds material on the two sides of the plane judged apart; see <see cref="Misjudged"/>.</param>
-        private static List<GeoFace3> CellsInside(GeoSolid3 body, GeoSolid3 other, List<GeoPlane3> knives, Tolerance tolerance, out bool clean, out bool misjudged)
+        /// <param name="owners">The place of the cell of each face.</param>
+        private static List<GeoFace3> CellsInside(GeoSolid3 body, GeoSolid3 other, List<GeoPlane3> knives, Tolerance tolerance, out bool clean, out bool misjudged, out List<int> owners)
         {
             var stuck = new List<GeoPlane3>();
             List<GeoSolid3> cells = SplitIntoCells(body, knives, tolerance, out clean, stuck);
             misjudged = !clean && Misjudged(cells, stuck, body, other, true, tolerance);
-            return FacesOfCells(cells, body, other, true, tolerance);
+            owners = new List<int>();
+            return FacesOfCells(cells, body, other, true, tolerance, owners);
         }
 
         /// <summary>
@@ -493,9 +498,10 @@ namespace GeometryHelper.Core
             var stuck = new List<GeoPlane3>();
             List<GeoSolid3> cells = SplitIntoCells(subject, planes, tolerance, out bool clean, stuck);
             bool misjudged = !clean && Misjudged(cells, stuck, subject, tool, false, tolerance);
-            List<GeoFace3> kept = FacesOfCells(cells, subject, tool, false, tolerance);
+            var owners = new List<int>();
+            List<GeoFace3> kept = FacesOfCells(cells, subject, tool, false, tolerance, owners);
 
-            if (!GlueOrKeep(kept, openCut, misjudged, tolerance, out result))
+            if (!GlueOrKeep(kept, owners, openCut, misjudged, tolerance, out result))
             {
                 return false;
             }
@@ -582,6 +588,7 @@ namespace GeometryHelper.Core
         /// already found by cutting one of them, which is then kept, as it was before cutting both was tried.
         /// </summary>
         /// <param name="kept">The faces of the cells kept.</param>
+        /// <param name="owners">The place of the cell of each face; see <see cref="TryGlue(List{GeoFace3}, List{int}, Tolerance, out GeoSolid3)"/>.</param>
         /// <param name="openCut">The open result cutting one body gave, or null.</param>
         /// <param name="misjudged">
         /// Whether a cell a plane could not cut is judged apart across it (see <see cref="Misjudged"/>), so that what the
@@ -592,7 +599,7 @@ namespace GeometryHelper.Core
         /// </param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="result">The result.</param>
-        internal static bool GlueOrKeep(List<GeoFace3> kept, GeoSolid3 openCut, bool misjudged, Tolerance tolerance, out GeoSolid3 result)
+        internal static bool GlueOrKeep(List<GeoFace3> kept, List<int> owners, GeoSolid3 openCut, bool misjudged, Tolerance tolerance, out GeoSolid3 result)
         {
             if (misjudged && openCut != null)
             {
@@ -606,7 +613,7 @@ namespace GeometryHelper.Core
                 GeometryHelperLog.Debug("Boolean3: cut by every plane of both, a cell a plane could not cut is judged apart across it, and cutting one body gave nothing to keep instead.");
             }
 
-            if (TryGlue(kept, tolerance, out result) && (openCut == null || result.IsClosed(tolerance)))
+            if (TryGlue(kept, owners, tolerance, out result) && (openCut == null || result.IsClosed(tolerance)))
             {
                 return true;
             }
@@ -640,7 +647,7 @@ namespace GeometryHelper.Core
         /// from keeps its cells beyond the other; cutting the body taken away keeps the other whole and the cells
         /// within it turned inside out, which are the walls of the cavity and take away the part of the whole
         /// body's faces it covers. Where the whole body meets the cells, the two lie back to back in one plane,
-        /// each cut its own way, and <see cref="CancelBackToBack"/> takes from both the area they share.
+        /// each cut its own way, and <see cref="CancelBackToBack(List{GeoFace3}, Tolerance)"/> takes from both the area they share.
         /// <para>
         /// A difference that finds nothing of the one body within the other takes nothing, and is not glued back
         /// together from the cells at all. Glued, it gave back only what the cutting rounded: two slabs side by side
@@ -784,7 +791,8 @@ namespace GeometryHelper.Core
             GeoSolid3 whole = cutA ? b : a;
             bool within = !union && !cutA;
 
-            List<GeoFace3> kept = FacesOfCells(cells, cut, whole, within, tolerance, out bool anyInside);
+            var owners = new List<int>();
+            List<GeoFace3> kept = FacesOfCells(cells, cut, whole, within, tolerance, out bool anyInside, owners);
 
             if (!union && !anyInside)
             {
@@ -803,9 +811,10 @@ namespace GeometryHelper.Core
             if (union || within)
             {
                 kept.AddRange(whole.Faces);
+                Own(owners, -1, whole.Faces.Count);
             }
 
-            if (!TryGlue(kept, tolerance, out result))
+            if (!TryGlue(kept, owners, tolerance, out result))
             {
                 return false;
             }
@@ -1376,19 +1385,38 @@ namespace GeometryHelper.Core
         /// <param name="cells">The cells to sort.</param>
         /// <param name="owner">The body the cells were cut from.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, Tolerance tolerance)
+        /// <param name="owners">Where given, receives for each face collected the place of its cell, plus <paramref name="offset"/>; see <see cref="TryGlue(List{GeoFace3}, List{int}, Tolerance, out GeoSolid3)"/>.</param>
+        /// <param name="offset">What the places of the cells start from.</param>
+        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, Tolerance tolerance, List<int> owners = null, int offset = 0)
         {
             List<GeoFace3> faces = new List<GeoFace3>();
 
-            foreach (GeoSolid3 cell in cells)
+            for (int c = 0; c < cells.Count; c++)
             {
-                if (IsMaterial(cell, owner, tolerance, out _))
+                if (IsMaterial(cells[c], owner, tolerance, out _))
                 {
-                    faces.AddRange(cell.Faces);
+                    faces.AddRange(cells[c].Faces);
+                    Own(owners, offset + c, cells[c].Faces.Count);
                 }
             }
 
             return faces;
+        }
+
+        /// <summary>
+        /// Adds to the owners of faces collected, where they are wanted, one owner for so many faces.
+        /// </summary>
+        private static void Own(List<int> owners, int owner, int faces)
+        {
+            if (owners == null)
+            {
+                return;
+            }
+
+            for (int k = 0; k < faces; k++)
+            {
+                owners.Add(owner);
+            }
         }
 
         /// <summary>
@@ -1400,8 +1428,10 @@ namespace GeometryHelper.Core
         /// <param name="against">The body deciding inside from outside.</param>
         /// <param name="wantInside">true to keep the cells within that body, false to keep those beyond it.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance)
-            => FacesOfCells(cells, owner, against, wantInside, tolerance, out _);
+        /// <param name="owners">Where given, receives for each face collected the place of its cell, plus <paramref name="offset"/>.</param>
+        /// <param name="offset">What the places of the cells start from.</param>
+        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance, List<int> owners = null, int offset = 0)
+            => FacesOfCells(cells, owner, against, wantInside, tolerance, out _, owners, offset);
 
         /// <summary>
         /// Collects the faces of the cells that are material of their own body and lie on the wanted side of another
@@ -1413,14 +1443,16 @@ namespace GeometryHelper.Core
         /// <param name="wantInside">true to keep the cells within that body, false to keep those beyond it.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="anyInside">Whether a cell of material lies within <paramref name="against"/>.</param>
-        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance, out bool anyInside)
+        /// <param name="owners">Where given, receives for each face collected the place of its cell, plus <paramref name="offset"/>.</param>
+        /// <param name="offset">What the places of the cells start from.</param>
+        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance, out bool anyInside, List<int> owners = null, int offset = 0)
         {
             List<GeoFace3> faces = new List<GeoFace3>();
             anyInside = false;
 
-            foreach (GeoSolid3 cell in cells)
+            for (int c = 0; c < cells.Count; c++)
             {
-                if (!IsMaterial(cell, owner, tolerance, out GeoPoint3 sample))
+                if (!IsMaterial(cells[c], owner, tolerance, out GeoPoint3 sample))
                 {
                     continue;
                 }
@@ -1430,7 +1462,8 @@ namespace GeometryHelper.Core
 
                 if (within == wantInside)
                 {
-                    faces.AddRange(cell.Faces);
+                    faces.AddRange(cells[c].Faces);
+                    Own(owners, offset + c, cells[c].Faces.Count);
                 }
             }
 
@@ -1641,7 +1674,7 @@ namespace GeometryHelper.Core
         /// A face between two cells that were both kept is interior to the result, and it appears twice
         /// among the collected faces, once each way round. Dropping both leaves exactly the outer skin —
         /// when the two copies match vertex for vertex, which they need not; see
-        /// <see cref="CancelBackToBack"/> for the pairs that do not. The survivors are then merged where they
+        /// <see cref="CancelBackToBack(List{GeoFace3}, Tolerance)"/> for the pairs that do not. The survivors are then merged where they
         /// are coplanar and touching, which undoes the subdivision the cutting introduced.
         /// <para>
         /// Taking from two faces the area they share is worked out in the plane, where a piece of either is dropped as a seam
@@ -1652,11 +1685,22 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         private static bool TryGlue(List<GeoFace3> faces, Tolerance tolerance, out GeoSolid3 result)
+            => TryGlue(faces, null, tolerance, out result);
+
+        /// <summary>
+        /// Glues a collection of cell faces into one closed body, knowing which closed piece each face came from: the
+        /// faces of one piece are never taken for back to back with each other; see <see cref="CancelBackToBack(List{GeoFace3}, List{int}, Tolerance)"/>.
+        /// </summary>
+        /// <param name="faces">The faces.</param>
+        /// <param name="owners">For each face, the cell or the body whole it came from; null where that is not known.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="result">The body.</param>
+        private static bool TryGlue(List<GeoFace3> faces, List<int> owners, Tolerance tolerance, out GeoSolid3 result)
         {
             result = null;
 
-            List<GeoFace3> paired = DropMatchedPairs(faces, tolerance);
-            List<GeoFace3> skin = CancelBackToBack(paired, tolerance);
+            List<GeoFace3> paired = DropMatchedPairs(faces, owners, tolerance, out List<int> pairedOwners);
+            List<GeoFace3> skin = CancelBackToBack(paired, pairedOwners, tolerance);
 
             if (skin.Count < 4)
             {
@@ -1739,6 +1783,13 @@ namespace GeometryHelper.Core
         /// use, so the same pairs are dropped without comparing every face with every other.
         /// </remarks>
         internal static List<GeoFace3> DropMatchedPairs(List<GeoFace3> faces, Tolerance tolerance)
+            => DropMatchedPairs(faces, null, tolerance, out _);
+
+        /// <summary>
+        /// Drops matched pairs as <see cref="DropMatchedPairs(List{GeoFace3}, Tolerance)"/> does, giving the owners of the
+        /// faces kept, where the owners of those given are known.
+        /// </summary>
+        private static List<GeoFace3> DropMatchedPairs(List<GeoFace3> faces, List<int> owners, Tolerance tolerance, out List<int> keptOwners)
         {
             int count = faces.Count;
             bool[] dropped = new bool[count];
@@ -1779,12 +1830,14 @@ namespace GeometryHelper.Core
             }
 
             var kept = new List<GeoFace3>(count);
+            keptOwners = owners == null ? null : new List<int>(count);
 
             for (int i = 0; i < count; i++)
             {
                 if (!dropped[i])
                 {
                     kept.Add(faces[i]);
+                    keptOwners?.Add(owners[i]);
                 }
             }
 
@@ -1824,6 +1877,24 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         internal static List<GeoFace3> CancelBackToBack(List<GeoFace3> faces, Tolerance tolerance)
+            => CancelBackToBack(faces, null, tolerance);
+
+        /// <summary>
+        /// Takes from the faces still lying back to back in one plane the area they share, as
+        /// <see cref="CancelBackToBack(List{GeoFace3}, Tolerance)"/> does, but for two faces of one closed piece.
+        /// </summary>
+        /// <param name="faces">The faces.</param>
+        /// <param name="owners">For each face, the cell or the body whole it came from; null where that is not known.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A cell is closed, and two of its faces facing apart within the tolerance of each other are its two sides where it
+        /// is thinner than that, not a wall inside the result: taken from each other, they leave the cell's edges round the
+        /// hole. A block whose low step's top was out of flat by 0.0012, read as triangles, less a box whose top lay along
+        /// it, was cut by the box's top into cells a hair thick between that plane and the triangles, and each such cell's
+        /// top and bottom were taken for back to back with each other, 37 000 square millimetres more of the top than of
+        /// what lay under it: the difference came out open.
+        /// </remarks>
+        internal static List<GeoFace3> CancelBackToBack(List<GeoFace3> faces, List<int> owners, Tolerance tolerance)
         {
             int count = faces.Count;
             var normals = new GeoVector3[count];
@@ -1859,7 +1930,8 @@ namespace GeometryHelper.Core
                 {
                     int i = Math.Min(first, order[b]), j = Math.Max(first, order[b]);
 
-                    if (normals[i].DotProduct(normals[j]) >= 0.0 || !boxes[i].CollidesWith(boxes[j], tolerance))
+                    if (normals[i].DotProduct(normals[j]) >= 0.0 || !boxes[i].CollidesWith(boxes[j], tolerance)
+                        || owners != null && owners[i] == owners[j])
                     {
                         continue;
                     }
@@ -1933,7 +2005,7 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Keeps of the faces lying back to back with each face those it shares area with first: where two of them overlap
-        /// each other, the nearer, and a pair only where each keeps the other; see <see cref="CancelBackToBack"/>.
+        /// each other, the nearer, and a pair only where each keeps the other; see <see cref="CancelBackToBack(List{GeoFace3}, Tolerance)"/>.
         /// </summary>
         /// <remarks>
         /// The faces against one face that overlap no other against it, as the two pieces a cut left of one copy, are all
