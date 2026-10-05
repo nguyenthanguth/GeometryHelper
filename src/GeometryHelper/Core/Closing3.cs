@@ -16,8 +16,13 @@ namespace GeometryHelper.Core
     /// </para>
     /// <para>
     /// A body valid within the tolerance already is handed back as it is, the same instance, and nothing is measured: the
-    /// same body back says nothing was done. So far that is the only step made: any other body is reported still open, at
-    /// the first thing <see cref="GeoSolid3.Validate(Tolerance)"/> finds that makes it not valid.
+    /// same body back says nothing was done. Made so far are the cleaning, the turning and the reading of the loops, and of
+    /// the filling only its refusal of a hole where no fill is allowed. The faces are cleaned: those covering nothing within
+    /// the tolerance dropped, a face given twice taken once, and of a face and a copy of it lying back to back, the one
+    /// wound against the faces round it dropped. They are turned so that each shell is wound alike and outwards, a shell
+    /// inside another inwards, as a cavity. The edges left open are followed round into loops, and a loop through a
+    /// stretch more than two faces meet on, a fin, stops the closing there, as does a corner two loops run through; so
+    /// does a hole where no fill is allowed. Any other body not valid after the turning is reported still open.
     /// </para>
     /// <para>
     /// Nothing thrown for a reason of the geometry leaves this: a shape the work builds refused by its constructor, or a
@@ -25,7 +30,7 @@ namespace GeometryHelper.Core
     /// booleans report one they could not work out.
     /// </para>
     /// </remarks>
-    internal static class Closing3
+    internal static partial class Closing3
     {
         /// <summary>
         /// Closes a body as the options say; see <see cref="GeoSolid3.TryClose(out GeoSolid3, SolidClosingOptions, out SolidClosing3)"/>.
@@ -51,22 +56,109 @@ namespace GeometryHelper.Core
 
             try
             {
-                SolidValidation3 check = solid.Validate(options.Tolerance);
-
-                if (check.IsValid)
-                {
-                    closed = solid;
-                    report = SolidClosing3.AsItWas();
-                    return true;
-                }
-
-                return Fail(ClosingFailure.StillOpen, TroubleAt(check, solid), out closed, out report);
+                return Close(solid, options, out closed, out report);
             }
             catch (Exception exception) when (Boolean3.IsUnworkable(exception))
             {
                 GeometryHelperLog.Warn($"GeoSolid3: closing a body within {solid.GetAabb()} could not be worked out, and it is reported as still open.", exception);
                 return Fail(ClosingFailure.StillOpen, solid.GetAabb().Center, out closed, out report);
             }
+        }
+
+        /// <summary>
+        /// Takes a body through the steps, each only where the ones before did not close it.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="options">How it is closed.</param>
+        /// <param name="closed">The body closed; null when the method returns false.</param>
+        /// <param name="report">What was done, or why not and where.</param>
+        /// <returns>true when what comes out is valid within the options' tolerance.</returns>
+        private static bool Close(GeoSolid3 solid, SolidClosingOptions options, out GeoSolid3 closed, out SolidClosing3 report)
+        {
+            SolidValidation3 check = solid.Validate(options.Tolerance);
+
+            if (check.IsValid)
+            {
+                closed = solid;
+                report = SolidClosing3.AsItWas();
+                return true;
+            }
+
+            var work = new Work(solid, options, check);
+
+            // The faces cleaned, and turned so that each shell is wound alike and outwards.
+            DropFacesOfNoArea(work);
+            work.Stretches = FindStretches(work.Faces, work.Dropped, work.Tolerance);
+            DropCopies(work);
+
+            if (!TryTurnAlike(work))
+            {
+                return Refused(work, out closed, out report);
+            }
+
+            if (work.Repairs.Count > 0 && TryTake(work, out closed, out report))
+            {
+                return true;
+            }
+
+            // The edges left open, followed round into loops; a fin among them stops the closing before anything is
+            // filled, since a fill across the loop round it would be the fin again the other way round.
+            if (!TryFindLoops(work, out List<Loop> loops))
+            {
+                return Refused(work, out closed, out report);
+            }
+
+            RefuseHolesNotToBeFilled(work, loops);
+
+            return Refused(work, out closed, out report);
+        }
+
+        /// <summary>
+        /// Builds the body the work has come to and takes it where it is valid within the tolerance; it is kept as the body
+        /// stood at, either way.
+        /// </summary>
+        /// <param name="work">The work.</param>
+        /// <param name="closed">The body; null when the method returns false.</param>
+        /// <param name="report">The report of what was done; null when the method returns false.</param>
+        /// <returns>true when the body is valid.</returns>
+        private static bool TryTake(Work work, out GeoSolid3 closed, out SolidClosing3 report)
+        {
+            closed = null;
+            report = null;
+            GeoSolid3 body = work.Build();
+
+            if (body == null)
+            {
+                return false;
+            }
+
+            SolidValidation3 check = body.Validate(work.Tolerance);
+            work.Current = body;
+            work.CurrentCheck = check;
+
+            if (!check.IsValid)
+            {
+                return false;
+            }
+
+            closed = body;
+            report = new SolidClosing3(work.Repairs.ToArray(), work.AddedArea, VolumeChange(work.Solid, body), ClosingFailure.None, null);
+            return true;
+        }
+
+        /// <summary>
+        /// Gives a body up for the first reason a step found, or as still open, at the trouble of the body as the steps left
+        /// it, where none was found.
+        /// </summary>
+        /// <param name="work">The work.</param>
+        /// <param name="closed">Set to null.</param>
+        /// <param name="report">The report of no change, the reason and the point.</param>
+        /// <returns>false.</returns>
+        private static bool Refused(Work work, out GeoSolid3 closed, out SolidClosing3 report)
+        {
+            return work.Failure != ClosingFailure.None
+                ? Fail(work.Failure, work.FailureAt, out closed, out report)
+                : Fail(ClosingFailure.StillOpen, TroubleAt(work.CurrentCheck, work.Current), out closed, out report);
         }
 
         /// <summary>
@@ -174,6 +266,104 @@ namespace GeometryHelper.Core
             }
 
             return sum;
+        }
+
+        /// <summary>
+        /// A body on its way through the steps: its faces as given, which are dropped and which turned over, what was done,
+        /// and the first reason found it cannot be closed.
+        /// </summary>
+        private sealed class Work
+        {
+            /// <summary>
+            /// Begins the work on a body.
+            /// </summary>
+            /// <param name="solid">The body as given.</param>
+            /// <param name="options">How it is closed.</param>
+            /// <param name="check">What <see cref="GeoSolid3.Validate(Tolerance)"/> found of it within the options' tolerance.</param>
+            internal Work(GeoSolid3 solid, SolidClosingOptions options, SolidValidation3 check)
+            {
+                Solid = solid;
+                Options = options;
+                Tolerance = options.Tolerance;
+                Faces = solid.Faces;
+                Dropped = new bool[Faces.Count];
+                Turned = new bool[Faces.Count];
+                Current = solid;
+                CurrentCheck = check;
+            }
+
+            /// <summary>Gets the body as given.</summary>
+            internal GeoSolid3 Solid { get; }
+
+            /// <summary>Gets how it is closed.</summary>
+            internal SolidClosingOptions Options { get; }
+
+            /// <summary>Gets the tolerance it is judged within.</summary>
+            internal Tolerance Tolerance { get; }
+
+            /// <summary>Gets its faces as given, by their index.</summary>
+            internal IReadOnlyList<GeoFace3> Faces { get; }
+
+            /// <summary>Gets, for each face, whether it is dropped.</summary>
+            internal bool[] Dropped { get; }
+
+            /// <summary>Gets, for each face, whether it is turned over.</summary>
+            internal bool[] Turned { get; }
+
+            /// <summary>Gets each change made, in the order it was made.</summary>
+            internal List<SolidRepair3> Repairs { get; } = new List<SolidRepair3>();
+
+            /// <summary>Gets or sets the area of the faces added.</summary>
+            internal double AddedArea { get; set; }
+
+            /// <summary>Gets or sets the stretches the edges of the faces lie along, of the faces not of no area.</summary>
+            internal List<Stretch> Stretches { get; set; }
+
+            /// <summary>Gets or sets the last body built, the body as given until one is.</summary>
+            internal GeoSolid3 Current { get; set; }
+
+            /// <summary>Gets or sets what <see cref="GeoSolid3.Validate(Tolerance)"/> found of the last body built.</summary>
+            internal SolidValidation3 CurrentCheck { get; set; }
+
+            /// <summary>Gets the first reason found the body cannot be closed; none until one is.</summary>
+            internal ClosingFailure Failure { get; private set; }
+
+            /// <summary>Gets a point at that trouble.</summary>
+            internal GeoPoint3 FailureAt { get; private set; }
+
+            /// <summary>
+            /// Notes a reason the body cannot be closed, and where, unless one was noted before: the first step that could not
+            /// go on gives the reason.
+            /// </summary>
+            /// <param name="failure">Why.</param>
+            /// <param name="at">A point at the trouble.</param>
+            internal void Refuse(ClosingFailure failure, GeoPoint3 at)
+            {
+                if (Failure == ClosingFailure.None)
+                {
+                    Failure = failure;
+                    FailureAt = at;
+                }
+            }
+
+            /// <summary>
+            /// Builds the body of the faces kept, each turned over where it is to be, in the order given, the openings
+            /// carried as they are; null where fewer than four faces are kept.
+            /// </summary>
+            internal GeoSolid3 Build()
+            {
+                var kept = new List<GeoFace3>(Faces.Count);
+
+                for (int f = 0; f < Faces.Count; f++)
+                {
+                    if (!Dropped[f])
+                    {
+                        kept.Add(Turned[f] ? Faces[f].Flip() : Faces[f]);
+                    }
+                }
+
+                return kept.Count < 4 ? null : new GeoSolid3(kept, Solid.Openings);
+            }
         }
     }
 }
