@@ -14,50 +14,40 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 10.0.0
+      NEW IN 11.0.0
 
-      BREAKING: a body is measured as its material.
-      - GeoSolid3.GetVolume(), GetSurfaceArea() and GetCentroid(), each also within a tolerance, measure the faces with
-        every opening cut out, the walls of the openings part of the surface, and TryGetVolume says whether the volume
-        can be trusted: every opening cut out and the material closed. The cut is made once for a tolerance and kept by
-        the body, and GetMassProperties and Measure3 measure the same cut. A body without openings, as every part
-        GeometryHelper.TeklaConvert reads, is measured by its faces at once.
-      - Removed: GeoSolid3.Volume, SurfaceArea and Centroid, which read the faces alone, duct and all; NetVolume, which
-        took each opening's whole volume off, past the body or not; and GetNetVolume(). GetSignedVolume() is internal:
-        TurnOutwards() gives the body wound outwards, its openings too.
+      BREAKING: the default tolerance is a thousandth of a millimetre.
+      - Tolerance.DefaultEqualPoint and DefaultEqualPlanar are 1E-3 and DefaultEqualVector 1E-5, each 1E-2 before; the
+        angle stays one degree. Tolerance.Default, Tolerance.Global and every overload without a tolerance read them, so
+        two points 0.001 to 0.01 apart are two points now. Of 218 pairs of slabs of a Tekla model, the common part comes
+        within 450 cubic millimetres of the exact one at the median, where within a hundredth it came within 1 084. To
+        have a hundredth back, pass new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01) or set it as
+        Tolerance.Global.
 
       NEW
-      - GeoTriangle2, the triangle of the plane, in the whole matrix of the plane, answered by Core.Triangle2.
-      - TriangulateSurface on GeoPolygon2, GeoFace2, GeoPolygonArc2, GeoRectangle2 and GeoCircle2.
-      - GeometryHelper.Meshing: ToMesh breaks a shape of the plane into a GeoMesh2, of triangles, of the cells of a grid
-        as formwork panels or tiles are laid, of strips or of convex pieces, as MeshOptions says; and a shape of space
-        into a GeoMesh3, its grid placed by MeshPlacement3. GeoRectangle2.Divide.
-      - ToCells on GeoSolid3, GeoObb3 and GeoAabb3 cuts a body into a GeoCellGrid3 of closed GeoCell3s, by CellOptions3.
-      - Measure3 measures volume, mass, centroid and area by the method asked, VolumeMethod Fan, Surface or FlatFaces,
-        and Compare sets every method side by side.
+      - SolidBooleanOptions, taken by new overloads of TrySubtract, TryUnion and TryIntersect: the Tolerance, a Contact
+        within which a face of the second body lying parallel to one of the first is put onto it, so that parts drawn a
+        few thousandths into each other are cut as touching, and a Fallback tolerance a result that is not valid is
+        worked out again within. Cut within a thousandth alone, a Tekla part kept a skin of itself 0.0049 thick where a
+        cutter's face stood that far inside its own: 110 square metres of surface on a part of 119.
+      - GeoSolid3.TrySubtractAll: a part less every part it meets, each cut checked by Validate, and a SubtractReport
+        of the cuts taken within the fallback and those skipped. Of 79 864 parts of a Tekla model, within a thousandth,
+        with a contact and a fallback of a hundredth, 19 had a cut skipped, where within a thousandth alone 180 did.
+      - GeoSolid3.Validate() and SolidValidation3: whether the faces bound a body, and each issue, where and how large:
+        edges open or run the same way twice, faces inside out, no volume, slivers, faces out of flat.
+      - TrySubtract, TryIntersect and TryUnion with an out BooleanOutcome: Made, Empty or NotWorkedOut, which false
+        alone did not tell apart.
 
-      FIXED
-      - A body wound inwards came out of the booleans, TryCutOpenings, TrySplitBy, TryGetContact and the clash check
-        wrong; each turns its bodies outwards first.
-      - Two slabs from Tekla Structures, one wrapping the other's corner at a slant of 0.32 milliradians, share a wedge
-        of 15.79 million cubic millimetres, which the difference took none of and the common part lost an eighth of.
-        Two planes are one now only where they stand together over what they cut, and a cell a plane could not cut is
-        judged on both sides of it.
-      - GeoSolid3.TrySplitBy, Section and the cells cut from a body: a plane parting a body without crossing it, through
-        a corner, at a slant across an edge two faces share, beside a rim bridged across, through a face a hair out of
-        flat; a hole on the rim of its piece came back as material.
-      - GeoFace3 and GeoSolid3 Locate, Contains, DistanceTo and GetClosestPointOnBoundary read a face's holes in the
-        plane of its boundary; a point of a body thinner than four point tolerances is placed by the solid angle.
-      - Areas and centroids of GeoPolygon2 and GeoPolygonArc2 far from the origin; ConvexHull3 and GeoObb3.Fit on a
-        hull with a tiny face; Merge3.CoplanarFaces on faces a hair turned; TriangulateSurface within a tolerance finer
-        than the global one; GetMassProperties of a body its openings take whole.
-
-      CHANGED
-      - The package depends on no other package: Clipper2 2.0.0's clipping engine is compiled in, internal, and the
-        package carries THIRD-PARTY-NOTICES.md. A project that used Clipper2 through GeometryHelper references the
-        Clipper2 package itself now. Where its sweep fails, the plane gives no region and a warning.
-      - Separating a body into pieces, IsClosed and cutting by a plane pair edges along the axis that leaves the fewest
-        pairs: a drum of 4 096 sides took eleven seconds and takes four hundredths.
+      FIXED AND CHANGED, the booleans of solids
+      - A result open by copies of an edge within the tolerance, or up to four times it, has those corners welded into
+        one where that closes it and holds its volume; slivers left where faces lying back to back are taken from each
+        other are closed; a merge that would open a result is not made.
+      - The other body is cut where the first cut comes out open; a consistent cut is taken where neither cuts cleanly;
+        an intersection takes the other way where this one misjudged a cell; a result closed with faces wound against
+        each other is tried the other way round too; what a face shares goes with the nearest face against it.
+      - A result holding a volume the operation cannot give is not handed back: NotWorkedOut, with a warning.
+      - A face out of flat is split into triangles without one standing up across it; GeoFace3.Flip() and Clone() no
+        longer check a face's holes again within the global tolerance.
 
       Details in CHANGELOG.md.
 

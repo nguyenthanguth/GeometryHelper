@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 11.0.0
 
 **BREAKING.** The default tolerance is a thousandth of a millimetre for points and for flatness:
 `Tolerance.DefaultEqualPoint` and `DefaultEqualPlanar` are 1E-3, and `DefaultEqualVector` is 1E-5, each 1E-2 before; the

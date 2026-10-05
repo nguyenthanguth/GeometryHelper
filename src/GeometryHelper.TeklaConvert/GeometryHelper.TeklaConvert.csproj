@@ -29,6 +29,15 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 11.0.0
+      - GeometryHelper.TeklaConvert is released at 11.0.0 with GeometryHelper, whose default tolerance is a thousandth
+        of a millimetre now, where it was a hundredth: this BREAKS code that relied on points 0.001 to 0.01 apart being
+        one. Read within the default, the 79 864 parts of a Tekla model came out closed; a face further out of flat than
+        a thousandth comes as triangles on its own corners.
+      - For a part's net body, GeoSolid3.TrySubtractAll with SolidBooleanOptions, a Contact of a hundredth and a Fallback
+        of a hundredth: Tekla Structures draws parts a few thousandths into or off each other, and within a thousandth
+        alone a part keeps a skin of itself where a cutter's face stood that far inside its own.
+
       NEW IN 10.0.0
       - GeometryHelper.TeklaConvert reads as before: it is released at 10.0.0 with GeometryHelper, which BREAKS code
         that measures a body: GeoSolid3.Volume, SurfaceArea and Centroid are GetVolume(), GetSurfaceArea() and

@@ -19,6 +19,14 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 11.0.0
+      - GeometryHelper.IfcConvert is released at 11.0.0 with GeometryHelper, whose default tolerance is a thousandth of
+        a millimetre now, where it was a hundredth: this BREAKS code that relied on points 0.001 to 0.01 apart being one.
+        Read within the default, both IFC models of steelwork it was measured on came out closed, 141 464 and 129 403
+        bodies, the second with 7 of its products warned of with their openings cut, where within a hundredth 12 were.
+      - The openings the geometry engine cannot cut are cut by GeometryHelper's booleans, which close more of their
+        results now.
+
       NEW IN 10.0.0
       - GeometryHelper.IfcConvert reads as before: it is released at 10.0.0 with GeometryHelper, which BREAKS code that
         measures a body: GeoSolid3.Volume, SurfaceArea and Centroid are GetVolume(), GetSurfaceArea() and GetCentroid()
