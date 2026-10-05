@@ -92,10 +92,11 @@ namespace GeometryHelper
         /// <para>
         /// The corners of the edges left open are welded within the point tolerance first, then within twice it, four times,
         /// and so on while below this, and within this last, the first reach that closes the body taken: a corner moves no
-        /// further than it has to. The corners of edges the body closes along stay where they are, so that a slot cut thinner
-        /// than this stays a slot. A corner standing within the reach of an edge left open of another face, between
-        /// its ends, is put on that edge: where the crack between them lies in the plane of the corner's face, the corner is
-        /// moved onto the edge within that plane, and otherwise the edge is bent through the corner where it stands.
+        /// further than it has to. The corners of edges the body closes along stay where they are, and two corners of one face
+        /// are never made one, so that a slot cut thinner than this stays a slot. Only where no reach of welds alone closes
+        /// the body is a corner standing within the reach of an edge left open of another face, between its ends, put on that
+        /// edge, through the same reaches again: where the crack between them lies in the plane of the corner's face, the
+        /// corner is moved onto the edge within that plane, and otherwise the edge is bent through the corner where it stands.
         /// </para>
         /// <para>
         /// A corner is put within the reach of an edge as the edge was, not of the pieces another corner put on it leaves: a

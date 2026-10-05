@@ -25,9 +25,10 @@ namespace GeometryHelper.Geometry
         /// Each step is taken only where the ones before it did not close the body. Faces with no area, a face given twice
         /// and the two of a sheet lying back to back inside the body are dropped, and faces turned over so that each shell
         /// is wound alike and outwards. An open edge past a fin stops the closing. Corners standing apart across a gap are
-        /// made one and corners standing off an edge left open put on it, within the point tolerance, then twice it, four
-        /// times, and so on up to <see cref="SolidClosingOptions.MaxGap"/>; no reach is taken that runs a ring out to a corner
-        /// and straight back, or lays a face back to back with another. What is left open is followed round into loops: a
+        /// made one within the point tolerance, then twice it, four times, and so on up to
+        /// <see cref="SolidClosingOptions.MaxGap"/>, and where that closes nothing, the same again with corners standing off an
+        /// edge left open put on it; no reach is taken that runs a ring out to a corner and straight back, or lays a face back
+        /// to back with another. What is left open is followed round into loops: a
         /// flat hole is filled by one face, and one a little out of flat by triangles, where the options allow. What comes of
         /// it is checked: valid within the tolerance, no face added crossing one the body had, and the volume the welds moved
         /// no more than the reach times the area they touched.

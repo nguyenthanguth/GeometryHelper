@@ -332,7 +332,10 @@ namespace GeometryHelper.Core
         /// alike run such a stretch one each way, and where they run it the same way, one of them is to be turned over. Of
         /// the two sides that leaves in a shell, the one of less area is turned: the least change that winds the shell
         /// alike, the side of its first face staying where the two are as large. Where the stretches ask a face to be turned
-        /// both ways, the shell cannot be wound alike: a surface with one side only.
+        /// both ways, the shell cannot be wound alike: a surface with one side only. Only stretches longer than the widest gap
+        /// are read so: on a prism of a thousand sides each face on copies of its corners a thousandth or two apart, the
+        /// bottom edges of two sides beside a corner run on so nearly straight that their copies come within the tolerance of
+        /// one line for a thousandth or two, both running it the same way, and read so, they would turn a side over.
         /// </para>
         /// <para>
         /// Then the volume each shell encloses says which way it faces, each shell on its own: the faces of two shells, one
@@ -359,9 +362,18 @@ namespace GeometryHelper.Core
             }
 
             var live = new List<int>(4);
+            double shortest = work.Options.MaxGap;
 
             foreach (Stretch stretch in work.Stretches)
             {
+                // A stretch no longer than the widest gap says nothing of which way its faces face: copies of the edges of
+                // two faces beside a corner, run on nearly straight, come within the tolerance of one line for a hair, both
+                // running it the same way, and are a piece of a gap for the welding.
+                if (!(stretch.Start.DistanceTo(stretch.End) > shortest))
+                {
+                    continue;
+                }
+
                 live.Clear();
 
                 for (int r = 0; r < stretch.Faces.Length; r++)

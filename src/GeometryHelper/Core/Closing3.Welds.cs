@@ -14,9 +14,10 @@ namespace GeometryHelper.Core
         private const double Hair = 1E-9;
 
         /// <summary>
-        /// Welds shut the gaps a body is open by: the corners across each made one, and the corners standing on edges left
-        /// open put on them, within the point tolerance, then twice it, four times and so on while below the widest gap,
-        /// and the widest gap last, the first reach that makes the body valid taken.
+        /// Welds shut the gaps a body is open by: the corners across each made one, within the point tolerance, then twice
+        /// it, four times and so on while below the widest gap, and the widest gap last, the first reach that makes the body
+        /// valid taken; and where no reach of welds alone does, the same again with the corners standing off edges left open
+        /// put on them as well.
         /// </summary>
         /// <param name="work">The work.</param>
         /// <param name="faces">The faces of the body as the steps before left it; on return, as this step leaves them.</param>
@@ -34,9 +35,19 @@ namespace GeometryHelper.Core
         /// them stands 0.0015 off, would be made one within a tenth, and the corner is welded within two thousandths.
         /// </para>
         /// <para>
+        /// A corner put back onto the corner it was moved off is the change the faces round it want, and it is tried at
+        /// every reach before any corner is put on an edge: a corner of the top of a prism half a degree sharp, moved 0.003
+        /// into it, stands within a thousandth of both sides there, and put on both it closes the prism by a seam of no width
+        /// from the sides' corner to it, where welding it back closes it as it was; a strip 0.03 wide missing from a top has
+        /// its corners on the edges of the faces beside it, and welding its corners across it closes it, the edges beside it
+        /// split for nothing.
+        /// </para>
+        /// <para>
         /// Where no reach makes the body valid, the least reach that leaves the fewest sides of gaps is kept for the steps
-        /// after, the first that leaves none, holes still open, ending the search; and a gap left is wider than the widest
-        /// allowed: <see cref="ClosingFailure.GapTooWide"/>, where it is widest. A body open by holes only is not welded.
+        /// after, the first that leaves none, holes still open, ending the search. A fin left on what is kept, a stretch more
+        /// than two faces run that the welding was to make one, is <see cref="ClosingFailure.NonManifold"/>; a gap left is
+        /// wider than the widest allowed, <see cref="ClosingFailure.GapTooWide"/>, where it is widest. A body open by holes
+        /// only is not welded.
         /// </para>
         /// </remarks>
         private static bool TryWeldGaps(Work work, ref List<GeoFace3> faces, ref List<Rim> rims, out GeoSolid3 closed, out SolidClosing3 report)
@@ -50,8 +61,6 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            Welded best = null;
-
             // Only corners near the edges left open move: the rest of the body is closed as it is. An edge open along a
             // stretch of it is open, its corners as well as the stretch's.
             var ends = new List<GeoPoint3>(4 * rims.Count);
@@ -64,30 +73,36 @@ namespace GeometryHelper.Core
                 ends.Add(rim.EdgeEnd);
             }
 
-            foreach (double reach in Reaches(work.Tolerance.EqualPoint, work.Options.MaxGap))
+            List<double> reaches = Reaches(work.Tolerance.EqualPoint, work.Options.MaxGap);
+            Welded best = null;
+
+            for (int pass = 0; pass < 2 && (best == null || best.Gaps > 0); pass++)
             {
-                Welded welded = WeldWithin(work, faces, ends, reach);
-
-                if (welded == null)
+                foreach (double reach in reaches)
                 {
-                    continue;
-                }
+                    Welded welded = WeldWithin(work, faces, rims, ends, reach, pass == 1);
 
-                if (welded.Check.IsValid)
-                {
-                    work.Repairs.AddRange(welded.Repairs);
-                    closed = welded.Body;
-                    report = new SolidClosing3(work.Repairs.ToArray(), work.AddedArea, VolumeChange(work.Solid, closed), ClosingFailure.None, null);
-                    return true;
-                }
-
-                if (welded.Rims != null && welded.Gaps < (best == null ? gaps : best.Gaps))
-                {
-                    best = welded;
-
-                    if (best.Gaps == 0)
+                    if (welded == null)
                     {
-                        break;
+                        continue;
+                    }
+
+                    if (welded.IsValid)
+                    {
+                        work.Repairs.AddRange(welded.Repairs);
+                        closed = welded.Body;
+                        report = new SolidClosing3(work.Repairs.ToArray(), work.AddedArea, VolumeChange(work.Solid, closed), ClosingFailure.None, null);
+                        return true;
+                    }
+
+                    if (welded.Gaps < (best == null ? gaps : best.Gaps))
+                    {
+                        best = welded;
+
+                        if (best.Gaps == 0)
+                        {
+                            break;
+                        }
                     }
                 }
             }
@@ -96,9 +111,18 @@ namespace GeometryHelper.Core
             {
                 work.Repairs.AddRange(best.Repairs);
                 work.Current = best.Body;
-                work.CurrentCheck = best.Check;
+                work.CurrentCheck = best.Body.Validate(work.Tolerance);
                 faces = best.Faces;
                 rims = best.Rims;
+            }
+
+            foreach (Rim rim in rims)
+            {
+                if (rim.IsFin)
+                {
+                    work.Refuse(ClosingFailure.NonManifold, rim.From.GetMiddlePoint(rim.To));
+                    return false;
+                }
             }
 
             GeoPoint3? widest = WidestGap(rims);
@@ -134,30 +158,95 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Welds the corners of the edges a body's faces leave open within a reach, and puts those standing on edges left
-        /// open on them; null where nothing comes of it, or what comes of it cannot be taken.
+        /// Welds the corners of the edges a body's faces leave open within a reach, as <see cref="WeldOnce"/> does, and again
+        /// with the corners of any edge the welds opened that read closed before, until they open no more, eight times at
+        /// the most; null where nothing comes of it, or what comes of it cannot be taken.
         /// </summary>
         /// <param name="work">The work.</param>
         /// <param name="faces">The faces of the body.</param>
+        /// <param name="rims">The edges they leave open.</param>
         /// <param name="ends">The corners of the edges they leave open, as the check matches edges.</param>
         /// <param name="reach">The reach.</param>
+        /// <param name="onEdges">Whether corners standing off edges left open are put on them, after the welds.</param>
+        /// <returns>The body welded, as the last round that came to anything left it.</returns>
+        /// <remarks>
+        /// Copies of a corner a hair apart whose edges lie within the tolerance of each other's lines read closed, and stay
+        /// where they are; but welded, the corners beside them can turn those edges off each other's lines. On a prism of a
+        /// thousand sides, each face on copies of its corners a thousandth or two apart, the copies of a corner of the top
+        /// read closed until the corner 0.06 along the top from them was welded, and open after: their corners are taken
+        /// with the rest, and the reach welded again.
+        /// </remarks>
+        private static Welded WeldWithin(Work work, List<GeoFace3> faces, List<Rim> rims, List<GeoPoint3> ends, double reach, bool onEdges)
+        {
+            var open = new HashSet<GeoPoint3>(ends);
+            List<GeoPoint3> taken = ends;
+            Welded last = null;
+
+            for (int round = 0; round < 8; round++)
+            {
+                Welded welded = WeldOnce(work, faces, rims, taken, reach, onEdges);
+
+                if (welded == null)
+                {
+                    return last;
+                }
+
+                if (welded.IsValid)
+                {
+                    return welded;
+                }
+
+                last = welded;
+                List<GeoPoint3> more = null;
+
+                foreach (Rim rim in welded.Rims)
+                {
+                    foreach (GeoPoint3 corner in new[] { rim.From, rim.To, rim.EdgeStart, rim.EdgeEnd })
+                    {
+                        if (open.Add(corner))
+                        {
+                            (more = more ?? new List<GeoPoint3>(taken)).Add(corner);
+                        }
+                    }
+                }
+
+                if (more == null)
+                {
+                    break;
+                }
+
+                taken = more;
+            }
+
+            return last;
+        }
+
+        /// <summary>
+        /// Welds the corners of the edges a body's faces leave open within a reach, and puts those standing off edges left
+        /// open on them where asked; null where nothing comes of it, or what comes of it cannot be taken.
+        /// </summary>
+        /// <param name="work">The work.</param>
+        /// <param name="faces">The faces of the body.</param>
+        /// <param name="rims">The edges they leave open.</param>
+        /// <param name="ends">The corners of the edges they leave open, as the check matches edges.</param>
+        /// <param name="reach">The reach.</param>
+        /// <param name="onEdges">Whether corners standing off edges left open are put on them, after the welds.</param>
         /// <returns>The body welded, valid or not, with what was done to it and the edges it leaves open; null where nothing
-        /// moved, fewer than four faces are left, a ring doubles back, a face lies back to back with another, or the volume
-        /// moved further than allowed.</returns>
+        /// moved, fewer than four faces are left, a ring doubles back, a face lies back to back with another, the volume
+        /// moved further than allowed, or a fin longer than the widest gap is left.</returns>
         /// <remarks>
         /// <para>
-        /// The corners are made one as <see cref="Weld3"/> makes them for the booleans, but only those of edges no ring
-        /// pairs corner for corner that stand within the reach of an edge left open, as the check matches edges, within the
-        /// point tolerance as beyond it: a slot thinner than the gap, closed, stays, and so do corners of a closed body a
-        /// rounding apart far from any gap, as at the pole of a sphere meshed by rings, where welding them changes nothing.
-        /// The corners within the reach of each other,
-        /// however they chain, are a group, and each goes to the corner of it that takes the most of it within the reach and
-        /// of those moves the volume least: a copy of a corner moved in the plane of its own face goes back onto the
-        /// corner the faces beside it keep, and nothing tilts. Then each corner standing within the reach of an edge left
-        /// open, between its ends, is put on it, as the corner where a long edge meets two short ones: moved onto it within
-        /// its own face's plane where the crack lies in that plane, and the edge bent through it otherwise; see
-        /// <see cref="PutCornersOnOpenEdges"/>. A face whose corners moved is built again on them, as triangles on its own
-        /// corners where they no longer lie flat.
+        /// The corners that move are those of edges no ring pairs corner for corner that stand within the reach of an edge
+        /// left open, as the check matches edges, within the point tolerance as beyond it: corners of a closed body a
+        /// rounding apart far from any gap, as at the pole of a sphere meshed by rings, stay where they are. The corners
+        /// within the reach of each other are made one, the nearest two first, and never two corners of one face: a corner
+        /// of a face is no copy of another corner of it, and made one with it, it pinches the face. A slot 0.0035 wide
+        /// beside a gap, its corners across its mouth within the reach of a corner of the gap and on edges no ring pairs
+        /// corner for corner, keeps its mouth so. Each group goes to the corner of it that takes the most of it within the
+        /// reach and of those moves the volume least: a copy of a corner moved in the plane of its own face goes back onto
+        /// the corner the faces beside it keep, and nothing tilts. Then, where asked, each corner standing within the reach
+        /// of an edge left open, between its ends, is put on it; see <see cref="PutCornersOnOpenEdges"/>. A face whose
+        /// corners moved is built again on them, as triangles on its own corners where they no longer lie flat.
         /// </para>
         /// <para>
         /// A ring running out to a corner and straight back is no face, though it reads valid: a corner 0.02 off the corner
@@ -168,8 +257,13 @@ namespace GeometryHelper.Core
         /// reach times their area, each measured from where it was (see <see cref="Swept"/>): a corner moved no further than
         /// the reach sweeps no more.
         /// </para>
+        /// <para>
+        /// What a reach leaves open is read again only where its faces changed, from them and the faces beside them; the
+        /// rest is open as it was (see <see cref="OpenEdgesAfter"/>). The whole body is checked only where nothing is left
+        /// open, so that a reach that closes nothing costs what its faces cost, not what the body does.
+        /// </para>
         /// </remarks>
-        private static Welded WeldWithin(Work work, List<GeoFace3> faces, List<GeoPoint3> ends, double reach)
+        private static Welded WeldOnce(Work work, List<GeoFace3> faces, List<Rim> rims, List<GeoPoint3> ends, double reach, bool onEdges)
         {
             Tolerance tolerance = work.Tolerance;
             double within = reach * (1.0 + Hair);
@@ -190,56 +284,31 @@ namespace GeometryHelper.Core
             }
 
             // The corners that may move: those of edges no ring pairs corner for corner, within the reach of a corner of an
-            // edge left open as the check matches edges. A copy of a corner on edges the check reads closed, within the
-            // tolerance of the copies beside it, moves with them when they are welded, or they would leave it; one far from
-            // anything open, as the corners of a closed body a rounding apart, stays.
-            bool[] unpaired = Weld3.Loose(rings);
+            // edge left open as the check matches edges.
+            bool[] unpaired = Unpaired(rings, points.Count);
             bool[] near = NearOpenEdges(points, ends, within);
             var weldable = new bool[points.Count];
+            bool any = false;
 
             for (int i = 0; i < weldable.Length; i++)
             {
-                weldable[i] = near[i] && i < unpaired.Length && unpaired[i];
+                weldable[i] = near[i] && unpaired[i];
+                any |= weldable[i];
             }
 
-            var loose = (bool[])weldable.Clone();
-
-            // Within the tolerance first, then within the reach those still on edges no ring pairs.
-            double first = Math.Min(within, tolerance.EqualPoint * (1.0 + Hair));
-            int[] target = new int[points.Count];
-
-            for (int i = 0; i < target.Length; i++)
+            if (!any)
             {
-                target[i] = i;
+                return null;
             }
 
-            if (first > 0.0)
-            {
-                target = Weld3.Representatives(points, corners, first, loose);
-                CollapseAll(rings, target);
-            }
-
-            if (within > first)
-            {
-                bool[] still = Weld3.Loose(rings);
-
-                for (int i = 0; i < loose.Length; i++)
-                {
-                    loose[i] &= i < still.Length && still[i];
-                }
-
-                int[] wider = Weld3.Representatives(points, corners, within, loose);
-                CollapseAll(rings, wider);
-
-                for (int i = 0; i < target.Length; i++)
-                {
-                    target[i] = wider[target[i]];
-                }
-            }
+            int[] target = Weldings(points, FacesOfCorners(rings, weldable), corners, within, weldable);
+            CollapseAll(rings, target);
 
             // The welds as they were made, before any corner is put on an edge.
             List<SolidRepair3> repairs = WeldRepairs(points, target);
-            bool[] cornered = PutCornersOnOpenEdges(rings, points, within, weldable, faces, tolerance, repairs);
+            bool[] cornered = onEdges
+                ? PutCornersOnOpenEdges(rings, points, within, weldable, faces, tolerance, repairs)
+                : new bool[faces.Count];
 
             if (HasNeedle(rings, points, tolerance.EqualPoint))
             {
@@ -248,8 +317,8 @@ namespace GeometryHelper.Core
 
             var built = new List<GeoFace3>(faces.Count);
             var fresh = new List<bool>(faces.Count);
+            var changed = new List<GeoAabb3>();
             Tolerance pieces = LoopAssembly.ForPieces(tolerance);
-            bool changed = false;
             double touched = 0.0;
             double swept = 0.0;
 
@@ -264,8 +333,8 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                changed = true;
                 touched += faces[f].Area;
+                changed.Add(faces[f].GetAabb());
 
                 // A face whose corners came to fewer than three points covered nothing within the reach; the faces beside it
                 // meet along its edges without it.
@@ -282,42 +351,479 @@ namespace GeometryHelper.Core
                 {
                     built.Add(piece);
                     fresh.Add(true);
+                    changed.Add(piece.GetAabb());
                 }
             }
 
             // A face built again lying back to back with another is a skin of no thickness: a face folded under the one beside
             // it, where a corner of that one was threaded through it.
-            if (!changed || built.Count < 4 || swept > within * touched || HasSkin(built, fresh, tolerance, out _))
+            if (changed.Count == 0 || built.Count < 4 || swept > within * touched || HasSkin(built, fresh, tolerance, out _))
+            {
+                return null;
+            }
+
+            List<Rim> left = OpenEdgesAfter(built, fresh, changed, rims, tolerance, work.Options.MaxGap);
+
+            if (left == null)
             {
                 return null;
             }
 
             var body = new GeoSolid3(built, work.Solid.Openings);
-            SolidValidation3 check = body.Validate(tolerance);
-            List<Rim> left = null;
-            int gaps = 0;
 
-            if (check.IsValid && NeedleAt(built, tolerance.EqualPoint, out _))
+            // Nothing left open: the body is checked whole, the volume and all, and taken where it is valid with no ring
+            // doubling back.
+            bool valid = left.Count == 0 && body.Validate(tolerance).IsValid;
+
+            if (valid && NeedleAt(built, tolerance.EqualPoint, out _))
             {
                 return null;
             }
 
-            // A body still open says what it leaves open; one with a fin on an open edge leaves nothing to go on with.
-            if (!check.IsValid)
-            {
-                List<Stretch> stretches = FindStretches(built, new bool[built.Count], tolerance);
+            return new Welded(built, repairs, body, valid, left, Gaps(left));
+        }
 
-                if (TryReadOpenEdges(stretches, null, null, work.Options.MaxGap, out left, out _))
+        /// <summary>
+        /// The edges a body built again leaves open: where its faces changed, read again from the faces reaching there; and
+        /// elsewhere those left open before; null where a fin longer than the widest gap is left.
+        /// </summary>
+        /// <param name="built">The faces of the body built again.</param>
+        /// <param name="fresh">For each, whether it was built again.</param>
+        /// <param name="changed">The boxes of the faces that changed, as they were and as they are.</param>
+        /// <param name="before">The edges left open before.</param>
+        /// <param name="tolerance">The tolerance edges are matched within.</param>
+        /// <param name="maxGap">The widest gap.</param>
+        /// <remarks>
+        /// A stretch of edge lies where its faces' boxes are, and an edge the faces that changed reach is an edge of a face
+        /// whose box meets theirs: the stretches those faces run in the boxes of the faces that changed are the body's
+        /// there, matched as the whole body would match them, and away from them nothing changed. Where many faces changed,
+        /// their boxes are taken together as one.
+        /// </remarks>
+        private static List<Rim> OpenEdgesAfter(List<GeoFace3> built, List<bool> fresh, List<GeoAabb3> changed, List<Rim> before, Tolerance tolerance, double maxGap)
+        {
+            if (changed.Count > 32)
+            {
+                GeoAabb3 all = GeoAabb3.Empty;
+
+                foreach (GeoAabb3 box in changed)
                 {
-                    gaps = Gaps(left);
+                    all = all.Union(box);
                 }
-                else
+
+                changed = new List<GeoAabb3> { all };
+            }
+
+            var local = new List<GeoFace3>();
+
+            for (int f = 0; f < built.Count; f++)
+            {
+                if (fresh[f] || Meets(built[f].GetAabb(), changed, tolerance))
                 {
-                    left = null;
+                    local.Add(built[f]);
                 }
             }
 
-            return new Welded(built, repairs, body, check, left, gaps);
+            List<Stretch> stretches = FindStretches(local, new bool[local.Count], tolerance);
+            var inside = new List<Stretch>(stretches.Count);
+
+            foreach (Stretch stretch in stretches)
+            {
+                if (Holds(changed, stretch.Middle, tolerance))
+                {
+                    inside.Add(stretch);
+                }
+            }
+
+            if (!TryReadOpenEdges(inside, null, null, maxGap, out List<Rim> read, out _))
+            {
+                return null;
+            }
+
+            var left = new List<Rim>(read.Count + before.Count);
+
+            foreach (Rim rim in read)
+            {
+                left.Add(rim.Copy());
+            }
+
+            foreach (Rim rim in before)
+            {
+                if (!Holds(changed, rim.From.GetMiddlePoint(rim.To), tolerance))
+                {
+                    left.Add(rim.Copy());
+                }
+            }
+
+            MarkGaps(left, CrackGaps * maxGap);
+            return left;
+        }
+
+        /// <summary>
+        /// Determines whether a box meets any of some boxes, within a tolerance.
+        /// </summary>
+        /// <param name="box">The box.</param>
+        /// <param name="boxes">The boxes.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        private static bool Meets(GeoAabb3 box, List<GeoAabb3> boxes, Tolerance tolerance)
+        {
+            foreach (GeoAabb3 other in boxes)
+            {
+                if (box.CollidesWith(other, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether any of some boxes holds a point, within a tolerance.
+        /// </summary>
+        /// <param name="boxes">The boxes.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        private static bool Holds(List<GeoAabb3> boxes, GeoPoint3 point, Tolerance tolerance)
+        {
+            foreach (GeoAabb3 box in boxes)
+            {
+                if (box.Contains(point, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// For each corner, whether it is a corner of an edge an odd number of rings run, corner for corner.
+        /// </summary>
+        /// <param name="rings">The rings of each face, by position.</param>
+        /// <param name="count">How many positions there are.</param>
+        private static bool[] Unpaired(List<List<int>>[] rings, int count)
+        {
+            var counts = new Dictionary<long, int>(EdgeKeys.Instance);
+
+            foreach (List<List<int>> faceRings in rings)
+            {
+                foreach (List<int> ring in faceRings)
+                {
+                    for (int i = 0; i < ring.Count; i++)
+                    {
+                        long key = EdgeKey(ring[i], ring[(i + 1) % ring.Count]);
+                        counts[key] = (counts.TryGetValue(key, out int seen) ? seen : 0) + 1;
+                    }
+                }
+            }
+
+            var unpaired = new bool[count];
+
+            foreach (KeyValuePair<long, int> edge in counts)
+            {
+                if (edge.Value % 2 != 0)
+                {
+                    unpaired[(int)(edge.Key >> 32)] = true;
+                    unpaired[(int)(edge.Key & 0xFFFFFFFFL)] = true;
+                }
+            }
+
+            return unpaired;
+        }
+
+        /// <summary>
+        /// The faces each of some corners is a corner of, by index, in order; null for the others.
+        /// </summary>
+        /// <param name="rings">The rings of each face, by position.</param>
+        /// <param name="of">For each position, whether its faces are wanted.</param>
+        private static List<int>[] FacesOfCorners(List<List<int>>[] rings, bool[] of)
+        {
+            var faces = new List<int>[of.Length];
+
+            for (int f = 0; f < rings.Length; f++)
+            {
+                foreach (List<int> ring in rings[f])
+                {
+                    foreach (int id in ring)
+                    {
+                        if (!of[id])
+                        {
+                            continue;
+                        }
+
+                        List<int> these = faces[id] ?? (faces[id] = new List<int>(3));
+
+                        if (these.Count == 0 || these[these.Count - 1] != f)
+                        {
+                            these.Add(f);
+                        }
+                    }
+                }
+            }
+
+            return faces;
+        }
+
+        /// <summary>
+        /// The position each corner is welded to: the corners that may move within the reach of each other made one group,
+        /// the nearest two first and never two corners of one face, and each group going to the corner of it that takes the
+        /// most of it within the reach and of those moves the volume least, the first of those; the rest of a group settled
+        /// the same way among themselves.
+        /// </summary>
+        /// <param name="points">Every corner, by position.</param>
+        /// <param name="faces">The faces each corner that may move is a corner of.</param>
+        /// <param name="corners">The corners each position makes on each ring it is a corner of; see <see cref="Weld3.Positions"/>.</param>
+        /// <param name="reach">The reach.</param>
+        /// <param name="movable">For each position, whether it may move.</param>
+        private static int[] Weldings(List<GeoPoint3> points, List<int>[] faces, List<List<GeoVector3>> corners, double reach, bool[] movable)
+        {
+            int count = points.Count;
+            var to = new int[count];
+            var parent = new int[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                to[i] = i;
+                parent[i] = i;
+            }
+
+            var ids = new List<int>();
+            var cells = new Dictionary<(long, long, long), List<int>>();
+
+            for (int i = 0; i < count; i++)
+            {
+                if (!movable[i])
+                {
+                    continue;
+                }
+
+                ids.Add(i);
+                GeoPoint3 p = points[i];
+                var cell = (CellOf(p.X, reach), CellOf(p.Y, reach), CellOf(p.Z, reach));
+
+                if (!cells.TryGetValue(cell, out List<int> filed))
+                {
+                    filed = new List<int>();
+                    cells.Add(cell, filed);
+                }
+
+                filed.Add(i);
+            }
+
+            double reachSquared = reach * reach;
+            var pairs = new List<(double Squared, int A, int B)>();
+
+            foreach (int a in ids)
+            {
+                GeoPoint3 p = points[a];
+                long x = CellOf(p.X, reach), y = CellOf(p.Y, reach), z = CellOf(p.Z, reach);
+
+                for (long dx = -1; dx <= 1; dx++)
+                {
+                    for (long dy = -1; dy <= 1; dy++)
+                    {
+                        for (long dz = -1; dz <= 1; dz++)
+                        {
+                            if (!cells.TryGetValue((x + dx, y + dy, z + dz), out List<int> filed))
+                            {
+                                continue;
+                            }
+
+                            foreach (int b in filed)
+                            {
+                                double squared = SquaredDistance(p, points[b]);
+
+                                if (b > a && squared <= reachSquared)
+                                {
+                                    pairs.Add((squared, a, b));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            pairs.Sort((p, q) =>
+            {
+                int bySquared = p.Squared.CompareTo(q.Squared);
+
+                if (bySquared != 0)
+                {
+                    return bySquared;
+                }
+
+                int byA = p.A.CompareTo(q.A);
+                return byA != 0 ? byA : p.B.CompareTo(q.B);
+            });
+
+            // The faces of the corners of each group, by its root.
+            var faceSets = new Dictionary<int, HashSet<int>>();
+
+            HashSet<int> FacesOf(int root)
+            {
+                if (!faceSets.TryGetValue(root, out HashSet<int> set))
+                {
+                    set = new HashSet<int>(faces[root] ?? new List<int>());
+                    faceSets.Add(root, set);
+                }
+
+                return set;
+            }
+
+            foreach ((double _, int a, int b) in pairs)
+            {
+                int ra = Find(parent, a);
+                int rb = Find(parent, b);
+
+                if (ra == rb)
+                {
+                    continue;
+                }
+
+                HashSet<int> fa = FacesOf(ra);
+                HashSet<int> fb = FacesOf(rb);
+
+                if (fa.Overlaps(fb))
+                {
+                    continue;
+                }
+
+                int low = Math.Min(ra, rb);
+                int high = Math.Max(ra, rb);
+                parent[high] = low;
+                HashSet<int> kept = low == ra ? fa : fb;
+                kept.UnionWith(low == ra ? fb : fa);
+                faceSets[low] = kept;
+                faceSets.Remove(high);
+            }
+
+            // The groups, each in the order of its corners, in the order of their first corners.
+            var groups = new Dictionary<int, List<int>>();
+            var roots = new List<int>();
+
+            foreach (int id in ids)
+            {
+                int root = Find(parent, id);
+
+                if (!groups.TryGetValue(root, out List<int> members))
+                {
+                    members = new List<int>();
+                    groups.Add(root, members);
+                    roots.Add(root);
+                }
+
+                members.Add(id);
+            }
+
+            foreach (int root in roots)
+            {
+                List<int> left = groups[root];
+
+                while (left.Count > 1)
+                {
+                    int chosen = left[0];
+                    int mostTaken = -1;
+                    double leastMoved = double.MaxValue;
+
+                    foreach (int candidate in left)
+                    {
+                        Weigh(candidate, left, points, corners, reachSquared, out int taken, out double moved);
+
+                        if (taken > mostTaken || (taken == mostTaken && moved < leastMoved))
+                        {
+                            chosen = candidate;
+                            mostTaken = taken;
+                            leastMoved = moved;
+                        }
+                    }
+
+                    var rest = new List<int>();
+
+                    foreach (int m in left)
+                    {
+                        if (SquaredDistance(points[m], points[chosen]) <= reachSquared)
+                        {
+                            to[m] = chosen;
+                        }
+                        else
+                        {
+                            rest.Add(m);
+                        }
+                    }
+
+                    left = rest;
+                }
+            }
+
+            return to;
+        }
+
+        /// <summary>
+        /// How many corners of a group stand within the reach of one of them, and how far moving those to it moves the
+        /// volume, to the first order: each corner a point makes, its triangle's area times how far it moves off it, as
+        /// <see cref="Weld3"/> weighs it.
+        /// </summary>
+        /// <param name="candidate">The corner, by position.</param>
+        /// <param name="group">The group.</param>
+        /// <param name="points">Every corner, by position.</param>
+        /// <param name="corners">The corners each position makes on each ring it is a corner of.</param>
+        /// <param name="reachSquared">The square of the reach.</param>
+        /// <param name="taken">How many stand within the reach of it, itself included.</param>
+        /// <param name="moved">How far moving them moves the volume.</param>
+        private static void Weigh(int candidate, List<int> group, List<GeoPoint3> points, List<List<GeoVector3>> corners, double reachSquared, out int taken, out double moved)
+        {
+            taken = 0;
+            moved = 0.0;
+            GeoPoint3 onto = points[candidate];
+
+            foreach (int m in group)
+            {
+                if (SquaredDistance(points[m], onto) > reachSquared)
+                {
+                    continue;
+                }
+
+                taken++;
+
+                if (m == candidate)
+                {
+                    continue;
+                }
+
+                GeoVector3 shift = points[m].GetVectorTo(onto);
+
+                foreach (GeoVector3 corner in corners[m])
+                {
+                    moved += Math.Abs(shift.DotProduct(corner));
+                }
+            }
+        }
+
+        /// <summary>
+        /// The square of the distance between two points.
+        /// </summary>
+        /// <param name="a">The one point.</param>
+        /// <param name="b">The other.</param>
+        private static double SquaredDistance(GeoPoint3 a, GeoPoint3 b)
+        {
+            double dx = a.X - b.X, dy = a.Y - b.Y, dz = a.Z - b.Z;
+            return dx * dx + dy * dy + dz * dz;
+        }
+
+        /// <summary>
+        /// Hashes the key of an edge between two positions so that edges between neighbouring positions spread: the key's
+        /// own hash folds its two halves together, and the edges of a ring from one position to the next fold to a few.
+        /// </summary>
+        private sealed class EdgeKeys : IEqualityComparer<long>
+        {
+            /// <summary>Gets the one instance.</summary>
+            internal static EdgeKeys Instance { get; } = new EdgeKeys();
+
+            /// <inheritdoc/>
+            public bool Equals(long x, long y) => x == y;
+
+            /// <inheritdoc/>
+            public int GetHashCode(long key) => unchecked((int)(((ulong)key * 0x9E3779B97F4A7C15UL) >> 32));
         }
 
         /// <summary>
@@ -440,7 +946,7 @@ namespace GeometryHelper.Core
         private static bool[] PutCornersOnOpenEdges(List<List<int>>[] rings, List<GeoPoint3> points, double reach, bool[] open, List<GeoFace3> faces, Tolerance tolerance, List<SolidRepair3> repairs)
         {
             var cornered = new bool[rings.Length];
-            var counts = new Dictionary<long, int>();
+            var counts = new Dictionary<long, int>(EdgeKeys.Instance);
 
             foreach (List<List<int>> faceRings in rings)
             {
@@ -727,6 +1233,11 @@ namespace GeometryHelper.Core
         /// <param name="to">The position it ends at.</param>
         /// <param name="sorted">The corners to look among, sorted along each axis.</param>
         /// <param name="reach">The reach.</param>
+        /// <remarks>
+        /// A corner within the point tolerance of the edge is put on it too: its own edges need not run along the edge, as
+        /// where the top of a prism has more corners than its sides, a side's corner 0.0006 off the top's edge, and the top's
+        /// edge split there is what pairs it with the sides' edges.
+        /// </remarks>
         private static List<int> CornersOnEdge(List<GeoPoint3> points, int from, int to, int[][] sorted, double reach)
         {
             GeoPoint3 start = points[from];
@@ -1023,15 +1534,15 @@ namespace GeometryHelper.Core
             /// <param name="faces">The faces.</param>
             /// <param name="repairs">What was done, in order.</param>
             /// <param name="body">The body of the faces.</param>
-            /// <param name="check">What <see cref="GeoSolid3.Validate(Tolerance)"/> found of it.</param>
-            /// <param name="rims">The edges it leaves open; null where it is valid, or a fin stands on one.</param>
+            /// <param name="valid">Whether the body is valid, as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, with no ring doubling back.</param>
+            /// <param name="rims">The edges it leaves open; none where it is valid.</param>
             /// <param name="gaps">How many of them are sides of gaps.</param>
-            internal Welded(List<GeoFace3> faces, List<SolidRepair3> repairs, GeoSolid3 body, SolidValidation3 check, List<Rim> rims, int gaps)
+            internal Welded(List<GeoFace3> faces, List<SolidRepair3> repairs, GeoSolid3 body, bool valid, List<Rim> rims, int gaps)
             {
                 Faces = faces;
                 Repairs = repairs;
                 Body = body;
-                Check = check;
+                IsValid = valid;
                 Rims = rims;
                 Gaps = gaps;
             }
@@ -1045,10 +1556,10 @@ namespace GeometryHelper.Core
             /// <summary>Gets the body of the faces.</summary>
             internal GeoSolid3 Body { get; }
 
-            /// <summary>Gets what <see cref="GeoSolid3.Validate(Tolerance)"/> found of it.</summary>
-            internal SolidValidation3 Check { get; }
+            /// <summary>Gets whether the body is valid, with no ring doubling back.</summary>
+            internal bool IsValid { get; }
 
-            /// <summary>Gets the edges it leaves open; null where it is valid, or a fin stands on one.</summary>
+            /// <summary>Gets the edges it leaves open; none where it is valid.</summary>
             internal List<Rim> Rims { get; }
 
             /// <summary>Gets how many of them are sides of gaps.</summary>

@@ -507,5 +507,178 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         #endregion
+
+        #region Bodies with faces left out, for filling
+
+        /// <summary>A body with some of its faces left out, by their index, its openings kept.</summary>
+        internal static GeoSolid3 WithoutFaces(GeoSolid3 body, params int[] faces)
+            => new GeoSolid3(body.Faces.Where((face, i) => Array.IndexOf(faces, i) < 0), body.Openings);
+
+        /// <summary>
+        /// The corners of the box of the damaged bodies turned about the vertical through the origin by an angle, in radians,
+        /// and then moved: corners that a point found along an edge between two of them lands on only to a rounding.
+        /// </summary>
+        internal static GeoPoint3[] TurnedCorners(double angle, GeoVector3 by)
+        {
+            double cos = Math.Cos(angle);
+            double sin = Math.Sin(angle);
+            return Corners().Select(p => new GeoPoint3(p.X * cos - p.Y * sin, p.X * sin + p.Y * cos, p.Z).Add(by)).ToArray();
+        }
+
+        #endregion
+
+        #region Bodies for checking the welding
+
+        /// <summary>
+        /// A prism 10 high over a triangle whose corner at the origin is as sharp as given, in degrees, its other corners at
+        /// (30, 0) and up x = 30, with the top's copy of the sharp corner moved along the corner's bisector, into the
+        /// triangle or out of it.
+        /// </summary>
+        internal static GeoSolid3 SharpPrism(double degrees, double move, bool inward)
+        {
+            double half = degrees * Math.PI / 360.0;
+            var plan = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0), new GeoPoint3(30, 30 * Math.Tan(2.0 * half), 0) };
+            var bisector = new GeoVector3(Math.Cos(half), Math.Sin(half), 0);
+            return PrismWithTopCornerMoved(plan, 0, 10, 0, bisector.Multiply(inward ? move : -move));
+        }
+
+        /// <summary>
+        /// The plate with a hole through it, the top's copy of the hole's corner over (10, 10) moved into the plate along
+        /// the diagonal.
+        /// </summary>
+        internal static GeoSolid3 PlateWithItsHoleCornerMoved(double by)
+        {
+            List<GeoFace3> faces = PlateWithAHole().Faces.ToList();
+            GeoPoint3[] hole = Corners(10, 10, 0, 20, 20, 10);
+            hole[4] = hole[4].Add(new GeoVector3(-1, -1, 0).Multiply(by / Math.Sqrt(2.0)));
+            faces[1] = new GeoFace3(Loop(Corners(0, 0, 0, 30, 30, 10), BoxLoops[Top]), new[] { Loop(hole, BoxLoops[Top]) }, Fine);
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The box with its top in two, a strip as wide as given missing between them along y, its middle at x = 15.
+        /// </summary>
+        internal static GeoSolid3 BoxWithAStripOfTheTopMissing(double width)
+        {
+            List<GeoFace3> faces = BoxFaces(Corners());
+            double a = 15 - width / 2, b = 15 + width / 2;
+            faces[Top] = Face(new GeoPoint3(0, 0, 10), new GeoPoint3(a, 0, 10), new GeoPoint3(a, 20, 10), new GeoPoint3(0, 20, 10));
+            faces.Add(Face(new GeoPoint3(b, 0, 10), new GeoPoint3(30, 0, 10), new GeoPoint3(30, 20, 10), new GeoPoint3(b, 20, 10)));
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The prism over <see cref="SlottedPlan"/> with the slot's wall at x = 15 and the width split in two at y = 15, its
+        /// corners there lying on the top's and the bottom's long edges, closed along them and paired with no corner of
+        /// theirs; and the top's copy of the corner at the slot's mouth, (15, 20), moved out of the slot by as much as given.
+        /// </summary>
+        internal static GeoSolid3 SlotOfSplitFacesWithItsMouthMoved(double width, double by)
+        {
+            GeoPoint3[] plan = SlottedPlan(width);
+            List<GeoFace3> faces = Prism(plan, 0, 10).Faces.ToList();
+
+            if (by > 0.0)
+            {
+                GeoVector3 move = new GeoVector3(-1, 1, 0).Multiply(by / Math.Sqrt(2.0));
+                faces[1] = Face(plan.Select((p, i) => new GeoPoint3(p.X, p.Y, 10).Add(i == 6 ? move : GeoVector3.Zero)).ToArray());
+            }
+
+            double x = 15 + width;
+            faces[5] = Face(new GeoPoint3(x, 20, 0), new GeoPoint3(x, 15, 0), new GeoPoint3(x, 15, 10), new GeoPoint3(x, 20, 10));
+            faces.Add(Face(new GeoPoint3(x, 15, 0), new GeoPoint3(x, 10, 0), new GeoPoint3(x, 10, 10), new GeoPoint3(x, 15, 10)));
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// A prism over a polygon of as many sides as given round a circle, upright, every face on copies of corners of its
+        /// own, each moved in the face's plane by a random vector no longer than given: where the sides are many, the edges
+        /// beside a corner run on nearly straight, and copies of them come within the tolerance of each other's lines.
+        /// </summary>
+        internal static GeoSolid3 PrismOfMovedCopies(int sides, double radius, double height, double most, int seed)
+        {
+            var random = new Random(seed);
+
+            GeoPoint3 At(int i, double z)
+            {
+                double angle = 2.0 * Math.PI * (i % sides) / sides;
+                return new GeoPoint3(radius * Math.Cos(angle), radius * Math.Sin(angle), z);
+            }
+
+            GeoPoint3 Moved(GeoPoint3 p, GeoVector3 u, GeoVector3 v)
+            {
+                double angle = 2.0 * Math.PI * random.NextDouble(), length = most * random.NextDouble();
+                return p.Add(u.Multiply(length * Math.Cos(angle) / u.Length)).Add(v.Multiply(length * Math.Sin(angle) / v.Length));
+            }
+
+            var faces = new List<GeoFace3>();
+
+            for (int i = 0; i < sides; i++)
+            {
+                GeoPoint3 a = At(i, 0), b = At(i + 1, 0), c = At(i + 1, height), d = At(i, height);
+                GeoVector3 u = a.GetVectorTo(b), v = a.GetVectorTo(d);
+                faces.Add(Face(Moved(a, u, v), Moved(b, u, v), Moved(c, u, v), Moved(d, u, v)));
+            }
+
+            faces.Add(Face(Enumerable.Range(0, sides).Reverse().Select(i => Moved(At(i, 0), GeoVector3.XAxis, GeoVector3.YAxis)).ToArray()));
+            faces.Add(Face(Enumerable.Range(0, sides).Select(i => Moved(At(i, height), GeoVector3.XAxis, GeoVector3.YAxis)).ToArray()));
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The box with the top, the right and the back each on a copy of its own of the corner over (30, 20), each moved in
+        /// its face's plane, every two of the copies as far apart as given.
+        /// </summary>
+        internal static GeoSolid3 ThreeCopiesOfACorner(double apart)
+        {
+            GeoPoint3[] c = Corners();
+            List<GeoFace3> faces = BoxFaces(c);
+
+            // Each copy moved as far as given along a diagonal of its face, the three diagonals at 60 degrees to each other:
+            // every two of the copies then stand that far apart.
+            GeoPoint3[] Moved(GeoVector3 along)
+            {
+                var m = (GeoPoint3[])c.Clone();
+                m[6] = m[6].Add(along.Multiply(apart / along.Length));
+                return m;
+            }
+
+            faces[Top] = Face(Moved(new GeoVector3(1, 1, 0)), BoxLoops[Top]);
+            faces[Right] = Face(Moved(new GeoVector3(0, 1, 1)), BoxLoops[Right]);
+            faces[Back] = Face(Moved(new GeoVector3(1, 0, 1)), BoxLoops[Back]);
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The corners of the box of the damaged bodies turned about an axis through the origin by an angle, in radians, and
+        /// then moved.
+        /// </summary>
+        internal static GeoPoint3[] RotatedCorners(GeoVector3 axis, double angle, GeoVector3 by)
+        {
+            GeoVector3 k = axis.Multiply(1.0 / axis.Length);
+            double cos = Math.Cos(angle), sin = Math.Sin(angle);
+
+            return Corners().Select(p =>
+            {
+                var v = new GeoVector3(p.X, p.Y, p.Z);
+                GeoVector3 r = v.Multiply(cos).Add(k.CrossProduct(v).Multiply(sin)).Add(k.Multiply(k.DotProduct(v) * (1.0 - cos)));
+                return new GeoPoint3(r.X, r.Y, r.Z).Add(by);
+            }).ToArray();
+        }
+
+        /// <summary>
+        /// A box on given corners, the top's copy of corner 6 moved in the top's plane away from corner 4 by as much as given.
+        /// </summary>
+        internal static GeoSolid3 BoxWithTopCornerMovedAway(GeoPoint3[] corners, double by)
+        {
+            List<GeoFace3> faces = BoxFaces(corners);
+            var moved = (GeoPoint3[])corners.Clone();
+            GeoVector3 away = corners[4].GetVectorTo(corners[6]);
+            moved[6] = moved[6].Add(away.Multiply(by / away.Length));
+            faces[Top] = Face(moved, BoxLoops[Top]);
+            return new GeoSolid3(faces);
+        }
+
+        #endregion
+
     }
 }

@@ -20,15 +20,17 @@ namespace GeometryHelper.Core
     /// welding, and of the filling only its refusal of a hole where no fill is allowed. The faces are cleaned: those
     /// covering nothing within the tolerance dropped, a face given twice taken once, and of a face and a copy of it lying
     /// back to back, the one wound against the faces round it dropped. They are turned so that each shell is wound alike
-    /// and outwards, a shell inside another inwards, as a cavity. An edge left open past a fin, a face standing off the
-    /// surface, stops the closing there. Edges left open running back alongside each other are the two sides of a gap, and
-    /// the whole body is welded shut before any loop of it is read as a hole: corners across the gaps made one and corners
-    /// standing off open edges put on them, moved onto them within their own face's plane where the crack lies there,
-    /// within the least reach that closes the body, up to the widest gap allowed; a gap wider is a gap too wide. No body is
-    /// taken with a ring running out to a corner and straight back, or with a face it was not given lying back to back with
-    /// another: both read valid, and neither is a body. What is left open is followed round into loops, a corner two holes
-    /// meet at stopping the closing there, and a hole stops it where no fill is allowed. Any other body not valid after the
-    /// welding is reported still open.
+    /// and outwards, a shell inside another inwards, as a cavity; only stretches longer than the widest gap say which way a
+    /// face faces. An edge left open past a fin, a face standing off the surface, stops the closing there, where the fin is
+    /// longer than the widest gap; a shorter one is a piece of a gap. Edges left open running back alongside each other are
+    /// the two sides of a gap, and the whole body is welded shut before any loop of it is read as a hole: corners across the
+    /// gaps made one, the nearest first and never two corners of one face, within the least reach that closes the body, up
+    /// to the widest gap allowed; and only where no reach of that closes it, corners standing off open edges put on them as
+    /// well, moved onto them within their own face's plane where the crack lies there. A gap wider is a gap too wide, and a
+    /// fin left after the welding stops the closing. No body is taken with a ring running out to a corner and straight
+    /// back, or with a face it was not given lying back to back with another: both read valid, and neither is a body. What
+    /// is left open is followed round into loops, a corner two holes meet at stopping the closing there, and a hole stops it
+    /// where no fill is allowed. Any other body not valid after the welding is reported still open.
     /// </para>
     /// <para>
     /// Nothing thrown for a reason of the geometry leaves this: a shape the work builds refused by its constructor, or a
@@ -121,6 +123,12 @@ namespace GeometryHelper.Core
             if (TryWeldGaps(work, ref faces, ref rims, out closed, out report))
             {
                 return true;
+            }
+
+            // A piece of a gap more than two faces run, left so after the welding, is a fin.
+            if (work.Failure == ClosingFailure.NonManifold)
+            {
+                return Refused(work, out closed, out report);
             }
 
             // What is left open, followed round into loops.

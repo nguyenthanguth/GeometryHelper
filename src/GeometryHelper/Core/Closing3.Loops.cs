@@ -33,12 +33,20 @@ namespace GeometryHelper.Core
         /// <param name="rims">The edges left open, in the order of the stretches; empty where nothing is open.</param>
         /// <returns>false, the trouble noted, where a fin stands on an edge left open.</returns>
         /// <remarks>
+        /// <para>
         /// A stretch one face runs is open, and the face that would close it runs it the other way. A stretch an odd number
         /// of faces more than one run is open past a fin, a face standing off the surface: which of them a face across it
         /// would close with cannot be told, and a face across the loop round the fin would be the fin again turned over,
         /// two faces back to back that read as closed. So would a stretch run by an even number of faces not as many each
         /// way, after the turning. Either is <see cref="ClosingFailure.NonManifold"/>, at the middle of the stretch, found
         /// before anything is welded or filled.
+        /// </para>
+        /// <para>
+        /// A stretch so run that is no longer than the widest gap is a piece of a gap, and is left to the welding: on a
+        /// prism of a thousand sides each face on copies of its corners a thousandth or two apart, the edges beside a corner
+        /// run on so nearly straight that copies of three of them come within the tolerance of one line for a thousandth or
+        /// two. Such a stretch left after the welding is a fin, and stops the closing there.
+        /// </para>
         /// </remarks>
         private static bool TryReadOpenEdges(Work work, out List<Rim> rims)
         {
@@ -58,10 +66,11 @@ namespace GeometryHelper.Core
         /// <param name="stretches">The stretches the edges of the faces lie along.</param>
         /// <param name="dropped">For each face, whether it is dropped; null where none is.</param>
         /// <param name="turned">For each face, whether it is turned over; null where none is.</param>
-        /// <param name="maxGap">The widest gap, which says how far apart two sides of a gap may be; see <see cref="CrackGaps"/>.</param>
-        /// <param name="rims">The edges left open; empty where nothing is open.</param>
+        /// <param name="maxGap">The widest gap, which says how far apart two sides of a gap may be (see <see cref="CrackGaps"/>),
+        /// and how long a stretch more than two faces run may be and still be left to the welding.</param>
+        /// <param name="rims">The edges left open, those pieces of gaps among them; empty where nothing is open.</param>
         /// <param name="fin">The middle of the first stretch a fin stands on, where there is one; the origin otherwise.</param>
-        /// <returns>false where a fin stands on an edge left open.</returns>
+        /// <returns>false where a fin longer than the widest gap stands on an edge left open.</returns>
         private static bool TryReadOpenEdges(List<Stretch> stretches, bool[] dropped, bool[] turned, double maxGap, out List<Rim> rims, out GeoPoint3 fin)
         {
             rims = new List<Rim>();
@@ -96,8 +105,16 @@ namespace GeometryHelper.Core
 
                 if (count % 2 != 0 ? count > 1 : 2 * forward != count)
                 {
-                    fin = stretch.Middle;
-                    return false;
+                    // A stretch no longer than the widest gap is a piece of a gap the welding is to close: copies of three
+                    // edges running on nearly straight past a corner come within the tolerance of one line for a hair.
+                    if (stretch.Start.DistanceTo(stretch.End) > maxGap)
+                    {
+                        fin = stretch.Middle;
+                        return false;
+                    }
+
+                    rims.Add(new Rim(stretch.Start, stretch.End, (stretch.Start, stretch.End), true));
+                    continue;
                 }
 
                 if (count == 1)
@@ -591,13 +608,25 @@ namespace GeometryHelper.Core
             /// <param name="from">Where a face closing it would run it from: a corner of a face.</param>
             /// <param name="to">Where to: another.</param>
             /// <param name="edge">The corners of the edge of a face it lies along, which may run further than it.</param>
-            internal Rim(GeoPoint3 from, GeoPoint3 to, (GeoPoint3 Start, GeoPoint3 End) edge)
+            /// <param name="fin">Whether it is a stretch more than two faces run, no longer than the widest gap: a piece of a gap,
+            /// run no one way, which the welding is to close.</param>
+            internal Rim(GeoPoint3 from, GeoPoint3 to, (GeoPoint3 Start, GeoPoint3 End) edge, bool fin = false)
             {
                 From = from;
                 To = to;
                 EdgeStart = edge.Start;
                 EdgeEnd = edge.End;
+                IsFin = fin;
+                IsGap = fin;
             }
+
+            /// <summary>Gets whether it is a stretch more than two faces run, no longer than the widest gap.</summary>
+            internal bool IsFin { get; }
+
+            /// <summary>
+            /// Gets the edge as it is, with nothing yet known of what runs beside it.
+            /// </summary>
+            internal Rim Copy() => new Rim(From, To, (EdgeStart, EdgeEnd), IsFin);
 
             /// <summary>Gets where a face closing it would run it from.</summary>
             internal GeoPoint3 From { get; }
