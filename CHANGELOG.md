@@ -58,9 +58,9 @@ where the ones before did not close the body:
 On real parts. The 1 989 parts of a Tekla model, each valid as read, were damaged five ways and closed within a gap of
 0.005, holes of any size filled and up to 0.01 out of flat: with the largest face left out 98.6 % of them closed, with
 a face left out at random 99.9 %, with every face on copies of its own corners moved up to 0.002 in its plane 98.2 %,
-with both of those 92.7 %, 93.6 % under `MinArea`, and with a face turned over every one. That is 9 735 of the 9 945
-bodies, 9 753 under `MinArea`, each valid, none further from the part's volume as read than 13 parts in a million, in
-0.8 milliseconds as a median and 2.4 seconds at most. Of those refused, 104 are `NonManifold`, as where the rim of a
+with both of those 92.7 %, 93.6 % under `MinArea`, and with a face turned over every one. That is 9 736 of the 9 945
+bodies, 9 754 under `MinArea`, each valid, none further from the part's volume as read than 13 parts in a million, in
+0.8 milliseconds as a median and 3 seconds at most. Of those refused, 103 are `NonManifold`, as where the rim of a
 face left out runs twice through one corner, at the foot of an edge where two pieces of a slab meet, and 86 are
 `HoleAmbiguous`, 69 under `MinArea`, as where a face left out holds openings and the welds put its rim out of flat.
 
