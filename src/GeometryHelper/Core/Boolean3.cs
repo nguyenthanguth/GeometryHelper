@@ -592,10 +592,13 @@ namespace GeometryHelper.Core
         /// <param name="openCut">The open result cutting one body gave, or null.</param>
         /// <param name="misjudged">
         /// Whether a cell a plane could not cut is judged apart across it (see <see cref="Misjudged"/>), so that what the
-        /// cells glue into, closed or not, holds the wrong volume: the open result is kept then, where there is one. A slab
-        /// of a Tekla model less a tool beneath it, cut one body at a time, came out open either way, the tool cut holding
-        /// what it should; cut by every plane of both, the slab kept a cell the tool's top could not cut, judged within the
-        /// tool, and closed three litres short.
+        /// cells glue into, closed or not, can hold the wrong volume. The open result is taken then where it welds closed,
+        /// and otherwise kept where the cells glue into another volume than it holds, beyond the tolerance times its area.
+        /// A slab of a Tekla model less a tool beneath it, cut one body at a time, came out open either way, the tool cut
+        /// holding what it should; cut by every plane of both, the slab kept a cell the tool's top could not cut, judged
+        /// within the tool, and closed three litres short. Taken wherever there was one, though, the open result left a cut
+        /// skipped on eleven parts of that model cut one after another by the parts they meet, where it would not weld closed
+        /// and the cells had glued into what they should; so taken, ten of the eleven take every cut.
         /// </param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="result">The result.</param>
@@ -603,19 +606,28 @@ namespace GeometryHelper.Core
         {
             if (misjudged && openCut != null)
             {
-                GeometryHelperLog.Debug("Boolean3: cut by every plane of both, a cell a plane could not cut is judged apart across it; the open result cutting one body gave is kept.");
-                result = openCut;
-                return true;
-            }
+                // The open result welded closed is taken; see Weld3.Sealed, which keeps a weld only where it holds the
+                // volume.
+                GeoSolid3 sealedCut = Weld3.Sealed(openCut, tolerance);
 
-            if (misjudged)
-            {
-                GeometryHelperLog.Debug("Boolean3: cut by every plane of both, a cell a plane could not cut is judged apart across it, and cutting one body gave nothing to keep instead.");
+                if (sealedCut.IsClosed(tolerance))
+                {
+                    GeometryHelperLog.Debug("Boolean3: cut by every plane of both, a cell a plane could not cut is judged apart across it; the open result of cutting one body, welded closed, is taken.");
+                    result = sealedCut;
+                    return true;
+                }
             }
 
             if (TryGlue(kept, owners, tolerance, out result) && (openCut == null || result.IsClosed(tolerance)))
             {
-                return true;
+                // Misjudged, the cells glued closed are taken where they hold what the open result does, within the
+                // tolerance times its area: a cell can be judged apart across a plane by a hair of it beyond the plane.
+                if (!misjudged || openCut == null || Math.Abs(result.GrossVolume - openCut.GrossVolume) <= tolerance.EqualPoint * openCut.GrossSurfaceArea)
+                {
+                    return true;
+                }
+
+                GeometryHelperLog.Debug("Boolean3: cut by every plane of both, a cell a plane could not cut is judged apart across it, and what the cells glue into holds another volume than the open result of cutting one body; the open result is kept.");
             }
 
             result = openCut;

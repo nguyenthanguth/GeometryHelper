@@ -44,22 +44,64 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(Boolean3.Misjudged(new List<GeoSolid3> { cell }, new List<GeoPlane3> { NearTheTop }, cell, tool, false, Fine));
         }
 
+        // The box 0..10 with its top's corner over (10, 10) moved along x: open by copies of two edges that far apart, a
+        // sliver, and welded closed where that is within four tolerances.
+        private static GeoSolid3 BoxOpenAtACorner(double shift)
+        {
+            GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
+            var faces = new List<GeoFace3>
+            {
+                new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 0), P(0, 10, 0), P(10, 10, 0), P(10, 0, 0) }, Fine)),
+                new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 10), P(10, 0, 10), P(10 + shift, 10, 10), P(0, 10, 10) }, Fine)),
+                new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 0), P(10, 0, 0), P(10, 0, 10), P(0, 0, 10) }, Fine)),
+                new GeoFace3(new GeoPolygon3(new[] { P(10, 0, 0), P(10, 10, 0), P(10, 10, 10), P(10, 0, 10) }, Fine)),
+                new GeoFace3(new GeoPolygon3(new[] { P(10, 10, 0), P(0, 10, 0), P(0, 10, 10), P(10, 10, 10) }, Fine)),
+                new GeoFace3(new GeoPolygon3(new[] { P(0, 10, 0), P(0, 0, 0), P(0, 0, 10), P(0, 10, 10) }, Fine)),
+            };
+            return new GeoSolid3(faces);
+        }
+
         [Fact]
-        public void CutByEveryPlaneOfBoth_AMisjudgedCellKeepsTheOpenResultOfCuttingOneBody()
+        public void CutByEveryPlaneOfBoth_AMisjudgedCellTakesTheOpenResultOfCuttingOneBody_WeldedClosed()
         {
             // A slab of a Tekla model less a tool beneath it, cut one body at a time, came out open either way, the tool cut
             // holding what it should; cut by every plane of both, the slab kept a cell the tool's top could not cut, judged
-            // within the tool, and the cells glued closed and three litres short. The open result is kept then, for the weld
-            // to close; where the cells are not misjudged, what they glue into closed is taken over it, as before.
-            List<GeoFace3> cells = Box(0, 0, 0, 10, 10, 10).Faces.ToList();
-            var open = new GeoSolid3(Box(0, 0, 0, 10, 10, 9).Faces.Skip(1));
+            // within the tool, and the cells glued closed and three litres short. The open result welded closed is taken.
+            GeoSolid3 open = BoxOpenAtACorner(0.0015);
+            Assert.False(open.IsClosed(Fine));
+            List<GeoFace3> cells = Box(0, 0, 0, 10, 10, 9).Faces.ToList();
 
             Assert.True(Boolean3.GlueOrKeep(new List<GeoFace3>(cells), null, open, true, Fine, out GeoSolid3 kept));
-            Assert.Same(open, kept);
+            Assert.True(kept.IsClosed(Fine));
+            Assert.Equal(1000.0, kept.GetVolume(Fine), 1);
 
+            // Not misjudged, what the cells glue into closed is taken, as before.
             Assert.True(Boolean3.GlueOrKeep(new List<GeoFace3>(cells), null, open, false, Fine, out GeoSolid3 glued));
             Assert.True(glued.IsClosed(Fine));
-            Assert.Equal(1000.0, glued.GetVolume(Fine), 6);
+            Assert.Equal(900.0, glued.GetVolume(Fine), 6);
+        }
+
+        [Fact]
+        public void CutByEveryPlaneOfBoth_AMisjudgedCellGluedIntoWhatTheOpenResultHolds_IsTaken()
+        {
+            // A cell can be judged apart across a plane by a hair of it beyond the plane: of slabs of a Tekla model cut one
+            // after another, the cells so judged glued into what they should where the open result would not weld closed.
+            GeoSolid3 open = BoxOpenAtACorner(0.006);
+            Assert.False(Weld3.Sealed(open, Fine).IsClosed(Fine));
+
+            Assert.True(Boolean3.GlueOrKeep(Box(0, 0, 0, 10, 10, 10).Faces.ToList(), null, open, true, Fine, out GeoSolid3 kept));
+            Assert.True(kept.IsClosed(Fine));
+            Assert.Equal(1000.0, kept.GetVolume(Fine), 6);
+        }
+
+        [Fact]
+        public void CutByEveryPlaneOfBoth_AMisjudgedCellGluedIntoAnotherVolume_KeepsTheOpenResult()
+        {
+            // Open, it says so to Validate; closed with the wrong volume, it said nothing.
+            GeoSolid3 open = BoxOpenAtACorner(0.006);
+
+            Assert.True(Boolean3.GlueOrKeep(Box(0, 0, 0, 10, 10, 9).Faces.ToList(), null, open, true, Fine, out GeoSolid3 kept));
+            Assert.Same(open, kept);
         }
 
         [Fact]

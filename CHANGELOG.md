@@ -26,9 +26,13 @@ length in the plane now; where a direction was only partly out of the plane, the
 every plane of both, and took what their cells glued into where it closed, without asking whether a cell a plane could
 not cut was judged apart across it, as the one-body cuts ask: a slab of a Tekla model less a tool beneath it came out
 open either way, the tool cut holding what the two share, 40.43 litres; cut by every plane of both, the slab kept a cell
-the tool's top could not cut, judged within the tool, and closed three litres short, valid. Such a result is not taken
-over the open one now, which is welded instead, and the slab takes 40.43 litres, closed. A result that stays open says
-so to `Validate`, where a closed one with the wrong volume said nothing.
+the tool's top could not cut, judged within the tool, and closed three litres short, valid. Where the open one welds
+closed, it is taken now, and the slab takes 40.43 litres, closed; where it does not, what the cells glue into is taken
+where it holds what the open one does, within the tolerance times its area, and the open one kept otherwise, which says
+so to `Validate`, where a closed one with the wrong volume said nothing. Of the 79 864 parts of that model cut one after
+another by the parts they meet within a thousandth, with a contact and a fallback of a hundredth, 17 have a cut skipped,
+35 cuts, where 19 and 38 had, 87 cuts are taken within the fallback where 136 were, and none comes out more than a
+litre from the same cuts within a hundredth, where two did.
 
 **FIXED.** A union, a difference or an intersection of solids whose cut was not clean, a plane crossing a cell and
 unable to cut it, took the cell as judged by one point where the other body lay one way to the cell's material on one
