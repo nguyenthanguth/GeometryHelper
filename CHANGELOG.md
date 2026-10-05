@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `PlanarMap.FrameOf`, and with it `GetFrame()` of a polygon or a face, took its first axis towards the first
+corner standing apart from the first, out of the plane or not: two corners a hair apart one over the other, as a face
+a cut leaves of a top out of flat can have, made the axis the normal itself, and no frame could be made. The gluing of
+a boolean lays faces out in their frames, and threw: a block whose low step's top was out of flat by up to 0.0008 less
+a box whose top lay along it was not worked out, nor their union. The axis runs along the first direction that has a
+length in the plane now; where a direction was only partly out of the plane, the frame no longer tilts with it.
+
 **FIXED.** A union or a difference of solids that came out open whichever body was cut alone went on to cut both by
 every plane of both, and took what their cells glued into where it closed, without asking whether a cell a plane could
 not cut was judged apart across it, as the one-body cuts ask: a slab of a Tekla model less a tool beneath it came out

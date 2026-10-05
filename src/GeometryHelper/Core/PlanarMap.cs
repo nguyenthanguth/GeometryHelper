@@ -64,6 +64,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the frame of a run of points that share a plane, with the origin at the first of them.
         /// </summary>
+        /// <remarks>
+        /// The first axis runs towards the first point whose direction from the origin has a length in the plane: the
+        /// points share the plane only within a tolerance, and two of them a hair apart can stand one over the other. A face
+        /// a cut left of a top out of flat by a thousandth came with its first two corners 0.00124 apart so, and the axis
+        /// along them was the face's normal: no frame could be made, and the boolean gluing the face threw. Where the
+        /// direction is only partly out of the plane, an axis along it would tilt the frame off the plane as far.
+        /// </remarks>
         internal static GeoCoordinateSystem3 FrameOf(IReadOnlyList<GeoPoint3> points, GeoVector3 normal)
         {
             GeoPoint3 origin = points[0];
@@ -71,8 +78,9 @@ namespace GeometryHelper.Core
             for (int i = 1; i < points.Count; i++)
             {
                 GeoVector3 along = origin.GetVectorTo(points[i]);
+                GeoVector3 inPlane = along.Subtract(normal.Multiply(along.DotProduct(normal)));
 
-                if (along.TryGetNormal(out GeoVector3 unit))
+                if (inPlane.TryGetNormal(out GeoVector3 unit))
                 {
                     return new GeoCoordinateSystem3(origin, unit, normal.CrossProduct(unit));
                 }

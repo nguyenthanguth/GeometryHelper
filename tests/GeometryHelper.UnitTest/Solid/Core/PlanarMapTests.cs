@@ -32,6 +32,27 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void TheFrameOfAPolygonWhoseFirstCornerStandsUnderItsSecond_LiesInItsPlane()
+        {
+            // A face a cut left of a top a hair out of flat came with its first two corners 0.00124 apart, one over the
+            // other: the first axis, along them, was the face's normal, no frame could be made of the two, and the boolean
+            // gluing the face threw and was reported as not worked out. The axis is the first in the polygon's plane.
+            var polygon = new GeoPolygon3(
+                new[]
+                {
+                    new GeoPoint3(1000, 0, 299.99985207123785), new GeoPoint3(1000, 0, 300.00109128240945),
+                    new GeoPoint3(1449.9101963673236, 0, 300.00100723069829), new GeoPoint3(1000, 166.66666666666666, 300.00036177197825),
+                },
+                new Tolerance(1E-3, 1E-5, Tolerance.DefaultEqualAngleRad, 0.01));
+
+            GeoCoordinateSystem3 frame = PlanarMap.FrameOf(polygon);
+
+            Assert.Equal(1.0, frame.ZAxis.DotProduct(polygon.Normal), 12);
+            Assert.Equal(0.0, frame.XAxis.DotProduct(polygon.Normal), 12);
+            Assert.Equal(polygon[0], frame.Origin);
+        }
+
+        [Fact]
         public void APointGoesOutAndComesBackWhereItStarted()
         {
             for (int seed = 0; seed < 50; seed++)
