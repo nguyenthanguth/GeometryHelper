@@ -899,11 +899,11 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Determines whether a face of the body, as filled so far, and a face added cross: the one standing across the plane
-        /// of the other, and an edge of either passing through the inside of the other.
+        /// Determines whether a face of the body and a face new to it, added across a hole or built again by a weld, cross:
+        /// the one standing across the plane of the other, and an edge of either passing through the inside of the other.
         /// </summary>
         /// <param name="face">The face of the body.</param>
-        /// <param name="added">The face added.</param>
+        /// <param name="added">The face new to it.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="at">The point where an edge passes through a face; the origin where none does.</param>
         private static bool Crosses(GeoFace3 face, GeoFace3 added, Tolerance tolerance, out GeoPoint3 at)
@@ -987,10 +987,11 @@ namespace GeometryHelper.Core
             GeoVector3 normal = other.Normal;
             double planar = tolerance.EqualPlanar;
             bool above = false, below = false;
+            GeoPolygon3 ring = face.Boundary;
 
-            foreach (GeoPoint3 corner in face.Boundary.Vertices)
+            for (int i = 0; i < ring.VertexCount; i++)
             {
-                double off = origin.GetVectorTo(corner).DotProduct(normal);
+                double off = origin.GetVectorTo(ring[i]).DotProduct(normal);
                 above |= off > planar;
                 below |= off < -planar;
 

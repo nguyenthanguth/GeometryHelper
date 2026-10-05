@@ -34,8 +34,10 @@ namespace GeometryHelper.Core
     /// within their own face's plane where the crack lies there. A face welded stays one face where its corners lie flat
     /// about their middle. Where a reach leaves nothing open, the faces are oriented again, every shell now closed. A fin
     /// left after the welding, or one a reach would have left, stops the closing. No body is taken with a ring running out
-    /// to a corner and straight back, or with a face it was not given lying back to back with another: both read valid,
-    /// and neither is a body.
+    /// to a corner and straight back, with a face it was not given lying back to back with another, or with a face welded
+    /// through another, an edge of either passing through the inside of the other: each reads valid, and none is a body. A
+    /// gap a reach would close only through what stands in it, a blade in a crack, is blocked rather than too wide, and
+    /// where no reach closes the body and no fill does, the body is still open where the face would pass through.
     /// </para>
     /// <para>
     /// What is left open is followed round into loops, a corner two holes meet at stopping the closing there. Where no fill
@@ -436,6 +438,24 @@ namespace GeometryHelper.Core
                 if (!FinLeft.HasValue)
                 {
                     FinLeft = at;
+                }
+            }
+
+            /// <summary>
+            /// Gets the first point where a reach of the welding would have laid a face through another, which is why that
+            /// reach was not taken; null until one is.
+            /// </summary>
+            internal GeoPoint3? CrossingLeft { get; private set; }
+
+            /// <summary>
+            /// Notes where a reach would have laid a face through another, unless such a point was noted before.
+            /// </summary>
+            /// <param name="at">The point where an edge passes through a face.</param>
+            internal void NoteCrossing(GeoPoint3 at)
+            {
+                if (!CrossingLeft.HasValue)
+                {
+                    CrossingLeft = at;
                 }
             }
 

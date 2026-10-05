@@ -1340,5 +1340,25 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         #endregion
+
+        #region Bodies a weld would close across a blade
+
+        /// <summary>
+        /// The faces of a blade as thick as given standing upright along y, its middle at x = 15, from y = 8 to 12 and from
+        /// z = 5 to 15, wound outwards: through the top's plane of the box of the damaged bodies, standing in the strip of
+        /// <see cref="BoxWithAStripOfTheTopMissing"/> where that is wider than the blade, and touching none of its faces. 40
+        /// times its thickness.
+        /// </summary>
+        internal static List<GeoFace3> BladeFaces(double thickness) => BoxFaces(Corners(15 - (thickness / 2), 8, 5, 15 + (thickness / 2), 12, 15));
+
+        /// <summary>
+        /// The faces of the blade of <see cref="BladeFaces"/> moved out beyond the front of the box of the damaged bodies, in
+        /// line with the strip of <see cref="BoxWithAStripOfTheTopMissing"/> and as far clear of the front as given: from
+        /// y = -4 less that to y = less that.
+        /// </summary>
+        internal static List<GeoFace3> BladeBeyondTheFrontFaces(double thickness, double clear)
+            => BoxFaces(Corners(15 - (thickness / 2), -4 - clear, 5, 15 + (thickness / 2), -clear, 15));
+
+        #endregion
     }
 }

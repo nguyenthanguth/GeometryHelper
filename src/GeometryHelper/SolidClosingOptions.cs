@@ -102,8 +102,12 @@ namespace GeometryHelper
         /// <para>
         /// A corner is put within the reach of an edge as the edge was, not of the pieces another corner put on it leaves: a
         /// crack bowed 0.008 off an edge through five corners closes within a gap of 0.008, and not within one of 0.005. A
-        /// reach that would leave a ring running out to a corner and straight back, or a face lying back to back with
-        /// another, is not taken. What the faces moved sweep of the volume is held to the reach times their area.
+        /// reach that would leave a ring running out to a corner and straight back, a face lying back to back with another,
+        /// or a face crossing another, an edge of either reaching through the inside of the other by more than this on both
+        /// sides where the faces they were built from did not cross, is not taken: a crack 0.004 wide left along a top, a
+        /// blade 0.002 thick standing in it, is not welded shut through the blade, and is left open,
+        /// <see cref="ClosingFailure.StillOpen"/> where the blade would pass through the top, the gap not too wide but
+        /// blocked. What the faces moved sweep of the volume is held to the reach times their area.
         /// </para>
         /// </remarks>
         public double MaxGap { get; }

@@ -29,8 +29,10 @@ where the ones before did not close the body:
   0.02, it is `GapTooWide` there, and closed within 0.03. Beside a chamfer whose ends stand 0.07 apart, a corner moved
   0.0015 is welded within two thousandths and the chamfer kept, though the gap allowed is a tenth. Two corners of one
   face are made one only where they are copies of one corner side by side across an edge left open, so that a slot cut
-  thinner than the gap stays a slot. A sphere of 6 240 faces with one copy of a corner moved 0.003 closes in a second
-  under .NET Framework 4.8 and a fifth of one under .NET 10, most of it in checking the body as given and as closed.
+  thinner than the gap stays a slot. No reach is taken that welds a face through another: a strip 0.004 wide left along
+  a top, a blade 0.002 thick standing in it, is not welded shut through the blade within 0.005, and is `StillOpen` at
+  the blade. A sphere of 6 240 faces with one copy of a corner moved 0.003 closes in a second under .NET Framework 4.8
+  and a fifth of one under .NET 10, most of it in checking the body as given and as closed.
 - A flat hole is filled by one face on the body's own corners, the loops in its plane inside it the face's holes: a box
   30 by 20 by 10 missing its top by one `Fill` of 600, the volume moved 1 000, where `MaxHoleArea` is at least 600, and a
   plate with a hole through it missing its top by the top again, 800. A plate whose hole has lost its four walls can be
@@ -47,7 +49,8 @@ where the ones before did not close the body:
   lie on no face, four close the box whole and two 8.3 of its 10, so `WhenUnambiguous` refuses it, and `MinArea` takes
   the two faces again.
 - Nothing is made up: an edge left open past a fin, or a corner two holes meet at, is `NonManifold`; a gap wider than
-  `MaxGap` that no fill closes is `GapTooWide`; a hole larger than allowed, or out of flat with more than 256 corners, is
+  `MaxGap` that no fill closes is `GapTooWide`, and one a weld would close only through a face standing in it, as a
+  blade in a crack, `StillOpen` there; a hole larger than allowed, or out of flat with more than 256 corners, is
   `HoleTooLarge`, as is any hole where no fill is allowed; one further out of flat than allowed is `HoleOffFlat`; and a
   hole whose every fill would cross a face of the body or a fill taken before it, as the top of a box with a post
   standing out through its plane, which would read valid, and any other body not valid at the end, are `StillOpen`.

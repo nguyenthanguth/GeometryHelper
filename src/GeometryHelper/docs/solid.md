@@ -915,9 +915,13 @@ volume goes; `MinArea` every one that may be, by the way adding the least area; 
   elsewhere on it is welded within 0.004; and two corners of one face are made one only where they are copies of one
   corner side by side on its ring across an edge left open, so that a slot whose mouth opens beside a gap keeps its
   mouth. A face welded stays one face where its corners lie flat about their middle, so a cap of a thousand corners
-  tilted by a hair is not broken into triangles. What a reach leaves open is read again only where its faces changed: a
-  sphere of 6 240 faces with one copy of a corner moved 0.003 is welded closed in a second under .NET Framework 4.8 and
-  a fifth of one under .NET 10, most of it in checking the body as given and as closed.
+  tilted by a hair is not broken into triangles. No reach is taken that welds a face through another, an edge of either
+  reaching through the other by more than the gap on both sides where the faces they were built from did not cross: a
+  strip 0.004 wide left along a top, a blade 0.002 thick standing in it, is not welded shut through the blade, and the
+  body is `StillOpen` at the blade, the gap not too wide but blocked; a blade standing through the top away from the
+  strip is the body's own, and the strip is welded shut beside it. What a reach leaves open is read again only where
+  its faces changed: a sphere of 6 240 faces with one copy of a corner moved 0.003 is welded closed in a second under
+  .NET Framework 4.8 and a fifth of one under .NET 10, most of it in checking the body as given and as closed.
 - **Corners on edges.** Only where no reach of welds alone closes the body is a corner standing within the reach of an
   edge left open, between its ends, put on it, the edge split there: moved onto it within the corner's own face where
   the crack lies in that face's plane, and the edge bent through the corner where it stands otherwise. No reach is
@@ -963,7 +967,7 @@ where none after it closed the body either.
 | `HoleTooLarge` | a hole enclosing more than `MaxHoleArea`, or one out of flat of more than 256 corners; or none may be filled, `MaxHoleArea` nought or `FillStrategy.None` |
 | `HoleOffFlat` | a hole further out of flat than `MaxOffFlat` |
 | `HoleAmbiguous` | under `WhenUnambiguous`, a hole that can be filled more than one way, the ways closing different volumes; or, whatever the strategy, a hole with another inside it where either is out of flat |
-| `StillOpen` | the body still not valid after every step, as where every fill of a hole would lie back to back with a face of the body or cross one, or cross a fill taken before it; or not worked out, which the log says |
+| `StillOpen` | the body still not valid after every step, as where every fill of a hole would lie back to back with a face of the body or cross one, or cross a fill taken before it, or a gap a weld would close only through a face standing in it, as a blade in a crack; or not worked out, which the log says |
 
 Two faces of a box left out side by side show what ambiguous means. A box 10 by 1 by 1 without its top and its front
 has one loop round the two, of six corners and 0.47 out of flat. Of the fourteen ways across it, the least area, 15.1,

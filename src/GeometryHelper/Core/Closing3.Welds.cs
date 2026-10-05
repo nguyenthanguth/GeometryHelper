@@ -51,7 +51,10 @@ namespace GeometryHelper.Core
         /// reach would have left longer than the widest gap, which is why that reach was not taken: a flap 0.004 square beside
         /// a corner moved out by 0.003 is a fin whatever the gap allowed, and welding its corners away would only hide it. A
         /// gap left is wider than the widest allowed, <see cref="ClosingFailure.GapTooWide"/>, where it is widest, the reason
-        /// given unless a fill closes the body after.
+        /// given unless a fill closes the body after; but where a reach was not taken for welding a face through another,
+        /// the gap is blocked rather than too wide, and the body <see cref="ClosingFailure.StillOpen"/> where the face would
+        /// have passed through: a crack 0.004 wide along a top, a blade 0.002 thick standing in it, closes within a gap of
+        /// 0.005 only through the blade.
         /// </para>
         /// <para>
         /// A body open by holes only is not welded; but an edge left open no longer than the widest gap is welded with nothing
@@ -149,9 +152,18 @@ namespace GeometryHelper.Core
 
             GeoPoint3? widest = WidestGap(rims);
 
+            // A reach that would have welded a face through another was not taken: the gap left is blocked by what stands in
+            // it, not too wide, the reason given unless a fill closes the body after.
             if (widest.HasValue)
             {
-                work.Refuse(ClosingFailure.GapTooWide, widest.Value);
+                if (work.CrossingLeft.HasValue)
+                {
+                    work.Refuse(ClosingFailure.StillOpen, work.CrossingLeft.Value);
+                }
+                else
+                {
+                    work.Refuse(ClosingFailure.GapTooWide, widest.Value);
+                }
             }
 
             return false;
@@ -283,8 +295,8 @@ namespace GeometryHelper.Core
         /// <param name="reach">The reach.</param>
         /// <param name="onEdges">Whether corners standing off edges left open are put on them, after the welds.</param>
         /// <returns>The body welded, valid or not, with what was done to it and the edges it leaves open; null where nothing
-        /// moved, fewer than four faces are left, a ring doubles back, a face lies back to back with another, the volume
-        /// moved further than allowed, or a fin longer than the widest gap is left.</returns>
+        /// moved, fewer than four faces are left, a ring doubles back, a face lies back to back with another or crosses one,
+        /// the volume moved further than allowed, or a fin longer than the widest gap is left.</returns>
         /// <remarks>
         /// <para>
         /// The corners that move are those of edges no ring pairs corner for corner that stand within the reach of an edge
@@ -309,7 +321,13 @@ namespace GeometryHelper.Core
         /// welds the two. Nor is one that leaves a face built again lying back to back with another, a skin of no thickness
         /// that reads valid too (see <see cref="HasSkin"/>), nor one whose faces built again sweep out more volume than the
         /// reach times their area, each measured from where it was (see <see cref="Swept"/>): a corner moved no further than
-        /// the reach sweeps no more.
+        /// the reach sweeps no more. Nor is one that leaves a face built again crossing another, which reads valid as well:
+        /// the two halves of a top 0.004 apart, a blade 0.002 thick standing between them, are welded into one through the
+        /// blade. Where it is crossed is noted, as the trouble should no reach close the body (see
+        /// <see cref="HasSkinOrCrossing"/>). A crossing is one the reach makes, through by more than the widest gap: two
+        /// faces crossing as the faces they were built from did are the body's own, as a blade standing through the top
+        /// away from the strip is; and faces round corners the reach does not weld yet stand through each other by as much
+        /// as the copies of a corner stand apart.
         /// </para>
         /// <para>
         /// What a reach leaves open is read again only where its faces changed, from them and the faces beside them; the
@@ -374,6 +392,7 @@ namespace GeometryHelper.Core
             var built = new List<GeoFace3>(faces.Count);
             var fresh = new List<bool>(faces.Count);
             var from = new List<int>(faces.Count);
+            var before = new List<GeoFace3>(faces.Count);
             var changed = new List<GeoAabb3>();
             Tolerance pieces = LoopAssembly.ForPieces(tolerance);
             double touched = 0.0;
@@ -388,6 +407,7 @@ namespace GeometryHelper.Core
                     built.Add(faces[f]);
                     fresh.Add(false);
                     from.Add(origins[f]);
+                    before.Add(faces[f]);
                     continue;
                 }
 
@@ -410,14 +430,30 @@ namespace GeometryHelper.Core
                     built.Add(piece);
                     fresh.Add(true);
                     from.Add(origins[f]);
+                    before.Add(faces[f]);
                     changed.Add(piece.GetAabb());
                 }
             }
 
-            // A face built again lying back to back with another is a skin of no thickness: a face folded under the one beside
-            // it, where a corner of that one was threaded through it.
-            if (changed.Count == 0 || built.Count < 4 || swept > within * touched || HasSkin(built, fresh, tolerance, out _))
+            if (changed.Count == 0 || built.Count < 4 || swept > within * touched)
             {
+                return null;
+            }
+
+            // A crossing is an edge reaching through a face by more than the widest gap: within it, the faces round corners
+            // not welded yet stand through each other as far as the copies of a corner stand apart.
+            var deep = new Tolerance(tolerance.EqualPoint, tolerance.EqualVector, tolerance.EqualAngleRad, Math.Max(tolerance.EqualPlanar, work.Options.MaxGap));
+
+            // A face built again lying back to back with another is a skin of no thickness: a face folded under the one beside
+            // it, where a corner of that one was threaded through it. One crossing another closes a gap through what stands
+            // in it, and is noted: the gap is not too wide, it is blocked.
+            if (HasSkinOrCrossing(built, fresh, before, tolerance, deep, out bool crossed, out GeoPoint3 trouble))
+            {
+                if (crossed)
+                {
+                    work.NoteCrossing(trouble);
+                }
+
                 return null;
             }
 
@@ -1534,11 +1570,50 @@ namespace GeometryHelper.Core
         /// (see <see cref="FaceBoxes"/>): a sphere of six thousand faces each built again is not six thousand times read.
         /// </remarks>
         private static bool HasSkin(IReadOnlyList<GeoFace3> faces, IReadOnlyList<bool> fresh, Tolerance tolerance, out GeoPoint3 at)
+            => HasSkinOrCrossing(faces, fresh, null, tolerance, tolerance, out _, out at);
+
+        /// <summary>
+        /// Finds a face new to a body lying back to back with another, or another with it, as <see cref="HasSkin"/> does;
+        /// and, where asked, a face new to it crossing another, an edge of either passing through the inside of the other, as
+        /// <see cref="Crosses"/> reads two faces.
+        /// </summary>
+        /// <param name="faces">The faces of the body.</param>
+        /// <param name="fresh">For each, whether it is new to the body, built or turned by the closing.</param>
+        /// <param name="before">For each face, the face it was built from, itself where it was not built again; null where no
+        /// crossing is looked for.</param>
+        /// <param name="tolerance">The tolerance a middle lies on a face within.</param>
+        /// <param name="deep">The tolerance a crossing is read within, its planar tolerance how far an edge has to reach
+        /// through a face on either side; not read where no crossing is looked for.</param>
+        /// <param name="crossed">Whether what was found is a crossing; false for a skin, and where nothing was found.</param>
+        /// <param name="at">The middle that lies on the other face, or the point where an edge passes through a face; the
+        /// origin where there is none.</param>
+        /// <returns>true where a face new to the body lies back to back with another, or crosses one where asked.</returns>
+        /// <remarks>
+        /// <para>
+        /// A face crossing another meets its box, so each face new is set against those whose boxes meet its own, as for a
+        /// skin, the faces filed once for both; and a pair of two new faces is looked at once. Most pairs are passed over
+        /// on the corners of the one of fewer alone: a face lying to one side of the other's plane, as a face of a smooth
+        /// surface lies to one side of its neighbours', crosses it neither way (see <see cref="StandsAcross"/>), so that a
+        /// wall is set against a cap of a thousand corners by its own four; and a face touching another along an edge or at
+        /// a corner crosses nothing (see <see cref="EdgesPierce"/>).
+        /// </para>
+        /// <para>
+        /// A pair crossing is set against the faces the two were built from, and where those crossed as well, the crossing
+        /// is the body's own, not the weld's: a blade standing through the top of a box beside a strip welded shut is crossed
+        /// by the half built again as it was by the half given. And an edge reaching through a face by no more than the
+        /// planar tolerance of <paramref name="deep"/> either side is not read as crossing it: on a prism of a thousand
+        /// sides, each face on copies of its corners up to 0.002 off, the walls stand through the top and the bottom by up
+        /// to 0.0025 where the first reaches weld some corners of those and not the walls' beside them, and those reaches,
+        /// welding nothing through anything, are tried as they were.
+        /// </para>
+        /// </remarks>
+        private static bool HasSkinOrCrossing(IReadOnlyList<GeoFace3> faces, IReadOnlyList<bool> fresh, IReadOnlyList<GeoFace3> before, Tolerance tolerance, Tolerance deep, out bool crossed, out GeoPoint3 at)
         {
             int count = faces.Count;
             var boxes = new GeoAabb3[count];
             var middles = new GeoPoint3?[count];
             bool any = false;
+            crossed = false;
 
             for (int f = 0; f < count; f++)
             {
@@ -1569,21 +1644,35 @@ namespace GeometryHelper.Core
 
                 foreach (int g in near)
                 {
-                    if (g == f || !(normal.DotProduct(faces[g].Normal) < Facing))
+                    if (g == f)
                     {
                         continue;
                     }
 
-                    if (boxes[g].Contains(MiddleOf(f), tolerance) && faces[g].Locate(MiddleOf(f), tolerance) != PointLocation.OutSide)
+                    if (normal.DotProduct(faces[g].Normal) < Facing)
                     {
-                        at = MiddleOf(f);
-                        return true;
+                        if (boxes[g].Contains(MiddleOf(f), tolerance) && faces[g].Locate(MiddleOf(f), tolerance) != PointLocation.OutSide)
+                        {
+                            at = MiddleOf(f);
+                            return true;
+                        }
+
+                        // A pair of two new faces is looked at from each.
+                        if (!fresh[g] && boxes[f].Contains(MiddleOf(g), tolerance) && faces[f].Locate(MiddleOf(g), tolerance) != PointLocation.OutSide)
+                        {
+                            at = MiddleOf(g);
+                            return true;
+                        }
                     }
 
-                    // A pair of two new faces is looked at from each.
-                    if (!fresh[g] && boxes[f].Contains(MiddleOf(g), tolerance) && faces[f].Locate(MiddleOf(g), tolerance) != PointLocation.OutSide)
+                    // A pair of two new faces is set against crossing once, from the first of them; and a pair crossing as
+                    // the faces they were built from did is the body's own. Two faces crossing each stand across the other's
+                    // plane, and the one of fewer corners is read first: a wall against a cap of a thousand corners.
+                    if (before != null && !(fresh[g] && g < f) && FewerCornersAcross(faces[g], faces[f], deep)
+                        && Crosses(faces[g], faces[f], deep, out GeoPoint3 crossing) && !Crosses(before[g], before[f], deep, out _))
                     {
-                        at = MiddleOf(g);
+                        crossed = true;
+                        at = crossing;
                         return true;
                     }
                 }
@@ -1592,6 +1681,16 @@ namespace GeometryHelper.Core
             at = GeoPoint3.Origin;
             return false;
         }
+
+        /// <summary>
+        /// Determines whether the one of two faces with fewer corners on its boundary, the first where they have as many,
+        /// stands across the plane of the other (see <see cref="StandsAcross"/>): of two faces crossing, each does.
+        /// </summary>
+        /// <param name="one">The one face.</param>
+        /// <param name="other">The other.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        private static bool FewerCornersAcross(GeoFace3 one, GeoFace3 other, Tolerance tolerance)
+            => one.Boundary.VertexCount <= other.Boundary.VertexCount ? StandsAcross(one, other, tolerance) : StandsAcross(other, one, tolerance);
 
         /// <summary>
         /// The corners among those given that stand within a reach of an edge, between its ends, in order from its start, the

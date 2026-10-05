@@ -52,7 +52,8 @@ namespace GeometryHelper.Enums
         /// The body is still not valid after every step, or could not be worked out, which is logged with what was thrown:
         /// among others, a hole every fill of which would lie back to back with a face of the body, a skin of no thickness,
         /// or cross one, or a face filling a hole before it, an edge of either passing through the inside of the other, the
-        /// point then where it would.
+        /// point then where it would; and a gap the welds would close only through a face standing in it, as a crack round
+        /// a blade, at the point where the face welded would pass through.
         /// </summary>
         StillOpen,
     }
