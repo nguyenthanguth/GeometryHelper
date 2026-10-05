@@ -81,6 +81,11 @@ corners allow.
   5 466 square metres of surface too much. `SolidBooleanOptions` with `Contact = 0.01` takes such faces as touching
   and keeps the thousandth everywhere else (220 square metres too much), and `TrySubtractAll` cuts a part by all of
   them, each cut checked; see the [space guide](src/GeometryHelper/docs/solid.md#combining-bodies).
+- **A body open by a hair, or by a face left out: close it, rather than read it within a coarser tolerance.**
+  `GeoSolid3.TryClose` welds the corners across a gap within the `MaxGap` it is given, at the least reach that closes
+  the body, fills a hole only where asked to, and says what it changed, or, changing nothing, why it would not; what
+  comes out is valid within the tolerance given. See the
+  [space guide](src/GeometryHelper/docs/solid.md#closing-an-open-solid).
 - **Pass another one only for a reason, to the call that needs it.** A coarser tolerance takes what a modeller
   gives as touching for touching: net volumes to match the ones Tekla Structures reports come from booleans within
   0.05. A model in metres wants the point and planar thresholds a thousand times smaller,

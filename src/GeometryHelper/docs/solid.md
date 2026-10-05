@@ -853,6 +853,153 @@ corner and the middle of every arc: a plate turned half a degree about one of it
 though its plane is parallel within the angle tolerance and passes through that corner. `SharesPlaneWith`
 asks beforehand, on `GeoPolygon3`, `GeoFace3` and `GeoPolygonArc3` alike.
 
+### Closing an open solid
+
+A body read out of a model can come in open: two faces meeting on copies of an edge a few thousandths apart, a
+corner standing off the edge of the face beside it, a face left out. `Validate()` says where. `TryClose` closes it with
+the least change that does it, and says in a `SolidClosing3` what it changed; where the change is not certain it
+changes nothing, returns `false`, and says why and where. The body given is not changed, and one valid already comes
+back as the very instance, nothing done.
+
+```csharp
+var options = new SolidClosingOptions(Tolerance.Default, maxGap: 0.01, maxHoleArea: 50000.0);
+
+if (part.TryClose(out GeoSolid3 closed, options, out SolidClosing3 report))
+{
+    double volume = closed.GetVolume(options.Tolerance);
+    // report.Repairs: each change, in the order it was made; report.AddedArea; report.VolumeChange
+}
+else
+{
+    // report.Failure says why and report.FailureLocation where; nothing was changed
+}
+
+part.TryClose(out closed, Tolerance.Default, 0.01);   // welds within the gap, and fills no hole
+```
+
+**The gap has to be given.** `MaxGap` is how far apart the corners across a gap may stand and still be made one, and
+how far a corner may stand off an edge and still be put on it. It is a question of how the body was made, not of the
+tolerance it is judged within: a boolean cut within a hundredth closes within a hundredth, so read within the default
+thousandth it can be open by copies of an edge up to a hundredth apart, which a gap of a hundredth reaches. A face left
+out is another matter, which no weld closes.
+
+**Nothing is filled unless asked.** `MaxHoleArea`, the most a hole may enclose and still be filled, is nought by
+default, and `double.PositiveInfinity` fills any. `MaxOffFlat`, how far out of flat a hole may stand and still be filled
+by triangles, is nought by default too, so that only holes flat within the planar tolerance are filled. `Fill` says
+which holes are: `FillStrategy.WhenUnambiguous`, the default, only those that can be filled one way as far as the
+volume goes; `MinArea` every one that may be, by the way adding the least area; and `None`, none.
+
+**The steps**, each taken only where the ones before did not close the body:
+
+- **Clean.** A face covering nothing within the tolerance is dropped, a face given twice is taken once, and of a face
+  and a copy of it turned over, the one wound against the faces round it goes. A face no other face runs an edge of,
+  lying back to back on a face of the body, is a sheet of no thickness, and goes too. The faces are then turned so that
+  each shell is wound alike, and each closed shell inside no other outwards, with every shell inside it: a shell inside
+  another keeps its winding against it, a block within it wound the same way and a cavity wound the other, since both
+  read valid. An inside-out box comes back turned, six `Flip`s, and a box with a box inside, both wound outwards, one
+  face of the outer turned, gets that face alone turned back. The stretches of edge longer than the gap say first which
+  way a face faces, and a shorter one only where it is the whole of an edge of both its faces, so that copies of an
+  edge a hair apart turn nothing over. A shell still open keeps its winding until the welds or a fill close it, and a
+  shell within the box of one still open waits for that one to close; a shell enclosing no volume, as a face on its own
+  does, is left as it is.
+- **Fins.** An edge left open past a fin, a face standing off the surface, stops the closing there: a face across the
+  loop round it would be the fin again the other way round.
+- **Welds.** The whole body is welded shut before any loop of it is read as a hole. The corners of the edges left open
+  are made one within the point tolerance, then twice it, four times and so on while below the gap, and within the gap
+  last, the first reach that closes the body taken, so that no corner moves further than it has to. A box's top with a
+  corner moved 0.003 out in its plane is welded back within a gap of 0.005, the copy moving 0.003 onto the corner the
+  faces beside it keep; beside a chamfer whose ends stand 0.07 apart, a corner moved 0.0015 is welded within two
+  thousandths and the chamfer is kept, though the gap allowed is a tenth. The nearest corners go first, each group to
+  the corner of it that bends the faces round it least, each face weighed by its area, so that no weld tilts a large cap.
+  Only corners of edges left open move, so a slot 0.0035 wide cut into the box stays a slot while a corner 0.003 off
+  elsewhere on it is welded within 0.004; and two corners of one face are made one only where they are copies of one
+  corner side by side on its ring across an edge left open, so that a slot whose mouth opens beside a gap keeps its
+  mouth. A face welded stays one face where its corners lie flat about their middle, so a cap of a thousand corners
+  tilted by a hair is not broken into triangles. What a reach leaves open is read again only where its faces changed: a
+  sphere of 6 240 faces with one copy of a corner moved 0.003 is welded closed in a second under .NET Framework 4.8 and
+  a fifth of one under .NET 10, most of it in checking the body as given and as closed.
+- **Corners on edges.** Only where no reach of welds alone closes the body is a corner standing within the reach of an
+  edge left open, between its ends, put on it, the edge split there: moved onto it within the corner's own face where
+  the crack lies in that face's plane, and the edge bent through the corner where it stands otherwise. No reach is
+  taken that leaves a ring running out to a corner and straight back, or a face lying back to back with another, both
+  of which read valid and are no body; nor one whose faces sweep out more volume than the reach times their area.
+- **Flat holes.** What is left open is followed round into loops. A loop flat within the planar tolerance is filled by
+  one face on the body's own corners, bit for bit, the loops lying in its plane inside it the face's holes: a box 30 by
+  20 by 10 missing its top is filled by one `Fill` of 600, and a plate with a hole through it missing its top by the top
+  again, its hole and all, 800. Two such loops at the two ends of a hole through a shell whose walls are missing,
+  facing apart and turning at as many corners, can cap it or be joined by walls round it, straight, slanting or
+  tapering, each wall flat and convex and crossing no face; where both ways lie on no face of the body, as for a plate
+  whose hole has lost its four walls, `WhenUnambiguous` takes neither and `MinArea` takes the one adding less area,
+  there the caps, 200 against 400.
+- **Holes out of flat.** A loop further out of flat than the planar tolerance, and no further than `MaxOffFlat`, is
+  filled by the triangles of least area across it on its own corners, of the ways none of whose triangles lies back to
+  back with a face of the body or turns back against the loop, folding over the outside of a concave rim: an L-shaped
+  top lifted a little at a corner is filled across its inside. `WhenUnambiguous` takes them only where those ways close
+  one volume within the loop's area times the planar tolerance, the uncertainty a face called flat carries already: the
+  top of a box 100 by 100 with a corner lifted 0.005 is filled by two triangles, which close 8.3 more one way across
+  than the other, within a bound of 10, and lifted 0.05 it is ambiguous. A loop of 200 corners out of flat is filled by
+  198 triangles in a few hundredths of a second; one of more than 256 is not filled, and nor is one with another loop
+  inside it.
+- **The check.** Once the fills close the body, every shell is read again for which way it faces, as the cleaning reads
+  a closed shell: one inside no other wound inwards is turned whole, with every shell inside it. The body is then
+  checked as the welds' is: valid within the tolerance, no ring doubling back, and no face new to it lying back to back
+  with another.
+
+A gap too wide for the welds is a loop like any other, and filled where fills are allowed and it can be: a strip 0.03
+wide missing along the top of a box is too wide for a gap of 0.005, and closed by one face of 20 by 0.03 where
+`MaxHoleArea` is at least 0.6. The reason given for a body not closed is that of the first step that could not go on,
+where none after it closed the body either.
+
+**What it refuses, and why.** `Failure` says, and `FailureLocation` is a point at the trouble:
+
+| `ClosingFailure` | |
+|---|---|
+| `NonManifold` | an edge left open past a fin longer than the gap, a corner two holes meet at, or a shell that cannot be wound alike, as a Möbius strip |
+| `GapTooWide` | corners further apart than the gap across a gap only a weld closes; the point is where the gap is widest |
+| `HoleTooLarge` | a hole enclosing more than `MaxHoleArea`, or one out of flat of more than 256 corners; or none may be filled, `MaxHoleArea` nought or `FillStrategy.None` |
+| `HoleOffFlat` | a hole further out of flat than `MaxOffFlat` |
+| `HoleAmbiguous` | under `WhenUnambiguous`, a hole that can be filled more than one way, the ways closing different volumes; or, whatever the strategy, a hole with another inside it where either is out of flat |
+| `StillOpen` | the body still not valid after every step, as where every fill of a hole would lie back to back with a face of the body; or not worked out, which the log says |
+
+Two faces of a box left out side by side show what ambiguous means. A box 10 by 1 by 1 without its top and its front
+has one loop round the two, of six corners and 0.47 out of flat. Of the fourteen ways across it, the least area, 15.1,
+cuts the box along its diagonal, but each end of that cut is a triangle lying on the end face it stands in, and is no
+way. Of the six ways lying on no face, four are the two faces again and close the box whole, 10, and two cut across its
+corner and close 8.3: `WhenUnambiguous` refuses the hole, and `MinArea` takes the two faces again, 20 of area.
+
+```csharp
+GeoSolid3 box = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(10, 1, 1)).ToObb().ToSolid();
+GeoSolid3 open = new GeoSolid3(box.Faces.Where(face => face.Normal.Z < 0.5 && face.Normal.Y > -0.5)); // top, front out
+
+var oneWay = new SolidClosingOptions(Tolerance.Default, 0.005, double.PositiveInfinity, maxOffFlat: 1.0);
+open.TryClose(out _, oneWay, out SolidClosing3 refused);          // refused.Failure: HoleAmbiguous
+
+var leastArea = new SolidClosingOptions(Tolerance.Default, 0.005, double.PositiveInfinity, 1.0, FillStrategy.MinArea);
+open.TryClose(out GeoSolid3 whole, leastArea, out SolidClosing3 filled);
+// filled.Repairs: one Fill of 20; whole.GetVolume() is 10
+```
+
+**Reading the report.** `Repairs` lists each change in the order it was made, a `SolidRepair3` of a `SolidRepairKind`
+whose `Size` is the kind's: a `Drop` of the area dropped, a `Flip` of the area turned over, a `Weld` of the furthest a
+corner of the group moved, a `SplitEdge` of how far the corner stood off the edge, and a `Fill`, one per hole, of the
+area added across it, its `Location` the middle of the faces added. `AddedArea` is the area of the faces added.
+`VolumeChange` is what the body closed holds less what the faces given held, each measured from the middle of its own
+box: faces that do not close hold a volume only from where they are measured, so a box with a face left out holds five
+sixths of itself from its middle, and the face filling it adds the sixth, 1 000 on the box of 6 000. Welds alone move it
+by no more than the gap times the area they touched. A body not closed reports no change: no repairs, nought added and
+nought moved, with the reason and the point. The openings of the body are carried to the result as they are, the same
+instances.
+
+**On real parts.** The 1 989 parts of a Tekla model, each valid as read, were damaged five ways and closed within a gap
+of 0.005, holes of any size filled and up to 0.01 out of flat: 9 736 bodies of the 9 945 closed, each valid and none
+further from the part's volume as read than 13 parts in a million, in 0.6 milliseconds as a median. With its largest
+face left out a part closed 98.6 % of the time, with a face at random 99.9 %, with every face on copies of its corners
+moved up to 0.002 in its plane 98.2 %, and with a face turned over every time. The rest were refused with the reason,
+most of them `NonManifold`, as where the rim of a face left out runs twice through a corner. Of the 35 cuts
+`TrySubtractAll` skips on the 79 864 parts of a Tekla model, open or not valid within a thousandth, 23 closed, none
+further from the same cut within a hundredth than 2.1 parts in a million; of the others, one holds a hole larger than
+the 100 allowed, and 11 are cut wrong, by fins and by slivers wound the wrong way, which no closing undoes.
+
 ### Making bodies
 
 A body can be made by moving a flat profile: straight out of its plane, along a path, or round an axis.

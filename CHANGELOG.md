@@ -4,6 +4,70 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**NEW.** `GeoSolid3.TryClose` closes an open body with the least change that does it, and says what it changed, or,
+changing nothing, why it could not and where: a body read out of a model open by copies of an edge a few thousandths
+apart, by a corner standing off the edge of the face beside it, or by a face left out. `SolidClosingOptions` says how:
+within which `Tolerance` the result is valid; `MaxGap`, which has to be given, how far apart the corners across a gap may
+stand and still be made one; `MaxHoleArea`, the most a hole may enclose and still be filled, nought by default, so that
+nothing is filled unless asked; `MaxOffFlat`, how far out of flat a hole may stand and still be filled by triangles,
+nought by default; and `Fill`, a `FillStrategy`: a hole filled only where it can be filled one way, `WhenUnambiguous`,
+by the least area anyway, `MinArea`, or not at all, `None`. The report, a `SolidClosing3`, lists each change in the order
+it was made, a `SolidRepair3` of a `SolidRepairKind`, with the area added and the volume moved; a body not closed reports
+the `ClosingFailure` of the first step that could not go on, and a point at the trouble. A body valid already comes back
+as the very instance, and `TryClose(out closed, tolerance, maxGap)` welds and fills nothing. Each step is taken only
+where the ones before did not close the body:
+- Faces covering nothing are dropped, a face given twice is taken once, and a face lying back to back on another with
+  every edge of it open goes; the faces are turned so that each shell is wound alike, and each closed shell inside no
+  other outwards with every shell inside it, a shell inside another keeping its winding against it, a block within it
+  or a cavity: an inside-out box 30 by 20 by 10 comes back with six `Flip`s, 2 200 of area, and a box with a box inside,
+  both wound outwards, 6 600, one face of the outer turned, gets that face alone turned back.
+- Corners across a gap are welded within the point tolerance, then twice it, four times and so on up to `MaxGap`, the
+  least reach that closes the body taken, and only where welds alone close nothing at any reach is a corner standing off
+  an edge left open put on it. A box's corner moved 0.003 out in its top is welded back within a gap of 0.005; moved
+  0.02, it is `GapTooWide` there, and closed within 0.03. Beside a chamfer whose ends stand 0.07 apart, a corner moved
+  0.0015 is welded within two thousandths and the chamfer kept, though the gap allowed is a tenth. Two corners of one
+  face are made one only where they are copies of one corner side by side across an edge left open, so that a slot cut
+  thinner than the gap stays a slot. A sphere of 6 240 faces with one copy of a corner moved 0.003 closes in a second
+  under .NET Framework 4.8 and a fifth of one under .NET 10, most of it in checking the body as given and as closed.
+- A flat hole is filled by one face on the body's own corners, the loops in its plane inside it the face's holes: a box
+  30 by 20 by 10 missing its top by one `Fill` of 600, the volume moved 1 000, where `MaxHoleArea` is at least 600, and a
+  plate with a hole through it missing its top by the top again, 800. A plate whose hole has lost its four walls can be
+  capped or walled round, and `WhenUnambiguous` takes neither, `HoleAmbiguous`, where `MinArea` takes the caps, 200 of
+  area against the walls' 400; a hole slanting or tapering through the plate is paired the same way, corner for corner
+  where its rims turn, and never by walls crossing a face.
+- A hole out of flat by more than the planar tolerance and no more than `MaxOffFlat` is filled by the triangles of least
+  area across it on its own corners, of the ways none of whose triangles lies back to back with a face of the body or
+  turns back against the loop, so that an L-shaped top lifted at a corner is filled across its inside, and under
+  `WhenUnambiguous` only where those ways close one volume within its area times the planar tolerance: the top of a box
+  100 by 100 with a corner lifted 0.005 by two triangles, the two ways across 8.3 apart within a bound of 10, and a hole
+  of 200 corners out of flat by 198 triangles in 30 milliseconds. A box 10 by 1 by 1 missing its top and front has one
+  loop round both: the least area across it, 15.1, lays a triangle on each end face, and is no way; of the six ways that
+  lie on no face, four close the box whole and two 8.3 of its 10, so `WhenUnambiguous` refuses it, and `MinArea` takes
+  the two faces again.
+- Nothing is made up: an edge left open past a fin, or a corner two holes meet at, is `NonManifold`; a gap wider than
+  `MaxGap` that no fill closes is `GapTooWide`; a hole larger than allowed, or out of flat with more than 256 corners, is
+  `HoleTooLarge`, as is any hole where no fill is allowed; one further out of flat than allowed is `HoleOffFlat`; and any
+  other body not valid at the end is `StillOpen`.
+
+On real parts. The 1 989 parts of a Tekla model, each valid as read, were damaged five ways and closed within a gap of
+0.005, holes of any size filled and up to 0.01 out of flat: with the largest face left out 98.6 % of them closed, with
+a face left out at random 99.9 %, with every face on copies of its own corners moved up to 0.002 in its plane 98.2 %,
+with both of those 92.8 %, 93.6 % under `MinArea`, and with a face turned over every one. That is 9 736 of the 9 945
+bodies, 9 753 under `MinArea`, each valid, none further from the part's volume as read than 13 parts in a million, in
+0.6 milliseconds as a median and 2.8 seconds at most. Of those refused, 104 are `NonManifold`, as where the rim of a
+face left out runs twice through one corner, at the foot of an edge where two pieces of a slab meet, and 85 are
+`HoleAmbiguous`, 69 under `MinArea`, as where a face left out holds openings and the welds put its rim out of flat.
+
+Of the 35 cuts `TrySubtractAll` skips on the 79 864 parts of a Tekla model, the cuts within a thousandth that came out
+open or not valid, 23 closed within a gap of 0.005, holes up to 100 filled, none further from the volume the same cut
+within a hundredth gives than 2.1 parts in a million, in 9 milliseconds as a median and a quarter of a second at most.
+Taken in place of the cuts skipped, they bring the 8 of those parts whose bodies cut within a hundredth come out valid
+to within 0.12 % of those, where skipping left them up to 10 % off. Of the 12 refused, one holds a hole of 283, closed
+where any hole may be filled; the other 11 are not open by a gap or a hole but cut wrong, by fins and by slivers wound
+the wrong way, and the same cuts within a hundredth come out not valid either.
+
 ## 11.0.1
 
 **FIXED.** The gluing of a union, a difference or an intersection of solids took two faces of one cell, its top and its
