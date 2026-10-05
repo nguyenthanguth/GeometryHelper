@@ -680,5 +680,68 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         #endregion
 
+        #region Bodies with holes out of flat, for filling by triangles
+
+        /// <summary>
+        /// A box from the origin to (side, side, height) with its top left out and the corner over (side, side) lifted by as
+        /// much as given in the right and the back, which stay flat: the rim of the top stands off the plane through its
+        /// middle by a quarter of the lift, either way.
+        /// </summary>
+        internal static GeoSolid3 BoxWithoutItsTopLiftedAtACorner(double side, double height, double lift)
+        {
+            GeoPoint3[] corners = Corners(0, 0, 0, side, side, height);
+            corners[6] = corners[6].Add(new GeoVector3(0, 0, lift));
+            return new GeoSolid3(BoxLoops.Where((loop, f) => f != Top).Select(loop => Face(corners, loop)));
+        }
+
+        /// <summary>
+        /// A prism over a polygon of as many sides as given round a circle, its top left out and the rim's corner on the x
+        /// axis lifted by as much as given in the two sides beside it, which stay flat: the rim stands off flat by about the
+        /// lift.
+        /// </summary>
+        internal static GeoSolid3 PrismWithoutItsTopLiftedAtACorner(int sides, double radius, double height, double lift)
+        {
+            GeoPoint3 At(int i, double z)
+            {
+                double angle = 2.0 * Math.PI * (i % sides) / sides;
+                return new GeoPoint3(radius * Math.Cos(angle), radius * Math.Sin(angle), z);
+            }
+
+            GeoPoint3 Up(int i) => At(i, height).Add(i % sides == 0 ? new GeoVector3(0, 0, lift) : GeoVector3.Zero);
+
+            var faces = new List<GeoFace3> { Face(Enumerable.Range(0, sides).Reverse().Select(i => At(i, 0)).ToArray()) };
+
+            for (int i = 0; i < sides; i++)
+            {
+                faces.Add(Face(At(i, 0), At(i + 1, 0), Up(i + 1), Up(i)));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The plate of <see cref="PlateWithAHole"/> with its top left out, the corner over (30, 30) lifted by as much as
+        /// given in the plate's right and back, and the hole's corner over (20, 20) as much in the hole's walls: the rim of
+        /// the top and the rim of the hole inside it both stand off flat.
+        /// </summary>
+        internal static GeoSolid3 PlateWithAHoleWithoutItsTopLifted(double lift)
+        {
+            GeoPoint3[] outer = Corners(0, 0, 0, 30, 30, 10);
+            GeoPoint3[] hole = Corners(10, 10, 0, 20, 20, 10);
+            outer[6] = outer[6].Add(new GeoVector3(0, 0, lift));
+            hole[6] = hole[6].Add(new GeoVector3(0, 0, lift));
+            var faces = new List<GeoFace3> { new GeoFace3(Loop(outer, BoxLoops[Bottom]), new[] { Loop(hole, BoxLoops[Bottom]) }, Fine) };
+
+            foreach (int side in new[] { Front, Back, Right, Left })
+            {
+                faces.Add(Face(outer, BoxLoops[side]));
+                faces.Add(Face(hole, BoxLoops[side]).Flip());
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        #endregion
+
     }
 }

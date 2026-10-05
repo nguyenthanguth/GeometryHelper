@@ -17,29 +17,31 @@ namespace GeometryHelper.Core
     /// <para>
     /// A body valid within the tolerance already is handed back as it is, the same instance, and nothing is measured: the
     /// same body back says nothing was done. Made so far are the cleaning, the turning, the reading of the loops, the
-    /// welding and the filling of flat holes. The faces are cleaned: those covering nothing within the tolerance dropped, a
-    /// face given twice taken once, and of a face and a copy of it lying back to back, the one wound against the faces
-    /// round it dropped. They are turned so that each shell is wound alike and outwards, a shell inside another inwards, as
-    /// a cavity; only stretches longer than the widest gap say which way a face faces. A face no other runs an edge of,
-    /// lying back to back on a face of the body, is a sheet of no thickness, and is dropped. An edge left open past a fin, a
-    /// face standing off the surface, stops the closing there, where the fin is longer than the widest gap; a shorter one is
-    /// a piece of a gap. Edges left open running back alongside each other are the two sides of a gap, and the whole body is
-    /// welded shut before any loop of it is read as a hole: corners across the gaps made one, the nearest first and never
-    /// two corners of one face, within the least reach that closes the body, up to the widest gap allowed; and only where no
-    /// reach of that closes it, corners standing off open edges put on them as well, moved onto them within their own
-    /// face's plane where the crack lies there. A fin left after the welding stops the closing. No body is taken with a ring
-    /// running out to a corner and straight back, or with a face it was not given lying back to back with another: both
-    /// read valid, and neither is a body.
+    /// welding and the filling of holes, flat and out of flat. The faces are cleaned: those covering nothing within the
+    /// tolerance dropped, a face given twice taken once, and of a face and a copy of it lying back to back, the one wound
+    /// against the faces round it dropped. They are turned so that each shell is wound alike and outwards, a shell inside
+    /// another inwards, as a cavity; only stretches longer than the widest gap say which way a face faces. A face no other
+    /// runs an edge of, lying back to back on a face of the body, is a sheet of no thickness, and is dropped. An edge left
+    /// open past a fin, a face standing off the surface, stops the closing there, where the fin is longer than the widest
+    /// gap; a shorter one is a piece of a gap. Edges left open running back alongside each other are the two sides of a
+    /// gap, and the whole body is welded shut before any loop of it is read as a hole: corners across the gaps made one, the
+    /// nearest first and never two corners of one face, within the least reach that closes the body, up to the widest gap
+    /// allowed; and only where no reach of that closes it, corners standing off open edges put on them as well, moved onto
+    /// them within their own face's plane where the crack lies there. A fin left after the welding stops the closing. No
+    /// body is taken with a ring running out to a corner and straight back, or with a face it was not given lying back to
+    /// back with another: both read valid, and neither is a body.
     /// </para>
     /// <para>
     /// What is left open is followed round into loops, a corner two holes meet at stopping the closing there. Where no fill
     /// is allowed, a hole stops it, and a gap the welds could not close is a gap too wide. Where fills are allowed, every
     /// loop is filled, gaps too wide for the welds as well as holes, the gap's reason kept should nothing close the body: a
-    /// loop flat within the planar tolerance by one face on its own corners, the loops in its plane inside it its holes, as
-    /// large as allowed at most and lying back to back with no face of the body; the two ends of a hole through a shell
-    /// whose walls are missing capped or walled, as the strategy says; and a shell taking a fill turned over whole where,
-    /// closed, it faces the wrong way. No loop out of flat is filled yet. Any other body not valid at the end is reported
-    /// still open.
+    /// loop flat within the planar tolerance by one face on its own corners, the loops in its plane inside it its holes; the
+    /// two ends of a hole through a shell whose walls are missing capped or walled, as the strategy says; and a loop out of
+    /// flat by no more than allowed, with nothing inside it, by the triangles of least area across it on its own corners,
+    /// of the ways lying on no face of the body, where those ways close one volume within the planar tolerance times its
+    /// area or the strategy takes the least anyway. No fill is taken that is larger than allowed or lies back to back with a
+    /// face of the body, and a shell taking a fill is turned over whole where, closed, it faces the wrong way. Any other
+    /// body not valid at the end is reported still open.
     /// </para>
     /// <para>
     /// Nothing thrown for a reason of the geometry leaves this: a shape the work builds refused by its constructor, or a

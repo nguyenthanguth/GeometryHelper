@@ -125,9 +125,20 @@ namespace GeometryHelper
         /// fills only the holes flat within the planar tolerance.
         /// </summary>
         /// <remarks>
-        /// A hole further out of flat is not filled, and the report says <see cref="ClosingFailure.HoleOffFlat"/>. A hole
-        /// within it can still be filled more than one way, the ways closing different volumes; which is taken, if any, is
+        /// <para>
+        /// How far out of flat a hole stands is how far its corner furthest off the plane through the average of its corners,
+        /// square to its area, stands off it. A hole further out of flat than this is not filled, and the report says
+        /// <see cref="ClosingFailure.HoleOffFlat"/>. A hole within it, and further out of flat than the planar tolerance, is
+        /// filled by triangles on its own corners: of the ways of filling it none of whose triangles lies back to back with a
+        /// face of the body, the one of least area. The ways can close different volumes; which is taken, if any, is
         /// <see cref="Fill"/>'s.
+        /// </para>
+        /// <para>
+        /// The least area is found in time growing as the cube of the hole's corners, a few hundredths of a second for 256,
+        /// and a hole out of flat with more is not filled, <see cref="ClosingFailure.HoleTooLarge"/>. Nor is one holding
+        /// another hole inside it, <see cref="ClosingFailure.HoleAmbiguous"/>: triangles on its corners do not go round the
+        /// hole inside.
+        /// </para>
         /// </remarks>
         public double MaxOffFlat { get; }
 

@@ -34,9 +34,10 @@ namespace GeometryHelper.Core
         /// that way is taken, whatever the strategy. Where it has two, as the two ends of a hole through a plate whose walls
         /// are missing have, capped or walled, <see cref="FillStrategy.WhenUnambiguous"/> takes neither and the report says
         /// <see cref="ClosingFailure.HoleAmbiguous"/>, and <see cref="FillStrategy.MinArea"/> takes the one adding the least
-        /// area, the caps where the two add as much. The faces taken across each hole are held to
-        /// <see cref="SolidClosingOptions.MaxHoleArea"/>, and a hole needing more is <see cref="ClosingFailure.HoleTooLarge"/>,
-        /// at a point within the faces it would take.
+        /// area, the caps where the two add as much. A hole out of flat is filled by the triangles of least area across it,
+        /// of the ways lying on no face of the body, as <see cref="TryTriangulate"/> says. The faces taken across each hole
+        /// are held to <see cref="SolidClosingOptions.MaxHoleArea"/>, and a hole needing more is
+        /// <see cref="ClosingFailure.HoleTooLarge"/>, at a point within the faces it would take.
         /// </para>
         /// <para>
         /// The way each shell faces is read again on the body closed: a shell open by a hole encloses a volume only from
@@ -77,30 +78,21 @@ namespace GeometryHelper.Core
                     return false;
                 }
 
-                bool caps = LieOnNoFace(hole.Caps, faces, boxes, near, tolerance, out GeoPoint3 skin);
-                bool walls = hole.Walls != null
-                    && LieOnNoFace(new List<Patch> { hole.Walls }, faces, boxes, near, tolerance, out _)
-                    && WallsClose(faces, holes, h, tolerance);
-
                 List<Patch> fill;
 
-                if (caps && walls)
+                if (hole.Warped >= 0)
                 {
-                    if (options.Fill == FillStrategy.WhenUnambiguous)
+                    // Out of flat: the triangles of least area across it, lying on no face of the body.
+                    if (!TryTriangulate(loops[hole.Warped], hole.Warped, faces, boxes, options, out Patch triangles, out ClosingFailure failure, out GeoPoint3 at))
                     {
-                        work.Refuse(ClosingFailure.HoleAmbiguous, PointOn(hole.Caps[0], tolerance));
+                        work.Refuse(failure, at);
                         return false;
                     }
 
-                    fill = hole.Walls.Area < AreaOf(hole.Caps) ? new List<Patch> { hole.Walls } : hole.Caps;
+                    fill = new List<Patch> { triangles };
                 }
-                else if (caps || walls)
+                else if (!TryChoose(work, faces, holes, h, boxes, near, out fill))
                 {
-                    fill = caps ? hole.Caps : new List<Patch> { hole.Walls };
-                }
-                else
-                {
-                    work.Refuse(ClosingFailure.StillOpen, skin);
                     return false;
                 }
 
@@ -126,6 +118,51 @@ namespace GeometryHelper.Core
 
             FaceShellsOutwards(work, all, faces.Count, origins, taken, loops, shells);
             return TryTakeFilled(work, all, faces.Count, origins, taken, out closed, out report);
+        }
+
+        /// <summary>
+        /// Chooses the faces a flat hole is filled by: its face, or for the two ends of a hole through the body, the caps or
+        /// the walls, as the strategy says where both lie on no face of the body; false, the trouble noted, where neither
+        /// may be taken.
+        /// </summary>
+        /// <param name="work">The work.</param>
+        /// <param name="faces">The faces of the body.</param>
+        /// <param name="holes">The holes.</param>
+        /// <param name="h">The hole, by index.</param>
+        /// <param name="boxes">The faces filed by their boxes.</param>
+        /// <param name="near">A list to work in.</param>
+        /// <param name="fill">The fills taken; null when the method returns false.</param>
+        private static bool TryChoose(Work work, List<GeoFace3> faces, List<Hole> holes, int h, FaceBoxes boxes, List<int> near, out List<Patch> fill)
+        {
+            Tolerance tolerance = work.Tolerance;
+            Hole hole = holes[h];
+            fill = null;
+
+            bool caps = LieOnNoFace(hole.Caps, faces, boxes, near, tolerance, out GeoPoint3 skin);
+            bool walls = hole.Walls != null
+                && LieOnNoFace(new List<Patch> { hole.Walls }, faces, boxes, near, tolerance, out _)
+                && WallsClose(faces, holes, h, tolerance);
+
+            if (caps && walls)
+            {
+                if (work.Options.Fill == FillStrategy.WhenUnambiguous)
+                {
+                    work.Refuse(ClosingFailure.HoleAmbiguous, PointOn(hole.Caps[0], tolerance));
+                    return false;
+                }
+
+                fill = hole.Walls.Area < AreaOf(hole.Caps) ? new List<Patch> { hole.Walls } : hole.Caps;
+                return true;
+            }
+
+            if (caps || walls)
+            {
+                fill = caps ? hole.Caps : new List<Patch> { hole.Walls };
+                return true;
+            }
+
+            work.Refuse(ClosingFailure.StillOpen, skin);
+            return false;
         }
 
         /// <summary>
@@ -189,8 +226,9 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Reads the loops left open as holes to fill, in the order of their first loops: a loop flat within the planar
         /// tolerance is filled by one face on its corners, the loops lying in its plane inside it the other way round taken
-        /// as the holes of that face; and two such faces of no holes at the two ends of a hole through a shell can be walls
-        /// between them instead.
+        /// as the holes of that face; two such faces of no holes at the two ends of a hole through a shell can be walls
+        /// between them instead; and a loop out of flat by no more than the options allow, with no loop inside it, is filled
+        /// by triangles.
         /// </summary>
         /// <param name="loops">The loops left open, in order.</param>
         /// <param name="options">The options.</param>
@@ -219,9 +257,16 @@ namespace GeometryHelper.Core
         /// a plate missing the walls of a hole through it has two, and the walls lie on nothing.
         /// </para>
         /// <para>
-        /// A loop out of flat takes no face: further out of flat than <see cref="SolidClosingOptions.MaxOffFlat"/> it is
-        /// <see cref="ClosingFailure.HoleOffFlat"/>, and within it, no triangles are made across it here, and the body is
-        /// still open there. A loop enclosing no area, or one whose face cannot be built, leaves the body still open too.
+        /// A loop further out of flat than the planar tolerance and no further than
+        /// <see cref="SolidClosingOptions.MaxOffFlat"/> is filled by triangles on its corners (see <see cref="TryTriangulate"/>),
+        /// and one further out is <see cref="ClosingFailure.HoleOffFlat"/>. Triangles are found across a loop of no more than
+        /// 256 corners, and one out of flat with more is <see cref="ClosingFailure.HoleTooLarge"/>, at its corner furthest
+        /// off flat. They are found across a loop with nothing inside it only: a loop out of flat holding another, or a flat
+        /// one holding a loop out of flat, which its face cannot take as a hole, is <see cref="ClosingFailure.HoleAmbiguous"/>
+        /// whatever the strategy, at the middle of the loop holding it. Where either loop is out of flat, one lies in the
+        /// other's plane within the planar tolerance and as far again as a hole may stand out of flat. A loop out of flat
+        /// held by a hole of a flat face is an island, and filled by triangles of its own. A loop enclosing no area, or one
+        /// whose face cannot be built, leaves the body still open.
         /// </para>
         /// </remarks>
         private static List<Hole> ReadHoles(List<Loop> loops, SolidClosingOptions options, FaceShells shells)
@@ -232,29 +277,53 @@ namespace GeometryHelper.Core
             var rings = new GeoPolygon3[count];
             var planes = new GeoPlane3[count];
             var boxes = new GeoAabb3[count];
+            var warped = new bool[count];
             var holes = new List<Hole>();
 
             for (int i = 0; i < count; i++)
             {
                 Loop loop = loops[i];
+                ClosingFailure failure = ClosingFailure.None;
+                GeoPoint3 at = loop.Middle;
 
-                if (loop.Area > 0.0 && loop.OffFlat <= tolerance.EqualPlanar)
+                if (!(loop.Area > 0.0))
+                {
+                    failure = ClosingFailure.StillOpen;
+                }
+                else if (loop.OffFlat <= tolerance.EqualPlanar)
                 {
                     rings[i] = TryRing(loop.Corners, build);
-                    planes[i] = new GeoPlane3(loop.Middle, loop.Normal);
-                    boxes[i] = GeoAabb3.FromPoints(loop.Corners);
+                    failure = rings[i] == null ? ClosingFailure.StillOpen : ClosingFailure.None;
+                }
+                else if (loop.OffFlat > options.MaxOffFlat)
+                {
+                    failure = ClosingFailure.HoleOffFlat;
+                }
+                else if (loop.Corners.Count > MostCornersOutOfFlat)
+                {
+                    failure = ClosingFailure.HoleTooLarge;
+                    at = FurthestOff(loop);
+                }
+                else
+                {
+                    // Read square to its plane, as the triangles across it will be, on its corners as they are.
+                    warped[i] = true;
+                    rings[i] = GeoPolygon3.FromValidated(loop.Corners.ToArray(), loop.Normal, loop.Area);
                 }
 
-                if (rings[i] == null)
+                if (failure != ClosingFailure.None)
                 {
-                    bool offFlat = loop.Area > 0.0 && loop.OffFlat > Math.Max(tolerance.EqualPlanar, options.MaxOffFlat);
-                    holes.Add(Hole.Unread(i, offFlat ? ClosingFailure.HoleOffFlat : ClosingFailure.StillOpen, loop.Middle));
+                    holes.Add(Hole.Unread(i, failure, at));
+                    continue;
                 }
+
+                planes[i] = new GeoPlane3(loop.Middle, loop.Normal);
+                boxes[i] = GeoAabb3.FromPoints(loop.Corners);
             }
 
-            int[] holder = Holders(loops, rings, planes, boxes, tolerance);
+            int[] holder = Holders(loops, rings, planes, boxes, warped, tolerance.EqualPlanar + options.MaxOffFlat, tolerance);
 
-            // Each flat loop the boundary of a face or a hole of one, the larger first, as the loops holding them are.
+            // Each loop read the boundary of a face or a hole of one, the larger first, as the loops holding them are.
             var order = new List<int>();
 
             for (int i = 0; i < count; i++)
@@ -273,11 +342,21 @@ namespace GeometryHelper.Core
 
             var boundary = new bool[count];
             var inner = new List<int>[count];
+            var holdsAcross = new bool[count];
 
             foreach (int i in order)
             {
                 int h = holder[i];
-                boundary[i] = h < 0 || !boundary[h] || loops[i].Normal.DotProduct(loops[h].Normal) >= 0.0;
+
+                // Triangles are found across a loop with nothing inside it, and a face takes no hole out of flat.
+                if (h >= 0 && (warped[h] || (warped[i] && boundary[h])))
+                {
+                    holdsAcross[h] = true;
+                    boundary[i] = true;
+                    continue;
+                }
+
+                boundary[i] = h < 0 || !boundary[h] || warped[i] || loops[i].Normal.DotProduct(loops[h].Normal) >= 0.0;
 
                 if (!boundary[i])
                 {
@@ -289,7 +368,7 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < count; i++)
             {
-                if (boundary[i])
+                if (boundary[i] && !warped[i] && !holdsAcross[i])
                 {
                     inner[i]?.Sort();
                     patches[i] = TryPatch(i, inner[i], rings, build);
@@ -308,7 +387,15 @@ namespace GeometryHelper.Core
 
                 var hole = new Hole(First(i, inner[i], other[i]));
 
-                if (patches[i] == null)
+                if (holdsAcross[i])
+                {
+                    hole.Fail(ClosingFailure.HoleAmbiguous, loops[i].Middle);
+                }
+                else if (warped[i])
+                {
+                    hole.Warped = i;
+                }
+                else if (patches[i] == null)
                 {
                     hole.Fail(ClosingFailure.StillOpen, loops[i].Middle);
                 }
@@ -350,27 +437,33 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// For each flat loop, the smallest flat loop holding it, in whose plane it lies with a corner of it inside; below
-        /// nought where none does, and for the loops not flat.
+        /// For each loop read, the smallest loop read holding it, in whose plane it lies with a corner of it inside; below
+        /// nought where none does, and for the loops not read.
         /// </summary>
         /// <param name="loops">The loops.</param>
-        /// <param name="rings">The polygon of each flat loop; null for the others.</param>
-        /// <param name="planes">The plane of each flat loop.</param>
-        /// <param name="boxes">The box of each flat loop.</param>
+        /// <param name="rings">The polygon of each loop read, flat or out of flat; null for the others.</param>
+        /// <param name="planes">The plane of each loop read.</param>
+        /// <param name="boxes">The box of each loop read.</param>
+        /// <param name="warped">For each loop, whether it is out of flat.</param>
+        /// <param name="band">How far off the plane of a loop another may stand and lie in it, where either is out of flat:
+        /// the planar tolerance and as far again as a hole may stand out of flat.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <remarks>
-        /// The loops are filed by their boxes, and each is set only against those whose boxes hold its own.
+        /// The loops are filed by their boxes, and each is set only against those whose boxes hold its own. Two flat loops
+        /// lie in one plane within the planar tolerance, as a face takes its holes.
         /// </remarks>
-        private static int[] Holders(List<Loop> loops, GeoPolygon3[] rings, GeoPlane3[] planes, GeoAabb3[] boxes, Tolerance tolerance)
+        private static int[] Holders(List<Loop> loops, GeoPolygon3[] rings, GeoPlane3[] planes, GeoAabb3[] boxes, bool[] warped, double band, Tolerance tolerance)
         {
             int count = loops.Count;
             var holder = new int[count];
             var skip = new bool[count];
+            bool anyWarped = false;
 
             for (int i = 0; i < count; i++)
             {
                 holder[i] = -1;
                 skip[i] = rings[i] == null;
+                anyWarped |= warped[i];
             }
 
             var filed = new FaceBoxes(boxes, skip, tolerance);
@@ -383,11 +476,19 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                filed.Meeting(boxes[b], near);
+                filed.Meeting(anyWarped ? boxes[b].Expand(band) : boxes[b], near);
 
                 foreach (int a in near)
                 {
-                    if (a == b || !(loops[a].Area > loops[b].Area) || !boxes[a].Contains(boxes[b], tolerance))
+                    if (a == b || !(loops[a].Area > loops[b].Area))
+                    {
+                        continue;
+                    }
+
+                    bool across = warped[a] || warped[b];
+                    double off = across ? band : tolerance.EqualPlanar;
+
+                    if (!Holds(boxes[a], boxes[b], across ? Math.Max(band, tolerance.EqualPoint) : tolerance.EqualPoint))
                     {
                         continue;
                     }
@@ -398,7 +499,7 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    if (LiesIn(loops[b], planes[a], tolerance) && IsInside(loops[b], rings[a], planes[a], tolerance))
+                    if (LiesWithin(loops[b], planes[a], off) && IsInside(loops[b], rings[a], planes[a], tolerance))
                     {
                         holder[b] = a;
                     }
@@ -406,6 +507,38 @@ namespace GeometryHelper.Core
             }
 
             return holder;
+        }
+
+        /// <summary>
+        /// Determines whether one box holds another, each side of it within a margin.
+        /// </summary>
+        /// <param name="outer">The box holding.</param>
+        /// <param name="inner">The box held.</param>
+        /// <param name="margin">The margin.</param>
+        private static bool Holds(GeoAabb3 outer, GeoAabb3 inner, double margin)
+        {
+            return inner.Min.X >= outer.Min.X - margin && inner.Max.X <= outer.Max.X + margin
+                && inner.Min.Y >= outer.Min.Y - margin && inner.Max.Y <= outer.Max.Y + margin
+                && inner.Min.Z >= outer.Min.Z - margin && inner.Max.Z <= outer.Max.Z + margin;
+        }
+
+        /// <summary>
+        /// Determines whether every corner of a loop lies within a distance of a plane, either side.
+        /// </summary>
+        /// <param name="loop">The loop.</param>
+        /// <param name="plane">The plane.</param>
+        /// <param name="distance">The distance.</param>
+        private static bool LiesWithin(Loop loop, GeoPlane3 plane, double distance)
+        {
+            foreach (GeoPoint3 corner in loop.Corners)
+            {
+                if (Math.Abs(plane.SignedDistanceTo(corner)) > distance)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -999,7 +1132,8 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// A hole to fill: the faces across it, one or the two at the ends of a hole through the body, and the walls between
-        /// those two that would close it instead; or why it cannot be filled, and where.
+        /// those two that would close it instead; or the loop out of flat it is, to be filled by triangles; or why it cannot
+        /// be filled, and where.
         /// </summary>
         private sealed class Hole
         {
@@ -1020,6 +1154,12 @@ namespace GeometryHelper.Core
 
             /// <summary>Gets or sets the walls between the two ends of a hole through the body; null where it is no such hole.</summary>
             internal Patch Walls { get; set; }
+
+            /// <summary>
+            /// Gets or sets the loop out of flat the hole is, by index, to be filled by triangles across it; below nought where
+            /// it is flat.
+            /// </summary>
+            internal int Warped { get; set; } = -1;
 
             /// <summary>Gets why it cannot be filled; none where it can be read.</summary>
             internal ClosingFailure Failure { get; private set; }
