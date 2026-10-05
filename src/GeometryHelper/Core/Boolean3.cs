@@ -1187,7 +1187,7 @@ namespace GeometryHelper.Core
         /// slab beyond the other's end, joined at the corner, where the other's end could not cut it; judged by a point
         /// beyond the end, the cell was outside the other, and the common part lost 6.4 m of the wedge.
         /// </remarks>
-        private static bool Misjudged(List<GeoSolid3> cells, List<GeoPlane3> stuck, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance)
+        internal static bool Misjudged(List<GeoSolid3> cells, List<GeoPlane3> stuck, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance)
         {
             foreach (GeoSolid3 cell in cells)
             {
@@ -1234,10 +1234,17 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Finds a point inside a body on one side of a plane, further from it than the planar tolerance: the middle of the
-        /// body's thickness under one of its largest surface triangles on that side.
+        /// Finds a point inside a body on one side of a plane, further from it than the planar tolerance: the middle of what
+        /// lies on that side of the body's thickness under one of its largest surface triangles there.
         /// </summary>
-        private static bool TryGetPointBeside(GeoSolid3 solid, GeoPlane3 plane, double side, Tolerance tolerance, out GeoPoint3 point)
+        /// <remarks>
+        /// The middle of the whole thickness can lie on the other side: a slab of a Tekla model less a tool whose sloping top
+        /// a plane of the slab's could not cut had 131 millimetres of the slab above the plane under the triangles of the
+        /// slab's top, and the middle of the slab under each of them below it. With no point found above, the cell along the
+        /// plane, judged by a point within the tool, was not found misjudged, and the difference took it whole: 18 litres
+        /// beyond the tool. Where the thickness under a triangle runs across the plane, its middle is taken as far as the plane.
+        /// </remarks>
+        internal static bool TryGetPointBeside(GeoSolid3 solid, GeoPlane3 plane, double side, Tolerance tolerance, out GeoPoint3 point)
         {
             point = GeoPoint3.Origin;
             int tried = 0;
@@ -1249,7 +1256,7 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                if (TryGetMidpointUnder(solid, triangle, tolerance, out GeoPoint3 candidate) && side * plane.SignedDistanceTo(candidate) > tolerance.EqualPlanar)
+                if (TryGetMidpointUnder(solid, triangle, tolerance, plane, side, out GeoPoint3 candidate) && side * plane.SignedDistanceTo(candidate) > tolerance.EqualPlanar)
                 {
                     point = candidate;
                     return true;
@@ -1535,6 +1542,13 @@ namespace GeometryHelper.Core
         /// Finds the middle of a body's thickness under a triangle of its skin, along the triangle's inward normal.
         /// </summary>
         private static bool TryGetMidpointUnder(GeoSolid3 solid, GeoTriangle3 triangle, Tolerance tolerance, out GeoPoint3 point)
+            => TryGetMidpointUnder(solid, triangle, tolerance, null, 0.0, out point);
+
+        /// <summary>
+        /// Finds the middle of a body's thickness under a triangle of its skin, along the triangle's inward normal, as far as
+        /// a plane where one is given and the thickness runs across it from the side the triangle is on.
+        /// </summary>
+        private static bool TryGetMidpointUnder(GeoSolid3 solid, GeoTriangle3 triangle, Tolerance tolerance, GeoPlane3? plane, double side, out GeoPoint3 point)
         {
             point = GeoPoint3.Origin;
             GeoVector3 area = triangle.GetAreaVector();
@@ -1566,6 +1580,16 @@ namespace GeometryHelper.Core
             if (depth == double.MaxValue)
             {
                 return false;
+            }
+
+            if (plane.HasValue)
+            {
+                double toward = -side * plane.Value.Normal.DotProduct(inward);
+
+                if (toward > 0.0)
+                {
+                    depth = Math.Min(depth, side * plane.Value.SignedDistanceTo(triangle.Centroid) / toward);
+                }
             }
 
             GeoPoint3 candidate = triangle.Centroid.Add(inward.Multiply(depth / 2.0));

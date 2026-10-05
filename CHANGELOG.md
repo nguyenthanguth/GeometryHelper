@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A union, a difference or an intersection of solids whose cut was not clean, a plane crossing a cell and
+unable to cut it, took the cell as judged by one point where the other body lay one way to the cell's material on one
+side of the plane and the other way to the rest: the check for that wanted a point on each side, and took for that the
+middle of the cell's thickness under its largest triangles there, which can lie on the other side. A slab of a Tekla
+model, less a tool whose sloping top a plane of the slab's could not cut, had 131 millimetres of the slab above that
+plane and no such point found there, and the difference took the cell whole: 18 litres beyond the tool, closed and
+valid. The middle is taken as far as the plane now. The difference takes 43.79 litres, what the two share, and the
+common part of another slab and the tool beneath it, 44.20 litres where the two share 40.43, comes out 40.43.
+
 **FIXED.** A boolean of solids with a `SolidBooleanOptions.Contact` put a face of the second body onto a plane of the
 first that it lay on within the tolerance already, where the boolean took it as lying there anyway, and that could
 change the answer: a tool's face 0.0001 off the plane of a slab's sloping face, a face out of flat that reads as
