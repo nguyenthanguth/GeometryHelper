@@ -13,7 +13,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the second body with each face that lies parallel to a face of the first, either way round, every corner of
         /// it within the contact distance of that face's plane and the boxes of the two meeting, put onto the nearest such
-        /// plane; the second body as it is where no face is moved, or where moving them would leave it open.
+        /// plane, unless it lies on one within the tolerance already; the second body as it is where no face is moved, or
+        /// where moving them would leave it open.
         /// </summary>
         /// <param name="first">The body whose faces stay where they are.</param>
         /// <param name="second">The body whose faces are moved.</param>
@@ -35,6 +36,9 @@ namespace GeometryHelper.Core
             }
 
             double parallel = Math.Cos(tolerance.EqualAngleRad);
+
+            // How near a plane a face lies on it, as the boolean reads it.
+            double on = Boolean3.ForWork(tolerance).EqualPlanar;
             var targets = new List<(GeoFace3 Face, GeoPlane3 Plane, GeoAabb3 Box)>(first.Faces.Count);
 
             foreach (GeoFace3 face in first.Faces)
@@ -87,8 +91,13 @@ namespace GeometryHelper.Core
                         }
                     }
 
-                    // A face lying on a plane of the first body already is where it should be, whatever else is near.
-                    if (furthest == 0.0)
+                    // A face lying on a plane of the first body already, within the tolerance, is where it should be,
+                    // whatever else is near: the boolean takes it as lying there. Put onto it exactly, it changes nothing
+                    // the boolean reads but how the planes of the two lie on each other: a tool's face 0.0001 off the
+                    // plane of a slab's face out of flat, read as triangles each a few ten-thousandths off it, was put onto
+                    // it, and the plane, crossing the slab elsewhere, could not cut it; the difference took the cell whole,
+                    // 18 litres beyond the tool.
+                    if (furthest <= on)
                     {
                         lies = true;
                         break;

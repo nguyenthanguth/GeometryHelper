@@ -70,7 +70,8 @@ namespace GeometryHelper
         /// second body's other faces share with it moved with them, and those faces built again from their corners (see
         /// <see cref="GeoFace3.FromLoops(System.Collections.Generic.IEnumerable{GeoPoint3}, System.Collections.Generic.IEnumerable{System.Collections.Generic.IEnumerable{GeoPoint3}}, Tolerance)"/>).
         /// The first body is not moved, and keeps the exactness of the tolerance; the second moves by no more than this
-        /// distance, and only where it touches the first. Where moving it would leave it open, it is taken as it came.
+        /// distance, and only where it touches the first. Where moving it would leave it open, it is taken as it came. A
+        /// face lying on such a plane within the tolerance already is not moved: the boolean takes it as lying there.
         /// </para>
         /// <para>
         /// A face of the second body standing off the first at a slant, nearer than this at one end and further at the

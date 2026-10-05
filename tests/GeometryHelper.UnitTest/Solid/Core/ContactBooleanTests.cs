@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
+using GeometryHelper.Core;
 using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -99,6 +100,22 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(Slab().TrySubtract(tool, out GeoSolid3 left, Touching, out _));
             Assert.Equal(2, left.SplitShells(Fine).Length);
             Assert.Equal(500.0 * 1000.0 * 300.0 + 0.02 * 1000.0 * 300.0, left.GetVolume(Fine), 3);
+        }
+
+        [Fact]
+        public void AFaceWithinTheToleranceOfAFaceOfTheFirst_IsLeftWhereItIs()
+        {
+            // 0.0004 off the slab's face at x = 0 the tool's face is on it already, as the boolean reads it within a
+            // thousandth. Put onto it exactly, it lay on the plane of a face of the slab out of flat, read as triangles each a
+            // few ten-thousandths off that plane, and the plane, crossing the slab elsewhere, could not cut it: the
+            // difference took the cell whole, 18 litres beyond the tool. 0.004 off, it is moved.
+            GeoSolid3 near = Box(0.0004, -100, -100, 500, 1100, 400);
+            Assert.Same(near, Touching3.PutOnto(Slab(), near, 0.01, Fine));
+
+            GeoSolid3 off = Box(0.004, -100, -100, 500, 1100, 400);
+            GeoSolid3 put = Touching3.PutOnto(Slab(), off, 0.01, Fine);
+            Assert.NotSame(off, put);
+            Assert.Equal(0.0, put.GetAabb().Min.X, 12);
         }
 
         [Fact]

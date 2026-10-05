@@ -4,6 +4,17 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**FIXED.** A boolean of solids with a `SolidBooleanOptions.Contact` put a face of the second body onto a plane of the
+first that it lay on within the tolerance already, where the boolean took it as lying there anyway, and that could
+change the answer: a tool's face 0.0001 off the plane of a slab's sloping face, a face out of flat that reads as
+triangles each a few ten-thousandths off it, was put onto it exactly, and the plane, crossing the slab elsewhere, could
+not cut it, so the difference took the whole of what lay along it: 61.88 litres from a slab of a Tekla model where the
+two share 43.79, a result closed and valid. A face within the tolerance of such a plane is left where it is now. Of the
+79 864 parts of that model each cut one after another by the parts it meets within a thousandth, with a contact of a
+hundredth, two came out more than a litre short of the same cut within a hundredth; this is one of them.
+
 ## 11.0.0
 
 **BREAKING.** The default tolerance is a thousandth of a millimetre for points and for flatness:
