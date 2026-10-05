@@ -14,6 +14,19 @@ namespace GeometryHelper.Core
         private const int MostCornersOutOfFlat = 256;
 
         /// <summary>
+        /// The cosine of the least angle a triangle across a loop must be turned against the loop's normal by, to be turned
+        /// back on it: 120 degrees.
+        /// </summary>
+        /// <remarks>
+        /// Across a concave rim nearly flat, a way of filling it that runs a diagonal outside the rim folds a triangle back
+        /// over the outside, facing nearly against the loop; such a way is no way of filling the hole, and counted, it parts
+        /// the volumes the ways close by far more than the ways across the inside do. Across a loop well out of flat, as the
+        /// one round two faces of a box left out side by side, the faces again stand square to the loop's normal, and are
+        /// kept.
+        /// </remarks>
+        private const double TurnedBack = -0.5;
+
+        /// <summary>
         /// Fills a loop out of flat by the triangles of least area across it on its own corners, of the ways of filling it
         /// none of whose triangles lies back to back with a face of the body; false, and why, where no way lies on no face,
         /// or where the strategy takes only an unambiguous fill and the ways part in the volume they close.
@@ -40,7 +53,10 @@ namespace GeometryHelper.Core
         /// least area across the loop round two faces of a long box, its top and front, is the plane through the box's
         /// diagonal, but each end of it is a triangle lying on the end face of the box it stands in. Such a triangle has its
         /// three corners on that face, so each corner is read once for the faces it lies on, and a triangle is looked at
-        /// closer only where its three corners share one.
+        /// closer only where its three corners share one. Nor is a way taking a triangle turned back against the loop's
+        /// normal, folding over the outside of a concave rim (see <see cref="TurnedBack"/>): an L-shaped top of 300 lifted
+        /// 0.005 at a convex corner is filled within a bound of 0.3 by its ways across the inside, which part by 0.25, where
+        /// counted with the ways folding over the outside of its inner corner it read as ambiguous.
         /// </para>
         /// <para>
         /// The ways are taken as one where the most volume any of them closes and the least are no further apart than the
@@ -110,8 +126,16 @@ namespace GeometryHelper.Core
                         double twice = across.Length;
                         double longest = Math.Max(length[(i * count) + j], Math.Max(length[(i * count) + k], length[(k * count) + j]));
 
-                        // A needle within the point tolerance, or a triangle back to back with a face of the body.
-                        if (!(twice > tolerance.EqualPoint * longest) || LiesBackToBack(shared[(i * count) + j], on[k], across.Divide(twice), corners, i, k, j, faces, tolerance))
+                        // A needle within the point tolerance; a triangle turned back against the loop, folding over the outside
+                        // of a concave rim; or one back to back with a face of the body.
+                        if (!(twice > tolerance.EqualPoint * longest))
+                        {
+                            continue;
+                        }
+
+                        GeoVector3 normal = across.Divide(twice);
+
+                        if (normal.DotProduct(loop.Normal) < TurnedBack || LiesBackToBack(shared[(i * count) + j], on[k], normal, corners, i, k, j, faces, tolerance))
                         {
                             continue;
                         }

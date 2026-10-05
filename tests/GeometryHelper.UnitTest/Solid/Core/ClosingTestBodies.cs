@@ -743,5 +743,488 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         #endregion
 
+        #region Bodies with copies of a corner in one face or two, and meshes finer than the widest gap
+
+        /// <summary>
+        /// The box with its front in two, a crack as wide as given between the two at x = 15 from the bottom to the top, and
+        /// the top's and the bottom's rings through the corners of both sides of it: each spans the crack by an edge of its
+        /// own as long as the crack is wide, its two corners copies of one point.
+        /// </summary>
+        internal static GeoSolid3 BoxCrackedThroughTheFront(double width)
+        {
+            GeoPoint3[] c = Corners();
+            List<GeoFace3> faces = BoxFaces(c);
+            var lowLeft = new GeoPoint3(15, 0, 0);
+            var lowRight = new GeoPoint3(15 + width, 0, 0);
+            var highLeft = new GeoPoint3(15, 0, 10);
+            var highRight = new GeoPoint3(15 + width, 0, 10);
+            faces[Bottom] = Face(c[0], c[3], c[2], c[1], lowRight, lowLeft);
+            faces[Top] = Face(c[4], highLeft, highRight, c[5], c[6], c[7]);
+            faces[Front] = Face(c[0], lowLeft, highLeft, c[4]);
+            faces.Add(Face(lowRight, c[1], c[5], highRight));
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The box with the top's ring through the corner over (30, 20) and then through a copy of it moved out of the top
+        /// along its diagonal by as much as given: the right and the back meet at the corner, and the top has both.
+        /// </summary>
+        internal static GeoSolid3 BoxWithATopCornerDoubled(double by)
+        {
+            GeoPoint3[] c = Corners();
+            List<GeoFace3> faces = BoxFaces(c);
+            faces[Top] = Face(c[4], c[5], c[6], c[6].Add(OutOfTheTop(6).Multiply(by)), c[7]);
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The box with the top's corner over (30, 20) in two copies, one moved off the right's plane by as much as given and
+        /// the other off the back's, the right and the back meeting at the corner itself.
+        /// </summary>
+        internal static GeoSolid3 BoxWithATopCornerInTwo(double by)
+        {
+            GeoPoint3[] c = Corners();
+            List<GeoFace3> faces = BoxFaces(c);
+            GeoPoint3 offTheRight = c[6].Add(new GeoVector3(by, by / 3.0, 0));
+            GeoPoint3 offTheBack = c[6].Add(new GeoVector3(by / 3.0, by, 0));
+            faces[Top] = Face(c[4], c[5], offTheRight, offTheBack, c[7]);
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The box with its top corner over (30, 20) cut off by a triangle as far along each edge as given, the triangle left
+        /// out: each of its corners is a corner of the two faces meeting along that edge, exactly, and of no other, so that
+        /// every two of them share a face.
+        /// </summary>
+        internal static GeoSolid3 BoxWithItsCornerCutOffOpen(double by)
+        {
+            GeoPoint3[] c = Corners();
+            List<GeoFace3> faces = BoxFaces(c);
+            var topAndRight = new GeoPoint3(30, 20 - by, 10);
+            var rightAndBack = new GeoPoint3(30, 20, 10 - by);
+            var backAndTop = new GeoPoint3(30 - by, 20, 10);
+            faces[Top] = Face(c[4], c[5], topAndRight, backAndTop, c[7]);
+            faces[Right] = Face(c[1], c[2], rightAndBack, topAndRight, c[5]);
+            faces[Back] = Face(c[2], c[3], c[7], backAndTop, rightAndBack);
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The box with the edge between its top and its right chamfered as far along each as given and the chamfer left out:
+        /// the front and the back each span the strip by a short edge from a corner of the top to one of the right.
+        /// </summary>
+        internal static GeoSolid3 BoxWithAChamferMissing(double by)
+        {
+            GeoPoint3[] c = Corners();
+            List<GeoFace3> faces = BoxFaces(c);
+            var topFront = new GeoPoint3(30 - by, 0, 10);
+            var topBack = new GeoPoint3(30 - by, 20, 10);
+            var rightFront = new GeoPoint3(30, 0, 10 - by);
+            var rightBack = new GeoPoint3(30, 20, 10 - by);
+            faces[Top] = Face(c[4], topFront, topBack, c[7]);
+            faces[Right] = Face(c[1], c[2], rightBack, rightFront);
+            faces[Front] = Face(c[0], c[1], rightFront, topFront, c[4]);
+            faces[Back] = Face(c[2], c[3], c[7], topBack, rightBack);
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The box with its top's copy of the corner over (30, 0) moved out by 0.003, as
+        /// <see cref="BoxWithTopCornersMovedOut"/> moves it, and a flap 0.004 by 0.004 standing out of the top's front edge
+        /// beside it, from x = 29.992, at 45 degrees between the top and the front: a fin, open along three of its edges.
+        /// </summary>
+        internal static GeoSolid3 BoxWithAMovedCornerAndAFlapBesideIt()
+        {
+            List<GeoFace3> faces = BoxWithTopCornersMovedOut((5, 0.003)).Faces.ToList();
+            var from = new GeoPoint3(29.992, 0, 10);
+            var to = new GeoPoint3(29.996, 0, 10);
+            GeoVector3 out_ = new GeoVector3(0, -1, 1).Multiply(0.004 / Math.Sqrt(2.0));
+            faces.Add(Face(from, to, to.Add(out_), from.Add(out_)));
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The quads of a grid of n by n cells as wide as given, from an origin along two axes, each wound round the first
+        /// axis's cross product with the second, row by row along the first.
+        /// </summary>
+        internal static IEnumerable<GeoPoint3[]> Grid(GeoPoint3 origin, GeoVector3 u, GeoVector3 v, int n, double cell)
+        {
+            GeoPoint3 At(int i, int j) => origin.Add(u.Multiply(i * cell)).Add(v.Multiply(j * cell));
+
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    yield return new[] { At(i, j), At(i + 1, j), At(i + 1, j + 1), At(i, j + 1) };
+                }
+            }
+        }
+
+        /// <summary>
+        /// The box with a hole in its top from (15, 10) filled by a grid of n by n quads as wide as given, or by twice as many
+        /// triangles, the one at the middle, the quad n / 2 cells from (15, 10) each way or the first triangle of it, wound
+        /// the wrong way: no edge of it longer than the cell's diagonal.
+        /// </summary>
+        internal static GeoSolid3 BoxWithAFinePatchOneTurned(int n, double cell, bool triangles)
+        {
+            GeoPoint3[] c = Corners();
+            List<GeoFace3> faces = BoxFaces(c);
+            double side = n * cell;
+            GeoPoint3[] hole = Corners(15, 10, 0, 15 + side, 10 + side, 10);
+            faces[Top] = new GeoFace3(Loop(c, BoxLoops[Top]), new[] { Loop(hole, BoxLoops[Top]) }, Fine);
+            int middle = (n / 2) * n + n / 2, k = 0;
+
+            foreach (GeoPoint3[] q in Grid(new GeoPoint3(15, 10, 10), GeoVector3.XAxis, GeoVector3.YAxis, n, cell))
+            {
+                bool turned = k++ == middle;
+                GeoPoint3[][] pieces = triangles ? new[] { new[] { q[0], q[1], q[2] }, new[] { q[0], q[2], q[3] } } : new[] { q };
+
+                for (int p = 0; p < pieces.Length; p++)
+                {
+                    faces.Add(Face(turned && p == 0 ? pieces[p].Reverse().ToArray() : pieces[p]));
+                }
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// A cube as wide as given from the origin, each of its faces a grid of n by n quads, every quad wound inwards.
+        /// </summary>
+        internal static GeoSolid3 FineCubeInsideOut(double size, int n)
+        {
+            var sides = new (GeoPoint3 Origin, GeoVector3 U, GeoVector3 V)[]
+            {
+                (new GeoPoint3(0, 0, size), GeoVector3.XAxis, GeoVector3.YAxis),
+                (new GeoPoint3(0, 0, 0), GeoVector3.YAxis, GeoVector3.XAxis),
+                (new GeoPoint3(size, 0, 0), GeoVector3.YAxis, GeoVector3.ZAxis),
+                (new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, GeoVector3.YAxis),
+                (new GeoPoint3(0, size, 0), GeoVector3.ZAxis, GeoVector3.XAxis),
+                (new GeoPoint3(0, 0, 0), GeoVector3.XAxis, GeoVector3.ZAxis),
+            };
+
+            return new GeoSolid3(sides.SelectMany(s => Grid(s.Origin, s.U, s.V, n, size / n)).Select(q => Face(q.Reverse().ToArray())));
+        }
+
+        /// <summary>
+        /// The box turned about (1, 1, 1) by 0.7 and moved by (0.1, 0.2, 0.3), every face two triangles on copies of corners
+        /// of their own, each copy moved in its triangle's plane by a random vector no longer than given: no face lies across
+        /// an axis, and no two triangles share a corner.
+        /// </summary>
+        internal static GeoSolid3 TurnedBoxOfTrianglesOnMovedCopies(int seed, double most)
+        {
+            var random = new Random(seed);
+            GeoPoint3[] c = RotatedCorners(new GeoVector3(1, 1, 1), 0.7, new GeoVector3(0.1, 0.2, 0.3));
+            var faces = new List<GeoFace3>();
+
+            GeoFace3 Moved(params GeoPoint3[] ring)
+            {
+                GeoVector3 u = ring[0].GetVectorTo(ring[1]);
+                GeoVector3 v = u.CrossProduct(ring[0].GetVectorTo(ring[2])).CrossProduct(u);
+                u = u.Multiply(1.0 / u.Length);
+                v = v.Multiply(1.0 / v.Length);
+                return Face(ring.Select(p =>
+                {
+                    double angle = 2.0 * Math.PI * random.NextDouble(), length = most * random.NextDouble();
+                    return p.Add(u.Multiply(length * Math.Cos(angle))).Add(v.Multiply(length * Math.Sin(angle)));
+                }).ToArray());
+            }
+
+            foreach (int[] loop in BoxLoops)
+            {
+                faces.Add(Moved(c[loop[0]], c[loop[1]], c[loop[2]]));
+                faces.Add(Moved(c[loop[0]], c[loop[2]], c[loop[3]]));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// A prism over a polygon of as many sides as given round a circle, upright, every face on copies of corners of its
+        /// own: a side's copies moved along the rim by up to a distance either way and up or down by up to a lift, a cap's in
+        /// its plane by up to the distance. Every copy of a corner of a cap stands within the lift of the cap's plane, so that
+        /// whichever copy a corner is welded to, the cap's corners stay within the lift of it.
+        /// </summary>
+        internal static GeoSolid3 PrismOfCopiesMovedAlongTheRim(int sides, double radius, double height, double most, double lift, int seed)
+        {
+            var random = new Random(seed);
+
+            GeoPoint3 At(int i, double z)
+            {
+                double angle = 2.0 * Math.PI * (i % sides) / sides;
+                return new GeoPoint3(radius * Math.Cos(angle), radius * Math.Sin(angle), z);
+            }
+
+            GeoPoint3 Along(GeoPoint3 p, GeoVector3 rim)
+            {
+                double u = most * (2.0 * random.NextDouble() - 1.0), v = lift * (2.0 * random.NextDouble() - 1.0);
+                return p.Add(rim.Multiply(u / rim.Length)).Add(new GeoVector3(0, 0, v));
+            }
+
+            GeoPoint3 InThePlane(GeoPoint3 p)
+            {
+                double angle = 2.0 * Math.PI * random.NextDouble(), r = most * random.NextDouble();
+                return p.Add(new GeoVector3(r * Math.Cos(angle), r * Math.Sin(angle), 0));
+            }
+
+            var faces = new List<GeoFace3>();
+
+            for (int i = 0; i < sides; i++)
+            {
+                GeoPoint3 a = At(i, 0), b = At(i + 1, 0), c = At(i + 1, height), d = At(i, height);
+                GeoVector3 rim = a.GetVectorTo(b);
+                faces.Add(Face(Along(a, rim), Along(b, rim), Along(c, rim), Along(d, rim)));
+            }
+
+            faces.Add(Face(Enumerable.Range(0, sides).Reverse().Select(i => InThePlane(At(i, 0))).ToArray()));
+            faces.Add(Face(Enumerable.Range(0, sides).Select(i => InThePlane(At(i, height))).ToArray()));
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// A sphere of rings of quads and caps of triangles about the origin, bands from pole to pole by sides round, every
+        /// face on copies of corners of its own, each moved in the face's plane by a random vector no longer than given. A
+        /// patch of a few of its faces lies across the middle of the patch's own box, so that, measured from there, it seems
+        /// to hold a volume as though wound inwards.
+        /// </summary>
+        internal static GeoSolid3 SphereOfMovedCopies(double radius, int bands, int sides, double most, int seed)
+        {
+            var random = new Random(seed);
+
+            GeoPoint3 P(int k, int j)
+            {
+                double phi = Math.PI * k / bands, lambda = 2.0 * Math.PI * (j % sides) / sides;
+                return new GeoPoint3(radius * Math.Sin(phi) * Math.Cos(lambda), radius * Math.Sin(phi) * Math.Sin(lambda), radius * Math.Cos(phi));
+            }
+
+            GeoFace3 Moved(params GeoPoint3[] ring)
+            {
+                GeoVector3 u = ring[0].GetVectorTo(ring[1]);
+                GeoVector3 v = u.CrossProduct(ring[0].GetVectorTo(ring[2])).CrossProduct(u);
+                u = u.Multiply(1.0 / u.Length);
+                v = v.Multiply(1.0 / v.Length);
+                return Face(ring.Select(p =>
+                {
+                    double angle = 2.0 * Math.PI * random.NextDouble(), length = most * random.NextDouble();
+                    return p.Add(u.Multiply(length * Math.Cos(angle))).Add(v.Multiply(length * Math.Sin(angle)));
+                }).ToArray());
+            }
+
+            var faces = new List<GeoFace3>();
+
+            for (int k = 0; k < bands; k++)
+            {
+                for (int j = 0; j < sides; j++)
+                {
+                    if (k == 0)
+                    {
+                        faces.Add(Moved(new GeoPoint3(0, 0, radius), P(1, j), P(1, j + 1)));
+                    }
+                    else if (k == bands - 1)
+                    {
+                        faces.Add(Moved(P(k, j), new GeoPoint3(0, 0, -radius), P(k, j + 1)));
+                    }
+                    else
+                    {
+                        faces.Add(Moved(P(k, j), P(k + 1, j), P(k + 1, j + 1), P(k, j + 1)));
+                    }
+                }
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The corners of a polygon of as many sides as given round a circle about the vertical through the origin, at z = 0,
+        /// counter-clockwise seen from above, the first on the x axis.
+        /// </summary>
+        internal static GeoPoint3[] RoundPlan(int sides, double radius) => Enumerable.Range(0, sides)
+            .Select(i => new GeoPoint3(radius * Math.Cos(2.0 * Math.PI * i / sides), radius * Math.Sin(2.0 * Math.PI * i / sides), 0))
+            .ToArray();
+
+        #endregion
+
+        #region Bodies with a hole through them whose walls are left out
+
+        /// <summary>
+        /// The corners of the rectangle from (x0, y0) to (x1, y1) at z = 0, counter-clockwise seen from above from the first.
+        /// </summary>
+        internal static GeoPoint3[] Rectangle(double x0, double y0, double x1, double y1)
+            => new[] { new GeoPoint3(x0, y0, 0), new GeoPoint3(x1, y0, 0), new GeoPoint3(x1, y1, 0), new GeoPoint3(x0, y1, 0) };
+
+        /// <summary>
+        /// A plate 30 by 30 as thick as given with a hole through it whose walls are left out: its top carries the top rim at
+        /// z = the thickness, and its bottom the bottom rim at z = 0, each given counter-clockwise seen from above, their
+        /// heights ignored. The bottom's ring of the hole runs clockwise, as the bottom's boundary does, from the corner of
+        /// it given. Two flat loops are left open, one at each end of the hole.
+        /// </summary>
+        internal static GeoSolid3 PlateWithAHoleWithoutItsWalls(double thickness, IReadOnlyList<GeoPoint3> top, IReadOnlyList<GeoPoint3> bottom, int bottomStart = 0)
+        {
+            GeoPoint3[] outer = Corners(0, 0, 0, 30, 30, thickness);
+            var up = new GeoPolygon3(top.Select(p => new GeoPoint3(p.X, p.Y, thickness)), Fine);
+            List<GeoPoint3> down = bottom.Select(p => new GeoPoint3(p.X, p.Y, 0)).Reverse().ToList();
+            int start = ((bottomStart % down.Count) + down.Count) % down.Count;
+            var under = new GeoPolygon3(down.Skip(start).Concat(down.Take(start)), Fine);
+            var faces = new List<GeoFace3>
+            {
+                new GeoFace3(Loop(outer, BoxLoops[Bottom]), new[] { under }, Fine),
+                new GeoFace3(Loop(outer, BoxLoops[Top]), new[] { up }, Fine),
+            };
+
+            foreach (int side in new[] { Front, Back, Right, Left })
+            {
+                faces.Add(Face(outer, BoxLoops[side]));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// A body made by running a section in x and z along y from 0 to a length: the section given clockwise seen with x to
+        /// the right and z up, one face across each of its edges, the face across edge i running from corner i to corner
+        /// i + 1, and one face at each end. The faces across the edges named are pierced by the holes given, each wound as
+        /// the face's boundary is.
+        /// </summary>
+        internal static GeoSolid3 ExtrudedAlongY(IReadOnlyList<(double X, double Z)> section, double length, IReadOnlyDictionary<int, GeoPoint3[]> holes)
+        {
+            int n = section.Count;
+            GeoPoint3 At(int i, double y) => new GeoPoint3(section[i % n].X, y, section[i % n].Z);
+            var faces = new List<GeoFace3>
+            {
+                Face(Enumerable.Range(0, n).Reverse().Select(i => At(i, 0)).ToArray()),
+                Face(Enumerable.Range(0, n).Select(i => At(i, length)).ToArray()),
+            };
+
+            for (int i = 0; i < n; i++)
+            {
+                var boundary = new GeoPolygon3(new[] { At(i, 0), At(i + 1, 0), At(i + 1, length), At(i, length) }, Fine);
+                GeoPolygon3[] pierced = holes != null && holes.TryGetValue(i, out GeoPoint3[] hole) ? new[] { new GeoPolygon3(hole, Fine) } : null;
+                faces.Add(new GeoFace3(boundary, pierced, Fine));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// A C 30 by 30 by 10 run along y, its section a bottom plate from z = 0 to 2 and a top plate from 8 to 10, both from
+        /// x = 0 to 30, joined by a web from x = 0 to 2, 3 960 in all; its top and its bottom each pierced by a square hole
+        /// from (12, 10) to (22, 20) whose walls are left out. A tube from the one rim to the other would run through both
+        /// plates and across the gap between them, crossing the top plate's underside and the bottom plate's top.
+        /// </summary>
+        internal static GeoSolid3 ChannelPiercedTopAndBottom()
+        {
+            var section = new[] { (0.0, 0.0), (0.0, 10.0), (30.0, 10.0), (30.0, 8.0), (2.0, 8.0), (2.0, 2.0), (30.0, 2.0), (30.0, 0.0) };
+            var holes = new Dictionary<int, GeoPoint3[]>
+            {
+                [1] = new[] { new GeoPoint3(12, 10, 10), new GeoPoint3(22, 10, 10), new GeoPoint3(22, 20, 10), new GeoPoint3(12, 20, 10) },
+                [7] = new[] { new GeoPoint3(22, 10, 0), new GeoPoint3(12, 10, 0), new GeoPoint3(12, 20, 0), new GeoPoint3(22, 20, 0) },
+            };
+            return ExtrudedAlongY(section, 30, holes);
+        }
+
+        /// <summary>
+        /// A U 30 by 30 by 20 run along y, its section a base from z = 0 to 2 and two arms up to z = 20, from x = 0 to 10
+        /// and from 12 to 30, 16 920 in all; each arm's face into the gap 2 wide between them pierced by a square hole from
+        /// y = 10 to 20 and z = 8 to 18, opposite each other. The two holes face each other across the gap: a tube between
+        /// them would be a bar laid across it, not a hole through anything.
+        /// </summary>
+        internal static GeoSolid3 ChannelPiercedFacingAcrossItsGap()
+        {
+            var section = new[] { (0.0, 0.0), (0.0, 20.0), (10.0, 20.0), (10.0, 2.0), (12.0, 2.0), (12.0, 20.0), (30.0, 20.0), (30.0, 0.0) };
+            var holes = new Dictionary<int, GeoPoint3[]>
+            {
+                [2] = new[] { new GeoPoint3(10, 10, 18), new GeoPoint3(10, 10, 8), new GeoPoint3(10, 20, 8), new GeoPoint3(10, 20, 18) },
+                [4] = new[] { new GeoPoint3(12, 10, 8), new GeoPoint3(12, 10, 18), new GeoPoint3(12, 20, 18), new GeoPoint3(12, 20, 8) },
+            };
+            return ExtrudedAlongY(section, 30, holes);
+        }
+
+        /// <summary>
+        /// The box sheared along x, its top moved 5 that way over the bottom, with its top and bottom left out: the rims are
+        /// the one the other moved along a slant, and the faces between them are the sides it has. 6 000 in all.
+        /// </summary>
+        internal static GeoSolid3 ShearedBoxMissingItsTopAndBottom()
+        {
+            GeoPoint3[] c = Corners();
+
+            for (int i = 4; i < 8; i++)
+            {
+                c[i] = c[i].Add(new GeoVector3(5, 0, 0));
+            }
+
+            return new GeoSolid3(BoxFaces(c).Where((face, f) => f != Top && f != Bottom));
+        }
+
+        #endregion
+
+        #region Prisms with a concave top left out, lifted at a corner
+
+        /// <summary>
+        /// The plan of the L of <see cref="LShapedPrism"/>, 20 along each leg and 10 wide, 300 in all, counter-clockwise
+        /// seen from above from the origin: corner 3, at (10, 10), is where it turns in.
+        /// </summary>
+        internal static GeoPoint3[] LShapedPlan() => new[]
+        {
+            new GeoPoint3(0, 0, 0), new GeoPoint3(20, 0, 0), new GeoPoint3(20, 10, 0),
+            new GeoPoint3(10, 10, 0), new GeoPoint3(10, 20, 0), new GeoPoint3(0, 20, 0),
+        };
+
+        /// <summary>
+        /// The plan of a U 30 by 20 with a notch 10 by 10 cut into the middle of its back, 500 in all, counter-clockwise seen
+        /// from above from the origin: corners 4 and 5, at (20, 10) and (10, 10), are where it turns in.
+        /// </summary>
+        internal static GeoPoint3[] UShapedPlan() => new[]
+        {
+            new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0), new GeoPoint3(30, 20, 0), new GeoPoint3(20, 20, 0),
+            new GeoPoint3(20, 10, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(10, 20, 0), new GeoPoint3(0, 20, 0),
+        };
+
+        /// <summary>
+        /// A prism over a plan from z = 0 to a height, its top left out and the top's corner over the plan's corner given
+        /// lifted by as much as given in the two sides beside it, which stand upright and stay flat.
+        /// </summary>
+        internal static GeoSolid3 PrismWithoutItsTopLifted(IReadOnlyList<GeoPoint3> plan, double height, int corner, double lift)
+        {
+            GeoPoint3[] down = plan.Select(p => new GeoPoint3(p.X, p.Y, 0)).ToArray();
+            GeoPoint3[] up = plan.Select((p, i) => new GeoPoint3(p.X, p.Y, height + (i == corner ? lift : 0.0))).ToArray();
+            var faces = new List<GeoFace3> { Face(down.Reverse().ToArray()) };
+
+            for (int i = 0; i < plan.Count; i++)
+            {
+                int j = (i + 1) % plan.Count;
+                faces.Add(Face(down[i], down[j], up[j], up[i]));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        #endregion
+
+        #region Bodies with shells inside shells
+
+        /// <summary>
+        /// The faces of a block 10 by 10 by 6 inside the box of the damaged bodies, from (10, 5, 2) to (20, 15, 8), touching
+        /// none of its faces, wound outwards: 600, its faces 440 in all. With the box, both wound outwards, a solid inside a
+        /// solid, as a real part came: 6 600.
+        /// </summary>
+        internal static List<GeoFace3> BlockFaces() => BoxFaces(Corners(10, 5, 2, 20, 15, 8));
+
+        /// <summary>
+        /// The faces of a block 4 by 4 by 4 inside the block of <see cref="BlockFaces"/>, from (13, 8, 3) to (17, 12, 7),
+        /// touching none of its faces, wound outwards: 64, its faces 96 in all.
+        /// </summary>
+        internal static List<GeoFace3> InnerBlockFaces() => BoxFaces(Corners(13, 8, 3, 17, 12, 7));
+
+        /// <summary>
+        /// The faces of a block 6 by 5 by 6 in the notch of the L of <see cref="LShapedPrism"/>, from (12, 12, 2) to
+        /// (18, 17, 8): inside the box of the L and outside the L, touching none of its faces, wound outwards: 180, its faces
+        /// 192 in all.
+        /// </summary>
+        internal static List<GeoFace3> NotchBlockFaces() => BoxFaces(Corners(12, 12, 2, 18, 17, 8));
+
+        /// <summary>The faces each turned over, wound the other way round, in their order.</summary>
+        internal static List<GeoFace3> Turned(IEnumerable<GeoFace3> faces) => faces.Select(face => face.Flip()).ToList();
+
+        #endregion
     }
 }

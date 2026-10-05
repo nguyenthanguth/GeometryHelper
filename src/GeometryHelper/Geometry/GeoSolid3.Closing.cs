@@ -24,7 +24,8 @@ namespace GeometryHelper.Geometry
         /// <para>
         /// Each step is taken only where the ones before it did not close the body. Faces with no area, a face given twice,
         /// the two of a sheet lying back to back inside the body, and a face lying back to back on another with every edge of
-        /// it open are dropped, and faces turned over so that each shell is wound alike and outwards. An open edge past a fin
+        /// it open are dropped, and faces turned over so that each shell is wound alike and each closed shell inside no other
+        /// outwards, a shell inside another keeping its winding against it, a block or a cavity. An open edge past a fin
         /// stops the closing. Corners standing apart across a gap are made one within the point tolerance, then twice it, four
         /// times, and so on up to <see cref="SolidClosingOptions.MaxGap"/>, and where that closes nothing, the same again with
         /// corners standing off an edge left open put on it; no reach is taken that runs a ring out to a corner and straight

@@ -122,8 +122,8 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Chooses the faces a flat hole is filled by: its face, or for the two ends of a hole through the body, the caps or
-        /// the walls, as the strategy says where both lie on no face of the body; false, the trouble noted, where neither
-        /// may be taken.
+        /// the walls, as the strategy says where both lie on no face of the body, the walls crossing none and closing it;
+        /// false, the trouble noted, where neither may be taken.
         /// </summary>
         /// <param name="work">The work.</param>
         /// <param name="faces">The faces of the body.</param>
@@ -141,6 +141,7 @@ namespace GeometryHelper.Core
             bool caps = LieOnNoFace(hole.Caps, faces, boxes, near, tolerance, out GeoPoint3 skin);
             bool walls = hole.Walls != null
                 && LieOnNoFace(new List<Patch> { hole.Walls }, faces, boxes, near, tolerance, out _)
+                && !CrossesBody(hole.Walls, faces, boxes, near, tolerance)
                 && WallsClose(faces, holes, h, tolerance);
 
             if (caps && walls)
@@ -250,11 +251,12 @@ namespace GeometryHelper.Core
         /// again, an island, as is one running the same way round as the loop holding it.
         /// </para>
         /// <para>
-        /// Two faces of no holes, one the other moved along their normal by more than the point tolerance, corner for corner
-        /// within it, facing away from each other, on loops of one shell, are the two ends of a hole through it whose walls
-        /// are missing: the faces cap it, and walls from each edge of the one to the edge of the other it moved onto close it
-        /// round the hole instead. A box missing its top and bottom has two such loops, and the walls there lie on its sides;
-        /// a plate missing the walls of a hole through it has two, and the walls lie on nothing.
+        /// Two faces of no holes on loops of one shell are the two ends of a hole through it whose walls are missing where flat
+        /// walls run between them, each from an edge of the one to an edge of the other (see <see cref="WallsBetween"/>): the
+        /// faces cap it, and the walls close it round the hole instead, straight through it, slanting or tapering. A box
+        /// missing its top and bottom has two such loops, and the walls there lie on its sides; a plate missing the walls of a
+        /// hole through it has two, and the walls lie on nothing; a channel pierced through its top and its bottom has two,
+        /// and the walls cross its plates on their way, which is no way of closing it either (see <see cref="CrossesBody"/>).
         /// </para>
         /// <para>
         /// A loop further out of flat than the planar tolerance and no further than
@@ -375,7 +377,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            int[][] across = PairEnds(loops, rings, patches, inner, tolerance, shells, out int[] other);
+            List<GeoPoint3[]>[] walls = PairEnds(loops, patches, inner, tolerance, shells, out int[] other);
 
             for (int i = 0; i < count; i++)
             {
@@ -406,7 +408,7 @@ namespace GeometryHelper.Core
                     if (other[i] >= 0)
                     {
                         hole.Caps.Add(patches[other[i]]);
-                        hole.Walls = TryWalls(i, other[i], across[i], loops, build);
+                        hole.Walls = TryWalls(walls[i], i, other[i], build);
                     }
                 }
 
@@ -565,28 +567,23 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Pairs the faces of no holes at the two ends of a hole through a shell: one the other moved along their normal,
-        /// corner for corner, facing away from each other, on loops of one shell; each, in the order of the loops, with the
-        /// first such face not paired already.
+        /// Pairs the faces of no holes at the two ends of a hole through a shell, each, in the order of the loops, with the
+        /// first such face not paired already: faces on loops of one shell, with walls between them; see
+        /// <see cref="WallsBetween"/>.
         /// </summary>
         /// <param name="loops">The loops.</param>
-        /// <param name="rings">The polygon of each flat loop; null for the others.</param>
         /// <param name="patches">The face built on each loop that is the boundary of one; null for the others.</param>
         /// <param name="inner">The holes of each such face, by loop; null where there are none.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="shells">The shells of the faces the loops are left open in.</param>
         /// <param name="other">For each loop, the loop at the other end of its hole; below nought where there is none.</param>
-        /// <returns>For each loop paired, the corner of the loop at the other end each of its corners moved onto, by index;
+        /// <returns>For each loop paired, the corners of the walls between it and the loop at the other end, each wall on four;
         /// null for the others.</returns>
-        /// <remarks>
-        /// Two such faces are as large as each other, so the faces are filed by area, and each is set only against those as
-        /// large within what the point tolerance allows along its edges.
-        /// </remarks>
-        private static int[][] PairEnds(List<Loop> loops, GeoPolygon3[] rings, Patch[] patches, List<int>[] inner, Tolerance tolerance, FaceShells shells, out int[] other)
+        private static List<GeoPoint3[]>[] PairEnds(List<Loop> loops, Patch[] patches, List<int>[] inner, Tolerance tolerance, FaceShells shells, out int[] other)
         {
             int count = loops.Count;
             other = new int[count];
-            var across = new int[count][];
+            var walls = new List<GeoPoint3[]>[count];
             var caps = new List<int>();
 
             for (int i = 0; i < count; i++)
@@ -599,21 +596,6 @@ namespace GeometryHelper.Core
                 }
             }
 
-            var byArea = new List<int>(caps);
-
-            byArea.Sort((a, b) =>
-            {
-                int byLoopArea = loops[a].Area.CompareTo(loops[b].Area);
-                return byLoopArea != 0 ? byLoopArea : a.CompareTo(b);
-            });
-
-            var place = new int[count];
-
-            for (int k = 0; k < byArea.Count; k++)
-            {
-                place[byArea[k]] = k;
-            }
-
             foreach (int i in caps)
             {
                 if (other[i] >= 0)
@@ -621,132 +603,204 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                double slack = 2.0 * tolerance.EqualPoint * rings[i].Length;
-                int best = -1;
-                int[] moved = null;
-
-                foreach (int step in new[] { -1, 1 })
+                foreach (int j in caps)
                 {
-                    for (int k = place[i] + step; k >= 0 && k < byArea.Count && Math.Abs(loops[byArea[k]].Area - loops[i].Area) <= slack; k += step)
+                    if (j == i || other[j] >= 0)
                     {
-                        int j = byArea[k];
-
-                        if (other[j] >= 0 || (best >= 0 && j > best))
-                        {
-                            continue;
-                        }
-
-                        int[] onto = Moved(loops[i], loops[j], tolerance);
-
-                        if (onto != null && shells.SameShell(loops[i], loops[j]))
-                        {
-                            best = j;
-                            moved = onto;
-                        }
+                        continue;
                     }
-                }
 
-                if (best < 0)
-                {
-                    continue;
-                }
+                    List<GeoPoint3[]> between = WallsBetween(loops[i], loops[j], tolerance);
 
-                other[i] = best;
-                other[best] = i;
-                across[i] = moved;
-                across[best] = new int[moved.Length];
-
-                for (int c = 0; c < moved.Length; c++)
-                {
-                    across[best][moved[c]] = c;
+                    if (between != null && shells.SameShell(loops[i], loops[j]))
+                    {
+                        other[i] = j;
+                        other[j] = i;
+                        walls[i] = between;
+                        walls[j] = between;
+                        break;
+                    }
                 }
             }
 
-            return across;
+            return walls;
         }
 
         /// <summary>
-        /// For each corner of one loop, the corner of another the first is moved onto, where the other is the one moved
-        /// along its normal by more than the point tolerance, corner for corner within it, and facing the other way: run the
-        /// other way round, as the far end of a hole through a body is; null where it is not.
+        /// The walls between two loops that are the two ends of a hole through a body: each wall on four of their corners,
+        /// from an edge of the one to the edge of the other matched with it; null where they are no such ends.
         /// </summary>
         /// <param name="one">The one loop.</param>
         /// <param name="other">The other.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static int[] Moved(Loop one, Loop other, Tolerance tolerance)
+        /// <remarks>
+        /// <para>
+        /// The two are such ends where they turn at as many corners, three or more, a corner a rim runs straight on through,
+        /// within the point tolerance of the line between its neighbours, not counted; where the faces across them face
+        /// opposite ways, and away from each other, the middle of each further than the point tolerance behind the other's
+        /// face; and where corner c of the one, matched with corner s less c of the other for some s, makes every wall flat
+        /// within the planar tolerance and convex. Of several such s, the one whose walls add the least area is taken.
+        /// </para>
+        /// <para>
+        /// So the walls of a hole slanting through a plate are parallelograms, and those of one tapering through it trapezoids,
+        /// whichever corner each rim is listed from. Two holes in the faces of a channel's arms facing each other across its
+        /// gap face each other, not away, and are no ends of one hole: walls between them would lay a bar across the gap.
+        /// </para>
+        /// </remarks>
+        private static List<GeoPoint3[]> WallsBetween(Loop one, Loop other, Tolerance tolerance)
         {
-            int count = one.Corners.Count;
-
-            if (other.Corners.Count != count || !(one.Normal.DotProduct(other.Normal) < Facing))
-            {
-                return null;
-            }
-
             double reach = tolerance.EqualPoint;
+
+            if (!(one.Normal.DotProduct(other.Normal) < Facing))
+            {
+                return null;
+            }
+
             GeoVector3 move = one.Middle.GetVectorTo(other.Middle);
-            double along = move.DotProduct(one.Normal);
 
-            if (!(Math.Abs(along) > reach) || move.Subtract(one.Normal.Multiply(along)).Length > reach)
+            if (!(move.DotProduct(one.Normal) < -reach) || !(move.DotProduct(other.Normal) > reach))
             {
                 return null;
             }
 
-            GeoPoint3 start = one.Corners[0].Add(move);
-            int first = -1;
+            List<GeoPoint3> a = Turning(one.Corners, reach);
+            List<GeoPoint3> b = Turning(other.Corners, reach);
+            int count = a.Count;
 
-            for (int m = 0; m < count; m++)
-            {
-                if (other.Corners[m].DistanceTo(start) <= reach)
-                {
-                    first = m;
-                    break;
-                }
-            }
-
-            if (first < 0)
+            if (count < 3 || b.Count != count)
             {
                 return null;
             }
 
-            var onto = new int[count];
+            List<GeoPoint3[]> best = null;
+            double least = double.MaxValue;
 
-            for (int c = 0; c < count; c++)
+            for (int shift = 0; shift < count; shift++)
             {
-                onto[c] = (first - c + count) % count;
+                var walls = new List<GeoPoint3[]>(count);
+                double area = 0.0;
+                bool fit = true;
 
-                if (other.Corners[onto[c]].DistanceTo(one.Corners[c].Add(move)) > reach)
+                for (int c = 0; c < count && fit; c++)
                 {
-                    return null;
+                    // Each wall runs the edge of each end the way a face closing it would.
+                    var wall = new[] { a[c], a[(c + 1) % count], b[(((shift - c - 1) % count) + count) % count], b[(((shift - c) % count) + count) % count] };
+                    fit = FlatAndConvex(wall, tolerance.EqualPlanar, out double wallArea);
+                    area += wallArea;
+                    walls.Add(wall);
+                }
+
+                if (fit && area < least)
+                {
+                    least = area;
+                    best = walls;
                 }
             }
 
-            return onto;
+            return best;
         }
 
         /// <summary>
-        /// Builds the walls between the two ends of a hole through a body: from each edge of the one to the edge of the other
-        /// it moved onto, each wall on the four corners as the body has them; null where one cannot be built.
+        /// The corners of a loop where it turns: those it runs straight on through, within a reach of the line between their
+        /// neighbours, left out, three at the least kept.
         /// </summary>
+        /// <param name="corners">The corners, in order.</param>
+        /// <param name="reach">The reach.</param>
+        private static List<GeoPoint3> Turning(List<GeoPoint3> corners, double reach)
+        {
+            var kept = new List<GeoPoint3>(corners);
+            bool dropped = true;
+
+            while (dropped && kept.Count > 3)
+            {
+                dropped = false;
+
+                for (int i = 0; i < kept.Count; i++)
+                {
+                    GeoPoint3 before = kept[(i + kept.Count - 1) % kept.Count];
+                    GeoPoint3 after = kept[(i + 1) % kept.Count];
+
+                    if (kept[i].DistanceTo(NearestOnSegment(before, after, kept[i])) <= reach)
+                    {
+                        kept.RemoveAt(i);
+                        dropped = true;
+                        break;
+                    }
+                }
+            }
+
+            return kept;
+        }
+
+        /// <summary>
+        /// Determines whether four corners lie flat, within a planar tolerance of the plane through their average square to
+        /// their area, and turn the same way at each corner; and the area they enclose.
+        /// </summary>
+        /// <param name="quad">The corners, in order.</param>
+        /// <param name="planar">The planar tolerance.</param>
+        /// <param name="area">The area they enclose, by Newell's method.</param>
+        private static bool FlatAndConvex(GeoPoint3[] quad, double planar, out double area)
+        {
+            double nx = 0.0, ny = 0.0, nz = 0.0, cx = 0.0, cy = 0.0, cz = 0.0;
+
+            for (int i = 0; i < 4; i++)
+            {
+                GeoPoint3 p = quad[i], q = quad[(i + 1) % 4];
+                nx += (p.Y - q.Y) * (p.Z + q.Z);
+                ny += (p.Z - q.Z) * (p.X + q.X);
+                nz += (p.X - q.X) * (p.Y + q.Y);
+                cx += p.X / 4.0;
+                cy += p.Y / 4.0;
+                cz += p.Z / 4.0;
+            }
+
+            double length = Math.Sqrt((nx * nx) + (ny * ny) + (nz * nz));
+            area = length / 2.0;
+
+            if (!(length > 0.0))
+            {
+                return false;
+            }
+
+            var normal = new GeoVector3(nx / length, ny / length, nz / length);
+            var middle = new GeoPoint3(cx, cy, cz);
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (Math.Abs(middle.GetVectorTo(quad[i]).DotProduct(normal)) > planar)
+                {
+                    return false;
+                }
+
+                GeoVector3 ahead = quad[i].GetVectorTo(quad[(i + 1) % 4]);
+                GeoVector3 next = quad[(i + 1) % 4].GetVectorTo(quad[(i + 2) % 4]);
+
+                if (!(ahead.CrossProduct(next).DotProduct(normal) > 0.0))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Builds the walls between the two ends of a hole through a body on their corners as the body has them; null where
+        /// one cannot be built.
+        /// </summary>
+        /// <param name="corners">The corners of each wall.</param>
         /// <param name="one">The loop at the one end, by index.</param>
         /// <param name="other">The loop at the other.</param>
-        /// <param name="onto">For each corner of the one, the corner of the other it moved onto.</param>
-        /// <param name="loops">The loops.</param>
         /// <param name="build">The tolerance the walls are built within.</param>
-        private static Patch TryWalls(int one, int other, int[] onto, List<Loop> loops, Tolerance build)
+        private static Patch TryWalls(List<GeoPoint3[]> corners, int one, int other, Tolerance build)
         {
-            List<GeoPoint3> near = loops[one].Corners;
-            List<GeoPoint3> far = loops[other].Corners;
-            int count = near.Count;
-            var walls = new GeoFace3[count];
+            var walls = new GeoFace3[corners.Count];
 
             try
             {
-                // Each wall runs the edge of each end the way a face closing it would.
-                for (int c = 0; c < count; c++)
+                for (int c = 0; c < corners.Count; c++)
                 {
-                    int next = (c + 1) % count;
-                    var corners = new[] { near[c], near[next], far[onto[next]], far[onto[c]] };
-                    walls[c] = new GeoFace3(new GeoPolygon3(corners, build), null, build);
+                    walls[c] = new GeoFace3(new GeoPolygon3(corners[c], build), null, build);
                 }
             }
             catch (ArgumentException)
@@ -755,6 +809,79 @@ namespace GeometryHelper.Core
             }
 
             return new Patch(walls, new[] { one, other });
+        }
+
+        /// <summary>
+        /// Determines whether a face of some walls crosses a face of the body: an edge of the one passing through the inside
+        /// of the other, either way round.
+        /// </summary>
+        /// <param name="walls">The walls.</param>
+        /// <param name="faces">The faces of the body.</param>
+        /// <param name="boxes">The faces filed by their boxes.</param>
+        /// <param name="near">A list to work in.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The check does not read it: walls through the gap of a channel from a hole in its top to one in its bottom close
+        /// it with every edge paired, valid, crossing the plates on their way. Such walls are no way of closing the hole.
+        /// </remarks>
+        private static bool CrossesBody(Patch walls, List<GeoFace3> faces, FaceBoxes boxes, List<int> near, Tolerance tolerance)
+        {
+            foreach (GeoFace3 wall in walls.Faces)
+            {
+                boxes.Meeting(wall.GetAabb(), near);
+
+                foreach (int g in near)
+                {
+                    if (EdgesPierce(faces[g], wall, tolerance) || EdgesPierce(wall, faces[g], tolerance))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether an edge of one face passes through the inside of another, its ends further than the planar
+        /// tolerance either side of the other's plane.
+        /// </summary>
+        /// <param name="edges">The face whose edges are looked at.</param>
+        /// <param name="face">The face they may pass through.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        private static bool EdgesPierce(GeoFace3 edges, GeoFace3 face, Tolerance tolerance)
+        {
+            GeoPoint3 origin = face.Boundary[0];
+            GeoVector3 normal = face.Normal;
+            double planar = tolerance.EqualPlanar;
+            var rings = new List<GeoPolygon3> { edges.Boundary };
+            rings.AddRange(edges.Holes);
+
+            foreach (GeoPolygon3 ring in rings)
+            {
+                int count = ring.VertexCount;
+
+                for (int i = 0; i < count; i++)
+                {
+                    GeoPoint3 p = ring[i], q = ring[(i + 1) % count];
+                    double dp = origin.GetVectorTo(p).DotProduct(normal);
+                    double dq = origin.GetVectorTo(q).DotProduct(normal);
+
+                    if (!((dp > planar && dq < -planar) || (dp < -planar && dq > planar)))
+                    {
+                        continue;
+                    }
+
+                    GeoPoint3 crossing = p.Add(p.GetVectorTo(q).Multiply(dp / (dp - dq)));
+
+                    if (face.Locate(crossing, tolerance) == PointLocation.Inside)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -968,9 +1095,9 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Turns over each shell of the body filled that takes a fill and faces the wrong way for where it lies: outwards
-        /// inside an even number of other shells, inwards inside an odd number, as the volume it encloses closed says; its
-        /// fills with it, and the faces given turned again reported so.
+        /// Turns over each outermost shell of the body filled that encloses its volume inwards, now that it is closed, and
+        /// every shell inside it with it, their fills with them, the faces given turned again reported so; see
+        /// <see cref="TurnedOutwards"/>.
         /// </summary>
         /// <param name="work">The work.</param>
         /// <param name="all">The faces of the body filled, turned over in place where their shell is.</param>
@@ -985,11 +1112,13 @@ namespace GeometryHelper.Core
         /// shell missing much of itself says little; closed, it says which way the shell faces for certain. Five faces of a
         /// box wound alike into it, its top missing, enclose a volume from the middle the wrong way, and are turned before
         /// the top is filled; were they not, their sign would turn them here, the top with them. A fill joins the shells
-        /// of the loops it closes, and only a shell that takes one is read again: one closed already was read closed.
+        /// of the loops it closes. Every shell is read again, as the turning reads a closed shell: one closed already was
+        /// turned then where it was to be, and one inside a shell open then was left as it was, its sign waiting for the
+        /// closing, so that a cavity in a box missing its top stays a cavity.
         /// </para>
         /// <para>
         /// A face given turned again is back as it was given where the turning had turned it, which is then no change, and
-        /// turned where it had not; see <see cref="TurnAgain"/>.
+        /// turned where it had not; see <see cref="TurnAgain(Work, int)"/>.
         /// </para>
         /// </remarks>
         private static void FaceShellsOutwards(Work work, List<GeoFace3> all, int given, List<int> origins, List<Patch> taken, List<Loop> loops, FaceShells shells)
@@ -1056,62 +1185,28 @@ namespace GeometryHelper.Core
                 of.Add(k);
             }
 
-            var faces = new List<GeoFace3>[order.Count];
-            var boxes = new GeoAabb3[order.Count];
+            var shellFaces = new List<List<int>>(order.Count);
+            var closed = new bool[order.Count];
 
             for (int s = 0; s < order.Count; s++)
             {
-                faces[s] = new List<GeoFace3>(members[order[s]].Count);
-
-                foreach (int k in members[order[s]])
-                {
-                    faces[s].Add(all[k]);
-                }
-
-                boxes[s] = BoxOf(faces[s]);
+                shellFaces.Add(members[order[s]]);
+                closed[s] = true;
             }
 
+            // Every shell is closed now: an outermost one wound inwards is turned with every shell inside it, and the rest
+            // keep their winding against the shell they lie in.
+            bool[] whole = TurnedOutwards(all, shellFaces, null, closed, tolerance);
             var again = new List<int>();
 
             for (int s = 0; s < order.Count; s++)
             {
-                List<int> of = members[order[s]];
-
-                if (of[of.Count - 1] < given)
+                if (!whole[s])
                 {
                     continue;
                 }
 
-                double volume = SignedVolumeOf(faces[s]);
-                double area = 0.0;
-
-                foreach (GeoFace3 face in faces[s])
-                {
-                    area += face.Area;
-                }
-
-                // As the check reads a body enclosing nothing: no thicker than the tolerance on average.
-                if (!(Math.Abs(volume) > tolerance.EqualPoint * area))
-                {
-                    continue;
-                }
-
-                int depth = 0;
-
-                for (int t = 0; t < order.Count; t++)
-                {
-                    if (t != s && boxes[t].Contains(boxes[s], tolerance) && Holds(faces[t], faces[s], tolerance))
-                    {
-                        depth++;
-                    }
-                }
-
-                if ((volume > 0.0) == (depth % 2 == 0))
-                {
-                    continue;
-                }
-
-                foreach (int k in of)
+                foreach (int k in shellFaces[s])
                 {
                     all[k] = all[k].Flip();
 

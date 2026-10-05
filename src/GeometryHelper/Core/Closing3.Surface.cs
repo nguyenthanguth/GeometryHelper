@@ -332,18 +332,26 @@ namespace GeometryHelper.Core
         /// alike run such a stretch one each way, and where they run it the same way, one of them is to be turned over. Of
         /// the two sides that leaves in a shell, the one of less area is turned: the least change that winds the shell
         /// alike, the side of its first face staying where the two are as large. Where the stretches ask a face to be turned
-        /// both ways, the shell cannot be wound alike: a surface with one side only. Only stretches longer than the widest gap
-        /// are read so: on a prism of a thousand sides each face on copies of its corners a thousandth or two apart, the
-        /// bottom edges of two sides beside a corner run on so nearly straight that their copies come within the tolerance of
-        /// one line for a thousandth or two, both running it the same way, and read so, they would turn a side over.
+        /// both ways, the shell cannot be wound alike: a surface with one side only. The stretches longer than the widest gap
+        /// are read first, and they alone refuse: on a prism of a thousand sides each face on copies of its corners a
+        /// thousandth or two apart, the bottom edges of two sides beside a corner run on so nearly straight that their copies
+        /// come within the tolerance of one line for a thousandth or two, both running it the same way, and read so, they
+        /// would turn a side over. A shorter stretch then joins two faces not joined yet only where it is the whole of an edge
+        /// of each (see <see cref="IsWholeEdge"/>), and never refuses: a quad 0.004 a side wound against a patch of such quads
+        /// in a top, closed within a gap of 0.005, has no stretch longer than the gap and is turned back all the same.
         /// </para>
         /// <para>
-        /// Then the volume each shell encloses says which way it faces, each shell on its own: the faces of two shells, one
-        /// wound each way, enclose nothing together, and the whole body would say nothing of either. A shell inside another
-        /// is a cavity, and faces inwards; one inside two is material in a cavity, and faces outwards. Which shell is inside
-        /// which is read from where a point on each lies, by how much of the sphere round it the other's faces cover, which
-        /// for a shell that does not close quite still tells inside from out. A shell enclosing no more than the tolerance
-        /// times its area, such as a face on its own, says nothing of which way it faces, and is left as it is.
+        /// Then the volume a closed shell encloses says which way it faces, each shell on its own: the faces of two shells,
+        /// one wound each way, enclose nothing together, and the whole body would say nothing of either. Only a shell inside
+        /// no other is turned so, where it encloses its volume inwards, and with it every shell inside it; a shell inside
+        /// another keeps its winding against it, a block within it wound the same way and a cavity wound the other, since
+        /// both read valid (see <see cref="TurnedOutwards"/>). Which shell is inside a closed one is read from where a point
+        /// on it lies, by how much of the sphere round it the closed one's faces cover; a shell still open is taken to hold
+        /// every shell within its box until it closes. A shell enclosing no more than the tolerance times its area, such as a
+        /// face on its own, says nothing of which way it faces, and is left as it is; and so is a shell that is open, any of
+        /// its stretches run an odd number of times, which keeps its winding as given until the welding or the filling closes
+        /// it (see <see cref="Reorient"/> and <see cref="FaceShellsOutwards"/>), as is a shell within the box of one that is
+        /// open.
         /// </para>
         /// <para>
         /// Every face turned over is one change, of its area, reported once the stray faces are dropped; see
@@ -365,42 +373,61 @@ namespace GeometryHelper.Core
 
             var live = new List<int>(4);
             double shortest = work.Options.MaxGap;
+            var open = new bool[count];
 
-            foreach (Stretch stretch in work.Stretches)
+            // The long stretches first, a face asked to be turned both ways refusing; then the short ones, only where a
+            // stretch is the whole of an edge of both its faces and the two are not joined yet, so that none refuses.
+            for (int pass = 0; pass < 2; pass++)
             {
-                // A stretch no longer than the widest gap says nothing of which way its faces face: copies of the edges of
-                // two faces beside a corner, run on nearly straight, come within the tolerance of one line for a hair, both
-                // running it the same way, and are a piece of a gap for the welding.
-                if (!(stretch.Start.DistanceTo(stretch.End) > shortest))
+                foreach (Stretch stretch in work.Stretches)
                 {
-                    continue;
-                }
-
-                live.Clear();
-
-                for (int r = 0; r < stretch.Faces.Length; r++)
-                {
-                    if (!work.Dropped[stretch.Faces[r]])
+                    if (stretch.Start.DistanceTo(stretch.End) > shortest != (pass == 0))
                     {
-                        live.Add(r);
+                        continue;
                     }
-                }
 
-                int a = live.Count == 2 ? stretch.Faces[live[0]] : -1;
-                int b = live.Count == 2 ? stretch.Faces[live[1]] : -1;
+                    live.Clear();
 
-                if (a < 0 || a == b)
-                {
-                    continue;
-                }
+                    for (int r = 0; r < stretch.Faces.Length; r++)
+                    {
+                        if (!work.Dropped[stretch.Faces[r]])
+                        {
+                            live.Add(r);
+                        }
+                    }
 
-                // Two faces wound alike run the stretch one each way; run the same way, one of them is to be turned.
-                bool apart = stretch.Forward[live[0]] == stretch.Forward[live[1]];
+                    // Run an odd number of times, the stretch leaves its faces' shell open.
+                    if (live.Count % 2 != 0)
+                    {
+                        foreach (int r in live)
+                        {
+                            open[stretch.Faces[r]] = true;
+                        }
+                    }
 
-                if (!TryJoin(parent, odd, a, b, apart))
-                {
-                    work.Refuse(ClosingFailure.NonManifold, stretch.Middle);
-                    return false;
+                    int a = live.Count == 2 ? stretch.Faces[live[0]] : -1;
+                    int b = live.Count == 2 ? stretch.Faces[live[1]] : -1;
+
+                    if (a < 0 || a == b)
+                    {
+                        continue;
+                    }
+
+                    // Two faces wound alike run the stretch one each way; run the same way, one of them is to be turned.
+                    bool apart = stretch.Forward[live[0]] == stretch.Forward[live[1]];
+
+                    if (pass == 0)
+                    {
+                        if (!TryJoin(parent, odd, a, b, apart))
+                        {
+                            work.Refuse(ClosingFailure.NonManifold, stretch.Middle);
+                            return false;
+                        }
+                    }
+                    else if (FindOdd(parent, odd, a, out _) != FindOdd(parent, odd, b, out _) && IsWholeEdge(stretch, live, work.Tolerance.EqualPoint))
+                    {
+                        TryJoin(parent, odd, a, b, apart);
+                    }
                 }
             }
 
@@ -467,13 +494,306 @@ namespace GeometryHelper.Core
                 }
             }
 
-            bool[] whole = OutwardsOrIn(work, shells, turn);
+            bool[] whole = OutwardsOrIn(work, shells, turn, open);
 
             for (int f = 0; f < count; f++)
             {
                 if (shellOf[f] >= 0)
                 {
                     work.Turned[f] = turn[f] != whole[shellOf[f]];
+                }
+            }
+
+            work.ShellOf = shellOf;
+            return true;
+        }
+
+        /// <summary>
+        /// Orients the faces of a body welded shut again, now that every shell of it closes, and turns them over in place
+        /// where they are to be; the faces given whose faces were turned are given back, to be reported so.
+        /// </summary>
+        /// <param name="work">The work, its faces turned.</param>
+        /// <param name="built">The faces of the body welded; turned over in place where they are to be.</param>
+        /// <param name="from">For each, the face given it comes of, by index.</param>
+        /// <param name="stretches">The stretches read again where faces changed, by the places of their faces among those read.</param>
+        /// <param name="localOf">For each face read again, its place among the faces welded.</param>
+        /// <returns>The faces given whose faces were turned over, by index, in order.</returns>
+        /// <remarks>
+        /// <para>
+        /// The faces are joined as the turning joined the faces they come of, which it wound alike, and along the stretches
+        /// read again where faces changed, as it joins them: the long ones first, and then the short ones that are whole edges
+        /// of both their faces, only between faces not joined yet. A shell the welding joined of shells the turning could not,
+        /// patches of a sphere each face of which stood on copies of its own corners, is so wound alike the way the faces of
+        /// it given were, its side of less area turned to the other. Then each shell, closed, is read as the turning reads a
+        /// closed shell: one inside no other enclosing its volume inwards is turned over whole, with every shell inside it,
+        /// and a shell inside another keeps its winding against it (see <see cref="TurnedOutwards"/>). A box whose faces stood
+        /// on copies of their corners, every face wound inwards, open all round as given, is turned out once welded shut.
+        /// </para>
+        /// <para>
+        /// Only the stretches where faces changed are read: elsewhere the faces are as the turning joined them. A body of
+        /// six thousand faces, one copy of a corner of it welded, is so oriented in no more than it takes to add its volume.
+        /// </para>
+        /// </remarks>
+        private static List<int> Reorient(Work work, List<GeoFace3> built, List<int> from, List<Stretch> stretches, List<int> localOf)
+        {
+            int count = built.Count;
+            var parent = new int[count];
+            var odd = new bool[count];
+
+            for (int k = 0; k < count; k++)
+            {
+                parent[k] = k;
+            }
+
+            // The faces of one shell as the turning left it are wound alike already.
+            var first = new Dictionary<int, int>();
+
+            for (int k = 0; k < count; k++)
+            {
+                int shell = work.ShellOf[from[k]];
+
+                if (shell < 0)
+                {
+                    continue;
+                }
+
+                if (first.TryGetValue(shell, out int one))
+                {
+                    TryJoin(parent, odd, one, k, false);
+                }
+                else
+                {
+                    first.Add(shell, k);
+                }
+            }
+
+            double shortest = work.Options.MaxGap;
+            var both = new List<int> { 0, 1 };
+
+            for (int pass = 0; pass < 2; pass++)
+            {
+                foreach (Stretch stretch in stretches)
+                {
+                    if (stretch.Faces.Length != 2 || stretch.Start.DistanceTo(stretch.End) > shortest != (pass == 0))
+                    {
+                        continue;
+                    }
+
+                    int a = localOf[stretch.Faces[0]];
+                    int b = localOf[stretch.Faces[1]];
+
+                    if (a == b)
+                    {
+                        continue;
+                    }
+
+                    // A face asked to be turned both ways is left as it is: the check reads the body after.
+                    bool apart = stretch.Forward[0] == stretch.Forward[1];
+
+                    if (pass == 0 || (FindOdd(parent, odd, a, out _) != FindOdd(parent, odd, b, out _) && IsWholeEdge(stretch, both, work.Tolerance.EqualPoint)))
+                    {
+                        TryJoin(parent, odd, a, b, apart);
+                    }
+                }
+            }
+
+            // The shells, each wound alike, the side of less area turned to the other.
+            var shellOf = new int[count];
+            var parity = new bool[count];
+            var shells = new List<List<int>>();
+            var shellOfRoot = new Dictionary<int, int>();
+
+            for (int k = 0; k < count; k++)
+            {
+                int root = FindOdd(parent, odd, k, out parity[k]);
+
+                if (!shellOfRoot.TryGetValue(root, out int shell))
+                {
+                    shell = shells.Count;
+                    shellOfRoot.Add(root, shell);
+                    shells.Add(new List<int>());
+                }
+
+                shells[shell].Add(k);
+                shellOf[k] = shell;
+            }
+
+            var turn = new bool[count];
+
+            foreach (List<int> shell in shells)
+            {
+                double even = 0.0, other = 0.0;
+
+                foreach (int k in shell)
+                {
+                    if (parity[k])
+                    {
+                        other += built[k].Area;
+                    }
+                    else
+                    {
+                        even += built[k].Area;
+                    }
+                }
+
+                if (other > 0.0)
+                {
+                    bool turnOdd = other <= even;
+
+                    foreach (int k in shell)
+                    {
+                        turn[k] = parity[k] == turnOdd;
+                    }
+                }
+            }
+
+            var closedShells = new bool[shells.Count];
+
+            for (int s = 0; s < closedShells.Length; s++)
+            {
+                closedShells[s] = true;
+            }
+
+            bool[] whole = TurnedOutwards(built, shells, turn, closedShells, work.Tolerance);
+            var again = new List<int>();
+            var seen = new HashSet<int>();
+
+            for (int k = 0; k < count; k++)
+            {
+                if (turn[k] != whole[shellOf[k]])
+                {
+                    built[k] = built[k].Flip();
+
+                    if (seen.Add(from[k]))
+                    {
+                        again.Add(from[k]);
+                    }
+                }
+            }
+
+            again.Sort();
+            return again;
+        }
+
+        /// <summary>
+        /// For each shell, wound alike once its faces are turned where they are to be, whether it is to be turned over whole:
+        /// an outermost closed shell, inside no other, that encloses its volume inwards, and with it every shell inside it.
+        /// </summary>
+        /// <param name="faces">The faces.</param>
+        /// <param name="shells">The faces of each shell, by index.</param>
+        /// <param name="turn">For each face, whether it is turned over to wind its shell alike; null where none is.</param>
+        /// <param name="closed">For each shell, whether it is closed.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// <para>
+        /// A shell inside another keeps the way it is wound against it: the same way, it is a block within it, the other way
+        /// a cavity, and neither is turned, since the check reads only the sign of the whole body's volume and both read
+        /// valid. A part of a Tekla model came with three boxes inside its main shell, all wound outwards; with one face of
+        /// the main shell wound the wrong way, the boxes read as nested were turned into cavities, and the part lost 3.9 %
+        /// of its volume, where the one face is all that is turned now. A box with a box inside, both wound outwards, 6 600,
+        /// one face of the outer turned, gets that face turned back and holds 6 600.
+        /// </para>
+        /// <para>
+        /// An outermost shell wound inwards is turned with every shell inside it, so that each keeps its winding against the
+        /// one round it: a box inside out with a cavity comes back a box with a cavity. A shell within the box of a shell
+        /// still open may lie inside it, however little of the sphere round it that shell's faces cover, and is no outermost
+        /// one until that shell closes: a cavity in a box missing its top and bottom stays a cavity, though the four sides
+        /// cover about a third of the sphere round it. A shell enclosing no more than the tolerance times its area says
+        /// nothing of which way it faces.
+        /// </para>
+        /// </remarks>
+        private static bool[] TurnedOutwards(IReadOnlyList<GeoFace3> faces, List<List<int>> shells, bool[] turn, bool[] closed, Tolerance tolerance)
+        {
+            int count = shells.Count;
+            var oriented = new List<GeoFace3>[count];
+            var boxes = new GeoAabb3[count];
+            var volumes = new double[count];
+            var areas = new double[count];
+
+            for (int s = 0; s < count; s++)
+            {
+                var these = new List<GeoFace3>(shells[s].Count);
+                GeoAabb3 box = GeoAabb3.Empty;
+
+                foreach (int k in shells[s])
+                {
+                    these.Add(turn != null && turn[k] ? faces[k].Flip() : faces[k]);
+                    box = box.Union(faces[k].GetAabb());
+                    areas[s] += faces[k].Area;
+                }
+
+                oriented[s] = these;
+                boxes[s] = box;
+                volumes[s] = SignedVolumeOf(these);
+            }
+
+            var whole = new bool[count];
+
+            for (int s = 0; s < count; s++)
+            {
+                // Only a closed shell wound inwards, saying so by more than the tolerance, can be one to turn.
+                if (!closed[s] || !(Math.Abs(volumes[s]) > tolerance.EqualPoint * areas[s]) || volumes[s] > 0.0)
+                {
+                    continue;
+                }
+
+                bool nested = false;
+
+                for (int t = 0; t < count && !nested; t++)
+                {
+                    // A shell still open may yet hold one in its box, however little of the sphere round it its faces cover.
+                    nested = t != s && boxes[t].Contains(boxes[s], tolerance) && (!closed[t] || Holds(oriented[t], oriented[s], tolerance));
+                }
+
+                if (nested)
+                {
+                    continue;
+                }
+
+                whole[s] = true;
+
+                for (int t = 0; t < count; t++)
+                {
+                    if (t != s && boxes[s].Contains(boxes[t], tolerance) && Holds(oriented[s], oriented[t], tolerance))
+                    {
+                        whole[t] = true;
+                    }
+                }
+            }
+
+            return whole;
+        }
+
+        /// <summary>
+        /// Turns faces given the other way from how the steps before left them, each as <see cref="TurnAgain(Work, int)"/>
+        /// does, in order.
+        /// </summary>
+        /// <param name="work">The work.</param>
+        /// <param name="faces">The faces, by index.</param>
+        private static void TurnAgain(Work work, List<int> faces)
+        {
+            foreach (int face in faces)
+            {
+                TurnAgain(work, face);
+            }
+        }
+
+        /// <summary>
+        /// Determines whether a stretch is the whole of an edge of each face running it, within the point tolerance at either
+        /// end: not a hair of two longer edges' copies overlapping, which says nothing of which way they face.
+        /// </summary>
+        /// <param name="stretch">The stretch.</param>
+        /// <param name="live">The edges covering it to look at, by their place on it.</param>
+        /// <param name="reach">The point tolerance.</param>
+        private static bool IsWholeEdge(Stretch stretch, List<int> live, double reach)
+        {
+            double length = stretch.Start.DistanceTo(stretch.End);
+
+            foreach (int r in live)
+            {
+                if (stretch.Edges[r].Start.DistanceTo(stretch.Edges[r].End) > length + (2.0 * reach))
+                {
+                    return false;
                 }
             }
 
@@ -639,63 +959,28 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// For each shell, wound alike, whether it is to be turned over whole: where it encloses a volume the wrong way for
-        /// where it lies, outwards inside an even number of others, inwards inside an odd number.
+        /// For each shell, wound alike, whether it is to be turned over whole: an outermost closed shell wound inwards, and
+        /// every shell inside it with it; see <see cref="TurnedOutwards"/>.
         /// </summary>
         /// <param name="work">The work.</param>
         /// <param name="shells">The faces of each shell, by index.</param>
         /// <param name="turn">For each face, whether it is turned over to wind its shell alike.</param>
-        private static bool[] OutwardsOrIn(Work work, List<List<int>> shells, bool[] turn)
+        /// <param name="open">For each face, whether it runs a stretch an odd number of faces run: its shell is open.</param>
+        /// <remarks>
+        /// An open shell keeps its winding as given: it encloses a volume only from where it is measured, and a patch of a few
+        /// faces of a sphere, each on copies of its own corners, measured from the middle of its own box, which lies outside
+        /// the sphere, seems wound inwards. Its sign is read once it is closed, by the welding or the filling.
+        /// </remarks>
+        private static bool[] OutwardsOrIn(Work work, List<List<int>> shells, bool[] turn, bool[] open)
         {
-            int count = shells.Count;
-            var oriented = new List<GeoFace3>[count];
-            var boxes = new GeoAabb3[count];
-            var volumes = new double[count];
-            var areas = new double[count];
+            var closed = new bool[shells.Count];
 
-            for (int s = 0; s < count; s++)
+            for (int s = 0; s < shells.Count; s++)
             {
-                var faces = new List<GeoFace3>(shells[s].Count);
-                GeoAabb3 box = GeoAabb3.Empty;
-
-                foreach (int f in shells[s])
-                {
-                    GeoFace3 face = work.Faces[f];
-                    faces.Add(turn[f] ? face.Flip() : face);
-                    box = box.Union(face.GetAabb());
-                    areas[s] += face.Area;
-                }
-
-                oriented[s] = faces;
-                boxes[s] = box;
-                volumes[s] = SignedVolumeOf(faces);
+                closed[s] = !shells[s].Exists(f => open[f]);
             }
 
-            var whole = new bool[count];
-
-            for (int s = 0; s < count; s++)
-            {
-                // As the check reads a body enclosing nothing: no thicker than the tolerance on average.
-                if (!(Math.Abs(volumes[s]) > work.Tolerance.EqualPoint * areas[s]))
-                {
-                    continue;
-                }
-
-                int depth = 0;
-
-                for (int t = 0; t < count; t++)
-                {
-                    if (t != s && boxes[t].Contains(boxes[s], work.Tolerance) && Holds(oriented[t], oriented[s], work.Tolerance))
-                    {
-                        depth++;
-                    }
-                }
-
-                bool outwards = depth % 2 == 0;
-                whole[s] = (volumes[s] > 0.0) != outwards;
-            }
-
-            return whole;
+            return TurnedOutwards(work.Faces, shells, turn, closed, work.Tolerance);
         }
 
         /// <summary>

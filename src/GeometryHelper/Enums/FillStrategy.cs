@@ -19,7 +19,9 @@ namespace GeometryHelper.Enums
     /// loop round the two. The triangles of least area across it, 15.1, cut the box along its diagonal, but each end of
     /// that cut is a triangle lying on the end face it stands in, and is no way. Of the fourteen ways of filling the loop
     /// six lie on no face: four are the two faces again, 20 of area, and close the box whole, 10, and two cut across its
-    /// corner, 20.05 of area, and close 8.3.
+    /// corner, 20.05 of area, and close 8.3. Nor is one that turns a triangle back against the loop, folding it over the
+    /// outside of a concave rim: an L-shaped top lifted a little at a corner is filled across its inside, and the ways
+    /// running a diagonal outside the L do not count against it.
     /// </para>
     /// <para>
     /// Every hole is held to <see cref="SolidClosingOptions.MaxHoleArea"/> and <see cref="SolidClosingOptions.MaxOffFlat"/>
@@ -36,10 +38,10 @@ namespace GeometryHelper.Enums
 
         /// <summary>
         /// A hole is filled where it can be filled one way only, as far as the volume goes: a flat one by one face; the two
-        /// ends of a hole through the body only where the caps or the walls are the one way lying on no face of the body;
-        /// and one out of flat by the triangles of least area across it only where the ways of filling it lying on no face
-        /// of the body close one volume within its area times the planar tolerance, the uncertainty a face called flat
-        /// carries already. Otherwise the report says <see cref="ClosingFailure.HoleAmbiguous"/>, as it does of the long box
+        /// ends of a hole through the body only where the caps or the walls are the one way lying on no face of the body,
+        /// walls crossing none; and one out of flat by the triangles of least area across it only where the ways of filling
+        /// it lying on no face of the body close one volume within its area times the planar tolerance, the uncertainty a
+        /// face called flat carries already. Otherwise the report says <see cref="ClosingFailure.HoleAmbiguous"/>, as it does of the long box
         /// above, its ways closing 10 and 8.3. The default.
         /// </summary>
         WhenUnambiguous,

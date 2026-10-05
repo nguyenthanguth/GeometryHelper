@@ -77,9 +77,20 @@ namespace GeometryHelper.Core
 
             var line = new int[count];
 
+            // Two edges sharing a stretch of one line have boxes that meet, widened by the tolerance, along every axis: on a
+            // sphere, the sweep along one axis sets an edge against a slice of the sphere, and the boxes leave a few.
+            var box = new double[6 * count];
+
             for (int i = 0; i < count; i++)
             {
                 line[i] = i;
+                GeoPoint3 a = segments[i].Start, b = segments[i].End;
+                box[6 * i] = Math.Min(a.X, b.X) - reach;
+                box[(6 * i) + 1] = Math.Max(a.X, b.X) + reach;
+                box[(6 * i) + 2] = Math.Min(a.Y, b.Y) - reach;
+                box[(6 * i) + 3] = Math.Max(a.Y, b.Y) + reach;
+                box[(6 * i) + 4] = Math.Min(a.Z, b.Z) - reach;
+                box[(6 * i) + 5] = Math.Max(a.Z, b.Z) + reach;
             }
 
             for (int k = 0; k < count; k++)
@@ -90,7 +101,7 @@ namespace GeometryHelper.Core
                 {
                     int j = order[m];
 
-                    if (Overlap(segments, i, j, reach))
+                    if (BoxesMeet(box, i, j) && Overlap(segments, i, j, reach))
                     {
                         Union(line, i, j);
                     }
@@ -320,6 +331,21 @@ namespace GeometryHelper.Core
 
             low = Math.Min(a, b) - reach;
             high = Math.Max(a, b) + reach;
+        }
+
+        /// <summary>
+        /// Determines whether the boxes of two edges, widened by the tolerance, meet along every axis.
+        /// </summary>
+        /// <param name="box">For each edge, its least and greatest x, y and z, widened, six to an edge.</param>
+        /// <param name="i">The one edge, by index.</param>
+        /// <param name="j">The other.</param>
+        private static bool BoxesMeet(double[] box, int i, int j)
+        {
+            int a = 6 * i, b = 6 * j;
+
+            return box[a] <= box[b + 1] && box[b] <= box[a + 1]
+                && box[a + 2] <= box[b + 3] && box[b + 2] <= box[a + 3]
+                && box[a + 4] <= box[b + 5] && box[b + 4] <= box[a + 5];
         }
 
         /// <summary>

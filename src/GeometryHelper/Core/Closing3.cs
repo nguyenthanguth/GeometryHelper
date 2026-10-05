@@ -19,29 +19,36 @@ namespace GeometryHelper.Core
     /// same body back says nothing was done. Made so far are the cleaning, the turning, the reading of the loops, the
     /// welding and the filling of holes, flat and out of flat. The faces are cleaned: those covering nothing within the
     /// tolerance dropped, a face given twice taken once, and of a face and a copy of it lying back to back, the one wound
-    /// against the faces round it dropped. They are turned so that each shell is wound alike and outwards, a shell inside
-    /// another inwards, as a cavity; only stretches longer than the widest gap say which way a face faces. A face no other
-    /// runs an edge of, lying back to back on a face of the body, is a sheet of no thickness, and is dropped. An edge left
-    /// open past a fin, a face standing off the surface, stops the closing there, where the fin is longer than the widest
-    /// gap; a shorter one is a piece of a gap. Edges left open running back alongside each other are the two sides of a
-    /// gap, and the whole body is welded shut before any loop of it is read as a hole: corners across the gaps made one, the
-    /// nearest first and never two corners of one face, within the least reach that closes the body, up to the widest gap
-    /// allowed; and only where no reach of that closes it, corners standing off open edges put on them as well, moved onto
-    /// them within their own face's plane where the crack lies there. A fin left after the welding stops the closing. No
-    /// body is taken with a ring running out to a corner and straight back, or with a face it was not given lying back to
-    /// back with another: both read valid, and neither is a body.
+    /// against the faces round it dropped. They are turned so that each shell is wound alike, the stretches longer than the
+    /// widest gap read first and the shorter ones only where they are whole edges of both their faces, and each closed shell
+    /// inside no other outwards, with every shell inside it, a shell inside another keeping its winding against it, a block
+    /// within it or a cavity; an open shell, and a shell inside one, keep their winding until closed. A face no other runs
+    /// an edge of, lying back to back on a face of the body, is a sheet of no thickness, and is dropped. An edge
+    /// left open past a fin, a face standing off the surface, stops the closing there, where the fin is longer than the
+    /// widest gap; a shorter one is a piece of a gap. Edges left open running back alongside each other are the two sides of
+    /// a gap, and an edge left open no longer than the widest gap is one by itself; the whole body is welded shut before any
+    /// loop of it is read as a hole: corners across the gaps made one, the nearest first, two corners of one face only where
+    /// they are copies of one corner beside each other across an edge left open, each group going to the corner that bends
+    /// the faces round it least by their areas, within the least reach that closes the body, up to the widest gap allowed;
+    /// and only where no reach of that closes it, corners standing off open edges put on them as well, moved onto them
+    /// within their own face's plane where the crack lies there. A face welded stays one face where its corners lie flat
+    /// about their middle. Where a reach leaves nothing open, the faces are oriented again, every shell now closed. A fin
+    /// left after the welding, or one a reach would have left, stops the closing. No body is taken with a ring running out
+    /// to a corner and straight back, or with a face it was not given lying back to back with another: both read valid,
+    /// and neither is a body.
     /// </para>
     /// <para>
     /// What is left open is followed round into loops, a corner two holes meet at stopping the closing there. Where no fill
     /// is allowed, a hole stops it, and a gap the welds could not close is a gap too wide. Where fills are allowed, every
     /// loop is filled, gaps too wide for the welds as well as holes, the gap's reason kept should nothing close the body: a
     /// loop flat within the planar tolerance by one face on its own corners, the loops in its plane inside it its holes; the
-    /// two ends of a hole through a shell whose walls are missing capped or walled, as the strategy says; and a loop out of
-    /// flat by no more than allowed, with nothing inside it, by the triangles of least area across it on its own corners,
-    /// of the ways lying on no face of the body, where those ways close one volume within the planar tolerance times its
-    /// area or the strategy takes the least anyway. No fill is taken that is larger than allowed or lies back to back with a
-    /// face of the body, and a shell taking a fill is turned over whole where, closed, it faces the wrong way. Any other
-    /// body not valid at the end is reported still open.
+    /// two ends of a hole through a shell whose walls are missing, straight, slanting or tapering, capped or walled as the
+    /// strategy says, the walls crossing no face; and a loop out of flat by no more than allowed, with nothing inside it, by
+    /// the triangles of least area across it on its own corners, of the ways lying on no face of the body and turned back
+    /// against the loop nowhere, where those ways close one volume within the planar tolerance times its area or the
+    /// strategy takes the least anyway. No fill is taken that is larger than allowed or lies back to back with a face of
+    /// the body, and a shell taking a fill is turned over whole where, closed, it faces the wrong way. Any other body not
+    /// valid at the end is reported still open.
     /// </para>
     /// <para>
     /// Nothing thrown for a reason of the geometry leaves this: a shape the work builds refused by its constructor, or a
@@ -379,6 +386,12 @@ namespace GeometryHelper.Core
             /// <summary>Gets, for each face turned over, the change that says so; null for the others.</summary>
             internal SolidRepair3[] FlipOf { get; }
 
+            /// <summary>
+            /// Gets or sets, for each face, the shell the turning took it to be of, by index, the faces of one shell wound alike
+            /// once turned; below nought for a face dropped. Set by the turning.
+            /// </summary>
+            internal int[] ShellOf { get; set; }
+
             /// <summary>Gets each change made, in the order it was made.</summary>
             internal List<SolidRepair3> Repairs { get; } = new List<SolidRepair3>();
 
@@ -405,6 +418,24 @@ namespace GeometryHelper.Core
 
             /// <summary>Gets a point at that trouble.</summary>
             internal GeoPoint3 FailureAt { get; private set; }
+
+            /// <summary>
+            /// Gets the middle of the first fin longer than the widest gap a reach of the welding would have left, which is why
+            /// that reach was not taken; null until one is.
+            /// </summary>
+            internal GeoPoint3? FinLeft { get; private set; }
+
+            /// <summary>
+            /// Notes a fin a reach would have left, unless one was noted before.
+            /// </summary>
+            /// <param name="at">The middle of the fin.</param>
+            internal void NoteFin(GeoPoint3 at)
+            {
+                if (!FinLeft.HasValue)
+                {
+                    FinLeft = at;
+                }
+            }
 
             /// <summary>
             /// Notes a reason the body cannot be closed, and where, unless one was noted before: the first step that could not
