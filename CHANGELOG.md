@@ -6,15 +6,6 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## 11.0.1
 
-**KNOWN.** A difference with a contact can come out a little larger than the body it was taken from where that body
-has a face further out of flat than the tolerance: a boolean splits such a face into triangles on its own corners
-first, and the body it works on holds more or less than the one given by about how far the face is out of flat times
-its area. A slab of a Tekla model 502 cubic metres large, with a wall 0.0097 out of flat, less a slab that touched it
-a few thousandths off, came out 1 254 cubic millimetres larger than it was, closed and valid: without the contact, the
-cut took nothing and gave the slab back as it was; with it, the other slab's faces were put onto it and it was cut.
-Which way it comes out depends on how ties are sorted, which is not the same on every .NET target: 1 254 larger in an
-application that names no target framework, 362 smaller in one built for .NET Framework 4.8.
-
 **FIXED.** The gluing of a union, a difference or an intersection of solids took two faces of one cell, its top and its
 bottom where it is thinner than the tolerance, for faces lying back to back, and took from each what they shared, which
 left the cell's edges round a hole: a block whose low step's top was out of flat by 0.0015, read as triangles, less a
