@@ -995,8 +995,8 @@ nought moved, with the reason and the point. The openings of the body are carrie
 instances.
 
 **On real parts.** The 1 989 parts of a Tekla model, each valid as read, were damaged five ways and closed within a gap
-of 0.005, holes of any size filled and up to 0.01 out of flat: 9 736 bodies of the 9 945 closed, each valid and none
-further from the part's volume as read than 13 parts in a million, in 0.6 milliseconds as a median. With its largest
+of 0.005, holes of any size filled and up to 0.01 out of flat: 9 735 bodies of the 9 945 closed, each valid and none
+further from the part's volume as read than 13 parts in a million, in 0.8 milliseconds as a median. With its largest
 face left out a part closed 98.6 % of the time, with a face at random 99.9 %, with every face on copies of its corners
 moved up to 0.002 in its plane 98.2 %, and with a face turned over every time. The rest were refused with the reason,
 most of them `NonManifold`, as where the rim of a face left out runs twice through a corner. Of the 35 cuts

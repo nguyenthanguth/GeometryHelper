@@ -55,15 +55,15 @@ where the ones before did not close the body:
 On real parts. The 1 989 parts of a Tekla model, each valid as read, were damaged five ways and closed within a gap of
 0.005, holes of any size filled and up to 0.01 out of flat: with the largest face left out 98.6 % of them closed, with
 a face left out at random 99.9 %, with every face on copies of its own corners moved up to 0.002 in its plane 98.2 %,
-with both of those 92.8 %, 93.6 % under `MinArea`, and with a face turned over every one. That is 9 736 of the 9 945
+with both of those 92.7 %, 93.6 % under `MinArea`, and with a face turned over every one. That is 9 735 of the 9 945
 bodies, 9 753 under `MinArea`, each valid, none further from the part's volume as read than 13 parts in a million, in
-0.6 milliseconds as a median and 2.8 seconds at most. Of those refused, 104 are `NonManifold`, as where the rim of a
-face left out runs twice through one corner, at the foot of an edge where two pieces of a slab meet, and 85 are
+0.8 milliseconds as a median and 2.4 seconds at most. Of those refused, 104 are `NonManifold`, as where the rim of a
+face left out runs twice through one corner, at the foot of an edge where two pieces of a slab meet, and 86 are
 `HoleAmbiguous`, 69 under `MinArea`, as where a face left out holds openings and the welds put its rim out of flat.
 
 Of the 35 cuts `TrySubtractAll` skips on the 79 864 parts of a Tekla model, the cuts within a thousandth that came out
 open or not valid, 23 closed within a gap of 0.005, holes up to 100 filled, none further from the volume the same cut
-within a hundredth gives than 2.1 parts in a million, in 9 milliseconds as a median and a quarter of a second at most.
+within a hundredth gives than 2.1 parts in a million, in 12 milliseconds as a median and 0.3 seconds at most.
 Taken in place of the cuts skipped, they bring the 8 of those parts whose bodies cut within a hundredth come out valid
 to within 0.12 % of those, where skipping left them up to 10 % off. Of the 12 refused, one holds a hole of 283, closed
 where any hole may be filled; the other 11 are not open by a gap or a hole but cut wrong, by fins and by slivers wound
