@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A union or a difference of solids that came out open whichever body was cut alone went on to cut both by
+every plane of both, and took what their cells glued into where it closed, without asking whether a cell a plane could
+not cut was judged apart across it, as the one-body cuts ask: a slab of a Tekla model less a tool beneath it came out
+open either way, the tool cut holding what the two share, 40.43 litres; cut by every plane of both, the slab kept a cell
+the tool's top could not cut, judged within the tool, and closed three litres short, valid. Such a result is not taken
+over the open one now, which is welded instead, and the slab takes 40.43 litres, closed. A result that stays open says
+so to `Validate`, where a closed one with the wrong volume said nothing.
+
 **FIXED.** A union, a difference or an intersection of solids whose cut was not clean, a plane crossing a cell and
 unable to cut it, took the cell as judged by one point where the other body lay one way to the cell's material on one
 side of the plane and the other way to the rest: the check for that wanted a point on each side, and took for that the

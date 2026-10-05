@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Core;
 using GeometryHelper.Geometry;
@@ -41,6 +42,24 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoSolid3 tool = Box(-1, -1, -1, 11, 11, 9.5);
 
             Assert.True(Boolean3.Misjudged(new List<GeoSolid3> { cell }, new List<GeoPlane3> { NearTheTop }, cell, tool, false, Fine));
+        }
+
+        [Fact]
+        public void CutByEveryPlaneOfBoth_AMisjudgedCellKeepsTheOpenResultOfCuttingOneBody()
+        {
+            // A slab of a Tekla model less a tool beneath it, cut one body at a time, came out open either way, the tool cut
+            // holding what it should; cut by every plane of both, the slab kept a cell the tool's top could not cut, judged
+            // within the tool, and the cells glued closed and three litres short. The open result is kept then, for the weld
+            // to close; where the cells are not misjudged, what they glue into closed is taken over it, as before.
+            List<GeoFace3> cells = Box(0, 0, 0, 10, 10, 10).Faces.ToList();
+            var open = new GeoSolid3(Box(0, 0, 0, 10, 10, 9).Faces.Skip(1));
+
+            Assert.True(Boolean3.GlueOrKeep(new List<GeoFace3>(cells), open, true, Fine, out GeoSolid3 kept));
+            Assert.Same(open, kept);
+
+            Assert.True(Boolean3.GlueOrKeep(new List<GeoFace3>(cells), open, false, Fine, out GeoSolid3 glued));
+            Assert.True(glued.IsClosed(Fine));
+            Assert.Equal(1000.0, glued.GetVolume(Fine), 6);
         }
 
         [Fact]

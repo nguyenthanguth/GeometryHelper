@@ -173,9 +173,12 @@ namespace GeometryHelper.Core
             // region belongs to the union once, and it is already carried by the first.
             kept.AddRange(FacesOfCells(SplitIntoCells(first, planes, tolerance), first, tolerance));
 
-            kept.AddRange(FacesOfCells(SplitIntoCells(second, planes, tolerance), second, first, false, tolerance));
+            var stuck = new List<GeoPlane3>();
+            List<GeoSolid3> cells = SplitIntoCells(second, planes, tolerance, out bool clean, stuck);
+            bool misjudged = !clean && Misjudged(cells, stuck, second, first, false, tolerance);
+            kept.AddRange(FacesOfCells(cells, second, first, false, tolerance));
 
-            if (!GlueOrKeep(kept, openCut, tolerance, out result))
+            if (!GlueOrKeep(kept, openCut, misjudged, tolerance, out result))
             {
                 return false;
             }
@@ -487,9 +490,12 @@ namespace GeometryHelper.Core
 
             List<GeoPlane3> planes = SharedPlanes(subject, tool, tolerance);
 
-            List<GeoFace3> kept = FacesOfCells(SplitIntoCells(subject, planes, tolerance), subject, tool, false, tolerance);
+            var stuck = new List<GeoPlane3>();
+            List<GeoSolid3> cells = SplitIntoCells(subject, planes, tolerance, out bool clean, stuck);
+            bool misjudged = !clean && Misjudged(cells, stuck, subject, tool, false, tolerance);
+            List<GeoFace3> kept = FacesOfCells(cells, subject, tool, false, tolerance);
 
-            if (!GlueOrKeep(kept, openCut, tolerance, out result))
+            if (!GlueOrKeep(kept, openCut, misjudged, tolerance, out result))
             {
                 return false;
             }
@@ -575,8 +581,31 @@ namespace GeometryHelper.Core
         /// Glues the cells of both bodies cut by every plane of both, unless that does no better than an open result
         /// already found by cutting one of them, which is then kept, as it was before cutting both was tried.
         /// </summary>
-        private static bool GlueOrKeep(List<GeoFace3> kept, GeoSolid3 openCut, Tolerance tolerance, out GeoSolid3 result)
+        /// <param name="kept">The faces of the cells kept.</param>
+        /// <param name="openCut">The open result cutting one body gave, or null.</param>
+        /// <param name="misjudged">
+        /// Whether a cell a plane could not cut is judged apart across it (see <see cref="Misjudged"/>), so that what the
+        /// cells glue into, closed or not, holds the wrong volume: the open result is kept then, where there is one. A slab
+        /// of a Tekla model less a tool beneath it, cut one body at a time, came out open either way, the tool cut holding
+        /// what it should; cut by every plane of both, the slab kept a cell the tool's top could not cut, judged within the
+        /// tool, and closed three litres short.
+        /// </param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="result">The result.</param>
+        internal static bool GlueOrKeep(List<GeoFace3> kept, GeoSolid3 openCut, bool misjudged, Tolerance tolerance, out GeoSolid3 result)
         {
+            if (misjudged && openCut != null)
+            {
+                GeometryHelperLog.Debug("Boolean3: cut by every plane of both, a cell a plane could not cut is judged apart across it; the open result cutting one body gave is kept.");
+                result = openCut;
+                return true;
+            }
+
+            if (misjudged)
+            {
+                GeometryHelperLog.Debug("Boolean3: cut by every plane of both, a cell a plane could not cut is judged apart across it, and cutting one body gave nothing to keep instead.");
+            }
+
             if (TryGlue(kept, tolerance, out result) && (openCut == null || result.IsClosed(tolerance)))
             {
                 return true;
