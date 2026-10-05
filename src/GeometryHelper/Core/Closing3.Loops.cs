@@ -461,9 +461,7 @@ namespace GeometryHelper.Core
         /// <param name="loops">The loops left open.</param>
         private static void RefuseHolesNotToBeFilled(Work work, List<Loop> loops)
         {
-            SolidClosingOptions options = work.Options;
-
-            if (options.MaxHoleArea > 0.0 && options.Fill != FillStrategy.None)
+            if (MayFill(work.Options))
             {
                 return;
             }

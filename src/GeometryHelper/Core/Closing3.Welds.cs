@@ -21,6 +21,8 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="work">The work.</param>
         /// <param name="faces">The faces of the body as the steps before left it; on return, as this step leaves them.</param>
+        /// <param name="origins">For each of the faces, the face given it comes of, by index; on return, for each this step
+        /// leaves.</param>
         /// <param name="rims">The edges left open in them; on return, those this step leaves.</param>
         /// <param name="closed">The body welded valid; null when the method returns false.</param>
         /// <param name="report">What was done to it; null when the method returns false.</param>
@@ -46,11 +48,11 @@ namespace GeometryHelper.Core
         /// Where no reach makes the body valid, the least reach that leaves the fewest sides of gaps is kept for the steps
         /// after, the first that leaves none, holes still open, ending the search. A fin left on what is kept, a stretch more
         /// than two faces run that the welding was to make one, is <see cref="ClosingFailure.NonManifold"/>; a gap left is
-        /// wider than the widest allowed, <see cref="ClosingFailure.GapTooWide"/>, where it is widest. A body open by holes
-        /// only is not welded.
+        /// wider than the widest allowed, <see cref="ClosingFailure.GapTooWide"/>, where it is widest, the reason given
+        /// unless a fill closes the body after. A body open by holes only is not welded.
         /// </para>
         /// </remarks>
-        private static bool TryWeldGaps(Work work, ref List<GeoFace3> faces, ref List<Rim> rims, out GeoSolid3 closed, out SolidClosing3 report)
+        private static bool TryWeldGaps(Work work, ref List<GeoFace3> faces, ref List<int> origins, ref List<Rim> rims, out GeoSolid3 closed, out SolidClosing3 report)
         {
             closed = null;
             report = null;
@@ -80,7 +82,7 @@ namespace GeometryHelper.Core
             {
                 foreach (double reach in reaches)
                 {
-                    Welded welded = WeldWithin(work, faces, rims, ends, reach, pass == 1);
+                    Welded welded = WeldWithin(work, faces, origins, rims, ends, reach, pass == 1);
 
                     if (welded == null)
                     {
@@ -113,6 +115,7 @@ namespace GeometryHelper.Core
                 work.Current = best.Body;
                 work.CurrentCheck = best.Body.Validate(work.Tolerance);
                 faces = best.Faces;
+                origins = best.Origins;
                 rims = best.Rims;
             }
 
@@ -164,6 +167,7 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="work">The work.</param>
         /// <param name="faces">The faces of the body.</param>
+        /// <param name="origins">For each, the face given it comes of, by index.</param>
         /// <param name="rims">The edges they leave open.</param>
         /// <param name="ends">The corners of the edges they leave open, as the check matches edges.</param>
         /// <param name="reach">The reach.</param>
@@ -176,7 +180,7 @@ namespace GeometryHelper.Core
         /// read closed until the corner 0.06 along the top from them was welded, and open after: their corners are taken
         /// with the rest, and the reach welded again.
         /// </remarks>
-        private static Welded WeldWithin(Work work, List<GeoFace3> faces, List<Rim> rims, List<GeoPoint3> ends, double reach, bool onEdges)
+        private static Welded WeldWithin(Work work, List<GeoFace3> faces, List<int> origins, List<Rim> rims, List<GeoPoint3> ends, double reach, bool onEdges)
         {
             var open = new HashSet<GeoPoint3>(ends);
             List<GeoPoint3> taken = ends;
@@ -184,7 +188,7 @@ namespace GeometryHelper.Core
 
             for (int round = 0; round < 8; round++)
             {
-                Welded welded = WeldOnce(work, faces, rims, taken, reach, onEdges);
+                Welded welded = WeldOnce(work, faces, origins, rims, taken, reach, onEdges);
 
                 if (welded == null)
                 {
@@ -227,6 +231,7 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="work">The work.</param>
         /// <param name="faces">The faces of the body.</param>
+        /// <param name="origins">For each, the face given it comes of, by index.</param>
         /// <param name="rims">The edges they leave open.</param>
         /// <param name="ends">The corners of the edges they leave open, as the check matches edges.</param>
         /// <param name="reach">The reach.</param>
@@ -263,7 +268,7 @@ namespace GeometryHelper.Core
         /// open, so that a reach that closes nothing costs what its faces cost, not what the body does.
         /// </para>
         /// </remarks>
-        private static Welded WeldOnce(Work work, List<GeoFace3> faces, List<Rim> rims, List<GeoPoint3> ends, double reach, bool onEdges)
+        private static Welded WeldOnce(Work work, List<GeoFace3> faces, List<int> origins, List<Rim> rims, List<GeoPoint3> ends, double reach, bool onEdges)
         {
             Tolerance tolerance = work.Tolerance;
             double within = reach * (1.0 + Hair);
@@ -317,6 +322,7 @@ namespace GeometryHelper.Core
 
             var built = new List<GeoFace3>(faces.Count);
             var fresh = new List<bool>(faces.Count);
+            var from = new List<int>(faces.Count);
             var changed = new List<GeoAabb3>();
             Tolerance pieces = LoopAssembly.ForPieces(tolerance);
             double touched = 0.0;
@@ -330,6 +336,7 @@ namespace GeometryHelper.Core
                 {
                     built.Add(faces[f]);
                     fresh.Add(false);
+                    from.Add(origins[f]);
                     continue;
                 }
 
@@ -351,6 +358,7 @@ namespace GeometryHelper.Core
                 {
                     built.Add(piece);
                     fresh.Add(true);
+                    from.Add(origins[f]);
                     changed.Add(piece.GetAabb());
                 }
             }
@@ -380,7 +388,7 @@ namespace GeometryHelper.Core
                 return null;
             }
 
-            return new Welded(built, repairs, body, valid, left, Gaps(left));
+            return new Welded(built, from, repairs, body, valid, left, Gaps(left));
         }
 
         /// <summary>
@@ -1532,14 +1540,16 @@ namespace GeometryHelper.Core
             /// Holds what a reach came to.
             /// </summary>
             /// <param name="faces">The faces.</param>
+            /// <param name="origins">For each, the face given it comes of, by index.</param>
             /// <param name="repairs">What was done, in order.</param>
             /// <param name="body">The body of the faces.</param>
             /// <param name="valid">Whether the body is valid, as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, with no ring doubling back.</param>
             /// <param name="rims">The edges it leaves open; none where it is valid.</param>
             /// <param name="gaps">How many of them are sides of gaps.</param>
-            internal Welded(List<GeoFace3> faces, List<SolidRepair3> repairs, GeoSolid3 body, bool valid, List<Rim> rims, int gaps)
+            internal Welded(List<GeoFace3> faces, List<int> origins, List<SolidRepair3> repairs, GeoSolid3 body, bool valid, List<Rim> rims, int gaps)
             {
                 Faces = faces;
+                Origins = origins;
                 Repairs = repairs;
                 Body = body;
                 IsValid = valid;
@@ -1549,6 +1559,9 @@ namespace GeometryHelper.Core
 
             /// <summary>Gets the faces.</summary>
             internal List<GeoFace3> Faces { get; }
+
+            /// <summary>Gets, for each face, the face given it comes of, by index: a face built again comes of the one it was.</summary>
+            internal List<int> Origins { get; }
 
             /// <summary>Gets what was done, in order.</summary>
             internal List<SolidRepair3> Repairs { get; }

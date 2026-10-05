@@ -346,7 +346,9 @@ namespace GeometryHelper.Core
         /// times its area, such as a face on its own, says nothing of which way it faces, and is left as it is.
         /// </para>
         /// <para>
-        /// Every face turned over is one change, of its area.
+        /// Every face turned over is one change, of its area, reported once the stray faces are dropped; see
+        /// <see cref="ReportTurned"/>. The way a shell open by a hole faces is read again once the hole is filled; see
+        /// <see cref="FaceShellsOutwards"/>.
         /// </para>
         /// </remarks>
         private static bool TryTurnAlike(Work work)
@@ -475,15 +477,165 @@ namespace GeometryHelper.Core
                 }
             }
 
-            for (int f = 0; f < count; f++)
+            return true;
+        }
+
+        /// <summary>
+        /// Reports each face kept that is turned over, one change of its area, in the order of the faces; and notes where
+        /// the turnings end among the changes, so that a face turned again later is reported among them.
+        /// </summary>
+        /// <param name="work">The work, its faces turned and the stray ones dropped.</param>
+        private static void ReportTurned(Work work)
+        {
+            for (int f = 0; f < work.Faces.Count; f++)
             {
-                if (work.Turned[f])
+                if (work.Turned[f] && !work.Dropped[f])
                 {
-                    work.Repairs.Add(new SolidRepair3(SolidRepairKind.Flip, faces[f].Centroid, faces[f].Area));
+                    var flip = new SolidRepair3(SolidRepairKind.Flip, work.Faces[f].Centroid, work.Faces[f].Area);
+                    work.Repairs.Add(flip);
+                    work.FlipOf[f] = flip;
+                }
+            }
+
+            work.TurningsEnd = work.Repairs.Count;
+        }
+
+        /// <summary>
+        /// Turns a face given the other way from how the steps before left it: a face they turned is back as it was given,
+        /// and its turning no change; one they did not is turned, one change of its area, reported with the other turnings.
+        /// </summary>
+        /// <param name="work">The work.</param>
+        /// <param name="face">The face, by index.</param>
+        private static void TurnAgain(Work work, int face)
+        {
+            if (work.Turned[face])
+            {
+                int at = work.Repairs.IndexOf(work.FlipOf[face]);
+                work.Repairs.RemoveAt(at);
+                work.FlipOf[face] = null;
+
+                if (at < work.TurningsEnd)
+                {
+                    work.TurningsEnd--;
+                }
+            }
+            else
+            {
+                var flip = new SolidRepair3(SolidRepairKind.Flip, work.Faces[face].Centroid, work.Faces[face].Area);
+                work.Repairs.Insert(work.TurningsEnd, flip);
+                work.TurningsEnd++;
+                work.FlipOf[face] = flip;
+            }
+
+            work.Turned[face] = !work.Turned[face];
+        }
+
+        /// <summary>
+        /// Drops each stray face: one no other face runs an edge of, lying back to back on a face of the body, as the two are
+        /// to be turned, every corner of it and its middle on that face. It is a sheet of no thickness and holds nothing.
+        /// </summary>
+        /// <param name="work">The work, its faces turned.</param>
+        /// <remarks>
+        /// <para>
+        /// Its rim is a loop of its own, every edge open; filled, the loop would take the face again turned over, the two
+        /// lying back to back on the face beneath, which reads valid and holds nothing. Only a face every edge of which is
+        /// open is dropped so: a thin plate, two faces back to back with walls round them, runs its edges with the walls,
+        /// and stays, however thin.
+        /// </para>
+        /// <para>
+        /// The faces are filed by their boxes, and each face every edge of which is open is set only against the faces whose
+        /// boxes meet its own; see <see cref="FaceBoxes"/>.
+        /// </para>
+        /// </remarks>
+        private static void DropStrayFaces(Work work)
+        {
+            IReadOnlyList<GeoFace3> faces = work.Faces;
+            List<int>[] along = StretchesOfFaces(work);
+            var loose = new List<int>();
+
+            for (int f = 0; f < faces.Count; f++)
+            {
+                if (!work.Dropped[f] && along[f] != null && IsLoose(work, f, along[f]))
+                {
+                    loose.Add(f);
+                }
+            }
+
+            if (loose.Count == 0)
+            {
+                return;
+            }
+
+            Tolerance tolerance = work.Tolerance;
+            var boxes = new FaceBoxes(faces, work.Dropped, tolerance);
+            var near = new List<int>();
+
+            foreach (int f in loose)
+            {
+                GeoFace3 face = faces[f];
+                GeoVector3 normal = work.Turned[f] ? face.Normal.Negate() : face.Normal;
+                boxes.Meeting(face.GetAabb(), near);
+
+                foreach (int g in near)
+                {
+                    if (g == f || work.Dropped[g])
+                    {
+                        continue;
+                    }
+
+                    GeoVector3 other = work.Turned[g] ? faces[g].Normal.Negate() : faces[g].Normal;
+
+                    if (normal.DotProduct(other) < Facing && LiesOn(face, faces[g], tolerance))
+                    {
+                        Drop(work, f);
+                        break;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Determines whether no other face kept runs any stretch a face has an edge on: every edge of it open.
+        /// </summary>
+        /// <param name="work">The work.</param>
+        /// <param name="face">The face, by index.</param>
+        /// <param name="along">The stretches it has an edge on, by index.</param>
+        private static bool IsLoose(Work work, int face, List<int> along)
+        {
+            foreach (int s in along)
+            {
+                foreach (int other in work.Stretches[s].Faces)
+                {
+                    if (other != face && !work.Dropped[other])
+                    {
+                        return false;
+                    }
                 }
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Determines whether every corner of a face's boundary, and its middle, lie on another face, within the tolerance.
+        /// </summary>
+        /// <param name="face">The face.</param>
+        /// <param name="other">The other face.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        private static bool LiesOn(GeoFace3 face, GeoFace3 other, Tolerance tolerance)
+        {
+            GeoAabb3 box = other.GetAabb();
+
+            foreach (GeoPoint3 corner in face.Boundary.Vertices)
+            {
+                if (!box.Contains(corner, tolerance) || other.Locate(corner, tolerance) == PointLocation.OutSide)
+                {
+                    return false;
+                }
+            }
+
+            GeoPoint3 middle = face.Centroid;
+            return box.Contains(middle, tolerance) && other.Locate(middle, tolerance) != PointLocation.OutSide;
         }
 
         /// <summary>
@@ -731,6 +883,178 @@ namespace GeometryHelper.Core
             parent[high] = low;
             odd[high] = pa ^ pb ^ apart;
             return true;
+        }
+
+        #endregion
+
+        #region Faces filed by their boxes
+
+        /// <summary>
+        /// Faces filed by where their boxes start along one axis, so that those whose boxes meet a box are found by halving
+        /// rather than by setting each against every other.
+        /// </summary>
+        /// <remarks>
+        /// A box meeting another starts no further before it than the longest box is long, so only the boxes starting within
+        /// that of it are looked at. The axis is the one along which the longest box is shortest beside the spread of them
+        /// all: on a sphere of small faces, a thin slice whichever the axis. Where a box spans the rest along every axis, as
+        /// the top of a plate does, every box is looked at for each box asked about.
+        /// </remarks>
+        private sealed class FaceBoxes
+        {
+            private readonly GeoAabb3[] _boxes;
+            private readonly int[] _order;
+            private readonly double[] _lows;
+            private readonly int _axis;
+            private readonly double _longest;
+            private readonly Tolerance _tolerance;
+
+            /// <summary>
+            /// Files faces by their boxes.
+            /// </summary>
+            /// <param name="faces">The faces.</param>
+            /// <param name="skip">For each face, whether it is left out; null where none is.</param>
+            /// <param name="tolerance">The tolerance two boxes meet within.</param>
+            internal FaceBoxes(IReadOnlyList<GeoFace3> faces, bool[] skip, Tolerance tolerance)
+                : this(BoxesOf(faces, skip), skip, tolerance)
+            {
+            }
+
+            /// <summary>
+            /// Files boxes, each by its index.
+            /// </summary>
+            /// <param name="boxes">The boxes.</param>
+            /// <param name="skip">For each box, whether it is left out; null where none is.</param>
+            /// <param name="tolerance">The tolerance two boxes meet within.</param>
+            internal FaceBoxes(GeoAabb3[] boxes, bool[] skip, Tolerance tolerance)
+            {
+                _tolerance = tolerance;
+                _boxes = boxes;
+                var kept = new List<int>(boxes.Length);
+                GeoAabb3 all = GeoAabb3.Empty;
+
+                for (int f = 0; f < boxes.Length; f++)
+                {
+                    if ((skip != null && skip[f]) || boxes[f].IsEmpty)
+                    {
+                        continue;
+                    }
+
+                    all = all.Union(boxes[f]);
+                    kept.Add(f);
+                }
+
+                double least = double.PositiveInfinity;
+
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    double longest = 0.0;
+
+                    foreach (int f in kept)
+                    {
+                        longest = Math.Max(longest, Coordinate(_boxes[f].Max, axis) - Coordinate(_boxes[f].Min, axis));
+                    }
+
+                    double spread = Coordinate(all.Max, axis) - Coordinate(all.Min, axis);
+                    double share = spread > 0.0 ? longest / spread : 1.0;
+
+                    if (share < least)
+                    {
+                        least = share;
+                        _axis = axis;
+                        _longest = longest;
+                    }
+                }
+
+                var lows = new double[boxes.Length];
+
+                foreach (int f in kept)
+                {
+                    lows[f] = Coordinate(_boxes[f].Min, _axis);
+                }
+
+                _order = kept.ToArray();
+
+                Array.Sort(_order, (a, b) =>
+                {
+                    int byLow = lows[a].CompareTo(lows[b]);
+                    return byLow != 0 ? byLow : a.CompareTo(b);
+                });
+
+                _lows = new double[_order.Length];
+
+                for (int k = 0; k < _order.Length; k++)
+                {
+                    _lows[k] = lows[_order[k]];
+                }
+            }
+
+            /// <summary>
+            /// The boxes of faces, each but those left out; the empty box for those.
+            /// </summary>
+            /// <param name="faces">The faces.</param>
+            /// <param name="skip">For each face, whether it is left out; null where none is.</param>
+            private static GeoAabb3[] BoxesOf(IReadOnlyList<GeoFace3> faces, bool[] skip)
+            {
+                var boxes = new GeoAabb3[faces.Count];
+
+                for (int f = 0; f < faces.Count; f++)
+                {
+                    if (skip == null || !skip[f])
+                    {
+                        boxes[f] = faces[f].GetAabb();
+                    }
+                }
+
+                return boxes;
+            }
+
+            /// <summary>
+            /// Finds the faces filed whose boxes meet a box within the point tolerance, in the order of the faces.
+            /// </summary>
+            /// <param name="box">The box.</param>
+            /// <param name="into">Filled with the faces, by index; cleared first.</param>
+            internal void Meeting(GeoAabb3 box, List<int> into)
+            {
+                into.Clear();
+
+                if (box.IsEmpty)
+                {
+                    return;
+                }
+
+                double reach = _tolerance.EqualPoint;
+                double low = Coordinate(box.Min, _axis) - reach - _longest;
+                double high = Coordinate(box.Max, _axis) + reach;
+
+                // The first box filed that starts no earlier than the longest box before the one asked about.
+                int first = 0, past = _lows.Length;
+
+                while (first < past)
+                {
+                    int middle = first + (past - first) / 2;
+
+                    if (_lows[middle] < low)
+                    {
+                        first = middle + 1;
+                    }
+                    else
+                    {
+                        past = middle;
+                    }
+                }
+
+                for (int k = first; k < _lows.Length && _lows[k] <= high; k++)
+                {
+                    int f = _order[k];
+
+                    if (_boxes[f].CollidesWith(box, _tolerance))
+                    {
+                        into.Add(f);
+                    }
+                }
+
+                into.Sort();
+            }
         }
 
         #endregion

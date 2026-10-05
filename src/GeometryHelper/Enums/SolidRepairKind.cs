@@ -6,13 +6,16 @@ namespace GeometryHelper.Enums
     /// </summary>
     /// <remarks>
     /// They are made in this order, each only where the ones before did not close the body, and come in that order in
-    /// <see cref="SolidClosing3.Repairs"/>. What <see cref="SolidRepair3.Size"/> measures is the kind's.
+    /// <see cref="SolidClosing3.Repairs"/>: a face welded down to nothing is dropped among the welds, and a face turned again
+    /// once its shell is closed is reported with the others turned. What <see cref="SolidRepair3.Size"/> measures is the
+    /// kind's.
     /// </remarks>
     public enum SolidRepairKind
     {
         /// <summary>
-        /// A face dropped: one with no area, or one of two lying back to back on the same corners, a sheet inside the body
-        /// that encloses nothing. The size is the area dropped.
+        /// A face dropped: one with no area; one of two lying back to back on the same corners, a sheet inside the body that
+        /// encloses nothing; or one no other face runs an edge of, lying back to back on a face of the body, a sheet of no
+        /// thickness. The size is the area dropped.
         /// </summary>
         Drop,
 
@@ -35,8 +38,9 @@ namespace GeometryHelper.Enums
         SplitEdge,
 
         /// <summary>
-        /// A hole filled, by one face where it is flat and by triangles where it is not. The size is the area of the faces
-        /// added.
+        /// A hole filled, by one face where it is flat and by triangles where it is not, or a hole through the body whose
+        /// walls are missing walled round. The size is the area of the faces added across it, and the place where they
+        /// would balance.
         /// </summary>
         Fill,
     }

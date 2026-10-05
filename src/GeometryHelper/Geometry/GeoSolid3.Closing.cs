@@ -22,16 +22,18 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the options are null.</exception>
         /// <remarks>
         /// <para>
-        /// Each step is taken only where the ones before it did not close the body. Faces with no area, a face given twice
-        /// and the two of a sheet lying back to back inside the body are dropped, and faces turned over so that each shell
-        /// is wound alike and outwards. An open edge past a fin stops the closing. Corners standing apart across a gap are
-        /// made one within the point tolerance, then twice it, four times, and so on up to
-        /// <see cref="SolidClosingOptions.MaxGap"/>, and where that closes nothing, the same again with corners standing off an
-        /// edge left open put on it; no reach is taken that runs a ring out to a corner and straight back, or lays a face back
-        /// to back with another. What is left open is followed round into loops: a
-        /// flat hole is filled by one face, and one a little out of flat by triangles, where the options allow. What comes of
-        /// it is checked: valid within the tolerance, no face added crossing one the body had, and the volume the welds moved
-        /// no more than the reach times the area they touched.
+        /// Each step is taken only where the ones before it did not close the body. Faces with no area, a face given twice,
+        /// the two of a sheet lying back to back inside the body, and a face lying back to back on another with every edge of
+        /// it open are dropped, and faces turned over so that each shell is wound alike and outwards. An open edge past a fin
+        /// stops the closing. Corners standing apart across a gap are made one within the point tolerance, then twice it, four
+        /// times, and so on up to <see cref="SolidClosingOptions.MaxGap"/>, and where that closes nothing, the same again with
+        /// corners standing off an edge left open put on it; no reach is taken that runs a ring out to a corner and straight
+        /// back, or lays a face back to back with another. What is left open is followed round into loops, and filled where
+        /// the options allow: a flat hole by one face on the body's own corners, the loops in its plane inside it the face's
+        /// holes, and one a little out of flat by triangles. No fill is taken that lies back to back with a face of the body,
+        /// and the way a shell faces is read again once it is closed. What comes of it is checked: valid within the
+        /// tolerance, no face added crossing one the body had, and the volume the welds moved no more than the reach times the
+        /// area they touched.
         /// </para>
         /// <para>
         /// Nothing is made up. Where closing the body is not certain, as where an open edge runs past a fin, a gap is wider

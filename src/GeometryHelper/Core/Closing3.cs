@@ -16,21 +16,30 @@ namespace GeometryHelper.Core
     /// </para>
     /// <para>
     /// A body valid within the tolerance already is handed back as it is, the same instance, and nothing is measured: the
-    /// same body back says nothing was done. Made so far are the cleaning, the turning, the reading of the loops and the
-    /// welding, and of the filling only its refusal of a hole where no fill is allowed. The faces are cleaned: those
-    /// covering nothing within the tolerance dropped, a face given twice taken once, and of a face and a copy of it lying
-    /// back to back, the one wound against the faces round it dropped. They are turned so that each shell is wound alike
-    /// and outwards, a shell inside another inwards, as a cavity; only stretches longer than the widest gap say which way a
-    /// face faces. An edge left open past a fin, a face standing off the surface, stops the closing there, where the fin is
-    /// longer than the widest gap; a shorter one is a piece of a gap. Edges left open running back alongside each other are
-    /// the two sides of a gap, and the whole body is welded shut before any loop of it is read as a hole: corners across the
-    /// gaps made one, the nearest first and never two corners of one face, within the least reach that closes the body, up
-    /// to the widest gap allowed; and only where no reach of that closes it, corners standing off open edges put on them as
-    /// well, moved onto them within their own face's plane where the crack lies there. A gap wider is a gap too wide, and a
-    /// fin left after the welding stops the closing. No body is taken with a ring running out to a corner and straight
-    /// back, or with a face it was not given lying back to back with another: both read valid, and neither is a body. What
-    /// is left open is followed round into loops, a corner two holes meet at stopping the closing there, and a hole stops it
-    /// where no fill is allowed. Any other body not valid after the welding is reported still open.
+    /// same body back says nothing was done. Made so far are the cleaning, the turning, the reading of the loops, the
+    /// welding and the filling of flat holes. The faces are cleaned: those covering nothing within the tolerance dropped, a
+    /// face given twice taken once, and of a face and a copy of it lying back to back, the one wound against the faces
+    /// round it dropped. They are turned so that each shell is wound alike and outwards, a shell inside another inwards, as
+    /// a cavity; only stretches longer than the widest gap say which way a face faces. A face no other runs an edge of,
+    /// lying back to back on a face of the body, is a sheet of no thickness, and is dropped. An edge left open past a fin, a
+    /// face standing off the surface, stops the closing there, where the fin is longer than the widest gap; a shorter one is
+    /// a piece of a gap. Edges left open running back alongside each other are the two sides of a gap, and the whole body is
+    /// welded shut before any loop of it is read as a hole: corners across the gaps made one, the nearest first and never
+    /// two corners of one face, within the least reach that closes the body, up to the widest gap allowed; and only where no
+    /// reach of that closes it, corners standing off open edges put on them as well, moved onto them within their own
+    /// face's plane where the crack lies there. A fin left after the welding stops the closing. No body is taken with a ring
+    /// running out to a corner and straight back, or with a face it was not given lying back to back with another: both
+    /// read valid, and neither is a body.
+    /// </para>
+    /// <para>
+    /// What is left open is followed round into loops, a corner two holes meet at stopping the closing there. Where no fill
+    /// is allowed, a hole stops it, and a gap the welds could not close is a gap too wide. Where fills are allowed, every
+    /// loop is filled, gaps too wide for the welds as well as holes, the gap's reason kept should nothing close the body: a
+    /// loop flat within the planar tolerance by one face on its own corners, the loops in its plane inside it its holes, as
+    /// large as allowed at most and lying back to back with no face of the body; the two ends of a hole through a shell
+    /// whose walls are missing capped or walled, as the strategy says; and a shell taking a fill turned over whole where,
+    /// closed, it faces the wrong way. No loop out of flat is filled yet. Any other body not valid at the end is reported
+    /// still open.
     /// </para>
     /// <para>
     /// Nothing thrown for a reason of the geometry leaves this: a shape the work builds refused by its constructor, or a
@@ -94,7 +103,8 @@ namespace GeometryHelper.Core
 
             var work = new Work(solid, options, check);
 
-            // The faces cleaned, and turned so that each shell is wound alike and outwards.
+            // The faces cleaned, and turned so that each shell is wound alike and outwards; a face lying back to back on
+            // another with every edge open is a sheet of no thickness, and goes.
             DropFacesOfNoArea(work);
             work.Stretches = FindStretches(work.Faces, work.Dropped, work.Tolerance);
             DropCopies(work);
@@ -103,6 +113,9 @@ namespace GeometryHelper.Core
             {
                 return Refused(work, out closed, out report);
             }
+
+            DropStrayFaces(work);
+            ReportTurned(work);
 
             if (work.Repairs.Count > 0 && TryTake(work, out closed, out report))
             {
@@ -119,8 +132,9 @@ namespace GeometryHelper.Core
             // The gaps welded shut, the whole body before any loop of it is read as a hole, within the least reach that
             // closes them.
             List<GeoFace3> faces = work.Kept();
+            List<int> origins = work.KeptIndices();
 
-            if (TryWeldGaps(work, ref faces, ref rims, out closed, out report))
+            if (TryWeldGaps(work, ref faces, ref origins, ref rims, out closed, out report))
             {
                 return true;
             }
@@ -138,9 +152,14 @@ namespace GeometryHelper.Core
                 return Refused(work, out closed, out report);
             }
 
-            RefuseHolesNotToBeFilled(work, loops);
+            // The loops filled, holes and gaps too wide for the welds alike, where a fill is allowed.
+            if (!MayFill(options))
+            {
+                RefuseHolesNotToBeFilled(work, loops);
+                return Refused(work, out closed, out report);
+            }
 
-            return Refused(work, out closed, out report);
+            return TryFillHoles(work, faces, origins, loops, out closed, out report) || Refused(work, out closed, out report);
         }
 
         /// <summary>
@@ -332,6 +351,7 @@ namespace GeometryHelper.Core
                 Faces = solid.Faces;
                 Dropped = new bool[Faces.Count];
                 Turned = new bool[Faces.Count];
+                FlipOf = new SolidRepair3[Faces.Count];
                 Current = solid;
                 CurrentCheck = check;
             }
@@ -354,8 +374,17 @@ namespace GeometryHelper.Core
             /// <summary>Gets, for each face, whether it is turned over.</summary>
             internal bool[] Turned { get; }
 
+            /// <summary>Gets, for each face turned over, the change that says so; null for the others.</summary>
+            internal SolidRepair3[] FlipOf { get; }
+
             /// <summary>Gets each change made, in the order it was made.</summary>
             internal List<SolidRepair3> Repairs { get; } = new List<SolidRepair3>();
+
+            /// <summary>
+            /// Gets or sets where the faces dropped and turned end among the changes: a face turned again once its shell is
+            /// closed is reported with them.
+            /// </summary>
+            internal int TurningsEnd { get; set; }
 
             /// <summary>Gets or sets the area of the faces added.</summary>
             internal double AddedArea { get; set; }
@@ -431,6 +460,24 @@ namespace GeometryHelper.Core
                     if (!Dropped[f])
                     {
                         kept.Add(Turned[f] ? Faces[f].Flip() : Faces[f]);
+                    }
+                }
+
+                return kept;
+            }
+
+            /// <summary>
+            /// Gets the index of each face kept, in the order given, as <see cref="Kept"/> gives them.
+            /// </summary>
+            internal List<int> KeptIndices()
+            {
+                var kept = new List<int>(Faces.Count);
+
+                for (int f = 0; f < Faces.Count; f++)
+                {
+                    if (!Dropped[f])
+                    {
+                        kept.Add(f);
                     }
                 }
 

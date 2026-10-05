@@ -39,13 +39,15 @@ namespace GeometryHelper.Enums
         HoleOffFlat,
 
         /// <summary>
-        /// A hole out of flat can be filled more than one way, the ways closing volumes further apart than the tolerance
-        /// allows, and the strategy is <see cref="FillStrategy.WhenUnambiguous"/>.
+        /// A hole can be filled more than one way, and the strategy is <see cref="FillStrategy.WhenUnambiguous"/>: one out
+        /// of flat by ways closing volumes further apart than the tolerance allows, or the two flat ends of a hole through
+        /// the body, whose walls are missing, by caps or by walls, neither lying on a face of the body.
         /// </summary>
         HoleAmbiguous,
 
         /// <summary>
-        /// The body is still not valid after every step, or could not be worked out, which is logged with what was thrown.
+        /// The body is still not valid after every step, or could not be worked out, which is logged with what was thrown:
+        /// among others, a hole every fill of which would lie back to back with a face of the body, a skin of no thickness.
         /// </summary>
         StillOpen,
     }

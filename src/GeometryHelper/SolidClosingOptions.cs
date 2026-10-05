@@ -113,8 +113,10 @@ namespace GeometryHelper
         /// </summary>
         /// <remarks>
         /// A flat hole is filled by one face, the loops lying in its plane inside it taken as holes of that face, and its
-        /// area, holes taken away, is what is held to this. A hole out of flat is held to it by the area of the triangles
-        /// across it. A hole larger is not filled, and the report says <see cref="ClosingFailure.HoleTooLarge"/>.
+        /// area, holes taken away, is what is held to this: a hole as large as this is filled. The two ends of a hole through
+        /// the body are held to it each by its cap, or by the walls between them together, and a hole out of flat by the
+        /// area of the triangles across it. A hole larger is not filled, and the report says
+        /// <see cref="ClosingFailure.HoleTooLarge"/>.
         /// </remarks>
         public double MaxHoleArea { get; }
 
