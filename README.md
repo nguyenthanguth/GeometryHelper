@@ -75,6 +75,12 @@ corners allow.
   across gaps as thin. Below a thousandth those are cut as the slivers they then are: on a model of 1 989 parts,
   cutting each part by the parts it meets took 12.5 seconds within a hundredth, 18 within a thousandth, and 225 and
   251 within 1E-4 and 1E-5, where 31 and 36 of the cuts took more than a minute each.
+- **Parts drawn against each other: give a contact, not a coarser tolerance.** Tekla Structures draws parts a few
+  thousandths of a millimetre into or off each other, and a part cut within a thousandth by a cutter standing so far
+  inside its face keeps a skin of itself that thick: on a model of 79 864 parts, each cut by the parts it meets,
+  5 466 square metres of surface too much. `SolidBooleanOptions` with `Contact = 0.01` takes such faces as touching
+  and keeps the thousandth everywhere else (220 square metres too much), and `TrySubtractAll` cuts a part by all of
+  them, each cut checked; see the [space guide](src/GeometryHelper/docs/solid.md#combining-bodies).
 - **Pass another one only for a reason, to the call that needs it.** A coarser tolerance takes what a modeller
   gives as touching for touching: net volumes to match the ones Tekla Structures reports come from booleans within
   0.05. A model in metres wants the point and planar thresholds a thousand times smaller,

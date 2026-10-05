@@ -791,6 +791,39 @@ default and within its own tolerance, and holds its volume within the tolerance 
 result open within its own tolerance is welded too, where that closes it, and one closed within the default is left
 as it is. `Validate()` shows where a body is open, and why.
 
+**Parts drawn against each other.** The tolerance says how exact a boolean is; how near two faces of two parts
+have to be to touch is a question of the model. Tekla Structures draws parts against each other a few thousandths
+of a millimetre into or off each other, and cut within a thousandth, a part whose cutter's face stood 0.0049 inside
+its own keeps a skin of itself that thick: 110 square metres of surface on a part of 119. `SolidBooleanOptions`
+says how near is touching: each face of the second body lying parallel to a face of the first with every corner
+within `Contact` of its plane is put onto that plane first, and the first body is not moved.
+
+```csharp
+var options = new SolidBooleanOptions(Tolerance.Default, contact: 0.01);
+part.TrySubtract(cutter, out GeoSolid3 left, options, out BooleanOutcome outcome);
+```
+
+A net body, a part less every part it meets, is `TrySubtractAll`: each cut checked by `Validate`, one whose result
+is not valid worked out again within the `fallback` tolerance where one is given, and one that is still not valid
+skipped, the part kept as it was before it, with the report saying which. A body closed with two faces lying one on
+the other the same way round holds the wrong volume, which is why each is checked.
+
+```csharp
+var options = new SolidBooleanOptions(Tolerance.Default, contact: 0.01,
+    fallback: new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01));
+
+if (part.TrySubtractAll(cutters, out GeoSolid3 net, options, out SubtractReport report))
+{
+    double volume = net.GetVolume(options.Tolerance);
+    double area = net.GetSurfaceArea(options.Tolerance);
+    // report.Skipped: the cutters not taken away, by their place in the list.
+}
+```
+
+Of the 79 864 parts of a Tekla model each cut so by the parts it meets, 3 344 came out within a thousandth alone
+with more than 1 % more surface than within a hundredth, 5 466 square metres in all, and 203 with a contact of a
+hundredth, 220 square metres. A contact of two hundredths starts to take what is there.
+
 **Flat shapes and boxes.** Two areas in one plane are combined by the plane library and the answer lifted
 back, so it is exact; and a box is combined through the body it bounds, which is six flat faces and no
 fitting at all.

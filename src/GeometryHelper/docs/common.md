@@ -40,6 +40,12 @@ The vector threshold is far below the point threshold because it is also the are
 polygon: Tekla Structures gives a triangle 0.005 by 0.08 of a millimetre at the end of each of 1 791 girders of
 one model, which a vector threshold of a thousandth refused for its area of 0.0002, leaving every girder open.
 
+How near two faces of two parts have to be to touch is not a tolerance but a question of the model, and a boolean of
+two solids takes it apart: `SolidBooleanOptions.Contact` puts the faces of the second body that lie parallel to the
+first's within it onto them, and the tolerance stays as exact as it is everywhere else (see
+[space](solid.md#combining-bodies)). Within a thousandth alone, parts drawn a few thousandths into each other leave
+skins as thin as that on what is cut.
+
 Pass a coarser tolerance only to the call that needs it. Within one, what touches within it is taken for touching:
 net volumes to match the ones Tekla Structures reports come from booleans within 0.05. Geometry in metres wants
 the point and planar thresholds a thousand times smaller, set once for the program:

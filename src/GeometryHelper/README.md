@@ -15,7 +15,10 @@ out of a BIM model are never exact.
 exact as the corners of a modelled part are: two parts a hundredth apart are apart, and a thin overlap holds what it
 holds. A finer tolerance cuts as slivers the few ten-thousandths a modeller's rounding leaves faces off flat and parts
 apart, many times slower; a coarser one, passed to the call that needs it, takes what touches within it for touching.
-Never `new Tolerance()`: made so, every threshold is 0.
+Never `new Tolerance()`: made so, every threshold is 0. For parts drawn against each other, as a model's are, cut with a
+`SolidBooleanOptions` whose `Contact` takes faces a hundredth apart for touching, and take a part's net body with
+`TrySubtractAll`: within a thousandth alone, a part keeps a skin of itself where a cutter's face stood a few
+thousandths inside it.
 
 ## Installation
 

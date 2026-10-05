@@ -40,6 +40,23 @@ Tolerance.DefaultEqualAngleRad, 0.01)` or set it as `Tolerance.Global`; net volu
 reports want 0.05, as before.
 Geometry in metres wants `new Tolerance(1E-6, 1E-8, Tolerance.DefaultEqualAngleRad, 1E-6)`.
 
+**NEW.** `SolidBooleanOptions`, taken by new overloads of `TrySubtract`, `TryUnion` and `TryIntersect` of `Boolean3` and
+of `GeoSolid3`, says how a boolean of two solids is worked out: its `Tolerance`; a `Contact`, how far apart a face of the
+second body may lie from a face of the first, parallel to it, and still be taken as lying against it; and a `Fallback`
+tolerance, within which a boolean whose result `Validate` finds not valid is worked out again. Each face of the second
+body so near a face of the first is put onto that face's plane before the boolean, and the first body is not moved.
+Tekla Structures draws parts against each other a few thousandths of a millimetre into or off each other, and cut within
+a thousandth, a part whose cutter's face stood 0.0049 inside its own kept a skin of itself that thick, 110 square metres
+of surface on a part of 119. And `TrySubtractAll` takes bodies out of a solid one after another, each cut checked by
+`Validate`, the fallback tried where it is not valid and the cut skipped where that is not either, and says in a
+`SubtractReport` which: the net body of a part less every part it meets. Of the 79 864 parts of a Tekla model so cut
+within a thousandth, 180 had a cut skipped, 323 cuts, and 3 344 came out with more than 1 % more surface than within a
+hundredth, 5 466 square metres in all; with a contact of a hundredth, 109 and 196, and 203 and 220 square metres; with a
+fallback of a hundredth as well, 19 and 38. Within a contact of a hundredth the volume is as exact as within a thousandth
+but where parts touch: of 206 slabs against their exact net volumes, the errors summed 357 595 cubic millimetres, where
+within a thousandth alone they summed 207 323 and within a hundredth 757 750. The overloads taking a `Tolerance` are
+unchanged.
+
 **FIXED.** A difference or a union could come back closed with faces wound against each other, which `IsClosed` reads as
 closed: a beam from an IFC model less an opening whose side lay against the web within the tolerance, cut within a
 thousandth, kept the web twice over a strip 6.6 wide, its two copies facing the same way, and the next opening cut from it

@@ -779,6 +779,13 @@ namespace GeometryHelper.Geometry
             => Boolean3.TryUnion(this, other, out result, tolerance, out outcome);
 
         /// <summary>
+        /// Joins this solid with another as the options say, saying how it came out; see
+        /// <see cref="Boolean3.TryUnion(GeoSolid3, GeoSolid3, out GeoSolid3, SolidBooleanOptions, out BooleanOutcome)"/>.
+        /// </summary>
+        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, SolidBooleanOptions options, out BooleanOutcome outcome)
+            => Boolean3.TryUnion(this, other, out result, options, out outcome);
+
+        /// <summary>
         /// Gets the part this solid shares with another, using the default tolerance.
         /// </summary>
         public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result) => Boolean3.TryIntersect(this, other, out result);
@@ -799,6 +806,13 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
             => Boolean3.TryIntersect(this, other, out result, tolerance, out outcome);
+
+        /// <summary>
+        /// Gets the part this solid shares with another as the options say, saying how it came out; see
+        /// <see cref="Boolean3.TryIntersect(GeoSolid3, GeoSolid3, out GeoSolid3, SolidBooleanOptions, out BooleanOutcome)"/>.
+        /// </summary>
+        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, SolidBooleanOptions options, out BooleanOutcome outcome)
+            => Boolean3.TryIntersect(this, other, out result, options, out outcome);
 
         /// <summary>
         /// Gets every separate region this body shares with another, one body each.
@@ -867,6 +881,20 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
             => Boolean3.TrySubtract(this, tool, out result, tolerance, out outcome);
+
+        /// <summary>
+        /// Takes another solid out of this one as the options say, saying how it came out; see
+        /// <see cref="Boolean3.TrySubtract(GeoSolid3, GeoSolid3, out GeoSolid3, SolidBooleanOptions, out BooleanOutcome)"/>.
+        /// </summary>
+        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, SolidBooleanOptions options, out BooleanOutcome outcome)
+            => Boolean3.TrySubtract(this, tool, out result, options, out outcome);
+
+        /// <summary>
+        /// Takes bodies out of this solid one after another as the options say, each result checked, and says what it
+        /// did; see <see cref="Boolean3.TrySubtractAll(GeoSolid3, IEnumerable{GeoSolid3}, out GeoSolid3, SolidBooleanOptions, out SubtractReport)"/>.
+        /// </summary>
+        public bool TrySubtractAll(IEnumerable<GeoSolid3> tools, out GeoSolid3 result, SolidBooleanOptions options, out SubtractReport report)
+            => Boolean3.TrySubtractAll(this, tools, out result, options, out report);
 
         #endregion
 
