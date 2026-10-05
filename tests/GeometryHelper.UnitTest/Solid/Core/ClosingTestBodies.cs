@@ -290,5 +290,140 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoPoint3 nearest = start.Add(along.Multiply(Math.Max(0.0, Math.Min(1.0, t))));
             return nearest.GetVectorTo(point).Length;
         }
+
+        #region Bodies open by a hair, for welding
+
+        /// <summary>
+        /// How many corners of the rings of a body's faces have the corners either side of them one point within the
+        /// tolerance: needles, rings running out to a corner and straight back, which read valid and are no face of a body.
+        /// </summary>
+        internal static int Needles(GeoSolid3 solid)
+        {
+            int needles = 0;
+
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                foreach (GeoPolygon3 ring in new[] { face.Boundary }.Concat(face.Holes))
+                {
+                    int count = ring.VertexCount;
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        if (ring[(i + count - 1) % count].DistanceTo(ring[(i + 1) % count]) <= Fine.EqualPoint)
+                        {
+                            needles++;
+                        }
+                    }
+                }
+            }
+
+            return needles;
+        }
+
+        /// <summary>
+        /// The unit vector in the plane of the top of a box out from its middle along the diagonal through one of its
+        /// corners, 4 to 7.
+        /// </summary>
+        internal static GeoVector3 OutOfTheTop(int corner)
+        {
+            double x = corner == 5 || corner == 6 ? 1.0 : -1.0;
+            double y = corner == 6 || corner == 7 ? 1.0 : -1.0;
+            return new GeoVector3(x, y, 0.0).Multiply(1.0 / Math.Sqrt(2.0));
+        }
+
+        /// <summary>
+        /// The box with corners of its top, 4 to 7, moved outwards in the top's plane by as much as given, along the diagonal
+        /// out of its middle, the other faces keeping them where they were: open along the edges of the top at each, by a gap
+        /// as wide as the move.
+        /// </summary>
+        internal static GeoSolid3 BoxWithTopCornersMovedOut(params (int Corner, double By)[] moves)
+        {
+            GeoPoint3[] corners = Corners();
+            var top = (GeoPoint3[])corners.Clone();
+
+            foreach ((int corner, double by) in moves)
+            {
+                top[corner] = top[corner].Add(OutOfTheTop(corner).Multiply(by));
+            }
+
+            List<GeoFace3> faces = BoxFaces(corners);
+            faces[Top] = Face(top, BoxLoops[Top]);
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The box with its top carrying a corner of its own halfway along its front edge, standing outwards off the front's
+        /// straight top edge by a distance, in the top's plane: the two are open along that edge.
+        /// </summary>
+        internal static GeoSolid3 BoxWithTheTopsFrontBentOut(double off)
+        {
+            GeoPoint3[] c = Corners();
+            List<GeoFace3> faces = BoxFaces(c);
+            faces[Top] = Face(c[4], new GeoPoint3(SizeX / 2.0, -off, SizeZ), c[5], c[6], c[7]);
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The box with every face on copies of the corners of its own, each copy moved in the plane of its face by a random
+        /// vector no longer than given: every edge open, and no two copies of a corner further apart than twice that.
+        /// </summary>
+        internal static GeoSolid3 BoxOfMovedCopies(int seed, double most)
+        {
+            var random = new Random(seed);
+            GeoPoint3[] corners = Corners();
+            var faces = new List<GeoFace3>();
+
+            for (int f = 0; f < BoxLoops.Length; f++)
+            {
+                // The axes of the face's plane: the bottom and top lie across x and y, the front and back across x and z, and
+                // the sides across y and z.
+                GeoVector3 u = f <= Back ? GeoVector3.XAxis : GeoVector3.YAxis;
+                GeoVector3 v = f <= Top ? GeoVector3.YAxis : GeoVector3.ZAxis;
+                var loop = new List<GeoPoint3>();
+
+                foreach (int i in BoxLoops[f])
+                {
+                    double angle = 2.0 * Math.PI * random.NextDouble();
+                    double length = most * random.NextDouble();
+                    loop.Add(corners[i].Add(u.Multiply(length * Math.Cos(angle))).Add(v.Multiply(length * Math.Sin(angle))));
+                }
+
+                faces.Add(Face(loop.ToArray()));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// A prism over a plan, as <see cref="Prism"/> makes one, with one corner of its top moved, the sides keeping it where
+        /// it was.
+        /// </summary>
+        internal static GeoSolid3 PrismWithTopCornerMoved(IReadOnlyList<GeoPoint3> plan, double z0, double z1, int corner, GeoVector3 by)
+        {
+            List<GeoFace3> faces = Prism(plan, z0, z1).Faces.ToList();
+            faces[1] = Face(plan.Select((p, i) => new GeoPoint3(p.X, p.Y, z1).Add(i == corner ? by : GeoVector3.Zero)).ToArray());
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The plan of the box of the damaged bodies with its corner at (30, 20) cut off by a chamfer 0.05 along each side:
+        /// the chamfer's ends, its corners 2 and 3, are 0.07 apart.
+        /// </summary>
+        internal static GeoPoint3[] ChamferedPlan() => new[]
+        {
+            new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0), new GeoPoint3(30, 19.95, 0), new GeoPoint3(29.95, 20, 0), new GeoPoint3(0, 20, 0),
+        };
+
+        /// <summary>
+        /// The plan of the box of the damaged bodies with a slot as wide as given cut 10 into it from the middle of its back:
+        /// its walls at x = 15 and 15 and the width, from y = 10 to the back.
+        /// </summary>
+        internal static GeoPoint3[] SlottedPlan(double width) => new[]
+        {
+            new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0), new GeoPoint3(30, 20, 0), new GeoPoint3(15 + width, 20, 0),
+            new GeoPoint3(15 + width, 10, 0), new GeoPoint3(15, 10, 0), new GeoPoint3(15, 20, 0), new GeoPoint3(0, 20, 0),
+        };
+
+        #endregion
     }
 }

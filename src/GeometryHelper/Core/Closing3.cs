@@ -16,13 +16,17 @@ namespace GeometryHelper.Core
     /// </para>
     /// <para>
     /// A body valid within the tolerance already is handed back as it is, the same instance, and nothing is measured: the
-    /// same body back says nothing was done. Made so far are the cleaning, the turning and the reading of the loops, and of
-    /// the filling only its refusal of a hole where no fill is allowed. The faces are cleaned: those covering nothing within
-    /// the tolerance dropped, a face given twice taken once, and of a face and a copy of it lying back to back, the one
-    /// wound against the faces round it dropped. They are turned so that each shell is wound alike and outwards, a shell
-    /// inside another inwards, as a cavity. The edges left open are followed round into loops, and a loop through a
-    /// stretch more than two faces meet on, a fin, stops the closing there, as does a corner two loops run through; so
-    /// does a hole where no fill is allowed. Any other body not valid after the turning is reported still open.
+    /// same body back says nothing was done. Made so far are the cleaning, the turning, the reading of the loops and the
+    /// welding, and of the filling only its refusal of a hole where no fill is allowed. The faces are cleaned: those
+    /// covering nothing within the tolerance dropped, a face given twice taken once, and of a face and a copy of it lying
+    /// back to back, the one wound against the faces round it dropped. They are turned so that each shell is wound alike
+    /// and outwards, a shell inside another inwards, as a cavity. An edge left open past a fin, a face standing off the
+    /// surface, stops the closing there. Edges left open running back alongside each other are the two sides of a gap, and
+    /// the whole body is welded shut before any loop of it is read as a hole: corners across the gaps made one and corners
+    /// standing on open edges put on them, within the least reach that closes the body, up to the widest gap allowed; a gap
+    /// wider is a gap too wide. What is left open is followed round into loops, a corner two holes meet at stopping the
+    /// closing there, and a hole stops it where no fill is allowed. Any other body not valid after the welding is reported
+    /// still open.
     /// </para>
     /// <para>
     /// Nothing thrown for a reason of the geometry leaves this: a shape the work builds refused by its constructor, or a
@@ -101,10 +105,26 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            // The edges left open, followed round into loops; a fin among them stops the closing before anything is
-            // filled, since a fill across the loop round it would be the fin again the other way round.
-            if (!TryFindLoops(work, out List<Loop> loops))
+            // The edges left open; a fin among them stops the closing before anything is welded or filled, since a fill
+            // across the loop round it would be the fin again the other way round.
+            if (!TryReadOpenEdges(work, out List<Rim> rims))
             {
+                return Refused(work, out closed, out report);
+            }
+
+            // The gaps welded shut, the whole body before any loop of it is read as a hole, within the least reach that
+            // closes them.
+            List<GeoFace3> faces = work.Kept();
+
+            if (TryWeldGaps(work, ref faces, ref rims, out closed, out report))
+            {
+                return true;
+            }
+
+            // What is left open, followed round into loops.
+            if (!TryChainLoops(rims, work.Tolerance, out List<Loop> loops, out ClosingFailure failure, out GeoPoint3 at))
+            {
+                work.Refuse(failure, at);
                 return Refused(work, out closed, out report);
             }
 
@@ -138,6 +158,13 @@ namespace GeometryHelper.Core
 
             if (!check.IsValid)
             {
+                return false;
+            }
+
+            // A ring running out to a corner and straight back reads valid, and is no face of a body.
+            if (NeedleAt(body.Faces, work.Tolerance.EqualPoint, out GeoPoint3 tip))
+            {
+                work.Refuse(ClosingFailure.StillOpen, tip);
                 return false;
             }
 
@@ -222,26 +249,26 @@ namespace GeometryHelper.Core
         /// coordinates. Faces that do not close enclose a volume only from where they are measured, and the middle of their
         /// box is a point the same faces give in whatever order they come.
         /// </remarks>
-        internal static double SignedVolumeOf(IReadOnlyList<GeoFace3> faces)
+        internal static double SignedVolumeOf(IReadOnlyList<GeoFace3> faces) => SignedVolumeAbout(faces, BoxOf(faces).Center);
+
+        /// <summary>
+        /// The volume faces enclose measured from a point, as <see cref="SignedVolumeOf"/> measures it from the middle of
+        /// their box: so that two sets of faces that do not close can be set side by side, measured from one point.
+        /// </summary>
+        /// <param name="faces">The faces.</param>
+        /// <param name="apex">The point.</param>
+        private static double SignedVolumeAbout(IReadOnlyList<GeoFace3> faces, GeoPoint3 apex)
         {
-            GeoAabb3 box = GeoAabb3.Empty;
-
-            foreach (GeoFace3 face in faces)
-            {
-                box = box.Union(face.GetAabb());
-            }
-
-            GeoPoint3 middle = box.Center;
             double total = 0.0;
 
             foreach (GeoFace3 face in faces)
             {
-                total += Fan(face.Boundary, middle);
+                total += Fan(face.Boundary, apex);
 
                 // A hole is wound as the boundary is, so its fan is taken away.
                 foreach (GeoPolygon3 hole in face.Holes)
                 {
-                    total -= Fan(hole, middle);
+                    total -= Fan(hole, apex);
                 }
             }
 
@@ -352,6 +379,16 @@ namespace GeometryHelper.Core
             /// </summary>
             internal GeoSolid3 Build()
             {
+                List<GeoFace3> kept = Kept();
+
+                return kept.Count < 4 ? null : new GeoSolid3(kept, Solid.Openings);
+            }
+
+            /// <summary>
+            /// Gets the faces kept, each turned over where it is to be, in the order given.
+            /// </summary>
+            internal List<GeoFace3> Kept()
+            {
                 var kept = new List<GeoFace3>(Faces.Count);
 
                 for (int f = 0; f < Faces.Count; f++)
@@ -362,7 +399,7 @@ namespace GeometryHelper.Core
                     }
                 }
 
-                return kept.Count < 4 ? null : new GeoSolid3(kept, Solid.Openings);
+                return kept;
             }
         }
     }

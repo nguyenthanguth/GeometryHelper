@@ -224,7 +224,7 @@ namespace GeometryHelper.Core
         /// makes on the ring added to each: half the cross of the edges to its neighbours, the area of the triangle it sweeps
         /// moved one unit off it.
         /// </summary>
-        private static List<int> Positions(GeoPolygon3 ring, Dictionary<GeoPoint3, int> index, List<GeoPoint3> points, List<List<GeoVector3>> corners)
+        internal static List<int> Positions(GeoPolygon3 ring, Dictionary<GeoPoint3, int> index, List<GeoPoint3> points, List<List<GeoVector3>> corners)
         {
             IReadOnlyList<GeoPoint3> vertices = ring.Vertices;
             int count = vertices.Count;
@@ -264,7 +264,7 @@ namespace GeometryHelper.Core
         /// The position each point is welded to, as the overload without marks gives it, of the points marked only where
         /// marks are given: every other point stays where it is.
         /// </summary>
-        private static int[] Representatives(List<GeoPoint3> points, List<List<GeoVector3>> corners, double reach, bool[] only)
+        internal static int[] Representatives(List<GeoPoint3> points, List<List<GeoVector3>> corners, double reach, bool[] only)
         {
             int count = points.Count;
             int[] parent = new int[count];
@@ -435,7 +435,7 @@ namespace GeometryHelper.Core
         /// A ring on the positions its corners are welded to, a position repeated in a row kept once, the last as the first
         /// too.
         /// </summary>
-        private static List<int> Collapse(List<int> ring, int[] to, out bool changed)
+        internal static List<int> Collapse(List<int> ring, int[] to, out bool changed)
         {
             var kept = new List<int>(ring.Count);
             changed = false;
@@ -463,7 +463,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// The corners of the edges an odd number of rings run, the edges a body is open by.
         /// </summary>
-        private static bool[] Loose(List<List<int>>[] rings)
+        internal static bool[] Loose(List<List<int>>[] rings)
         {
             var counts = new Dictionary<long, int>();
             int highest = -1;
@@ -693,7 +693,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Whether a face's rings are still its own corners, in its own order.
         /// </summary>
-        private static bool Unchanged(GeoFace3 face, List<List<int>> faceRings, List<GeoPoint3> points)
+        internal static bool Unchanged(GeoFace3 face, List<List<int>> faceRings, List<GeoPoint3> points)
         {
             if (faceRings.Count != 1 + face.Holes.Count)
             {
@@ -722,7 +722,10 @@ namespace GeometryHelper.Core
             return true;
         }
 
-        private static IEnumerable<GeoPoint3> Corners(List<int> ring, List<GeoPoint3> points)
+        /// <summary>
+        /// The corners of a ring of positions, in its order.
+        /// </summary>
+        internal static IEnumerable<GeoPoint3> Corners(List<int> ring, List<GeoPoint3> points)
         {
             var corners = new GeoPoint3[ring.Count];
 
