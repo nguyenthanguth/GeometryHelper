@@ -1,0 +1,74 @@
+using System;
+using GeometryHelper.Core;
+using GeometryHelper.Enums;
+
+namespace GeometryHelper.Geometry
+{
+    public sealed partial class GeoSolid3
+    {
+        #region Closing
+
+        /// <summary>
+        /// Closes this body where it is open, with the least change that does it, and says what was changed; see
+        /// <see cref="SolidClosingOptions"/>.
+        /// </summary>
+        /// <param name="closed">The body closed: this body itself where it was valid already; null when the method returns false.</param>
+        /// <param name="options">How far apart corners may stand and still be made one, and which holes may be filled.</param>
+        /// <param name="report">Each change made, in the order it was made, or why the body could not be closed and where.</param>
+        /// <returns>
+        /// true when the body comes out valid within the options' tolerance, as <see cref="Validate(Tolerance)"/> reads it:
+        /// closed, wound alike and outwards, and enclosing a volume; otherwise false.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options are null.</exception>
+        /// <remarks>
+        /// <para>
+        /// Each step is taken only where the ones before it did not close the body. Faces with no area, and the two of a
+        /// sheet lying back to back inside the body, are dropped, and faces turned over so that it is wound alike and
+        /// outwards. The open edges are followed round into loops. Corners standing apart across a gap are made one and
+        /// corners standing on an edge put on it, within the point tolerance, then twice it, four times, and so on up to
+        /// <see cref="SolidClosingOptions.MaxGap"/>. The two sides of a crack no wider are joined by faces between them.
+        /// A flat hole is filled by one face, and one a little out of flat by triangles, where the options allow. What comes
+        /// of it is checked: valid within the tolerance, no face added crossing one the body had, and the volume the welds
+        /// and stitches moved no more than the reach times the area they touched.
+        /// </para>
+        /// <para>
+        /// Nothing is made up. Where closing the body is not certain, as where an open edge runs past a fin, a gap is wider
+        /// than the options allow or a hole can be filled more than one way, the method returns false and the report says
+        /// why and where. The body is not changed: its openings are carried over as they are, and a shell of it closed
+        /// already is left as it was.
+        /// </para>
+        /// <code>
+        /// var options = new SolidClosingOptions(Tolerance.Default, 0.01, maxHoleArea: 50000.0);
+        ///
+        /// if (part.TryClose(out GeoSolid3 closed, options, out SolidClosing3 report))
+        /// {
+        ///     double volume = closed.GetVolume(Tolerance.Default);
+        /// }
+        /// else
+        /// {
+        ///     Console.WriteLine(report); // SolidClosing3[not closed, HoleTooLarge at (1250, 300, 2700)]
+        /// }
+        /// </code>
+        /// </remarks>
+        public bool TryClose(out GeoSolid3 closed, SolidClosingOptions options, out SolidClosing3 report)
+            => Closing3.TryClose(this, out closed, options, out report);
+
+        /// <summary>
+        /// Closes this body where corners standing apart, a corner standing off an edge, or the two sides of a crack are
+        /// no further apart than a gap, filling no hole.
+        /// </summary>
+        /// <param name="closed">The body closed: this body itself where it was valid already; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance the body is judged closed within.</param>
+        /// <param name="maxGap">How far apart corners may stand and still be made one; see <see cref="SolidClosingOptions.MaxGap"/>.</param>
+        /// <returns>true when the body comes out valid within the tolerance; otherwise false.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the gap is not a finite number above nought.</exception>
+        /// <remarks>
+        /// This is <see cref="TryClose(out GeoSolid3, SolidClosingOptions, out SolidClosing3)"/> with options that fill no
+        /// hole, <see cref="FillStrategy.None"/>, and the report not kept.
+        /// </remarks>
+        public bool TryClose(out GeoSolid3 closed, Tolerance tolerance, double maxGap)
+            => TryClose(out closed, new SolidClosingOptions(tolerance, maxGap, 0.0, 0.0, FillStrategy.None), out _);
+
+        #endregion
+    }
+}
