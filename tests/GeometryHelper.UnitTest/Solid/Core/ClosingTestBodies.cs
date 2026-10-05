@@ -1226,5 +1226,119 @@ namespace GeometryHelper.UnitTest.Solid.Core
         internal static List<GeoFace3> Turned(IEnumerable<GeoFace3> faces) => faces.Select(face => face.Flip()).ToList();
 
         #endregion
+
+        #region Bodies a fill would cross, and bodies it would only touch
+
+        /// <summary>
+        /// The faces of a post 4 by 4 standing in the middle of the plan of the box of the damaged bodies, from (13, 8, z0)
+        /// to (17, 12, z1), wound outwards and touching none of the box's faces: 16 times its height.
+        /// </summary>
+        internal static List<GeoFace3> PostFaces(double z0, double z1) => BoxFaces(Corners(13, 8, z0, 17, 12, z1));
+
+        /// <summary>
+        /// The faces of a ridge along x from 13 to 17 over the top's plane of the box of the damaged bodies, z = 10, wound
+        /// outwards: a prism over a triangle in y and z, its corner down at y = 10 as far below that plane as given, and its
+        /// top from y = 8 to 12 at z = 13. Its lowest edge, from x = 13 to 17, lies that far below the plane, in it where
+        /// nought is given: 24, and eight times as much again as it is sunk.
+        /// </summary>
+        internal static List<GeoFace3> RidgeFaces(double sunk)
+        {
+            var low0 = new GeoPoint3(13, 10, 10 - sunk);
+            var low1 = new GeoPoint3(17, 10, 10 - sunk);
+            var front0 = new GeoPoint3(13, 8, 13);
+            var front1 = new GeoPoint3(17, 8, 13);
+            var back0 = new GeoPoint3(13, 12, 13);
+            var back1 = new GeoPoint3(17, 12, 13);
+            return new List<GeoFace3>
+            {
+                Face(low0, front0, back0),
+                Face(low1, back1, front1),
+                Face(low0, low1, front1, front0),
+                Face(low0, back0, back1, low1),
+                Face(front0, front1, back1, back0),
+            };
+        }
+
+        /// <summary>
+        /// The faces of a pyramid standing on its tip on the top's plane of the box of the damaged bodies, the tip at
+        /// (x, y, 10) and the base the square 4 by 4 round it at z = 13, wound outwards: 16. Over (15, 10) the tip lies in
+        /// the middle of the top, over (15, 0) on the top's front edge, and over (30, 20) on its corner.
+        /// </summary>
+        internal static List<GeoFace3> PyramidOnItsTipFaces(double x, double y)
+        {
+            var tip = new GeoPoint3(x, y, 10);
+            GeoPoint3[] square =
+            {
+                new GeoPoint3(x - 2, y - 2, 13), new GeoPoint3(x + 2, y - 2, 13), new GeoPoint3(x + 2, y + 2, 13), new GeoPoint3(x - 2, y + 2, 13),
+            };
+            var faces = new List<GeoFace3> { Face(square) };
+
+            for (int i = 0; i < 4; i++)
+            {
+                faces.Add(Face(tip, square[(i + 1) % 4], square[i]));
+            }
+
+            return faces;
+        }
+
+        /// <summary>
+        /// A hopper missing its top: its rim the rectangle from (0, 0) to (30, 20) at z = 10, its bottom the one from (9, 9)
+        /// to (21, 11) at z = 0, and four walls sloping in from the one to the other; the rim's corner given, 0 to 3
+        /// counter-clockwise seen from above from the origin, lifted by as much as given, moved up along the edge between
+        /// the two walls beside it so that both stay flat, and out by nine tenths of the lift along x and along y. 2 580
+        /// with no lift and its top.
+        /// </summary>
+        internal static GeoSolid3 HopperMissingItsTop(int corner, double lift)
+        {
+            GeoPoint3[] bottom = Rectangle(9, 9, 21, 11);
+            GeoPoint3[] rim = Rectangle(0, 0, 30, 20).Select(p => new GeoPoint3(p.X, p.Y, 10)).ToArray();
+            rim[corner] = rim[corner].Add(bottom[corner].GetVectorTo(rim[corner]).Multiply(lift / 10.0));
+            var faces = new List<GeoFace3> { Face(bottom.Reverse().ToArray()) };
+
+            for (int i = 0; i < 4; i++)
+            {
+                int j = (i + 1) % 4;
+                faces.Add(Face(bottom[i], bottom[j], rim[j], rim[i]));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// The faces of a box over the square from (0, 0) to (6, 6) standing on z = 0, open at the top, its rim 16, 10, 16 and
+        /// 14 high over the square's corners counter-clockwise from the origin: about 1.8 off flat. The triangles of least
+        /// area across it, 51.08, join its corners 0 and 2, 16 high across the middle, and it holds 528 with them.
+        /// </summary>
+        internal static List<GeoFace3> BoxOpenUpwardsFaces() => BoxOpenAtARimFaces(new[] { 16.0, 10.0, 16.0, 14.0 }, 0.0);
+
+        /// <summary>
+        /// The faces of a box over the same square hanging from z = 25, open at the bottom, its rim 16.5, 14.5, 20 and 14.5
+        /// high, 0.5 or more above the rim of <see cref="BoxOpenUpwardsFaces"/> at each corner: about 1.7 off flat. The
+        /// triangles of least area across it, 49.37, join its corners 1 and 3, 14.5 high across the middle, below the other's
+        /// there, and it holds 333 with them.
+        /// </summary>
+        internal static List<GeoFace3> BoxOpenDownwardsFaces() => BoxOpenAtARimFaces(new[] { 16.5, 14.5, 20.0, 14.5 }, 25.0);
+
+        /// <summary>
+        /// The faces of a box over the square from (0, 0) to (6, 6), its rim at the heights given over the square's corners
+        /// counter-clockwise from the origin, and its other end flat at the height given, below the rim or above it.
+        /// </summary>
+        private static List<GeoFace3> BoxOpenAtARimFaces(double[] rim, double end)
+        {
+            GeoPoint3[] square = Rectangle(0, 0, 6, 6);
+            GeoPoint3[] up = square.Select((p, i) => new GeoPoint3(p.X, p.Y, end < rim[i] ? rim[i] : end)).ToArray();
+            GeoPoint3[] down = square.Select((p, i) => new GeoPoint3(p.X, p.Y, end < rim[i] ? end : rim[i])).ToArray();
+            var faces = new List<GeoFace3> { end < rim[0] ? Face(down.Reverse().ToArray()) : Face(up) };
+
+            for (int i = 0; i < 4; i++)
+            {
+                int j = (i + 1) % 4;
+                faces.Add(Face(down[i], down[j], up[j], up[i]));
+            }
+
+            return faces;
+        }
+
+        #endregion
     }
 }

@@ -32,9 +32,9 @@ namespace GeometryHelper.Geometry
         /// back, or lays a face back to back with another. What is left open is followed round into loops, and filled where
         /// the options allow: a flat hole by one face on the body's own corners, the loops in its plane inside it the face's
         /// holes, and one a little out of flat by the triangles of least area across it on its own corners. No fill is taken
-        /// that lies back to back with a face of the body, and the way a shell faces is read again once it is closed. What
-        /// comes of it is checked: valid within the tolerance, no face added crossing one the body had, and the volume the
-        /// welds moved no more than the reach times the area they touched.
+        /// that lies back to back with a face of the body or crosses one, or a fill taken before it, an edge of either through
+        /// the inside of the other, and the way a shell faces is read again once it is closed. What comes of it is checked:
+        /// valid within the tolerance, and the volume the welds moved no more than the reach times the area they touched.
         /// </para>
         /// <para>
         /// Nothing is made up. Where closing the body is not certain, as where an open edge runs past a fin, a gap is wider

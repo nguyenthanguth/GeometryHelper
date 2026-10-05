@@ -943,7 +943,11 @@ volume goes; `MinArea` every one that may be, by the way adding the least area; 
 - **The check.** Once the fills close the body, every shell is read again for which way it faces, as the cleaning reads
   a closed shell: one inside no other wound inwards is turned whole, with every shell inside it. The body is then
   checked as the welds' is: valid within the tolerance, no ring doubling back, and no face new to it lying back to back
-  with another.
+  with another. No fill is taken that crosses a face of the body, or of a fill taken before it, an edge of either
+  through the inside of the other, though such a body reads valid: a box missing its top, with a post 4 by 4 standing 5
+  out through the top's plane, is `StillOpen` at the post, not closed round it holding 6 208. Caps that would cross are
+  no way, and the walls are taken where they cross nothing; a fill that only touches a face, along an edge or at a
+  point, crosses nothing.
 
 A gap too wide for the welds is a loop like any other, and filled where fills are allowed and it can be: a strip 0.03
 wide missing along the top of a box is too wide for a gap of 0.005, and closed by one face of 20 by 0.03 where
@@ -959,7 +963,7 @@ where none after it closed the body either.
 | `HoleTooLarge` | a hole enclosing more than `MaxHoleArea`, or one out of flat of more than 256 corners; or none may be filled, `MaxHoleArea` nought or `FillStrategy.None` |
 | `HoleOffFlat` | a hole further out of flat than `MaxOffFlat` |
 | `HoleAmbiguous` | under `WhenUnambiguous`, a hole that can be filled more than one way, the ways closing different volumes; or, whatever the strategy, a hole with another inside it where either is out of flat |
-| `StillOpen` | the body still not valid after every step, as where every fill of a hole would lie back to back with a face of the body; or not worked out, which the log says |
+| `StillOpen` | the body still not valid after every step, as where every fill of a hole would lie back to back with a face of the body or cross one, or cross a fill taken before it; or not worked out, which the log says |
 
 Two faces of a box left out side by side show what ambiguous means. A box 10 by 1 by 1 without its top and its front
 has one loop round the two, of six corners and 0.47 out of flat. Of the fourteen ways across it, the least area, 15.1,

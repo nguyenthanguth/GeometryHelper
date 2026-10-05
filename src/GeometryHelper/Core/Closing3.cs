@@ -43,12 +43,14 @@ namespace GeometryHelper.Core
     /// loop is filled, gaps too wide for the welds as well as holes, the gap's reason kept should nothing close the body: a
     /// loop flat within the planar tolerance by one face on its own corners, the loops in its plane inside it its holes; the
     /// two ends of a hole through a shell whose walls are missing, straight, slanting or tapering, capped or walled as the
-    /// strategy says, the walls crossing no face; and a loop out of flat by no more than allowed, with nothing inside it, by
-    /// the triangles of least area across it on its own corners, of the ways lying on no face of the body and turned back
-    /// against the loop nowhere, where those ways close one volume within the planar tolerance times its area or the
-    /// strategy takes the least anyway. No fill is taken that is larger than allowed or lies back to back with a face of
-    /// the body, and a shell taking a fill is turned over whole where, closed, it faces the wrong way. Any other body not
-    /// valid at the end is reported still open.
+    /// strategy says; and a loop out of flat by no more than allowed, with nothing inside it, by the triangles of least area
+    /// across it on its own corners, of the ways lying on no face of the body and turned back against the loop nowhere,
+    /// where those ways close one volume within the planar tolerance times its area or the strategy takes the least anyway.
+    /// No fill is taken that is larger than allowed, that lies back to back with a face of the body, or that crosses one,
+    /// or a face of a fill taken before it, an edge of either passing through the inside of the other, though both read
+    /// valid: caps crossing the body are no way, and leave the walls the one way where those may be taken, and a face or
+    /// triangles crossing it leave the hole open. Once the fills close the body, every shell is read again for which way it
+    /// faces, as the turning reads a closed shell. Any other body not valid at the end is reported still open.
     /// </para>
     /// <para>
     /// Nothing thrown for a reason of the geometry leaves this: a shape the work builds refused by its constructor, or a

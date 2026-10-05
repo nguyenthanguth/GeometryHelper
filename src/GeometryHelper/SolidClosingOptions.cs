@@ -117,7 +117,12 @@ namespace GeometryHelper
         /// area, holes taken away, is what is held to this: a hole as large as this is filled. The two ends of a hole through
         /// the body are held to it each by its cap, or by the walls between them together, and a hole out of flat by the
         /// area of the triangles across it. A hole larger is not filled, and the report says
-        /// <see cref="ClosingFailure.HoleTooLarge"/>.
+        /// <see cref="ClosingFailure.HoleTooLarge"/>. Nor is a hole of any size filled by faces lying back to back with a
+        /// face of the body, a skin of no thickness, or crossing one, or a face filling a hole before it, an edge of either
+        /// passing through the inside of the other: a box 30 by 20 by 10 missing its top, a post 4 by 4 standing in it 5
+        /// through the plane of the top, is left open, <see cref="ClosingFailure.StillOpen"/>, where a wall of the post
+        /// passes through the top, and not closed round the post holding 6 208. Caps crossing the body are no way, and the
+        /// walls between the two ends of a hole through it are taken instead where they cross nothing.
         /// </remarks>
         public double MaxHoleArea { get; }
 
@@ -131,8 +136,8 @@ namespace GeometryHelper
         /// square to its area, stands off it. A hole further out of flat than this is not filled, and the report says
         /// <see cref="ClosingFailure.HoleOffFlat"/>. A hole within it, and further out of flat than the planar tolerance, is
         /// filled by triangles on its own corners: of the ways of filling it none of whose triangles lies back to back with a
-        /// face of the body, the one of least area. The ways can close different volumes; which is taken, if any, is
-        /// <see cref="Fill"/>'s.
+        /// face of the body, the one of least area, and none where its triangles would cross a face of the body, or of a hole
+        /// filled before it. The ways can close different volumes; which is taken, if any, is <see cref="Fill"/>'s.
         /// </para>
         /// <para>
         /// The least area is found in time growing as the cube of the hole's corners, a few hundredths of a second for 256,

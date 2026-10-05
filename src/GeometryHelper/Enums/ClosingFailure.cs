@@ -42,15 +42,17 @@ namespace GeometryHelper.Enums
         /// <summary>
         /// A hole can be filled more than one way, and the strategy is <see cref="FillStrategy.WhenUnambiguous"/>: one out
         /// of flat by ways closing volumes further apart than its area times the planar tolerance, or the two flat ends of a
-        /// hole through the body, whose walls are missing, by caps or by walls, neither lying on a face of the body and the
-        /// walls crossing none. Or, whatever the strategy, a hole holds another inside it where one of the two is out of flat:
+        /// hole through the body, whose walls are missing, by caps or by walls, neither lying on a face of the body nor
+        /// crossing one. Or, whatever the strategy, a hole holds another inside it where one of the two is out of flat:
         /// triangles are found across a loop with nothing inside it only, and a face takes no hole out of flat.
         /// </summary>
         HoleAmbiguous,
 
         /// <summary>
         /// The body is still not valid after every step, or could not be worked out, which is logged with what was thrown:
-        /// among others, a hole every fill of which would lie back to back with a face of the body, a skin of no thickness.
+        /// among others, a hole every fill of which would lie back to back with a face of the body, a skin of no thickness,
+        /// or cross one, or a face filling a hole before it, an edge of either passing through the inside of the other, the
+        /// point then where it would.
         /// </summary>
         StillOpen,
     }

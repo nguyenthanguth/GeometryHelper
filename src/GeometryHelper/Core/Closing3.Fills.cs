@@ -30,14 +30,27 @@ namespace GeometryHelper.Core
         /// The holes are those <see cref="ReadHoles"/> reads, each filled in the order of its first loop, and the first that
         /// cannot be filled stops the filling there. A face added lying back to back with a face of the body is a skin of no
         /// thickness that reads valid and holds nothing, and is not taken: a face lying on the top of a box, every edge of it
-        /// open, would be filled by itself turned over. Where a hole has one way of filling it lying on no face of the body,
-        /// that way is taken, whatever the strategy. Where it has two, as the two ends of a hole through a plate whose walls
-        /// are missing have, capped or walled, <see cref="FillStrategy.WhenUnambiguous"/> takes neither and the report says
+        /// open, would be filled by itself turned over. Nor is one crossing a face of the body as filled so far, a face it was
+        /// given or one added across a hole before, an edge of either passing through the inside of the other, which reads
+        /// valid as well (see <see cref="CrossesBody"/>). Where a hole has one way of filling it lying on no face of the body
+        /// and crossing none, that way is taken, whatever the strategy: the caps of a hole through a plate whose walls are
+        /// missing, a post standing in the hole through the plane of a cap, are no way, and the walls round the post are the
+        /// one. Where it has two, as the two ends of that hole have with nothing in it, capped or walled,
+        /// <see cref="FillStrategy.WhenUnambiguous"/> takes neither and the report says
         /// <see cref="ClosingFailure.HoleAmbiguous"/>, and <see cref="FillStrategy.MinArea"/> takes the one adding the least
-        /// area, the caps where the two add as much. A hole out of flat is filled by the triangles of least area across it,
-        /// of the ways lying on no face of the body, as <see cref="TryTriangulate"/> says. The faces taken across each hole
-        /// are held to <see cref="SolidClosingOptions.MaxHoleArea"/>, and a hole needing more is
-        /// <see cref="ClosingFailure.HoleTooLarge"/>, at a point within the faces it would take.
+        /// area, the caps where the two add as much. Where no way may be taken, the hole is left open,
+        /// <see cref="ClosingFailure.StillOpen"/> at a point where its face or a cap lies on a face of the body, or where an
+        /// edge passes through one.
+        /// </para>
+        /// <para>
+        /// A hole out of flat is filled by the triangles of least area across it, of the ways lying on no face of the body,
+        /// as <see cref="TryTriangulate"/> says. Only the triangles taken are set against crossing the body as filled so far,
+        /// not the three million or so the ways across a loop of 256 corners are made of, so that where they cross it the hole
+        /// is left open, <see cref="ClosingFailure.StillOpen"/>, rather than filled another way: of two boxes over one square,
+        /// open towards each other, their rims well out of flat, the triangles across the second rim would cross those across
+        /// the first, and the second hole is left open where they do. The faces taken across each hole are held to
+        /// <see cref="SolidClosingOptions.MaxHoleArea"/>, and a hole needing more is <see cref="ClosingFailure.HoleTooLarge"/>,
+        /// at a point within the faces it would take.
         /// </para>
         /// <para>
         /// The way each shell faces is read again on the body closed: a shell open by a hole encloses a volume only from
@@ -82,7 +95,7 @@ namespace GeometryHelper.Core
 
                 if (hole.Warped >= 0)
                 {
-                    // Out of flat: the triangles of least area across it, lying on no face of the body.
+                    // Out of flat: the triangles of least area across it, lying on no face of the body, and crossing none.
                     if (!TryTriangulate(loops[hole.Warped], hole.Warped, faces, boxes, options, out Patch triangles, out ClosingFailure failure, out GeoPoint3 at))
                     {
                         work.Refuse(failure, at);
@@ -90,8 +103,14 @@ namespace GeometryHelper.Core
                     }
 
                     fill = new List<Patch> { triangles };
+
+                    if (CrossesBody(fill, faces, boxes, taken, near, tolerance, out GeoPoint3 crossing))
+                    {
+                        work.Refuse(ClosingFailure.StillOpen, crossing);
+                        return false;
+                    }
                 }
-                else if (!TryChoose(work, faces, holes, h, boxes, near, out fill))
+                else if (!TryChoose(work, faces, holes, h, boxes, taken, near, out fill))
                 {
                     return false;
                 }
@@ -122,26 +141,30 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Chooses the faces a flat hole is filled by: its face, or for the two ends of a hole through the body, the caps or
-        /// the walls, as the strategy says where both lie on no face of the body, the walls crossing none and closing it;
-        /// false, the trouble noted, where neither may be taken.
+        /// the walls, as the strategy says where both may be taken, lying on no face of the body and crossing none of it as
+        /// filled so far, the walls closing it; false, the trouble noted where the face or the caps meet it, where neither
+        /// may be.
         /// </summary>
         /// <param name="work">The work.</param>
         /// <param name="faces">The faces of the body.</param>
         /// <param name="holes">The holes.</param>
         /// <param name="h">The hole, by index.</param>
         /// <param name="boxes">The faces filed by their boxes.</param>
+        /// <param name="taken">The fills taken before, of the holes before it.</param>
         /// <param name="near">A list to work in.</param>
         /// <param name="fill">The fills taken; null when the method returns false.</param>
-        private static bool TryChoose(Work work, List<GeoFace3> faces, List<Hole> holes, int h, FaceBoxes boxes, List<int> near, out List<Patch> fill)
+        private static bool TryChoose(Work work, List<GeoFace3> faces, List<Hole> holes, int h, FaceBoxes boxes, List<Patch> taken, List<int> near, out List<Patch> fill)
         {
             Tolerance tolerance = work.Tolerance;
             Hole hole = holes[h];
             fill = null;
 
-            bool caps = LieOnNoFace(hole.Caps, faces, boxes, near, tolerance, out GeoPoint3 skin);
-            bool walls = hole.Walls != null
-                && LieOnNoFace(new List<Patch> { hole.Walls }, faces, boxes, near, tolerance, out _)
-                && !CrossesBody(hole.Walls, faces, boxes, near, tolerance)
+            bool caps = LieOnNoFace(hole.Caps, faces, boxes, near, tolerance, out GeoPoint3 trouble)
+                && !CrossesBody(hole.Caps, faces, boxes, taken, near, tolerance, out trouble);
+            List<Patch> walled = hole.Walls != null ? new List<Patch> { hole.Walls } : null;
+            bool walls = walled != null
+                && LieOnNoFace(walled, faces, boxes, near, tolerance, out _)
+                && !CrossesBody(walled, faces, boxes, taken, near, tolerance, out _)
                 && WallsClose(faces, holes, h, tolerance);
 
             if (caps && walls)
@@ -152,17 +175,17 @@ namespace GeometryHelper.Core
                     return false;
                 }
 
-                fill = hole.Walls.Area < AreaOf(hole.Caps) ? new List<Patch> { hole.Walls } : hole.Caps;
+                fill = hole.Walls.Area < AreaOf(hole.Caps) ? walled : hole.Caps;
                 return true;
             }
 
             if (caps || walls)
             {
-                fill = caps ? hole.Caps : new List<Patch> { hole.Walls };
+                fill = caps ? hole.Caps : walled;
                 return true;
             }
 
-            work.Refuse(ClosingFailure.StillOpen, skin);
+            work.Refuse(ClosingFailure.StillOpen, trouble);
             return false;
         }
 
@@ -812,44 +835,103 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Determines whether a face of some walls crosses a face of the body: an edge of the one passing through the inside
-        /// of the other, either way round.
+        /// Determines whether a face of some fills crosses a face of the body as filled so far, a face it was given or one of
+        /// a fill taken before: an edge of the one passing through the inside of the other, either way round (see
+        /// <see cref="EdgesPierce"/>); each face added is set only against the faces whose boxes meet its own.
         /// </summary>
-        /// <param name="walls">The walls.</param>
+        /// <param name="fills">The fills.</param>
         /// <param name="faces">The faces of the body.</param>
         /// <param name="boxes">The faces filed by their boxes.</param>
+        /// <param name="taken">The fills taken before, in the order they were taken.</param>
         /// <param name="near">A list to work in.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <param name="at">The point where an edge passes through a face; the origin where none does.</param>
         /// <remarks>
-        /// The check does not read it: walls through the gap of a channel from a hole in its top to one in its bottom close
-        /// it with every edge paired, valid, crossing the plates on their way. Such walls are no way of closing the hole.
+        /// <para>
+        /// Validation reads no face crossing another. A box 30 by 20 by 10 missing its top, a post 4 by 4 standing in it 5
+        /// through the plane of the top, is closed by the top with every edge paired, valid and holding 6 208, the four walls
+        /// of the post through it; walls through the gap of a channel, from a hole in its top to one in its bottom, close it
+        /// as well, crossing the plates on their way. Neither is a way of closing the hole. A face of the body is set against
+        /// a face added only where it stands across the face added's plane (see <see cref="StandsAcross"/>).
+        /// </para>
+        /// <para>
+        /// Two flat fills cannot cross unseen: every edge of a flat face or of a cap is an edge of a face given as well, and is
+        /// set against the other fill with it. The diagonals of triangles and the edges of the walls between the two ends of a
+        /// hole are edges of no face given, and two fills can cross by them, each crossing nothing given: two boxes over one
+        /// square 6 by 6, open towards each other, their rims about 1.8 out of flat, are filled the lower by triangles rising
+        /// to 16 across the middle and the upper by triangles dipping to 14.5 there, and the two closed would read valid, 861.
+        /// So each fill is set against the fills taken before it as well, in the order the holes are filled, each face by its
+        /// box: a body has few holes.
+        /// </para>
         /// </remarks>
-        private static bool CrossesBody(Patch walls, List<GeoFace3> faces, FaceBoxes boxes, List<int> near, Tolerance tolerance)
+        private static bool CrossesBody(List<Patch> fills, List<GeoFace3> faces, FaceBoxes boxes, List<Patch> taken, List<int> near, Tolerance tolerance, out GeoPoint3 at)
         {
-            foreach (GeoFace3 wall in walls.Faces)
+            foreach (Patch fill in fills)
             {
-                boxes.Meeting(wall.GetAabb(), near);
-
-                foreach (int g in near)
+                foreach (GeoFace3 added in fill.Faces)
                 {
-                    if (EdgesPierce(faces[g], wall, tolerance) || EdgesPierce(wall, faces[g], tolerance))
+                    GeoAabb3 box = added.GetAabb();
+                    boxes.Meeting(box, near);
+
+                    foreach (int g in near)
                     {
-                        return true;
+                        if (Crosses(faces[g], added, tolerance, out at))
+                        {
+                            return true;
+                        }
+                    }
+
+                    foreach (Patch before in taken)
+                    {
+                        foreach (GeoFace3 face in before.Faces)
+                        {
+                            if (face.GetAabb().CollidesWith(box, tolerance) && Crosses(face, added, tolerance, out at))
+                            {
+                                return true;
+                            }
+                        }
                     }
                 }
             }
 
+            at = GeoPoint3.Origin;
             return false;
         }
 
         /// <summary>
-        /// Determines whether an edge of one face passes through the inside of another, its ends further than the planar
-        /// tolerance either side of the other's plane.
+        /// Determines whether a face of the body, as filled so far, and a face added cross: the one standing across the plane
+        /// of the other, and an edge of either passing through the inside of the other.
+        /// </summary>
+        /// <param name="face">The face of the body.</param>
+        /// <param name="added">The face added.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="at">The point where an edge passes through a face; the origin where none does.</param>
+        private static bool Crosses(GeoFace3 face, GeoFace3 added, Tolerance tolerance, out GeoPoint3 at)
+        {
+            at = GeoPoint3.Origin;
+            return StandsAcross(face, added, tolerance)
+                && (EdgesPierce(face, added, tolerance, out at) || EdgesPierce(added, face, tolerance, out at));
+        }
+
+        /// <summary>
+        /// Determines whether an edge of one face passes through the inside of another: its ends further than the planar
+        /// tolerance either side of the other's plane, the point where it meets the plane inside the other, and neither end
+        /// on the other's edges.
         /// </summary>
         /// <param name="edges">The face whose edges are looked at.</param>
         /// <param name="face">The face they may pass through.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static bool EdgesPierce(GeoFace3 edges, GeoFace3 face, Tolerance tolerance)
+        /// <param name="at">The point where an edge passes through the face; the origin where none does.</param>
+        /// <remarks>
+        /// A face touched at an edge or a corner is not crossed: an edge lying in its plane, or one ending in it, has no end
+        /// further off it than the planar tolerance. Nor is one an edge runs from, out of a corner of it or a point on its
+        /// edges: a straight edge meets the plane of a flat face once, where it touches. The plane is read through the face's
+        /// first corner, from which a corner of a face a hair out of flat can stand twice the planar tolerance off: a hopper
+        /// missing its top, a corner of its rim lifted 0.0036 and the rim flat within the tolerance, has the edges of its
+        /// walls sloping in under the hole from such a corner meet the plane of the top 0.002 in from both its sides, where
+        /// they only touch it.
+        /// </remarks>
+        private static bool EdgesPierce(GeoFace3 edges, GeoFace3 face, Tolerance tolerance, out GeoPoint3 at)
         {
             GeoPoint3 origin = face.Boundary[0];
             GeoVector3 normal = face.Normal;
@@ -874,7 +956,71 @@ namespace GeometryHelper.Core
 
                     GeoPoint3 crossing = p.Add(p.GetVectorTo(q).Multiply(dp / (dp - dq)));
 
-                    if (face.Locate(crossing, tolerance) == PointLocation.Inside)
+                    if (face.Locate(crossing, tolerance) == PointLocation.Inside && !OnEdgesOf(face, p, tolerance) && !OnEdgesOf(face, q, tolerance))
+                    {
+                        at = crossing;
+                        return true;
+                    }
+                }
+            }
+
+            at = GeoPoint3.Origin;
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether a face stands across the plane of another, corners of its boundary further than the planar
+        /// tolerance off that plane on either side.
+        /// </summary>
+        /// <param name="face">The face.</param>
+        /// <param name="other">The other, whose plane is read through its first corner, as <see cref="EdgesPierce"/> reads it.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A face lying to one side of the plane of a face added, or in it, crosses it neither way: no edge of it reaches
+        /// through the plane, and an edge of the face added, lying in the plane, meets it at its edges at most. So of a top
+        /// filling a prism of a thousand sides, only the four corners of each wall standing under it are read, and not its own
+        /// thousand edges against every wall, which added 19 ms to the 41 the prism took to close under .NET Framework 4.8.
+        /// </remarks>
+        private static bool StandsAcross(GeoFace3 face, GeoFace3 other, Tolerance tolerance)
+        {
+            GeoPoint3 origin = other.Boundary[0];
+            GeoVector3 normal = other.Normal;
+            double planar = tolerance.EqualPlanar;
+            bool above = false, below = false;
+
+            foreach (GeoPoint3 corner in face.Boundary.Vertices)
+            {
+                double off = origin.GetVectorTo(corner).DotProduct(normal);
+                above |= off > planar;
+                below |= off < -planar;
+
+                if (above && below)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether a point lies on an edge of a face, of its boundary or of a hole, within the point tolerance.
+        /// </summary>
+        /// <param name="face">The face.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        private static bool OnEdgesOf(GeoFace3 face, GeoPoint3 point, Tolerance tolerance)
+        {
+            var rings = new List<GeoPolygon3> { face.Boundary };
+            rings.AddRange(face.Holes);
+
+            foreach (GeoPolygon3 ring in rings)
+            {
+                int count = ring.VertexCount;
+
+                for (int i = 0; i < count; i++)
+                {
+                    if (point.DistanceTo(NearestOnSegment(ring[i], ring[(i + 1) % count], point)) <= tolerance.EqualPoint)
                     {
                         return true;
                     }

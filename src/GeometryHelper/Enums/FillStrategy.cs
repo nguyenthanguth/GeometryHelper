@@ -21,7 +21,10 @@ namespace GeometryHelper.Enums
     /// six lie on no face: four are the two faces again, 20 of area, and close the box whole, 10, and two cut across its
     /// corner, 20.05 of area, and close 8.3. Nor is one that turns a triangle back against the loop, folding it over the
     /// outside of a concave rim: an L-shaped top lifted a little at a corner is filled across its inside, and the ways
-    /// running a diagonal outside the L do not count against it.
+    /// running a diagonal outside the L do not count against it. And no hole is filled by faces crossing a face of the
+    /// body, or of a hole filled before it, an edge of either through the inside of the other, though the body would read
+    /// valid: caps crossing it are no way, and the face of a flat hole, or the triangles of least area across one out of
+    /// flat, crossing it leave the hole open.
     /// </para>
     /// <para>
     /// Every hole is held to <see cref="SolidClosingOptions.MaxHoleArea"/> and <see cref="SolidClosingOptions.MaxOffFlat"/>
@@ -38,8 +41,8 @@ namespace GeometryHelper.Enums
 
         /// <summary>
         /// A hole is filled where it can be filled one way only, as far as the volume goes: a flat one by one face; the two
-        /// ends of a hole through the body only where the caps or the walls are the one way lying on no face of the body,
-        /// walls crossing none; and one out of flat by the triangles of least area across it only where the ways of filling
+        /// ends of a hole through the body only where the caps or the walls are the one way lying on no face of the body and
+        /// crossing none; and one out of flat by the triangles of least area across it only where the ways of filling
         /// it lying on no face of the body close one volume within its area times the planar tolerance, the uncertainty a
         /// face called flat carries already. Otherwise the report says <see cref="ClosingFailure.HoleAmbiguous"/>, as it does of the long box
         /// above, its ways closing 10 and 8.3. The default.
@@ -48,9 +51,9 @@ namespace GeometryHelper.Enums
 
         /// <summary>
         /// Every hole that may be filled is, the way adding the least area of those lying on no face of the body: the two
-        /// ends of a hole through the body by the caps or the walls, whichever add less, the caps where they add as much;
-        /// and one out of flat by the triangles of least area across it, whatever the other ways would close. The long box
-        /// above is filled by its two faces again, whole.
+        /// ends of a hole through the body by the caps or the walls, whichever add less where both cross nothing, the caps
+        /// where they add as much; and one out of flat by the triangles of least area across it, whatever the other ways
+        /// would close. The long box above is filled by its two faces again, whole.
         /// </summary>
         MinArea,
     }

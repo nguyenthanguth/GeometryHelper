@@ -36,7 +36,7 @@ where the ones before did not close the body:
   plate with a hole through it missing its top by the top again, 800. A plate whose hole has lost its four walls can be
   capped or walled round, and `WhenUnambiguous` takes neither, `HoleAmbiguous`, where `MinArea` takes the caps, 200 of
   area against the walls' 400; a hole slanting or tapering through the plate is paired the same way, corner for corner
-  where its rims turn, and never by walls crossing a face.
+  where its rims turn, and never by walls or caps crossing a face.
 - A hole out of flat by more than the planar tolerance and no more than `MaxOffFlat` is filled by the triangles of least
   area across it on its own corners, of the ways none of whose triangles lies back to back with a face of the body or
   turns back against the loop, so that an L-shaped top lifted at a corner is filled across its inside, and under
@@ -48,8 +48,9 @@ where the ones before did not close the body:
   the two faces again.
 - Nothing is made up: an edge left open past a fin, or a corner two holes meet at, is `NonManifold`; a gap wider than
   `MaxGap` that no fill closes is `GapTooWide`; a hole larger than allowed, or out of flat with more than 256 corners, is
-  `HoleTooLarge`, as is any hole where no fill is allowed; one further out of flat than allowed is `HoleOffFlat`; and any
-  other body not valid at the end is `StillOpen`.
+  `HoleTooLarge`, as is any hole where no fill is allowed; one further out of flat than allowed is `HoleOffFlat`; and a
+  hole whose every fill would cross a face of the body or a fill taken before it, as the top of a box with a post
+  standing out through its plane, which would read valid, and any other body not valid at the end, are `StillOpen`.
 
 On real parts. The 1 989 parts of a Tekla model, each valid as read, were damaged five ways and closed within a gap of
 0.005, holes of any size filled and up to 0.01 out of flat: with the largest face left out 98.6 % of them closed, with
