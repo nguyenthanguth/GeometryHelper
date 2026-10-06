@@ -69,12 +69,35 @@ that keeper took and no keeper before it. A common part thinner on average than 
 touching: a beam flush under a slab loses nothing. Both steps run in parallel, the heaviest work first, and the
 numbers are the same, bit for bit, on one thread or on every processor.
 
+## On a real model
+
+A Tekla Structures model of 30 921 parts, read closed, ranked columns 0, walls 1, girders and beams 2, slabs 3, stairs
+4, grout and base plates 5, steel fittings 6 and formwork 7, holds 69 040.90 m3 gross. Taken off with the contact and the
+fallback that suit a Tekla model in millimetres,
+
+```csharp
+var options = new VolumeTakeoffOptions(new SolidBooleanOptions(
+    Tolerance.Default,                                                   // 0.001
+    0.01,                                                                // contact
+    new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01)));   // fallback
+```
+
+it loses 1 669.51 m3 to the parts ranked before and keeps 67 371.39 m3 net, with 2 parts of the 30 921 carrying an
+issue. Cutting each part with every part ranked before it that it meets, by `TrySubtractAll` with the same options,
+gives 67 372.92 m3; the 202 parts that differ by more than a millionth of their gross differ by no more than the contact
+times their own surface, but for five where the cutting skipped a cut and the take-off did not. The run took 280
+seconds on 24 processors and 418 on one, with the same numbers to the last bit. Without the contact it takes 154
+seconds and keeps 67 370.34 m3, but the micron-thin sheets Tekla leaves between parts make more of the common parts
+invalid, so more are read by a cut and 564 results carry an issue, against 2: prefer the contact on a Tekla model.
+
 ## What is promised, and what is not
 
 - The net volumes add up to the volume of the parts together, within the tolerance and the contact: an overlap thinner
   than either comes back as touching and is not taken off.
 - A common part that is not valid, or holds more than the smaller part, is read by a cut instead, as a number with no
-  body; what it shares with the overlaps before it may be taken off twice, and its issue says so. A common part that
+  body. Where the box it shares with the part meets the box the part shares with a part ranked before, what the two
+  overlaps share may be taken off twice, and its issue says so; where it meets none, the number is taken once and there
+  is no issue. A common part that
   comes back not valid with more than four times the faces of the two parts is not read by a cut, which would take far
   longer for no better answer: on a Tekla model of 30 921 parts, one girder against one wall gave 4 256 faces, and its
   cut 80 805 after 37 minutes, neither valid. Such a pair is not taken off, and its issue says so.

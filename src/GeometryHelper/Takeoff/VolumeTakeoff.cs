@@ -37,12 +37,15 @@ namespace GeometryHelper.Takeoff
     /// <para>
     /// A common part that is not valid, or holds more than the smaller of the two, is read by a cut instead: the part
     /// ranked later less the one ranked first, its volume taken off the part's own. That gives a number and no body, so
-    /// what it shares with the pieces before it may be taken off twice, and its result says so in
-    /// <see cref="VolumeTakeoffResult.Issues"/>. A common part that comes back not valid with more than four times
-    /// the faces of the two parts is not read by a cut, which would cost far longer for no better answer: a girder of
-    /// 322 faces against a wall of 354 gave a common part of 4 256 faces and a cut of 80 805, neither valid, after 2 329
-    /// seconds. Such a pair, and a pair neither way can work out, is not taken off at all, and the net volume is then
-    /// no less than it should be. No failure of the geometry escapes: each comes back as an issue and is logged.
+    /// what it shares with the pieces before it may be taken off twice. Its result says so in
+    /// <see cref="VolumeTakeoffResult.Issues"/> where the box the part shares with that keeper overlaps the box it
+    /// shares with a keeper ranked before it; where it overlaps none, the number is taken once, and there is no issue.
+    /// The keepers ranked after it have this keeper cut out of their pieces, so they cannot share with it.
+    /// A common part that comes back not valid with more than four times the faces of the two parts is not read by a
+    /// cut, which would cost far longer for no better answer: a girder of 322 faces against a wall of 354 gave a common
+    /// part of 4 256 faces and a cut of 80 805, neither valid, after 2 329 seconds. Such a pair, and a pair neither way
+    /// can work out, is not taken off at all, and the net volume is then no less than it should be. No failure of the
+    /// geometry escapes: each comes back as an issue and is logged.
     /// </para>
     /// <para>
     /// A common part thinner on average than half the point tolerance, its volume no more than the point tolerance
@@ -175,6 +178,22 @@ namespace GeometryHelper.Takeoff
 
                 int loser = pair.Loser.Index;
                 (losing[loser] ?? (losing[loser] = new List<Pair>())).Add(pair);
+            }
+
+            foreach (List<Pair> list in losing)
+            {
+                if (list == null)
+                {
+                    continue;
+                }
+
+                foreach (Pair pair in list)
+                {
+                    if (pair.Kind == Kind.ByCut && MayShare(pair, list, tolerance.EqualPoint))
+                    {
+                        pair.Issue = "overlap with #" + pair.Keeper.Index + " read by a cut: what it shares with earlier overlaps may be counted twice";
+                    }
+                }
             }
 
             List<Step> steps = PlanSteps(losing, tolerance.EqualPoint);
@@ -531,9 +550,10 @@ namespace GeometryHelper.Takeoff
                         return;
                     }
 
+                    // Its issue, where it can share material with another overlap of the loser, is given once every pair
+                    // is worked out; see MayShare.
                     pair.Kind = Kind.ByCut;
                     pair.Volume = volume;
-                    pair.Issue = "overlap with #" + keeper.Index + " read by a cut: what it shares with earlier overlaps may be counted twice";
                     return;
                 }
             }
@@ -614,6 +634,42 @@ namespace GeometryHelper.Takeoff
             }
 
             return steps;
+        }
+
+        /// <summary>
+        /// Whether an overlap read by a cut can share material with an overlap the same part loses to a keeper ranked
+        /// before: where the box the part shares with its keeper overlaps the box it shares with that keeper, whose
+        /// overlap is taken off, by more than a reach along all three axes. Where none does, the number read by the cut is all that keeper takes, and it
+        /// is taken once.
+        /// </summary>
+        private static bool MayShare(Pair byCut, List<Pair> losing, double reach)
+        {
+            // Only the overlaps before it: a later piece has this keeper cut out of it already, so it cannot share with it.
+            foreach (Pair other in losing)
+            {
+                if (other == byCut)
+                {
+                    break;
+                }
+
+                if ((other.Kind == Kind.Piece || other.Kind == Kind.ByCut)
+                    && Overlap(byCut.Loser.Box, byCut.Keeper.Box, other.Keeper.Box, reach))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Whether three boxes overlap together by more than a reach along all three axes.
+        /// </summary>
+        private static bool Overlap(GeoAabb3 a, GeoAabb3 b, GeoAabb3 c, double reach)
+        {
+            return Math.Min(Math.Min(a.Max.X, b.Max.X), c.Max.X) - Math.Max(Math.Max(a.Min.X, b.Min.X), c.Min.X) > reach
+                && Math.Min(Math.Min(a.Max.Y, b.Max.Y), c.Max.Y) - Math.Max(Math.Max(a.Min.Y, b.Min.Y), c.Min.Y) > reach
+                && Math.Min(Math.Min(a.Max.Z, b.Max.Z), c.Max.Z) - Math.Max(Math.Max(a.Min.Z, b.Min.Z), c.Min.Z) > reach;
         }
 
         /// <summary>

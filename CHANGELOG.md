@@ -33,7 +33,11 @@ loses 0.032 m3 to the column and 0.336 m3 to the beam, the block 300 by 400 by 2
 keeps 6.832 m3; the three parts add up to 8.352 m3, the volume of the three together. Only what the parts share is cut,
 never the parts. Each result gives the gross, the deductions by the part that kept them, the net and, where something
 could not be worked out exactly, issues saying which way the net may be out. It runs in parallel, and the results are
-the same, bit for bit, on one thread or on every processor (`VolumeTakeoffOptions.MaxDegreeOfParallelism`).
+the same, bit for bit, on one thread or on every processor (`VolumeTakeoffOptions.MaxDegreeOfParallelism`). On a Tekla
+model of 30 921 parts, 69 040.90 m3 gross, it keeps 67 371.39 m3 net with a contact of 0.01 and a fallback of 0.01, 2
+parts carrying an issue, against 67 372.92 m3 from cutting each part with every part ranked before it, no part differing
+beyond the contact times its surface but where the cutting skipped a cut; it takes 280 seconds on 24 processors and 418
+on one.
 
 **FIXED.** A circle a hair inside another, within the point tolerance of touching it without crossing, touched it at a
 point read off the radical line of the two, which runs away from both as the difference of the radii shrinks: a circle
