@@ -55,7 +55,8 @@ namespace GeometryHelper
         /// </summary>
         /// <remarks>
         /// A place also in <see cref="WithinFallback"/> is a cut closed from the result worked out within the fallback; the
-        /// others were closed from the result within the tolerance.
+        /// others were closed from the result within the tolerance. No cut is closed where the body before it, or the tool
+        /// as put onto it, carries openings: it is skipped as without closing.
         /// </remarks>
         public IReadOnlyList<int> Closed { get; }
 

@@ -110,12 +110,25 @@ namespace GeometryHelper.Core
         /// at all, giving no body, is skipped as before, and so is one neither result of which closes.
         /// </para>
         /// <para>
+        /// No cut is closed where the body before it, or the tool as put onto it, carries openings: such a cut is skipped
+        /// as without closing. Cut out of a body not closed, an opening takes material before any closing can: a box
+        /// cracked open, with an opening, holds 5 400 of material where the whole box with it holds 5 640, and its cut by a
+        /// post closed to 5 160 where 5 400 is right.
+        /// </para>
+        /// <para>
         /// A body closed is taken only where it is valid within the options' tolerance as well as within the closing's,
         /// both checks passing whichever tolerance is the finer; and where it holds what a difference can leave: no more
         /// than the body before the cut, and no less than that less the whole of the tool, each within the options' point
-        /// tolerance times the area of the two, and a hair more for the rounding, no bound from below being asked where
-        /// either carries openings. A closed body holding more or less is refused, and the next tried or the cut skipped;
-        /// <see cref="SubtractReport.RefusedByVolume"/> says which cuts were skipped so.
+        /// tolerance times the area of the two, and a hair more for the rounding. A closed body holding more or less is
+        /// refused, and the next tried or the cut skipped; <see cref="SubtractReport.RefusedByVolume"/> says which cuts
+        /// were skipped so. The volumes are read by the faces, as the check of a boolean reads them, so a body before the
+        /// cut that is not valid, as one with a face given twice, can refuse a closing that is right: the bound errs on the
+        /// side of skipping.
+        /// </para>
+        /// <para>
+        /// A subject not valid as given leaves its first cut that would be skipped not valid either, whether or not the
+        /// tool reaches it, and that cut is closed: a tool clear of the body takes nothing, and the closing closes the
+        /// subject itself there.
         /// </para>
         /// <para>
         /// Of the 35 cuts that 17 parts of a Tekla model left skipped, cut within a thousandth with a contact and a fallback
@@ -192,8 +205,9 @@ namespace GeometryHelper.Core
 
                 if (!good)
                 {
-                    // A cut that would be skipped, closed where asked and where that can be done.
-                    if (closing == null)
+                    // A cut that would be skipped, closed where asked and where that can be done: not where either body carries
+                    // openings, whose material is lost before any closing where they are cut out of a body not closed.
+                    if (closing == null || current.Openings.Count > 0 || put.Openings.Count > 0)
                     {
                         skipped.Add(at);
                         continue;
@@ -287,7 +301,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a body holds what a difference can leave: no more than the body it was cut from, and no less
         /// than that less the whole of the tool, each within the point tolerance times the area of the two and a hair more
-        /// for the rounding; no bound from below where either carries openings, which the faces hold more than.
+        /// for the rounding, the volumes read by the faces. No cut of a body carrying openings, or by a tool carrying them,
+        /// is closed, so the faces hold the material of both.
         /// </summary>
         /// <param name="cut">The body the cut left.</param>
         /// <param name="before">The body it was cut from.</param>
@@ -299,9 +314,8 @@ namespace GeometryHelper.Core
             double vBefore = before.GrossVolume;
             double vTool = tool.GrossVolume;
             double slack = (tolerance.EqualPoint * (before.GrossSurfaceArea + tool.GrossSurfaceArea)) + (1E-9 * (Math.Abs(vBefore) + Math.Abs(vTool)));
-            bool whole = before.Openings.Count == 0 && tool.Openings.Count == 0;
 
-            return v <= vBefore + slack && (!whole || v >= vBefore - vTool - slack);
+            return v <= vBefore + slack && v >= vBefore - vTool - slack;
         }
 
         /// <summary>
