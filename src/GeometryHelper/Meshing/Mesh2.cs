@@ -12,7 +12,7 @@ namespace GeometryHelper.Meshing
     /// <remarks>
     /// <para>
     /// Every shape is first read as a face with straight edges: a loop with arcs flattened by the chord tolerance, a circle
-    /// by the same, a polygon crossing itself as the region <see cref="GeoPolygon2.MakeValid()"/> reads. Its material is
+    /// or an ellipse by the same, a polygon crossing itself as the region <see cref="GeoPolygon2.MakeValid()"/> reads. Its material is
     /// then broken up as <see cref="MeshOptions.Kind"/> says, within the tolerance, and the pieces joined: points the same
     /// but for rounding are one vertex, the shape's own corners kept exactly, and a corner of a face standing on the side of
     /// the face across from it is made one of that face's corners too, so that the faces meet edge to edge.
@@ -189,6 +189,55 @@ namespace GeometryHelper.Meshing
             builder.Seed(rim.Vertices);
 
             foreach (GeoTriangle2 triangle in Triangulation2.Fan(circle.Center, rim.Vertices, tolerance))
+            {
+                builder.Add(new[] { triangle.A, triangle.B, triangle.C }, false);
+            }
+
+            return builder.Build(MeshKind.Triangles);
+        }
+
+        /// <summary>
+        /// Breaks the region of an ellipse into faces as the options say, using the default tolerance.
+        /// </summary>
+        public static GeoMesh2 ToMesh(GeoEllipse2 ellipse, MeshOptions options) => ToMesh(ellipse, options, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks the region of an ellipse into faces as the options say, within a tolerance, its rim flattened by the
+        /// options' chord tolerance first.
+        /// </summary>
+        /// <param name="ellipse">The ellipse.</param>
+        /// <param name="options">How to break it up.</param>
+        /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
+        /// <returns>
+        /// The mesh of the polygon <see cref="GeoEllipse2.ToPolygonByChordTolerance(double)"/> gives; its triangles fanned
+        /// from the centre, as <see cref="GeoEllipse2.TriangulateSurface(double, Tolerance)"/> fans them. None when the minor
+        /// radius is no more than the point tolerance.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options are null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a grid's cell is no larger than the point tolerance, or the grid would lay more cells over the shape
+        /// than a mesh may have.
+        /// </exception>
+        public static GeoMesh2 ToMesh(GeoEllipse2 ellipse, MeshOptions options, Tolerance tolerance)
+        {
+            Check(options);
+
+            if (!(ellipse.MinorRadius > tolerance.EqualPoint))
+            {
+                return Empty(options.Kind, tolerance);
+            }
+
+            GeoPolygon2 rim = ellipse.ToPolygonByChordTolerance(options.ChordTolerance);
+
+            if (options.Kind != MeshKind.Triangles)
+            {
+                return Mesh(new GeoFace2(rim), options, options.AngleRad ?? 0.0, tolerance);
+            }
+
+            var builder = new MeshBuilder2(tolerance, Scale(rim.Vertices), 2.0 * ellipse.MajorRadius);
+            builder.Seed(rim.Vertices);
+
+            foreach (GeoTriangle2 triangle in Triangulation2.Fan(ellipse.Center, rim.Vertices, tolerance))
             {
                 builder.Add(new[] { triangle.A, triangle.B, triangle.C }, false);
             }

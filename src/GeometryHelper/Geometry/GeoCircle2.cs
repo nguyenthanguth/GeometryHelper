@@ -242,6 +242,9 @@ namespace GeometryHelper.Geometry
         /// Applies a transformation to this circle.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the transformation would stretch the circle into an ellipse.</exception>
+        /// <remarks>
+        /// To stretch it into one, a scaling uneven between the axes or a shear, transform <see cref="GeoEllipse2.FromCircle(GeoCircle2)"/> instead.
+        /// </remarks>
         /// <summary>
         /// </summary>
         /// <param name="transform">The transformation to apply.</param>

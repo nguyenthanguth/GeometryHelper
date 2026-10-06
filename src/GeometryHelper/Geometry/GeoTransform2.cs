@@ -474,8 +474,9 @@ namespace GeometryHelper.Geometry
         /// </exception>
         /// <remarks>
         /// A circle survives a transformation only when every direction is stretched by the same amount.
-        /// Under a scaling that differs between the axes it becomes an ellipse, which this library has no
-        /// type for, so the attempt is refused rather than answered with a circle of some averaged radius.
+        /// Under a scaling that differs between the axes it becomes an ellipse, so the attempt is refused rather
+        /// than answered with a circle of some averaged radius; transform <see cref="GeoEllipse2.FromCircle(GeoCircle2)"/>
+        /// to get the ellipse.
         /// </remarks>
         public GeoCircle2 Transform(GeoCircle2 circle)
         {
