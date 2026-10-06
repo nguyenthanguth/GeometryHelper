@@ -33,6 +33,53 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoArc3 LowerHalf() => GeoArc3.FromThreePoints(
             new GeoPoint3(-100, 0, 0), new GeoPoint3(0, -100, 0), new GeoPoint3(100, 0, 0));
 
+        // A plane through the origin tilted 30 degrees about X, so that the coplanar cases below are in space.
+        private static readonly GeoVector3 Along = new GeoVector3(1, 0, 0);
+
+        private static readonly GeoVector3 Across = new GeoVector3(0, Math.Cos(Math.PI / 6), Math.Sin(Math.PI / 6));
+
+        private static GeoPoint3 InTilted(double x, double y) => new GeoPoint3(0, 0, 0).Add(Along.Multiply(x)).Add(Across.Multiply(y));
+
+        [Fact]
+        public void ACoplanarCircleAHairInsideAnotherNearlyTouchingIt_TouchesItOnce_BetweenTheRims()
+        {
+            // As in the plane (IntersectionTests): a circle of radius 99.94 a centre 0.0593 off the middle of one of
+            // 100, both in the tilted plane, comes within 0.0007 of its rim at (100, 0) without crossing it, within the
+            // point tolerance of 0.001, so they touch once, at (99.99965, 0) between the rims. Off the radical line the
+            // touch fell 1.18 outside both and nothing was found.
+            var tolerance = new Tolerance(1E-3, 1E-5);
+            GeoVector3 normal = Along.CrossProduct(Across);
+            var outer = new GeoCircle3(InTilted(0, 0), normal, 100);
+            var inner = new GeoCircle3(InTilted(0.0593, 0), normal, 99.94);
+
+            foreach (GeoPoint3[] found in new[] { outer.GetIntersections(inner, tolerance), inner.GetIntersections(outer, tolerance) })
+            {
+                GeoPoint3 touch = Assert.Single(found);
+                Assert.True(touch.IsEqualTo(InTilted(99.99965, 0), new Tolerance(1E-9, 1E-9)), touch.ToString());
+            }
+
+            Assert.True(outer.CollidesWith(inner, tolerance));
+        }
+
+        [Fact]
+        public void ACoplanarArcPassingFourTenThousandthsOutsideACircle_TouchesIt()
+        {
+            // The far half of a circle of radius 101.5004 about (1.5, 0) passes the circle of radius 100 at (-100, 0)
+            // only 0.0004 out, within the tolerance: one touch at (-100.0002, 0), as in the plane (ArcAgainstDiscTests).
+            var tolerance = new Tolerance(1E-3, 1E-5);
+            GeoVector3 normal = Along.CrossProduct(Across);
+            var circle = new GeoCircle3(InTilted(0, 0), normal, 100);
+            GeoArc3 half = GeoArc3.FromThreePoints(InTilted(1.5, 101.5004), InTilted(1.5 - 101.5004, 0), InTilted(1.5, -101.5004));
+
+            GeoPoint3 touch = Assert.Single(Arc3.GetIntersections(half, circle, tolerance));
+            Assert.True(touch.IsEqualTo(InTilted(-100.0002, 0), new Tolerance(1E-9, 1E-9)), touch.ToString());
+            Assert.True(Arc3.CollidesWith(half, circle, tolerance));
+
+            // Two thousandths out it is clear of the tolerance, and nothing touches.
+            GeoArc3 clear = GeoArc3.FromThreePoints(InTilted(1.5, 101.502), InTilted(1.5 - 101.502, 0), InTilted(1.5, -101.502));
+            Assert.Empty(Arc3.GetIntersections(clear, circle, tolerance));
+        }
+
         [Fact]
         public void TwoCoplanarArcsOfDifferentCirclesCrossWhereTheirCirclesDo()
         {

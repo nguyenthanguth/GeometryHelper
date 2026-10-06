@@ -57,7 +57,29 @@ namespace GeometryHelper.Core
                 return found;
             }
 
-            double along = (apart * apart + first.Radius * first.Radius - second.Radius * second.Radius) / (2.0 * apart);
+            // One circle a hair inside the other touches it without crossing, and the radical line is no guide there,
+            // as in the plane (Intersection2): it runs away from both as the difference of the radii shrinks. The touch
+            // is the point between the two rims where they come nearest, on the line through the centres.
+            double inside = Math.Abs(first.Radius - second.Radius) - apart;
+
+            if (inside > 0.0)
+            {
+                if (inside <= tolerance.EqualPoint)
+                {
+                    double side = first.Radius >= second.Radius ? 1.0 : -1.0;
+                    GeoPoint3 middle = first.Center.Add(between.Multiply(0.5));
+                    GeoPoint3 touch = middle.Add(between.Multiply(side * 0.5 * (first.Radius + second.Radius) / apart));
+
+                    if (first.IsPointOn(touch, tolerance) && second.IsPointOn(touch, tolerance))
+                    {
+                        found.Add(touch);
+                    }
+                }
+
+                return found;
+            }
+
+            double along =(apart * apart + first.Radius * first.Radius - second.Radius * second.Radius) / (2.0 * apart);
             GeoPoint3 foot = first.Center.Add(between.Multiply(along / apart));
             GeoVector3 across = first.Normal.CrossProduct(between);
 

@@ -32,7 +32,9 @@ of radius 99.94 a centre 0.0593 off the middle of one of 100 touched it at (101.
 touches at the point between the two rims where they come nearest, (99.99965, 0). An arc of such a circle was missed
 altogether, since the arc did not reach the stray point: the left half of a circle of radius 101.5004 about (1.5, 0),
 0.0004 outside the disc of radius 100, neither met nor collided with it, though `DistanceTo` said 0.0004; it now touches
-it at (-100.0002, 0). Circles that cross, touch from outside or stand apart are answered as before, bit for bit.
+it at (-100.0002, 0). The same holds in space, where two coplanar `GeoArc3` or `GeoCircle3` so placed found no point and
+did not collide; they now touch between the rims as in the plane. Circles that cross, touch from outside or stand apart
+are answered as before, bit for bit.
 
 ## 11.2.0
 
