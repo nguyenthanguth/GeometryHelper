@@ -824,6 +824,27 @@ Of the 79 864 parts of a Tekla model each cut so by the parts it meets, 3 344 ca
 with more than 1 % more surface than within a hundredth, 5 466 square metres in all, and 203 with a contact of a
 hundredth, 220 square metres. A contact of two hundredths starts to take what is there.
 
+A cut skipped can be closed instead. Given `SolidClosingOptions` as well, `TrySubtractAll` closes a cut it would skip
+with `TryClose`, the cut within the tolerance first and then the one within the fallback, and takes the body closed
+only where it is valid within the booleans' tolerance and holds what a cut can leave: no more than the part before it,
+and no less than that less the whole cutter, each within the tolerance times their area. Every other cut is taken as
+without it, bit for bit. `report.Closed` lists the cuts taken closed, `report.Closings` what the closing did to each,
+and `report.RefusedByVolume` those that closed holding the wrong volume, which stay skipped:
+
+```csharp
+var closing = new SolidClosingOptions(Tolerance.Default, 0.005, maxHoleArea: 100.0, maxOffFlat: 0.01);
+
+if (part.TrySubtractAll(cutters, out GeoSolid3 net, options, closing, out SubtractReport report))
+{
+    // report.Closed: the cutters taken away closed; report.Skipped: those still not taken away.
+}
+```
+
+Of the 17 parts of that model with a cut skipped, 35 cuts in all of their 314, closing so takes 9 and leaves 10, the
+cuts after one closed taken where they were skipped: the 8 parts whose bodies cut within a hundredth are valid come out
+within 0.12 % of those where they were up to 10 % off, the 0.12 % a part no closing changes, and no cut is refused for
+its volume.
+
 **Flat shapes and boxes.** Two areas in one plane are combined by the plane library and the answer lifted
 back, so it is exact; and a box is combined through the body it bounds, which is six flat faces and no
 fitting at all.

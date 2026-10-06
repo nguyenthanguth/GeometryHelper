@@ -4,6 +4,22 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**NEW.** `TrySubtractAll` takes `SolidClosingOptions` as well, and then closes a cut it would skip: the cut worked out
+within the tolerance is closed by `TryClose`, and where that does not close, the cut within the fallback. A body closed
+is taken only where it is valid within the booleans' tolerance too and holds what a cut can leave, no more than the body
+before the cut and no less than that less the whole tool, each within the tolerance times the area of the two. Every cut
+taken without closing is taken as before, bit for bit, and the overload without closing is unchanged. `SubtractReport`
+says which cuts were closed (`Closed`, counted in `Taken`), how (`Closings`), and which closed but were refused for
+their volume (`RefusedByVolume`, still in `Skipped`); a cut closed from the fallback's result is in `WithinFallback`
+too. Of the 79 864 parts of a Tekla model cut within a thousandth with a contact and a fallback of a hundredth, 17 have
+a cut skipped, 35 of their 314 cuts; closing within a gap of 0.005, holes up to 100 and 0.01 out of flat, takes 9 of
+them, one from the fallback's result, and leaves 10, the cuts after one closed taken where they were skipped, and none
+refused for its volume. The 8 of those parts whose bodies cut within a hundredth are valid come out within 0.12 % of
+those, where skipping left them up to 10 % off; the 0.12 % is a part no closing changes, and the parts closed come out
+within 7E-5. The 17 take 269 seconds where they took 420.
+
 ## 11.1.0
 
 **NEW.** `GeoSolid3.TryClose` closes an open body with the least change that does it, and says what it changed, or,
