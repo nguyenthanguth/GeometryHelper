@@ -9,16 +9,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 **NEW.** `TrySubtractAll` takes `SolidClosingOptions` as well, and then closes a cut it would skip: the cut worked out
 within the tolerance is closed by `TryClose`, and where that does not close, the cut within the fallback. A body closed
 is taken only where it is valid within the booleans' tolerance too and holds what a cut can leave, no more than the body
-before the cut and no less than that less the whole tool, each within the tolerance times the area of the two. Every cut
-taken without closing is taken as before, bit for bit, and the overload without closing is unchanged. `SubtractReport`
-says which cuts were closed (`Closed`, counted in `Taken`), how (`Closings`), and which closed but were refused for
-their volume (`RefusedByVolume`, still in `Skipped`); a cut closed from the fallback's result is in `WithinFallback`
-too. Of the 79 864 parts of a Tekla model cut within a thousandth with a contact and a fallback of a hundredth, 17 have
-a cut skipped, 35 of their 314 cuts; closing within a gap of 0.005, holes up to 100 and 0.01 out of flat, takes 9 of
-them, one from the fallback's result, and leaves 10, the cuts after one closed taken where they were skipped, and none
-refused for its volume. The 8 of those parts whose bodies cut within a hundredth are valid come out within 0.12 % of
-those, where skipping left them up to 10 % off; the 0.12 % is a part no closing changes, and the parts closed come out
-within 7E-5. The 17 take 269 seconds where they took 420.
+before the cut and no less than that less the whole tool, each within the tolerance times the area of the two. No cut is
+closed where the body before it or the tool carries openings: an opening cut out of a body not closed takes material
+before any closing can, and such a cut is skipped as without closing. The volumes are read by the faces, so a body not
+valid before the cut can refuse a closing that is right, and a body not valid as given is closed at its first cut that
+would be skipped, even by a tool that does not reach it. Every cut taken without closing is taken as before, bit for
+bit, and the overload without closing is unchanged. `SubtractReport` says which cuts were closed (`Closed`, counted in
+`Taken`), how (`Closings`), and which closed but were refused for their volume (`RefusedByVolume`, still in `Skipped`);
+a cut closed from the fallback's result is in `WithinFallback` too. Of the 79 864 parts of a Tekla model cut within a
+thousandth with a contact and a fallback of a hundredth, 17 have a cut skipped, 35 of their 314 cuts; closing within a
+gap of 0.005, holes up to 100 and 0.01 out of flat, takes 9 of them, one from the fallback's result, and leaves 10, the
+cuts after one closed taken where they were skipped, and none refused for its volume. The 8 of those parts whose bodies
+cut within a hundredth are valid come out within 0.12 % of those, where skipping left them up to 10 % off; the 0.12 % is
+a part no closing changes, and the parts closed come out within 7E-5. The 17 take about two thirds of the time they
+took.
 
 ## 11.1.0
 

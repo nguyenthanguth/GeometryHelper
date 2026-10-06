@@ -825,11 +825,14 @@ with more than 1 % more surface than within a hundredth, 5 466 square metres in 
 hundredth, 220 square metres. A contact of two hundredths starts to take what is there.
 
 A cut skipped can be closed instead. Given `SolidClosingOptions` as well, `TrySubtractAll` closes a cut it would skip
-with `TryClose`, the cut within the tolerance first and then the one within the fallback, and takes the body closed
-only where it is valid within the booleans' tolerance and holds what a cut can leave: no more than the part before it,
-and no less than that less the whole cutter, each within the tolerance times their area. Every other cut is taken as
-without it, bit for bit. `report.Closed` lists the cuts taken closed, `report.Closings` what the closing did to each,
-and `report.RefusedByVolume` those that closed holding the wrong volume, which stay skipped:
+with `TryClose`, the cut within the tolerance first and then the one within the fallback, and takes the body closed only
+where it is valid within the booleans' tolerance and holds what a cut can leave: no more than the part before it, and no
+less than that less the whole cutter, each within the tolerance times their area. No cut is closed where the part before
+it or the cutter carries openings: an opening cut out of a body not closed takes material before any closing can, so
+such a cut is skipped as without closing. A part not valid as given is closed at its first cut that would be skipped,
+even by a cutter that does not reach it. Every other cut is taken as without it, bit for bit. `report.Closed` lists the
+cuts taken closed, `report.Closings` what the closing did to each, and `report.RefusedByVolume` those that closed
+holding the wrong volume, which stay skipped:
 
 ```csharp
 var closing = new SolidClosingOptions(Tolerance.Default, 0.005, maxHoleArea: 100.0, maxOffFlat: 0.01);
