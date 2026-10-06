@@ -26,6 +26,15 @@ the curve a fixed distance from an ellipse is not one, and no boolean: flatten i
 ellipse, so a question is asked from the ellipse. `GeoCircle2.TransformBy` still refuses an uneven scaling, and its docs
 now point to `FromCircle`.
 
+**NEW.** `GeometryHelper.Takeoff`: `VolumeTakeoff.Run` takes off the volumes of the parts of a model, each bit of
+material counted once, by the part ranked first among those holding it, the lower `VolumeItem.Priority` first and of two
+the same the earlier in the list. A slab 6 000 by 6 000 by 200 on a beam 300 wide running through a column 400 by 400
+loses 0.032 m3 to the column and 0.336 m3 to the beam, the block 300 by 400 by 200 inside the column taken off once, and
+keeps 6.832 m3; the three parts add up to 8.352 m3, the volume of the three together. Only what the parts share is cut,
+never the parts. Each result gives the gross, the deductions by the part that kept them, the net and, where something
+could not be worked out exactly, issues saying which way the net may be out. It runs in parallel, and the results are
+the same, bit for bit, on one thread or on every processor (`VolumeTakeoffOptions.MaxDegreeOfParallelism`).
+
 **FIXED.** A circle a hair inside another, within the point tolerance of touching it without crossing, touched it at a
 point read off the radical line of the two, which runs away from both as the difference of the radii shrinks: a circle
 of radius 99.94 a centre 0.0593 off the middle of one of 100 touched it at (101.18, 0), 1.18 off both rims. It now
@@ -35,6 +44,14 @@ altogether, since the arc did not reach the stray point: the left half of a circ
 it at (-100.0002, 0). The same holds in space, where two coplanar `GeoArc3` or `GeoCircle3` so placed found no point and
 did not collide; they now touch between the rims as in the plane. Circles that cross, touch from outside or stand apart
 are answered as before, bit for bit.
+
+**FIXED.** A boolean with a contact (`SolidBooleanOptions.Contact`) threw `ArgumentException` when putting the second
+body onto the first left too little of it to build a body: a wedge 6 µm thick lying on a face of a box, the triangle
+(249.994, 90), (250, 90), (250, 162) carried 900 up, lost its slanted face and its narrow side to nothing.
+`TrySubtract`, `TryIntersect`, `TryUnion` and `TrySubtractAll` now take such a body as it came, as they already did
+where putting it on would leave it open: the box less the wedge holds 56 249 805.6 and the two share 194.4. A girder and
+a wall of a Tekla model lying 6 µm into each other hit it. Every boolean that did not throw is worked out as before, bit
+for bit.
 
 ## 11.2.0
 

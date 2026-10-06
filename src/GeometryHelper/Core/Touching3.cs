@@ -14,7 +14,7 @@ namespace GeometryHelper.Core
         /// Gets the second body with each face that lies parallel to a face of the first, either way round, every corner of
         /// it within the contact distance of that face's plane and the boxes of the two meeting, put onto the nearest such
         /// plane, unless it lies on one within the tolerance already; the second body as it is where no face is moved, or
-        /// where moving them would leave it open.
+        /// where moving them would leave it open or leave too little of it to build a body.
         /// </summary>
         /// <param name="first">The body whose faces stay where they are.</param>
         /// <param name="second">The body whose faces are moved.</param>
@@ -132,40 +132,51 @@ namespace GeometryHelper.Core
             }
 
             var faces = new List<GeoFace3>(second.Faces.Count + 8);
+            GeoSolid3 put;
 
-            foreach (GeoFace3 face in second.Faces)
+            try
             {
-                if (!Touches(face, moved))
+                foreach (GeoFace3 face in second.Faces)
                 {
-                    faces.Add(face);
-                    continue;
-                }
-
-                var boundary = new List<GeoPoint3>(face.Boundary.VertexCount);
-
-                foreach (GeoPoint3 corner in face.Boundary.Vertices)
-                {
-                    boundary.Add(At(moved, corner));
-                }
-
-                var holes = new List<IEnumerable<GeoPoint3>>(face.Holes.Count);
-
-                foreach (GeoPolygon3 hole in face.Holes)
-                {
-                    var ring = new List<GeoPoint3>(hole.VertexCount);
-
-                    foreach (GeoPoint3 corner in hole.Vertices)
+                    if (!Touches(face, moved))
                     {
-                        ring.Add(At(moved, corner));
+                        faces.Add(face);
+                        continue;
                     }
 
-                    holes.Add(ring);
+                    var boundary = new List<GeoPoint3>(face.Boundary.VertexCount);
+
+                    foreach (GeoPoint3 corner in face.Boundary.Vertices)
+                    {
+                        boundary.Add(At(moved, corner));
+                    }
+
+                    var holes = new List<IEnumerable<GeoPoint3>>(face.Holes.Count);
+
+                    foreach (GeoPolygon3 hole in face.Holes)
+                    {
+                        var ring = new List<GeoPoint3>(hole.VertexCount);
+
+                        foreach (GeoPoint3 corner in hole.Vertices)
+                        {
+                            ring.Add(At(moved, corner));
+                        }
+
+                        holes.Add(ring);
+                    }
+
+                    faces.AddRange(Loops3.ToFaces(boundary, holes, tolerance));
                 }
 
-                faces.AddRange(Loops3.ToFaces(boundary, holes, tolerance));
+                put = new GeoSolid3(faces, second.Openings);
             }
-
-            var put = new GeoSolid3(faces, second.Openings);
+            catch (ArgumentException)
+            {
+                // A body thinner than the contact everywhere, put onto one plane, can lose so many faces that no body is
+                // left to build: a wedge 0.006 thick on the face of a box, its slanted face put onto the box's, kept
+                // fewer than four of its five faces. It is no tool at all, and the one given is used.
+                return second;
+            }
 
             // A face no wider than the contact put onto one plane at both its sides has no area left, and its neighbours may
             // no longer meet across it: such a body is no better a tool than the one given.
