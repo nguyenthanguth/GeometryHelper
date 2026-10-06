@@ -315,6 +315,26 @@ namespace GeometryHelper.Core
                 return false;
             }
 
+            // One circle a hair inside the other touches it without crossing. The radical line is no guide there: its
+            // distance from the centre below grows as fast as the radii's difference shrinks, so a circle of radius 99.94
+            // 0.0593 inside one of 100 would touch at (101.18, 0), 1.18 off both. The touch is the point between the two
+            // rims where they come nearest, on the line through the centres.
+            if (d < Math.Abs(c1.Radius - c2.Radius))
+            {
+                double side = c1.Radius >= c2.Radius ? 1.0 : -1.0;
+                double ux = side * (c2.Center.X - c1.Center.X) / d;
+                double uy = side * (c2.Center.Y - c1.Center.Y) / d;
+                double reach = 0.5 * (c1.Radius + c2.Radius);
+
+                intersections = new[]
+                {
+                    new GeoPoint2(
+                        0.5 * (c1.Center.X + c2.Center.X) + reach * ux,
+                        0.5 * (c1.Center.Y + c2.Center.Y) + reach * uy)
+                };
+                return true;
+            }
+
             double a = (c1.Radius * c1.Radius - c2.Radius * c2.Radius + d * d) / (2.0 * d);
             double hSq = c1.Radius * c1.Radius - a * a;
             double h = hSq > 0 ? Math.Sqrt(hSq) : 0.0;

@@ -142,6 +142,32 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Empty(Intersection2.GetIntersections(cOuter, cDisjoint));
         }
 
+        [Fact]
+        public void ACircleAHairInsideAnotherNearlyTouchingIt_TouchesItOnce_OnBothRims()
+        {
+            // A circle of radius 99.94 a centre 0.0593 off the middle of one of radius 100 comes within 0.0007 of its
+            // rim at (100, 0) without crossing it: within the point tolerance of 0.001, a touch. The two rims there are
+            // (100, 0) and (99.9993, 0), so the touch is the point between them, (99.99965, 0), and lies within half the
+            // gap of each. Read off the radical line it was (101.18, 0), 1.18 off both: the line's distance from the
+            // centre, (r1^2 - r2^2 + d^2) / 2d, is 101.18 here, a hair from tangent where d is small and r1 - r2 smaller.
+            var tolerance = new Tolerance(1E-3, 1E-5);
+            var outer = new GeoCircle2(new GeoPoint2(0, 0), 100);
+            var inner = new GeoCircle2(new GeoPoint2(0.0593, 0), 99.94);
+
+            foreach (GeoPoint2[] found in new[]
+            {
+                Intersection2.GetIntersections(outer, inner, tolerance),
+                Intersection2.GetIntersections(inner, outer, tolerance),
+            })
+            {
+                GeoPoint2 touch = Assert.Single(found);
+                Assert.Equal(99.99965, touch.X, 9);
+                Assert.Equal(0.0, touch.Y, 9);
+                Assert.InRange(Math.Abs(touch.DistanceTo(outer.Center) - outer.Radius), 0.0, 0.00035 + 1E-9);
+                Assert.InRange(Math.Abs(touch.DistanceTo(inner.Center) - inner.Radius), 0.0, 0.00035 + 1E-9);
+            }
+        }
+
         #endregion
 
         #region Rectangle - Line Tests

@@ -19,6 +19,25 @@ namespace GeometryHelper.UnitTest.Plane
         private static readonly GeoCircle2 Disc = new GeoCircle2(new GeoPoint2(0, 0), 100);
 
         [Fact]
+        public void AnArcPassingFourTenThousandthsOutsideTheDisc_TouchesIt_AsItsDistanceSays()
+        {
+            // The left half of a circle of radius 101.5004 about (1.5, 0) passes the disc of radius 100 at (-100, 0) only
+            // 0.0004 out, within the point tolerance of 0.001: DistanceTo says 0.0004, so it touches, at the point between
+            // the two rims, (-100.0002, 0). The touch was read off the radical line of the two circles at (-100.027, 0),
+            // 0.027 off the arc, so the arc did not reach it and the two neither met nor collided.
+            var tolerance = new Tolerance(1E-3, 1E-5);
+            var arc = new GeoArc2(new GeoPoint2(1.5, 0), 101.5004, Math.PI / 2, 3 * Math.PI / 2);
+
+            Assert.Equal(0.0004, Disc.DistanceTo(arc, tolerance), 9);
+            Assert.True(Disc.CollidesWith(arc, tolerance));
+            Assert.True(arc.CollidesWith(Disc, tolerance));
+
+            GeoPoint2 touch = Assert.Single(Disc.GetIntersections(arc, tolerance));
+            Assert.Equal(-100.0002, touch.X, 9);
+            Assert.Equal(0.0, touch.Y, 9);
+        }
+
+        [Fact]
         public void AnArcInsideTheDiscIsNoughtAwayFromEitherSide()
         {
             var arc = new GeoArc2(new GeoPoint2(0, 0), 30, 0, Math.PI);

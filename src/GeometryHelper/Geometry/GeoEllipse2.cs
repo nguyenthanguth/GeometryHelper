@@ -14,8 +14,8 @@ namespace GeometryHelper.Geometry
     /// (212.1, 70.7), which lies 18.4° from the axis seen from the centre. An ellipse whose radii are equal is a circle and
     /// answers every question as <see cref="GeoCircle2"/> does, but for where its angle starts, which follows its axis;
     /// the point of the rim nearest its centre, which is the end of the minor axis as for any other ellipse; and where it
-    /// touches a circle or another ellipse without crossing, which is midway between the two rims, where two circles of
-    /// different radii touch at a point nearer the larger.
+    /// touches a circle or another ellipse from outside without crossing, which is midway between the two rims, where two
+    /// circles of different radii touch at a point nearer the larger.
     /// </para>
     /// <para>
     /// The operations live in <see cref="Ellipse2"/>; the members here ask it.

@@ -26,6 +26,14 @@ the curve a fixed distance from an ellipse is not one, and no boolean: flatten i
 ellipse, so a question is asked from the ellipse. `GeoCircle2.TransformBy` still refuses an uneven scaling, and its docs
 now point to `FromCircle`.
 
+**FIXED.** A circle a hair inside another, within the point tolerance of touching it without crossing, touched it at a
+point read off the radical line of the two, which runs away from both as the difference of the radii shrinks: a circle
+of radius 99.94 a centre 0.0593 off the middle of one of 100 touched it at (101.18, 0), 1.18 off both rims. It now
+touches at the point between the two rims where they come nearest, (99.99965, 0). An arc of such a circle was missed
+altogether, since the arc did not reach the stray point: the left half of a circle of radius 101.5004 about (1.5, 0),
+0.0004 outside the disc of radius 100, neither met nor collided with it, though `DistanceTo` said 0.0004; it now touches
+it at (-100.0002, 0). Circles that cross, touch from outside or stand apart are answered as before, bit for bit.
+
 ## 11.2.0
 
 **NEW.** `TrySubtractAll` takes `SolidClosingOptions` as well, and then closes a cut it would skip: the cut worked out
