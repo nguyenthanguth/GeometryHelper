@@ -896,6 +896,14 @@ namespace GeometryHelper.Geometry
         public bool TrySubtractAll(IEnumerable<GeoSolid3> tools, out GeoSolid3 result, SolidBooleanOptions options, out SubtractReport report)
             => Boolean3.TrySubtractAll(this, tools, out result, options, out report);
 
+        /// <summary>
+        /// Takes bodies out of this solid one after another as the options say, each result checked, and closes a cut that
+        /// would be skipped where that can be done and the body closed holds what the cut can leave; see
+        /// <see cref="Boolean3.TrySubtractAll(GeoSolid3, IEnumerable{GeoSolid3}, out GeoSolid3, SolidBooleanOptions, SolidClosingOptions, out SubtractReport)"/>.
+        /// </summary>
+        public bool TrySubtractAll(IEnumerable<GeoSolid3> tools, out GeoSolid3 result, SolidBooleanOptions options, SolidClosingOptions closing, out SubtractReport report)
+            => Boolean3.TrySubtractAll(this, tools, out result, options, closing, out report);
+
         #endregion
 
         #region Equality

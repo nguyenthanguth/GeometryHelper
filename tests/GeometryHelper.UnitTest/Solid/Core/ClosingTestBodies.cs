@@ -1360,5 +1360,60 @@ namespace GeometryHelper.UnitTest.Solid.Core
             => BoxFaces(Corners(15 - (thickness / 2), -4 - clear, 5, 15 + (thickness / 2), -clear, 15));
 
         #endregion
+
+        #region Bodies a cut through them leaves open
+
+        /// <summary>
+        /// A post 6 by 4 standing through the box of the damaged bodies, from (12, 8, -5) to (18, 12, 15), well clear of its
+        /// front: it holds 480, and takes 240 out of the box.
+        /// </summary>
+        internal static GeoSolid3 PostThrough() => new GeoSolid3(BoxFaces(Corners(12, 8, -5, 18, 12, 15)));
+
+        /// <summary>
+        /// The post of <see cref="PostThrough"/> with its top turned over: a cut by it cannot be worked out.
+        /// </summary>
+        internal static GeoSolid3 PostThroughWithItsTopTurned()
+        {
+            List<GeoFace3> faces = BoxFaces(Corners(12, 8, -5, 18, 12, 15));
+            faces[Top] = faces[Top].Flip();
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// A block 4 by 4 standing from (2, 2, 5) to (6, 6, 15), down into the top of the box of the damaged bodies by 5
+        /// near its corner at the origin: it takes 80 out of the box.
+        /// </summary>
+        internal static GeoSolid3 NotchInTheTop() => new GeoSolid3(BoxFaces(Corners(2, 2, 5, 6, 6, 15)));
+
+        /// <summary>
+        /// A body with one of its corners cut off by a triangle as far along each edge from it as given, the triangle left
+        /// out: each face round the corner takes the triangle's two corners on its edges in place of it.
+        /// </summary>
+        internal static GeoSolid3 WithCornerCutOffOpen(GeoSolid3 body, GeoPoint3 corner, double by)
+        {
+            var faces = new List<GeoFace3>(body.Faces.Count);
+
+            foreach (GeoFace3 face in body.Faces)
+            {
+                List<GeoPoint3> ring = face.Boundary.Vertices.ToList();
+                int at = ring.FindIndex(p => p.DistanceTo(corner) <= Fine.EqualPoint);
+
+                if (at < 0)
+                {
+                    faces.Add(face);
+                    continue;
+                }
+
+                GeoPoint3 before = ring[(at + ring.Count - 1) % ring.Count];
+                GeoPoint3 after = ring[(at + 1) % ring.Count];
+                ring[at] = corner.Add(corner.GetVectorTo(after).Multiply(by / corner.DistanceTo(after)));
+                ring.Insert(at, corner.Add(corner.GetVectorTo(before).Multiply(by / corner.DistanceTo(before))));
+                faces.Add(Face(ring.ToArray()));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        #endregion
     }
 }
