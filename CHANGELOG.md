@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 11.1.0
 
 **NEW.** `GeoSolid3.TryClose` closes an open body with the least change that does it, and says what it changed, or,
 changing nothing, why it could not and where: a body read out of a model open by copies of an edge a few thousandths

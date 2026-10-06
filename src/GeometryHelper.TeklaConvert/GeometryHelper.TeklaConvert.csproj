@@ -29,6 +29,12 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 11.1.0
+      - GeometryHelper.TeklaConvert is released at 11.1.0 with GeometryHelper, which adds GeoSolid3.TryClose: a body read
+        open is closed with the least change that does it, with a report of what it changed, or of why it would not. Of
+        the 35 cuts GeoSolid3.TrySubtractAll skips on the 79 864 parts of a Tekla model, 23 close within a gap of 0.005,
+        none further from the same cut within a hundredth than 2.1 parts in a million.
+
       NEW IN 11.0.1
       - GeometryHelper.TeklaConvert is released at 11.0.1 with GeometryHelper, whose GeoSolid3.TrySubtractAll with a
         contact and a fallback of a hundredth takes a part's net body as before, more of its cuts closed: of 79 864 parts

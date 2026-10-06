@@ -14,30 +14,32 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 11.0.1
+      NEW IN 11.1.0
 
-      FIXED, the booleans of solids
-      - With a SolidBooleanOptions.Contact, a face of the second body lying within the tolerance of a plane of the first
-        is left where it is: put onto it exactly, the plane of a slab's sloping face out of flat could not cut the slab,
-        and the difference took the cell along it whole, 61.88 litres where the two share 43.79, closed and valid.
-      - A cell a plane could not cut is found judged apart across it where its material on one side lies only near the
-        plane: the point beside the plane is the middle of the thickness as far as the plane. The common part of a slab
-        and a tool beneath it, 44.20 litres where the two share 40.43, is 40.43.
-      - A union or a difference cut by every plane of both no longer hands back a closed result of the wrong volume where
-        it misjudged such a cell: the open result of cutting one body is taken welded closed, or kept open where the two
-        disagree, which Validate then says.
-      - Two faces of one cell, its top and its bottom where it is thinner than the tolerance, are never taken for faces
-        lying back to back: blocks whose top was out of flat by a little more than the tolerance, less or united with a
-        box whose top lay along it, came out open.
-      - PlanarMap.FrameOf and GetFrame() take the first axis in the plane: a face with two corners a hair apart one over
-        the other made the axis its normal, no frame could be made, and a boolean gluing the face was not worked out.
+      NEW, closing an open solid
+      - GeoSolid3.TryClose closes a body read open with the least change that does it, and says what it changed, or,
+        changing nothing, why it could not and where: a body open by copies of an edge a few thousandths apart, by a
+        corner standing off the edge of the face beside it, or by a face left out. A body valid already comes back as
+        the very instance.
+      - SolidClosingOptions says how: the Tolerance the result is valid within; MaxGap, which has to be given, how far
+        apart the corners across a gap may stand and still be made one; MaxHoleArea, the most a hole may enclose and
+        still be filled, nought by default, so that nothing is filled unless asked; MaxOffFlat, how far out of flat a
+        hole may stand and still be filled by triangles; and Fill, a FillStrategy: WhenUnambiguous, MinArea or None.
+      - The report, a SolidClosing3, lists each change in the order it was made, a SolidRepair3 of a SolidRepairKind
+        (Drop, Flip, Weld, SplitEdge, Fill), with the area added and the volume moved; a body not closed reports the
+        ClosingFailure of the first step that could not go on (NonManifold, GapTooWide, HoleTooLarge, HoleOffFlat,
+        HoleAmbiguous, StillOpen) and a point at the trouble.
+      - The faces are cleaned and turned, each closed shell keeping its winding against the shell it lies in; the corners
+        across the gaps are welded within the least reach that closes the body; and the holes left are filled where
+        allowed: a flat one by one face on the body's own corners, the two ends of a hole through the body by caps or by
+        walls, one out of flat by the triangles of least area across it. Nothing is made up: no weld or fill is taken
+        that leaves a ring doubling back, lies back to back with a face of the body, or crosses one, though each of
+        those would read valid.
 
-      Of the 79 864 parts of a Tekla model, each cut one after another by the parts it meets within a thousandth with a
-      contact and a fallback of a hundredth, 17 have a cut skipped, where 19 had, 87 cuts are taken within the fallback,
-      where 136 were, and none comes out more than a litre from the same cuts within a hundredth, where two did.
-
-      KNOWN: a difference with a contact can come out larger than the body it was taken from by about how far a face of
-      that body is out of flat beyond the tolerance times its area, 1 254 cubic millimetres on a slab of 502 cubic metres.
+      Of the 1 989 parts of a Tekla model, damaged five ways and closed within a gap of 0.005, 9 736 of the 9 945 bodies
+      closed, each valid, none further from the part's volume than 13 parts in a million. Of the 35 cuts TrySubtractAll
+      skips on the 79 864 parts of a Tekla model, 23 closed, none further from the same cut within a hundredth than 2.1
+      parts in a million; the other 12 are cut wrong, or hold a hole larger than allowed.
 
       Details in CHANGELOG.md.
 

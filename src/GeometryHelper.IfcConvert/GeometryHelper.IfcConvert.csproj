@@ -19,6 +19,11 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 11.1.0
+      - GeometryHelper.IfcConvert is released at 11.1.0 with GeometryHelper, which adds GeoSolid3.TryClose: a body read
+        open, by copies of an edge a hair apart or by a face left out, is closed with the least change that does it, a
+        hole filled only where asked, with a report of what it changed, or of why it would not.
+
       NEW IN 11.0.1
       - GeometryHelper.IfcConvert is released at 11.0.1 with GeometryHelper, whose booleans of solids, which cut the
         openings the geometry engine cannot, no longer hand back a closed result of the wrong volume where a plane could
