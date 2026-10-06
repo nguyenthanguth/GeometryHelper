@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 11.2.0
 
 **NEW.** `TrySubtractAll` takes `SolidClosingOptions` as well, and then closes a cut it would skip: the cut worked out
 within the tolerance is closed by `TryClose`, and where that does not close, the cut within the fallback. A body closed

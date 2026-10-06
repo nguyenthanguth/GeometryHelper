@@ -13,7 +13,7 @@
   -->
 
   <PropertyGroup>
-    <GeometryHelperVersion>11.1.0</GeometryHelperVersion>
+    <GeometryHelperVersion>11.2.0</GeometryHelperVersion>
   </PropertyGroup>
 
   <PropertyGroup>

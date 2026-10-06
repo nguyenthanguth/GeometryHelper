@@ -19,6 +19,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 11.2.0
+      - GeometryHelper.IfcConvert is released at 11.2.0 with GeometryHelper, whose GeoSolid3.TrySubtractAll can close,
+        with TryClose, a cut it would otherwise skip, given SolidClosingOptions; without them it works as before.
+
       NEW IN 11.1.0
       - GeometryHelper.IfcConvert is released at 11.1.0 with GeometryHelper, which adds GeoSolid3.TryClose: a body read
         open, by copies of an edge a hair apart or by a face left out, is closed with the least change that does it, a
