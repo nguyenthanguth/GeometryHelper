@@ -668,10 +668,22 @@ namespace GeometryHelper.Core
         /// Newton's method from the point where the chord between the ends crosses nought, kept inside the bracket, which it
         /// halves whenever a step would leave it, so the answer is right to the last digit and never lost.
         /// </remarks>
-        internal static double Root(Wave wave, double low, double high, double atLow, double atHigh)
+        internal static double Root(Wave wave, double low, double high, double atLow, double atHigh) => Root(wave, low, high, atLow, atHigh, double.NaN);
+
+        /// <summary>
+        /// Finds the one angle between two at which a function that runs one way between them is nought, starting from an
+        /// angle known to lie near it.
+        /// </summary>
+        /// <param name="wave">The function.</param>
+        /// <param name="low">The lower end of the bracket.</param>
+        /// <param name="high">The upper end of the bracket.</param>
+        /// <param name="atLow">The value at the lower end.</param>
+        /// <param name="atHigh">The value at the upper end.</param>
+        /// <param name="start">Where to start, or not a number for the point where the chord between the ends crosses nought.</param>
+        internal static double Root(Wave wave, double low, double high, double atLow, double atHigh, double start)
         {
             bool lowBelow = atLow < 0.0;
-            double angle = low + (high - low) * (atLow / (atLow - atHigh));
+            double angle = start > low && start < high ? start : low + (high - low) * (atLow / (atLow - atHigh));
 
             if (!(angle > low && angle < high))
             {

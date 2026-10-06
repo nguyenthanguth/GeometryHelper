@@ -817,7 +817,7 @@ namespace GeometryHelper.Core
             var turns = new double[4];
             int count = Turns(wave, turns);
 
-            if (count == 0)
+            if (count == 0 && other.IsCircle)
             {
                 return Array.Empty<GeoPoint2>();
             }
@@ -840,6 +840,12 @@ namespace GeometryHelper.Core
             var angles = new List<double>(4);
             var points = new List<GeoPoint2>(4);
             var crossedAfter = new bool[count];
+            var pieceRoots = new double[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                pieceRoots[i] = double.NaN;
+            }
 
             for (int i = 0; i < count; i++)
             {
@@ -856,13 +862,27 @@ namespace GeometryHelper.Core
                 }
                 else if (values[next] != 0.0 && (values[i] < 0.0) != (values[next] < 0.0))
                 {
-                    double crossing = Settle(ellipse, other, Root(wave, low, high, values[i], values[next]), low, high);
+                    double root = Root(wave, low, high, values[i], values[next]);
+                    double crossing = Settle(ellipse, other, root, low, high);
+                    pieceRoots[i] = root;
                     angles.Add(crossing);
                     points.Add(GetPointAtAngle(ellipse, crossing));
                     crossedAfter[i] = true;
                 }
             }
 
+            if (!other.IsCircle)
+            {
+                var crossingPoints = new List<GeoPoint2>(points);
+                Touches(ellipse, other.Ellipse, wave, turns, values, pieceRoots, count, new List<double>(angles), crossingPoints, tolerance, angles, points);
+                return Gathered(angles, points, tolerance);
+            }
+
+            GeoPoint2[] crossingAt = points.ToArray();
+
+            // A circle's equation along the rim turns exactly where the gap to it does, so its turning points are the
+            // leasts of the gap; one with a crossing on either side is no least, and one within twice the tolerance of a
+            // crossing is that crossing.
             for (int i = 0; i < count; i++)
             {
                 int before = (i + count - 1) % count;
@@ -875,20 +895,7 @@ namespace GeometryHelper.Core
                 double at = turns[i];
                 double reach = other.GapTo(GetPointAtAngle(ellipse, at));
 
-                // The equation of an ellipse turns a little off the point of the rim nearest it, so near a touching the
-                // distance itself is brought down; a circle's equation turns exactly there.
-                if (!other.IsCircle && reach <= 10.0 * tolerance.EqualPoint)
-                {
-                    int next = (i + 1) % count;
-                    double low = at - Positive(at - turns[before]);
-                    double high = at + Positive(turns[next] - at);
-                    GeoEllipse2 rim = ellipse;
-                    Other against = other;
-
-                    at = Least(angle => against.GapTo(GetPointAtAngle(rim, angle)), low, at, high, out reach);
-                }
-
-                if (reach <= tolerance.EqualPoint)
+                if (reach <= tolerance.EqualPoint && NearCrossing(crossingAt, GetPointAtAngle(ellipse, at), 2.0 * tolerance.EqualPoint) < 0)
                 {
                     // Midway between the rim and the curve it touches, as two circles touch at a point between them.
                     GeoPoint2 onRim = GetPointAtAngle(ellipse, at);
@@ -899,6 +906,369 @@ namespace GeometryHelper.Core
             }
 
             return Gathered(angles, points, tolerance);
+        }
+
+        /// <summary>
+        /// Adds every touch of the rim and another ellipse: each least of the true gap between the two rims that comes within
+        /// the point tolerance, away from the crossings.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The other's equation turns where the rim runs along a copy of it scaled about its centre, not along the curve a
+        /// fixed distance off it, and for a thin ellipse the two lie far apart: a needle 1 by 0.003 resting 0.0005 above a
+        /// rim has its equation turn where the gap is 0.16. So the gap itself is searched, and only where it can come within
+        /// the tolerance. A point on the copy scaled by q lies at least |q - 1| times the other's minor radius from its rim,
+        /// so the gap can be that small only where the equation, q² - 1, keeps within a band about nought; the stretches
+        /// of the rim inside the band are found exactly, from the turning points and the band's edges.
+        /// </para>
+        /// <para>
+        /// A stretch holding one crossing and too short for the rims to turn parallel in it holds no touch, and is passed
+        /// over: that is every stretch round a clean crossing. The others are walked with steps no longer than the gap less
+        /// the tolerance, which no part of the rim nearer the other than the tolerance can hide between, and never shorter
+        /// than half the tolerance; where the gap stays within the tolerance and hardly changes, the rims running along each
+        /// other, the step doubles, up to 32 times the tolerance. Within twice the tolerance of a crossing the walk jumps over
+        /// it, since anything found there is that crossing. Each least of the
+        /// walk below one and a half times the tolerance is brought down by Brent's method between its neighbours, and kept
+        /// when it is a least of the gap inside them, within the tolerance and not within twice it of a crossing. The point
+        /// is midway between the rim and the other, so the same touch comes back whichever ellipse asks.
+        /// </para>
+        /// </remarks>
+        private static void Touches(
+            GeoEllipse2 ellipse,
+            GeoEllipse2 other,
+            Wave wave,
+            double[] turns,
+            double[] values,
+            double[] pieceRoots,
+            int count,
+            List<double> crossingAngles,
+            List<GeoPoint2> crossingPoints,
+            Tolerance tolerance,
+            List<double> angles,
+            List<GeoPoint2> points)
+        {
+            double limit = tolerance.EqualPoint;
+            double merge = 2.0 * limit;
+            double minor = other.MinorRadius;
+            double slack = limit * (1.0 + 1E-9) + 1E-12 * (other.MajorRadius + ellipse.MajorRadius);
+            double top = (1.0 + slack / minor) * (1.0 + slack / minor) - 1.0;
+            double bottom = slack >= minor ? double.NegativeInfinity : (1.0 - slack / minor) * (1.0 - slack / minor) - 1.0;
+
+            List<double[]> stretches = Within(wave, turns, values, pieceRoots, count, bottom, top);
+
+            if (stretches.Count == 0)
+            {
+                return;
+            }
+
+            var crossings = new double[crossingAngles.Count];
+            var crossingAt = new GeoPoint2[crossingAngles.Count];
+
+            for (int i = 0; i < crossings.Length; i++)
+            {
+                double angle = crossingAngles[i] - FullTurn * Math.Floor(crossingAngles[i] / FullTurn);
+                crossings[i] = angle < FullTurn ? angle : 0.0;
+                crossingAt[i] = crossingPoints[i];
+            }
+
+            SortByAngle(crossings, crossingAt);
+
+            GeoEllipse2 rim = ellipse;
+            GeoEllipse2 against = other;
+            Func<double, double> gap = angle => GapAlong(rim, against, angle);
+
+            var walk = new List<double>();
+            var reach = new List<double>();
+            int budget = 20000;
+
+            foreach (double[] stretch in stretches)
+            {
+                double from = stretch[0];
+                double to = stretch[1];
+                double at = from;
+
+                if (Clean(ellipse, other, crossings, crossingAt, from, to, merge))
+                {
+                    continue;
+                }
+
+                walk.Clear();
+                reach.Clear();
+                double grow = 1.0;
+
+                while (at <= to && budget-- > 0)
+                {
+                    GeoPoint2 here = GetPointAtAngle(ellipse, at);
+                    int near = NearCrossing(crossingAt, here, merge);
+
+                    if (near >= 0)
+                    {
+                        // Inside a crossing's merge: what lies here is the crossing. The walk so far ends, and starts again
+                        // past it.
+                        Leasts(ellipse, other, gap, walk, reach, crossingAt, limit, merge, angles, points);
+                        walk.Clear();
+                        reach.Clear();
+
+                        double ahead = crossings[near] - at;
+                        ahead -= FullTurn * Math.Round(ahead / FullTurn);
+                        at = ahead > 0.0 ? at + ahead + Stride(ellipse, at + ahead, merge) : at + Stride(ellipse, at, 0.5 * limit);
+                        continue;
+                    }
+
+                    double h = gap(at);
+                    walk.Add(at);
+                    reach.Add(h);
+
+                    if (at >= to)
+                    {
+                        break;
+                    }
+
+                    // Where the gap lies within the tolerance and hardly changes, the rims run along each other: the step
+                    // doubles while it stays so, up to 64 times half the tolerance, so that a long, close contact costs a
+                    // few dozen steps rather than thousands.
+                    int last = reach.Count - 1;
+                    grow = h <= 1.5 * limit && last > 0 && Math.Abs(h - reach[last - 1]) < 0.125 * limit ? Math.Min(2.0 * grow, 64.0) : 1.0;
+
+                    double next = at + Stride(ellipse, at, Math.Max(h - limit, 0.5 * limit * grow));
+                    at = next < to ? next : (at < to ? to : next);
+                }
+
+                Leasts(ellipse, other, gap, walk, reach, crossingAt, limit, merge, angles, points);
+            }
+        }
+
+        /// <summary>
+        /// Says whether a stretch holds one crossing and is too short for the rims to turn parallel within it, so that it
+        /// can hold no touch: at a touch the two tangents run along each other, at the crossing they meet at an angle, and
+        /// along a length L of the rim neither turns by more than its greatest bend, a / b², times L.
+        /// </summary>
+        private static bool Clean(GeoEllipse2 ellipse, GeoEllipse2 other, double[] crossings, GeoPoint2[] crossingAt, double from, double to, double merge)
+        {
+            int found = -1;
+
+            for (int i = 0; i < crossings.Length; i++)
+            {
+                double angle = crossings[i] + FullTurn * Math.Ceiling((from - crossings[i]) / FullTurn);
+
+                if (angle <= to)
+                {
+                    if (found >= 0)
+                    {
+                        return false;
+                    }
+
+                    found = i;
+                }
+            }
+
+            if (found < 0)
+            {
+                return false;
+            }
+
+            double a = ellipse.MajorRadius;
+            double b = ellipse.MinorRadius;
+            double cos = Math.Cos(crossings[found]);
+            double sin = Math.Sin(crossings[found]);
+            GeoVector2 m = ellipse.MajorAxis;
+            double tx = -a * sin * m.X - b * cos * m.Y;
+            double ty = -a * sin * m.Y + b * cos * m.X;
+
+            // The other's normal at the crossing, from its equation.
+            GeoVector2 n2 = other.MajorAxis;
+            double dx = crossingAt[found].X - other.Center.X;
+            double dy = crossingAt[found].Y - other.Center.Y;
+            double u = (dx * n2.X + dy * n2.Y) / (other.MajorRadius * other.MajorRadius);
+            double v = (dy * n2.X - dx * n2.Y) / (other.MinorRadius * other.MinorRadius);
+            double gx = u * n2.X - v * n2.Y;
+            double gy = u * n2.Y + v * n2.X;
+
+            // The crossing's angle, from the tangent of the rim against the other's normal: its cosine is the sine wanted.
+            double across = Math.Abs(tx * gx + ty * gy) / (Math.Sqrt(tx * tx + ty * ty) * Math.Sqrt(gx * gx + gy * gy));
+            double bend = a / (b * b) + other.MajorRadius / (other.MinorRadius * other.MinorRadius);
+            double length = a * (to - from) + merge;
+
+            return bend * length < 0.5 * Math.Asin(Math.Min(1.0, across));
+        }
+
+        /// <summary>
+        /// Gets the stretches of the rim, as angles from and to, where a wave keeps between two values: found piece by piece
+        /// between its turning points, where it runs one way, and joined where they meet.
+        /// </summary>
+        private static List<double[]> Within(Wave wave, double[] turns, double[] values, double[] pieceRoots, int count, double bottom, double top)
+        {
+            var stretches = new List<double[]>();
+
+            if (count == 0)
+            {
+                double value = wave.At(0.0);
+
+                if (value >= bottom && value <= top)
+                {
+                    stretches.Add(new[] { 0.0, FullTurn });
+                }
+
+                return stretches;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                int next = (i + 1) % count;
+                double low = turns[i];
+                double high = next > i ? turns[next] : turns[next] + FullTurn;
+                double atLow = values[i];
+                double atHigh = values[next];
+
+                if (Math.Max(atLow, atHigh) < bottom || Math.Min(atLow, atHigh) > top)
+                {
+                    continue;
+                }
+
+                double from = Edge(wave, low, high, atLow, atHigh, true, pieceRoots[i], bottom, top);
+                double to = Edge(wave, low, high, atLow, atHigh, false, pieceRoots[i], bottom, top);
+
+                if (stretches.Count > 0 && stretches[stretches.Count - 1][1] >= from)
+                {
+                    stretches[stretches.Count - 1][1] = Math.Max(to, stretches[stretches.Count - 1][1]);
+                }
+                else
+                {
+                    stretches.Add(new[] { from, to });
+                }
+            }
+
+            // The last stretch may carry on round into the first.
+            if (stretches.Count > 1 && stretches[stretches.Count - 1][1] >= stretches[0][0] + FullTurn)
+            {
+                stretches[0][0] = stretches[stretches.Count - 1][0] - FullTurn;
+                stretches.RemoveAt(stretches.Count - 1);
+            }
+
+            return stretches;
+        }
+
+        /// <summary>
+        /// Gets where a monotone piece of a wave enters or leaves a band, at one end: the end itself when it lies inside, else
+        /// the angle where the wave meets the band's edge, looked for from the crossing in the piece when it has one, which
+        /// the edge lies a hair from.
+        /// </summary>
+        private static double Edge(Wave wave, double low, double high, double atLow, double atHigh, bool lowEnd, double root, double bottom, double top)
+        {
+            double atEnd = lowEnd ? atLow : atHigh;
+
+            if (atEnd >= bottom && atEnd <= top)
+            {
+                return lowEnd ? low : high;
+            }
+
+            double level = atEnd < bottom ? bottom : top;
+            var shifted = new Wave(wave.C0 - level, wave.C1, wave.S1, wave.C2, wave.S2);
+
+            return Root(shifted, low, high, atLow - level, atHigh - level, root);
+        }
+
+        /// <summary>
+        /// Gets the index of a crossing within a distance of a point, or -1.
+        /// </summary>
+        private static int NearCrossing(GeoPoint2[] crossingAt, GeoPoint2 point, double distance)
+        {
+            double squared = distance * distance;
+
+            for (int i = 0; i < crossingAt.Length; i++)
+            {
+                if (crossingAt[i].GetDistanceSquaredTo(point) <= squared)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// Gets a step in the eccentric angle along which the rim runs no further than a length, whatever its speed does
+        /// over the step: the speed changes by no more than the major radius per unit of angle.
+        /// </summary>
+        private static double Stride(GeoEllipse2 ellipse, double angle, double length)
+        {
+            double a = ellipse.MajorRadius;
+            double b = ellipse.MinorRadius;
+            double sin = Math.Sin(angle);
+            double cos = Math.Cos(angle);
+            double speed = Math.Sqrt(a * a * sin * sin + b * b * cos * cos);
+
+            return 2.0 * length / (speed + Math.Sqrt(speed * speed + 2.0 * a * length));
+        }
+
+        /// <summary>
+        /// Brings each least of a walk below one and a half times the tolerance down by Brent's method between its neighbours,
+        /// and adds it when it is a least of the gap inside them, within the tolerance and not within twice it of a crossing.
+        /// </summary>
+        private static void Leasts(
+            GeoEllipse2 ellipse,
+            GeoEllipse2 other,
+            Func<double, double> gap,
+            List<double> walk,
+            List<double> reach,
+            GeoPoint2[] crossingAt,
+            double limit,
+            double merge,
+            List<double> angles,
+            List<GeoPoint2> points)
+        {
+            int n = walk.Count;
+
+            for (int i = 0; i < n; i++)
+            {
+                double h = reach[i];
+
+                if (h > 1.5 * limit || (i > 0 && reach[i - 1] < h) || (i + 1 < n && reach[i + 1] < h))
+                {
+                    continue;
+                }
+
+                // A run of equal values is asked once, at its first.
+                if (i > 0 && reach[i - 1] == h)
+                {
+                    continue;
+                }
+
+                // Between the neighbours, or a step either side at an end of the walk, where the walk stopped short of a
+                // crossing or the edge of the stretch.
+                double at = walk[i];
+                double low = i > 0 ? walk[i - 1] : at - Stride(ellipse, at, 0.5 * limit);
+                double high = i + 1 < n ? walk[i + 1] : at + Stride(ellipse, at, Math.Max(h - limit, 0.5 * limit));
+                double atLow = i > 0 ? reach[i - 1] : gap(low);
+                double atHigh = i + 1 < n ? reach[i + 1] : gap(high);
+                at = Least(gap, low, at, high, out double least);
+
+                // A least no lower than an end of the bracket, or that Brent's method left pressed against one, is no least
+                // of the gap, only where the bracket stops: the gap still falls beyond it, towards a crossing or a
+                // neighbour lower still.
+                double margin = 1E-6 * (high - low);
+
+                if (!(least < atLow && least < atHigh) || at - low <= margin || high - at <= margin)
+                {
+                    continue;
+                }
+
+                if (least > limit)
+                {
+                    continue;
+                }
+
+                GeoPoint2 onRim = GetPointAtAngle(ellipse, at);
+
+                if (NearCrossing(crossingAt, onRim, merge) >= 0)
+                {
+                    continue;
+                }
+
+                GeoPoint2 onOther = GetClosestPointOnBoundary(other, onRim);
+                angles.Add(at);
+                points.Add(new GeoPoint2(0.5 * (onRim.X + onOther.X), 0.5 * (onRim.Y + onOther.Y)));
+            }
         }
 
         /// <summary>

@@ -1,7 +1,7 @@
 # Geometry in the plane
 
 2D geometry for engineering drawings: points, vectors, lines, polylines, polygons, faces with holes,
-circles and oriented rectangles, with distance, projection, containment, intersection, collision,
+circles, ellipses and oriented rectangles, with distance, projection, containment, intersection, collision,
 parallelism, parametrization, merging and splitting over them, and the drafting operations on top:
 extending and trimming lines, offsetting curves and regions, and combining regions. Every comparison
 is tolerance-aware.
@@ -13,8 +13,8 @@ measured with the same [shared types](common.md).
 
 | Namespace | Holds |
 |---|---|
-| `GeometryHelper.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoPolyline2`, `GeoPolygon2`, `GeoFace2`, `GeoCircle2`, `GeoRectangle2`, `GeoTriangle2`, `GeoTransform2` |
-| `GeometryHelper.Core` | `Boolean2`, `Collision2`, `Containment2`, `Corner2`, `Distance2`, `Intersection2`, `Lengthen2`, `Merge2`, `Offset2`, `Parallel2`, `Parametrization2`, `Projection2`, `Splition2`, `Triangle2`, `PlanarMap` |
+| `GeometryHelper.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoPolyline2`, `GeoPolygon2`, `GeoFace2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2`, `GeoTriangle2`, `GeoTransform2` |
+| `GeometryHelper.Core` | `Boolean2`, `Collision2`, `Containment2`, `Corner2`, `Distance2`, `Ellipse2`, `Intersection2`, `Lengthen2`, `Merge2`, `Offset2`, `Parallel2`, `Parametrization2`, `Projection2`, `Splition2`, `Triangle2`, `PlanarMap` |
 | `GeometryHelper.Meshing` | `GeoMesh2`, `Mesh2`, `MeshKind`, `MeshOptions`, `GridAlignment`: see [meshing the plane](mesh.md) |
 | `GeometryHelper.Extension` | `EnumerableExtension` |
 | `GeometryHelper` | `Tolerance`, `Angle`, `OffsetOptions`, `GeometryHelperLog` |
@@ -25,7 +25,7 @@ imports one namespace and nothing collides.
 
 ## Geometric Types
 
-`GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoArc2`, `GeoCircle2`, `GeoRectangle2` (rotated rectangle — OBB), `GeoTriangle2`, `GeoPolygon2`, `GeoFace2` (a polygon with holes), `GeoPolyline2`, and the chains that may curve: `GeoEdge2`, `GeoPolylineArc2`, `GeoPolygonArc2`.
+`GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2` (rotated rectangle — OBB), `GeoTriangle2`, `GeoPolygon2`, `GeoFace2` (a polygon with holes), `GeoPolyline2`, and the chains that may curve: `GeoEdge2`, `GeoPolylineArc2`, `GeoPolygonArc2`.
 
 ### Regions and curves
 
@@ -33,7 +33,7 @@ The shapes split into two families, and the distinction decides what you can ask
 
 | Family | Types | Encloses an area |
 |---|---|---|
-| Region | `GeoCircle2`, `GeoRectangle2`, `GeoPolygon2`, `GeoFace2` | yes |
+| Region | `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2`, `GeoPolygon2`, `GeoFace2` | yes |
 | Curve | `GeoLine2`, `GeoArc2`, `GeoPolyline2`, `GeoPolylineArc2` | no |
 | Curved loop | `GeoPolygonArc2` | yes, but see below |
 
@@ -805,6 +805,79 @@ new GeoRectangle2(frame, 80.0, 40.0);                  // and can be built from 
 A loop can be turned round with `Reverse()`, which is what decides winding and which way round a pair of
 chamfer distances goes.
 
+## Ellipses
+
+`GeoEllipse2` is a region, as a circle is: a centre, the direction of its major axis, and the two
+semi-axes, the major one at least as long as the minor. A minor radius larger than the major one is
+refused rather than swapped, so every ellipse has one way of being written down.
+
+```csharp
+var ellipse = new GeoEllipse2(center, GeoVector2.XAxis, 300.0, 100.0);   // 300 along its axis, 100 across
+
+ellipse.Area;                                  // 94 247.78, pi times 300 times 100
+ellipse.Length;                                // 1 336.4893 round the rim
+ellipse.Eccentricity;                          // 0.9428
+GeoEllipse2.FromCircle(circle);                // a circle as an ellipse, its axis along X
+```
+
+**Its rim is walked by the eccentric angle**, the angle AutoCAD and IFC trim an ellipse by: the point at
+angle t is the centre plus 300·cos t along the axis and 100·sin t across it. That is not the direction
+seen from the centre. `GetPointAtAngle(Math.PI / 4)` is (212.13, 70.71), which lies 18.43° off the axis
+seen from the centre, not 45°. `GetPointAtParameter` runs 0 to 1 once round, even in that angle, and the
+distance members measure true length along the rim: `GetDistanceAtParameter(0.25)` is 334.1223, exactly
+a quarter of the length. The length is worked out by the arithmetic-geometric mean and the lengths along
+the rim by Carlson's elliptic integrals, both to rounding, with nothing sampled.
+
+**It answers what a circle answers**, read the same way: as a filled region.
+
+```csharp
+ellipse.Contains(new GeoPoint2(250, 50));             // true
+ellipse.Locate(new GeoPoint2(300.0005, 0));           // OnSide: within the point tolerance of the rim
+ellipse.GetClosestPointOnBoundary(new GeoPoint2(400, 200));   // (275.5969, 39.5057), 203.0629 away
+ellipse.SignedDistanceTo(center);                     // -100, the depth to the nearest rim
+
+ellipse.GetIntersections(new GeoLine2(new GeoPoint2(-400, 50), new GeoPoint2(400, 50)));
+                                                      // (-259.8076, 50), (259.8076, 50), along the segment
+ellipse.DistanceTo(new GeoLine2(new GeoPoint2(-100, 150), new GeoPoint2(100, 150)));   // 50
+ellipse.DistanceTo(new GeoEllipse2(new GeoPoint2(0, 250), GeoVector2.YAxis, 100, 50)); // 50
+ellipse.GetIntersections(new GeoEllipse2(center, GeoVector2.YAxis, 200, 150));
+                                                      // (±134.1641, ±89.4427), in the order of t
+```
+
+A point is on the rim when it lies within the point tolerance of it, measured as a distance in drawing
+units to the nearest point of the rim, not by how far the ellipse's equation is from one. Distances,
+shortest lines, crossings and collisions are offered against every shape a circle offers them against,
+and against another ellipse, and `Contains` takes a segment, a circle or an ellipse whole. Crossings with
+a straight shape or a chain come back in the circle's order, along the segment and edge by edge; crossings
+with a circle, an arc or another ellipse come back in the order of the eccentric angle. Two crossings
+within twice the point tolerance of each other are one point, as they are for a circle, and two rims
+that come within the point tolerance without crossing touch there, at one point midway between them,
+whichever of the two ellipses asks.
+
+Everything is exact or exact to rounding. A segment is crossed by a quadratic. A circle, an arc or
+another ellipse is crossed by the quartic the two equations make, its roots polished on both curves. The
+nearest point of the rim is found by Eberly's bisection, which holds at the centre, on both axes and for an
+ellipse a thousand times longer than it is wide. The distance between two ellipses is the one answer with
+no closed form: it is searched from 36 starts round the rim, 32 evenly spread and the four ends of the
+axes, and refined, and it agrees with an independent dense search to 3E-13 relative on 80 000 pairs as
+thin as a thousand to one. It is also the slow one, some tens of microseconds a call, where the distance
+to a point takes about a third of one. `Contains` for another ellipse searches the same way when the
+quick reading leaves it in doubt, and so does the touch between two ellipses, which is looked for in the
+gap itself only where the rims come near enough to touch.
+
+Ask from the ellipse. The other shapes have no overloads taking one, so it is `ellipse.DistanceTo(polygon)`,
+not `polygon.DistanceTo(ellipse)`. An ellipse has no `TryOffset`, since the curve a fixed distance from an
+ellipse is not an ellipse, and it takes part in no boolean: flatten it first.
+
+**Flattening** places the corners by the curvature, quadrant by quadrant and mirrored, so the polygon is
+symmetric about both axes and has a corner at each end of both. The automatic tolerance is the circle's
+share of the minor radius. An ellipse 1 000 by 1 then takes 84 edges, where corners an even step apart
+would need about 1 571; the ellipse 300 by 100 takes 64 and encloses 0.175 % less than the ellipse does.
+The count is rounded up to a multiple of four, so an ellipse with equal radii takes 52 where the circle
+takes 50. Past 4 096 corners the steps become even rather than adaptive, which keeps a tolerance too fine to
+meet from asking for an endless loop. `TriangulateSurface` fans from the centre, and `ToMesh` meshes the
+flattened rim as it does a circle's.
+
 ## Moving geometry
 
 `GeoTransform2` is a 3x3 homogeneous matrix covering translation, rotation, scaling and mirroring, the
@@ -830,8 +903,10 @@ A bulge measures an arc against its own chord, so moving, turning and scaling ev
 mirroring changes its sign, because the arc then leans the other way against the same chord.
 
 **What a transformation cannot do.** A circle stays a circle only when every direction is stretched by the
-same amount; under a scaling that differs between the axes it would be an ellipse, which this library has
-no type for, and the attempt is refused rather than answered with an averaged radius. A rectangle is
+same amount; under a scaling that differs between the axes it would be an ellipse, and the attempt is
+refused rather than answered with an averaged radius. Transform `GeoEllipse2.FromCircle(circle)` instead:
+a circle of radius 100 scaled by `Scaling(3, 1)` is the ellipse 300 by 100. An ellipse itself takes every
+transformation that does not flatten the plane, and stays an ellipse. A rectangle is
 refused the same way when it would come out a parallelogram — transform `rectangle.ToPolygon()` when that
 is what you want.
 

@@ -698,6 +698,59 @@ namespace GeometryHelper.UnitTest.Plane
             AssertRunsByT(other, other.GetIntersections(ellipse, Strict));
         }
 
+        [Fact]
+        public void ANeedleRestingHalfAThousandthAboveTheTop_TouchesOnce_WhicheverEllipseAsks()
+        {
+            // A needle 1 by 0.003, turned a hair off the X axis, whose own rim at its t = 0.2 rests 0.0005 above the
+            // top (0, 100) of the ellipse 300 by 100 with the two tangents along each other. The gap is within the point
+            // tolerance of 0.001, so it is a touch, and the touch is the midpoint (0, 100.00025) (A10). Its own equation
+            // turns far from where the rims come closest, 0.16 off where the gap is 0.0005, so the touch must be looked
+            // for in the gap, not in the equation.
+            GeoEllipse2 ellipse = new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.XAxis, 300, 100);
+            GeoEllipse2 needle = new GeoEllipse2(
+                new GeoPoint2(0.97995044670923415, 100.01559881523094),
+                new GeoVector2(-0.99989050590944029, -0.014797844172840363),
+                1,
+                0.003);
+            var touch = new GeoPoint2(0, 100.00025);
+
+            GeoPoint2[] asked = ellipse.GetIntersections(needle, Strict);
+            GeoPoint2[] askedBack = needle.GetIntersections(ellipse, Strict);
+
+            Assert.Single(asked);
+            Assert.InRange(asked[0].DistanceTo(touch), 0.0, 1E-4);
+            Assert.Single(askedBack);
+            Assert.InRange(askedBack[0].DistanceTo(touch), 0.0, 1E-4);
+            Assert.True(ellipse.TryIntersectWith(needle, out _, Strict));
+            Assert.True(needle.TryIntersectWith(ellipse, out _, Strict));
+        }
+
+        [Fact]
+        public void ANeedleCuttingAShallowLensOutOfALongEllipse_CrossesItFourTimes_WhicheverEllipseAsks()
+        {
+            // A needle 1.067 by 0.095 crosses a long ellipse 50.14 by 2.69 four times. Between two of the crossings,
+            // 0.27 apart along the rim, it cuts a lens only 0.00089 deep near (-50.671, 55.764): within the point
+            // tolerance of 0.001, but the gap there is the largest between the two crossings, not a least, so it is no
+            // touch, just as two circles cutting a lens 8E-5 deep cross twice. The four crossings are the same whichever
+            // ellipse asks.
+            GeoEllipse2 ellipse = new GeoEllipse2(
+                new GeoPoint2(-9.5094813543881713, 28.229761090236604),
+                new GeoVector2(-0.835876313564321, 0.548917833944317),
+                50.136498268757244,
+                2.6903775407523129);
+            GeoEllipse2 needle = new GeoEllipse2(
+                new GeoPoint2(-50.1312154350809, 55.506056231586818),
+                new GeoVector2(0.95192131884887643, -0.30634262308894589),
+                1.0670170608125147,
+                0.095047373751542319);
+
+            GeoPoint2[] asked = ellipse.GetIntersections(needle, Strict);
+
+            Assert.Equal(4, asked.Length);
+            Assert.DoesNotContain(asked, p => p.DistanceTo(new GeoPoint2(-50.671, 55.764)) <= 0.05);
+            AssertSamePoints(asked, needle.GetIntersections(ellipse, Strict), 1E-4);
+        }
+
         #endregion
 
         #region The same call twice, and the input

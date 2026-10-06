@@ -1,7 +1,7 @@
 # Meshing the plane
 
 `GeometryHelper.Meshing` breaks a closed shape of the plane into smaller faces: triangles, the cells of a grid, strips,
-or convex pieces. Polygons, faces with holes, loops with arcs, rectangles and circles all mesh the same way, with
+or convex pieces. Polygons, faces with holes, loops with arcs, rectangles, circles and ellipses all mesh the same way, with
 `ToMesh`. What comes back is a `GeoMesh2`. Its faces are simple polygons with no hole, running counter-clockwise.
 They share their corners, and two faces side by side meet along the same edge.
 
@@ -127,8 +127,8 @@ GeoMesh2 mesh = plate.ToMesh(MeshOptions.Grid(600, 400));   // 12 whole cells, t
 GeoRectangle2[] cells = plate.Divide(4, 3);                 // the same 12, as rectangles
 ```
 
-**Curves.** A loop with arcs is flattened first, and so is a circle, each arc cut so that it strays no further than the
-options' chord tolerance. Nought picks the automatic share of each radius.
+**Curves.** A loop with arcs is flattened first, and so is a circle or an ellipse, each arc cut so that it strays no further than
+the options' chord tolerance. Nought picks the automatic share of each radius, the minor one for an ellipse.
 
 ![A disc 3000 across on cells of 400, centred both ways](images/mesh/disc.svg)
 

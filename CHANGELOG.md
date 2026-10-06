@@ -4,6 +4,28 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**NEW.** `GeoEllipse2`, an ellipse as a region, and `Core.Ellipse2`, which holds its operations. An ellipse is a centre,
+the direction of its major axis and the two semi-axes, the major one at least as long as the minor; `FromCircle` makes
+one of a circle. Its rim is walked by the eccentric angle, the angle AutoCAD and IFC trim an ellipse by: on the ellipse
+300 by 100, the angle 45° is the point (212.13, 70.71), 18.43° off the axis seen from the centre. It measures its area,
+its length by the arithmetic-geometric mean, 1 336.4893 for that ellipse, and lengths along the rim by Carlson's
+elliptic integrals, each quarter exactly a quarter of the length. It answers what a circle answers, read as a filled
+region and in the circle's terms: containing and locating a point within the point tolerance as a distance to the rim,
+the nearest point of the rim by Eberly's bisection, and distances, shortest lines, crossings and collisions against
+every shape a circle takes and against another ellipse, with `Contains` for a segment, a circle or an ellipse whole.
+Crossings with a segment are a quadratic, and with a circle, an arc or an ellipse the quartic of the two equations, so
+nothing is sampled but the distance between two ellipses, whether one holds another, and where two touch, each where the
+quick reading leaves it in doubt, searched round the rim and refined; a touch is found whichever ellipse asks, and the
+distance agrees with an independent dense search to 3E-13 relative on 80 000 pairs as thin as a thousand to one. Every
+transformation that does not flatten the plane takes an ellipse to an ellipse, and a mirror reverses the way its angle
+runs. It flattens by its curvature, symmetric about both axes: an ellipse 1 000 by 1 takes 84 edges at the automatic
+tolerance, where even steps would need about 1 571. It triangulates and meshes as a circle does. It has no offset, since
+the curve a fixed distance from an ellipse is not one, and no boolean: flatten it first. The other shapes take no
+ellipse, so a question is asked from the ellipse. `GeoCircle2.TransformBy` still refuses an uneven scaling, and its docs
+now point to `FromCircle`.
+
 ## 11.2.0
 
 **NEW.** `TrySubtractAll` takes `SolidClosingOptions` as well, and then closes a cut it would skip: the cut worked out
