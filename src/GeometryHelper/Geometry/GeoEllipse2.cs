@@ -231,6 +231,36 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool IsPointOn(GeoPoint2 point, Tolerance tolerance) => Ellipse2.IsPointOn(this, point, tolerance);
 
+        /// <summary>
+        /// Checks whether this ellipse holds a segment whole, using the default tolerance.
+        /// </summary>
+        public bool Contains(GeoLine2 line) => Ellipse2.Contains(this, line);
+
+        /// <summary>
+        /// Checks whether this ellipse holds a segment whole, within a tolerance.
+        /// </summary>
+        public bool Contains(GeoLine2 line, Tolerance tolerance) => Ellipse2.Contains(this, line, tolerance);
+
+        /// <summary>
+        /// Checks whether this ellipse holds a circle whole, using the default tolerance.
+        /// </summary>
+        public bool Contains(GeoCircle2 circle) => Ellipse2.Contains(this, circle);
+
+        /// <summary>
+        /// Checks whether this ellipse holds a circle whole, within a tolerance.
+        /// </summary>
+        public bool Contains(GeoCircle2 circle, Tolerance tolerance) => Ellipse2.Contains(this, circle, tolerance);
+
+        /// <summary>
+        /// Checks whether this ellipse holds another ellipse whole, using the default tolerance.
+        /// </summary>
+        public bool Contains(GeoEllipse2 other) => Ellipse2.Contains(this, other);
+
+        /// <summary>
+        /// Checks whether this ellipse holds another ellipse whole, within a tolerance.
+        /// </summary>
+        public bool Contains(GeoEllipse2 other, Tolerance tolerance) => Ellipse2.Contains(this, other, tolerance);
+
         #endregion
 
         #region Moving

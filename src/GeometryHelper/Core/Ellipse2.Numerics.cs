@@ -309,5 +309,542 @@ namespace GeometryHelper.Core
                 sin = 0.0;
             }
         }
+
+        /// <summary>
+        /// A function of the eccentric angle made of a constant and the first two harmonics:
+        /// c0 + c1 cos t + s1 sin t + c2 cos 2t + s2 sin 2t.
+        /// </summary>
+        /// <remarks>
+        /// The square of the distance from a point of the rim to a fixed point, and the equation of a circle or of another
+        /// ellipse read along the rim, are all of this form. Written in z = e^{it} and multiplied by z², it is a polynomial of
+        /// degree four, so it turns at most four times round the rim and crosses nought at most four times.
+        /// </remarks>
+        internal readonly struct Wave
+        {
+            internal Wave(double c0, double c1, double s1, double c2, double s2)
+            {
+                C0 = c0;
+                C1 = c1;
+                S1 = s1;
+                C2 = c2;
+                S2 = s2;
+            }
+
+            internal double C0 { get; }
+
+            internal double C1 { get; }
+
+            internal double S1 { get; }
+
+            internal double C2 { get; }
+
+            internal double S2 { get; }
+
+            /// <summary>
+            /// Gets the rate of change of the function along the angle, which is of the same form.
+            /// </summary>
+            internal Wave Slope => new Wave(0.0, S1, -C1, 2.0 * S2, -2.0 * C2);
+
+            /// <summary>
+            /// Gets the sum of the sizes of the terms, the scale rounding is measured against.
+            /// </summary>
+            internal double Size => Math.Abs(C0) + Math.Abs(C1) + Math.Abs(S1) + Math.Abs(C2) + Math.Abs(S2);
+
+            /// <summary>
+            /// Gets the value at an angle.
+            /// </summary>
+            internal double At(double angle)
+            {
+                double cos = Math.Cos(angle);
+                double sin = Math.Sin(angle);
+
+                return C0 + C1 * cos + S1 * sin + C2 * ((cos - sin) * (cos + sin)) + S2 * (2.0 * sin * cos);
+            }
+
+            /// <summary>
+            /// Gets the value at an angle and the rate of change there, from one cosine and one sine.
+            /// </summary>
+            internal double At(double angle, out double rate)
+            {
+                double cos = Math.Cos(angle);
+                double sin = Math.Sin(angle);
+                double cos2 = (cos - sin) * (cos + sin);
+                double sin2 = 2.0 * sin * cos;
+
+                rate = S1 * cos - C1 * sin + 2.0 * (S2 * cos2 - C2 * sin2);
+                return C0 + C1 * cos + S1 * sin + C2 * cos2 + S2 * sin2;
+            }
+        }
+
+        /// <summary>
+        /// Gets the angles at which a function of two harmonics turns, its maxima and minima, sorted from nought up to a full
+        /// turn.
+        /// </summary>
+        /// <param name="wave">The function.</param>
+        /// <param name="turns">Four places for the angles.</param>
+        /// <returns>How many angles were found: none for a function that does not change at all, else two to four.</returns>
+        /// <remarks>
+        /// The slope is a function of the same form; its roots are the arguments of the roots of a polynomial of degree four in
+        /// z = e^{it}, found together by the Aberth–Ehrlich iteration, which converges for every root at once from any start
+        /// and needs no bracket. A root of the slope is a root of that polynomial on the unit circle, so each argument is a
+        /// candidate; Newton's method on the slope itself then polishes it to the last digit. A slope whose second harmonic is
+        /// rounding next to the rest is read as a polynomial of degree two, which it then is.
+        /// </remarks>
+        internal static int Turns(Wave wave, double[] turns)
+        {
+            Wave slope = wave.Slope;
+            double second = Math.Sqrt(slope.C2 * slope.C2 + slope.S2 * slope.S2);
+            double first = Math.Sqrt(slope.C1 * slope.C1 + slope.S1 * slope.S1);
+            double scale = Math.Max(second, first);
+
+            if (!(scale > 1E-14 * wave.Size))
+            {
+                return 0;
+            }
+
+            var re = new double[4];
+            var im = new double[4];
+            int count;
+
+            if (second > 1E-13 * scale)
+            {
+                // z² times the slope: (c2 - i s2)/2 z⁴ + (c1 - i s1)/2 z³ + c0 z² + (c1 + i s1)/2 z + (c2 + i s2)/2, made monic.
+                double leadRe = 0.5 * slope.C2;
+                double leadIm = -0.5 * slope.S2;
+                double leadNorm = leadRe * leadRe + leadIm * leadIm;
+
+                Divide(0.5 * slope.C1, -0.5 * slope.S1, leadRe, leadIm, leadNorm, out double c3Re, out double c3Im);
+                Divide(slope.C0, 0.0, leadRe, leadIm, leadNorm, out double c2Re, out double c2Im);
+                Divide(0.5 * slope.C1, 0.5 * slope.S1, leadRe, leadIm, leadNorm, out double c1Re, out double c1Im);
+                Divide(0.5 * slope.C2, 0.5 * slope.S2, leadRe, leadIm, leadNorm, out double c0Re, out double c0Im);
+
+                Aberth(c3Re, c3Im, c2Re, c2Im, c1Re, c1Im, c0Re, c0Im, re, im);
+                count = 4;
+            }
+            else
+            {
+                // z times the first harmonic and the constant: (c1 - i s1)/2 z² + c0 z + (c1 + i s1)/2, made monic.
+                double leadRe = 0.5 * slope.C1;
+                double leadIm = -0.5 * slope.S1;
+                double leadNorm = leadRe * leadRe + leadIm * leadIm;
+
+                Divide(slope.C0, 0.0, leadRe, leadIm, leadNorm, out double bRe, out double bIm);
+                Divide(0.5 * slope.C1, 0.5 * slope.S1, leadRe, leadIm, leadNorm, out double cRe, out double cIm);
+
+                // The root of b² - 4c, the larger root first and the other from the product of the two, which keeps its digits.
+                double dRe = bRe * bRe - bIm * bIm - 4.0 * cRe;
+                double dIm = 2.0 * bRe * bIm - 4.0 * cIm;
+                double size = Math.Sqrt(dRe * dRe + dIm * dIm);
+                double rootRe = Math.Sqrt(Math.Max(0.0, 0.5 * (size + dRe)));
+                double rootIm = (dIm < 0.0 ? -1.0 : 1.0) * Math.Sqrt(Math.Max(0.0, 0.5 * (size - dRe)));
+
+                if (bRe * rootRe + bIm * rootIm < 0.0)
+                {
+                    rootRe = -rootRe;
+                    rootIm = -rootIm;
+                }
+
+                re[0] = -0.5 * (bRe + rootRe);
+                im[0] = -0.5 * (bIm + rootIm);
+                double norm = re[0] * re[0] + im[0] * im[0];
+
+                if (norm > 0.0)
+                {
+                    Divide(cRe, cIm, re[0], im[0], norm, out re[1], out im[1]);
+                }
+
+                count = 2;
+            }
+
+            int found = 0;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (!(re[i] != 0.0 || im[i] != 0.0) || double.IsNaN(re[i]) || double.IsNaN(im[i]))
+                {
+                    continue;
+                }
+
+                double angle = Polish(slope, Math.Atan2(im[i], re[i]));
+                angle -= FullTurn * Math.Floor(angle / FullTurn);
+
+                if (!(angle < FullTurn))
+                {
+                    angle = 0.0;
+                }
+
+                turns[found++] = angle;
+            }
+
+            Array.Sort(turns, 0, found);
+
+            // Two roots that polished onto the same angle are one turn of the function, counted once.
+            int kept = 0;
+
+            for (int i = 0; i < found; i++)
+            {
+                if (kept == 0 || turns[i] - turns[kept - 1] > 1E-12)
+                {
+                    turns[kept++] = turns[i];
+                }
+            }
+
+            if (kept > 1 && turns[0] + FullTurn - turns[kept - 1] <= 1E-12)
+            {
+                kept--;
+            }
+
+            return kept;
+        }
+
+        /// <summary>
+        /// Divides one complex number by another whose squared size is given.
+        /// </summary>
+        private static void Divide(double re, double im, double byRe, double byIm, double byNorm, out double quotientRe, out double quotientIm)
+        {
+            quotientRe = (re * byRe + im * byIm) / byNorm;
+            quotientIm = (im * byRe - re * byIm) / byNorm;
+        }
+
+        /// <summary>
+        /// Finds the four roots of the monic polynomial z⁴ + c3 z³ + c2 z² + c1 z + c0 together.
+        /// </summary>
+        /// <remarks>
+        /// Each round moves every estimate by Newton's step corrected for the pull of the others, which keeps two estimates
+        /// from settling on the same root; the starts are spread round the unit circle, where the roots of these polynomials
+        /// lie in pairs z and 1/z̄. A double root is reached more slowly, to half the digits, which is all a turning point
+        /// needs: it only brackets the crossings either side of it, each of which is then found to the last digit.
+        /// </remarks>
+        private static void Aberth(
+            double c3Re, double c3Im, double c2Re, double c2Im, double c1Re, double c1Im, double c0Re, double c0Im, double[] re, double[] im)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                double radius = 1.0 + 0.1 * k;
+                double angle = 0.4 + 0.5 * Math.PI * k;
+                re[k] = radius * Math.Cos(angle);
+                im[k] = radius * Math.Sin(angle);
+            }
+
+            for (int round = 0; round < 100; round++)
+            {
+                double moved = 0.0;
+
+                for (int k = 0; k < 4; k++)
+                {
+                    double zRe = re[k];
+                    double zIm = im[k];
+
+                    // The value and the slope of the polynomial, by Horner's rule.
+                    double pRe = zRe + c3Re;
+                    double pIm = zIm + c3Im;
+                    double t = pRe * zRe - pIm * zIm + c2Re;
+                    pIm = pRe * zIm + pIm * zRe + c2Im;
+                    pRe = t;
+                    t = pRe * zRe - pIm * zIm + c1Re;
+                    pIm = pRe * zIm + pIm * zRe + c1Im;
+                    pRe = t;
+                    t = pRe * zRe - pIm * zIm + c0Re;
+                    pIm = pRe * zIm + pIm * zRe + c0Im;
+                    pRe = t;
+
+                    if (pRe == 0.0 && pIm == 0.0)
+                    {
+                        continue;
+                    }
+
+                    double dRe = 4.0 * zRe + 3.0 * c3Re;
+                    double dIm = 4.0 * zIm + 3.0 * c3Im;
+                    t = dRe * zRe - dIm * zIm + 2.0 * c2Re;
+                    dIm = dRe * zIm + dIm * zRe + 2.0 * c2Im;
+                    dRe = t;
+                    t = dRe * zRe - dIm * zIm + c1Re;
+                    dIm = dRe * zIm + dIm * zRe + c1Im;
+                    dRe = t;
+
+                    double pullRe = 0.0;
+                    double pullIm = 0.0;
+
+                    for (int j = 0; j < 4; j++)
+                    {
+                        double aRe = zRe - re[j];
+                        double aIm = zIm - im[j];
+                        double aNorm = aRe * aRe + aIm * aIm;
+
+                        if (j != k && aNorm > 0.0)
+                        {
+                            pullRe += aRe / aNorm;
+                            pullIm -= aIm / aNorm;
+                        }
+                    }
+
+                    double dNorm = dRe * dRe + dIm * dIm;
+                    double stepRe;
+                    double stepIm;
+
+                    if (!(dNorm > 0.0))
+                    {
+                        stepRe = 1E-8 * (1.0 + Math.Sqrt(zRe * zRe + zIm * zIm));
+                        stepIm = 0.0;
+                    }
+                    else
+                    {
+                        Divide(pRe, pIm, dRe, dIm, dNorm, out double ratioRe, out double ratioIm);
+
+                        double denRe = 1.0 - (ratioRe * pullRe - ratioIm * pullIm);
+                        double denIm = -(ratioRe * pullIm + ratioIm * pullRe);
+                        double denNorm = denRe * denRe + denIm * denIm;
+
+                        if (denNorm > 0.0)
+                        {
+                            Divide(ratioRe, ratioIm, denRe, denIm, denNorm, out stepRe, out stepIm);
+                        }
+                        else
+                        {
+                            stepRe = ratioRe;
+                            stepIm = ratioIm;
+                        }
+                    }
+
+                    re[k] = zRe - stepRe;
+                    im[k] = zIm - stepIm;
+
+                    double size = Math.Sqrt(re[k] * re[k] + im[k] * im[k]);
+                    moved = Math.Max(moved, Math.Sqrt(stepRe * stepRe + stepIm * stepIm) / Math.Max(1.0, size));
+                }
+
+                if (!(moved > 1E-15))
+                {
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Polishes an angle at which a function is nought by Newton's method on the function; a start the steps carry far
+        /// away, or do not bring down, is kept as it was.
+        /// </summary>
+        private static double Polish(Wave wave, double angle)
+        {
+            double start = angle;
+
+            for (int step = 0; step < 4; step++)
+            {
+                double value = wave.At(angle, out double rate);
+
+                if (!(Math.Abs(rate) > 0.0))
+                {
+                    break;
+                }
+
+                double move = value / rate;
+
+                if (!(Math.Abs(move) <= 0.1))
+                {
+                    return start;
+                }
+
+                angle -= move;
+
+                if (Math.Abs(move) <= 1E-14 * (1.0 + Math.Abs(angle)))
+                {
+                    return angle;
+                }
+            }
+
+            return Math.Abs(wave.At(angle)) <= Math.Abs(wave.At(start)) ? angle : start;
+        }
+
+        /// <summary>
+        /// Finds the one angle between two at which a function that runs one way between them is nought, the function taking
+        /// opposite signs at the two ends.
+        /// </summary>
+        /// <param name="wave">The function.</param>
+        /// <param name="low">The lower end of the bracket.</param>
+        /// <param name="high">The upper end of the bracket.</param>
+        /// <param name="atLow">The value at the lower end.</param>
+        /// <param name="atHigh">The value at the upper end.</param>
+        /// <remarks>
+        /// Newton's method from the point where the chord between the ends crosses nought, kept inside the bracket, which it
+        /// halves whenever a step would leave it, so the answer is right to the last digit and never lost.
+        /// </remarks>
+        internal static double Root(Wave wave, double low, double high, double atLow, double atHigh)
+        {
+            bool lowBelow = atLow < 0.0;
+            double angle = low + (high - low) * (atLow / (atLow - atHigh));
+
+            if (!(angle > low && angle < high))
+            {
+                angle = 0.5 * (low + high);
+            }
+
+            for (int step = 0; step < 200; step++)
+            {
+                double value = wave.At(angle, out double rate);
+
+                if (value == 0.0)
+                {
+                    return angle;
+                }
+
+                if ((value < 0.0) == lowBelow)
+                {
+                    low = angle;
+                }
+                else
+                {
+                    high = angle;
+                }
+
+                double next = rate != 0.0 ? angle - value / rate : 0.5 * (low + high);
+
+                // A step this short has reached the root: the next would be rounding, and might land on an end of the
+                // bracket, which would send it back to halving.
+                if (Math.Abs(next - angle) <= 1E-13 * (1.0 + Math.Abs(angle)))
+                {
+                    return next >= low && next <= high ? next : angle;
+                }
+
+                if (!(next > low && next < high))
+                {
+                    next = 0.5 * (low + high);
+                }
+
+                if (!(high - low > 4E-16 * (1.0 + Math.Abs(angle))))
+                {
+                    return next;
+                }
+
+                angle = next;
+            }
+
+            return angle;
+        }
+
+        /// <summary>
+        /// Finds the least value of a function between two angles, by Brent's method: golden sections where a parabola through
+        /// the last three points cannot be trusted, the parabola's vertex where it can.
+        /// </summary>
+        /// <param name="measure">The function.</param>
+        /// <param name="low">The lower end of the bracket.</param>
+        /// <param name="start">A point inside the bracket to start from, no higher than the ends if one is known.</param>
+        /// <param name="high">The upper end of the bracket.</param>
+        /// <param name="least">The least value found.</param>
+        /// <returns>The angle of the least value found.</returns>
+        internal static double Least(Func<double, double> measure, double low, double start, double high, out double least)
+        {
+            const double Golden = 0.3819660112501051;
+
+            double a = low;
+            double b = high;
+            double x = start;
+            double w = start;
+            double v = start;
+            double fx = measure(x);
+            double fw = fx;
+            double fv = fx;
+            double d = 0.0;
+            double e = 0.0;
+
+            for (int round = 0; round < 200; round++)
+            {
+                double middle = 0.5 * (a + b);
+                double tol1 = 1E-11 * (1.0 + Math.Abs(x));
+                double tol2 = 2.0 * tol1;
+
+                if (Math.Abs(x - middle) <= tol2 - 0.5 * (b - a))
+                {
+                    break;
+                }
+
+                bool golden = true;
+
+                if (Math.Abs(e) > tol1)
+                {
+                    double r = (x - w) * (fx - fv);
+                    double q = (x - v) * (fx - fw);
+                    double p = (x - v) * q - (x - w) * r;
+                    q = 2.0 * (q - r);
+
+                    if (q > 0.0)
+                    {
+                        p = -p;
+                    }
+                    else
+                    {
+                        q = -q;
+                    }
+
+                    if (Math.Abs(p) < Math.Abs(0.5 * q * e) && p > q * (a - x) && p < q * (b - x))
+                    {
+                        e = d;
+                        d = p / q;
+                        double u0 = x + d;
+
+                        if (u0 - a < tol2 || b - u0 < tol2)
+                        {
+                            d = x < middle ? tol1 : -tol1;
+                        }
+
+                        golden = false;
+                    }
+                }
+
+                if (golden)
+                {
+                    e = x < middle ? b - x : a - x;
+                    d = Golden * e;
+                }
+
+                double u = Math.Abs(d) >= tol1 ? x + d : x + (d > 0.0 ? tol1 : -tol1);
+                double fu = measure(u);
+
+                if (fu <= fx)
+                {
+                    if (u < x)
+                    {
+                        b = x;
+                    }
+                    else
+                    {
+                        a = x;
+                    }
+
+                    v = w;
+                    fv = fw;
+                    w = x;
+                    fw = fx;
+                    x = u;
+                    fx = fu;
+                }
+                else
+                {
+                    if (u < x)
+                    {
+                        a = u;
+                    }
+                    else
+                    {
+                        b = u;
+                    }
+
+                    if (fu <= fw || w == x)
+                    {
+                        v = w;
+                        fv = fw;
+                        w = u;
+                        fw = fu;
+                    }
+                    else if (fu <= fv || v == x || v == w)
+                    {
+                        v = u;
+                        fv = fu;
+                    }
+                }
+            }
+
+            least = fx;
+            return x;
+        }
     }
 }
