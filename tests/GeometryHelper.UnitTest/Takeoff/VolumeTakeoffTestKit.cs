@@ -17,7 +17,7 @@ namespace GeometryHelper.UnitTest.Takeoff
     /// <para>
     /// The oracle cuts space into cells by every x, y and z any box or opening has, so that each cell lies wholly inside
     /// or wholly outside each box. A cell belongs to the highest-ranked box whose material holds it, the rank being
-    /// (Priority, index) ascending, as the takeoff ranks its items. A box's net volume is the sum of the cells it owns,
+    /// (Priority descending, index ascending), as the takeoff ranks its items. A box's net volume is the sum of the cells it owns,
     /// what it gives up to box k the sum of its cells k owns, and the union the sum of every cell owned at all.
     /// </para>
     /// <para>
@@ -177,8 +177,8 @@ namespace GeometryHelper.UnitTest.Takeoff
 
         /// <summary>
         /// A slab, a beam and a column meeting at a joint, listed slab first: the slab 3 000 by 3 000 by 200 at the top,
-        /// priority 3; the beam 3 000 long, 400 wide and 400 deep under it, its top flush with the slab's, priority 2; and
-        /// the column 300 by 400 and 1 000 high, its top flush too and its sides flush with the beam's, priority 0.
+        /// priority 1; the beam 3 000 long, 400 wide and 400 deep under it, its top flush with the slab's, priority 2; and
+        /// the column 300 by 400 and 1 000 high, its top flush too and its sides flush with the beam's, priority 3.
         /// </summary>
         /// <remarks>
         /// The block all three share is 300 by 400 by 200, 24 000 000. The column keeps all of itself, 120 000 000. The
@@ -193,7 +193,7 @@ namespace GeometryHelper.UnitTest.Takeoff
                 new Box(-1000, 0, 600, 2000, 400, 1000),
                 new Box(0, 0, 0, 300, 400, 1000),
             },
-            new[] { 3, 2, 0 });
+            new[] { 1, 2, 3 });
 
         /// <summary>
         /// Four cubes 1 000 across, of one priority, laid 800 apart in a square so that each pair beside each other shares
@@ -255,8 +255,8 @@ namespace GeometryHelper.UnitTest.Takeoff
             new[] { firstPriority, secondPriority });
 
         /// <summary>
-        /// The two cubes of <see cref="HalfOverlap"/>, the first of priority <see cref="int.MaxValue"/> and the second of
-        /// <see cref="int.MinValue"/>, and a post 500 by 500 by 2 000 of priority 0 standing through both where they meet.
+        /// The two cubes of <see cref="HalfOverlap"/>, the first of priority <see cref="int.MinValue"/> and the second of
+        /// <see cref="int.MaxValue"/>, and a post 500 by 500 by 2 000 of priority 0 standing through both where they meet.
         /// </summary>
         /// <remarks>
         /// Ranked: the second cube, the post, the first cube. The second keeps 1 000 000 000. The post gives it 250 by 500 by
@@ -265,11 +265,11 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// </remarks>
         internal static BoxSet ExtremePriorities() => new BoxSet(
             new[] { new Box(0, 0, 0, 1000, 1000, 1000), new Box(500, 0, 0, 1500, 1000, 1000), new Box(250, 250, -500, 750, 750, 1500) },
-            new[] { int.MaxValue, int.MinValue, 0 });
+            new[] { int.MinValue, int.MaxValue, 0 });
 
         /// <summary>
-        /// A slab 3 000 by 3 000 by 200, priority 3, with a duct 600 by 600 through it running 100 past both faces, and a
-        /// column 400 by 400 by 2 000, priority 0, through the slab across a corner of the duct.
+        /// A slab 3 000 by 3 000 by 200, priority 0, with a duct 600 by 600 through it running 100 past both faces, and a
+        /// column 400 by 400 by 2 000, priority 3, through the slab across a corner of the duct.
         /// </summary>
         /// <remarks>
         /// The slab's material is 1 800 000 000 less the duct's 72 000 000, 1 728 000 000. The column crosses 400 by 400
@@ -282,11 +282,11 @@ namespace GeometryHelper.UnitTest.Takeoff
                 new Box(0, 0, 0, 3000, 3000, 200, new Box(1000, 1000, -100, 1600, 1600, 300)),
                 new Box(1400, 1400, -1000, 1800, 1800, 1000),
             },
-            new[] { 3, 0 });
+            new[] { 0, 3 });
 
         /// <summary>
         /// A hollow column, 400 by 400 by 2 000 with a duct 200 by 200 through its length running 100 past both ends,
-        /// priority 0, through a slab 2 400 by 2 400 by 200, priority 3.
+        /// priority 3, through a slab 2 400 by 2 400 by 200, priority 0.
         /// </summary>
         /// <remarks>
         /// The column's material is 400 by 400 less 200 by 200, 120 000, by 2 000: 240 000 000. Of the slab's
@@ -299,11 +299,11 @@ namespace GeometryHelper.UnitTest.Takeoff
                 new Box(-1000, -1000, 0, 1400, 1400, 200),
                 new Box(0, 0, -1000, 400, 400, 1000, new Box(100, 100, -1100, 300, 300, 1100)),
             },
-            new[] { 3, 0 });
+            new[] { 0, 3 });
 
         /// <summary>
-        /// A cube 1 000 across with a corner notch 500 by 500 cut through its height, priority 1, and a block filling the
-        /// notch flush, priority 0: their boxes overlap by 500 by 500 by 1 000, their material not at all.
+        /// A cube 1 000 across with a corner notch 500 by 500 cut through its height, priority 0, and a block filling the
+        /// notch flush, priority 1: their boxes overlap by 500 by 500 by 1 000, their material not at all.
         /// </summary>
         /// <remarks>The notched cube holds 750 000 000, the block 250 000 000.</remarks>
         internal static BoxSet BlockInANotch() => new BoxSet(
@@ -312,10 +312,10 @@ namespace GeometryHelper.UnitTest.Takeoff
                 new Box(0, 0, 0, 1000, 1000, 1000, new Box(500, 500, -100, 1100, 1100, 1100)),
                 new Box(500, 500, 0, 1000, 1000, 1000),
             },
-            new[] { 1, 0 });
+            new[] { 0, 1 });
 
         /// <summary>
-        /// Two copies of a block 100 by 200 by 300, 6 000 000, of priority 1, and a bar 400 by 100 by 100 of priority 0
+        /// Two copies of a block 100 by 200 by 300, 6 000 000, of priority 0, and a bar 400 by 100 by 100 of priority 1
         /// running through both, 1 000 000 of each: the later copy is taken by two parts, the bar and the first copy.
         /// </summary>
         /// <remarks>
@@ -325,7 +325,7 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// </remarks>
         internal static BoxSet CopiesWithABarThrough() => new BoxSet(
             new[] { new Box(0, 0, 0, 100, 200, 300), new Box(0, 0, 0, 100, 200, 300), new Box(0, 0, 100, 400, 100, 200) },
-            new[] { 1, 1, 0 });
+            new[] { 0, 0, 1 });
 
         #endregion
 
@@ -365,7 +365,7 @@ namespace GeometryHelper.UnitTest.Takeoff
                 int count = set.Boxes.Count;
                 var oracle = new Oracle(count);
                 oracle.Ranked = Enumerable.Range(0, count).Where(i => set.Boxes[i] != null)
-                    .OrderBy(i => set.Priorities[i]).ThenBy(i => i).ToArray();
+                    .OrderByDescending(i => set.Priorities[i]).ThenBy(i => i).ToArray();
 
                 double[][] cuts = Enumerable.Range(0, 3).Select(axis => Coordinates(set.Boxes, axis)).ToArray();
 

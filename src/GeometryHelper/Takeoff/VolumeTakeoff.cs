@@ -16,7 +16,7 @@ namespace GeometryHelper.Takeoff
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The parts are ranked by their <see cref="VolumeItem.Priority"/>, the lowest first, and of two the same by their
+    /// The parts are ranked by their <see cref="VolumeItem.Priority"/>, the highest first, and of two the same by their
     /// order in the list. A part keeps all it shares with the parts ranked after it, and loses to them nothing. Where a
     /// slab 200 thick sits on a beam 300 wide that runs into a column 400 by 400, and the column is ranked first, the
     /// beam second and the slab third, the block the three share, 300 by 400 by 200, is the column's: the slab loses it
@@ -266,7 +266,7 @@ namespace GeometryHelper.Takeoff
         }
 
         /// <summary>
-        /// Ranks the parts by their priority, the lowest first, and of two the same by their index.
+        /// Ranks the parts by their priority, the highest first, and of two the same by their index.
         /// </summary>
         private static void Rank(Part[] parts)
         {
@@ -280,7 +280,9 @@ namespace GeometryHelper.Takeoff
                 }
             }
 
-            present.Sort((a, b) => a.Item.Priority != b.Item.Priority ? a.Item.Priority.CompareTo(b.Item.Priority) : a.Index.CompareTo(b.Index));
+            // The higher priority first; of two the same, the earlier in the list. CompareTo, not a subtraction, which would wrap round
+            // between int.MinValue and int.MaxValue.
+            present.Sort((a, b) => a.Item.Priority != b.Item.Priority ? b.Item.Priority.CompareTo(a.Item.Priority) : a.Index.CompareTo(b.Index));
 
             for (int r = 0; r < present.Count; r++)
             {

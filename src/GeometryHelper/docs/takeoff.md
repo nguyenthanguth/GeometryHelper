@@ -13,9 +13,9 @@ using GeometryHelper.Takeoff;
 
 var items = new List<VolumeItem>
 {
-    new VolumeItem(slab,   "SLAB",   3),
+    new VolumeItem(slab,   "SLAB",   1),
     new VolumeItem(beam,   "BEAM",   2),
-    new VolumeItem(column, "COLUMN", 0),
+    new VolumeItem(column, "COLUMN", 3),
 };
 
 VolumeTakeoffResult[] results = VolumeTakeoff.Run(items);            // in the order of the items
@@ -32,9 +32,10 @@ worked out with, and `MaxDegreeOfParallelism`, -1 for every processor (the defau
 
 ## Who keeps the overlap
 
-The lower `Priority` keeps what two parts share; of two the same, the item earlier in the list. Rank the parts by what
-is poured or set first: columns 0, walls 1, beams 2, slabs 3. A column 400 by 400 and 3 200 high, a beam 300 wide, 600
-deep and 6 000 long running through it, and a slab 6 000 by 6 000 by 200 on both, their tops flush:
+The higher `Priority` keeps what two parts share and cuts it out of the lower; of two the same, the item earlier in the
+list, so a list sorted by id, the largest first, lets the larger id keep it. Here the column keeps most: columns 3,
+beams 2, slabs 1. A column 400 by 400 and 3 200 high, a beam 300 wide, 600 deep and 6 000 long running through it,
+and a slab 6 000 by 6 000 by 200 on both, their tops flush:
 
 | Part | Gross | Taken off | Net |
 |---|---|---|---|
@@ -71,8 +72,8 @@ numbers are the same, bit for bit, on one thread or on every processor.
 
 ## On a real model
 
-A Tekla Structures model of 30 921 parts, read closed, ranked columns 0, walls 1, girders and beams 2, slabs 3, stairs
-4, grout and base plates 5, steel fittings 6 and formwork 7, holds 69 040.90 m3 gross. Taken off with the contact and the
+A Tekla Structures model of 30 921 parts, read closed, ranked columns 8, walls 7, girders and beams 6, slabs 5, stairs
+4, grout and base plates 3, steel fittings 2 and formwork 1, holds 69 040.90 m3 gross. Taken off with the contact and the
 fallback that suit a Tekla model in millimetres,
 
 ```csharp

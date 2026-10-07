@@ -119,8 +119,8 @@ namespace GeometryHelper.UnitTest.Takeoff
         [MemberData(nameof(Settings))]
         public void APartWhollyInsideAHigherOne_KeepsNothing(string setting)
         {
-            // The block, priority 2, inside the cube, priority 1, listed first: the list order does not save it.
-            IReadOnlyList<VolumeTakeoffResult> results = RunChecked(BlockInACube(2, 1), setting);
+            // The block, priority 1, inside the cube, priority 2, listed first: the list order does not save it.
+            IReadOnlyList<VolumeTakeoffResult> results = RunChecked(BlockInACube(1, 2), setting);
 
             AssertTaken(results[0], 2.7E7, 0.0, (1, 2.7E7));
             AssertTaken(results[1], 1E9, 1E9);
@@ -131,7 +131,7 @@ namespace GeometryHelper.UnitTest.Takeoff
         public void APartWhollyInsideALowerOne_HollowsIt(string setting)
         {
             // The same two, the cube now losing: it keeps all but the block, a hollow clear of its faces.
-            IReadOnlyList<VolumeTakeoffResult> results = RunChecked(BlockInACube(1, 2), setting);
+            IReadOnlyList<VolumeTakeoffResult> results = RunChecked(BlockInACube(2, 1), setting);
 
             AssertTaken(results[0], 2.7E7, 2.7E7);
             AssertTaken(results[1], 1E9, 9.73E8, (0, 2.7E7));
@@ -187,9 +187,10 @@ namespace GeometryHelper.UnitTest.Takeoff
 
         [Theory]
         [MemberData(nameof(Settings))]
-        public void ANegativePriority_RanksAboveNought_ThoughListedLater(string setting)
+        public void ANegativePriority_RanksBelowNought_ThoughListedEarlier(string setting)
         {
-            IReadOnlyList<VolumeTakeoffResult> results = RunChecked(HalfOverlap(0, -3), setting);
+            // The first cube, priority -3, loses to the second, priority 0, though it comes first in the list.
+            IReadOnlyList<VolumeTakeoffResult> results = RunChecked(HalfOverlap(-3, 0), setting);
 
             AssertTaken(results[0], 1E9, 5E8, (1, 5E8));
             AssertTaken(results[1], 1E9, 1E9);
@@ -199,7 +200,7 @@ namespace GeometryHelper.UnitTest.Takeoff
         [MemberData(nameof(Settings))]
         public void TheLeastAndGreatestPriorities_RankWithoutOverflow(string setting)
         {
-            // int.MinValue first, then 0, then int.MaxValue: a comparison by subtraction would wrap round and rank them
+            // int.MaxValue first, then 0, then int.MinValue: a comparison by subtraction would wrap round and rank them
             // backwards.
             IReadOnlyList<VolumeTakeoffResult> results = RunChecked(ExtremePriorities(), setting);
 
@@ -309,7 +310,7 @@ namespace GeometryHelper.UnitTest.Takeoff
             double turn = Math.PI / 6.0;
             GeoSolid3 column = new GeoObb3(new GeoPoint3(0, 0, 0), 300, 400, 2000, new GeoVector3(Math.Cos(turn), Math.Sin(turn), 0), new GeoVector3(-Math.Sin(turn), Math.Cos(turn), 0)).ToSolid();
             GeoSolid3 slab = new Box(-1000, -1000, 0, 1000, 1000, 200).ToSolid();
-            VolumeItem[] items = { new VolumeItem(slab, "slab", 3), new VolumeItem(column, "column", 0) };
+            VolumeItem[] items = { new VolumeItem(slab, "slab", 0), new VolumeItem(column, "column", 3) };
 
             IReadOnlyList<VolumeTakeoffResult> results = VolumeTakeoff.Run(items, Options("plain"));
 
@@ -326,7 +327,7 @@ namespace GeometryHelper.UnitTest.Takeoff
             GeoSolid3 column = GeoSolid3.Cylinder(new GeoPoint3(0, 0, -1000), new GeoPoint3(0, 0, 1000), 200, 32, Fine);
             GeoSolid3 slab = new Box(-1000, -1000, 0, 1000, 1000, 200).ToSolid();
             double section = 16.0 * 200.0 * 200.0 * Math.Sin(Math.PI / 16.0);
-            VolumeItem[] items = { new VolumeItem(slab, "slab", 3), new VolumeItem(column, "column", 0) };
+            VolumeItem[] items = { new VolumeItem(slab, "slab", 0), new VolumeItem(column, "column", 3) };
 
             IReadOnlyList<VolumeTakeoffResult> results = VolumeTakeoff.Run(items, Options("plain"));
 
@@ -342,13 +343,13 @@ namespace GeometryHelper.UnitTest.Takeoff
         [Fact]
         public void AWedgeThinnerThanTheContactOnTheLosersFace_IsTakenOffWithoutAnIssue()
         {
-            // The box of ContactWedgeTests, 56 250 000, priority 1, and the wedge on its face, 194.4 and 0.006 at its
-            // thickest, priority 0. With the contact of a hundredth the wedge is taken as touching, or as the overlap it is:
+            // The box of ContactWedgeTests, 56 250 000, priority 0, and the wedge on its face, 194.4 and 0.006 at its
+            // thickest, priority 1. With the contact of a hundredth the wedge is taken as touching, or as the overlap it is:
             // the box keeps between 56 249 805.6 and all of itself, and the takeoff has no issue. At 120c78b the boolean
             // throws on the pair, and the takeoff can only say it could not work the overlap out.
             GeoSolid3 box = new Box(0, 0, 0, 250, 250, 900).ToSolid();
             GeoSolid3 wedge = GeoSolid3.Extrude(new GeoPolygon3(new[] { new GeoPoint3(249.994, 90, 0), new GeoPoint3(250, 90, 0), new GeoPoint3(250, 162, 0) }, Fine), new GeoVector3(0, 0, 900), Fine);
-            VolumeItem[] items = { new VolumeItem(box, "box", 1), new VolumeItem(wedge, "wedge", 0) };
+            VolumeItem[] items = { new VolumeItem(box, "box", 0), new VolumeItem(wedge, "wedge", 1) };
 
             IReadOnlyList<VolumeTakeoffResult> results = VolumeTakeoff.Run(items, Options("contact"));
 
