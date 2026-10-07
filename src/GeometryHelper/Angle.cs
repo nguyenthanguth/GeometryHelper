@@ -168,6 +168,73 @@ namespace GeometryHelper
             return new Angle(wrapped);
         }
 
+        /// <summary>
+        /// Turns the angle of a text, in degrees, the way up it reads: into the range above -90° and up to 90°, both
+        /// raised by a tenth of a radian, 5.73°, the tolerance Tekla Structures takes, by adding or taking off a half
+        /// turn.
+        /// </summary>
+        /// <param name="degrees">The angle of the text, in degrees, any number of turns either way.</param>
+        /// <returns>The angle the text reads at: 180° gives 0°, 100° gives -80°, and 95° stays 95°.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="degrees"/> is NaN or infinite.</exception>
+        public static double ToReadableDegrees(double degrees) => ToReadableDegrees(degrees, FromRadians(0.1));
+
+        /// <summary>
+        /// Turns the angle of a text, in degrees, the way up it reads: into the range above -90° and up to 90°, both
+        /// raised by a tolerance, by adding or taking off a half turn.
+        /// </summary>
+        /// <param name="degrees">The angle of the text, in degrees, any number of turns either way.</param>
+        /// <param name="tolerance">
+        /// How far past upright a text may lean and still read as it is, so that one standing about upright does not turn
+        /// over from one side to the other: at least nought and less than a right angle.
+        /// </param>
+        /// <returns>
+        /// The angle the text reads at, above -90° plus the tolerance and no more than 90° plus it. With a tolerance of
+        /// 1°, 90.5° stays 90.5°, 92° gives -88°, 180° gives 0° and -89.5° gives 90.5°.
+        /// </returns>
+        /// <remarks>
+        /// The angle is first wrapped into a single turn, (-180°, 180°], so 450° reads as 90° and -270° as 90° too. A text
+        /// turned more than a right angle past upright, plus the tolerance, reads upside down and is turned a half turn;
+        /// one that leans less is left as it is.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="degrees"/> is NaN or infinite, or the tolerance is negative, a right angle or more, or not a
+        /// number.
+        /// </exception>
+        public static double ToReadableDegrees(double degrees, Angle tolerance)
+        {
+            Guard.Finite(degrees, nameof(degrees), "An angle has to be a finite number.");
+
+            double slack = tolerance.Degrees;
+
+            if (!(slack >= 0.0 && slack < 90.0))
+            {
+                throw new ArgumentOutOfRangeException(nameof(tolerance), "The tolerance has to be at least nought and less than a right angle.");
+            }
+
+            double wrapped = degrees % FullTurnDegrees;
+
+            if (wrapped > 180.0)
+            {
+                wrapped -= FullTurnDegrees;
+            }
+            else if (wrapped <= -180.0)
+            {
+                wrapped += FullTurnDegrees;
+            }
+
+            if (wrapped > 90.0 + slack)
+            {
+                return wrapped - 180.0;
+            }
+
+            if (wrapped <= -90.0 + slack)
+            {
+                return wrapped + 180.0;
+            }
+
+            return wrapped;
+        }
+
         #endregion
 
         #region Arithmetic

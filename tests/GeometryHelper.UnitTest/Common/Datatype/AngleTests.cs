@@ -423,5 +423,83 @@ namespace GeometryHelper.UnitTest.Common
     
 
         #endregion
-}
+
+        #region Reading the right way up
+
+        // The default tolerance is a tenth of a radian, 5.7295779513°, so a text reads as it is up to 95.73° and from
+        // above -84.27°; the cases stand clear of both bounds.
+        [Theory]
+        [InlineData(0.0, 0.0)]
+        [InlineData(45.0, 45.0)]
+        [InlineData(95.0, 95.0)]
+        [InlineData(96.0, -84.0)]
+        [InlineData(100.0, -80.0)]
+        [InlineData(180.0, 0.0)]
+        [InlineData(-84.0, -84.0)]
+        [InlineData(-84.5, 95.5)]
+        [InlineData(-90.0, 90.0)]
+        [InlineData(-180.0, 0.0)]
+        [InlineData(270.0, 90.0)]
+        [InlineData(450.0, 90.0)]
+        [InlineData(-270.0, 90.0)]
+        [InlineData(721.0, 1.0)]
+        public void ToReadableDegrees_TurnsATextUpsideDownAHalfTurn_WithinATenthOfARadianOfUpright(double degrees, double readable)
+        {
+            Assert.Equal(readable, Angle.ToReadableDegrees(degrees), 9);
+            Assert.Equal(readable, Angle.ToReadableDegrees(degrees, Angle.FromRadians(0.1)), 9);
+        }
+
+        [Theory]
+        [InlineData(90.5, 90.5)]
+        [InlineData(92.0, -88.0)]
+        [InlineData(180.0, 0.0)]
+        [InlineData(-89.5, 90.5)]
+        [InlineData(-88.0, -88.0)]
+        public void ToReadableDegrees_TakesTheToleranceGiven(double degrees, double readable)
+        {
+            Assert.Equal(readable, Angle.ToReadableDegrees(degrees, Angle.FromDegrees(1.0)), 9);
+        }
+
+        [Fact]
+        public void ToReadableDegrees_WithNoTolerance_KeepsUprightAndTurnsAnythingPastIt()
+        {
+            Angle none = Angle.Zero;
+
+            Assert.Equal(90.0, Angle.ToReadableDegrees(90.0, none), 12);
+            Assert.Equal(-89.999, Angle.ToReadableDegrees(90.001, none), 9);
+            Assert.Equal(90.0, Angle.ToReadableDegrees(-90.0, none), 12);
+            Assert.Equal(-89.999, Angle.ToReadableDegrees(-89.999, none), 9);
+        }
+
+        [Fact]
+        public void ToReadableDegrees_AlwaysLandsInTheRangeTheToleranceSets()
+        {
+            // Every half degree over four turns either way, with the default tolerance and with none.
+            foreach (Angle tolerance in new[] { Angle.FromRadians(0.1), Angle.Zero })
+            {
+                for (double degrees = -1440.0; degrees <= 1440.0; degrees += 0.5)
+                {
+                    double readable = Angle.ToReadableDegrees(degrees, tolerance);
+
+                    Assert.InRange(readable, -90.0 + tolerance.Degrees + 1E-9, 90.0 + tolerance.Degrees);
+
+                    // The same direction, or the opposite one: a whole number of half turns away.
+                    double halfTurns = (degrees - readable) / 180.0;
+                    Assert.Equal(Math.Round(halfTurns), halfTurns, 9);
+                }
+            }
+        }
+
+        [Fact]
+        public void ToReadableDegrees_RefusesAnAngleOrAToleranceItCannotUse()
+        {
+            Assert.Equal("degrees", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(double.NaN)).ParamName);
+            Assert.Equal("degrees", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(double.PositiveInfinity)).ParamName);
+            Assert.Equal("tolerance", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(10.0, Angle.FromDegrees(-1.0))).ParamName);
+            Assert.Equal("tolerance", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(10.0, Angle.Right)).ParamName);
+            Assert.Equal("tolerance", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(10.0, Angle.FromRadians(double.NaN))).ParamName);
+        }
+
+        #endregion
+    }
 }

@@ -134,6 +134,19 @@ Angle signed  = turned.NormalizeSigned(); // into (-π, π]
 bearing, the second for a difference between two directions, where -170° is a nearer answer than
 190°.
 
+A text has a third cut. `Angle.ToReadableDegrees` turns its angle, in degrees, the way up it reads:
+anything more than a right angle past upright, plus a tolerance, is turned a half turn, so 180° reads
+as 0° and 100° as -80°. The tolerance keeps a text standing about upright from turning over from one
+side to the other; it is a tenth of a radian, 5.73°, unless given, the value Tekla Structures takes,
+so 95° stays 95°.
+
+```csharp
+Angle.ToReadableDegrees(180.0);                        // 0
+Angle.ToReadableDegrees(100.0);                        // -80
+Angle.ToReadableDegrees(95.0);                         // 95, within the tenth of a radian
+Angle.ToReadableDegrees(92.0, Angle.FromDegrees(1.0)); // -88
+```
+
 ## PointLocation
 
 Where a point sits relative to a shape: `Inside`, `OutSide`, or `OnSide`.
