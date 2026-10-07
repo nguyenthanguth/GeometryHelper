@@ -14,23 +14,37 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 11.2.0
+      NEW IN 12.0.0
 
-      NEW, a net body with its open cuts closed
-      - TrySubtractAll takes SolidClosingOptions as well, and then closes a cut it would skip: the cut worked out within
-        the tolerance is closed by GeoSolid3.TryClose, and where that does not close, the cut within the fallback. A
-        body closed is taken only where it is valid within the booleans' tolerance too and holds what a cut can leave,
-        no more than the body before the cut and no less than that less the whole tool. Every cut taken without closing
-        is taken as before, bit for bit, and the overload without closing is unchanged.
-      - No cut is closed where the body before it or the tool carries openings: such a cut is skipped as without
-        closing.
-      - SubtractReport says which cuts were closed (Closed, counted in Taken), how (Closings), and which closed but were
-        refused for their volume (RefusedByVolume, still in Skipped).
+      BREAKING, label placement keeps the greedy algorithm alone
+      - ArrangeAlgorithmType and ArrangeOptions.Algorithm are removed, with MaxBacktrackSteps,
+        AnnealingInitialTemperature, AnnealingCoolingRate and ForceIterations, the options only the other four read.
+        The greedy placement, the default all along, places every label where it did, bit for bit. Delete the Algorithm
+        line and those options; code that chose another algorithm gets the greedy placement.
 
-      Of the 79 864 parts of a Tekla model cut within a thousandth with a contact and a fallback of a hundredth, 17 have
-      a cut skipped, 35 of their 314 cuts; closing within a gap of 0.005 takes 9 of them and leaves 10, none refused for
-      its volume, and the parts whose bodies cut within a hundredth are valid come out within 0.12 % of those, where
-      skipping left them up to 10 % off.
+      NEW, net volumes of a model's parts
+      - GeometryHelper.Takeoff: VolumeTakeoff.Run takes off the volume of each part with every bit of material counted
+        once, by the part ranked first among those holding it: the higher VolumeItem.Priority, then the larger
+        VolumeItem.Id, then the earlier in the list. Only what the parts share is cut, never the parts. What the
+        booleans cannot make is worked out by exact slicing. It runs in parallel, the same bit for bit on any number of
+        threads. On a Tekla model of 30 921 parts it keeps 67 369.17 m3 net of 69 040.90 m3 gross, no part carrying an
+        issue, in 197 seconds on 24 processors.
+
+      NEW, ellipses
+      - GeoEllipse2, an ellipse as a region, with Core.Ellipse2: area, length, lengths along the rim, containment, the
+        nearest point, distances, crossings and collisions against every shape a circle takes and against another
+        ellipse, transformations, flattening by curvature, triangles and meshes.
+
+      NEW, angles
+      - Angle.ToReadableDegrees and Angle.ToReadableRadians turn the angle of a text the way up it reads, within a
+        tolerance of a tenth of a radian unless given, as Tekla Structures takes it.
+
+      FIXED
+      - A circle or a coplanar arc in space a hair inside another, within the point tolerance of touching it, touches
+        it between the two rims where they come nearest, not at a point read off the radical line, and an arc of it is
+        no longer missed.
+      - A boolean with a contact no longer throws when putting the second body onto the first leaves too little of it
+        to build a body.
 
       Details in CHANGELOG.md.
 

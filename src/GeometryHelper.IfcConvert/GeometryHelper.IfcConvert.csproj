@@ -19,6 +19,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 12.0.0
+      - GeometryHelper.IfcConvert is released at 12.0.0 with GeometryHelper, which adds VolumeTakeoff and GeoEllipse2
+        and keeps the greedy label placement alone, a breaking change; nothing in IfcConvert changes.
+
       NEW IN 11.2.0
       - GeometryHelper.IfcConvert is released at 11.2.0 with GeometryHelper, whose GeoSolid3.TrySubtractAll can close,
         with TryClose, a cut it would otherwise skip, given SolidClosingOptions; without them it works as before.

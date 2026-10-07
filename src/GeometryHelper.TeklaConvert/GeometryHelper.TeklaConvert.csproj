@@ -29,6 +29,12 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 12.0.0
+      - GeometryHelper.TeklaConvert is released at 12.0.0 with GeometryHelper, whose VolumeTakeoff takes off the net
+        volumes of a model's parts, each overlap counted once by priority, as HDC WBS ranks its parts: on a Tekla model
+        of 30 921 parts, 67 369.17 m3 net, no part carrying an issue, in 197 seconds. GeometryHelper's label placement
+        keeps the greedy algorithm alone, a breaking change; nothing in TeklaConvert changes.
+
       NEW IN 11.2.0
       - GeometryHelper.TeklaConvert is released at 11.2.0 with GeometryHelper, whose GeoSolid3.TrySubtractAll, given
         SolidClosingOptions, closes a cut it would otherwise skip: of the 79 864 parts of a Tekla model, 17 had 35 cuts
