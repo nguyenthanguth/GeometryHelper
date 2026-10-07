@@ -6,10 +6,11 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
-**NEW.** `Angle.ToReadableDegrees` turns the angle of a text, in degrees, the way up it reads: into the range above -90°
-and up to 90°, both raised by a tolerance, by adding or taking off a half turn, any number of turns wrapped first. The
-tolerance is a tenth of a radian, 5.73°, unless given, as Tekla Structures takes it, so 95° stays 95°, 100° gives -80°
-and 180° gives 0°.
+**NEW.** `Angle.ToReadableDegrees`, and `Angle.ToReadableRadians` in radians, turn the angle of a text the way up it
+reads: into the range above -90° and up to 90°, both raised by a tolerance, by adding or taking off a half turn, any
+number of turns wrapped first. The tolerance is a tenth of a radian, 5.73°, unless given, as Tekla Structures takes it,
+so 95° stays 95°, 100° gives -80° and 180° gives 0°. The radian form is worked out in radians throughout, rounding
+nothing through degrees.
 
 **NEW.** `GeoEllipse2`, an ellipse as a region, and `Core.Ellipse2`, which holds its operations. An ellipse is a centre,
 the direction of its major axis and the two semi-axes, the major one at least as long as the minor; `FromCircle` makes

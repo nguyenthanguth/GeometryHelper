@@ -490,6 +490,63 @@ namespace GeometryHelper.UnitTest.Common
             }
         }
 
+        // The radian form: a tenth of a radian past PI/2 is 1.6707963, past -PI/2 is -1.4707963.
+        [Theory]
+        [InlineData(0.0, 0.0)]
+        [InlineData(1.0, 1.0)]
+        [InlineData(1.6, 1.6)]
+        [InlineData(1.75, 1.75 - Math.PI)]
+        [InlineData(Math.PI, 0.0)]
+        [InlineData(-1.4, -1.4)]
+        [InlineData(-1.5, -1.5 + Math.PI)]
+        [InlineData(-Math.PI, 0.0)]
+        [InlineData(3.0 * Math.PI / 2.0, Math.PI / 2.0)]
+        [InlineData(5.0 * Math.PI / 2.0, Math.PI / 2.0)]
+        [InlineData(-3.0 * Math.PI / 2.0, Math.PI / 2.0)]
+        public void ToReadableRadians_TurnsATextUpsideDownAHalfTurn_WithinATenthOfARadianOfUpright(double radians, double readable)
+        {
+            Assert.Equal(readable, Angle.ToReadableRadians(radians), 12);
+            Assert.Equal(readable, Angle.ToReadableRadians(radians, Angle.FromRadians(0.1)), 12);
+        }
+
+        [Fact]
+        public void ToReadableRadians_AgreesWithTheDegreeForm_AndLandsInTheRangeTheToleranceSets()
+        {
+            // Every hundredth of a radian over four turns either way, with the default, 1 degree and none; the few angles
+            // within 1E-9 of a bound, where rounding through degrees may land on the other side, are left out.
+            foreach (Angle tolerance in new[] { Angle.FromRadians(0.1), Angle.FromDegrees(1.0), Angle.Zero })
+            {
+                for (double radians = -8.0 * Math.PI; radians <= 8.0 * Math.PI; radians += 0.01)
+                {
+                    double readable = Angle.ToReadableRadians(radians, tolerance);
+
+                    Assert.InRange(readable, -Math.PI / 2.0 + tolerance.Radians, Math.PI / 2.0 + tolerance.Radians);
+                    Assert.NotEqual(-Math.PI / 2.0 + tolerance.Radians, readable);
+
+                    double halfTurns = (radians - readable) / Math.PI;
+                    Assert.Equal(Math.Round(halfTurns), halfTurns, 9);
+
+                    double wrapped = Angle.FromRadians(radians).NormalizeSigned().Radians;
+                    bool nearBound = Math.Abs(Math.Abs(wrapped) - (Math.PI / 2.0 + tolerance.Radians)) < 1E-9
+                        || Math.Abs(Math.Abs(wrapped) - (Math.PI / 2.0 - tolerance.Radians)) < 1E-9;
+
+                    if (!nearBound)
+                    {
+                        Assert.Equal(Angle.ToRadians(Angle.ToReadableDegrees(Angle.ToDegrees(radians), tolerance)), readable, 9);
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public void ToReadableRadians_RefusesAnAngleOrAToleranceItCannotUse()
+        {
+            Assert.Equal("radians", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(double.NaN)).ParamName);
+            Assert.Equal("radians", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(double.NegativeInfinity)).ParamName);
+            Assert.Equal("tolerance", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(0.5, Angle.FromRadians(-0.1))).ParamName);
+            Assert.Equal("tolerance", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(0.5, Angle.Right)).ParamName);
+        }
+
         [Fact]
         public void ToReadableDegrees_RefusesAnAngleOrAToleranceItCannotUse()
         {

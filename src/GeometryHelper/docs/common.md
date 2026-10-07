@@ -145,6 +145,7 @@ Angle.ToReadableDegrees(180.0);                        // 0
 Angle.ToReadableDegrees(100.0);                        // -80
 Angle.ToReadableDegrees(95.0);                         // 95, within the tenth of a radian
 Angle.ToReadableDegrees(92.0, Angle.FromDegrees(1.0)); // -88
+Angle.ToReadableRadians(Math.PI);                      // 0, the same in radians, worked out in radians
 ```
 
 ## PointLocation

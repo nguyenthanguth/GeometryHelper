@@ -235,6 +235,69 @@ namespace GeometryHelper
             return wrapped;
         }
 
+        /// <summary>
+        /// Turns the angle of a text, in radians, the way up it reads: into the range above -PI/2 and up to PI/2, both
+        /// raised by a tenth of a radian, the tolerance Tekla Structures takes, by adding or taking off a half turn.
+        /// </summary>
+        /// <param name="radians">The angle of the text, in radians, any number of turns either way.</param>
+        /// <returns>The angle the text reads at: PI gives 0, 1.75 gives 1.75 - PI, and 1.6 stays 1.6.</returns>
+        /// <remarks>The radian form of <see cref="ToReadableDegrees(double)"/>, worked out in radians throughout.</remarks>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="radians"/> is NaN or infinite.</exception>
+        public static double ToReadableRadians(double radians) => ToReadableRadians(radians, FromRadians(0.1));
+
+        /// <summary>
+        /// Turns the angle of a text, in radians, the way up it reads: into the range above -PI/2 and up to PI/2, both
+        /// raised by a tolerance, by adding or taking off a half turn.
+        /// </summary>
+        /// <param name="radians">The angle of the text, in radians, any number of turns either way.</param>
+        /// <param name="tolerance">
+        /// How far past upright a text may lean and still read as it is: at least nought and less than a right angle.
+        /// </param>
+        /// <returns>The angle the text reads at, above -PI/2 plus the tolerance and no more than PI/2 plus it.</returns>
+        /// <remarks>
+        /// The radian form of <see cref="ToReadableDegrees(double, Angle)"/>: the angle is first wrapped into a single
+        /// turn, (-PI, PI], then turned a half turn when it lies more than a right angle past upright plus the tolerance.
+        /// It is worked out in radians throughout, so a radian angle is not rounded through degrees on the way.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="radians"/> is NaN or infinite, or the tolerance is negative, a right angle or more, or not a
+        /// number.
+        /// </exception>
+        public static double ToReadableRadians(double radians, Angle tolerance)
+        {
+            Guard.Finite(radians, nameof(radians), "An angle has to be a finite number.");
+
+            double slack = tolerance.Radians;
+
+            if (!(slack >= 0.0 && slack < Math.PI * 0.5))
+            {
+                throw new ArgumentOutOfRangeException(nameof(tolerance), "The tolerance has to be at least nought and less than a right angle.");
+            }
+
+            double wrapped = radians % FullTurnRadians;
+
+            if (wrapped > Math.PI)
+            {
+                wrapped -= FullTurnRadians;
+            }
+            else if (wrapped <= -Math.PI)
+            {
+                wrapped += FullTurnRadians;
+            }
+
+            if (wrapped > Math.PI * 0.5 + slack)
+            {
+                return wrapped - Math.PI;
+            }
+
+            if (wrapped <= -Math.PI * 0.5 + slack)
+            {
+                return wrapped + Math.PI;
+            }
+
+            return wrapped;
+        }
+
         #endregion
 
         #region Arithmetic
