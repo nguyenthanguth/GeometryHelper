@@ -484,10 +484,10 @@ namespace GeometryHelper.UnitTest.Takeoff
         }
 
         [Fact]
-        public void AnOverlapReadByACut_IsJudgedByTheLeastAreaABodyOfItsVolumeCanHave_ABalls()
+        public void ASlicedOverlap_IsJudgedByTheLeastAreaABodyOfItsVolumeCanHave_ABalls()
         {
-            // A ball of radius 10 holds 4 188.79 within 1 256.64 of surface, the least any body of that volume has. A
-            // common part read by a cut has no body to measure, so its thinness is judged against that: two slabs 6 000 by
+            // A ball of radius 10 holds 4 188.79 within 1 256.64 of surface, the least any body of that volume has. An
+            // overlap worked out by slicing has no body to measure, so its thinness is judged against that: two slabs 6 000 by
             // 6 000 by 200 sharing a corner 10 by 10 by 200, 20 000, have at least 3 563.18 of surface between them there,
             // and 20 000 is far more than the 1.78 half the point tolerance over it allows; against the slabs' own
             // 76 800 000 it would have passed for touching.

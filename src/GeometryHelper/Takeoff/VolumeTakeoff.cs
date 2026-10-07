@@ -16,8 +16,9 @@ namespace GeometryHelper.Takeoff
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The parts are ranked by their <see cref="VolumeItem.Priority"/>, the highest first, and of two the same by their
-    /// order in the list. A part keeps all it shares with the parts ranked after it, and loses to them nothing. Where a
+    /// The parts are ranked by their <see cref="VolumeItem.Priority"/>, the highest first, of two the same by their
+    /// <see cref="VolumeItem.Id"/>, the largest first and any id before none, and then by their order in the list. A
+    /// part keeps all it shares with the parts ranked after it, and loses to them nothing. Where a
     /// slab 200 thick sits on a beam 300 wide that runs into a column 400 by 400, and the column is ranked first, the
     /// beam second and the slab third, the block the three share, 300 by 400 by 200, is the column's: the slab loses it
     /// to the column, and to the beam only what the beam shares with it beyond the column. Taken off by each part it
@@ -35,23 +36,26 @@ namespace GeometryHelper.Takeoff
     /// volumes come out the same, bit for bit, on one thread or on every processor.
     /// </para>
     /// <para>
-    /// A common part that is not valid, or holds more than the smaller of the two, is read by a cut instead: the part
-    /// ranked later less the one ranked first, its volume taken off the part's own. That gives a number and no body, so
-    /// what it shares with the pieces before it may be taken off twice. Its result says so in
-    /// <see cref="VolumeTakeoffResult.Issues"/> where the box the part shares with that keeper overlaps the box it
-    /// shares with a keeper ranked before it; where it overlaps none, the number is taken once, and there is no issue.
-    /// The keepers ranked after it have this keeper cut out of their pieces, so they cannot share with it.
-    /// A common part that comes back not valid with more than four times the faces of the two parts is not read by a
-    /// cut, which would cost far longer for no better answer: a girder of 322 faces against a wall of 354 gave a common
-    /// part of 4 256 faces and a cut of 80 805, neither valid, after 2 329 seconds. Such a pair, and a pair neither way
-    /// can work out, is not taken off at all, and the net volume is then no less than it should be. No failure of the
-    /// geometry escapes: each comes back as an issue and is logged.
+    /// A common part the booleans cannot make, one that is not valid, holds more than the smaller of the two, or cannot
+    /// be worked out at all, is worked out by slicing instead: the part is cut by parallel planes, and the area of what it
+    /// shares with the keeper and with no keeper ranked before is added up the height, exactly over flat faces and with
+    /// no tolerance. So is a piece the cut of the pieces before it cannot finish, or that has a keeper before it whose
+    /// overlap was sliced. A curved wall of 354 faces and a curved
+    /// girder of 322 of a Tekla model, met within a thousandth with a contact of a hundredth, share a common part of
+    /// 4 256 faces that is not valid; slicing gives them 2 226 236 967 in 0.04 seconds, where Tekla's own boolean gives
+    /// 2 226 236 773 cutting the wall and 2 226 236 807 cutting the girder. A deduction worked out by slicing is exact,
+    /// and carries no issue. Only a pair that cannot be sliced either is not taken off: a section of a body crossed an
+    /// odd number of times, as where a corner sits more than about 1E-9 off its neighbour's edge, a T-junction, even
+    /// in a body <see cref="GeoSolid3.Validate(Tolerance)"/> accepts. Its result says so in
+    /// <see cref="VolumeTakeoffResult.Issues"/>, and the net volume is then no less than it should be.
+    /// No failure of the geometry escapes: each comes back as an issue and is logged.
     /// </para>
     /// <para>
     /// A common part thinner on average than half the point tolerance, its volume no more than the point tolerance
     /// times half its area, is taken as touching, and nothing is taken off for it: a beam standing on a slab, flush
-    /// with it or a hair into it, loses nothing. A common part read by a cut has no area to measure, and is judged by
-    /// the least area a body of its volume can have, a ball's.
+    /// with it or a hair into it, loses nothing. A volume worked out by slicing has no body to measure, and is judged by
+    /// the least area a body of its volume can have, a ball's; slicing snaps nothing, so a sheet a hair thick that the
+    /// contact would have put away is taken off as the faces give it.
     /// </para>
     /// <para>
     /// The tolerance the booleans work within is the one the options carry. A scope opened with
@@ -171,29 +175,9 @@ namespace GeometryHelper.Takeoff
                     continue;
                 }
 
-                if (pair.Kind != Kind.NotDeducted)
-                {
-                    overlaps++;
-                }
-
+                overlaps++;
                 int loser = pair.Loser.Index;
                 (losing[loser] ?? (losing[loser] = new List<Pair>())).Add(pair);
-            }
-
-            foreach (List<Pair> list in losing)
-            {
-                if (list == null)
-                {
-                    continue;
-                }
-
-                foreach (Pair pair in list)
-                {
-                    if (pair.Kind == Kind.ByCut && MayShare(pair, list, tolerance.EqualPoint))
-                    {
-                        pair.Issue = "overlap with #" + pair.Keeper.Index + " read by a cut: what it shares with earlier overlaps may be counted twice";
-                    }
-                }
             }
 
             List<Step> steps = PlanSteps(losing, tolerance.EqualPoint);
@@ -227,6 +211,21 @@ namespace GeometryHelper.Takeoff
             if (touching > 0)
             {
                 GeometryHelperLog.Debug("VolumeTakeoff: " + touching + " pairs only touch, and nothing is taken off for them.");
+            }
+
+            int slicedPairs = 0, slicedSteps = 0, unsliced = 0;
+
+            foreach (Pair pair in pairs)
+            {
+                slicedPairs += pair.Kind == Kind.Sliced ? 1 : 0;
+                slicedSteps += pair.Kind == Kind.Piece && pair.BySlicing ? 1 : 0;
+                unsliced += pair.Issue != null ? 1 : 0;
+            }
+
+            if (slicedPairs + slicedSteps > 0)
+            {
+                GeometryHelperLog.Debug("VolumeTakeoff: " + slicedPairs + " pairs whose common part the booleans could not make, and " + slicedSteps
+                    + " pieces whose overlaps before could not be cut out, or were sliced, worked out by slicing; " + unsliced + " of them could not be.");
             }
 
             GeometryHelperLog.Info("VolumeTakeoff: " + given.Length + " items, " + pairs.Length + " pairs, " + overlaps + " overlaps, " + issues + " issues, " + watch.ElapsedMilliseconds + " ms.");
@@ -266,7 +265,8 @@ namespace GeometryHelper.Takeoff
         }
 
         /// <summary>
-        /// Ranks the parts by their priority, the highest first, and of two the same by their index.
+        /// Ranks the parts by their priority, the highest first; of two the same, one with an id before one without and
+        /// the larger id first; and then by their index.
         /// </summary>
         private static void Rank(Part[] parts)
         {
@@ -280,9 +280,27 @@ namespace GeometryHelper.Takeoff
                 }
             }
 
-            // The higher priority first; of two the same, the earlier in the list. CompareTo, not a subtraction, which would wrap round
-            // between int.MinValue and int.MaxValue.
-            present.Sort((a, b) => a.Item.Priority != b.Item.Priority ? b.Item.Priority.CompareTo(a.Item.Priority) : a.Index.CompareTo(b.Index));
+            // The higher priority first; of two the same, an id before none and the larger id first, then the earlier in the
+            // list. CompareTo, not a subtraction, which would wrap round between int.MinValue and int.MaxValue.
+            present.Sort((a, b) =>
+            {
+                if (a.Item.Priority != b.Item.Priority)
+                {
+                    return b.Item.Priority.CompareTo(a.Item.Priority);
+                }
+
+                if (a.Item.Id.HasValue != b.Item.Id.HasValue)
+                {
+                    return a.Item.Id.HasValue ? -1 : 1;
+                }
+
+                if (a.Item.Id.HasValue && a.Item.Id.Value != b.Item.Id.Value)
+                {
+                    return b.Item.Id.Value.CompareTo(a.Item.Id.Value);
+                }
+
+                return a.Index.CompareTo(b.Index);
+            });
 
             for (int r = 0; r < present.Count; r++)
             {
@@ -453,19 +471,32 @@ namespace GeometryHelper.Takeoff
         /// </summary>
         internal static double LeastArea(double volume) => Math.Pow(36.0 * Math.PI * volume * volume, 1.0 / 3.0);
 
+        /// <summary>
+        /// Test only; null outside the tests. Given the indices of the loser and the keeper of a pair, true has the pair's
+        /// common part taken as not made, without trying the intersection, so that it is worked out by slicing.
+        /// </summary>
+        internal static Func<int, int, bool> BreakIntersection;
+
+        /// <summary>
+        /// Test only; null outside the tests. Given the indices of the loser and the keeper of a piece with earlier pieces
+        /// to cut out of it, true has the cut taken as skipped, without trying it, so that the piece is worked out by
+        /// slicing.
+        /// </summary>
+        internal static Func<int, int, bool> BreakTakeOff;
+
         #endregion
 
         #region Phase 1: what each pair shares
 
         /// <summary>
         /// Works out what a pair shares: as a body where the common part is valid and holds no more than the smaller can,
-        /// otherwise as a number, by a cut; failing both, the pair is not taken off.
+        /// otherwise by slicing, which the second phase does.
         /// </summary>
         /// <remarks>
-        /// A common part that is not valid and came out with more than four times the faces of the two parts is not read
-        /// by a cut: a cut that broke the intersection so far breaks too. A girder of 322 faces and a wall of 354 of a Tekla
-        /// model, met within a thousandth with a contact of a hundredth, shared a body of 4 256 faces that was not valid, in
-        /// 114 seconds; the cut then took 2 215 seconds and left 80 805 faces, not valid either.
+        /// Nothing more is tried after the intersection. A girder of 322 faces and a wall of 354 of a Tekla model, met
+        /// within a thousandth with a contact of a hundredth, shared a body of 4 256 faces that was not valid, in 114
+        /// seconds; a cut of the one by the other then took 2 215 seconds and left 80 805 faces, not valid either, where
+        /// slicing takes under a second.
         /// </remarks>
         private static void WorkOut(Pair pair, SolidBooleanOptions options)
         {
@@ -473,7 +504,12 @@ namespace GeometryHelper.Takeoff
             Part loser = pair.Loser, keeper = pair.Keeper;
             double most = Math.Min(loser.Gross, keeper.Gross);
             double slack = tolerance.EqualPoint * (loser.Area + keeper.Area);
-            int broken = 0;
+
+            if (BreakIntersection != null && BreakIntersection(loser.Index, keeper.Index))
+            {
+                pair.Kind = Kind.Sliced;
+                return;
+            }
 
             try
             {
@@ -485,14 +521,7 @@ namespace GeometryHelper.Takeoff
                     return;
                 }
 
-                bool valid = made && piece.Validate(tolerance).IsValid;
-
-                if (made && !valid && piece.Faces.Count > 4L * (loser.Item.Solid.Faces.Count + keeper.Item.Solid.Faces.Count))
-                {
-                    broken = piece.Faces.Count;
-                }
-
-                if (valid)
+                if (made && piece.Validate(tolerance).IsValid)
                 {
                     double volume = piece.GetVolume(tolerance);
 
@@ -513,59 +542,10 @@ namespace GeometryHelper.Takeoff
             }
             catch (Exception exception) when (!(exception is OutOfMemoryException))
             {
-                GeometryHelperLog.Warn("VolumeTakeoff: what items " + loser.Index + " and " + keeper.Index + " share could not be worked out as a body; it is read by a cut.", exception);
+                GeometryHelperLog.Warn("VolumeTakeoff: what items " + loser.Index + " and " + keeper.Index + " share could not be worked out as a body; it is worked out by slicing.", exception);
             }
 
-            if (broken > 0)
-            {
-                pair.Kind = Kind.NotDeducted;
-                pair.Issue = "overlap with #" + keeper.Index + " could not be worked out: the common part came out with " + broken
-                    + " faces, too broken to read by a cut; not deducted, so the net volume is an upper bound";
-                return;
-            }
-
-            // Read by a cut: what the cut leaves of the loser, taken off its own volume. The two are not changed.
-            try
-            {
-                bool left = Boolean3.TrySubtract(loser.Item.Solid, keeper.Item.Solid, out GeoSolid3 rest, options, out BooleanOutcome cut);
-                double? shared = null;
-
-                if (!left && cut == BooleanOutcome.Empty)
-                {
-                    shared = loser.Gross;
-                }
-                else if (left && rest.Validate(tolerance).IsValid)
-                {
-                    shared = loser.Gross - rest.GetVolume(tolerance);
-                }
-
-                if (shared.HasValue && shared.Value >= -slack && shared.Value <= most + slack)
-                {
-                    double volume = Math.Max(0.0, Math.Min(most, shared.Value));
-
-                    // No body to measure the area of, so the least area a body of this volume can have stands in for it: a
-                    // ball's. The parts' own areas would be far too loose: two slabs 6 000 by 6 000 by 200 sharing a corner
-                    // 10 by 10 by 200, 20 000, would pass for touching against the 38 400 their area allows.
-                    if (Thin(volume, LeastArea(volume), tolerance))
-                    {
-                        pair.Kind = Kind.Touching;
-                        return;
-                    }
-
-                    // Its issue, where it can share material with another overlap of the loser, is given once every pair
-                    // is worked out; see MayShare.
-                    pair.Kind = Kind.ByCut;
-                    pair.Volume = volume;
-                    return;
-                }
-            }
-            catch (Exception exception) when (!(exception is OutOfMemoryException))
-            {
-                GeometryHelperLog.Warn("VolumeTakeoff: what items " + loser.Index + " and " + keeper.Index + " share could not be read by a cut either; it is not taken off.", exception);
-            }
-
-            pair.Kind = Kind.NotDeducted;
-            pair.Issue = "overlap with #" + keeper.Index + " could not be worked out: not deducted, so the net volume is an upper bound";
+            pair.Kind = Kind.Sliced;
         }
 
         #endregion
@@ -573,11 +553,11 @@ namespace GeometryHelper.Takeoff
         #region Phase 2: each overlap taken off once
 
         /// <summary>
-        /// Plans the cuts that take off each piece once: for each piece of a part, the pieces of that part before it whose
-        /// boxes meet it. A piece meeting none is taken off whole at once, and so is an overlap read by a cut.
+        /// Plans the steps that take off each overlap once: for each overlap of a part, the overlaps of that part before it
+        /// whose boxes meet it. A piece meeting none is taken off whole at once; an overlap to slice is a step even alone.
         /// </summary>
         /// <remarks>
-        /// An overlap read by a cut has no body, so the keeper itself stands for it in the later pieces' cuts: within the
+        /// An overlap to slice has no body, so the keeper itself stands for it in the later pieces' cuts: within the
         /// loser, a piece less the keeper is the piece less what the two share.
         /// </remarks>
         private static List<Step> PlanSteps(List<Pair>[] losing, double reach)
@@ -596,36 +576,24 @@ namespace GeometryHelper.Takeoff
                 for (int m = 0; m < list.Count; m++)
                 {
                     Pair pair = list[m];
-
-                    if (pair.Kind != Kind.Piece)
-                    {
-                        pair.Deducted = pair.Kind == Kind.ByCut ? pair.Volume : 0.0;
-                        continue;
-                    }
-
-                    GeoAabb3 box = pair.Piece.GetAabb();
+                    bool piece = pair.Kind == Kind.Piece;
                     var tools = new List<Pair>();
-                    long weight = pair.Piece.Faces.Count;
+                    long weight = piece ? pair.Piece.Faces.Count : (long)pair.Loser.Item.Solid.Faces.Count + pair.Keeper.Item.Solid.Faces.Count;
 
                     for (int j = 0; j < m; j++)
                     {
                         Pair earlier = list[j];
-
-                        if (earlier.Kind == Kind.NotDeducted)
-                        {
-                            continue;
-                        }
-
                         GeoSolid3 tool = Tool(earlier);
 
-                        if (Overlap(box, tool.GetAabb(), reach))
+                        // What the loser shares with this keeper: the piece, or for an overlap to slice the box the two share.
+                        if (piece ? Overlap(pair.Piece.GetAabb(), tool.GetAabb(), reach) : Overlap(pair.Loser.Box, pair.Keeper.Box, tool.GetAabb(), reach))
                         {
                             tools.Add(earlier);
                             weight += tool.Faces.Count;
                         }
                     }
 
-                    if (tools.Count == 0)
+                    if (piece && tools.Count == 0)
                     {
                         pair.Deducted = pair.Volume;
                         continue;
@@ -639,32 +607,6 @@ namespace GeometryHelper.Takeoff
         }
 
         /// <summary>
-        /// Whether an overlap read by a cut can share material with an overlap the same part loses to a keeper ranked
-        /// before: where the box the part shares with its keeper overlaps the box it shares with that keeper, whose
-        /// overlap is taken off, by more than a reach along all three axes. Where none does, the number read by the cut is all that keeper takes, and it
-        /// is taken once.
-        /// </summary>
-        private static bool MayShare(Pair byCut, List<Pair> losing, double reach)
-        {
-            // Only the overlaps before it: a later piece has this keeper cut out of it already, so it cannot share with it.
-            foreach (Pair other in losing)
-            {
-                if (other == byCut)
-                {
-                    break;
-                }
-
-                if ((other.Kind == Kind.Piece || other.Kind == Kind.ByCut)
-                    && Overlap(byCut.Loser.Box, byCut.Keeper.Box, other.Keeper.Box, reach))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
         /// Whether three boxes overlap together by more than a reach along all three axes.
         /// </summary>
         private static bool Overlap(GeoAabb3 a, GeoAabb3 b, GeoAabb3 c, double reach)
@@ -675,52 +617,90 @@ namespace GeometryHelper.Takeoff
         }
 
         /// <summary>
-        /// The body an earlier overlap is taken out of a later piece by: its piece, or for one read by a cut the keeper.
+        /// The body an earlier overlap is taken out of a later piece by: its piece, or for one to slice the keeper.
         /// </summary>
         private static GeoSolid3 Tool(Pair earlier) => earlier.Kind == Kind.Piece ? earlier.Piece : earlier.Keeper.Item.Solid;
 
         /// <summary>
-        /// Takes the earlier pieces out of a piece, and keeps what is left as what its keeper takes off the part.
+        /// Works out what a keeper takes off a part and no keeper before it took: a piece less the earlier pieces, cut,
+        /// or where there is no piece, an earlier overlap is sliced, or the cut cannot finish, sliced.
         /// </summary>
         private static void TakeOffOnce(Step step, SolidBooleanOptions options)
         {
             Tolerance tolerance = options.Tolerance;
             Pair pair = step.Pair;
-            var tools = new GeoSolid3[step.Tools.Count];
 
-            for (int t = 0; t < tools.Length; t++)
+            // A piece with a keeper to cut out whose overlap is sliced is sliced too: the keeper's whole body cut out of the
+            // piece is a boolean the slicing need not trust. A girder ranked over a column, its overlap with a wall sliced,
+            // cut out of the column's piece of the wall left 324 108 388.10, where slicing gives the exact 324 108 381.91.
+            if (pair.Kind == Kind.Piece && (step.Tools.Exists(tool => tool.Kind == Kind.Sliced) || (BreakTakeOff != null && BreakTakeOff(pair.Loser.Index, pair.Keeper.Index))))
             {
-                tools[t] = Tool(step.Tools[t]);
+                pair.BySlicing = true;
             }
+            else if (pair.Kind == Kind.Piece)
+            {
+                var tools = new GeoSolid3[step.Tools.Count];
+
+                for (int t = 0; t < tools.Length; t++)
+                {
+                    tools[t] = Tool(step.Tools[t]);
+                }
+
+                try
+                {
+                    if (!Boolean3.TrySubtractAll(pair.Piece, tools, out GeoSolid3 rest, options, out SubtractReport report))
+                    {
+                        pair.Deducted = 0.0;
+                        return;
+                    }
+
+                    if (report.Skipped.Count == 0)
+                    {
+                        double volume = rest.GetVolume(tolerance);
+                        pair.Deducted = Thin(volume, rest.GetSurfaceArea(tolerance), tolerance) ? 0.0 : volume;
+                        return;
+                    }
+                }
+                catch (Exception exception) when (!(exception is OutOfMemoryException))
+                {
+                    GeometryHelperLog.Warn("VolumeTakeoff: the overlaps before the one of items " + pair.Loser.Index + " and " + pair.Keeper.Index + " could not be cut out of it; it is worked out by slicing.", exception);
+                }
+
+                pair.BySlicing = true;
+            }
+
+            // The loser's material within this keeper and outside every keeper before it that meets it: the keepers
+            // themselves, since within the loser what a keeper shares with it is the keeper.
+            var before = new GeoSolid3[step.Tools.Count];
+
+            for (int t = 0; t < before.Length; t++)
+            {
+                before[t] = step.Tools[t].Keeper.Item.Solid;
+            }
+
+            bool sliced = false;
+            double shared = 0.0;
 
             try
             {
-                if (!Boolean3.TrySubtractAll(pair.Piece, tools, out GeoSolid3 rest, options, out SubtractReport report))
-                {
-                    pair.Deducted = 0.0;
-                }
-                else
-                {
-                    double volume = rest.GetVolume(tolerance);
-                    pair.Deducted = Thin(volume, rest.GetSurfaceArea(tolerance), tolerance) ? 0.0 : volume;
-                }
-
-                foreach (int skipped in report.Skipped)
-                {
-                    (pair.OnceIssues ?? (pair.OnceIssues = new List<string>())).Add(
-                        "the part of the overlap with #" + pair.Keeper.Index + " inside the overlap with #" + step.Tools[skipped].Keeper.Index
-                        + " could not be taken off once: counted twice, so the net volume is a lower bound");
-                }
+                sliced = Slice3.TryVolume(pair.Loser.Item.Solid, new[] { pair.Keeper.Item.Solid }, before, out shared);
             }
             catch (Exception exception) when (!(exception is OutOfMemoryException))
             {
-                GeometryHelperLog.Warn("VolumeTakeoff: the overlaps before the one of items " + pair.Loser.Index + " and " + pair.Keeper.Index + " could not be taken out of it; it is taken off whole.", exception);
-                pair.Deducted = pair.Volume;
-                pair.OnceIssues = new List<string>
-                {
-                    "the overlap with #" + pair.Keeper.Index + " could not be taken out of the overlaps before it: counted whole, so the net volume may be a lower bound",
-                };
+                GeometryHelperLog.Warn("VolumeTakeoff: what items " + pair.Loser.Index + " and " + pair.Keeper.Index + " share could not be sliced; it is not taken off.", exception);
             }
+
+            if (!sliced)
+            {
+                pair.Deducted = 0.0;
+                pair.Issue = "overlap with #" + pair.Keeper.Index + " could not be worked out, by booleans or by slicing: not deducted, so the net volume is an upper bound";
+                return;
+            }
+
+            // No body to measure the area of, so the least area a body of this volume can have stands in for it: a ball's.
+            // The parts' own areas would be far too loose: two slabs 6 000 by 6 000 by 200 sharing a corner 10 by 10 by
+            // 200, 20 000, would pass for touching against the 38 400 their area allows.
+            pair.Deducted = Thin(shared, LeastArea(shared), tolerance) ? 0.0 : shared;
         }
 
         #endregion
@@ -728,8 +708,9 @@ namespace GeometryHelper.Takeoff
         #region The results
 
         /// <summary>
-        /// Puts the take-off of a part together: its deductions in the order of their keepers, and its issues, those of
-        /// its own volume first, then those of its pairs, then those of taking the overlaps off once, then the clamp.
+        /// Puts the take-off of a part together: its deductions in the order of their keepers, and its issues, that of its
+        /// own volume first, then those of the overlaps that could not be worked out, in the order of their keepers, then
+        /// the clamp.
         /// </summary>
         private static VolumeTakeoffResult Result(Part part, List<Pair> losing, Tolerance tolerance)
         {
@@ -749,14 +730,6 @@ namespace GeometryHelper.Takeoff
                     if (pair.Issue != null)
                     {
                         issues.Add(pair.Issue);
-                    }
-                }
-
-                foreach (Pair pair in losing)
-                {
-                    if (pair.OnceIssues != null)
-                    {
-                        issues.AddRange(pair.OnceIssues);
                     }
 
                     if (pair.Deducted > 0.0)
@@ -810,11 +783,8 @@ namespace GeometryHelper.Takeoff
             /// <summary>What they share is a body.</summary>
             Piece,
 
-            /// <summary>What they share is a number, read by a cut.</summary>
-            ByCut,
-
-            /// <summary>What they share could not be worked out, and is not taken off.</summary>
-            NotDeducted,
+            /// <summary>What they share could not be made as a body, and is worked out by slicing.</summary>
+            Sliced,
         }
 
         /// <summary>
@@ -843,11 +813,11 @@ namespace GeometryHelper.Takeoff
             public double Volume;
             public string Issue;
             public double Deducted;
-            public List<string> OnceIssues;
+            public bool BySlicing;
         }
 
         /// <summary>
-        /// A piece to take the earlier pieces of its part out of.
+        /// An overlap to take the earlier overlaps of its part out of: a piece to cut, or an overlap to slice.
         /// </summary>
         private sealed class Step
         {

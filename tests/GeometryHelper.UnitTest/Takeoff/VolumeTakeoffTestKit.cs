@@ -17,7 +17,7 @@ namespace GeometryHelper.UnitTest.Takeoff
     /// <para>
     /// The oracle cuts space into cells by every x, y and z any box or opening has, so that each cell lies wholly inside
     /// or wholly outside each box. A cell belongs to the highest-ranked box whose material holds it, the rank being
-    /// (Priority descending, index ascending), as the takeoff ranks its items. A box's net volume is the sum of the cells it owns,
+    /// (Priority descending, an Id before none, the larger Id first, index ascending), as the takeoff ranks its items. A box's net volume is the sum of the cells it owns,
     /// what it gives up to box k the sum of its cells k owns, and the union the sum of every cell owned at all.
     /// </para>
     /// <para>
@@ -79,16 +79,18 @@ namespace GeometryHelper.UnitTest.Takeoff
         }
 
         /// <summary>
-        /// A set of boxes to take off, each with its priority; a null box stands for a null entry in the list of items.
-        /// <see cref="SameInstanceAs"/> says, for each box, the index of an earlier box whose very solid it is to share, or -1.
+        /// A set of boxes to take off, each with its priority and, where <see cref="Ids"/> gives one, its id; a null box stands
+        /// for a null entry in the list of items. <see cref="SameInstanceAs"/> says, for each box, the index of an earlier box
+        /// whose very solid it is to share, or -1.
         /// </summary>
         internal sealed class BoxSet
         {
-            internal BoxSet(IReadOnlyList<Box> boxes, IReadOnlyList<int> priorities, IReadOnlyList<int> sameInstanceAs = null)
+            internal BoxSet(IReadOnlyList<Box> boxes, IReadOnlyList<int> priorities, IReadOnlyList<int> sameInstanceAs = null, IReadOnlyList<int?> ids = null)
             {
                 Boxes = boxes;
                 Priorities = priorities;
                 SameInstanceAs = sameInstanceAs ?? boxes.Select(_ => -1).ToArray();
+                Ids = ids ?? boxes.Select(_ => (int?)null).ToArray();
             }
 
             internal IReadOnlyList<Box> Boxes { get; }
@@ -97,7 +99,10 @@ namespace GeometryHelper.UnitTest.Takeoff
 
             internal IReadOnlyList<int> SameInstanceAs { get; }
 
-            /// <summary>The items to run: one per box, named by its index, null where the box is null.</summary>
+            /// <summary>The id of each item, or null where it is built without one, by the constructor of three arguments.</summary>
+            internal IReadOnlyList<int?> Ids { get; }
+
+            /// <summary>The items to run: one per box, named by its index, with its id where it has one, null where the box is null.</summary>
             internal VolumeItem[] ToItems()
             {
                 var solids = new GeoSolid3[Boxes.Count];
@@ -111,7 +116,8 @@ namespace GeometryHelper.UnitTest.Takeoff
                     }
 
                     solids[i] = SameInstanceAs[i] >= 0 ? solids[SameInstanceAs[i]] : Boxes[i].ToSolid();
-                    items[i] = new VolumeItem(solids[i], "#" + i.ToString(CultureInfo.InvariantCulture), Priorities[i]);
+                    string name = "#" + i.ToString(CultureInfo.InvariantCulture);
+                    items[i] = Ids[i].HasValue ? new VolumeItem(solids[i], name, Priorities[i], Ids[i].Value) : new VolumeItem(solids[i], name, Priorities[i]);
                 }
 
                 return items;
@@ -122,7 +128,7 @@ namespace GeometryHelper.UnitTest.Takeoff
                 var text = new StringBuilder();
                 for (int i = 0; i < Boxes.Count; i++)
                 {
-                    text.AppendFormat(CultureInfo.InvariantCulture, "  #{0} priority {1}{2}: {3}\n", i, Priorities[i], SameInstanceAs[i] >= 0 ? " (the solid of #" + SameInstanceAs[i] + ")" : "", Boxes[i]?.ToString() ?? "null");
+                    text.AppendFormat(CultureInfo.InvariantCulture, "  #{0} priority {1}{2}{3}: {4}\n", i, Priorities[i], Ids[i].HasValue ? " id " + Ids[i].Value.ToString(CultureInfo.InvariantCulture) : "", SameInstanceAs[i] >= 0 ? " (the solid of #" + SameInstanceAs[i] + ")" : "", Boxes[i]?.ToString() ?? "null");
                 }
 
                 return text.ToString();
@@ -169,6 +175,62 @@ namespace GeometryHelper.UnitTest.Takeoff
             }
 
             return new BoxSet(boxes, priorities, same);
+        }
+
+        /// <summary>
+        /// The set of <see cref="RandomSet"/> for the seed with an id given to each item, from a second stream of the same
+        /// seed: one in four none, the rest one of <see cref="int.MinValue"/>, -1, 0, 1, 2 and <see cref="int.MaxValue"/>,
+        /// so that equal ids, and items with an id beside items without, are common within one priority.
+        /// </summary>
+        internal static BoxSet RandomSetWithIds(int seed)
+        {
+            BoxSet set = RandomSet(seed);
+            var random = new Random(~seed);
+            int[] choices = { int.MinValue, -1, 0, 1, 2, int.MaxValue };
+            var ids = new int?[set.Boxes.Count];
+
+            for (int i = 0; i < ids.Length; i++)
+            {
+                ids[i] = random.Next(4) == 0 ? (int?)null : choices[random.Next(choices.Length)];
+            }
+
+            return new BoxSet(set.Boxes, set.Priorities, set.SameInstanceAs, ids);
+        }
+
+        /// <summary>
+        /// A random set with openings as well, from its seed: 2 to 12 boxes laid as <see cref="RandomSet"/> lays them, one in
+        /// three with an opening as <see cref="RandomSliceSet"/> gives one, flush with its faces or running past them and never
+        /// all of it; one in four a copy of an earlier box, half of those its very solid; priorities from -2 to 2; and ids as
+        /// <see cref="RandomSetWithIds"/> gives them.
+        /// </summary>
+        internal static BoxSet RandomSetWithOpenings(int seed)
+        {
+            var random = new Random(seed);
+            int count = random.Next(2, 13);
+            var boxes = new Box[count];
+            var priorities = new int[count];
+            var same = new int[count];
+            var ids = new int?[count];
+            int[] choices = { int.MinValue, -1, 0, 1, 2, int.MaxValue };
+
+            for (int i = 0; i < count; i++)
+            {
+                priorities[i] = random.Next(-2, 3);
+                ids[i] = random.Next(4) == 0 ? (int?)null : choices[random.Next(choices.Length)];
+                same[i] = -1;
+
+                if (i > 0 && random.Next(4) == 0)
+                {
+                    int of = random.Next(i);
+                    boxes[i] = boxes[of];
+                    same[i] = random.Next(2) == 0 ? of : -1;
+                    continue;
+                }
+
+                boxes[i] = RandomBox(random);
+            }
+
+            return new BoxSet(boxes, priorities, same, ids);
         }
 
         #endregion
@@ -329,6 +391,368 @@ namespace GeometryHelper.UnitTest.Takeoff
 
         #endregion
 
+        #region Bodies not lined up with the axes, each with a volume known by hand
+
+        /// <summary>
+        /// A box sizeX by sizeY by sizeZ about a centre, its local x axis turned by the given angle about z from the world's
+        /// and then leant by the given angle about that axis, so that its long side, along local z, leans away from upright.
+        /// </summary>
+        internal static GeoSolid3 TurnedBox(GeoPoint3 centre, double sizeX, double sizeY, double sizeZ, double turnRad, double leanRad)
+        {
+            var axisX = new GeoVector3(Math.Cos(turnRad), Math.Sin(turnRad), 0);
+            var across = new GeoVector3(-Math.Sin(turnRad), Math.Cos(turnRad), 0);
+            GeoVector3 axisY = across * Math.Cos(leanRad) + new GeoVector3(0, 0, Math.Sin(leanRad));
+            return new GeoObb3(centre, sizeX, sizeY, sizeZ, axisX, axisY).ToSolid();
+        }
+
+        /// <summary>
+        /// The tetrahedron with corners at the origin and at a along x, b along y and c along z: abc / 6, its section at
+        /// height z a right triangle (1 - z / c)^2 of its base. With <paramref name="leaveOutHalfTheSlantedFace"/> its one
+        /// face that is not on a plane of the axes is split at the middle of its bottom edge and the half towards y left
+        /// out, so that it does not close.
+        /// </summary>
+        internal static GeoSolid3 Tetrahedron(double a, double b, double c, bool leaveOutHalfTheSlantedFace = false)
+        {
+            var o = new GeoPoint3(0, 0, 0);
+            var x = new GeoPoint3(a, 0, 0);
+            var y = new GeoPoint3(0, b, 0);
+            var z = new GeoPoint3(0, 0, c);
+            var faces = new List<GeoFace3>
+            {
+                new GeoFace3(new GeoPolygon3(new[] { o, y, x }, Tolerance.Default)),
+                new GeoFace3(new GeoPolygon3(new[] { o, x, z }, Tolerance.Default)),
+                new GeoFace3(new GeoPolygon3(new[] { o, z, y }, Tolerance.Default)),
+            };
+
+            var middle = new GeoPoint3(a / 2.0, b / 2.0, 0);
+            faces.Add(new GeoFace3(new GeoPolygon3(new[] { x, middle, z }, Tolerance.Default)));
+            if (!leaveOutHalfTheSlantedFace)
+            {
+                faces.Add(new GeoFace3(new GeoPolygon3(new[] { middle, y, z }, Tolerance.Default)));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// A block standing on the rectangle (x0, y0) to (x1, y1) in plan, from the plane z = below(x, y) to the plane
+        /// z = above(x, y), each given as (a, b, c) for a + b x + c y: its sides upright, its top and bottom leaning as the
+        /// planes do.
+        /// </summary>
+        internal static GeoSolid3 BlockBetweenPlanes(double x0, double y0, double x1, double y1, (double A, double B, double C) below, (double A, double B, double C) above)
+        {
+            double[][] plan = { new[] { x0, y0 }, new[] { x1, y0 }, new[] { x1, y1 }, new[] { x0, y1 } };
+            GeoPoint3 Low(int k) => new GeoPoint3(plan[k][0], plan[k][1], below.A + below.B * plan[k][0] + below.C * plan[k][1]);
+            GeoPoint3 High(int k) => new GeoPoint3(plan[k][0], plan[k][1], above.A + above.B * plan[k][0] + above.C * plan[k][1]);
+            var faces = new List<GeoFace3>
+            {
+                new GeoFace3(new GeoPolygon3(new[] { Low(0), Low(3), Low(2), Low(1) }, Tolerance.Default)),
+                new GeoFace3(new GeoPolygon3(new[] { High(0), High(1), High(2), High(3) }, Tolerance.Default)),
+            };
+
+            for (int k = 0; k < 4; k++)
+            {
+                int next = (k + 1) % 4;
+                faces.Add(new GeoFace3(new GeoPolygon3(new[] { Low(k), Low(next), High(next), High(k) }, Tolerance.Default)));
+            }
+
+            return new GeoSolid3(faces);
+        }
+
+        /// <summary>
+        /// A wedge: the right triangle (0, 0, 0), (length, 0, 0), (0, 0, height) in the plane y = 0, swept width along y, so
+        /// that its slanted face leans over x and every level cuts it in a rectangle narrower as it rises.
+        /// </summary>
+        internal static GeoSolid3 Wedge(double length, double height, double width)
+        {
+            var triangle = new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(length, 0, 0), new GeoPoint3(0, 0, height) }, Tolerance.Default);
+            return GeoSolid3.Extrude(triangle, new GeoVector3(0, width, 0), Tolerance.Default);
+        }
+
+        #endregion
+
+        #region Curved bands a hair apart: a wall and a girder that break the boolean, and what they share worked out by hand
+
+        /// <summary>
+        /// A curved band: in plan, between two arcs about the origin, its corners on the arcs at chords + 1 angles evenly
+        /// from one angle to another; standing from a bottom to a top, each corner raised by rise × k / chords along it.
+        /// </summary>
+        /// <remarks>
+        /// Each quad of its faces is split into two triangles, the top's and the bottom's along the same diagonal, so a top
+        /// warped by the rise lies over a bottom warped alike: the band is as thick as its depth everywhere, and its sides
+        /// stand upright.
+        /// </remarks>
+        internal sealed class CurvedBand
+        {
+            internal CurvedBand(double inner, double outer, double fromRad, double toRad, int chords, double bottom, double top, double rise)
+            {
+                Inner = inner;
+                Outer = outer;
+                FromRad = fromRad;
+                ToRad = toRad;
+                Chords = chords;
+                Bottom = bottom;
+                Top = top;
+                Rise = rise;
+            }
+
+            internal double Inner { get; }
+
+            internal double Outer { get; }
+
+            internal double FromRad { get; }
+
+            internal double ToRad { get; }
+
+            internal int Chords { get; }
+
+            internal double Bottom { get; }
+
+            internal double Top { get; }
+
+            internal double Rise { get; }
+
+            internal double Depth => Top - Bottom;
+
+            /// <summary>The band as a solid of triangles.</summary>
+            internal GeoSolid3 ToSolid()
+            {
+                var faces = new List<GeoFace3>();
+
+                void Add(double[] a, double[] b, double[] c)
+                    => faces.Add(new GeoFace3(new GeoPolygon3(new[] { a, b, c }.Select(p => new GeoPoint3(p[0], p[1], p[2])), Tolerance.Default)));
+
+                void Quad(double[] a, double[] b, double[] c, double[] d)
+                {
+                    Add(a, b, c);
+                    Add(a, c, d);
+                }
+
+                for (int k = 0; k < Chords; k++)
+                {
+                    Quad(Corner(Outer, k, Top), Corner(Outer, k + 1, Top), Corner(Inner, k + 1, Top), Corner(Inner, k, Top));
+                    Quad(Corner(Outer, k, Bottom), Corner(Inner, k, Bottom), Corner(Inner, k + 1, Bottom), Corner(Outer, k + 1, Bottom));
+                    Quad(Corner(Outer, k, Bottom), Corner(Outer, k + 1, Bottom), Corner(Outer, k + 1, Top), Corner(Outer, k, Top));
+                    Quad(Corner(Inner, k, Bottom), Corner(Inner, k, Top), Corner(Inner, k + 1, Top), Corner(Inner, k + 1, Bottom));
+                }
+
+                Quad(Corner(Inner, 0, Bottom), Corner(Outer, 0, Bottom), Corner(Outer, 0, Top), Corner(Inner, 0, Top));
+                Quad(Corner(Outer, Chords, Bottom), Corner(Inner, Chords, Bottom), Corner(Inner, Chords, Top), Corner(Outer, Chords, Top));
+                return new GeoSolid3(faces).TurnOutwards();
+            }
+
+            /// <summary>The triangles of its top, each as its three corners (x, y, z), split as <see cref="ToSolid"/> splits them.</summary>
+            internal IReadOnlyList<double[][]> TopTriangles()
+            {
+                var triangles = new List<double[][]>();
+                for (int k = 0; k < Chords; k++)
+                {
+                    triangles.Add(new[] { Corner(Outer, k, Top), Corner(Outer, k + 1, Top), Corner(Inner, k + 1, Top) });
+                    triangles.Add(new[] { Corner(Outer, k, Top), Corner(Inner, k + 1, Top), Corner(Inner, k, Top) });
+                }
+
+                return triangles;
+            }
+
+            private double[] Corner(double radius, int k, double z)
+            {
+                double angle = FromRad + (ToRad - FromRad) * k / Chords;
+                return new[] { radius * Math.Cos(angle), radius * Math.Sin(angle), z + Rise * k / Chords };
+            }
+        }
+
+        /// <summary>
+        /// A curved wall and a girder on it whose sides and tops lie a hair apart, as a wall and a girder bent along one
+        /// curve in a Tekla model do: the pair the boolean cannot make a valid common part of, nor a valid cut.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The wall is the band from radius 5 600 to 5 900, 17 degrees long in 9 chords, 3 600 high, rising 1.2 along its
+        /// length, so its top leans 0.04 degrees. The girder is the band from radius 5 600.175 to 6 100.175, its ends 20
+        /// inside the wall's, in 7 chords, 900 deep, its top 0.7 under the wall's at its start and rising 3, 0.1 degrees:
+        /// its top crosses the wall's two fifths of the way along, the two 0.06 degrees apart. Its inner side lies 0.175
+        /// outside the wall's at its corners, and the chords, which sag 0.76 on the wall and 1.20 on the girder, cross each
+        /// other back and forth along the length.
+        /// </para>
+        /// <para>
+        /// At 4dde2c6, with the boolean within a thousandth, and with a contact of a hundredth, the common part of the wall
+        /// with the girder comes out of 224 faces, not valid and 247 526 short, and the cut of the wall by the girder of
+        /// 1 744 faces, not valid either and 13 552 331 short: the takeoff can only say the overlap could not be worked out.
+        /// The common part is not valid either with the girder's side 0.165 or 0.185 out and its top 0.65 or 0.75 under,
+        /// nine cases in all; with the contact, eight of the nine. So the case does not hang on its numbers.
+        /// </para>
+        /// </remarks>
+        internal static (CurvedBand Wall, CurvedBand Girder) CurvedWallAndGirder()
+        {
+            const double radius = 5600.0;
+            double span = 17.0 * Math.PI / 180.0, inset = 20.0 / radius;
+            var wall = new CurvedBand(radius, radius + 300.0, 0.0, span, 9, 0.0, 3600.0, 1.2);
+            var girder = new CurvedBand(radius + 0.175, radius + 500.175, inset, span - inset, 7, 3600.0 - 0.7 - 900.0, 3600.0 - 0.7, 3.0);
+            return (wall, girder);
+        }
+
+        /// <summary>
+        /// A column 1 000 by 400 by 4 000 standing across the middle of the curved wall and girder, its long side of plan
+        /// along the radius at the middle angle, from radius 5 250 to 6 250, and its height from -200 to 3 800, through both
+        /// wholly; its plan as four corners counter-clockwise.
+        /// </summary>
+        internal static (GeoSolid3 Solid, double[][] Plan) ColumnAcrossTheCurve()
+        {
+            double angle = 17.0 * Math.PI / 360.0, middle = 5750.0;
+            double ux = Math.Cos(angle), uy = Math.Sin(angle), vx = -uy, vy = ux;
+            double cx = middle * ux, cy = middle * uy;
+            GeoSolid3 solid = new GeoObb3(new GeoPoint3(cx, cy, 1800.0), 1000.0, 400.0, 4000.0, new GeoVector3(ux, uy, 0.0), new GeoVector3(vx, vy, 0.0)).ToSolid();
+            double[][] plan =
+            {
+                new[] { cx - 500.0 * ux - 200.0 * vx, cy - 500.0 * uy - 200.0 * vy },
+                new[] { cx + 500.0 * ux - 200.0 * vx, cy + 500.0 * uy - 200.0 * vy },
+                new[] { cx + 500.0 * ux + 200.0 * vx, cy + 500.0 * uy + 200.0 * vy },
+                new[] { cx - 500.0 * ux + 200.0 * vx, cy - 500.0 * uy + 200.0 * vy },
+            };
+            return (solid, plan);
+        }
+
+        /// <summary>
+        /// The volume of a band, within a convex plan if one is given: its depth times its plan, since its top and bottom
+        /// are warped alike. A plan given must lie across the band's whole height, as the column's does.
+        /// </summary>
+        internal static double BandVolume(CurvedBand band, IReadOnlyList<double[]> within = null)
+        {
+            double area = 0.0;
+            foreach (double[][] triangle in band.TopTriangles())
+            {
+                area += Math.Abs(Area(ClipToConvex(Plan(triangle), within)));
+            }
+
+            return band.Depth * area;
+        }
+
+        /// <summary>
+        /// What a band shares with one standing on it whose bottom lies above the lower's everywhere, within a convex plan
+        /// if one is given: over their common plan, the upper band's depth, less where its top stands above the lower's.
+        /// </summary>
+        /// <remarks>
+        /// Each top triangle of one band is clipped by each of the other's and by the plan given. Over each piece both tops
+        /// are planes, so the height of the upper's top over the lower's is linear: it is clipped to where it is above
+        /// nought, and its integral is the piece's area times its value at the piece's centroid. Nothing here calls the
+        /// library but to read the corners, so the overlap is exact to rounding.
+        /// </remarks>
+        internal static double CurvedOverlap(CurvedBand lower, CurvedBand upper, IReadOnlyList<double[]> within = null)
+        {
+            double area = 0.0, above = 0.0;
+            foreach (double[][] low in lower.TopTriangles())
+            {
+                Func<double[], double> lowTop = PlaneOver(low);
+                foreach (double[][] high in upper.TopTriangles())
+                {
+                    List<double[]> piece = ClipToConvex(ClipToConvex(Plan(low), Plan(high)), within);
+                    if (piece.Count < 3)
+                    {
+                        continue;
+                    }
+
+                    area += Math.Abs(Area(piece));
+                    Func<double[], double> highTop = PlaneOver(high);
+                    above += Integral(KeepWhere(piece, p => highTop(p) - lowTop(p)), p => highTop(p) - lowTop(p));
+                }
+            }
+
+            return upper.Depth * area - above;
+        }
+
+        private static List<double[]> Plan(double[][] corners) => corners.Select(c => new[] { c[0], c[1] }).ToList();
+
+        // The height over (x, y) of the plane through a triangle's three corners.
+        private static Func<double[], double> PlaneOver(double[][] t)
+        {
+            double ux = t[1][0] - t[0][0], uy = t[1][1] - t[0][1], uz = t[1][2] - t[0][2];
+            double vx = t[2][0] - t[0][0], vy = t[2][1] - t[0][1], vz = t[2][2] - t[0][2];
+            double nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+            return p => t[0][2] - (nx * (p[0] - t[0][0]) + ny * (p[1] - t[0][1])) / nz;
+        }
+
+        // The signed area of a polygon in plan, counter-clockwise positive.
+        private static double Area(IReadOnlyList<double[]> polygon)
+        {
+            double twice = 0.0;
+            for (int k = 0; k < polygon.Count; k++)
+            {
+                double[] a = polygon[k], b = polygon[(k + 1) % polygon.Count];
+                twice += a[0] * b[1] - a[1] * b[0];
+            }
+
+            return twice / 2.0;
+        }
+
+        // The part of a convex polygon where a linear function is at or above nought.
+        private static List<double[]> KeepWhere(List<double[]> polygon, Func<double[], double> f)
+        {
+            var kept = new List<double[]>();
+            for (int k = 0; k < polygon.Count; k++)
+            {
+                double[] p = polygon[k], q = polygon[(k + 1) % polygon.Count];
+                double fp = f(p), fq = f(q);
+                if (fp >= 0.0)
+                {
+                    kept.Add(p);
+                }
+
+                if ((fp >= 0.0) != (fq >= 0.0))
+                {
+                    double t = fp / (fp - fq);
+                    kept.Add(new[] { p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1]) });
+                }
+            }
+
+            return kept;
+        }
+
+        // A convex polygon clipped to another, either way round; the first as it is where there is no second.
+        private static List<double[]> ClipToConvex(List<double[]> polygon, IReadOnlyList<double[]> clip)
+        {
+            if (clip == null)
+            {
+                return polygon;
+            }
+
+            double turn = Math.Sign(Area(clip));
+            for (int e = 0; e < clip.Count && polygon.Count > 0; e++)
+            {
+                double[] a = clip[e], b = clip[(e + 1) % clip.Count];
+                polygon = KeepWhere(polygon, p => turn * ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])));
+            }
+
+            return polygon;
+        }
+
+        // The integral of a linear function over a polygon: its area times the function at its centroid.
+        private static double Integral(List<double[]> polygon, Func<double[], double> f)
+        {
+            if (polygon.Count < 3)
+            {
+                return 0.0;
+            }
+
+            double area = Area(polygon);
+            if (!(Math.Abs(area) > 0.0))
+            {
+                return 0.0;
+            }
+
+            double sx = 0.0, sy = 0.0;
+            for (int k = 0; k < polygon.Count; k++)
+            {
+                double[] a = polygon[k], b = polygon[(k + 1) % polygon.Count];
+                double cross = a[0] * b[1] - b[0] * a[1];
+                sx += (a[0] + b[0]) * cross;
+                sy += (a[1] + b[1]) * cross;
+            }
+
+            return Math.Abs(area) * f(new[] { sx / (6.0 * area), sy / (6.0 * area) });
+        }
+
+        #endregion
+
         #region The oracle: cells of the boxes, each owned by the highest-ranked box holding it
 
         /// <summary>What the oracle works out for a set of boxes.</summary>
@@ -365,7 +789,7 @@ namespace GeometryHelper.UnitTest.Takeoff
                 int count = set.Boxes.Count;
                 var oracle = new Oracle(count);
                 oracle.Ranked = Enumerable.Range(0, count).Where(i => set.Boxes[i] != null)
-                    .OrderByDescending(i => set.Priorities[i]).ThenBy(i => i).ToArray();
+                    .OrderByDescending(i => set.Priorities[i]).ThenByDescending(i => set.Ids[i].HasValue).ThenByDescending(i => set.Ids[i] ?? 0).ThenBy(i => i).ToArray();
 
                 double[][] cuts = Enumerable.Range(0, 3).Select(axis => Coordinates(set.Boxes, axis)).ToArray();
 
@@ -407,7 +831,7 @@ namespace GeometryHelper.UnitTest.Takeoff
                 return oracle;
             }
 
-            private static double[] Coordinates(IReadOnlyList<Box> boxes, int axis)
+            internal static double[] Coordinates(IReadOnlyList<Box> boxes, int axis)
             {
                 var all = new List<double>();
                 foreach (Box box in boxes.Where(b => b != null))
@@ -421,6 +845,165 @@ namespace GeometryHelper.UnitTest.Takeoff
 
                 return all.Distinct().OrderBy(v => v).ToArray();
             }
+        }
+
+        #endregion
+
+        #region Slicing: what of a subject lies within some boxes and outside others
+
+        /// <summary>
+        /// A subject, the boxes it is taken within and the boxes it is taken outside of, as the slicing measure reads them:
+        /// the volume of the subject's material that lies in the material of a box within and in that of no box outside.
+        /// <see cref="WithinIsSubject"/> and <see cref="OutsideIsSubject"/> say, for each box, whether its solid is to be
+        /// the subject's very solid.
+        /// </summary>
+        internal sealed class SliceSet
+        {
+            internal SliceSet(Box subject, IReadOnlyList<Box> within, IReadOnlyList<Box> outside, IReadOnlyList<bool> withinIsSubject = null, IReadOnlyList<bool> outsideIsSubject = null)
+            {
+                Subject = subject;
+                Within = within;
+                Outside = outside;
+                WithinIsSubject = withinIsSubject ?? within.Select(_ => false).ToArray();
+                OutsideIsSubject = outsideIsSubject ?? outside.Select(_ => false).ToArray();
+            }
+
+            internal Box Subject { get; }
+
+            internal IReadOnlyList<Box> Within { get; }
+
+            internal IReadOnlyList<Box> Outside { get; }
+
+            internal IReadOnlyList<bool> WithinIsSubject { get; }
+
+            internal IReadOnlyList<bool> OutsideIsSubject { get; }
+
+            /// <summary>The three as solids, each box built on its own but where it is to be the subject's very solid.</summary>
+            internal (GeoSolid3 Subject, GeoSolid3[] Within, GeoSolid3[] Outside) ToSolids()
+            {
+                GeoSolid3 subject = Subject.ToSolid();
+                GeoSolid3[] within = Within.Select((box, i) => WithinIsSubject[i] ? subject : box.ToSolid()).ToArray();
+                GeoSolid3[] outside = Outside.Select((box, i) => OutsideIsSubject[i] ? subject : box.ToSolid()).ToArray();
+                return (subject, within, outside);
+            }
+
+            /// <summary>
+            /// What the cells give: the cells cut by every x, y and z of the boxes and their openings, each counted where the
+            /// subject's material holds it, the material of some box within does, and the material of no box outside does.
+            /// </summary>
+            internal double Oracle()
+            {
+                Box[] all = new[] { Subject }.Concat(Within).Concat(Outside).ToArray();
+                double[][] cuts = Enumerable.Range(0, 3).Select(axis => VolumeTakeoffTestKit.Oracle.Coordinates(all, axis)).ToArray();
+                double volume = 0.0;
+
+                for (int ix = 0; ix + 1 < cuts[0].Length; ix++)
+                {
+                    for (int iy = 0; iy + 1 < cuts[1].Length; iy++)
+                    {
+                        for (int iz = 0; iz + 1 < cuts[2].Length; iz++)
+                        {
+                            double x = (cuts[0][ix] + cuts[0][ix + 1]) / 2.0;
+                            double y = (cuts[1][iy] + cuts[1][iy + 1]) / 2.0;
+                            double z = (cuts[2][iz] + cuts[2][iz + 1]) / 2.0;
+
+                            if (Subject.Holds(x, y, z) && Within.Any(box => box.Holds(x, y, z)) && !Outside.Any(box => box.Holds(x, y, z)))
+                            {
+                                volume += (cuts[0][ix + 1] - cuts[0][ix]) * (cuts[1][iy + 1] - cuts[1][iy]) * (cuts[2][iz + 1] - cuts[2][iz]);
+                            }
+                        }
+                    }
+                }
+
+                return volume;
+            }
+
+            /// <summary>
+            /// The volume of the subject's outline, openings and all: the scale an error is measured against, which an
+            /// opening taking the subject whole, flush, cannot bring to nought.
+            /// </summary>
+            internal double SubjectOutline() => (Subject.Max[0] - Subject.Min[0]) * (Subject.Max[1] - Subject.Min[1]) * (Subject.Max[2] - Subject.Min[2]);
+
+            public override string ToString()
+            {
+                var text = new StringBuilder();
+                text.AppendFormat(CultureInfo.InvariantCulture, "  subject {0}\n", Subject);
+                for (int i = 0; i < Within.Count; i++)
+                {
+                    text.AppendFormat(CultureInfo.InvariantCulture, "  within {0}{1}\n", Within[i], WithinIsSubject[i] ? " (the subject's solid)" : "");
+                }
+
+                for (int i = 0; i < Outside.Count; i++)
+                {
+                    text.AppendFormat(CultureInfo.InvariantCulture, "  outside {0}{1}\n", Outside[i], OutsideIsSubject[i] ? " (the subject's solid)" : "");
+                }
+
+                return text.ToString();
+            }
+        }
+
+        /// <summary>
+        /// A random set for the slicing, from its seed: a subject, 0 to 4 boxes within and 0 to 4 outside, with corners on a
+        /// grid 100 apart in a cube 600 across, as <see cref="RandomSet"/> lays them, so that flush faces are common. One box
+        /// in three carries an opening on a grid 50 apart, flush with its faces or running past them as often as not, and
+        /// never all of it; one box within or outside in five is a copy of the subject, half of those its very solid.
+        /// </summary>
+        internal static SliceSet RandomSliceSet(int seed)
+        {
+            var random = new Random(seed);
+            Box subject = RandomBox(random);
+            var within = new List<Box>();
+            var outside = new List<Box>();
+            var withinIsSubject = new List<bool>();
+            var outsideIsSubject = new List<bool>();
+
+            foreach ((List<Box> boxes, List<bool> isSubject) in new[] { (within, withinIsSubject), (outside, outsideIsSubject) })
+            {
+                int count = random.Next(0, 5);
+                for (int i = 0; i < count; i++)
+                {
+                    bool copy = random.Next(5) == 0;
+                    boxes.Add(copy ? subject : RandomBox(random));
+                    isSubject.Add(copy && random.Next(2) == 0);
+                }
+            }
+
+            return new SliceSet(subject, within, outside, withinIsSubject, outsideIsSubject);
+        }
+
+        // A box 1 to 4 steps of 100 long on each axis in the cube 600 across, one in three with an opening.
+        private static Box RandomBox(Random random)
+        {
+            var min = new double[3];
+            var max = new double[3];
+            for (int axis = 0; axis < 3; axis++)
+            {
+                int from = random.Next(0, 6);
+                int to = Math.Min(6, from + random.Next(1, 5));
+                min[axis] = 100.0 * from;
+                max[axis] = 100.0 * to;
+            }
+
+            if (random.Next(3) != 0)
+            {
+                return new Box(min[0], min[1], min[2], max[0], max[1], max[2]);
+            }
+
+            // On each axis the opening runs from a step of 50 before the box's start, at it or inside it, to a step of 50
+            // inside its end, at it or past it; on one axis it stops inside at the start, so that some of the box is left.
+            var low = new double[3];
+            var high = new double[3];
+            int inside = random.Next(3);
+            for (int axis = 0; axis < 3; axis++)
+            {
+                int steps = (int)Math.Round((max[axis] - min[axis]) / 50.0);
+                int a = axis == inside ? random.Next(1, steps) : random.Next(-1, steps);
+                int b = random.Next(a + 1, steps + 2);
+                low[axis] = min[axis] + 50.0 * a;
+                high[axis] = min[axis] + 50.0 * b;
+            }
+
+            return new Box(min[0], min[1], min[2], max[0], max[1], max[2], new Box(low[0], low[1], low[2], high[0], high[1], high[2]));
         }
 
         #endregion

@@ -59,7 +59,8 @@ namespace GeometryHelper.Takeoff
 
         /// <summary>
         /// Gets what could not be worked out exactly, in plain English, each naming the other item by its index where
-        /// there is one, as "overlap with #12 could not be worked out: not deducted, so the net volume is an upper bound".
+        /// there is one, as "overlap with #12 could not be worked out, by booleans or by slicing: not deducted, so the net
+        /// volume is an upper bound".
         /// </summary>
         public IReadOnlyList<string> Issues { get; }
 

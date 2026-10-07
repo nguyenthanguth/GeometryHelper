@@ -27,17 +27,20 @@ ellipse, so a question is asked from the ellipse. `GeoCircle2.TransformBy` still
 now point to `FromCircle`.
 
 **NEW.** `GeometryHelper.Takeoff`: `VolumeTakeoff.Run` takes off the volumes of the parts of a model, each bit of
-material counted once, by the part ranked first among those holding it, the higher `VolumeItem.Priority` first, cutting
-it out of the lower, and of two the same the earlier in the list. A slab 6 000 by 6 000 by 200 on a beam 300 wide
-running through a column 400 by 400 loses 0.032 m3 to the column and 0.336 m3 to the beam, the block 300 by 400 by 200
-inside the column taken off once, and keeps 6.832 m3; the three parts add up to 8.352 m3, the volume of the three
-together. Only what the parts share is cut, never the parts. Each result gives the gross, the deductions by the part
-that kept them, the net and, where something could not be worked out exactly, issues saying which way the net may be
-out. It runs in parallel, and the results are the same, bit for bit, on one thread or on every processor
+material counted once, by the part ranked first among those holding it: the higher `VolumeItem.Priority` first, cutting
+it out of the lower; of two the same, the larger `VolumeItem.Id` where one is given, so that a Tekla part's
+`Identifier.ID` takes ties as HDC WBS does, then the earlier in the list. A slab 6 000 by 6 000 by 200 on a beam 300
+wide running through a column 400 by 400 loses 0.032 m3 to the column and 0.336 m3 to the beam, the block 300 by 400 by
+200 inside the column taken off once, and keeps 6.832 m3; the three parts add up to 8.352 m3, the volume of the three
+together. Only what the parts share is cut, never the parts. A common part the booleans cannot make is worked out by
+slicing, exact over flat faces with nothing snapped, across the axis that needs the fewest planes: a curved wall and
+girder of a Tekla model, whose common part comes back as 4 256 faces and not valid, share 2 226 236 967 mm3 by slicing,
+in 0.04 seconds, where Tekla's own boolean gives 2 226 236 773. Each result gives the gross, the deductions by the part
+that kept them, the net and, where something could not be worked out, an issue saying the net is an upper bound. It runs
+in parallel, and the results are the same, bit for bit, on one thread or on every processor
 (`VolumeTakeoffOptions.MaxDegreeOfParallelism`). On a Tekla model of 30 921 parts, 69 040.90 m3 gross, it keeps 67
-371.39 m3 net with a contact of 0.01 and a fallback of 0.01, 2 parts carrying an issue, against 67 372.92 m3 from
-cutting each part with every part ranked before it, no part differing beyond the contact times its surface but where the
-cutting skipped a cut; it takes 280 seconds on 24 processors and 418 on one.
+369.17 m3 net with a contact of 0.01 and a fallback of 0.01, no result carrying an issue, in 293 seconds on 24
+processors.
 
 **FIXED.** A circle a hair inside another, within the point tolerance of touching it without crossing, touched it at a
 point read off the radical line of the two, which runs away from both as the difference of the radii shrinks: a circle
