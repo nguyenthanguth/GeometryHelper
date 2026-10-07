@@ -147,7 +147,6 @@ namespace GeometryHelper.ArrangeAlgorithms.TeklaTest
             // Set up layout options using the Greedy algorithm
             ArrangeOptions arrangeOptions = new ArrangeOptions
             {
-                Algorithm = ArrangeAlgorithmType.Greedy,
                 MinimumMoveDistance = 10.0
             };
 

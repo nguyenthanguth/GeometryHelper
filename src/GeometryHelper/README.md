@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://github.com/nguyenthanguth/GeometryHelper/blob/main/LICENSE)
 
 Geometry for engineering drawings and models, in two dimensions and in three, with the label placement
-algorithms that run on the 2D half. Written in C# and targeting `netstandard2.0`, so it loads into the
+that runs on the 2D half. Written in C# and targeting `netstandard2.0`, so it loads into the
 .NET Framework hosts that Tekla Structures and AutoCAD provide as well as into modern .NET.
 
 Every comparison that floating point error can affect takes a `Tolerance`, because coordinates that come
@@ -60,7 +60,7 @@ beam.TryTrimTo(wall, LineEnd.End, out GeoLine3 cut);      // (0,0,0) -> (2500,0,
 | `GeometryHelper.Core` | 35 operation classes, each dimension mirroring the other: `Boolean2`/`Boolean3`, `Offset2`/`Offset3`, `Distance2`/`Distance3`, … plus `Arc2`, `Corner2` for chamfering and rounding, `PlanarMap`, which carries flat shapes between the two, and `Measure3`, a body's volume, mass and area read more than one way |
 | `GeometryHelper.Spatial` | `GeoBvh2` and `GeoBvh3`, the bounding volume hierarchies for large chains and meshes |
 | `GeometryHelper.Extension` | turning raw point lists into geometry |
-| `GeometryHelper.Arranging` | label placement: `Arranger`, `ArrangeItem`, `ArrangeResult`, `ArrangeOptions`, five algorithms |
+| `GeometryHelper.Arranging` | label placement: `Arranger`, `ArrangeItem`, `ArrangeResult`, `ArrangeOptions`, one greedy placement |
 | `GeometryHelper.Meshing` | closed shapes of the plane and flat shapes of space broken into triangles, grids, strips or convex pieces, and bodies cut into the cells of a grid: `GeoMesh2`, `Mesh2`, `GeoMesh3`, `Mesh3`, `MeshKind`, `MeshOptions`, `MeshPlacement3`, `GeoCellGrid3`, `GeoCell3`, `CellOptions3`, `CellAxis`, `GridAlignment` |
 | `GeometryHelper.Packing` | boxes onto sheets of paper: `SheetPacker`, `Sheet`, `PackOptions`, `PackResult` |
 
@@ -88,7 +88,7 @@ The whole of it, searchable, with every type and member: [https://nguyenthanguth
 | [Meshing the plane](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/mesh.md) | triangles, grids of panels or tiles with joints and alignment, strips and convex pieces, edge to edge |
 | [Geometry in space](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |
 | [Meshing in space](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/mesh3.md) | flat shapes of space in panels, tiles, strips and triangles; bodies and boxes cut into blocks, bays and lifts; [the cases, drawn and checked](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/mesh3-report.md) |
-| [Label placement](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/arrange.md) | five algorithms behind one entry point |
+| [Label placement](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/arrange.md) | labels placed greedily, clear of each other and of blocked regions |
 | [Packing boxes onto sheets](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/packing.md) | drawing views onto A0 to A4 sheets or sheets of a size of their own, a new sheet when one is full |
 
 ## Coverage

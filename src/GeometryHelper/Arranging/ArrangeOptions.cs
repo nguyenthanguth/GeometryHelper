@@ -19,11 +19,6 @@ namespace GeometryHelper.Arranging
         public static ArrangeOptions Default => new ArrangeOptions();
 
         /// <summary>
-        /// The label arrangement algorithm to be used.
-        /// </summary>
-        public ArrangeAlgorithmType Algorithm { get; set; } = ArrangeAlgorithmType.Greedy;
-
-        /// <summary>
         /// The gap between two consecutive label rows, added to the label height
         /// when shifting to the next perpendicular level. Helps prevent rows from overlapping.
         /// </summary>
@@ -87,33 +82,6 @@ namespace GeometryHelper.Arranging
         /// Helps labels in crowded center regions get priority placement.
         /// </summary>
         public bool PlaceFromInsideOut { get; set; } = true;
-
-        /// <summary>
-        /// The most steps back the two searching algorithms, bounded backtracking and constraint satisfaction, may take:
-        /// each time a search takes up a label it has placed, to try it elsewhere, because a label after it found no
-        /// place. Once they run out, the search gives up and the greedy algorithm places the labels.
-        /// </summary>
-        /// <remarks>
-        /// Placing a label costs no step, so a search that never has to go back is never cut short, however many labels
-        /// there are. Until 6.3.0 every label placed counted as a step, and a run of more labels than steps always gave
-        /// up and was placed by the greedy algorithm.
-        /// </remarks>
-        public int MaxBacktrackSteps { get; set; } = 1000;
-
-        /// <summary>
-        /// Initial temperature for the Simulated Annealing algorithm.
-        /// </summary>
-        public double AnnealingInitialTemperature { get; set; } = 100.0;
-
-        /// <summary>
-        /// Cooling rate for the Simulated Annealing algorithm.
-        /// </summary>
-        public double AnnealingCoolingRate { get; set; } = 0.95;
-
-        /// <summary>
-        /// Number of iterations for physical force simulation in the Force-directed algorithm.
-        /// </summary>
-        public int ForceIterations { get; set; } = 100;
 
         /// <summary>
         /// Tolerance used for geometric calculations and intersection checks: <see cref="GeometryHelper.Tolerance.Global"/>

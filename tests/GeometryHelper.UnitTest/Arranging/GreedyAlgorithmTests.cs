@@ -14,7 +14,6 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             return new ArrangeOptions
             {
-                Algorithm = ArrangeAlgorithmType.Greedy,
                 RowGap = 5.0,
                 PerpendicularLevels = perpendicularLevels
             };
@@ -40,7 +39,6 @@ namespace GeometryHelper.UnitTest.Arranging
             var list = new List<ArrangeItem> { a1, a2 };
             var options = new ArrangeOptions
             {
-                Algorithm = ArrangeAlgorithmType.Greedy,
                 RowGap = 5.0,
                 PerpendicularLevels = 3
             };
@@ -80,7 +78,6 @@ namespace GeometryHelper.UnitTest.Arranging
 
             var options = new ArrangeOptions
             {
-                Algorithm = ArrangeAlgorithmType.Greedy,
                 RowGap = 5.0,
                 PerpendicularLevels = 2
             };
@@ -120,7 +117,6 @@ namespace GeometryHelper.UnitTest.Arranging
 
             var options = new ArrangeOptions
             {
-                Algorithm = ArrangeAlgorithmType.Greedy,
                 RowGap = 5.0,
                 PerpendicularLevels = 2
             };

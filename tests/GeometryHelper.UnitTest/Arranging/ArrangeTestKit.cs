@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.Arranging;
@@ -8,19 +7,14 @@ using Xunit;
 namespace GeometryHelper.UnitTest.Arranging
 {
     /// <summary>
-    /// What the tests of label placement share: the algorithms, the small label most of them place, and the checks more
-    /// than one class makes. The classes that use them derive from it, so that a theory names
-    /// <see cref="AllAlgorithms"/> as its own.
+    /// What the tests of label placement share: the options most of them run with, the small label most of them place,
+    /// and the checks more than one class makes. The classes that use them derive from it.
     /// </summary>
     public abstract class ArrangeTestKit
     {
-        /// <summary>Every algorithm, one row each, for a theory to run over.</summary>
-        public static IEnumerable<object[]> AllAlgorithms()
-            => Enum.GetValues(typeof(ArrangeAlgorithmType)).Cast<ArrangeAlgorithmType>().Select(algorithm => new object[] { algorithm });
-
-        /// <summary>The options most tests run with: three rows on either side, 5 apart; the greedy algorithm unless told.</summary>
-        public static ArrangeOptions OptionsFor(ArrangeAlgorithmType algorithm = ArrangeAlgorithmType.Greedy)
-            => new ArrangeOptions { Algorithm = algorithm, RowGap = 5.0, PerpendicularLevels = 3 };
+        /// <summary>The options most tests run with: three rows on either side, 5 apart.</summary>
+        public static ArrangeOptions OptionsFor()
+            => new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = 3 };
 
         /// <summary>A label 20 by 10 unless told otherwise, at the middle of its leader, 5 off either side.</summary>
         public static ArrangeItem LabelOn(GeoLine2 leader, double width = 20.0, double height = 10.0)

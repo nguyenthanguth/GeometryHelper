@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**BREAKING.** Label placement keeps one algorithm, the greedy one. `ArrangeAlgorithmType` and `ArrangeOptions.Algorithm`
+are removed, and with them the options only the other four read: `MaxBacktrackSteps`, `AnnealingInitialTemperature`,
+`AnnealingCoolingRate` and `ForceIterations`. Bounded backtracking, simulated annealing, force-directed placement and
+constraint satisfaction are gone. The greedy placement, the default all along, places every label where it did, bit
+for bit: its results still hash to those of 6.2.0, and 400 scenes of 20 to 79 labels, with sides, gaps, caps and
+tolerances varied, give the same bytes as 11.2.0 under .NET Framework 4.8 and .NET 10, in the same time. Code that set
+`Algorithm = ArrangeAlgorithmType.Greedy`, or left it unset, places every label as before once that line is deleted;
+code that set one of the four options deletes those lines too. Code that chose another algorithm deletes the line the
+same way, and gets the greedy placement.
+
 **NEW.** `Angle.ToReadableDegrees`, and `Angle.ToReadableRadians` in radians, turn the angle of a text the way up it
 reads: into the range above -90° and up to 90°, both raised by a tolerance, by adding or taking off a half turn, any
 number of turns wrapped first. The tolerance is a tenth of a radian, 5.73°, unless given, as Tekla Structures takes it,

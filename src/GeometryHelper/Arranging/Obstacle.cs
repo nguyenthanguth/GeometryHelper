@@ -77,7 +77,7 @@ namespace GeometryHelper.Arranging
         /// Duplicate obstacles are deduplicated to retain only a single instance. A common library usage pattern
         /// is to assign the same set of blocked regions to every label — e.g., each label avoids all other path segments —
         /// causing the list to grow quadratically with the number of labels, even though the number of distinct
-        /// geometries remains small. Deduplication here benefits all algorithms.
+        /// geometries remains small. Deduplication here benefits both passes and the final judgement alike.
         /// </para>
         /// </summary>
         /// <param name="items">The labels; a null entry is passed over.</param>

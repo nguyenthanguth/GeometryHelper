@@ -14,9 +14,9 @@ namespace GeometryHelper.UnitTest.Arranging
     /// </summary>
     public class ArrangerTests : ArrangeTestKit
     {
-        private static ArrangeOptions OneRow(ArrangeAlgorithmType algorithm)
+        private static ArrangeOptions OneRow()
         {
-            return new ArrangeOptions { Algorithm = algorithm, RowGap = 5.0, PerpendicularLevels = 1 };
+            return new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = 1 };
         }
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace GeometryHelper.UnitTest.Arranging
             label.BlockLines = lines;
             label.BlockPolygons = polygons;
 
-            Arranger.Run(new List<ArrangeItem> { label, label }, OneRow(ArrangeAlgorithmType.Greedy));
+            Arranger.Run(new List<ArrangeItem> { label, label }, OneRow());
 
             Assert.Same(lines, label.BlockLines);
             Assert.Same(polygons, label.BlockPolygons);
@@ -71,9 +71,8 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.Empty(polygons);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void ARunLeavesTheItemsAsItFoundThem(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void ARunLeavesTheItemsAsItFoundThem()
         {
             List<ArrangeItem> items = Crowd();
 
@@ -96,7 +95,7 @@ namespace GeometryHelper.UnitTest.Arranging
                 LinesHeld = item.BlockLines.ToArray(),
             }).ToList();
 
-            ArrangeResult[] results = Arranger.Run(items, OneRow(algorithm));
+            ArrangeResult[] results = Arranger.Run(items, OneRow());
 
             // Some label is left overlapping, so the second pass ran and relaxed the blocks of the others.
             Assert.Contains(results, r => !r.Placed);
@@ -118,12 +117,11 @@ namespace GeometryHelper.UnitTest.Arranging
         /// Nothing a run keeps is shared with another run, so the same items arranged on several threads at once
         /// come out as they do arranged alone.
         /// </summary>
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void RunsOnSeveralThreadsAtOnceAgree(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void RunsOnSeveralThreadsAtOnceAgree()
         {
             List<ArrangeItem> items = Crowd();
-            ArrangeOptions options = OneRow(algorithm);
+            ArrangeOptions options = OneRow();
             ArrangeResult[] alone = Arranger.Run(items, options);
 
             var answers = new ArrangeResult[6][];
@@ -147,15 +145,14 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.All(answers, answer => Assert.Equal(alone, answer));
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void EachItemIsAnsweredInItsPlaceAndANullWithDefault(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void EachItemIsAnsweredInItsPlaceAndANullWithDefault()
         {
             ArrangeItem first = LabelOn(new GeoLine2(0.0, 0.0, 40.0, 0.0));
             ArrangeItem second = LabelOn(new GeoLine2(200.0, 0.0, 240.0, 0.0));
 
             ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { first, null, second },
-                new ArrangeOptions { Algorithm = algorithm, RowGap = 5.0 });
+                new ArrangeOptions { RowGap = 5.0 });
 
             Assert.Equal(3, results.Length);
             Assert.Equal(default(ArrangeResult), results[1]);
@@ -173,16 +170,12 @@ namespace GeometryHelper.UnitTest.Arranging
         /// middle label, pushed off its clear place in the first pass by the third, which fell back onto it, went back
         /// onto the region in the second.
         /// </summary>
-        [Theory]
-        [InlineData(ArrangeAlgorithmType.Greedy)]
-        [InlineData(ArrangeAlgorithmType.BoundedBacktracking)]
-        [InlineData(ArrangeAlgorithmType.ConstraintSatisfaction)]
-        public void TheSecondPassKeepsClearOfTheRegionsOfEveryItem(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void TheSecondPassKeepsClearOfTheRegionsOfEveryItem()
         {
             var region = new GeoPolygon2(new GeoPoint2(-100.0, 1.0), new GeoPoint2(200.0, 1.0), new GeoPoint2(200.0, 30.0), new GeoPoint2(-100.0, 30.0));
             var options = new ArrangeOptions
             {
-                Algorithm = algorithm,
                 PerpendicularLevels = 1,
                 PlaceMostConstrainedFirst = false,
                 PlaceFromInsideOut = false,
@@ -206,8 +199,8 @@ namespace GeometryHelper.UnitTest.Arranging
             ArrangeResult[] results = Arranger.Run(Scene(regionOnTheMiddleLabelToo: false), options);
 
             // Clear below the leader, 5 + 5 off, clear of the region above it.
-            Assert.True(results[1].Placed, $"{algorithm}: {results[1]}");
-            Assert.True(results[1].Translation.IsEqualTo(new GeoVector2(0.0, -10.0)), $"{algorithm}: {results[1]}");
+            Assert.True(results[1].Placed, results[1].ToString());
+            Assert.True(results[1].Translation.IsEqualTo(new GeoVector2(0.0, -10.0)), results[1].ToString());
             Assert.Equal(Arranger.Run(Scene(regionOnTheMiddleLabelToo: true), options), results);
         }
 

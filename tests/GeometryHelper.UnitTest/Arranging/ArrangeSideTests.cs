@@ -48,12 +48,11 @@ namespace GeometryHelper.UnitTest.Arranging
             new object[] { 0.0, 100.0, 100.0, 0.0 },
         };
 
-        // Every algorithm, with the leader drawn either way, kept to either side.
-        public static IEnumerable<object[]> AllAlgorithmsBothWaysOneSide()
-            => from algorithm in Enum.GetValues(typeof(ArrangeAlgorithmType)).Cast<ArrangeAlgorithmType>()
-               from reversed in new[] { false, true }
+        // The leader drawn either way, the label kept to either side.
+        public static IEnumerable<object[]> BothWaysOneSide()
+            => from reversed in new[] { false, true }
                from side in new[] { ArrangeSide.Top, ArrangeSide.Bottom }
-               select new object[] { algorithm, reversed, side };
+               select new object[] { reversed, side };
 
         [Fact]
         public void TheSide_StartsAsBoth()
@@ -105,12 +104,11 @@ namespace GeometryHelper.UnitTest.Arranging
 
         /// <summary>
         /// Kept to one side, the label stays there though the other side stands nearer and is free, and though its own
-        /// leader is among what it keeps clear of or not. With the same gap on both sides, the force-directed algorithm
-        /// pushed a label sitting on its own leader along +X, off along the leader.
+        /// leader is among what it keeps clear of or not.
         /// </summary>
         [Theory]
-        [MemberData(nameof(AllAlgorithmsBothWaysOneSide))]
-        public void EveryAlgorithm_KeepsTheLabelToItsSide(ArrangeAlgorithmType algorithm, bool reversed, ArrangeSide side)
+        [MemberData(nameof(BothWaysOneSide))]
+        public void TheLabel_IsKeptToItsSide(bool reversed, ArrangeSide side)
         {
             foreach (double otherGap in new[] { 20.0, 300.0 })
             foreach (bool leaderBlocked in new[] { false, true })
@@ -124,10 +122,10 @@ namespace GeometryHelper.UnitTest.Arranging
                     label.BlockLines = new[] { label.Leader };
                 }
 
-                ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { Algorithm = algorithm })[0];
+                ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions())[0];
                 GeoPoint2 centre = label.Box.Center + result.Translation;
 
-                string what = $"{algorithm}, other gap {otherGap}, leader blocked {leaderBlocked}: {centre}";
+                string what = $"other gap {otherGap}, leader blocked {leaderBlocked}: {centre}";
                 Assert.True(result.Placed, what);
                 Assert.True(centre.IsEqualTo(new GeoPoint2(1000.0, side == ArrangeSide.Top ? 800.0 : -800.0)), what);
             }
@@ -137,8 +135,8 @@ namespace GeometryHelper.UnitTest.Arranging
         /// With no free place on its side, the label is left on the first of them, overlapping, however free the other side.
         /// </summary>
         [Theory]
-        [MemberData(nameof(AllAlgorithmsBothWaysOneSide))]
-        public void AWalledInSide_IsWhereTheLabelIsLeft(ArrangeAlgorithmType algorithm, bool reversed, ArrangeSide side)
+        [MemberData(nameof(BothWaysOneSide))]
+        public void AWalledInSide_IsWhereTheLabelIsLeft(bool reversed, ArrangeSide side)
         {
             ArrangeItem label = DimensionText(reversed, side, 20.0, 20.0);
             label.BlockPolygons = new[]
@@ -146,10 +144,10 @@ namespace GeometryHelper.UnitTest.Arranging
                 side == ArrangeSide.Top ? Rectangle(-5000.0, 1.0, 7000.0, 5000.0) : Rectangle(-5000.0, -5000.0, 7000.0, -1.0)
             };
 
-            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { Algorithm = algorithm })[0];
+            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions())[0];
 
             Assert.False(result.Placed);
-            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(1000.0, side == ArrangeSide.Top ? 520.0 : -520.0)), $"{algorithm}: {result}");
+            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(1000.0, side == ArrangeSide.Top ? 520.0 : -520.0)), result.ToString());
         }
 
         /// <summary>
@@ -157,8 +155,8 @@ namespace GeometryHelper.UnitTest.Arranging
         /// the copy keeps the side.
         /// </summary>
         [Theory]
-        [MemberData(nameof(AllAlgorithmsBothWaysOneSide))]
-        public void TheSecondPass_KeepsTheSide(ArrangeAlgorithmType algorithm, bool reversed, ArrangeSide side)
+        [MemberData(nameof(BothWaysOneSide))]
+        public void TheSecondPass_KeepsTheSide(bool reversed, ArrangeSide side)
         {
             var lines = new List<GeoLine2>();
             for (int x = -400; x <= 800; x += 7)
@@ -170,29 +168,28 @@ namespace GeometryHelper.UnitTest.Arranging
             label.Side = side;
             label.BlockLines = lines;
 
-            ArrangeResult result = Arranger.Run(new[] { label }, OptionsFor(algorithm))[0];
+            ArrangeResult result = Arranger.Run(new[] { label }, OptionsFor())[0];
 
             Assert.False(result.Placed);
-            Assert.True(result.Translation.IsEqualTo(new GeoVector2(0.0, side == ArrangeSide.Top ? 10.0 : -10.0)), $"{algorithm}: {result}");
+            Assert.True(result.Translation.IsEqualTo(new GeoVector2(0.0, side == ArrangeSide.Top ? 10.0 : -10.0)), result.ToString());
         }
 
         /// <summary>
         /// The obstacles a label is checked against are those within reach of the candidates of its side, out to the
         /// last row: over the first two rows above, and the label kept to the top takes the third, the side below free.
         /// </summary>
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void TheReachOfOneSide_RunsOutToItsLastRow(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void TheReachOfOneSide_RunsOutToItsLastRow()
         {
             ArrangeItem label = LabelOn(new GeoLine2(0.0, 0.0, 100.0, 0.0));
             label.Offset = 20.0;
             label.Side = ArrangeSide.Top;
             label.BlockPolygons = new[] { Rectangle(-100.0, 20.0, 200.0, 30.0), Rectangle(-100.0, 130.0, 200.0, 140.0) };
 
-            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { Algorithm = algorithm, RowGap = 100.0, PerpendicularLevels = 3 })[0];
+            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { RowGap = 100.0, PerpendicularLevels = 3 })[0];
 
-            Assert.True(result.Placed, $"{algorithm}: {result}");
-            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 245.0)), $"{algorithm}: {result}");
+            Assert.True(result.Placed, result.ToString());
+            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 245.0)), result.ToString());
         }
 
         [Theory]

@@ -61,7 +61,6 @@ namespace GeometryHelper.UnitTest.Arranging
 
             var options = new ArrangeOptions
             {
-                Algorithm           = ArrangeAlgorithmType.BoundedBacktracking,
                 RowGap              = 20.0,
                 PerpendicularLevels = 3
             };

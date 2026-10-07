@@ -4,11 +4,10 @@ using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Geometry;
 
-namespace GeometryHelper.Arranging.Algorithms
+namespace GeometryHelper.Arranging
 {
     /// <summary>
-    /// Heuristic calculations shared among sequential label arrangement algorithms
-    /// (<see cref="GreedyAlgorithm"/> and <see cref="BoundedBacktrackingAlgorithm"/>):
+    /// Heuristic calculations of the greedy placement, <see cref="GreedyAlgorithm"/>:
     /// determining processing order, measuring clearance, and bounding obstacles filtering.
     /// </summary>
     internal static class PlacementHeuristics

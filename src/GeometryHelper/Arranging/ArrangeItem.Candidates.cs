@@ -18,7 +18,7 @@ namespace GeometryHelper.Arranging
 
         /// <summary>
         /// Gets the positions the centre of the label is tried at: rows on either side of the leader, or on the one side
-        /// <see cref="Side"/> keeps the label to, each sliding along it. Every algorithm chooses among these.
+        /// <see cref="Side"/> keeps the label to, each sliding along it. A run chooses among these.
         /// </summary>
         /// <remarks>
         /// The rows come nearest first, each straight across the middle of the leader and then a step back and a step

@@ -12,9 +12,9 @@ plane](plane.md), and its own types live in the `GeometryHelper.Arranging` names
 ### AutoCAD Integration
 Here are some examples of labels arranged inside AutoCAD to avoid overlaps and blocked regions:
 
-| Greedy | Force Directed |
-|:---:|:---:|
-| ![Greedy](https://raw.githubusercontent.com/nguyenthanguth/GeometryHelper/main/examples/GeometryHelper.ArrangeAlgorithms.CadTest/img/ex-result-cad1.png) | ![Force Directed](https://raw.githubusercontent.com/nguyenthanguth/GeometryHelper/main/examples/GeometryHelper.ArrangeAlgorithms.CadTest/img/ex-result-cad2.png) |
+| Greedy |
+|:---:|
+| ![Greedy](https://raw.githubusercontent.com/nguyenthanguth/GeometryHelper/main/examples/GeometryHelper.ArrangeAlgorithms.CadTest/img/ex-result-cad1.png) |
 
 ### Tekla Structures Integration
 Here is an example of reinforcement marks before and after arrangement:
@@ -68,12 +68,11 @@ leaves overlapping something are tried once more with the block lines lifted, ke
 already placed. `Placed` is judged afterwards, on the final layout as a whole, so a label that another one fell
 back onto is not reported clear.
 
-To change the algorithm or fine-tune parameters, pass `ArrangeOptions`:
+To fine-tune the placement, pass `ArrangeOptions`:
 
 ```csharp
 var options = new ArrangeOptions
 {
-    Algorithm           = ArrangeAlgorithmType.BoundedBacktracking,
     RowGap              = 20.0,
     PerpendicularLevels = 3
 };
@@ -141,7 +140,7 @@ the label still goes there when the near side is full.
 
 ## Candidate Positions Generation
 
-All 5 algorithms share the same set of discrete candidate positions, expanding from the midpoint of the leader;
+Every label is tried at a set of discrete candidate positions, expanding from the midpoint of its leader;
 `ArrangeItem.GetPlacePoints(options)` lists them:
 
 - **Perpendicular Translation** — each level in `PerpendicularLevels` creates a row of labels on either side of the leader, or on the one side `Side` keeps the label to. The first row on each side lies half the label height plus the gap of that side off the leader: `OffsetTop` above, `OffsetBottom` below. Each subsequent level adds the label height plus `RowGap`.
@@ -151,21 +150,27 @@ The rows of both sides come nearest first, each straight across the middle of th
 and a step forward along it in turn. Two rows as far off, one on each side, as every pair is when both sides have
 the same gap, are tried together, place by place. A label has no more than `MaximumCandidates` candidates in all.
 
-The algorithms only differ in how they **select** from this candidate set.
+## Greedy Placement
 
-## Five Algorithms
+The labels are placed greedily, one after another. A label once placed is never taken up again: it stands as a
+block for every label after it. The same items and options always give the same result.
 
-| `ArrangeAlgorithmType` | Selection Strategy | Trade-off |
-|---|---|---|
-| `Greedy` (default) | Sequentially places labels, prioritizing the most constrained ones; selects the most open spot in the first group of free candidates, the wider gap of a side not counted as open | Fastest, reproducible results, but prone to local optima |
-| `BoundedBacktracking` | Same as Greedy, but tries the nearest free spot first and backtracks when subsequent labels are stuck, bounded by `MaxBacktrackSteps` | Higher clean placement rate, slower on crowded drawings |
-| `SimulatedAnnealing` | Global optimization based on a collision-penalty energy function, gradually cooling down | Best for extremely crowded drawings, CPU-heavy |
-| `ForceDirected` | Simulates spring and repulsive forces, then maps to the nearest discrete candidate | Distributes labels evenly and naturally |
-| `ConstraintSatisfaction` | CSP with MRV heuristic and forward checking | Most rigorous, potential combinatorial explosion with large number of labels |
-
-`BoundedBacktracking` and `ConstraintSatisfaction` automatically fallback to `Greedy` if no collision-free solution is found, or their steps back run out, ensuring every label always has a display position.
-
-`SimulatedAnnealing` uses a fixed seed, so its results are reproducible between runs.
+- **Order** — with `PlaceMostConstrainedFirst`, the default, each label's freedom is counted first: how many of its
+  first `FreedomSampleSize` candidates, 12 unless set, are clear of the blocks. The label with the fewest goes first.
+  Of two as free, with `PlaceFromInsideOut`, also the default, the one nearer the centre of all the labels goes first,
+  and without it the one with fewer candidates in all. With `PlaceMostConstrainedFirst` off, the labels go from the
+  centre outwards, or, with `PlaceFromInsideOut` off too, from left to right and then bottom to top. Labels that tie
+  keep the order they were given in.
+- **Look-ahead** — a label is tried at its candidates in turn until `LookAheadCandidates` of them, 3 unless set, are
+  found clear, and takes the one that stands furthest from everything near it; of two as open, the one found first.
+  The gap one side asks for beyond the gap of the other is not counted as room: a label 20 off above its leader and
+  300 below it, keeping clear of its own leader, stands 20 clear of it in the first row above and 300 in the first
+  row below, and counted as measured, the side below, the one it is to keep further off, would win whenever places
+  on both sides were weighed.
+- **No clear place** — a label with none of its candidates clear is left on the first of them, overlapping, for the
+  second pass to try again. Looking for the place with the least overlap instead was measured worse: on 80 crowded
+  labels over 16 seeds it brought the share of clean labels down from 32.3 % to 22.9 %, as stuck labels wandered
+  into quiet regions and pushed out the labels placed well there.
 
 ## Parameters of each `ArrangeItem`
 
@@ -187,7 +192,6 @@ the blocks of every item, and a block given to many items is tested once.
 
 | Parameter | Default | Meaning |
 |---|---|---|
-| `Algorithm` | `Greedy` | Algorithm to use |
 | `RowGap` | 20.0 | Clearance between two consecutive rows of labels |
 | `PerpendicularLevels` | 3 | Number of perpendicular fallback levels to test on each side |
 | `LongitudinalOvershootRatio` | 0.75 | Ratio of label width allowed to overshoot beyond the two endpoints of the guide segment |
@@ -198,10 +202,6 @@ the blocks of every item, and a block given to many items is tested once.
 | `PlaceMostConstrainedFirst` | true | Place labels with fewer options first |
 | `PlaceFromInsideOut` | true | Prioritize labels close to the area centroid |
 | `LookAheadCandidates` | 3 | Number of free positions considered before selection |
-| `MaxBacktrackSteps` | 1000 | The most steps back `BoundedBacktracking` and `ConstraintSatisfaction` take before falling back to `Greedy`; placing a label takes none |
-| `AnnealingInitialTemperature` | 100.0 | Initial temperature for the Simulated Annealing algorithm |
-| `AnnealingCoolingRate` | 0.95 | Cooling rate for the Simulated Annealing algorithm |
-| `ForceIterations` | 100 | Number of force simulation iterations for the Force-Directed algorithm |
 | `Tolerance` | `Tolerance.Global` | Tolerance for geometric comparisons; `Tolerance.Global` as it stands when the options are made |
 
 Default values are in millimeters, matching conventional structural drawings.
@@ -214,7 +214,7 @@ Default values are in millimeters, matching conventional structural drawings.
 dotnet build examples/GeometryHelper.ArrangeAlgorithms.CadTest/GeometryHelper.ArrangeAlgorithms.CadTest.csproj
 ```
 
-The output is located at `examples/GeometryHelper.ArrangeAlgorithms.CadTest/bin/Debug/net48/GeometryHelper.ArrangeAlgorithms.CadTest.dll`. Load this file into AutoCAD using the `NETLOAD` command, then run one of the following commands: `T1_Greedy`, `T1_BoundedBacktracking`, `T1_SimulatedAnnealing`, `T1_ForceDirected`, `T1_ConstraintSatisfaction`. Select LINE or LWPOLYLINE objects, and the plugin will draw the label box before and after arrangement, along with statistics.
+The output is located at `examples/GeometryHelper.ArrangeAlgorithms.CadTest/bin/Debug/net48/GeometryHelper.ArrangeAlgorithms.CadTest.dll`. Load this file into AutoCAD using the `NETLOAD` command, then run the `T1_Greedy` command. Select LINE or LWPOLYLINE objects, and the plugin will draw the label box before and after arrangement, along with statistics.
 
 The project compiles against three AutoCAD assemblies — `accoremgd`, `acdbmgd`, `acmgd` — committed under `src/GeometryHelper.CadConvert/Lib` and referenced from there by relative path, so no AutoCAD installation is needed to build. Loading the result still needs AutoCAD, which supplies those assemblies at run time.
 

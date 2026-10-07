@@ -36,7 +36,7 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
         /// <summary>
         /// Executes common label arrangement logic for all algorithm types.
         /// </summary>
-        public void RunArrangeTest(ArrangeAlgorithmType algorithmType, string algorithmName)
+        public void RunArrangeTest(string algorithmName)
         {
             Document document = Application.DocumentManager.MdiActiveDocument;
             if (document == null)
@@ -100,10 +100,7 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     return;
                 }
 
-                var options = new ArrangeOptions
-                {
-                    Algorithm = algorithmType
-                };
+                var options = new ArrangeOptions();
 
                 var stopwatch = Stopwatch.StartNew();
                 ArrangeResult[] results = Arranger.Run(items, options);

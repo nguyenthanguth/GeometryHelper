@@ -91,18 +91,11 @@ namespace GeometryHelper.UnitTest.Arranging
             new object[] { 0.0, 100.0, 100.0, 0.0 },
         };
 
-        // Every algorithm, with the leader drawn either way.
-        public static IEnumerable<object[]> AllAlgorithmsBothWays()
-            => from algorithm in Enum.GetValues(typeof(ArrangeAlgorithmType)).Cast<ArrangeAlgorithmType>()
-               from reversed in new[] { false, true }
-               select new object[] { algorithm, reversed };
-
-        // Every algorithm, with the leader drawn either way, the top side the nearer or the further.
-        public static IEnumerable<object[]> AllAlgorithmsBothWaysBothSides()
-            => from algorithm in Enum.GetValues(typeof(ArrangeAlgorithmType)).Cast<ArrangeAlgorithmType>()
-               from reversed in new[] { false, true }
+        // The leader drawn either way, the top side the nearer or the further.
+        public static IEnumerable<object[]> BothWaysBothSides()
+            => from reversed in new[] { false, true }
                from topNear in new[] { true, false }
-               select new object[] { algorithm, reversed, topNear };
+               select new object[] { reversed, topNear };
 
         [Theory]
         [MemberData(nameof(Leaders))]
@@ -147,22 +140,18 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.True(points[41].IsEqualTo(new GeoPoint2(50.0, 40.0)));
         }
 
-        [Theory]
-        [InlineData(ArrangeAlgorithmType.Greedy)]
-        [InlineData(ArrangeAlgorithmType.BoundedBacktracking)]
-        [InlineData(ArrangeAlgorithmType.SimulatedAnnealing)]
-        [InlineData(ArrangeAlgorithmType.ConstraintSatisfaction)]
-        public void ARowFreeOnTheNearSide_IsTakenBeforeTheFarSide(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void ARowFreeOnTheNearSide_IsTakenBeforeTheFarSide()
         {
             // The first row above (10 off) runs into the region; the second above (40) is free, and far nearer than
             // the first below (305).
             ArrangeItem label = Label(new GeoLine2(0.0, 0.0, 100.0, 0.0), 5.0, 300.0);
             label.BlockPolygons = new[] { Rectangle(-100.0, 6.0, 200.0, 14.0) };
 
-            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { Algorithm = algorithm })[0];
+            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions())[0];
 
             Assert.True(result.Placed);
-            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 40.0)), $"{algorithm}: {result}");
+            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 40.0)), result.ToString());
         }
 
         /// <summary>
@@ -170,12 +159,11 @@ namespace GeometryHelper.UnitTest.Arranging
         /// and whether or not the label's own leader is among what it keeps clear of, as it is when every leader of
         /// a drawing is handed to every label. Greedy placement took whichever of its first free places stood
         /// furthest from anything, and with the leader to keep clear of that was the side with the wider gap; it
-        /// also tried the leader's left first, so a leader drawn the other way sent the label to the far side. The
-        /// force-directed one pushed a label sitting on its own leader along +X, off to one side or the other.
+        /// also tried the leader's left first, so a leader drawn the other way sent the label to the far side.
         /// </summary>
         [Theory]
-        [MemberData(nameof(AllAlgorithmsBothWaysBothSides))]
-        public void EveryAlgorithm_PutsTheLabelOnTheSideWithTheSmallerGap(ArrangeAlgorithmType algorithm, bool reversed, bool topNear)
+        [MemberData(nameof(BothWaysBothSides))]
+        public void TheLabel_GoesOnTheSideWithTheSmallerGap(bool reversed, bool topNear)
         {
             foreach (bool leaderBlocked in new[] { false, true })
             {
@@ -185,11 +173,11 @@ namespace GeometryHelper.UnitTest.Arranging
                     label.BlockLines = new[] { label.Leader };
                 }
 
-                ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { Algorithm = algorithm })[0];
+                ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions())[0];
                 GeoPoint2 centre = label.Box.Center + result.Translation;
 
-                Assert.True(result.Placed, $"{algorithm}, leader blocked {leaderBlocked}: {result}");
-                Assert.True(centre.IsEqualTo(new GeoPoint2(1000.0, topNear ? 520.0 : -520.0)), $"{algorithm}, leader blocked {leaderBlocked}: {centre}");
+                Assert.True(result.Placed, $"leader blocked {leaderBlocked}: {result}");
+                Assert.True(centre.IsEqualTo(new GeoPoint2(1000.0, topNear ? 520.0 : -520.0)), $"leader blocked {leaderBlocked}: {centre}");
             }
         }
 
@@ -198,16 +186,17 @@ namespace GeometryHelper.UnitTest.Arranging
         /// smaller gap, whichever way the leader was drawn.
         /// </summary>
         [Theory]
-        [MemberData(nameof(AllAlgorithmsBothWays))]
-        public void AWalledInLabel_IsLeftOnTheSideWithTheSmallerGap(ArrangeAlgorithmType algorithm, bool reversed)
+        [InlineData(false)]
+        [InlineData(true)]
+        public void AWalledInLabel_IsLeftOnTheSideWithTheSmallerGap(bool reversed)
         {
             ArrangeItem label = DimensionText(reversed, topNear: true);
             label.BlockPolygons = new[] { Rectangle(-5000.0, -5000.0, 7000.0, 5000.0) };
 
-            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { Algorithm = algorithm })[0];
+            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions())[0];
 
             Assert.False(result.Placed);
-            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(1000.0, 520.0)), $"{algorithm}: {result}");
+            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(1000.0, 520.0)), result.ToString());
         }
 
         /// <summary>
@@ -215,9 +204,8 @@ namespace GeometryHelper.UnitTest.Arranging
         /// each text goes to the top of its leader, the left of a vertical one, 500 + 20 off. Where along its row it
         /// goes is not asked: turned boxes measure a hair nearer or further from their leader from place to place.
         /// </summary>
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void TextsTurnedAlongTheirLeaders_StandOnTheTopSide(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void TextsTurnedAlongTheirLeaders_StandOnTheTopSide()
         {
             foreach (double degrees in new[] { 90.0, 270.0, 45.0, 225.0 })
             {
@@ -234,14 +222,14 @@ namespace GeometryHelper.UnitTest.Arranging
                     BlockLines = leaders.Where(other => !other.Equals(leader)).ToList(),
                 }).ToList();
 
-                ArrangeResult[] results = Arranger.Run(labels, new ArrangeOptions { Algorithm = algorithm });
+                ArrangeResult[] results = Arranger.Run(labels, new ArrangeOptions());
 
                 // The top: the left of a vertical leader, up and to the left of one rising to the right.
                 GeoVector2 up = degrees % 180.0 == 90.0 ? new GeoVector2(-1.0, 0.0) : new GeoVector2(-Math.Sqrt(0.5), Math.Sqrt(0.5));
                 for (int i = 0; i < results.Length; i++)
                 {
-                    Assert.True(results[i].Placed, $"{algorithm}, {degrees} degrees, label {i}: {results[i]}");
-                    Assert.True(Math.Abs(results[i].Translation.DotProduct(up) - 520.0) < 1e-6, $"{algorithm}, {degrees} degrees, label {i}: {results[i]}");
+                    Assert.True(results[i].Placed, $"{degrees} degrees, label {i}: {results[i]}");
+                    Assert.True(Math.Abs(results[i].Translation.DotProduct(up) - 520.0) < 1e-6, $"{degrees} degrees, label {i}: {results[i]}");
                 }
             }
         }
@@ -364,8 +352,8 @@ namespace GeometryHelper.UnitTest.Arranging
         /// comes back 5 + 50 off and the label goes to the other.
         /// </summary>
         [Theory]
-        [MemberData(nameof(AllAlgorithmsBothWaysBothSides))]
-        public void TheSecondPass_KeepsTheGapOfEachSide(ArrangeAlgorithmType algorithm, bool reversed, bool topNear)
+        [MemberData(nameof(BothWaysBothSides))]
+        public void TheSecondPass_KeepsTheGapOfEachSide(bool reversed, bool topNear)
         {
             var lines = new List<GeoLine2>();
             for (int x = -400; x <= 800; x += 7)
@@ -377,10 +365,10 @@ namespace GeometryHelper.UnitTest.Arranging
                 topNear ? 5.0 : 30.0, topNear ? 30.0 : 5.0, offset: 50.0);
             label.BlockLines = lines;
 
-            ArrangeResult result = Arranger.Run(new[] { label }, OptionsFor(algorithm))[0];
+            ArrangeResult result = Arranger.Run(new[] { label }, OptionsFor())[0];
 
             Assert.False(result.Placed);
-            Assert.True(result.Translation.IsEqualTo(new GeoVector2(0.0, topNear ? 10.0 : -10.0)), $"{algorithm}: {result}");
+            Assert.True(result.Translation.IsEqualTo(new GeoVector2(0.0, topNear ? 10.0 : -10.0)), result.ToString());
         }
 
         /// <summary>
@@ -409,11 +397,10 @@ namespace GeometryHelper.UnitTest.Arranging
 
         /// <summary>
         /// The reach runs out to the last row on each side, rows far apart here: obstacles over the first two rows above,
-        /// the bottom walled up, and every algorithm takes the third row, 25 + 2 * (10 + 100) off.
+        /// the bottom walled up, and the label takes the third row, 25 + 2 * (10 + 100) off.
         /// </summary>
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void TheReach_RunsOutToTheLastRow(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void TheReach_RunsOutToTheLastRow()
         {
             ArrangeItem label = Label(new GeoLine2(0.0, 0.0, 100.0, 0.0), 20.0, 20.0);
             label.BlockPolygons = new[]
@@ -423,29 +410,28 @@ namespace GeometryHelper.UnitTest.Arranging
                 Rectangle(-100.0, 130.0, 200.0, 140.0),
             };
 
-            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { Algorithm = algorithm, RowGap = 100.0, PerpendicularLevels = 3 })[0];
+            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { RowGap = 100.0, PerpendicularLevels = 3 })[0];
 
-            Assert.True(result.Placed, $"{algorithm}: {result}");
-            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 245.0)), $"{algorithm}: {result}");
+            Assert.True(result.Placed, result.ToString());
+            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 245.0)), result.ToString());
         }
 
         /// <summary>
         /// A gap negative enough takes the rows of its side across the leader and past those of the other. The reach
         /// ran from the last row on each side, and left out the first rows, and the obstacles over them with them.
         /// </summary>
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void AGapThatCrossesTheLeader_KeepsItsFirstRowWithinReach(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void AGapThatCrossesTheLeader_KeepsItsFirstRowWithinReach()
         {
             // The top rows stand at -295 to -175, the bottom ones at -10 to -130: the obstacles cover -295 and -10.
             ArrangeItem label = Label(new GeoLine2(0.0, 0.0, 100.0, 0.0), -300.0, 5.0);
             GeoPolygon2[] regions = { Rectangle(-500.0, -20.0, 600.0, -1.0), Rectangle(-500.0, -310.0, 600.0, -280.0) };
             label.BlockPolygons = regions;
 
-            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { Algorithm = algorithm, PerpendicularLevels = 5 })[0];
+            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { PerpendicularLevels = 5 })[0];
             GeoRectangle2 moved = label.Box.Translate(result.Translation);
 
-            Assert.True(result.Placed, $"{algorithm}: {result}");
+            Assert.True(result.Placed, result.ToString());
             Assert.All(regions, region => Assert.False(moved.CollidesWith(region)));
         }
 
@@ -454,19 +440,18 @@ namespace GeometryHelper.UnitTest.Arranging
         /// placement measured such a row as the most open place there was, and a box moved so far lost its shape: the
         /// run then threw making a region of it.
         /// </summary>
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void AHugeGapOnOneSide_DoesNotSendTheLabelFarOff(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void AHugeGapOnOneSide_DoesNotSendTheLabelFarOff()
         {
             foreach (double gap in new[] { 1e9, double.MaxValue })
             {
                 ArrangeItem label = Label(new GeoLine2(0.0, 0.0, 100.0, 0.0), 5.0, gap);
                 label.BlockPolygons = new[] { Rectangle(-100.0, 6.0, 200.0, 14.0) };
 
-                ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { Algorithm = algorithm })[0];
+                ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions())[0];
 
-                Assert.True(result.Placed, $"{algorithm}, gap {gap}: {result}");
-                Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 40.0)), $"{algorithm}, gap {gap}: {result}");
+                Assert.True(result.Placed, $"gap {gap}: {result}");
+                Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 40.0)), $"gap {gap}: {result}");
             }
         }
 
@@ -475,16 +460,15 @@ namespace GeometryHelper.UnitTest.Arranging
         /// another has nowhere at all, so the second pass runs: it keeps clear of the labels the first placed, and made
         /// a region of the far one, which threw.
         /// </summary>
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void ALabelMovedFurtherThanABoxKeepsItsShape_DoesNotStopTheRun(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void ALabelMovedFurtherThanABoxKeepsItsShape_DoesNotStopTheRun()
         {
             ArrangeItem far = Label(new GeoLine2(0.0, 0.0, 100.0, 0.0), 5.0, double.MaxValue);
             far.BlockPolygons = new[] { Rectangle(-100.0, 3.0, 200.0, 500.0) };
             ArrangeItem walled = Label(new GeoLine2(1000.0, 0.0, 1100.0, 0.0), null, null, 5.0);
             walled.BlockPolygons = new[] { Rectangle(900.0, -500.0, 1200.0, 500.0) };
 
-            ArrangeResult[] results = Arranger.Run(new[] { far, walled }, new ArrangeOptions { Algorithm = algorithm });
+            ArrangeResult[] results = Arranger.Run(new[] { far, walled }, new ArrangeOptions());
 
             Assert.Equal(2, results.Length);
             Assert.False(results[1].Placed);

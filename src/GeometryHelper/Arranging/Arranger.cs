@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using GeometryHelper.Arranging.Algorithms;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Arranging
@@ -11,8 +10,10 @@ namespace GeometryHelper.Arranging
     /// <remarks>
     /// <para>
     /// Every label is tried at the same candidate positions around its leader, those
-    /// <see cref="ArrangeItem.GetPlacePoints(ArrangeOptions)"/> lists; the algorithm
-    /// <see cref="ArrangeOptions.Algorithm"/> names decides which of them each label takes.
+    /// <see cref="ArrangeItem.GetPlacePoints(ArrangeOptions)"/> lists, and the labels are placed greedily, one after
+    /// another and never taken up again: by default those with the fewest free places first, and of two with as few the
+    /// one nearer the middle of them all, each at the most open of its first few free places, and each kept clear of by
+    /// every label after it.
     /// </para>
     /// <para>
     /// A run goes over the labels twice. The first pass places every label under every constraint. The labels it
@@ -41,7 +42,7 @@ namespace GeometryHelper.Arranging
         /// <param name="items">
         /// The labels. A null entry is passed over, and its result is <c>default</c>: not moved, not placed.
         /// </param>
-        /// <param name="options">The algorithm, where the candidate positions lie, and the tolerance.</param>
+        /// <param name="options">Where the candidate positions lie, the order the labels are placed in, and the tolerance.</param>
         /// <returns>What became of each label, in the order the labels were given.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="items"/> or <paramref name="options"/> is null.</exception>
         public static ArrangeResult[] Run(IReadOnlyList<ArrangeItem> items, ArrangeOptions options)
@@ -56,7 +57,7 @@ namespace GeometryHelper.Arranging
                 throw new ArgumentNullException(nameof(options));
             }
 
-            IArrangeAlgorithm algorithm = Choose(options.Algorithm);
+            var algorithm = new GreedyAlgorithm();
 
             // --- PASS 1: every label, every constraint ---
             GeoVector2[] translations = algorithm.Arrange(items, options);
@@ -81,27 +82,6 @@ namespace GeometryHelper.Arranging
         }
 
         /// <summary>
-        /// Makes the algorithm <paramref name="algorithm"/> names; the greedy one for a value it does not know.
-        /// </summary>
-        private static IArrangeAlgorithm Choose(ArrangeAlgorithmType algorithm)
-        {
-            switch (algorithm)
-            {
-                case ArrangeAlgorithmType.BoundedBacktracking:
-                    return new BoundedBacktrackingAlgorithm();
-                case ArrangeAlgorithmType.SimulatedAnnealing:
-                    return new SimulatedAnnealingAlgorithm();
-                case ArrangeAlgorithmType.ForceDirected:
-                    return new ForceDirectedAlgorithm();
-                case ArrangeAlgorithmType.ConstraintSatisfaction:
-                    return new ConstraintSatisfactionAlgorithm();
-                case ArrangeAlgorithmType.Greedy:
-                default:
-                    return new GreedyAlgorithm();
-            }
-        }
-
-        /// <summary>
         /// Tries the labels the first pass left overlapping once more, with their block lines lifted and the labels it
         /// placed standing as regions to keep clear of, and writes where they go into <paramref name="translations"/>.
         /// </summary>
@@ -119,7 +99,7 @@ namespace GeometryHelper.Arranging
         /// </para>
         /// </remarks>
         private static bool Relax(IReadOnlyList<ArrangeItem> items, GeoVector2[] translations, bool[] placed,
-            IArrangeAlgorithm algorithm, ArrangeOptions options)
+            GreedyAlgorithm algorithm, ArrangeOptions options)
         {
             var failed = new List<int>();
             for (int i = 0; i < items.Count; i++)
@@ -210,7 +190,7 @@ namespace GeometryHelper.Arranging
         /// <summary>
         /// Judges, on the final layout, whether each label overlaps nothing.
         /// <para>
-        /// An algorithm only knows the layout at the moment it places a label, so what it knows means "this spot was
+        /// A pass only knows the layout at the moment it places a label, so what it knows means "this spot was
         /// clear when my turn came". A label placed later, when stuck, may fall back onto one placed earlier, which
         /// would still believe itself clear. What the caller needs to know is whether the final layout has overlaps,
         /// so that is judged here, after every label has settled.

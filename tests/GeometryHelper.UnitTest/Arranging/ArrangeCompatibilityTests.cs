@@ -16,11 +16,9 @@ namespace GeometryHelper.UnitTest.Arranging
     /// to where such a label goes, or to the order its candidates come in, shows up here.
     /// </summary>
     /// <remarks>
-    /// The hashes were taken from a build of 5eea18b, the 6.2.0 release. The scenes keep to what later fixes left
-    /// alone on purpose: caps that do not bind, one list of regions shared by every item, searches within their
-    /// step budget. They run at the default tolerance 6.2.0 had, a ten-thousandth: at the default of a hundredth
-    /// since, force-directed placement reads boxes a hundredth apart as touching and settles some labels elsewhere,
-    /// which is the change of default rather than of the placement.
+    /// The hashes were taken from a build of 5eea18b, the 6.2.0 release, of its greedy placement, the one of its five
+    /// algorithms kept. The scenes keep to what later fixes left alone on purpose: caps that do not bind and one list
+    /// of regions shared by every item. They run at the default tolerance 6.2.0 had, a ten-thousandth.
     /// </remarks>
     public class ArrangeCompatibilityTests : ArrangeTestKit
     {
@@ -28,14 +26,7 @@ namespace GeometryHelper.UnitTest.Arranging
 
         private const string CandidatesOf620 = "bb1ebe4fae6b325b8c65ebd6d1ff4f7de447164b16afce6614d790aee4ffcd42";
 
-        private static readonly Dictionary<ArrangeAlgorithmType, string> ResultsOf620 = new Dictionary<ArrangeAlgorithmType, string>
-        {
-            [ArrangeAlgorithmType.Greedy] = "e68c9f75633e5fdefeba3cc8b9b4e97c5822079a6fd2962035fd8e7855649cd5",
-            [ArrangeAlgorithmType.BoundedBacktracking] = "9bad7a249c11c1a46d1ef8c9922ec5ce0d161f81512a740d1b4c372f636ed42e",
-            [ArrangeAlgorithmType.SimulatedAnnealing] = "e83856749695f5589da0126e8c079a28affc0dc7db7022f5175989c31bc1bc2e",
-            [ArrangeAlgorithmType.ForceDirected] = "7fc66ae159e34f420f0a5c7d850006c3b6f7854b6dc908102a242aabaaa127ff",
-            [ArrangeAlgorithmType.ConstraintSatisfaction] = "9160817f1c7ca07c6f4f10c7daeb9fad74df4b5beb7749118afcfd55f2d53d5f",
-        };
+        private const string ResultsOf620 = "e68c9f75633e5fdefeba3cc8b9b4e97c5822079a6fd2962035fd8e7855649cd5";
 
         [Fact]
         public void TheCandidates_AreThoseOf620()
@@ -76,36 +67,29 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.Equal(CandidatesOf620, Hash(text));
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void TheResults_AreThoseOf620(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void TheResults_AreThoseOf620()
         {
             var text = new StringBuilder();
-            Append(text, Arranger.Run(Crowd(lifted: false), new ArrangeOptions { Algorithm = algorithm, RowGap = 5.0, Tolerance = ToleranceOf620 }));
-            Append(text, Arranger.Run(Crowd(lifted: true), new ArrangeOptions { Algorithm = algorithm, RowGap = 5.0, Tolerance = ToleranceOf620 }));
+            Append(text, Arranger.Run(Crowd(lifted: false), new ArrangeOptions { RowGap = 5.0, Tolerance = ToleranceOf620 }));
+            Append(text, Arranger.Run(Crowd(lifted: true), new ArrangeOptions { RowGap = 5.0, Tolerance = ToleranceOf620 }));
 
             for (int seed = 1; seed <= 6; seed++)
             {
                 List<ArrangeItem> scene = Sheet(seed, out ArrangeOptions options);
-                options.Algorithm = algorithm;
                 options.Tolerance = ToleranceOf620;
                 Append(text, Arranger.Run(scene, options));
             }
 
-            Assert.Equal(ResultsOf620[algorithm], Hash(text));
+            Assert.Equal(ResultsOf620, Hash(text));
         }
 
         /// <summary>
-        /// A label with a small region over the middle of its leader and one under it: every algorithm but annealing
-        /// slides it back along the first row above, annealing forward.
+        /// A label with a small region over the middle of its leader and one under it: it slides back along the first
+        /// row above.
         /// </summary>
-        [Theory]
-        [InlineData(ArrangeAlgorithmType.Greedy, -16.25)]
-        [InlineData(ArrangeAlgorithmType.BoundedBacktracking, -16.25)]
-        [InlineData(ArrangeAlgorithmType.SimulatedAnnealing, 16.25)]
-        [InlineData(ArrangeAlgorithmType.ForceDirected, -16.25)]
-        [InlineData(ArrangeAlgorithmType.ConstraintSatisfaction, -16.25)]
-        public void ALabelBetweenTwoRegions_GoesWhere620PutIt(ArrangeAlgorithmType algorithm, double along)
+        [Fact]
+        public void ALabelBetweenTwoRegions_GoesWhere620PutIt()
         {
             var leader = new GeoLine2(0, 0, 100, 0);
             var label = new ArrangeItem
@@ -120,10 +104,10 @@ namespace GeometryHelper.UnitTest.Arranging
                 },
             };
 
-            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { Algorithm = algorithm, RowGap = 5.0, PerpendicularLevels = 3 })[0];
+            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = 3 })[0];
 
             Assert.True(result.Placed);
-            Assert.Equal(along, result.Translation.X, 9);
+            Assert.Equal(-16.25, result.Translation.X, 9);
             Assert.Equal(17.0, result.Translation.Y, 9);
         }
 

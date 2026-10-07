@@ -3,12 +3,12 @@ using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Geometry;
 
-namespace GeometryHelper.Arranging.Algorithms
+namespace GeometryHelper.Arranging
 {
     /// <summary>
     /// Label arrangement algorithm using a Greedy strategy.
     /// </summary>
-    internal class GreedyAlgorithm : IArrangeAlgorithm
+    internal class GreedyAlgorithm
     {
         /// <summary>
         /// Arranges the labels using a greedy algorithm.

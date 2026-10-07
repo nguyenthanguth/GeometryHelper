@@ -8,7 +8,7 @@ using GeometryHelper.Arranging;
 namespace GeometryHelper.UnitTest.Arranging
 {
     /// <summary>
-    /// Tests the public API of <see cref="Arranger"/> and contracts that EVERY algorithm must uphold.
+    /// Tests the public API of <see cref="Arranger"/> and the contracts its placement must uphold.
     /// </summary>
     public class ArrangeTests : ArrangeTestKit
     {
@@ -63,7 +63,7 @@ namespace GeometryHelper.UnitTest.Arranging
         public void Arrange_GetPlacePoints_FirstPairIsSymmetricAtTheFirstRow()
         {
             var label = LabelOn(new GeoLine2(0.0, 0.0, 40.0, 0.0));
-            var options = OptionsFor(ArrangeAlgorithmType.Greedy);
+            var options = OptionsFor();
 
             var points = label.GetPlacePoints(options);
 
@@ -82,7 +82,7 @@ namespace GeometryHelper.UnitTest.Arranging
             var far = LabelOn(leader);
             far.Offset = 30.0;
 
-            var options = OptionsFor(ArrangeAlgorithmType.Greedy);
+            var options = OptionsFor();
 
             // The first row: half the label height (5) plus the label's own offset.
             Assert.True(near.GetPlacePoints(options)[0].IsEqualTo(new GeoPoint2(20.0, 10.0)));
@@ -99,7 +99,7 @@ namespace GeometryHelper.UnitTest.Arranging
             var far = LabelOn(leader);
             far.Offset = 30.0;
 
-            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { near, far }, OptionsFor(ArrangeAlgorithmType.Greedy));
+            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { near, far }, OptionsFor());
 
             Assert.Equal(10.0, Math.Abs(MovedBox(near, results[0].Translation).Center.Y), 6);
             Assert.Equal(35.0, Math.Abs(MovedBox(far, results[1].Translation).Center.Y), 6);
@@ -112,9 +112,9 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             var label = LabelOn(new GeoLine2(0.0, 0.0, 40.0, 0.0));
 
-            var threeLevels = label.GetPlacePoints(OptionsFor(ArrangeAlgorithmType.Greedy));
+            var threeLevels = label.GetPlacePoints(OptionsFor());
 
-            var single = OptionsFor(ArrangeAlgorithmType.Greedy);
+            var single = OptionsFor();
             single.PerpendicularLevels = 1;
             var oneLevel = label.GetPlacePoints(single);
 
@@ -155,7 +155,7 @@ namespace GeometryHelper.UnitTest.Arranging
                 Offset = 5.0
             };
 
-            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, OptionsFor(ArrangeAlgorithmType.Greedy))[0];
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, OptionsFor())[0];
 
             Assert.Equal(GeoVector2.Zero, result.Translation);
 
@@ -176,19 +176,18 @@ namespace GeometryHelper.UnitTest.Arranging
                 Offset = 5.0
             };
 
-            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, OptionsFor(ArrangeAlgorithmType.Greedy))[0];
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, OptionsFor())[0];
 
             Assert.Equal(GeoVector2.Zero, result.Translation);
             Assert.True(result.Placed);
         }
 
         // ------------------------------------------------------------------
-        // Common contract for all five algorithms
+        // Common contract of the placement
         // ------------------------------------------------------------------
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_PlacesEveryLabelOnItsOwnLeader(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_PlacesEveryLabelOnItsOwnLeader()
         {
             var labels = new List<ArrangeItem>();
             for (int i = 0; i < 5; i++)
@@ -196,32 +195,29 @@ namespace GeometryHelper.UnitTest.Arranging
                 labels.Add(LabelOn(new GeoLine2(i * 50.0, 0.0, i * 50.0 + 40.0, 0.0)));
             }
 
-            ArrangeResult[] results = Arranger.Run(labels, OptionsFor(algorithm));
+            ArrangeResult[] results = Arranger.Run(labels, OptionsFor());
 
             // Verify that all labels were successfully arranged
             Assert.True(results.All(r => r.Placed));
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_WithEmptyList_DoesNotThrow(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_WithEmptyList_DoesNotThrow()
         {
-            Assert.Empty(Arranger.Run(new List<ArrangeItem>(), OptionsFor(algorithm)));
+            Assert.Empty(Arranger.Run(new List<ArrangeItem>(), OptionsFor()));
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_WithNullEntries_KeepsIndicesAligned(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_WithNullEntries_KeepsIndicesAligned()
         {
             var first = LabelOn(new GeoLine2(0.0, 0.0, 40.0, 0.0));
             var second = LabelOn(new GeoLine2(200.0, 0.0, 240.0, 0.0));
 
             var labels = new List<ArrangeItem> { first, null, second };
-            ArrangeResult[] results = Arranger.Run(labels, OptionsFor(algorithm));
+            ArrangeResult[] results = Arranger.Run(labels, OptionsFor());
 
             // Each real label must still stick to its own guide segment without index swap.
-            // Do not compare absolute coordinates: Force-directed intentionally slides labels along guide segment to spread them,
-            // so the correct assertion is "closer to its own guide segment than to the other label's guide segment".
+            // The assertion is "closer to its own guide segment than to the other label's guide segment".
             GeoPoint2 firstCentre = MovedBox(first, results[0].Translation).Center;
             GeoPoint2 secondCentre = MovedBox(second, results[2].Translation).Center;
 
@@ -229,24 +225,22 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.True(second.Leader.DistanceTo(secondCentre) < first.Leader.DistanceTo(secondCentre));
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_SeparatesTwoLabelsSharingOneLeader(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_SeparatesTwoLabelsSharingOneLeader()
         {
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var a = LabelOn(leader);
             var b = LabelOn(leader);
 
-            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, OptionsFor(algorithm));
+            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, OptionsFor());
 
             Assert.False(MovedBox(a, results[0].Translation).CollidesWith(MovedBox(b, results[1].Translation)));
             Assert.True(results[0].Placed);
             Assert.True(results[1].Placed);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_AvoidsStaticObstacle(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_AvoidsStaticObstacle()
         {
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var blockPoly = new GeoPolygon2(
@@ -258,7 +252,7 @@ namespace GeometryHelper.UnitTest.Arranging
             var label = LabelOn(leader);
             label.BlockPolygons = new List<GeoPolygon2> { blockPoly };
 
-            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, OptionsFor(algorithm))[0];
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, OptionsFor())[0];
             var moved = MovedBox(label, result.Translation);
 
             Assert.False(moved.CollidesWith(blockPoly));
@@ -266,9 +260,8 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.True(result.Placed);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_IsReproducible(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_IsReproducible()
         {
             ArrangeResult[] Solve()
             {
@@ -277,15 +270,14 @@ namespace GeometryHelper.UnitTest.Arranging
                 {
                     labels.Add(LabelOn(new GeoLine2(i * 12.0, 0.0, i * 12.0 + 30.0, 0.0)));
                 }
-                return Arranger.Run(labels, OptionsFor(algorithm));
+                return Arranger.Run(labels, OptionsFor());
             }
 
             Assert.Equal(Solve(), Solve());
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_PlacedFlagMatchesFinalLayout(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_PlacedFlagMatchesFinalLayout()
         {
             // The Placed flag must describe the FINAL layout. Three labels sharing a short guide segment with one
             // perpendicular level only have room for two, so the count of successful labels must match the count of
@@ -293,7 +285,7 @@ namespace GeometryHelper.UnitTest.Arranging
             var leader = new GeoLine2(0.0, 0.0, 10.0, 0.0);
             var labels = new List<ArrangeItem> { LabelOn(leader), LabelOn(leader), LabelOn(leader) };
 
-            var options = OptionsFor(algorithm);
+            var options = OptionsFor();
             options.PerpendicularLevels = 1;
 
             ArrangeResult[] results = Arranger.Run(labels, options);
@@ -315,9 +307,8 @@ namespace GeometryHelper.UnitTest.Arranging
         // Pass 2 Relaxation (Relax BlockLines)
         // ------------------------------------------------------------------
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_RelaxationPass_AllowsFailedLabelsToOverlapBlockLines(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_RelaxationPass_AllowsFailedLabelsToOverlapBlockLines()
         {
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var label = LabelOn(leader);
@@ -329,7 +320,7 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoLine2(-100, -10.0, 100, -10.0) // Blocks lower row
             };
 
-            var options = OptionsFor(algorithm);
+            var options = OptionsFor();
             options.PerpendicularLevels = 1; // Only 1 level to guarantee congestion
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, options)[0];
@@ -341,9 +332,8 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.NotEqual(GeoVector2.Zero, result.Translation);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_RelaxationPass_FreezesPlacedLabels(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_RelaxationPass_FreezesPlacedLabels()
         {
             var leader1 = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var leader2 = new GeoLine2(1000.0, 0.0, 1040.0, 0.0); // Located far away
@@ -356,7 +346,7 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoLine2(900, -10.0, 1100, -10.0)
             };
 
-            var options = OptionsFor(algorithm);
+            var options = OptionsFor();
             options.PerpendicularLevels = 1; // Only 1 level to guarantee congestion for failedLabel
 
             ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { successLabel, failedLabel }, options);
@@ -368,9 +358,8 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.False(results[1].Placed);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_RelaxationPass_FailedLabelsAvoidGreenBoxes(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_RelaxationPass_FailedLabelsAvoidGreenBoxes()
         {
             var leader = new GeoLine2(0.0, 0.0, 10.0, 0.0); // Short leader segment
             var successLabel = LabelOn(leader);
@@ -382,7 +371,7 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoLine2(-100, 10.0, 100, 10.0)
             };
 
-            var options = OptionsFor(algorithm);
+            var options = OptionsFor();
             options.PerpendicularLevels = 2;
 
             ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { successLabel, failedLabel }, options);
@@ -394,9 +383,8 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.False(successBox.CollidesWith(failedBox));
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_RotatedLabels_AvoidsCollision(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_RotatedLabels_AvoidsCollision()
         {
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
 
@@ -414,7 +402,7 @@ namespace GeometryHelper.UnitTest.Arranging
                 Offset = 5.0
             };
 
-            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, OptionsFor(algorithm));
+            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, OptionsFor());
 
             var movedA = MovedBox(a, results[0].Translation);
             var movedB = MovedBox(b, results[1].Translation);
@@ -435,7 +423,7 @@ namespace GeometryHelper.UnitTest.Arranging
                 Offset = 5.0
             };
 
-            var options = OptionsFor(ArrangeAlgorithmType.Greedy);
+            var options = OptionsFor();
             options.LongitudinalOvershootRatio = 0.0; // No overshoot allowed
 
             // Label width = 30, leader length = 20.
@@ -449,16 +437,9 @@ namespace GeometryHelper.UnitTest.Arranging
             }
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_LookAheadCandidates_ChoosesPositionWithMaxClearance(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_LookAheadCandidates_ChoosesPositionWithMaxClearance()
         {
-            // This heuristic test only applies to sequential Greedy algorithm which evaluates candidate clearances.
-            if (algorithm != ArrangeAlgorithmType.Greedy)
-            {
-                return;
-            }
-
             var leader = new GeoLine2(0.0, 0.0, 100.0, 0.0);
             var label = LabelOn(leader);
 
@@ -477,7 +458,7 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoPoint2(20.0, -16.0));
             label.BlockPolygons = new List<GeoPolygon2> { blockPoly1, blockPoly2 };
 
-            var options = OptionsFor(algorithm);
+            var options = OptionsFor();
             options.PerpendicularLevels = 1; // Stay on the same row to test longitudinal slide clearance
             options.LookAheadCandidates = 6; // Evaluate 6 candidates to reach the right-shifted one
 
@@ -501,7 +482,7 @@ namespace GeometryHelper.UnitTest.Arranging
                 Offset = 5.0
             };
 
-            var options = OptionsFor(ArrangeAlgorithmType.Greedy);
+            var options = OptionsFor();
             options.MinimumMoveDistance = 0.1; // Shift distances smaller than 0.1 are ignored
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, options)[0];
@@ -512,16 +493,15 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.True(result.Placed);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_VerticalLeader_PlacesLabelsCorrectly(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_VerticalLeader_PlacesLabelsCorrectly()
         {
             // Test with a completely vertical guide segment (projection check along Y axis)
             var leader = new GeoLine2(0.0, 0.0, 0.0, 100.0);
             var a = LabelOn(leader);
             var b = LabelOn(leader);
 
-            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, OptionsFor(algorithm));
+            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, OptionsFor());
 
             var movedA = MovedBox(a, results[0].Translation);
             var movedB = MovedBox(b, results[1].Translation);
@@ -531,16 +511,15 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.True(results[1].Placed);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_DiagonalLeader_PlacesLabelsCorrectly(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_DiagonalLeader_PlacesLabelsCorrectly()
         {
             // Test with a diagonal guide segment (45 degrees axis rotation check)
             var leader = new GeoLine2(0.0, 0.0, 100.0, 100.0);
             var a = LabelOn(leader);
             var b = LabelOn(leader);
 
-            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, OptionsFor(algorithm));
+            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, OptionsFor());
 
             var movedA = MovedBox(a, results[0].Translation);
             var movedB = MovedBox(b, results[1].Translation);
@@ -550,15 +529,14 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.True(results[1].Placed);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_ExtremeRowGap_IncreasesRowSeparation(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_ExtremeRowGap_IncreasesRowSeparation()
         {
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var a = LabelOn(leader);
             var b = LabelOn(leader);
 
-            var options = OptionsFor(algorithm);
+            var options = OptionsFor();
             options.RowGap = 150.0; // Extremely large row gap
             options.PerpendicularLevels = 2;
 
@@ -578,20 +556,13 @@ namespace GeometryHelper.UnitTest.Arranging
             }
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_LargeMinimumMoveDistance_RestrictsPlacement(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_LargeMinimumMoveDistance_RestrictsPlacement()
         {
-            // MinimumMoveDistance constraint is only supported and enforced by the sequential Greedy algorithm
-            if (algorithm != ArrangeAlgorithmType.Greedy)
-            {
-                return;
-            }
-
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var label = LabelOn(leader);
 
-            var options = OptionsFor(algorithm);
+            var options = OptionsFor();
             options.MinimumMoveDistance = 50.0; // Distance2 shifts smaller than 50 are rejected
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, options)[0];
@@ -602,13 +573,12 @@ namespace GeometryHelper.UnitTest.Arranging
         }
 
         /// <summary>
-        /// One candidate allowed, and a region over it: every algorithm leaves the label there, overlapping. The cap
+        /// One candidate allowed, and a region over it: the label is left there, overlapping. The cap
         /// was checked only before each group of four slides, so every row still gave its two places straight across,
         /// and the label went to one of those that was free.
         /// </summary>
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_MaximumCandidatesLimit_RestrictsSearch(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_MaximumCandidatesLimit_RestrictsSearch()
         {
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var label = LabelOn(leader);
@@ -617,14 +587,14 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoPolygon2(new GeoPoint2(15.0, 6.0), new GeoPoint2(25.0, 6.0), new GeoPoint2(25.0, 14.0), new GeoPoint2(15.0, 14.0))
             };
 
-            var options = OptionsFor(algorithm);
+            var options = OptionsFor();
             options.MaximumCandidates = 1;
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, options)[0];
 
             // The one candidate is the first above: 5 + 5 off.
             Assert.False(result.Placed);
-            Assert.True(result.Translation.IsEqualTo(new GeoVector2(0.0, 10.0)), $"{algorithm}: {result}");
+            Assert.True(result.Translation.IsEqualTo(new GeoVector2(0.0, 10.0)), result.ToString());
         }
 
         [Theory]
@@ -638,9 +608,9 @@ namespace GeometryHelper.UnitTest.Arranging
         public void Arrange_GetPlacePoints_GivesNoMoreThanMaximumCandidates(int cap)
         {
             var label = LabelOn(new GeoLine2(0.0, 0.0, 40.0, 0.0));
-            List<GeoPoint2> all = label.GetPlacePoints(OptionsFor(ArrangeAlgorithmType.Greedy));
+            List<GeoPoint2> all = label.GetPlacePoints(OptionsFor());
 
-            var options = OptionsFor(ArrangeAlgorithmType.Greedy);
+            var options = OptionsFor();
             options.MaximumCandidates = cap;
             List<GeoPoint2> capped = label.GetPlacePoints(options);
 
@@ -653,16 +623,15 @@ namespace GeometryHelper.UnitTest.Arranging
         public void Arrange_GetPlacePoints_CapsTheRowsToo()
         {
             var label = LabelOn(new GeoLine2(0.0, 0.0, 40.0, 0.0));
-            var options = OptionsFor(ArrangeAlgorithmType.Greedy);
+            var options = OptionsFor();
             options.PerpendicularLevels = 1000000;
             options.MaximumCandidates = 10;
 
             Assert.Equal(10, label.GetPlacePoints(options).Count);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_WithOverlappingObstacles_ResolvesCorrectly(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_WithOverlappingObstacles_ResolvesCorrectly()
         {
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
 
@@ -673,7 +642,7 @@ namespace GeometryHelper.UnitTest.Arranging
             var label = LabelOn(leader);
             label.BlockPolygons = new List<GeoPolygon2> { obs1, obs2 };
 
-            var options = OptionsFor(algorithm);
+            var options = OptionsFor();
             options.PerpendicularLevels = 3;
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, options)[0];
@@ -683,9 +652,8 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.False(moved.CollidesWith(obs2));
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_WithTinyLabels_ArrangesWithoutErrors(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_WithTinyLabels_ArrangesWithoutErrors()
         {
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var a = new ArrangeItem
@@ -695,7 +663,7 @@ namespace GeometryHelper.UnitTest.Arranging
                 Offset = 1.0
             };
 
-            var options = OptionsFor(algorithm);
+            var options = OptionsFor();
             options.MinimumBoxSize = 0.5; // Ensure tiny label is valid
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { a }, options)[0];
@@ -703,9 +671,8 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.True(result.Placed);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_WithGiantLabels_DoesNotCrash(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_WithGiantLabels_DoesNotCrash()
         {
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var a = new ArrangeItem
@@ -715,29 +682,27 @@ namespace GeometryHelper.UnitTest.Arranging
                 Offset = 5.0
             };
 
-            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { a }, OptionsFor(algorithm))[0];
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { a }, OptionsFor())[0];
 
             // Should execute and map correctly, marked as placed if candidate matches, or failed safely
             Assert.True(result.Placed || !result.Placed);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_WithZeroLengthLeader_FailsGracefully(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_WithZeroLengthLeader_FailsGracefully()
         {
             var leader = new GeoLine2(10.0, 10.0, 10.0, 10.0); // Zero length segment
             var label = LabelOn(leader);
 
-            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, OptionsFor(algorithm))[0];
+            ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, OptionsFor())[0];
 
             // It should fail to arrange since no candidates can be computed, but must not crash
             Assert.False(result.Placed);
             Assert.Equal(GeoVector2.Zero, result.Translation);
         }
 
-        [Theory]
-        [MemberData(nameof(AllAlgorithms))]
-        public void Arrange_Run_ObstaclesBlockingAllButOneSpot_FindsUniqueSpot(ArrangeAlgorithmType algorithm)
+        [Fact]
+        public void Arrange_Run_ObstaclesBlockingAllButOneSpot_FindsUniqueSpot()
         {
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var label = LabelOn(leader);
@@ -752,7 +717,7 @@ namespace GeometryHelper.UnitTest.Arranging
 
             label.BlockPolygons = new List<GeoPolygon2> { obstacle };
 
-            var options = OptionsFor(algorithm);
+            var options = OptionsFor();
             options.PerpendicularLevels = 3;
             options.RowGap = 15.0; // level 1: 10, level 2: 35, level 3: 60.
 
