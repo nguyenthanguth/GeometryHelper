@@ -43,10 +43,13 @@ namespace GeometryHelper.Takeoff
     /// overlap was sliced. A curved wall of 354 faces and a curved
     /// girder of 322 of a Tekla model, met within a thousandth with a contact of a hundredth, share a common part of
     /// 4 256 faces that is not valid; slicing gives them 2 226 236 967 in 0.04 seconds, where Tekla's own boolean gives
-    /// 2 226 236 773 cutting the wall and 2 226 236 807 cutting the girder. A deduction worked out by slicing is exact,
-    /// and carries no issue. Only a pair that cannot be sliced either is not taken off: a section of a body crossed an
-    /// odd number of times, as where a corner sits more than about 1E-9 off its neighbour's edge, a T-junction, even
-    /// in a body <see cref="GeoSolid3.Validate(Tolerance)"/> accepts. Its result says so in
+    /// 2 226 236 773 cutting the wall and 2 226 236 807 cutting the girder. A pair as near-coincident as these two,
+    /// with at least a hundred pairs of faces less than a millimetre apart and less than a tenth of a degree off
+    /// parallel, though neither flush nor parallel, is sliced without the booleans being tried: on these two they run a
+    /// minute or two before failing, and the take-off of the two takes 0.1 seconds without them. A deduction worked out
+    /// by slicing is exact, and carries no issue. Only a pair that cannot be sliced either is not taken off: a section
+    /// of a body crossed an odd number of times, as where a corner sits more than about 1E-9 off its neighbour's edge, a
+    /// T-junction, even in a body <see cref="GeoSolid3.Validate(Tolerance)"/> accepts. Its result says so in
     /// <see cref="VolumeTakeoffResult.Issues"/>, and the net volume is then no less than it should be.
     /// No failure of the geometry escapes: each comes back as an issue and is logged.
     /// </para>
@@ -213,18 +216,20 @@ namespace GeometryHelper.Takeoff
                 GeometryHelperLog.Debug("VolumeTakeoff: " + touching + " pairs only touch, and nothing is taken off for them.");
             }
 
-            int slicedPairs = 0, slicedSteps = 0, unsliced = 0;
+            int slicedPairs = 0, straight = 0, slicedSteps = 0, unsliced = 0;
 
             foreach (Pair pair in pairs)
             {
                 slicedPairs += pair.Kind == Kind.Sliced ? 1 : 0;
+                straight += pair.Straight ? 1 : 0;
                 slicedSteps += pair.Kind == Kind.Piece && pair.BySlicing ? 1 : 0;
                 unsliced += pair.Issue != null ? 1 : 0;
             }
 
             if (slicedPairs + slicedSteps > 0)
             {
-                GeometryHelperLog.Debug("VolumeTakeoff: " + slicedPairs + " pairs whose common part the booleans could not make, and " + slicedSteps
+                GeometryHelperLog.Debug("VolumeTakeoff: " + slicedPairs + " pairs whose common part the booleans could not make, " + straight
+                    + " of them near-coincident and sent straight to slicing, and " + slicedSteps
                     + " pieces whose overlaps before could not be cut out, or were sliced, worked out by slicing; " + unsliced + " of them could not be.");
             }
 
@@ -488,15 +493,35 @@ namespace GeometryHelper.Takeoff
 
         #region Phase 1: what each pair shares
 
+        // A pair is near-coincident, and sent straight to slicing, when this many pairs of a face of the loser and a face
+        // of the keeper stand beside each other: the keeper's face within NearDistance of the loser's plane, and turned
+        // from it by more than the vector tolerance and no more than NearAngleRad. The curved wall and girder of a Tekla
+        // model have 383 such pairs, 377 the other way round, and the booleans on them run 58 to 119 seconds before
+        // failing. Of the 51 209 pairs of that model of 30 921 parts, 434 have 4 or more, and with a contact of a
+        // hundredth every one of them but that pair makes a valid common part, or none: 4 sent them all to slicing,
+        // which found in them the slivers thinner than the contact that the booleans put away, and changed the net of
+        // 196 parts. The most any pair whose common part is valid has is 86, a curved wall of 238 faces across a wall
+        // of 39, made in 0.9 seconds.
+        private const int NearFacePairs = 100;
+
+        // How far off parallel two faces may be to stand beside each other: a tenth of a degree. The faces of the
+        // curved pair beside each other are 0.036° to 0.098° off.
+        private const double NearAngleRad = 0.1 * Math.PI / 180.0;
+
+        // How far apart two faces beside each other may stand: a millimetre. The corners of the curved pair's faces
+        // beside each other stand from a thousandth to 0.999 off the other's plane.
+        private const double NearDistance = 1.0;
+
         /// <summary>
         /// Works out what a pair shares: as a body where the common part is valid and holds no more than the smaller can,
-        /// otherwise by slicing, which the second phase does.
+        /// otherwise by slicing, which the second phase does. A pair near-coincident, its faces standing beside each
+        /// other, goes to slicing without the intersection being tried.
         /// </summary>
         /// <remarks>
         /// Nothing more is tried after the intersection. A girder of 322 faces and a wall of 354 of a Tekla model, met
         /// within a thousandth with a contact of a hundredth, shared a body of 4 256 faces that was not valid, in 114
         /// seconds; a cut of the one by the other then took 2 215 seconds and left 80 805 faces, not valid either, where
-        /// slicing takes under a second.
+        /// slicing takes under a second. The two are near-coincident, so the intersection is not tried at all.
         /// </remarks>
         private static void WorkOut(Pair pair, SolidBooleanOptions options)
         {
@@ -508,6 +533,13 @@ namespace GeometryHelper.Takeoff
             if (BreakIntersection != null && BreakIntersection(loser.Index, keeper.Index))
             {
                 pair.Kind = Kind.Sliced;
+                return;
+            }
+
+            if (NearCoincident(loser, keeper, tolerance))
+            {
+                pair.Kind = Kind.Sliced;
+                pair.Straight = true;
                 return;
             }
 
@@ -546,6 +578,86 @@ namespace GeometryHelper.Takeoff
             }
 
             pair.Kind = Kind.Sliced;
+        }
+
+        /// <summary>
+        /// Whether a pair is near-coincident: at least <see cref="NearFacePairs"/> pairs of a face of the loser and a
+        /// face of the keeper beside each other. Two faces are beside each other when their planes are within
+        /// <see cref="NearAngleRad"/> of parallel, either way round, but further from it than the vector tolerance, so
+        /// that faces flush or parallel are left to the booleans, which make them well; when every corner of the keeper's
+        /// face is within <see cref="NearDistance"/> of the loser's face's plane, and further from it than the point
+        /// tolerance; and when their boxes come within <see cref="NearDistance"/> of each other.
+        /// </summary>
+        /// <remarks>
+        /// Only faces whose boxes come within <see cref="NearDistance"/> of the other part's box are compared, and only
+        /// their planes, corners and boxes are read: on the 51 209 pairs of a model of 30 921 parts it took a tenth of a
+        /// second in all, on 24 processors. The faces of the openings are not read.
+        /// </remarks>
+        private static bool NearCoincident(Part loser, Part keeper, Tolerance tolerance)
+        {
+            var near = new List<GeoFace3>();
+
+            foreach (GeoFace3 face in keeper.Item.Solid.Faces)
+            {
+                if (Overlap(face.GetAabb(), loser.Box, -NearDistance))
+                {
+                    near.Add(face);
+                }
+            }
+
+            int found = 0;
+
+            foreach (GeoFace3 face in loser.Item.Solid.Faces)
+            {
+                GeoAabb3 box = face.GetAabb();
+
+                if (!Overlap(box, keeper.Box, -NearDistance))
+                {
+                    continue;
+                }
+
+                GeoPlane3 plane = face.GetPlane();
+
+                foreach (GeoFace3 other in near)
+                {
+                    if (Overlap(box, other.GetAabb(), -NearDistance) && Beside(plane, other, tolerance) && ++found >= NearFacePairs)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Whether a face stands beside a plane: turned from it, either way round, by more than the vector tolerance and
+        /// no more than <see cref="NearAngleRad"/>, with every corner within <see cref="NearDistance"/> of it and further
+        /// from it than the point tolerance.
+        /// </summary>
+        private static bool Beside(GeoPlane3 plane, GeoFace3 face, Tolerance tolerance)
+        {
+            // Atan2 of the cross and the dot of the two unit normals, not Acos, which loses the angle near parallel; the
+            // dot without its sign folds the turned-round case onto the parallel one.
+            GeoVector3 normal = plane.Normal;
+            double angle = Math.Atan2(normal.CrossProduct(face.Normal).Length, Math.Abs(normal.DotProduct(face.Normal)));
+
+            if (angle <= tolerance.EqualVector || angle > NearAngleRad)
+            {
+                return false;
+            }
+
+            foreach (GeoPoint3 corner in face.Boundary.Vertices)
+            {
+                double distance = Math.Abs(plane.SignedDistanceTo(corner));
+
+                if (distance <= tolerance.EqualPoint || distance > NearDistance)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         #endregion
@@ -814,6 +926,7 @@ namespace GeometryHelper.Takeoff
             public string Issue;
             public double Deducted;
             public bool BySlicing;
+            public bool Straight;
         }
 
         /// <summary>

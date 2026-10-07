@@ -35,11 +35,13 @@ wide running through a column 400 by 400 loses 0.032 m3 to the column and 0.336 
 together. Only what the parts share is cut, never the parts. A common part the booleans cannot make is worked out by
 slicing, exact over flat faces with nothing snapped, across the axis that needs the fewest planes: a curved wall and
 girder of a Tekla model, whose common part comes back as 4 256 faces and not valid, share 2 226 236 967 mm3 by slicing,
-in 0.04 seconds, where Tekla's own boolean gives 2 226 236 773. Each result gives the gross, the deductions by the part
-that kept them, the net and, where something could not be worked out, an issue saying the net is an upper bound. It runs
-in parallel, and the results are the same, bit for bit, on one thread or on every processor
+in 0.04 seconds, where Tekla's own boolean gives 2 226 236 773. A pair as near-coincident as that wall and girder, a
+hundred or more pairs of faces under a millimetre apart and under a tenth of a degree off parallel, is sliced without
+the booleans being tried; on those two they ran a minute or two before failing. Each result gives the gross, the
+deductions by the part that kept them, the net and, where something could not be worked out, an issue saying the net is
+an upper bound. It runs in parallel, and the results are the same, bit for bit, on one thread or on every processor
 (`VolumeTakeoffOptions.MaxDegreeOfParallelism`). On a Tekla model of 30 921 parts, 69 040.90 m3 gross, it keeps 67
-369.17 m3 net with a contact of 0.01 and a fallback of 0.01, no result carrying an issue, in 293 seconds on 24
+369.17 m3 net with a contact of 0.01 and a fallback of 0.01, no result carrying an issue, in 197 seconds on 24
 processors.
 
 **FIXED.** A circle a hair inside another, within the point tolerance of touching it without crossing, touched it at a

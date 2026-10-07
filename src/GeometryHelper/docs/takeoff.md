@@ -82,6 +82,12 @@ the booleans give as 4 256 faces, not valid, after a minute or two; slicing give
 same across any of the three axes, where Tekla's own boolean gives 2 226 236 773 cutting the wall and 2 226 236 807
 cutting the girder.
 
+A pair as near-coincident as these two is not given to the booleans at all. Where at least a hundred pairs of a face of
+the part ranked later and a face of the keeper stand beside each other, less than a tenth of a degree off parallel
+though not parallel within the vector tolerance, every corner of the keeper's face within a millimetre of the other's
+plane and further from it than the point tolerance, the pair goes straight to slicing. The curved wall and girder have
+383 such pairs; of the other 51 208 pairs of the model the most any has is 86, and the booleans make every one of them.
+
 ## On a real model
 
 A Tekla Structures model of 30 921 parts, read closed, ranked columns 8, walls 7, girders and beams 6, slabs 5, stairs
@@ -98,10 +104,10 @@ var options = new VolumeTakeoffOptions(new SolidBooleanOptions(
 it loses 1 671.73 m3 to the parts ranked before and keeps 67 369.17 m3 net, and not one of the 30 921 results carries
 an issue: the common parts the booleans cannot make, the curved wall and girder above among them, are sliced. Cutting each part
 with every part ranked before it that it meets, by `TrySubtractAll` with the same options, skips 23 cuts on 6 parts and
-leaves that overlap in. The run takes 293 seconds on 24 processors and 438 on one, with the same numbers to the last
-bit; the booleans on the curved pair alone take about two minutes of it before slicing takes over. Without the contact it takes 108 seconds
-and keeps 67 369.16 m3, also with no issue, 8.5 litres less: the micron-thin sheets Tekla leaves between parts, which the
-contact takes as touching, are taken off.
+leaves that overlap in. The run takes 197 seconds on 24 processors and 328 on one, with the same numbers to the last
+bit; the booleans used to spend two minutes failing on the curved pair before it was sent straight to slicing. Without
+the contact it takes 59 seconds and keeps 67 369.16 m3, also with no issue, 8.5 litres less: the micron-thin sheets
+Tekla leaves between parts, which the contact takes as touching, are taken off.
 
 ## What is promised, and what is not
 

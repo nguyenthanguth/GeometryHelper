@@ -475,7 +475,8 @@ namespace GeometryHelper.UnitTest.Takeoff
 
         /// <summary>
         /// A curved band: in plan, between two arcs about the origin, its corners on the arcs at chords + 1 angles evenly
-        /// from one angle to another; standing from a bottom to a top, each corner raised by rise × k / chords along it.
+        /// from one angle to another; standing from a bottom to a top, each corner raised by rise × k / chords along it. A
+        /// wobble moves the inner corners off their arc by turns, out at the even ones and in at the odd ones.
         /// </summary>
         /// <remarks>
         /// Each quad of its faces is split into two triangles, the top's and the bottom's along the same diagonal, so a top
@@ -484,8 +485,9 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// </remarks>
         internal sealed class CurvedBand
         {
-            internal CurvedBand(double inner, double outer, double fromRad, double toRad, int chords, double bottom, double top, double rise)
+            internal CurvedBand(double inner, double outer, double fromRad, double toRad, int chords, double bottom, double top, double rise, double wobble = 0.0)
             {
+                Wobble = wobble;
                 Inner = inner;
                 Outer = outer;
                 FromRad = fromRad;
@@ -512,6 +514,8 @@ namespace GeometryHelper.UnitTest.Takeoff
 
             internal double Rise { get; }
 
+            internal double Wobble { get; }
+
             internal double Depth => Top - Bottom;
 
             /// <summary>The band as a solid of triangles.</summary>
@@ -530,14 +534,14 @@ namespace GeometryHelper.UnitTest.Takeoff
 
                 for (int k = 0; k < Chords; k++)
                 {
-                    Quad(Corner(Outer, k, Top), Corner(Outer, k + 1, Top), Corner(Inner, k + 1, Top), Corner(Inner, k, Top));
-                    Quad(Corner(Outer, k, Bottom), Corner(Inner, k, Bottom), Corner(Inner, k + 1, Bottom), Corner(Outer, k + 1, Bottom));
-                    Quad(Corner(Outer, k, Bottom), Corner(Outer, k + 1, Bottom), Corner(Outer, k + 1, Top), Corner(Outer, k, Top));
-                    Quad(Corner(Inner, k, Bottom), Corner(Inner, k, Top), Corner(Inner, k + 1, Top), Corner(Inner, k + 1, Bottom));
+                    Quad(Corner(false, k, Top), Corner(false, k + 1, Top), Corner(true, k + 1, Top), Corner(true, k, Top));
+                    Quad(Corner(false, k, Bottom), Corner(true, k, Bottom), Corner(true, k + 1, Bottom), Corner(false, k + 1, Bottom));
+                    Quad(Corner(false, k, Bottom), Corner(false, k + 1, Bottom), Corner(false, k + 1, Top), Corner(false, k, Top));
+                    Quad(Corner(true, k, Bottom), Corner(true, k, Top), Corner(true, k + 1, Top), Corner(true, k + 1, Bottom));
                 }
 
-                Quad(Corner(Inner, 0, Bottom), Corner(Outer, 0, Bottom), Corner(Outer, 0, Top), Corner(Inner, 0, Top));
-                Quad(Corner(Outer, Chords, Bottom), Corner(Inner, Chords, Bottom), Corner(Inner, Chords, Top), Corner(Outer, Chords, Top));
+                Quad(Corner(true, 0, Bottom), Corner(false, 0, Bottom), Corner(false, 0, Top), Corner(true, 0, Top));
+                Quad(Corner(false, Chords, Bottom), Corner(true, Chords, Bottom), Corner(true, Chords, Top), Corner(false, Chords, Top));
                 return new GeoSolid3(faces).TurnOutwards();
             }
 
@@ -547,15 +551,16 @@ namespace GeometryHelper.UnitTest.Takeoff
                 var triangles = new List<double[][]>();
                 for (int k = 0; k < Chords; k++)
                 {
-                    triangles.Add(new[] { Corner(Outer, k, Top), Corner(Outer, k + 1, Top), Corner(Inner, k + 1, Top) });
-                    triangles.Add(new[] { Corner(Outer, k, Top), Corner(Inner, k + 1, Top), Corner(Inner, k, Top) });
+                    triangles.Add(new[] { Corner(false, k, Top), Corner(false, k + 1, Top), Corner(true, k + 1, Top) });
+                    triangles.Add(new[] { Corner(false, k, Top), Corner(true, k + 1, Top), Corner(true, k, Top) });
                 }
 
                 return triangles;
             }
 
-            private double[] Corner(double radius, int k, double z)
+            private double[] Corner(bool inner, int k, double z)
             {
+                double radius = inner ? Inner + (k % 2 == 0 ? Wobble : -Wobble) : Outer;
                 double angle = FromRad + (ToRad - FromRad) * k / Chords;
                 return new[] { radius * Math.Cos(angle), radius * Math.Sin(angle), z + Rise * k / Chords };
             }
@@ -581,15 +586,37 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// The common part is not valid either with the girder's side 0.165 or 0.185 out and its top 0.65 or 0.75 under,
         /// nine cases in all; with the contact, eight of the nine. So the case does not hang on its numbers.
         /// </para>
+        /// <para>
+        /// In 9 and 7 chords only 54 pairs of their faces stand beside each other, too few for the takeoff to send the
+        /// pair straight to slicing, so the boolean is tried and fails. Built in more chords, the same two have many more.
+        /// </para>
         /// </remarks>
-        internal static (CurvedBand Wall, CurvedBand Girder) CurvedWallAndGirder()
+        internal static (CurvedBand Wall, CurvedBand Girder) CurvedWallAndGirder(int wallChords = 9, int girderChords = 7)
         {
             const double radius = 5600.0;
             double span = 17.0 * Math.PI / 180.0, inset = 20.0 / radius;
-            var wall = new CurvedBand(radius, radius + 300.0, 0.0, span, 9, 0.0, 3600.0, 1.2);
-            var girder = new CurvedBand(radius + 0.175, radius + 500.175, inset, span - inset, 7, 3600.0 - 0.7 - 900.0, 3600.0 - 0.7, 3.0);
+            var wall = new CurvedBand(radius, radius + 300.0, 0.0, span, wallChords, 0.0, 3600.0, 1.2);
+            var girder = new CurvedBand(radius + 0.175, radius + 500.175, inset, span - inset, girderChords, 3600.0 - 0.7 - 900.0, 3600.0 - 0.7, 3.0);
             return (wall, girder);
         }
+
+        /// <summary>
+        /// A curved wall and a girder on it in the same 90 chords at the same angles, so that each face of the one has a
+        /// face of the other exactly parallel beside it: the wall from radius 5 600 to 5 900, 17 degrees long and 3 600
+        /// high; the girder from 5 600 plus the gap given to 6 100, 900 deep, its top 0.5 under the wall's, and its inner
+        /// corners wobbled as given; neither rises.
+        /// </summary>
+        internal static (CurvedBand Wall, CurvedBand Girder) ParallelWallAndGirder(double gap, double wobble)
+        {
+            const double radius = 5600.0;
+            double span = 17.0 * Math.PI / 180.0;
+            var wall = new CurvedBand(radius, radius + 300.0, 0.0, span, 90, 0.0, 3600.0, 0.0);
+            var girder = new CurvedBand(radius + gap, radius + 500.0, 0.0, span, 90, 3600.0 - 0.5 - 900.0, 3600.0 - 0.5, 0.0, wobble);
+            return (wall, girder);
+        }
+
+        /// <summary>The area two convex polygons in plan share, each given by its corners in turn.</summary>
+        internal static double PlanOverlap(IReadOnlyList<double[]> a, IReadOnlyList<double[]> b) => Math.Abs(Area(ClipToConvex(a.ToList(), b)));
 
         /// <summary>
         /// A column 1 000 by 400 by 4 000 standing across the middle of the curved wall and girder, its long side of plan
