@@ -44,6 +44,14 @@ and a slab 6 000 by 6 000 by 200 on both, their tops flush:
 | beam | 1.080 m3 | 0.072 m3 to the column | 1.008 m3 |
 | slab | 7.200 m3 | 0.032 m3 to the column, 0.336 m3 to the beam | 6.832 m3 |
 
+| | |
+|---|---|
+| ![The column blue, the beam green and the slab grey, as given, seen from below](images/takeoff/joint.svg) | ![What each keeps, drawn apart and seen from below: the column whole, the beam in two pieces either side of it, the slab in two with a notch where the column stands](images/takeoff/net.svg) |
+| The parts as given, from below | What each keeps, drawn apart |
+
+The beam runs through the whole depth of the slab, so what the slab keeps is two pieces 6 000 by 2 850, each with a
+notch 400 by 50 for the column; the beam keeps two pieces 2 800 long, one either side of the column.
+
 The beam shares 0.360 m3 with the slab, but 0.024 m3 of it, the block 300 by 400 by 200 inside the column, is the
 column's already: taken off by each part it meets, the slab would lose it twice. The three nets add up to 8.352 m3,
 the volume of the three together. Two exact copies count once, the later coming out nought, and so does the same body

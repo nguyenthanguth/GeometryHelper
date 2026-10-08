@@ -150,10 +150,25 @@ The rows of both sides come nearest first, each straight across the middle of th
 and a step forward along it in turn. Two rows as far off, one on each side, as every pair is when both sides have
 the same gap, are tried together, place by place. A label has no more than `MaximumCandidates` candidates in all.
 
+A label 600 by 250 on a leader 2 000 long, 50 off above and 150 below, with the default options, has 246 candidates:
+six rows of 41, a step of 72.5 apart. The first row above lies 175 off the leader and the first below 275, and as the
+gaps differ the rows are tried one at a time, 175 above, 275 below, 445 above, 545 below, 715 and 815:
+
+![The candidate places of a label 600 by 250 on a leader 2000 long, OffsetTop 50 and OffsetBottom 150: six rows of 41 places, numbered in the order they are tried; the label dashed where it was given and blue at the first place of each side; the red dot is the middle of the leader](images/arrange/candidates.svg)
+
 ## Greedy Placement
 
 The labels are placed greedily, one after another. A label once placed is never taken up again: it stands as a
 block for every label after it. The same items and options always give the same result.
+
+Nine marks 1 100 by 320 on the sloping leaders of the bars along a beam 9 000 long, 40 off them, the beam given as a
+block polygon and the dimension line above it as block lines. Given at the middle of their leaders, every label
+overlaps the next and the beam; after `Arranger.Run` all nine are `Placed`, each above its own leader:
+
+| | |
+|---|---|
+| ![Nine labels at the middle of their leaders, overlapping each other and the beam](images/arrange/before.svg) | ![The same labels after Arranger.Run, each clear of the others, the beam and the dimension line; a thin line joins each to the middle of its leader](images/arrange/after.svg) |
+| As given | After `Arranger.Run` |
 
 - **Order** — with `PlaceMostConstrainedFirst`, the default, each label's freedom is counted first: how many of its
   first `FreedomSampleSize` candidates, 12 unless set, are clear of the blocks. The label with the fewest goes first.

@@ -1363,6 +1363,12 @@ foreach (ClashResult clash in clashes)
 Clash3.Find(reinforcement, embeds);   // one set against another: First indexes the first set
 ```
 
+A footing 200 by 200 by 50, a column 100 by 100 standing on it, a beam 20 by 20 through the column and a bracket 50
+clear of the footing, checked with a clearance of 60, are three pairs: the column touches the footing over 10 000
+square units, the beam runs into the column by 40 000 cubic units, and the bracket stands 50 from the footing.
+
+![The four parts drawn see-through: the overlap of the beam and the column orange, the contact of the column on the footing blue, and the gap from the bracket to the footing red](images/clash/kinds.svg)
+
 Every part is prepared once — see [A body asked many questions](#a-body-asked-many-questions) — and the boxes
 are swept along whichever axis leaves the fewest pairs, so only pairs whose boxes come within the clearance of each
 other are looked at, however the parts lie: 4 900 bars 6 000 long laid side by side along X take 6.7 ms on one
@@ -1442,12 +1448,15 @@ ClashResult[] clashes = Clash3.Find(new[] { bar }, parts, new ClashOptions(clear
 // clash.Depth: how far the part reaches into the bar; clash.LengthInside: how much of the centre line runs inside
 ```
 
-Among the parts above, the bar bends down through the column into the footing: two hard clashes, each the
-diameter deep, its centre line 50 inside the footing. It is found exactly on the straight runs and within the
-chord tolerance on the bends (a thousandth of the radius unless given), with no body built and no boolean run,
-and the same prepared parts can be checked against bars and bodies alike. What bodies measure as a volume, a bar
-measures as a depth and a length: `Overlaps` stays empty and `Volume` nought, so `minimumVolume` does not apply
-to it, while `minimumDepth` does. Three things read differently from the same bar built with `GeoSolid3.Pipe`:
+![The bar of radius 8 drawn orange along its dashed centre line, bent down through the column into the footing, among the same parts drawn see-through](images/clash/bar.svg)
+
+Among the parts above, the bar bends down through the column into the footing: two hard clashes, each the diameter
+deep, its centre line 50 inside the footing and 132.8 inside the column. It is found exactly on the straight runs
+and within the chord tolerance on the bends (a thousandth of the radius unless given), with no body built and no
+boolean run, and the same prepared parts can be checked against bars and bodies alike. What bodies measure as a
+volume, a bar measures as a depth and a length: `Overlaps` stays empty and `Volume` nought, so `minimumVolume`
+does not apply to it, while `minimumDepth` does. Three things read differently from the same bar built with
+`GeoSolid3.Pipe`:
 
 - **The ends are rounded.** A ball rolled along the centre line reaches a radius past each end, where the bar
   ends flat, so a part up to a radius beyond an end is found to clash: the check errs on the side of reporting.

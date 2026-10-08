@@ -36,6 +36,11 @@ if (placement.Placed)
 }
 ```
 
+With a plan 180 by 120, sections 60 by 120, details 90 by 60 and 70 by 50, and a schedule 160 by 40, it all goes on
+the one A3, filling 50.7 % of the part inside the offsets:
+
+![A plan and its two sections, three details and a schedule packed on an A3, each group in its own colour; the dashed line is where the offsets leave off](images/packing/quick-start.svg)
+
 ## The sheet
 
 A `Sheet` is the size of the paper, the scale it is drawn at, the offsets round its edges that nothing goes into,
@@ -72,6 +77,11 @@ GeoRectangle2 usable = second.UsableArea;                    // the part inside 
 `PlaceCorner` sets `Origin` from any corner, or the middle: a frame already drawn at a known point can be packed
 where it is. Every frame is a `GeoRectangle2`, so each corner is there to read: `LowerLeft`, `UpperRight`, `Center`.
 
+Nine groups of up to three boxes, on A4 sheets with offsets of 10 and a `SheetSpacing` of 20, take three sheets, each
+begun to the right of the one before when it is full:
+
+![Nine groups on three A4 sheets side by side, each new sheet begun to the right of the one before](images/packing/next-sheet.svg)
+
 ## Groups
 
 Each `GeoRectangle2[]` is a group of boxes that belong together, packed onto a sheet as one block:
@@ -84,6 +94,14 @@ Each `GeoRectangle2[]` is a group of boxes that belong together, packed onto a s
 The boxes of a group stand `Spacing` apart, and the groups `GroupSpacing` apart, both in millimetres on paper: a
 group spacing wider than the spacing shows which boxes belong together. A group too large for one sheet is split,
 in its order, into blocks that each go onto one sheet, laid out compactly.
+
+A layout of four views already drawn, in blue, and a group of two, in orange, on an A3. `Keep` moves the four as they
+were drawn, gaps and all; `Compact` lays them out afresh, the first of them, the main view, at the upper left:
+
+| | |
+|---|---|
+| ![GroupLayout Keep: the four blue views stand to one another as they were drawn](images/packing/layout-keep.svg) | ![GroupLayout Compact: the same views laid out afresh, as close together as they go](images/packing/layout-compact.svg) |
+| `GroupLayout.Keep` | `GroupLayout.Compact` |
 
 ## Where the boxes go
 
@@ -125,6 +143,13 @@ sheets:
 A thousand boxes of up to a fifth of an A1 sheet, one to a group, take 17 sheets in their order and 14 with both
 set, as few as their area allows. With both set the sheets no longer read in the order the groups were given;
 the boxes of a group are kept together either way.
+
+Sixty groups, 79 boxes of 30 to 140 by 20 to 100, on A3 sheets: in their order they take eight sheets, filled 49.4 %,
+and with both options set six, filled 65.8 %:
+
+![Sixty groups in their order on eight A3 sheets](images/packing/order-kept.svg)
+
+![The same groups with LargestGroupsFirst and FillEarlierSheets, on six A3 sheets](images/packing/order-tight.svg)
 
 ## What is promised
 
