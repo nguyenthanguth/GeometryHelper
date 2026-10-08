@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The benchmark suite: code-built fixtures timed on .NET Framework 4.8, the runtime every host of the library uses,
+    each result checked bit for bit against the signature approved for it under benchmarks/baselines. Program.cs
+    lists the options of the command line.
+
+    x64, as Tekla Structures and AutoCAD run it: the 32-bit JIT of .NET Framework can work doubles on the x87 stack,
+    and a result would then differ from the approved one for that reason alone.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <PlatformTarget>x64</PlatformTarget>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>GeometryHelper.Benchmarks</RootNamespace>
+    <AssemblyName>GeometryHelper.Benchmarks</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+  </ItemGroup>
+
+</Project>

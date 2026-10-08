@@ -58,6 +58,7 @@ clarifying questions come before the code rather than after the mistake.
 | `src/GeometryHelper` | the core library: 2D and 3D geometry, booleans, meshing, clash, arranging, packing |
 | `src/GeometryHelper.TeklaConvert`, `.CadConvert`, `.IfcConvert` | the bridges to Tekla Structures, AutoCAD and IFC (xBIM) |
 | `tests/` | the xUnit suites, net48 |
+| `benchmarks/` | the code-built benchmark suite, net48: timings and the approved result signatures |
 | `examples/` | console and plugin samples for Tekla and AutoCAD |
 | `src/GeometryHelper/docs/` | the hand-written guides; `docfx.json` at the root builds them, with the API reference, into the docs site |
 | `CHANGELOG.md` | the full release notes, newest first |
@@ -86,6 +87,9 @@ done
   unchanged tree prints 0 errors over an analyzer error that CI then catches. Read the counts.
 - `dotnet test --no-build` and `dotnet pack --no-build` need the same `-p:TeklaVersion` as the build, or they run the
   wrong output folder.
+- A change to a path the benchmarks time is checked by them too: `dotnet run -c Release --project
+  benchmarks/GeometryHelper.Benchmarks -- --profile full`. It exits 1 when a result differs by a bit from the signature
+  approved for it in `benchmarks/baselines/`, and writes its timings to `artifacts/benchmarks/`.
 - Report what happened. A suite skipped or a test failing is said plainly, with the output.
 
 ### Tests
