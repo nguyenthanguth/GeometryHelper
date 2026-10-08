@@ -119,6 +119,17 @@ namespace GeometryHelper.Arranging
         }
 
         /// <summary>
+        /// Creates the bounding box enclosing these bounds and other bounds.
+        /// </summary>
+        /// <param name="other">The other bounds.</param>
+        /// <returns>The bounds of both: each side the further out of the two, taken as it is, with no arithmetic.</returns>
+        internal Bounds Union(Bounds other)
+        {
+            return new Bounds(Math.Min(MinX, other.MinX), Math.Min(MinY, other.MinY),
+                Math.Max(MaxX, other.MaxX), Math.Max(MaxY, other.MaxY));
+        }
+
+        /// <summary>
         /// Checks whether these bounds overlap other bounds.
         /// </summary>
         /// <param name="other">The other bounds to check overlap against.</param>

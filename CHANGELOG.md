@@ -4,6 +4,19 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**CHANGED.** The clash check, `Intersection3.IsSimple` and the triangulation of a face with holes
+(`TriangulateSurface`) sweep along whichever of X, Y and Z leaves the fewest pairs to look at, rather than always
+along X, and label placement finds what lies near each label through an index rather than by going over every block
+and every other label. Every result is the same as before to the last bit: the new benchmark suite signs each result,
+and every signature of 12.0.0 holds. Measured on .NET Framework 4.8, median before and after: 4 900 bars 6 000 long
+laid side by side along X are checked for clashes in 6.7 ms on one thread rather than 255; a comb of 4 000 edges along X is found
+simple, and found not simple with a corner pushed in, in 2.8 ms rather than 33; a comb face of 2 000 edges is
+triangulated in 37 ms rather than 51; 5 000 labels on parts far apart are placed in 0.21 s rather than 8.0, 1 000 in
+41 ms rather than 341, and 1 000 sharing 300 regions and every leader in 0.14 s rather than 0.54. Parts, edges and
+labels that already lay well, along Y or Z or close together, take as long as before, within 2 %.
+
 ## 12.0.0
 
 **BREAKING.** Label placement keeps one algorithm, the greedy one. `ArrangeAlgorithmType` and `ArrangeOptions.Algorithm`

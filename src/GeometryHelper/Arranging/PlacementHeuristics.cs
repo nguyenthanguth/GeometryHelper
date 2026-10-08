@@ -16,7 +16,7 @@ namespace GeometryHelper.Arranging
         /// Calculates processing (sorting) order of labels to optimize placement success.
         /// </summary>
         internal static IEnumerable<int> GetProcessingOrder(
-            IReadOnlyList<ArrangeItem> items, List<Obstacle> staticObstacles, ArrangeOptions options)
+            IReadOnlyList<ArrangeItem> items, ObstacleSpatialIndex staticObstacles, ArrangeOptions options)
         {
             int[] indices = Enumerable.Range(0, items.Count)
                 .Where(index => items[index] != null)
@@ -110,33 +110,57 @@ namespace GeometryHelper.Arranging
         /// <summary>
         /// Counts the actual number of free positions within the first sample candidate group.
         /// </summary>
-        private static int CountFreePlaces(ArrangeItem item, List<Obstacle> staticObstacles, ArrangeOptions options)
+        /// <returns>
+        /// The free positions; -1 for a label with no candidate, and nought for one with candidates but a sample of none.
+        /// </returns>
+        private static int CountFreePlaces(ArrangeItem item, ObstacleSpatialIndex staticObstacles, ArrangeOptions options)
         {
             GeoPoint2 centre = item.Box.Center;
-            int free = 0;
-            int examined = 0;
+            var sampled = new List<GeoRectangle2>();
+            bool beyond = false;
 
             foreach (GeoPoint2 candidate in item.EnumeratePlacePoints(options))
             {
                 // Only sample a small quantity configured by FreedomSampleSize (default = 12) to guarantee performance
-                if (examined >= options.FreedomSampleSize)
+                if (sampled.Count >= options.FreedomSampleSize)
                 {
-                    return free;
+                    beyond = true;
+                    break;
                 }
 
-                examined++;
-
                 var translation = centre.GetVectorTo(candidate);
-                var moved = item.Box.Translate(translation);
+                sampled.Add(item.Box.Translate(translation));
+            }
 
+            if (sampled.Count == 0)
+            {
+                return beyond ? 0 : -1;
+            }
+
+            // Only the obstacles whose box overlaps the box around the boxes of every place sampled. AnyCollides passes
+            // over each obstacle whose box the box of the place does not overlap; an obstacle whose box it does overlap
+            // overlaps the box around them all as well, since that box takes each of its sides from one of them as it
+            // is, with no arithmetic, and so is no smaller on any side. So these are all AnyCollides would look at, in
+            // the same order, whatever NeighbourMargin and the other options make of the reach of the label.
+            Bounds reach = Bounds.Of(sampled[0]);
+            for (int k = 1; k < sampled.Count; k++)
+            {
+                reach = reach.Union(Bounds.Of(sampled[k]));
+            }
+
+            List<Obstacle> near = staticObstacles.Overlapping(reach);
+            int free = 0;
+
+            foreach (GeoRectangle2 moved in sampled)
+            {
                 // If this position does not overlap any obstacles, consider it a free position
-                if (!Obstacle.AnyCollides(staticObstacles, moved, options.Tolerance))
+                if (!Obstacle.AnyCollides(near, moved, options.Tolerance))
                 {
                     free++;
                 }
             }
 
-            return examined == 0 ? -1 : free;
+            return free;
         }
 
         /// <summary>

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Geometry;
 
@@ -19,8 +18,9 @@ namespace GeometryHelper.Arranging
         public GeoVector2[] Arrange(IReadOnlyList<ArrangeItem> items, ArrangeOptions options)
         {
             var translations = new GeoVector2[items.Count];
-            // STEP 1: Collect all static obstacles from the input (block polygons and block lines)
-            var occupied = Obstacle.CollectStatic(items);
+            // STEP 1: Collect all static obstacles from the input (block polygons and block lines), held in an index
+            // that the box of each label joins as it is placed
+            var occupied = new ObstacleSpatialIndex(Obstacle.CollectStatic(items));
 
             // STEP 2: Determine placement order of labels.
             var processingOrder = PlacementHeuristics.GetProcessingOrder(items, occupied, options);
@@ -37,7 +37,7 @@ namespace GeometryHelper.Arranging
         /// <summary>
         /// Finds the best placement position for a single label using a greedy strategy.
         /// </summary>
-        private GeoVector2 Place(ArrangeItem item, List<Obstacle> occupied, ArrangeOptions options)
+        private GeoVector2 Place(ArrangeItem item, ObstacleSpatialIndex occupied, ArrangeOptions options)
         {
             // Verify label box validity and calculate local filter Bounds
             if (!PlacementHeuristics.TryGetCandidateBounds(item, options, out Bounds region))
@@ -49,8 +49,10 @@ namespace GeometryHelper.Arranging
 
             GeoPoint2 centre = item.Box.Center;
 
-            // Fast filtering: Keep only obstacles that could potentially collide in the neighborhood
-            List<Obstacle> nearby = occupied.Where(obstacle => region.Overlaps(obstacle.Box)).ToList();
+            // Fast filtering: Keep only obstacles that could potentially collide in the neighborhood. The index finds
+            // those whose box the region overlaps, in the order they joined, the very list going over all of them gives:
+            // one obstacle more would count in the clearance below, and could change the place chosen.
+            List<Obstacle> nearby = occupied.Overlapping(region);
 
             GeoVector2 chosen = GeoVector2.Zero;
             GeoVector2 firstCandidate = GeoVector2.Zero;
@@ -130,9 +132,9 @@ namespace GeometryHelper.Arranging
         }
 
         /// <summary>
-        /// Translates the label box and adds it to the occupied static obstacle list.
+        /// Translates the label box and adds it to the occupied obstacles.
         /// </summary>
-        private static void AddBox(ArrangeItem item, List<Obstacle> occupied, GeoVector2 translation)
+        private static void AddBox(ArrangeItem item, ObstacleSpatialIndex occupied, GeoVector2 translation)
         {
             var moved = item.Box.Translate(translation);
             occupied.Add(new Obstacle(moved));

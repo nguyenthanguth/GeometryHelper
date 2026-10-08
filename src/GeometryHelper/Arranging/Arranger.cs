@@ -199,8 +199,12 @@ namespace GeometryHelper.Arranging
         /// <returns>For each item, whether it is placed; false for a null entry.</returns>
         private static bool[] Judge(IReadOnlyList<ArrangeItem> items, GeoVector2[] translations, ArrangeOptions options)
         {
-            List<Obstacle> blocks = Obstacle.CollectStatic(items);
+            var blocks = new ObstacleSpatialIndex(Obstacle.CollectStatic(items));
 
+            // The labels in an index of their own, added in the order of the items, itemOf giving the item of each. The
+            // box the index holds for a label is Bounds.Of its box, the very bounds the label has below.
+            var labels = new ObstacleSpatialIndex();
+            var itemOf = new List<int>();
             var boxes = new GeoRectangle2[items.Count];
             var bounds = new Bounds[items.Count];
             for (int i = 0; i < items.Count; i++)
@@ -212,9 +216,12 @@ namespace GeometryHelper.Arranging
 
                 boxes[i] = items[i].Box.Translate(translations[i]);
                 bounds[i] = Bounds.Of(boxes[i]);
+                labels.Add(new Obstacle(boxes[i]));
+                itemOf.Add(i);
             }
 
             var placed = new bool[items.Count];
+            var near = new List<int>();
             for (int i = 0; i < items.Count; i++)
             {
                 // A label that cannot form a layout was never arranged. That it happens to overlap nothing does not
@@ -224,11 +231,18 @@ namespace GeometryHelper.Arranging
                     continue;
                 }
 
-                bool clear = !Obstacle.AnyCollides(blocks, boxes[i], options.Tolerance);
+                // AnyCollides passes over every block whose box does not overlap that of the label, so the blocks the
+                // index finds for it are all it would look at, in the same order.
+                bool clear = !Obstacle.AnyCollides(blocks.Overlapping(bounds[i]), boxes[i], options.Tolerance);
 
-                for (int j = 0; j < items.Count && clear; j++)
+                // Only the labels whose boxes overlap, bounds[i].Overlaps(bounds[j]), are judged against this one, in
+                // the order of the items. Two boxes standing apart by less than the tolerance are not judged, as before:
+                // CollidesWith, within the tolerance, would call them a collision.
+                labels.Query(bounds[i], near);
+                for (int k = 0; k < near.Count && clear; k++)
                 {
-                    if (i == j || items[j] == null || !bounds[i].Overlaps(bounds[j]))
+                    int j = itemOf[near[k]];
+                    if (i == j)
                     {
                         continue;
                     }
