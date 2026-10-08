@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using GeometryHelper;
 using GeometryHelper.Geometry;
+using GeometryHelper.Internal;
 
 namespace GeometryHelper.Core
 {
@@ -32,7 +33,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// One vertex of the working loop: where it sits in the plane, and the point it came from.
         /// </summary>
-        private struct Node
+        internal struct Node
         {
             public double X;
             public double Y;
@@ -280,7 +281,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// One edge of a ring, for <see cref="RingsMeet"/>: its ends, and where it stands in which ring.
         /// </summary>
-        private struct RingEdge
+        internal struct RingEdge
         {
             public Node A;
             public Node B;
@@ -297,9 +298,10 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The edges are taken left to right, each against those whose span across begins before its own ends, so that
-        /// only edges near each other are measured.
+        /// only edges near each other are measured. Rings whose edges overlap more along X than along Y, as a plate of
+        /// slots along the frame's X, are taken bottom to top instead; see <see cref="RingsMeetAlongY"/>.
         /// </remarks>
-        private static bool RingsMeet(List<Node> outer, List<List<Node>> holes, double distance)
+        internal static bool RingsMeet(List<Node> outer, List<List<Node>> holes, double distance)
         {
             var edges = new List<RingEdge>();
 
@@ -321,6 +323,11 @@ namespace GeometryHelper.Core
             }
 
             edges.Sort((left, right) => left.MinX.CompareTo(right.MinX));
+
+            if (edges.Count >= SweepAxisFrom && SweepAxis(edges, distance) == 1)
+            {
+                return RingsMeetAlongY(edges, distance);
+            }
 
             for (int i = 0; i < edges.Count; i++)
             {
@@ -353,9 +360,129 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// How many edges the rings need before <see cref="RingsMeet"/> chooses the axis it sweeps along. Choosing costs
+        /// two sorts, more than a sweep along X of a few edges costs, so fewer are swept along X; both give the same
+        /// answer.
+        /// </summary>
+        internal const int SweepAxisFrom = 64;
+
+        /// <summary>
+        /// The axis a sweep of the edges looks at the fewest pairs along, 0 for X and 1 for Y, X where both look at as many.
+        /// </summary>
+        /// <param name="edges">The edges.</param>
+        /// <param name="distance">How far apart two edges may stand and still be measured.</param>
+        internal static int SweepAxis(List<RingEdge> edges, double distance)
+        {
+            int count = edges.Count;
+            var lows = new double[count];
+            var highs = new double[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                lows[i] = edges[i].MinX;
+                highs[i] = edges[i].MaxX + distance;
+            }
+
+            Array.Sort(lows);
+            long alongX = Sweeps.Tried(lows, highs);
+
+            for (int i = 0; i < count; i++)
+            {
+                RingEdge e = edges[i];
+                lows[i] = Math.Min(e.A.Y, e.B.Y);
+                highs[i] = Math.Max(e.A.Y, e.B.Y) + distance;
+            }
+
+            Array.Sort(lows);
+            return Sweeps.Tried(lows, highs) < alongX ? 1 : 0;
+        }
+
+        /// <summary>
+        /// Determines whether two edges of the rings come within a distance of each other, taking the edges bottom to
+        /// top, and measuring every pair the sweep left to right measures, as it measures them.
+        /// </summary>
+        /// <param name="edges">The edges, in the order the sort left to right left them.</param>
+        /// <param name="distance">The distance.</param>
+        /// <remarks>
+        /// The sweep left to right asked whether the later of two edges in its order lies within the span across of the
+        /// earlier, and that is not asked the same, to the last bit, the other way round. So whichever of two edges this
+        /// sweep comes to second, their spans are compared the way round the sweep left to right compared them; the
+        /// measuring itself is the same either way round. An edge is no longer compared once the next starts clear of it
+        /// either way round.
+        /// </remarks>
+        private static bool RingsMeetAlongY(List<RingEdge> edges, double distance)
+        {
+            int count = edges.Count;
+            var lows = new double[count];
+            var highs = new double[count];
+            var order = new int[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                RingEdge e = edges[i];
+                lows[i] = Math.Min(e.A.Y, e.B.Y);
+                highs[i] = Math.Max(e.A.Y, e.B.Y);
+                order[i] = i;
+            }
+
+            Array.Sort(order, (a, b) =>
+            {
+                int byLow = lows[a].CompareTo(lows[b]);
+                return byLow != 0 ? byLow : a.CompareTo(b);
+            });
+
+            for (int k = 0; k < count; k++)
+            {
+                int p = order[k];
+
+                for (int m = k + 1; m < count; m++)
+                {
+                    int q = order[m];
+
+                    if (lows[q] > highs[p] + distance && lows[q] - distance > highs[p])
+                    {
+                        break;
+                    }
+
+                    RingEdge e = edges[Math.Min(p, q)];
+                    RingEdge f = edges[Math.Max(p, q)];
+
+                    if (f.MinX > e.MaxX + distance)
+                    {
+                        continue;
+                    }
+
+                    double minY = Math.Min(e.A.Y, e.B.Y) - distance;
+                    double maxY = Math.Max(e.A.Y, e.B.Y) + distance;
+
+                    if (Math.Max(f.A.Y, f.B.Y) < minY || Math.Min(f.A.Y, f.B.Y) > maxY)
+                    {
+                        continue;
+                    }
+
+                    if (e.Ring == f.Ring && (Math.Abs(e.Index - f.Index) == 1 || Math.Abs(e.Index - f.Index) == e.Count - 1))
+                    {
+                        continue;
+                    }
+
+                    if (SegmentsWithin(e.A, e.B, f.A, f.B, distance))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Determines whether two segments cross or come within a distance of each other.
         /// </summary>
-        private static bool SegmentsWithin(Node a, Node b, Node c, Node d, double distance)
+        /// <remarks>
+        /// The same either way round: the two segments taken the other way round swap the cross products and the
+        /// distances among themselves.
+        /// </remarks>
+        internal static bool SegmentsWithin(Node a, Node b, Node c, Node d, double distance)
         {
             double d1 = Cross(a, b, c), d2 = Cross(a, b, d), d3 = Cross(c, d, a), d4 = Cross(c, d, b);
 

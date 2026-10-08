@@ -5,6 +5,7 @@ using GeometryHelper;
 using GeometryHelper.Core;
 using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
+using GeometryHelper.Internal;
 using GeometryHelper.Spatial;
 
 namespace GeometryHelper.Clash
@@ -598,13 +599,18 @@ namespace GeometryHelper.Clash
         }
 
         /// <summary>
-        /// The pairs whose boxes come within a reach of each other, found by sweeping the boxes along X.
+        /// The pairs whose boxes come within a reach of each other, found by sweeping the boxes along the axis that
+        /// leaves the fewest pairs to look at.
         /// </summary>
         /// <remarks>
-        /// Sorted by their low X, a box can only meet the boxes still open when it starts — those whose high X
-        /// has not been passed — so each is compared with a handful rather than with every other.
+        /// Sorted by their low coordinate along that axis, a box can only meet the boxes still open when it starts —
+        /// those whose high coordinate has not been passed — so each is compared with a handful rather than with every
+        /// other. Along an axis the boxes all overlap along, that handful is all of them: 4 900 bars 6 000 long laid side
+        /// by side, swept along their length, were compared 12 002 550 times, and 169 050 times swept across. The other
+        /// two axes are compared each way round, so the pairs found are the same along any axis, and only the order they
+        /// are found in changes; the results are put in the order of their pairs.
         /// </remarks>
-        private static List<(int, int)> SweepBoxes(GeoAabb3[] first, GeoAabb3[] second, bool oneSet, double reach)
+        internal static List<(int, int)> SweepBoxes(GeoAabb3[] first, GeoAabb3[] second, bool oneSet, double reach)
         {
             // Both sets swept together, each entry knowing which set it is from; one set is swept against itself.
             var entries = new List<(GeoAabb3 Box, int Index, bool FromFirst)>();
@@ -628,16 +634,41 @@ namespace GeometryHelper.Clash
                 }
             }
 
-            entries.Sort((a, b) => a.Box.Min.X.CompareTo(b.Box.Min.X));
+            int axis = SweepAxis(entries, reach);
+            int across = axis == 0 ? 1 : 0, along = axis == 2 ? 1 : 2;
+            int count = entries.Count;
+
+            // The low and high coordinate of each box along X, Y and Z, six to a box, read without copying the boxes.
+            var extents = new double[6 * count];
+            var order = new int[count];
+
+            for (int e = 0; e < count; e++)
+            {
+                GeoAabb3 box = entries[e].Box;
+                extents[6 * e] = box.Min.X;
+                extents[(6 * e) + 1] = box.Max.X;
+                extents[(6 * e) + 2] = box.Min.Y;
+                extents[(6 * e) + 3] = box.Max.Y;
+                extents[(6 * e) + 4] = box.Min.Z;
+                extents[(6 * e) + 5] = box.Max.Z;
+                order[e] = e;
+            }
+
+            // Boxes starting at the same place are taken in the order they were entered.
+            Array.Sort(order, (a, b) =>
+            {
+                int byLow = extents[(6 * a) + (2 * axis)].CompareTo(extents[(6 * b) + (2 * axis)]);
+                return byLow != 0 ? byLow : a.CompareTo(b);
+            });
 
             var pairs = new List<(int, int)>();
             var open = new List<int>();
 
-            for (int e = 0; e < entries.Count; e++)
+            foreach (int e in order)
             {
-                GeoAabb3 box = entries[e].Box;
+                double low = extents[(6 * e) + (2 * axis)];
 
-                open.RemoveAll(o => entries[o].Box.Max.X + reach < box.Min.X);
+                open.RemoveAll(o => extents[(6 * o) + (2 * axis) + 1] + reach < low);
 
                 foreach (int o in open)
                 {
@@ -646,10 +677,7 @@ namespace GeometryHelper.Clash
                         continue;
                     }
 
-                    GeoAabb3 other = entries[o].Box;
-
-                    if (box.Min.Y > other.Max.Y + reach || other.Min.Y > box.Max.Y + reach
-                        || box.Min.Z > other.Max.Z + reach || other.Min.Z > box.Max.Z + reach)
+                    if (Apart(extents, e, o, across, reach) || Apart(extents, e, o, along, reach))
                     {
                         continue;
                     }
@@ -669,6 +697,59 @@ namespace GeometryHelper.Clash
             }
 
             return pairs;
+        }
+
+        /// <summary>
+        /// The axis a sweep of the boxes looks at the fewest pairs along, 0 for X, 1 for Y and 2 for Z, the first of
+        /// them where two look at as many.
+        /// </summary>
+        /// <param name="entries">The boxes to sweep.</param>
+        /// <param name="reach">How far apart two boxes may stand and still be a pair.</param>
+        internal static int SweepAxis(List<(GeoAabb3 Box, int Index, bool FromFirst)> entries, double reach)
+        {
+            int count = entries.Count;
+            var lows = new double[count];
+            var highs = new double[count];
+            int axis = 0;
+            long fewest = long.MaxValue;
+
+            for (int candidate = 0; candidate < 3; candidate++)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    lows[i] = Along(entries[i].Box.Min, candidate);
+                    highs[i] = Along(entries[i].Box.Max, candidate) + reach;
+                }
+
+                Array.Sort(lows);
+                long tried = Sweeps.Tried(lows, highs);
+
+                if (tried < fewest)
+                {
+                    fewest = tried;
+                    axis = candidate;
+                }
+            }
+
+            return axis;
+        }
+
+        /// <summary>A coordinate of a point: 0 for X, 1 for Y and 2 for Z.</summary>
+        private static double Along(GeoPoint3 point, int axis) => axis == 0 ? point.X : axis == 1 ? point.Y : point.Z;
+
+        /// <summary>
+        /// Whether two boxes stand further apart than a reach along an axis, 0 for X, 1 for Y and 2 for Z, either way
+        /// round.
+        /// </summary>
+        /// <param name="extents">The low and high coordinate of each box along X, Y and Z, six to a box.</param>
+        /// <param name="box">One box, by index.</param>
+        /// <param name="other">The other.</param>
+        /// <param name="axis">The axis.</param>
+        /// <param name="reach">How far apart the two may stand and still be a pair.</param>
+        private static bool Apart(double[] extents, int box, int other, int axis, double reach)
+        {
+            int a = (6 * box) + (2 * axis), b = (6 * other) + (2 * axis);
+            return extents[a] > extents[b + 1] + reach || extents[b] > extents[a + 1] + reach;
         }
 
         private static ClashResult Check(int i, GeoPreparedSolid3 a, int j, GeoPreparedSolid3 b, ClashOptions options, Tolerance tolerance)
