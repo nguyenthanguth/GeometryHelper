@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `GeoEllipse3`, an elliptical disc in space, with its static forms in `Core.Ellipse3`. It is read as a
+`GeoCircle3` is read: a disc for `DistanceTo`, `Locate`, `Contains` and the nearest point of the surface, the rim for
+the nearest point of the boundary and for crossings. Everything in its own plane is `GeoEllipse2`'s arithmetic, so an
+ellipse 300 by 100 is 1 336.4893 round whichever way it stands. It takes every transformation that can be undone, an
+uneven scaling included, which a circle refuses; `GeoEllipse3.FromCircle` makes a circle one first. `CollidesWith`,
+`GetIntersections` and `TryIntersectWith` work against everything a circle in space is asked about, another ellipse
+included, with nothing sampled: 2 000 random cases of each kind of pair, planes down to a thousandth of a degree apart,
+give no wrong count and no point more than 1.3E-7 off. `ProjectToPlane`, on `GeoCircle3` and `GeoEllipse3`, gives the
+shape seen square onto a plane: a circle of radius 300 tilted 60° from the plan is an ellipse 300 by 150 in plan.
+`ProjectToEllipse2(frame)` and `GeoEllipse2.ToEllipse3(frame)` carry an ellipse between space and the plane, and
+`Mesh3.ToMesh` meshes one, its own axes along the major axis. GeometryHelper.CadConvert reads and writes the AutoCAD
+`Ellipse` with `EllipseConvert`, and reads a tilted `Circle` as the ellipse it is in plan.
+
 **CHANGED.** The clash check, `Intersection3.IsSimple` and the triangulation of a face with holes
 (`TriangulateSurface`) sweep along whichever of X, Y and Z leaves the fewest pairs to look at, rather than always
 along X, and label placement finds what lies near each label through an index rather than by going over every block

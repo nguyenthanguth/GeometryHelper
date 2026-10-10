@@ -93,7 +93,7 @@ In space a grid's origin is a point of space. `MeshOptions.Origin`, a point of t
 
 ### Other flat shapes
 
-`GeoPolygon3`, `GeoFace3`, `GeoPolygonArc3`, `GeoCircle3` and `GeoTriangle3` all mesh the same way, with `ToMesh`. A
+`GeoPolygon3`, `GeoFace3`, `GeoPolygonArc3`, `GeoCircle3`, `GeoEllipse3` and `GeoTriangle3` all mesh the same way, with `ToMesh`. A
 loop with arcs is flattened in space by the options' chord tolerance first, its corners kept where they are and the points
 of each arc on the arc, and its mesh's normal is the one the loop runs counter-clockwise about; a disc's triangles are
 fanned from its center, its normal the circle's, and a disc of no size has no faces; a triangle's normal runs from A by B

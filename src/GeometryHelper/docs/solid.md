@@ -11,8 +11,8 @@ instance method on the type it applies to. Both are measured with the same [shar
 
 | Namespace | Contents |
 |---|---|
-| `GeometryHelper.Geometry` | `GeoPoint3`, `GeoVector3`, `GeoLine3`, `GeoRay3`, `GeoPlane3`, `GeoTriangle3`, `GeoPolyline3`, `GeoPolygon3`, `GeoCircle3`, `GeoFace3`, `GeoAabb3`, `GeoObb3`, `GeoSolid3`, `GeoEdge3`, `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoCoordinateSystem3`, `GeoTransform3` |
-| `GeometryHelper.Core` | `Boolean3`, `Collision3`, `Containment3`, `Distance3`, `Intersection3`, `Lengthen3`, `Merge3`, `Offset3`, `Parallel3`, `Parametrization3`, `Projection3`, `Splition3`, `PlanarMap` |
+| `GeometryHelper.Geometry` | `GeoPoint3`, `GeoVector3`, `GeoLine3`, `GeoRay3`, `GeoPlane3`, `GeoTriangle3`, `GeoPolyline3`, `GeoPolygon3`, `GeoCircle3`, `GeoEllipse3`, `GeoFace3`, `GeoAabb3`, `GeoObb3`, `GeoSolid3`, `GeoEdge3`, `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoCoordinateSystem3`, `GeoTransform3` |
+| `GeometryHelper.Core` | `Boolean3`, `Collision3`, `Containment3`, `Distance3`, `Intersection3`, `Lengthen3`, `Merge3`, `Offset3`, `Parallel3`, `Parametrization3`, `Projection3`, `Splition3`, `Ellipse3`, `PlanarMap` |
 | `GeometryHelper.Spatial` | `GeoBvh3` |
 | `GeometryHelper.Extension` | `EnumerableExtension` |
 | `GeometryHelper` | `Tolerance`, `Angle`, `OffsetOptions`, `GeometryHelperLog` |
@@ -48,7 +48,7 @@ The shapes split into three families, and which family a shape belongs to decide
 | Family | Types | Encloses an area | Encloses a volume |
 |---|---|---|---|
 | Curve | `GeoLine3`, `GeoRay3`, `GeoPolyline3` | no | no |
-| Planar region | `GeoTriangle3`, `GeoPolygon3`, `GeoCircle3`, `GeoFace3` | yes | no |
+| Planar region | `GeoTriangle3`, `GeoPolygon3`, `GeoCircle3`, `GeoEllipse3`, `GeoFace3` | yes | no |
 | Volume | `GeoObb3`, `GeoAabb3`, `GeoSolid3` | yes | yes |
 
 Only regions and volumes offer `Contains`. Every shape offers `Locate`, and a curve can only ever
@@ -1332,6 +1332,83 @@ A sampled chain lies inside the arcs it stands for, so it is never nearer to any
 the bar is: a clearance worked out this way errs on the safe side. The same bargain `GeoCircle3` offers
 through `ToPolylineByChordTolerance`.
 
+## Ellipses in space
+
+`GeoEllipse3` is the ellipse of [the plane half](plane.md#ellipses) standing in space: a centre, the normal of
+its plane, the direction of its major axis in that plane, and the two semi-axes. It is read the way a
+`GeoCircle3` is read, as a flat disc, and everything it does in its own plane is the plane ellipse's
+arithmetic, so its length, its walking and its flattening are the plane ellipse's to the last bit.
+
+```csharp
+var ellipse = new GeoEllipse3(center, GeoVector3.ZAxis, GeoVector3.XAxis, 300.0, 100.0);
+
+ellipse.Area;                                   // 94 247.78
+ellipse.Length;                                 // 1 336.4893
+ellipse.MinorAxis;                              // (0, 1, 0): the normal crossed with the major axis
+ellipse.GetPointAtAngle(Math.PI / 4);           // (212.132, 70.7107, 0), the eccentric angle as in the plane
+GeoEllipse3.FromCircle(circle);                 // a circle as an ellipse, its angle starting where the circle's does
+```
+
+A major axis given a little out of the plane is laid into it; one along the normal is refused. The minor
+axis is the normal crossed with the major one, so the angle runs counter-clockwise seen from the tip of the
+normal, as a circle's does.
+
+**A disc for distance, the rim for crossings.** A point is in the ellipse when it lies within the planar
+tolerance of the plane and inside the outline, and its distance is to the nearest point of the filled disc.
+A point above the disc is measured straight down to it; one beside it, to the rim. The rim points are all
+at the same height above the plane, so the nearest of them to a point in space is the nearest to its foot,
+and that is exact.
+
+```csharp
+ellipse.DistanceTo(new GeoPoint3(0, 0, 50));                 // 50, straight down
+ellipse.Contains(new GeoPoint3(0, 0, 50));                   // false: off the plane
+ellipse.Locate(new GeoPoint3(300.0005, 0, 0));               // OnSide, within the point tolerance of the rim
+ellipse.GetClosestPointOnBoundary(new GeoPoint3(400, 200, 80));
+                                                             // (275.5969, 39.5057, 0), 218.2534 away
+ellipse.GetClosestPointOnBoundary(new GeoPoint3(0, 0, 50));  // (0, 100, 0): at the centre, the end of the minor axis
+```
+
+Crossings and collisions are asked of the rim, as they are of a circle's, against everything a circle in
+space is asked about and another ellipse besides: planes, segments, rays, arcs, circles, triangles,
+polygons, faces, bodies, both boxes, edges and the arc chains. A shape lying in the ellipse's plane is laid
+out and answered by the plane ellipse; anything else meets the rim on the line the two planes share. A
+segment through the middle of the disc neither crosses nor touches it, as it does not touch a circle's rim.
+
+```csharp
+ellipse.GetIntersections(new GeoPlane3(new GeoPoint3(150, 0, 0), GeoVector3.XAxis));
+                                                  // (150, -86.6025, 0), (150, 86.6025, 0)
+ellipse.GetIntersections(new GeoEllipse3(center, GeoVector3.ZAxis, GeoVector3.YAxis, 200, 150));
+                                                  // (±134.1641, ±89.4427, 0): two ellipses in one plane cross four times
+```
+
+Two things are worked out differently from the circle, because the circle's way loses crossings. The line
+two planes share is found from the ellipse's own centre rather than from the world origin, which keeps the
+crossings within 2E-7 of where they are on planes a thousandth of a degree apart, a thousand from the
+origin, where the circle's are as much as 4E-3 off or lost. And whether a line grazes the rim
+is judged in drawing units, so an ellipse 210 by 0.23 touched by a plane is touched at one point.
+
+**Seen from elsewhere.** A circle in space stays a circle only under an even scaling, and refuses any other;
+an ellipse takes every transformation that can be undone, and comes back an ellipse. Seen square onto a
+plane, a circle or an ellipse is an ellipse in that plane:
+
+```csharp
+var tilted = new GeoCircle3(new GeoPoint3(1000, 500, 200), new GeoVector3(0, -Math.Sin(th), Math.Cos(th)), 300);
+                                                  // th = 60°: a circle tilted 60° from the plan
+
+tilted.ProjectToPlane(GeoPlane3.XY);              // an ellipse 300 by 150 about (1000, 500, 0)
+tilted.ProjectToEllipse2(GeoCoordinateSystem3.Global);  // the same, as a GeoEllipse2 in plan
+GeoEllipse3.FromCircle(circle).TransformBy(GeoTransform3.Scaling(1, 2, 1));
+                                                  // a circle of radius 100 stretched: 200 by 100
+```
+
+A shape standing square to the plane, which would show as a segment, is refused with an
+`InvalidOperationException`; one leaning off square by more than a millionth of a millionth of a radian
+comes back, however thin.
+
+Left out, as they are for the plane ellipse or the circle in space: offsetting, since the offset of an
+ellipse is not an ellipse; the booleans; elliptical arcs; and the distance to anything but a point, for
+which `ToPolylineByChordTolerance` gives a chain that errs on the safe side.
+
 ## Checking parts against each other
 
 `Clash3.Find` checks a whole set of parts, or one set against another, and says what every pair that clashes
@@ -1642,7 +1719,10 @@ somewhere else, so hold on to it. Where the frame comes from decides what the lo
 | `new GeoCoordinateSystem3(origin, xAxis, yAxis)` | whatever you name | the local coordinates mean something to you |
 
 Every flat type makes the trip: `GeoPoint3`, `GeoVector3`, `GeoLine3`, `GeoPolyline3`, `GeoPolygon3` and
-`GeoFace3` go out with `ProjectTo…`, and `GeoPoint2` … `GeoFace2` come back with `To…3`.
+`GeoFace3` go out with `ProjectTo…`, and `GeoPoint2` … `GeoFace2` come back with `To…3`. An ellipse does too:
+`GeoEllipse3.ProjectToEllipse2(frame)` goes out, and `GeoEllipse2.ToEllipse3(frame)` comes back; a circle in
+space goes out as an ellipse, `GeoCircle3.ProjectToEllipse2(frame)`, which is a circle again when it lies
+flat in the frame.
 
 **Off the plane.** Flattening drops the local Z, so a point that does not lie on the plane has no honest
 answer. `ProjectToPoint2` projects it and says so in its name; `TryToPoint2` refuses it when it is farther
