@@ -446,9 +446,19 @@ namespace GeometryHelper.Geometry
         /// <returns>The arc in the plane of the frame.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the arc stands square to the plane, where it would flatten into a segment rather than an arc.</exception>
         /// <remarks>
+        /// <para>
+        /// An arc tilted out of the plane of the frame is, seen square onto it, an elliptical arc, which has no type
+        /// here. It comes back as the circular arc through the projections of its start, its middle and its end, so
+        /// those three points are right and the points between them are not: an arc of radius 300 over a quarter turn,
+        /// tilted 60° about the line from its centre to its start, strays up to 10.8 from its true shadow. <see cref="PlanarMap.TryToArc2(GeoCoordinateSystem3, GeoArc3, out GeoArc2)"/>
+        /// refuses an arc that is not in the plane, and <see cref="GeoCircle3.ProjectToEllipse2(GeoCoordinateSystem3)"/>
+        /// gives the true shadow of a whole circle.
+        /// </para>
+        /// <para>
         /// A whole turn has to be laid out from its centre rather than from three of its points, because its
         /// start and its end are in the same place and there is no third point to be found among them. Any
         /// pair of angles describes the whole of a circle, so nought to nought is as good as any.
+        /// </para>
         /// </remarks>
         public GeoArc2 ProjectToArc2(GeoCoordinateSystem3 frame)
         {
