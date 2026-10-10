@@ -5,8 +5,8 @@
 
 Converts geometry between AutoCAD and
 [GeometryHelper](https://github.com/nguyenthanguth/GeometryHelper), both ways: points, vectors, line
-segments and `Line` entities, polylines and polygons with the arcs their bulges draw, arcs, circles, and
-`Extents2d`/`Extents3d` as rectangles.
+segments and `Line` entities, polylines and polygons with the arcs their bulges draw, arcs, circles,
+ellipses, and `Extents2d`/`Extents3d` as rectangles.
 
 ## Installation
 
@@ -151,6 +151,35 @@ Circle hole = new GeoCircle2(center, 12.5).ToAcadCircle();
 An AutoCAD arc always sweeps counter-clockwise about its normal and has nowhere to put a direction of
 its own, so a clockwise `GeoArc2` is written with its two angles exchanged: the same curve, read back
 counter-clockwise.
+
+## Ellipses
+
+An AutoCAD `Ellipse` is held as a centre, a normal, a major axis as long as the major radius, and the
+ratio of the minor radius to the major one, which is what a `GeoEllipse3` holds, so it reads and writes
+exactly.
+
+```csharp
+GeoEllipse3 real = acadEllipse.ToGeoEllipse3();         // in its own plane
+GeoEllipse2 flat = acadEllipse.ToGeoEllipse2();         // as it is seen in plan
+acadEllipse.TryToGeoEllipse2(out GeoEllipse2 read);     // false rather than throwing
+
+Ellipse drawn = real.ToAcadEllipse();                   // a whole turn, 0 to 2π
+Ellipse drawnFlat = flat.ToAcadEllipse();               // in the XY plane
+```
+
+GeometryHelper has no elliptical arc, so an `Ellipse` entity that sweeps less than a whole turn is
+refused with an `ArgumentException` rather than closed up. Reading in plan throws an
+`InvalidOperationException` for an ellipse standing square to the XY plane, which would flatten into a
+segment.
+
+A `Circle` tilted out of the plan is an ellipse in plan, and `ToGeoEllipse2` reads it as one: a circle of
+radius 300 tilted 60° from the plan is an ellipse 300 by 150. `ToGeoCircle2` keeps only its centre and
+radius, and a tilted `Arc` is still refused by `ToGeoArc2`, since in plan it is an elliptical arc.
+
+```csharp
+GeoEllipse2 outline = tiltedCircle.ToGeoEllipse2();
+tiltedCircle.TryToGeoEllipse2(out GeoEllipse2 seen);   // false when it stands square to XY
+```
 
 ## Licence
 

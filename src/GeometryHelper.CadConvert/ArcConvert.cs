@@ -64,7 +64,7 @@ namespace GeometryHelper.CadConvert
             if (Math.Abs(arc.Normal.X) > 1E-9 || Math.Abs(arc.Normal.Y) > 1E-9)
             {
                 throw new ArgumentException(
-                    "This AutoCAD arc is tilted out of the XY plane, so in plan it is an ellipse; ToGeoArc3 reads it as it is.",
+                    "This AutoCAD arc is tilted out of the XY plane, so in plan it is an ellipse; ToGeoArc3 reads it as it is, or read the whole Circle as an ellipse with ToGeoEllipse2.",
                     nameof(arc));
             }
 
