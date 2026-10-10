@@ -245,6 +245,73 @@ namespace GeometryHelper.UnitTest.Solid
             }
         }
 
+        /// <summary>
+        /// The segment rises 0.002 over 800, its ends 0.0009 below the plane and 0.0011 above, so it passes the rim within
+        /// the point tolerance at both crossings while one end lies outside the planar band. Read only where it pierces the
+        /// plane, at x = -40, it touched nothing.
+        /// </summary>
+        [Fact]
+        public void ASegmentLeaningOutOfThePlaneByAHairCrossesTheRimWhereItPassesIt()
+        {
+            var start = new GeoPoint3(-400, 50, -0.0009);
+            var end = new GeoPoint3(400, 50, 0.0011);
+            double x = 300 * Math.Sqrt(0.75);
+            var expected = new[] { new GeoPoint3(-x, 50, -0.0009 + 0.002 * (400 - x) / 800), new GeoPoint3(x, 50, -0.0009 + 0.002 * (400 + x) / 800) };
+
+            Same(expected, Plan.GetIntersections(new GeoLine3(start, end), Tol), 1E-9);
+            Assert.True(Plan.CollidesWith(new GeoLine3(start, end), Tol));
+            Same(expected, Plan.GetIntersections(new GeoRay3(start, start.GetVectorTo(end)), Tol), 1E-9);
+            Same(expected, Plan.GetIntersections(new GeoPolylineArc3(new[] { start, end }), Tol), 1E-9);
+            Assert.True(Plan.CollidesWith(new GeoPolylineArc3(new[] { start, end }), Tol));
+        }
+
+        [Fact]
+        public void ASegmentLyingFlatInsideThePointToleranceButOutsideAPlanarOneCrossesTheRimTwice()
+        {
+            var tight = new Tolerance(1E-3, 1E-5, Tolerance.Default.EqualAngleRad, 1E-4);
+            double x = 300 * Math.Sqrt(0.75);
+
+            Same(
+                new[] { new GeoPoint3(-x, 50, 5E-4), new GeoPoint3(x, 50, 5E-4) },
+                Plan.GetIntersections(new GeoLine3(new GeoPoint3(-400, 50, 5E-4), new GeoPoint3(400, 50, 5E-4)), tight),
+                1E-9);
+        }
+
+        /// <summary>
+        /// The plane leans 1E-5 off the plan and cuts a chord 0.04 long near the end of the circle's radius; its stored point
+        /// lies 1E4 along the chord. The allowance for rounding grew with that distance and merged the two crossings.
+        /// </summary>
+        [Fact]
+        public void APlaneStoredFarAlongTheChordStillCrossesACircleOfRadius300AtBothEnds()
+        {
+            var circle = new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 300, 300);
+            var plane = new GeoPlane3(new GeoPoint3(299.99999933, 1E4, 0), new GeoVector3(Math.Sin(1E-5), 0, Math.Cos(1E-5)));
+            GeoPoint3[] points = circle.GetIntersections(plane, Tol);
+            double y = Math.Sqrt(300 * 300 - 299.99999933 * 299.99999933);
+
+            Assert.Equal(2, points.Length);
+            Near(new GeoPoint3(299.99999933, -y, 0), points[0], 1E-6);
+            Near(new GeoPoint3(299.99999933, y, 0), points[1], 1E-6);
+        }
+
+        [Fact]
+        public void APlaneStoredFarAlongTheMajorAxisStillCutsTheFlatEndOfAThinEllipseAtBothPoints()
+        {
+            var thin = new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 1000, 1);
+            var normal = new GeoVector3(0, Math.Sin(0.002), Math.Cos(0.002));
+            double x = 1000 * Math.Sqrt(1 - 0.99999992 * 0.99999992);
+
+            foreach (GeoPoint3 origin in new[] { new GeoPoint3(1E5, 0.99999992, 0), new GeoPoint3(0, 0.99999992, 0) })
+            {
+                GeoPoint3[] points = thin.GetIntersections(new GeoPlane3(origin, normal), Tol);
+
+                // In order along the line the planes share, the normal of the plan crossed with the plane's: towards -X.
+                Assert.Equal(2, points.Length);
+                Assert.Equal(x, points[0].X, 1E-6);
+                Assert.Equal(-x, points[1].X, 1E-6);
+            }
+        }
+
         [Fact]
         public void ANullShapeIsRefused()
         {

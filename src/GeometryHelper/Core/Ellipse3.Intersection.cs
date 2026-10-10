@@ -33,6 +33,11 @@ namespace GeometryHelper.Core
     /// </remarks>
     public static partial class Ellipse3
     {
+        /// <summary>
+        /// The rounding of one operation on doubles, half the gap from one to the next double above it.
+        /// </summary>
+        private const double Epsilon = 1.1102230246251565E-16;
+
         #region Against a plane
 
         /// <summary>
@@ -97,13 +102,14 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="line">The segment.</param>
-        /// <param name="tolerance">The tolerance: a segment whose ends both lie within its planar tolerance of the plane lies in it.</param>
+        /// <param name="tolerance">The tolerance: a point of the segment within its point tolerance of the rim, measured in space, is on it.</param>
         /// <returns>
-        /// At most two points, in order along the segment, and only ones the segment reaches. A segment lying in the plane is
-        /// read in it: the one from (-400, 50, 0) to (400, 50, 0) crosses the ellipse 300 by 100 lying in the plan about the
-        /// origin at (-259.808, 50, 0), then at (259.808, 50, 0). Any other segment meets the plane at one point, which counts
-        /// when it is on the rim: the one from (300, 0, -10) to (300, 0, 10) gives (300, 0, 0), and one through the middle of
-        /// the disc gives none.
+        /// At most two points, in order along the segment, and only ones the segment reaches: where it passes the rim, read
+        /// as it lies over the plane, and where it pierces the plane on the rim. The one from (-400, 50, 0) to (400, 50, 0)
+        /// crosses the ellipse 300 by 100 lying in the plan about the origin at (-259.808, 50, 0), then at (259.808, 50, 0);
+        /// the one from (-400, 50, -0.0009) to (400, 50, 0.0011), leaning a hair out of the plane, at (-259.808, 50, -0.00055)
+        /// and (259.808, 50, 0.00075); the one from (300, 0, -10) to (300, 0, 10) at (300, 0, 0); one through the middle of
+        /// the disc nowhere.
         /// </returns>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoLine3 line, Tolerance tolerance)
         {
@@ -157,8 +163,8 @@ namespace GeometryHelper.Core
         /// X, in the plane of the ellipse 300 by 100 lying in the plan about the origin, crosses it at (300, 0, 0) only.
         /// </returns>
         /// <remarks>
-        /// A ray lies in the plane when it does as far as it can reach the rim: its start, and the point past which it is
-        /// further from the centre than the major radius, both within the planar tolerance of the plane.
+        /// A ray is read as a segment as far as it can reach the rim: to the point past which it is further from the centre
+        /// than the major radius.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoRay3 ray, Tolerance tolerance)
         {
@@ -884,7 +890,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="offset">The point of the line nearest the centre, as an offset from it, lying in the first plane.</param>
         /// <param name="direction">The unit direction of the line.</param>
-        /// <param name="rounding">How far rounding may have moved the line, a bound: a few parts in 1E16 of the distances it was found from.</param>
+        /// <param name="rounding">
+        /// How far rounding may have moved the line across itself, a bound: a few parts in 1E16 of what each coordinate puts
+        /// into the centre's height above the other plane, and of the offset, each over the sine of the angle between the
+        /// planes. A plane whose stored point lies far off along the line adds nothing, since its coordinates there put
+        /// nothing into the height.
+        /// </param>
         /// <returns>false when the two planes are parallel as far as the shape reaches, as for the circle.</returns>
         /// <remarks>
         /// <see cref="Intersection3.TryGetMeetingLine(GeoPlane3, GeoPlane3, double, out GeoRay3, Tolerance)"/> finds the
@@ -910,14 +921,94 @@ namespace GeometryHelper.Core
 
             // The point C + beta (n2 - (n1.n2) n1) lies in the first plane, and in the second where beta sin^2 is minus
             // the centre's height above it.
-            double beta = -plane.SignedDistanceTo(center) / (sine * sine);
+            double beta = -HeightAbove(plane, center) / (sine * sine);
             double cosine = normal.DotProduct(other);
 
             offset = other.Subtract(normal.Multiply(cosine)).Multiply(beta);
             direction = cross.Multiply(1.0 / sine);
-            rounding = 1E-15 * (plane.Origin.DistanceTo(center) / sine + reach + offset.Length);
+
+            // The height is worked out to its own last digit, but the shapes it is read from were themselves stored to a
+            // part in 1E16 of each coordinate, as was the plane built to pass through a point: what each coordinate puts
+            // into the height, over the sine. The offset is read along a difference of nearly equal normals whose rounding
+            // is a part in 1E16 over the sine again. A plane whose point is stored far along the line adds nothing, since
+            // its coordinates there put nothing into the height.
+            GeoPoint3 stored = plane.Origin;
+            double terms = (Math.Abs(center.X) + Math.Abs(stored.X)) * Math.Abs(other.X)
+                + (Math.Abs(center.Y) + Math.Abs(stored.Y)) * Math.Abs(other.Y)
+                + (Math.Abs(center.Z) + Math.Abs(stored.Z)) * Math.Abs(other.Z);
+            rounding = Epsilon * (terms / sine + 4.0 * offset.Length * (1.0 + 1.0 / sine));
 
             return true;
+        }
+
+        /// <summary>
+        /// Gets the height of a point above a plane, worked out to the last digit of the height rather than of the
+        /// coordinates it is found from.
+        /// </summary>
+        /// <remarks>
+        /// The height is (P - O)·n, O the plane's stored point. Read plainly, each difference and each product is rounded to
+        /// a part in 1E16 of its own size, so a plane whose point is stored 1E5 away gives a height off by 1E-11 however
+        /// small the height is, and a line found from it, between planes 1E-5 apart, by 1E-6: two crossings 0.06 apart
+        /// were found 0.009 out. Here each difference is split into its rounded value and the part rounding lost, each
+        /// product likewise (Dekker's split, as no fused multiply-add is to be had), and the parts summed with what their
+        /// sums lose kept, so that only the rounding of the height itself is left.
+        /// </remarks>
+        private static double HeightAbove(GeoPlane3 plane, GeoPoint3 point)
+        {
+            GeoPoint3 origin = plane.Origin;
+            GeoVector3 normal = plane.Normal;
+            double sum = 0.0;
+            double lost = 0.0;
+
+            AddProduct(point.X, -origin.X, normal.X, ref sum, ref lost);
+            AddProduct(point.Y, -origin.Y, normal.Y, ref sum, ref lost);
+            AddProduct(point.Z, -origin.Z, normal.Z, ref sum, ref lost);
+
+            return sum + lost;
+        }
+
+        /// <summary>
+        /// Adds (x + y)·n to a sum, keeping in a second sum what the rounding of each step loses.
+        /// </summary>
+        private static void AddProduct(double x, double y, double n, ref double sum, ref double lost)
+        {
+            TwoSum(x, y, out double difference, out double differenceLost);
+            TwoProduct(difference, n, out double product, out double productLost);
+            TwoSum(sum, product, out sum, out double sumLost);
+
+            lost += sumLost + productLost + differenceLost * n;
+        }
+
+        /// <summary>
+        /// Gets a sum and, exactly, what its rounding lost (Knuth).
+        /// </summary>
+        private static void TwoSum(double a, double b, out double sum, out double lost)
+        {
+            sum = a + b;
+
+            double back = sum - a;
+
+            lost = (a - (sum - back)) + (b - back);
+        }
+
+        /// <summary>
+        /// Gets a product and, exactly, what its rounding lost, by splitting each factor into two halves of 26 bits
+        /// (Dekker).
+        /// </summary>
+        private static void TwoProduct(double a, double b, out double product, out double lost)
+        {
+            const double Splitter = 134217729.0;
+
+            product = a * b;
+
+            double ca = Splitter * a;
+            double aHigh = ca - (ca - a);
+            double aLow = a - aHigh;
+            double cb = Splitter * b;
+            double bHigh = cb - (cb - b);
+            double bLow = b - bHigh;
+
+            lost = ((aHigh * bHigh - product) + aHigh * bLow + aLow * bHigh) + aLow * bLow;
         }
 
         /// <summary>
@@ -967,10 +1058,13 @@ namespace GeometryHelper.Core
             double ab = a * b;
             double chord = 4.0 * ab * ab * ((h - p) * (h + p)) / (h * h * h * h);
 
-            // The circle's band, widened by what rounding can do to D: where the rim runs flat, at the ends of the minor axis
-            // of a thin ellipse, D grows by 8 (a b)^2 / h^3 for each unit the line moves, and on an ellipse 816 by 1.07 a line
-            // moved by its rounding alone cut a chord past the tolerance where it touched.
-            double graze = tolerance.EqualPoint * tolerance.EqualPoint + 8.0 * ab * ab * (p + h) / (h * h * h * h) * rounding;
+            // The circle's band, widened by what rounding can do to D, whose change is 8 (a b)^2 / h^4 times p for each unit
+            // the line moves and h for each unit the reach does: where the rim runs flat, at the ends of the minor axis of a
+            // thin ellipse, that is 8 (a b)^2 / h^3, and on an ellipse 816 by 1.07 a line moved by its rounding alone cut a
+            // chord past the tolerance where it touched. Sized from the stored point of the plane instead, the band merged
+            // the crossings 0.04 apart of a plane leaning 1E-5 off a circle of radius 300, its point stored 1E4 away.
+            double graze = tolerance.EqualPoint * tolerance.EqualPoint
+                + 8.0 * ab * ab / (h * h * h * h) * (p * rounding + h * 4.0 * Epsilon * a);
 
             if (chord < -graze)
             {
@@ -1048,13 +1142,20 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets the candidates a segment or a ray gives against the rim: origin + t·direction for t from nought to a span.
+        /// Gets the candidates a segment or a ray gives against the rim: origin + t·direction for t from nought to a span, in
+        /// order along it.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// A stretch whose two ends both lie within the planar tolerance of the plane lies in it, and is read there by
-        /// <see cref="Ellipse2"/>. Any other meets the plane at one point, which counts when it is on the rim. A stretch
-        /// wholly to one side of the plane, beyond the planar tolerance, gives nothing.
+        /// Two readings, both kept where the rim in space holds them, within the point tolerance as an arc holds a point,
+        /// and a place they both find named once. The stretch laid onto the plane is crossed with the rim by
+        /// <see cref="Ellipse2"/> and each crossing put back on the stretch at the same place along it, which finds a
+        /// stretch lying in the plane or running within the tolerance of it; and the point where it pierces the plane, which
+        /// finds a steep one, whose laid-out crossings stand off the rim and drop out.
+        /// </para>
+        /// <para>
+        /// Read only where it pierced, a segment from (-400, 50, -0.0009) to (400, 50, 0.0011), which passes the rim of the
+        /// ellipse 300 by 100 within the tolerance at x = ±259.8, touched nothing: it pierces at x = -40.
         /// </para>
         /// <para>
         /// The caller still asks its own shape whether it reaches each candidate, as the circle's do.
@@ -1078,27 +1179,115 @@ namespace GeometryHelper.Core
             double start = ellipse.Center.GetVectorTo(origin).DotProduct(ellipse.Normal);
             double rise = direction.DotProduct(ellipse.Normal);
             double end = start + span * rise;
-            double band = tolerance.EqualPlanar;
+            double reach = tolerance.EqualPoint;
 
-            if (Math.Abs(start) <= band && Math.Abs(end) <= band)
-            {
-                return AlongSegment(ellipse, origin, direction.Multiply(span), tolerance);
-            }
-
-            if ((start > band && end > band) || (start < -band && end < -band))
+            // Every point of a stretch wholly to one side, further off than the rim test reaches, is off the rim.
+            if ((start > reach && end > reach) || (start < -reach && end < -reach))
             {
                 return found;
             }
 
-            // One end beyond the band and the other not, or the two either side: the stretch rises, so it pierces.
-            GeoPoint3 pierce = origin.Add(direction.Multiply(-start / rise));
-
-            if (OnRim(ellipse, pierce, tolerance))
+            foreach (GeoPoint3 crossing in AlongSegment(ellipse, origin, direction.Multiply(span), tolerance))
             {
-                found.Add(pierce);
+                Arc3.AddOnce(found, crossing, tolerance);
             }
 
-            return found;
+            if (Math.Abs(rise) > 0.0)
+            {
+                AddPierce(found, ellipse, origin.Add(direction.Multiply(-start / rise)), tolerance);
+            }
+
+            if (found.Count < 2)
+            {
+                return found;
+            }
+
+            var keys = new double[found.Count];
+            var order = new int[found.Count];
+
+            for (int i = 0; i < found.Count; i++)
+            {
+                keys[i] = origin.GetVectorTo(found[i]).DotProduct(direction);
+                order[i] = i;
+            }
+
+            Array.Sort(order, (x, y) =>
+            {
+                int byKey = keys[x].CompareTo(keys[y]);
+
+                return byKey != 0 ? byKey : x.CompareTo(y);
+            });
+
+            var sorted = new List<GeoPoint3>(found.Count);
+
+            foreach (int i in order)
+            {
+                sorted.Add(found[i]);
+            }
+
+            return sorted;
+        }
+
+        /// <summary>
+        /// Adds the point where a stretch pierces the plane, when it is on the rim and not a place a laid-out crossing has
+        /// named already.
+        /// </summary>
+        /// <remarks>
+        /// A stretch running within the tolerance of the rim over some length pierces the plane somewhere along it, up to the
+        /// tolerance off the rim, and its laid-out crossing lies elsewhere on the same length: a segment lying in the plane
+        /// across an ellipse 2.5 by 0.43 gave its two crossings and a third, 0.0023 from one of them. Two such points are one
+        /// place where the stretch stays on the rim between them, at their middle; the one nearer the rim is kept.
+        /// </remarks>
+        private static void AddPierce(List<GeoPoint3> found, GeoEllipse3 ellipse, GeoPoint3 pierce, Tolerance tolerance)
+        {
+            double gap = RimGap(ellipse, pierce);
+
+            if (!(gap <= tolerance.EqualPoint))
+            {
+                return;
+            }
+
+            // Only the nearest crossing can be the same place: the other end of a short chord is a place of its own.
+            int nearest = -1;
+
+            for (int i = 0; i < found.Count; i++)
+            {
+                if (nearest < 0 || found[i].DistanceTo(pierce) < found[nearest].DistanceTo(pierce))
+                {
+                    nearest = i;
+                }
+            }
+
+            if (nearest >= 0)
+            {
+                GeoPoint3 crossing = found[nearest];
+                GeoPoint3 middle = crossing.Add(crossing.GetVectorTo(pierce).Multiply(0.5));
+
+                if (crossing.IsEqualTo(pierce, tolerance) || OnRim(ellipse, middle, tolerance))
+                {
+                    if (gap < RimGap(ellipse, crossing))
+                    {
+                        found[nearest] = pierce;
+                    }
+
+                    return;
+                }
+            }
+
+            found.Add(pierce);
+        }
+
+        /// <summary>
+        /// Gets how far a point lies from the rim, measured in space: the root of its height above the plane squared and the
+        /// gap from its foot to the rim squared.
+        /// </summary>
+        private static double RimGap(GeoEllipse3 ellipse, GeoPoint3 point)
+        {
+            Frame(ellipse, point, out double along, out double across, out double height);
+
+            double gap = Ellipse2.Gap(Flat(ellipse), along, across);
+
+            return Math.Sqrt(height * height + gap * gap);
         }
 
         /// <summary>

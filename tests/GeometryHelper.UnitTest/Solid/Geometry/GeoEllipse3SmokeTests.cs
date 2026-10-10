@@ -505,5 +505,28 @@ namespace GeometryHelper.UnitTest.Solid
             var sliver = new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 300, 0.0005);
             Assert.Equal(0, sliver.ToMesh(new GeometryHelper.Meshing.MeshOptions(GeometryHelper.Meshing.MeshKind.Triangles), GeometryHelper.Meshing.MeshPlacement3.World, Tol).FaceCount);
         }
+
+        [Fact]
+        public void AGridLaidOnTheEllipsesOwnAxesRunsAlongItsMajorAxisAsOverItsFlattenedOutline()
+        {
+            // The ellipse 1000 by 200 in the plan with its axis along (1, 1, 0), turned 0.5 rad about X.
+            double cos = Math.Cos(0.5), sin = Math.Sin(0.5);
+            var normal = new GeoVector3(0, -sin, cos);
+            var axis = new GeoVector3(1, cos, sin).Multiply(1 / Math.Sqrt(2));
+            var ellipse = new GeoEllipse3(new GeoPoint3(10, 20, 30), normal, axis, 1000, 200);
+            var grid = GeometryHelper.Meshing.MeshOptions.Grid(200, 200);
+            var own = GeometryHelper.Meshing.MeshPlacement3.Own;
+
+            GeometryHelper.Meshing.GeoMesh3 mesh = ellipse.ToMesh(grid, own, Tol);
+            GeometryHelper.Meshing.GeoMesh3 outline = ellipse.ToPolygon().ToMesh(grid, own, Tol);
+
+            Assert.True(Math.Abs(mesh.Frame.XAxis.DotProduct(ellipse.MajorAxis)) >= 1 - 1E-12, $"{mesh.Frame.XAxis} against {ellipse.MajorAxis}");
+            Assert.Equal(outline.FaceCount, mesh.FaceCount);
+            Assert.Equal(20, mesh.FaceCount);
+
+            // A circle has no axis of its own, and its grid runs level, as a circle's does.
+            var circle = new GeoCircle3(new GeoPoint3(10, 20, 30), normal, 500);
+            Assert.True(GeoEllipse3.FromCircle(circle).ToMesh(grid, own, Tol).Frame.XAxis.IsEqualTo(circle.ToMesh(grid, own, Tol).Frame.XAxis, Tol));
+        }
     }
 }

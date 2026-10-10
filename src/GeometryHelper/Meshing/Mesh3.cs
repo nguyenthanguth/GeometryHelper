@@ -302,8 +302,10 @@ namespace GeometryHelper.Meshing
         /// would lay more cells over the shape than a mesh may have, or the placement's direction stands square to the plane.
         /// </exception>
         /// <remarks>
-        /// The frame is laid on the disc as on a circle's, from its centre alone, so <see cref="MeshAxes.Own"/> runs a grid
-        /// as it runs one over a circle.
+        /// <see cref="MeshAxes.Own"/> runs a grid along the major axis, pointing along the world's X axis rather than against
+        /// it, as it runs one along the long side of the ellipse's flattened outline: the ellipse 1000 by 200 takes a grid of
+        /// 200 by 200 in 20 faces either way. An ellipse that is a circle within the tolerance has no axis of its own, and
+        /// its grid runs level, as a circle's does.
         /// </remarks>
         public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
         {
@@ -315,7 +317,11 @@ namespace GeometryHelper.Meshing
                 return new GeoMesh3(Mesh2.Empty(options.Kind, tolerance), new GeoPoint3[0], GeoCoordinateSystem3.Global.WithOrigin(ellipse.Center));
             }
 
-            GeoCoordinateSystem3 frame = placement.FrameOnPlane(ellipse.Center, ellipse.Normal, new[] { ellipse.Center }, options.AngleRad ?? 0.0, tolerance);
+            // Its own axis is the major one; the circle's own frame, read from its centre alone, runs level.
+            MeshPlacement3 axes = placement.Axes == MeshAxes.Own && !ellipse.IsCircle(tolerance)
+                ? MeshPlacement3.Along(MeshPlacement3.Canonical(ellipse.MajorAxis))
+                : placement;
+            GeoCoordinateSystem3 frame = axes.FrameOnPlane(ellipse.Center, ellipse.Normal, new[] { ellipse.Center }, options.AngleRad ?? 0.0, tolerance);
             GeoVector3 axis = frame.ToLocal(ellipse.MajorAxis);
 
             // The rim has no corners of its own, so its points go onto the plane, where the ellipse is.
