@@ -692,7 +692,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the distance from a point, given in the ellipse's own frame, to the nearest point of the rim.
         /// </summary>
-        private static double Gap(GeoEllipse2 ellipse, double along, double across)
+        internal static double Gap(GeoEllipse2 ellipse, double along, double across)
         {
             Closest(ellipse, along, across, out double cos, out double sin);
 
@@ -710,7 +710,7 @@ namespace GeometryHelper.Core
         /// nearer the other than (q - 1) times the minor radius, the narrowest the ellipse is. So a point further from the
         /// rim by that measure than the tolerance is inside or outside without working out the nearest point.
         /// </remarks>
-        private static double Below(GeoEllipse2 ellipse, double along, double across)
+        internal static double Below(GeoEllipse2 ellipse, double along, double across)
         {
             double scaled = along * (ellipse.MinorRadius / ellipse.MajorRadius);
 
@@ -720,7 +720,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets how far the bound has to clear nought for the answer to be sure: the tolerance, and enough for rounding.
         /// </summary>
-        private static double Slack(GeoEllipse2 ellipse, double along, double across, Tolerance tolerance)
+        internal static double Slack(GeoEllipse2 ellipse, double along, double across, Tolerance tolerance)
         {
             return tolerance.EqualPoint + 1E-12 * (ellipse.MajorRadius + Math.Abs(along) + Math.Abs(across));
         }
