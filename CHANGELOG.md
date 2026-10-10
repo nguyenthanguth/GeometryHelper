@@ -17,6 +17,13 @@ triangulated in 37 ms rather than 51; 5 000 labels on parts far apart are placed
 41 ms rather than 341, and 1 000 sharing 300 regions and every leader in 0.14 s rather than 0.54. Parts, edges and
 labels that already lay well, along Y or Z or close together, take as long as before, within 2 %.
 
+**FIXED.** A segment nearly tangent to a circle or an arc in space no longer loses the two points it crosses at. The
+band within which a line is read as grazing the rim was a half chord of half the point tolerance times the segment's
+length, so a segment 1 000 long through a circle of radius 100, 0.0012 inside its rim, merged a chord 0.96 long into its
+middle, 0.0012 off the rim, and found nothing; a segment 200 long through a point of the rim, leaning 5E-4 rad off the
+normal, lost that point the same way. The band is now half the point tolerance in drawing units, and both give their
+points. GeoEllipse3, which hands its arcs to the same code, gains the fix with it.
+
 ## 12.0.0
 
 **BREAKING.** Label placement keeps one algorithm, the greedy one. `ArrangeAlgorithmType` and `ArrangeOptions.Algorithm`

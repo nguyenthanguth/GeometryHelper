@@ -91,8 +91,11 @@ namespace GeometryHelper.Core
 
             // A line that grazes the circle gives a discriminant of nought, and rounding puts it either side,
             // so anything within the tolerance of nought is read as the single touching point rather than as
-            // two points a hair apart or as none at all.
-            double graze = tolerance.EqualPoint * tolerance.EqualPoint * a * a;
+            // two points a hair apart or as none at all. The discriminant is 4a times the square of the half
+            // chord, so the band is a half chord of half the point tolerance, in drawing units: read against a
+            // times a, it grew with the length of the segment, and a segment 1 000 long merged a chord of
+            // nearly a millimetre into one point off the rim.
+            double graze = tolerance.EqualPoint * tolerance.EqualPoint * a;
 
             if (discriminant < -graze)
             {

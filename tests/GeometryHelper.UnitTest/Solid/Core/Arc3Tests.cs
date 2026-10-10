@@ -274,5 +274,42 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.False(Arc3.TryIntersectWith(arc, new GeoPlane3(new GeoPoint3(500, 0, 0), new GeoVector3(1, 0, 0)), out GeoPoint3[] none));
             Assert.Empty(none);
         }
+
+        [Fact]
+        public void ALongSegmentNearlyTangentToACircleCrossesItAtBothPoints()
+        {
+            // A chord 0.96 long, 0.0012 inside the rim, on a segment 1 000 long. The graze band was read against the
+            // segment's own length, a half chord of up to half a millimetre, so the two crossings were merged into the
+            // middle of the chord, 0.0012 off the rim, and then lost.
+            var circle = new GeoCircle3(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 100);
+            double y = Math.Sqrt(100.0 * 100.0 - 0.48 * 0.48);
+            var segment = new GeoLine3(new GeoPoint3(-500, y, 0), new GeoPoint3(500, y, 0));
+
+            GeoPoint3[] crossings = circle.GetIntersections(segment, Tolerance.Default);
+
+            Assert.Equal(2, crossings.Length);
+            Assert.Equal(-0.48, crossings[0].X, 1E-9);
+            Assert.Equal(0.48, crossings[1].X, 1E-9);
+            Assert.All(crossings, p => Assert.Equal(y, p.Y, 1E-9));
+            Assert.True(circle.CollidesWith(segment, Tolerance.Default));
+        }
+
+        [Fact]
+        public void ASegmentThroughARimPointNearlySquareToThePlaneCrossesItThere()
+        {
+            // A segment 200 long through (100, 0, 0), leaning 5E-4 rad off the normal: it cuts the circle's sphere in a
+            // chord 0.1 long, which the band read against the segment's length took for a graze, its middle 0.05 above
+            // the plane.
+            var circle = new GeoCircle3(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 100);
+            var along = new GeoVector3(Math.Sin(5E-4), 0, Math.Cos(5E-4));
+            var rim = new GeoPoint3(100, 0, 0);
+            var segment = new GeoLine3(rim.Add(along.Multiply(-100)), rim.Add(along.Multiply(100)));
+
+            GeoPoint3[] crossings = circle.GetIntersections(segment, Tolerance.Default);
+
+            GeoPoint3 only = Assert.Single(crossings);
+            Assert.True(only.IsEqualTo(rim, new Tolerance(1E-9, 1E-9)));
+            Assert.True(circle.CollidesWith(segment, Tolerance.Default));
+        }
     }
 }
