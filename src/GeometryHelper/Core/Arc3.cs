@@ -136,15 +136,18 @@ namespace GeometryHelper.Core
         /// The workhorse of every not-coplanar pair. Where the two planes are parallel and apart there is no
         /// line and nothing to find; where they are the same plane the caller has to handle that itself,
         /// because what to do then depends on the shape, not on the arc.
+        /// The line is found from the arc's own centre rather than from the planes' distances to the world origin:
+        /// two circles 30 000 out along each axis, in planes a thousandth of a degree apart, lost both their crossings
+        /// to the rounding of that distance.
         /// </remarks>
         internal static List<GeoPoint3> PointsOnPlane(GeoArc3 arc, GeoPlane3 plane, Tolerance tolerance)
         {
-            if (!Intersection3.TryGetMeetingLine(arc.GetPlane(), plane, 2.0 * arc.Radius, out GeoRay3 meeting, tolerance))
+            if (!Intersection3.TryGetMeetingLineFrom(arc.Center, arc.Normal, 2.0 * arc.Radius, plane, tolerance, out GeoVector3 offset, out GeoVector3 direction, out _))
             {
                 return new List<GeoPoint3>();
             }
 
-            return PointsOnLine(arc, meeting.Origin, meeting.Direction, tolerance);
+            return PointsOnLine(arc, arc.Center.Add(offset), direction, tolerance);
         }
 
         /// <summary>

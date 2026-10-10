@@ -88,6 +88,39 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void TwoCirclesFarFromTheOriginInPlanesAThousandthOfADegreeApartCrossAtBothPoints()
+        {
+            // A circle of radius 300 about (30 000, 30 000, 30 000), where real models lie, and one through its rim at
+            // angles 0.6 and 2.8, its centre 200 back across that chord, in a plane leaning 0.001 degrees about it. The
+            // line the planes share was found from their distances to the world origin, which a thousandth of a degree
+            // turns from the rounding of 52 000 into an error of millimetres: no point was found.
+            var tolerance = Tolerance.Default;
+            var first = new GeoCircle3(new GeoPoint3(30000, 30000, 30000), new GeoVector3(0, -Math.Sin(Math.PI / 6), Math.Cos(Math.PI / 6)), 300);
+            GeoPoint3 a = first.GetPointAtAngle(0.6);
+            GeoPoint3 b = first.GetPointAtAngle(2.8);
+            GeoVector3 chord = a.GetVectorTo(b).Normalize();
+            GeoVector3 normal = first.Normal.RotateBy(0.001 * Math.PI / 180.0, chord);
+            GeoPoint3 middle = a.Add(a.GetVectorTo(b).Multiply(0.5));
+            GeoVector3 back = normal.CrossProduct(chord).Normalize();
+            if (back.DotProduct(middle.GetVectorTo(first.Center)) > 0.0)
+            {
+                back = back.Multiply(-1.0);
+            }
+
+            GeoPoint3 centre = middle.Add(back.Multiply(200));
+            var second = new GeoCircle3(centre, normal, centre.DistanceTo(a));
+
+            foreach (GeoPoint3[] found in new[] { first.GetIntersections(second, tolerance), second.GetIntersections(first, tolerance) })
+            {
+                Assert.Equal(2, found.Length);
+                Assert.Contains(found, p => p.DistanceTo(a) <= 1E-6);
+                Assert.Contains(found, p => p.DistanceTo(b) <= 1E-6);
+            }
+
+            Assert.True(first.CollidesWith(second, tolerance));
+        }
+
+        [Fact]
         public void ACoplanarArcPassingFourTenThousandthsOutsideACircle_TouchesIt()
         {
             // The far half of a circle of radius 101.5004 about (1.5, 0) passes the circle of radius 100 at (-100, 0)

@@ -42,6 +42,14 @@ point tolerance, as they do in the plane. Circles of radius 250 and 100 with the
 since the radical line runs between the rims, off both; they now touch once, at the middle of the gap, 250.0002 from
 the first centre, as GeoCircle2 says. One a hair inside the other was fixed the same way in 12.0.0.
 
+**FIXED.** A circle or an arc in space no longer loses crossings with a plane, a shape or another curve in a plane
+nearly its own, far from the origin. The line two planes share was found from the planes' distances to the world
+origin, so its error grew with that distance over the sine of the angle between them: two circles about
+(30 000, 30 000, 30 000), in planes a thousandth of a degree apart, gave no point for two. It is now found from the
+circle's own centre, as GeoEllipse3 finds it, and 2 000 random cases of each kind, planes down to a thousandth of a
+degree apart within 1 000 of the origin, give no wrong count and no point more than 1.2E-7 off, where 1 of 300 and 2 of
+300 had been wrong.
+
 ## 12.0.0
 
 **BREAKING.** Label placement keeps one algorithm, the greedy one. `ArrangeAlgorithmType` and `ArrangeOptions.Algorithm`
