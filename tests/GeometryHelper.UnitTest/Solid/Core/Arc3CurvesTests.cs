@@ -62,6 +62,32 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void ACoplanarCircleAHairOutsideAnotherNearlyTouchingIt_TouchesItOnce_BetweenTheRims()
+        {
+            // As in the plane: circles of radius 250 and 100, their centres 350.0004 apart in the tilted plane, come
+            // within 0.0004 of each other at (0, 250) without crossing, inside the point tolerance of 0.001, so they
+            // touch once, at (0, 250.0002) between the rims, as GeoCircle2 says. The radical line runs 0.0002 outside
+            // both there, and nothing was found.
+            var tolerance = new Tolerance(1E-3, 1E-5);
+            GeoVector3 normal = Along.CrossProduct(Across);
+            var big = new GeoCircle3(InTilted(0, 0), normal, 250);
+            var small = new GeoCircle3(InTilted(0, 350.0004), normal, 100);
+
+            foreach (GeoPoint3[] found in new[] { big.GetIntersections(small, tolerance), small.GetIntersections(big, tolerance) })
+            {
+                GeoPoint3 touch = Assert.Single(found);
+                Assert.True(touch.IsEqualTo(InTilted(0, 250.0002), new Tolerance(1E-9, 1E-9)), touch.ToString());
+            }
+
+            Assert.True(big.CollidesWith(small, tolerance));
+
+            // Two thousandths apart they are clear of the tolerance, and nothing touches.
+            var clear = new GeoCircle3(InTilted(0, 350.002), normal, 100);
+            Assert.Empty(big.GetIntersections(clear, tolerance));
+            Assert.False(big.CollidesWith(clear, tolerance));
+        }
+
+        [Fact]
         public void ACoplanarArcPassingFourTenThousandthsOutsideACircle_TouchesIt()
         {
             // The far half of a circle of radius 101.5004 about (1.5, 0) passes the circle of radius 100 at (-100, 0)

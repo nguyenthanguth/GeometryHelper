@@ -24,6 +24,11 @@ middle, 0.0012 off the rim, and found nothing; a segment 200 long through a poin
 normal, lost that point the same way. The band is now half the point tolerance in drawing units, and both give their
 points. GeoEllipse3, which hands its arcs to the same code, gains the fix with it.
 
+**FIXED.** Two coplanar circles or arcs in space a hair apart, outside each other, touch where they come within the
+point tolerance, as they do in the plane. Circles of radius 250 and 100 with their centres 350.0004 apart gave nothing,
+since the radical line runs between the rims, off both; they now touch once, at the middle of the gap, 250.0002 from
+the first centre, as GeoCircle2 says. One a hair inside the other was fixed the same way in 12.0.0.
+
 ## 12.0.0
 
 **BREAKING.** Label placement keeps one algorithm, the greedy one. `ArrangeAlgorithmType` and `ArrangeOptions.Algorithm`

@@ -79,6 +79,25 @@ namespace GeometryHelper.Core
                 return found;
             }
 
+            // One a hair outside the other is the same: the radical line runs between the rims, off both, and the
+            // touch is the middle of the gap on the line through the centres.
+            double outside = apart - (first.Radius + second.Radius);
+
+            if (outside > 0.0)
+            {
+                if (outside <= tolerance.EqualPoint)
+                {
+                    GeoPoint3 touch = first.Center.Add(between.Multiply((first.Radius + 0.5 * outside) / apart));
+
+                    if (first.IsPointOn(touch, tolerance) && second.IsPointOn(touch, tolerance))
+                    {
+                        found.Add(touch);
+                    }
+                }
+
+                return found;
+            }
+
             double along =(apart * apart + first.Radius * first.Radius - second.Radius * second.Radius) / (2.0 * apart);
             GeoPoint3 foot = first.Center.Add(between.Multiply(along / apart));
             GeoVector3 across = first.Normal.CrossProduct(between);
