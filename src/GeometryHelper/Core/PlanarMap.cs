@@ -327,6 +327,50 @@ namespace GeometryHelper.Core
             return new GeoTriangle3(ToPoint3(frame, triangle.A), ToPoint3(frame, triangle.B), ToPoint3(frame, triangle.C));
         }
 
+        /// <summary>
+        /// Lays an ellipse in space out in a frame, projecting it square onto the plane of that frame.
+        /// </summary>
+        /// <param name="frame">The frame to lay it out in.</param>
+        /// <param name="ellipse">The ellipse in space.</param>
+        /// <returns>
+        /// The ellipse in the plane of the frame: a circle of radius 300 tilted 60° from the frame's plane is an ellipse 300
+        /// by 150 there. One lying in the plane comes back as it is, its angle running counter-clockwise when its normal
+        /// runs along the frame's Z axis.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">Thrown when the ellipse stands square to the plane, where it would flatten into a segment rather than an ellipse.</exception>
+        /// <remarks>
+        /// The ellipse is seen square onto the plane as <see cref="Ellipse3.ProjectToPlane(GeoEllipse3, GeoPlane3)"/> sees
+        /// it, then read in the frame's coordinates.
+        /// </remarks>
+        public static GeoEllipse2 ProjectToEllipse2(GeoCoordinateSystem3 frame, GeoEllipse3 ellipse)
+        {
+            GeoEllipse3 seen = Ellipse3.ProjectToPlane(ellipse, frame.GetPlane());
+
+            return new GeoEllipse2(ProjectToPoint2(frame, seen.Center), ProjectToVector2(frame, seen.MajorAxis), seen.MajorRadius, seen.MinorRadius);
+        }
+
+        /// <summary>
+        /// Lays a circle in space out in a frame, projecting it square onto the plane of that frame: an ellipse, or a circle
+        /// where it lies parallel to the plane.
+        /// </summary>
+        /// <param name="frame">The frame to lay it out in.</param>
+        /// <param name="circle">The circle in space.</param>
+        /// <returns>The ellipse in the plane of the frame: a circle of radius 300 tilted 60° from the frame's plane is an ellipse 300 by 150 there.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the circle stands square to the plane, where it would flatten into a segment rather than an ellipse.</exception>
+        public static GeoEllipse2 ProjectToEllipse2(GeoCoordinateSystem3 frame, GeoCircle3 circle) => ProjectToEllipse2(frame, GeoEllipse3.FromCircle(circle));
+
+        /// <summary>
+        /// Puts an ellipse of the plane back into space, exactly: its centre and its axis carried by the frame, its normal
+        /// the frame's Z axis, its radii as they are.
+        /// </summary>
+        /// <param name="frame">The frame it was laid out in.</param>
+        /// <param name="ellipse">The ellipse in the plane.</param>
+        /// <returns>The ellipse in space, on the plane of the frame, its eccentric angle the one it had in the plane.</returns>
+        public static GeoEllipse3 ToEllipse3(GeoCoordinateSystem3 frame, GeoEllipse2 ellipse)
+        {
+            return new GeoEllipse3(ToPoint3(frame, ellipse.Center), frame.ZAxis, ToVector3(frame, ellipse.MajorAxis), ellipse.MajorRadius, ellipse.MinorRadius, true);
+        }
+
         #endregion
 
         #region Helpers

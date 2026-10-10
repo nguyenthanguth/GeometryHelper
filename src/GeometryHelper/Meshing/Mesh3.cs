@@ -268,6 +268,63 @@ namespace GeometryHelper.Meshing
             return Lifted(flat, frame, new[] { (IReadOnlyList<GeoPoint3>)new[] { circle.Center } }, new[] { new[] { new GeoPoint2(0.0, 0.0) } }, false);
         }
 
+        /// <summary>
+        /// Breaks an elliptical disc into faces as the options say, its grid level, using the default tolerance.
+        /// </summary>
+        public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options) => ToMesh(ellipse, options, MeshPlacement3.World, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks an elliptical disc into faces as the options say, its grid level, within a tolerance.
+        /// </summary>
+        public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, Tolerance tolerance) => ToMesh(ellipse, options, MeshPlacement3.World, tolerance);
+
+        /// <summary>
+        /// Breaks an elliptical disc into faces as the options say, its grid standing as the placement says, using the
+        /// default tolerance.
+        /// </summary>
+        public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, MeshPlacement3 placement) => ToMesh(ellipse, options, placement, Tolerance.Global);
+
+        /// <summary>
+        /// Breaks an elliptical disc into faces as the options say, its grid standing as the placement says, within a
+        /// tolerance, its rim flattened by the options' chord tolerance first.
+        /// </summary>
+        /// <param name="ellipse">The ellipse; its normal is the mesh's.</param>
+        /// <param name="options">How to break it up.</param>
+        /// <param name="placement">Which way the grid or the strips run in the disc's plane, and where a cell starts.</param>
+        /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
+        /// <returns>
+        /// The mesh of the disc's rim flattened, as <see cref="Mesh2.ToMesh(GeoEllipse2, MeshOptions, Tolerance)"/> meshes it
+        /// in the plane; its triangles fanned from the centre. None when the minor radius is no more than the point tolerance.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options or the placement are null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the options give an origin of the plane, a grid's cell is no larger than the point tolerance, the grid
+        /// would lay more cells over the shape than a mesh may have, or the placement's direction stands square to the plane.
+        /// </exception>
+        /// <remarks>
+        /// The frame is laid on the disc as on a circle's, from its centre alone, so <see cref="MeshAxes.Own"/> runs a grid
+        /// as it runs one over a circle.
+        /// </remarks>
+        public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
+        {
+            Check(options, placement);
+
+            // A disc of no size has no plane to speak of, as the default ellipse's normal says: no frame is laid on it.
+            if (!(ellipse.MinorRadius > tolerance.EqualPoint) || !(ellipse.Normal.LengthSquared > 0.5))
+            {
+                return new GeoMesh3(Mesh2.Empty(options.Kind, tolerance), new GeoPoint3[0], GeoCoordinateSystem3.Global.WithOrigin(ellipse.Center));
+            }
+
+            GeoCoordinateSystem3 frame = placement.FrameOnPlane(ellipse.Center, ellipse.Normal, new[] { ellipse.Center }, options.AngleRad ?? 0.0, tolerance);
+            GeoVector3 axis = frame.ToLocal(ellipse.MajorAxis);
+
+            // The rim has no corners of its own, so its points go onto the plane, where the ellipse is.
+            var laid = new GeoEllipse2(new GeoPoint2(0.0, 0.0), new GeoVector2(axis.X, axis.Y), ellipse.MajorRadius, ellipse.MinorRadius);
+            GeoMesh2 flat = Mesh2.ToMesh(laid, options.InFrame(Anchor(options, placement, frame, tolerance)), tolerance);
+
+            return Lifted(flat, frame, new[] { (IReadOnlyList<GeoPoint3>)new[] { ellipse.Center } }, new[] { new[] { new GeoPoint2(0.0, 0.0) } }, false);
+        }
+
         #endregion
 
         #region Triangles

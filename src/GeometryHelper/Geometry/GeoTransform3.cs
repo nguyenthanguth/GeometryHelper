@@ -708,6 +708,15 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Transforms an ellipse in space. Every transformation that does not flatten its plane gives an ellipse, an uneven
+        /// scaling and a shear among them: a circle of radius 100 in the plan made an ellipse and scaled by 3 along X is the
+        /// ellipse 300 by 100.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the transformation is not invertible, as for a circle.</exception>
+        /// <remarks>See <see cref="Core.Ellipse3.TransformBy(GeoEllipse3, GeoTransform3)"/>.</remarks>
+        public GeoEllipse3 Transform(GeoEllipse3 ellipse) => Core.Ellipse3.TransformBy(ellipse, this);
+
+        /// <summary>
         /// Transforms a sequence of points.
         /// </summary>
         public IEnumerable<GeoPoint3> Transform(IEnumerable<GeoPoint3> points)

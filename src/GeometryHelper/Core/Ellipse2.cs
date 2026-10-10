@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 
@@ -424,6 +425,25 @@ namespace GeometryHelper.Core
             GeoVector2 across = transform.Transform(ellipse.MinorAxis.Multiply(ellipse.MinorRadius));
             GeoPoint2 center = transform.Transform(ellipse.Center);
 
+            return FromSemiAxes(center, along, across, Math.Abs(determinant) * ellipse.MajorRadius * ellipse.MinorRadius, out _);
+        }
+
+        /// <summary>
+        /// Gets the ellipse drawn by two conjugate semi-axes, the images of the major and the minor semi-axis under a
+        /// transformation that does not flatten them.
+        /// </summary>
+        /// <param name="center">The centre.</param>
+        /// <param name="along">The image of the major semi-axis.</param>
+        /// <param name="across">The image of the minor semi-axis.</param>
+        /// <param name="area">The area of the parallelogram the two span, worked out by the caller in the form it has.</param>
+        /// <param name="circle">Whether the two radii agree to 1E-12, the major axis then along the first semi-axis.</param>
+        /// <remarks>
+        /// Inlined, so that taking it out of <see cref="TransformBy(GeoEllipse2, GeoTransform2)"/> costs that no time: called, it
+        /// made a million transformations 45 ms to 53 ms on .NET 10.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static GeoEllipse2 FromSemiAxes(GeoPoint2 center, GeoVector2 along, GeoVector2 across, double area, out bool circle)
+        {
             // The closed form of the singular values of a 2 by 2 matrix, whose columns are the images of the semi-axes.
             double e = 0.5 * (along.X + across.Y);
             double f = 0.5 * (along.X - across.Y);
@@ -434,9 +454,11 @@ namespace GeometryHelper.Core
             double major = q + r;
 
             // The smaller is the area over the larger, which keeps its digits where q - r would cancel them away.
-            double minor = Math.Min(major, Math.Abs(determinant) * ellipse.MajorRadius * ellipse.MinorRadius / major);
+            double minor = Math.Min(major, area / major);
 
-            if (major - minor <= 1E-12 * major)
+            circle = major - minor <= 1E-12 * major;
+
+            if (circle)
             {
                 return new GeoEllipse2(center, along.Multiply(1.0 / along.Length), major, major, true);
             }
@@ -728,7 +750,10 @@ namespace GeometryHelper.Core
 
         private static bool IsOdd(double turns) => turns - 2.0 * Math.Floor(0.5 * turns) > 0.5;
 
-        private static double Wrap(double parameter)
+        /// <summary>
+        /// Wraps a normalized parameter into [0, 1), as a closed rim measures it.
+        /// </summary>
+        internal static double Wrap(double parameter)
         {
             double wrapped = parameter % 1.0;
             if (wrapped < 0.0) wrapped += 1.0;

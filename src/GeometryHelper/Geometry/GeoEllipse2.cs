@@ -297,6 +297,14 @@ namespace GeometryHelper.Geometry
         public GeoEllipse2 TransformBy(GeoTransform2 transform) => Ellipse2.TransformBy(this, transform);
 
         /// <summary>
+        /// Puts this ellipse of the plane into space, exactly, on the plane of a frame: its normal the frame's Z axis, its
+        /// radii as they are, and its eccentric angle the one it has here.
+        /// </summary>
+        /// <param name="frame">The frame it was laid out in.</param>
+        /// <returns>The ellipse in space.</returns>
+        public GeoEllipse3 ToEllipse3(GeoCoordinateSystem3 frame) => PlanarMap.ToEllipse3(frame, this);
+
+        /// <summary>
         /// Translates an ellipse by a vector.
         /// </summary>
         public static GeoEllipse2 operator +(GeoEllipse2 ellipse, GeoVector2 vector) => ellipse.Translate(vector);
