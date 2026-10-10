@@ -1381,11 +1381,10 @@ ellipse.GetIntersections(new GeoEllipse3(center, GeoVector3.ZAxis, GeoVector3.YA
                                                   // (±134.1641, ±89.4427, 0): two ellipses in one plane cross four times
 ```
 
-Two things are worked out differently from the circle, because the circle's way loses crossings. The line
-two planes share is found from the ellipse's own centre rather than from the world origin, which keeps the
-crossings within 2E-7 of where they are on planes a thousandth of a degree apart, a thousand from the
-origin, where the circle's are as much as 4E-3 off or lost. And whether a line grazes the rim
-is judged in drawing units, so an ellipse 210 by 0.23 touched by a plane is touched at one point.
+The line two planes share is found from the shape's own centre, for the ellipse and the circle alike, not from
+the world origin, which keeps the crossings within 2E-7 of where they are on planes a thousandth of a degree
+apart, a thousand from the origin. Whether a line grazes the rim is judged in drawing units, so an ellipse 210
+by 0.23 touched by a plane is touched at one point.
 
 **Seen from elsewhere.** A circle in space stays a circle only under an even scaling, and refuses any other;
 an ellipse takes every transformation that can be undone, and comes back an ellipse. Seen square onto a
