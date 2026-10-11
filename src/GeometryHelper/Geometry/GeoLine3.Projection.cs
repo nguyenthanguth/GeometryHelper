@@ -99,5 +99,25 @@ namespace GeometryHelper.Geometry
         /// between them and nought where they touch.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoSolid3 solid, Tolerance tolerance) => Projection3.GetShortestLineTo(solid, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest line from this segment to the boundary of a curved loop in the same plane:
+        /// <see cref="GeoPolygonArc3.GetShortestLineTo(GeoLine3)"/> turned round, so that it leaves this segment and
+        /// lands on the loop.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when this segment does not lie in the loop's plane.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop)
+            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest line from this segment to the boundary of a curved loop in the same plane, within a
+        /// tolerance: <see cref="GeoPolygonArc3.GetShortestLineTo(GeoLine3, Tolerance)"/> turned round, so that it
+        /// leaves this segment and lands on the loop.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when this segment does not lie in the loop's plane.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance)
+            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
     }
 }

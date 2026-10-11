@@ -5,6 +5,7 @@ using System.Reflection;
 using GeometryHelper.Enums;
 using GeometryHelper.Core;
 using GeometryHelper.Geometry;
+using GeometryHelper.UnitTest.Common;
 using Xunit;
 
 namespace GeometryHelper.UnitTest.Solid
@@ -69,6 +70,20 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.True(
                     type.GetMethod("GetAabb", Type.EmptyTypes) != null,
                     type.Name + " has no GetAabb()");
+            }
+        }
+
+        [Fact]
+        public void EveryShapeInSpaceAnswersEachQueryAnotherShapeAnswersAboutIt()
+        {
+            // DistanceTo, CollidesWith, GetIntersections, TryIntersectWith and GetShortestLineTo, read from
+            // either side: where A answers one about B, B answers it about A. The only gaps allowed are an
+            // ellipse as the argument and the point's three it answers with IsPointOn and Contains.
+            string[] missing = QuerySymmetry.OneSidedPairs('3');
+
+            if (missing.Length > 0)
+            {
+                Assert.Fail(missing.Length + " one-sided pairs in space, the member missing first:\n" + string.Join("\n", missing));
             }
         }
 

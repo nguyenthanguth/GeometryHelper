@@ -16,6 +16,30 @@ namespace GeometryHelper.Core
     /// </remarks>
     public static partial class Ellipse2
     {
+        #region Points
+
+        /// <summary>
+        /// Gets the shortest segment joining the rim of an ellipse to a point, using the default tolerance.
+        /// </summary>
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPoint2 point) => GetShortestLineTo(ellipse, point, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining the rim of an ellipse to a point.
+        /// </summary>
+        /// <param name="ellipse">The ellipse.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance; not read, since <see cref="GetClosestPointOnBoundary(GeoEllipse2, GeoPoint2)"/> takes none.</param>
+        /// <returns>
+        /// A segment from the point <see cref="GetClosestPointOnBoundary(GeoEllipse2, GeoPoint2)"/> gives to
+        /// <paramref name="point"/>, so a point inside gets the gap out to the rim, where
+        /// <see cref="DistanceTo(GeoEllipse2, GeoPoint2)"/> reads the region and answers nought. Outside, it is as long as that
+        /// distance; on the rim it has no length. From the ellipse 300 by 100 centred on the origin, the point (400, 0)
+        /// gets the segment from (300, 0), 100 long, and the centre gets the one from (0, 100).
+        /// </returns>
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(GetClosestPointOnBoundary(ellipse, point), point);
+
+        #endregion
+
         #region Segments
 
         /// <summary>

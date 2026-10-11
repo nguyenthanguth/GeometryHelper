@@ -25,6 +25,25 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Gets the shortest segment joining the edge to a point.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point) => GetShortestLineTo(point, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining the edge to a point, within a tolerance.
+        /// </summary>
+        /// <returns>
+        /// A segment from the point <see cref="GetClosestPointOnBoundary(GeoPoint2, Tolerance)"/> gives to
+        /// <paramref name="point"/>, as long as <see cref="DistanceTo(GeoPoint2, Tolerance)"/>.
+        /// </returns>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance)
+        {
+            return IsArc
+                ? Core.Arc2.GetShortestLineTo(ToArc(), point, tolerance)
+                : Core.Projection2.GetShortestLineTo(ToLine(), point, tolerance);
+        }
+
+        /// <summary>
         /// Gets the shortest segment joining the edge to a straight segment.
         /// </summary>
         public GeoLine2 GetShortestLineTo(GeoLine2 line) => GetShortestLineTo(line, Tolerance.Global);

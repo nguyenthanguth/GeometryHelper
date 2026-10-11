@@ -138,5 +138,36 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         public GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, Tolerance tolerance) => ArcChain3.GetIntersections(loop, this, tolerance);
 
+        /// <summary>
+        /// Gets every point where this face crosses a straight chain: the same points, in the same order, as
+        /// <see cref="GeoPolyline3.GetIntersections(GeoFace3)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolyline3 polyline) => Intersection3.GetIntersections(polyline, this);
+
+        /// <summary>
+        /// Gets every point where this face crosses a straight chain, within a tolerance: the same points, in the same
+        /// order, as <see cref="GeoPolyline3.GetIntersections(GeoFace3, Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolyline3 polyline, Tolerance tolerance)
+            => Intersection3.GetIntersections(polyline, this, tolerance);
+
+        /// <summary>
+        /// Tries to find where this face crosses a straight chain: the same answer, and the same points in the same
+        /// order, as <see cref="GeoPolyline3.TryIntersectWith(GeoFace3, out GeoPoint3[])"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool TryIntersectWith(GeoPolyline3 polyline, out GeoPoint3[] intersections)
+            => Intersection3.TryIntersectWith(polyline, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this face crosses a straight chain, within a tolerance: the same answer, and the same
+        /// points in the same order, as
+        /// <see cref="GeoPolyline3.TryIntersectWith(GeoFace3, out GeoPoint3[], Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool TryIntersectWith(GeoPolyline3 polyline, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Intersection3.TryIntersectWith(polyline, this, out intersections, tolerance);
     }
 }

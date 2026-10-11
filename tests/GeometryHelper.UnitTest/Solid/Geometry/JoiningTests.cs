@@ -200,7 +200,7 @@ namespace GeometryHelper.UnitTest.Solid
             var point = new GeoPoint3(200, 50, 50);
             var line = new GeoLine3(new GeoPoint3(0, 50, 50), new GeoPoint3(50, 50, 50));
 
-            Assert.Throws<ArgumentNullException>(() => point.GetShortestLineTo(null));
+            Assert.Throws<ArgumentNullException>(() => point.GetShortestLineTo((GeoSolid3)null));
             Assert.Throws<ArgumentNullException>(() => line.GetShortestLineTo((GeoSolid3)null));
         }
     }

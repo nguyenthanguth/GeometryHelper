@@ -322,5 +322,127 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3[] intersections, Tolerance tolerance)
             => Intersection3.TryIntersectWith(this, ray, out intersections, tolerance);
 
+        /// <summary>
+        /// Gets every point where this segment crosses an edge: the same points, in the same order, as
+        /// <see cref="GeoEdge3.GetIntersections(GeoLine3)"/>.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoEdge3 edge) => edge.GetIntersections(this);
+
+        /// <summary>
+        /// Gets every point where this segment crosses an edge, within a tolerance: the same points, in the same order,
+        /// as <see cref="GeoEdge3.GetIntersections(GeoLine3, Tolerance)"/>.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoEdge3 edge, Tolerance tolerance)
+            => edge.GetIntersections(this, tolerance);
+
+        /// <summary>
+        /// Gets every point where this segment crosses a curved loop: the same points, in the same order, as
+        /// <see cref="GeoPolygonArc3.GetIntersections(GeoLine3)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolygonArc3 loop) => ArcChain3.GetIntersections(loop, this);
+
+        /// <summary>
+        /// Gets every point where this segment crosses a curved loop, within a tolerance: the same points, in the same
+        /// order, as <see cref="GeoPolygonArc3.GetIntersections(GeoLine3, Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, Tolerance tolerance)
+            => ArcChain3.GetIntersections(loop, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where this segment crosses a straight chain: the same points, in the same order, as
+        /// <see cref="GeoPolyline3.GetIntersections(GeoLine3)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolyline3 polyline) => Intersection3.GetIntersections(polyline, this);
+
+        /// <summary>
+        /// Gets every point where this segment crosses a straight chain, within a tolerance: the same points, in the
+        /// same order, as <see cref="GeoPolyline3.GetIntersections(GeoLine3, Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolyline3 polyline, Tolerance tolerance)
+            => Intersection3.GetIntersections(polyline, this, tolerance);
+
+        /// <summary>
+        /// Gets every point where this segment crosses a curved chain: the same points, in the same order, as
+        /// <see cref="GeoPolylineArc3.GetIntersections(GeoLine3)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolylineArc3 chain) => ArcChain3.GetIntersections(chain, this);
+
+        /// <summary>
+        /// Gets every point where this segment crosses a curved chain, within a tolerance: the same points, in the same
+        /// order, as <see cref="GeoPolylineArc3.GetIntersections(GeoLine3, Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolylineArc3 chain, Tolerance tolerance)
+            => ArcChain3.GetIntersections(chain, this, tolerance);
+
+        /// <summary>
+        /// Tries to find where this segment crosses an edge: the same answer, and the same points in the same order, as
+        /// <see cref="GeoEdge3.TryIntersectWith(GeoLine3, out GeoPoint3[])"/>.
+        /// </summary>
+        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections)
+            => edge.TryIntersectWith(this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this segment crosses an edge, within a tolerance: the same answer, and the same points
+        /// in the same order, as <see cref="GeoEdge3.TryIntersectWith(GeoLine3, out GeoPoint3[], Tolerance)"/>.
+        /// </summary>
+        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections, Tolerance tolerance)
+            => edge.TryIntersectWith(this, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this segment crosses a curved loop: the same answer, and the same points in the same
+        /// order, as <see cref="GeoPolygonArc3.TryIntersectWith(GeoLine3, out GeoPoint3[])"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public bool TryIntersectWith(GeoPolygonArc3 loop, out GeoPoint3[] intersections)
+            => ArcChain3.TryIntersectWith(loop, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this segment crosses a curved loop, within a tolerance: the same answer, and the same
+        /// points in the same order, as
+        /// <see cref="GeoPolygonArc3.TryIntersectWith(GeoLine3, out GeoPoint3[], Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public bool TryIntersectWith(GeoPolygonArc3 loop, out GeoPoint3[] intersections, Tolerance tolerance)
+            => ArcChain3.TryIntersectWith(loop, this, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this segment crosses a straight chain: the same answer, and the same points in the same
+        /// order, as <see cref="GeoPolyline3.TryIntersectWith(GeoLine3, out GeoPoint3[])"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool TryIntersectWith(GeoPolyline3 polyline, out GeoPoint3[] intersections)
+            => Intersection3.TryIntersectWith(polyline, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this segment crosses a straight chain, within a tolerance: the same answer, and the same
+        /// points in the same order, as
+        /// <see cref="GeoPolyline3.TryIntersectWith(GeoLine3, out GeoPoint3[], Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool TryIntersectWith(GeoPolyline3 polyline, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Intersection3.TryIntersectWith(polyline, this, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this segment crosses a curved chain: the same answer, and the same points in the same
+        /// order, as <see cref="GeoPolylineArc3.TryIntersectWith(GeoLine3, out GeoPoint3[])"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool TryIntersectWith(GeoPolylineArc3 chain, out GeoPoint3[] intersections)
+            => ArcChain3.TryIntersectWith(chain, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this segment crosses a curved chain, within a tolerance: the same answer, and the same
+        /// points in the same order, as
+        /// <see cref="GeoPolylineArc3.TryIntersectWith(GeoLine3, out GeoPoint3[], Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool TryIntersectWith(GeoPolylineArc3 chain, out GeoPoint3[] intersections, Tolerance tolerance)
+            => ArcChain3.TryIntersectWith(chain, this, out intersections, tolerance);
     }
 }

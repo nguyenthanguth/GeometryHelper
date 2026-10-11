@@ -17,6 +17,22 @@ namespace GeometryHelper.Geometry
         public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point) => Ellipse2.GetClosestPointOnBoundary(this, point);
 
         /// <summary>
+        /// Gets the shortest segment leaving the rim of this ellipse and landing on a point, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// It starts where <see cref="GetClosestPointOnBoundary(GeoPoint2)"/> lands, even for a point inside, so inside
+        /// it is as long as the depth to the rim; <see cref="DistanceTo(GeoPoint2)"/> reads the ellipse as filled and
+        /// answers nought there. Outside, the two agree.
+        /// </remarks>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Ellipse2.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the rim of this ellipse and landing on a point; the tolerance is not read,
+        /// since the nearest point takes none.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Ellipse2.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
         /// Gets the shortest segment leaving the rim of this ellipse and landing on a segment, using the default tolerance.
         /// </summary>
         public GeoLine2 GetShortestLineTo(GeoLine2 line) => Ellipse2.GetShortestLineTo(this, line);

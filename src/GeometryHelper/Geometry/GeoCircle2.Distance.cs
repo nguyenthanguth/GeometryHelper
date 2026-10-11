@@ -94,6 +94,12 @@ namespace GeometryHelper.Geometry
                 ? DistanceTo(edge.ToArc())
                 : DistanceTo(edge.ToLine());
 
+        /// <summary>
+        /// Gets the distance from this circle to an edge, within a tolerance: the same answer as
+        /// <see cref="GeoEdge2.DistanceTo(GeoCircle2, Tolerance)"/>.
+        /// </summary>
+        public double DistanceTo(GeoEdge2 edge, Tolerance tolerance) => edge.DistanceTo(this, tolerance);
+
         #region Triangles
 
         /// <summary>

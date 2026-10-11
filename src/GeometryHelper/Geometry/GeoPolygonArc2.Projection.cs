@@ -22,6 +22,21 @@ namespace GeometryHelper.Geometry
         public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point, Tolerance tolerance) => Projection2.ProjectToPolygonArc(this, point, tolerance);
 
         /// <summary>
+        /// Gets the shortest segment leaving the outline of this loop and landing on a point.
+        /// </summary>
+        /// <remarks>
+        /// It starts where <see cref="GetClosestPointOnBoundary(GeoPoint2)"/> lands, even for a point inside, so inside
+        /// it is as long as the depth to the outline; <see cref="DistanceTo(GeoPoint2)"/> reads the loop as filled and
+        /// answers nought there. Outside, the two agree.
+        /// </remarks>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Projection2.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the outline of this loop and landing on a point, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Projection2.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
         /// Gets the edge of this loop nearest a point.
         /// </summary>
         public GeoEdge2 GetClosestEdge(GeoPoint2 point) => ClosestEdge2.GetClosestEdge(this, point);

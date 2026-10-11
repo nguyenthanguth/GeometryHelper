@@ -24,6 +24,30 @@ namespace GeometryHelper.Core
         #region GeoPolygonArc2
 
         /// <summary>
+        /// Gets the shortest segment joining a curved loop to a point.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPoint2 point) => GetShortestLineTo(loop, point, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining a curved loop to a point, within a tolerance.
+        /// </summary>
+        /// <param name="loop">The curved loop.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// A segment from the point <see cref="ProjectToPolygonArc(GeoPolygonArc2, GeoPoint2, Tolerance)"/> gives to
+        /// <paramref name="point"/>, measured on the arcs. Like every shortest line in this class it runs from boundary
+        /// to boundary, so a point inside is carried out to the nearest edge and the segment is as long as the depth to
+        /// it, where <see cref="Distance2.DistanceTo(GeoPolygonArc2, GeoPoint2, Tolerance)"/> reads the loop as filled
+        /// and answers nought. Outside, it is as long as
+        /// <see cref="Distance2.DistanceTo(GeoPolygonArc2, GeoPoint2, Tolerance)"/>; on the boundary it has no length.
+        /// Where two edges are equally near, the first of them round the loop is taken.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToPolygonArc(loop, point, tolerance), point);
+
+        /// <summary>
         /// Gets the shortest segment joining a curved loop to a segment.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoLine2 line) => GetShortestLineTo(loop, line, Tolerance.Global);
@@ -163,6 +187,27 @@ namespace GeometryHelper.Core
         #endregion
 
         #region GeoPolylineArc2
+
+        /// <summary>
+        /// Gets the shortest segment joining a curved chain to a point.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPoint2 point) => GetShortestLineTo(chain, point, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining a curved chain to a point, within a tolerance.
+        /// </summary>
+        /// <param name="chain">The curved chain.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// A segment from the point <see cref="ProjectToPolylineArc(GeoPolylineArc2, GeoPoint2, Tolerance)"/> gives to
+        /// <paramref name="point"/>, measured on the arcs, so it is exactly as long as
+        /// <see cref="Distance2.DistanceTo(GeoPolylineArc2, GeoPoint2, Tolerance)"/>. Where two edges are equally near, the
+        /// first of them along the chain is taken.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToPolylineArc(chain, point, tolerance), point);
 
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a segment.

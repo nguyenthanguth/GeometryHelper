@@ -78,5 +78,23 @@ namespace GeometryHelper.Geometry
         /// Gets the closest point on the surface of a solid to this point.
         /// </summary>
         public GeoPoint3 GetClosestPointOnBoundary(GeoSolid3 solid) => Projection3.ProjectToSolid(solid, this);
+
+        /// <summary>
+        /// Gets the shortest line from this point to the boundary of a curved loop:
+        /// <see cref="GeoPolygonArc3.GetShortestLineTo(GeoPoint3)"/> turned round, so that it leaves this point and
+        /// lands on the loop.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop)
+            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest line from this point to the boundary of a curved loop, within a tolerance:
+        /// <see cref="GeoPolygonArc3.GetShortestLineTo(GeoPoint3, Tolerance)"/> turned round, so that it leaves this
+        /// point and lands on the loop.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance)
+            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
     }
 }

@@ -22,6 +22,20 @@ namespace GeometryHelper.Geometry
         public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point, Tolerance tolerance) => Projection2.ProjectToPolylineArc(this, point, tolerance);
 
         /// <summary>
+        /// Gets the shortest segment leaving this chain and landing on a point.
+        /// </summary>
+        /// <remarks>
+        /// It starts where <see cref="GetClosestPointOnBoundary(GeoPoint2)"/> lands, on the arcs themselves, and is exactly
+        /// as long as <see cref="DistanceTo(GeoPoint2)"/>.
+        /// </remarks>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Projection2.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this chain and landing on a point, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Projection2.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
         /// Gets the edge of this chain nearest a point.
         /// </summary>
         public GeoEdge2 GetClosestEdge(GeoPoint2 point) => ClosestEdge2.GetClosestEdge(this, point);

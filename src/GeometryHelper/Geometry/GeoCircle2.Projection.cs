@@ -48,6 +48,21 @@ namespace GeometryHelper.Geometry
         public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point) => Projection2.ProjectToCircle(this, point);
 
         /// <summary>
+        /// Gets the shortest segment leaving the circumference of this circle and landing on a point, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// It starts where <see cref="GetClosestPointOnBoundary(GeoPoint2)"/> lands, even for a point inside, so inside
+        /// it is as long as the depth to the circumference; <see cref="DistanceTo(GeoPoint2)"/> reads the circle as filled and
+        /// answers nought there. Outside, the two agree.
+        /// </remarks>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Projection2.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the circumference of this circle and landing on a point, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Projection2.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
         /// Finds the shortest line segment connecting a point on the circumference of this circle to a point on a line segment using default tolerance.
         /// </summary>
         /// <remarks>

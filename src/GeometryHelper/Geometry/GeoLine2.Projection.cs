@@ -18,6 +18,21 @@ namespace GeometryHelper.Geometry
         public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point) => Projection2.ProjectToLine(this, point);
 
         /// <summary>
+        /// Gets the shortest segment leaving this line segment and landing on a point, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// It starts where <see cref="GetClosestPointOnBoundary(GeoPoint2)"/> lands and is exactly as long as
+        /// <see cref="DistanceTo(GeoPoint2)"/>: from the segment (0, 0) to (100, 0) to the point (130, 40), it runs from
+        /// (100, 0) and is 50 long.
+        /// </remarks>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Projection2.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this line segment and landing on a point, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Projection2.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
         /// Finds the shortest line segment connecting a point on this line segment to a point on another line segment using default tolerance.
         /// </summary>
         /// <param name="other">The other line segment.</param>

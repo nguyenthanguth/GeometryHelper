@@ -492,6 +492,25 @@ namespace GeometryHelper.Core
                 : hull.GetClosestPointOnBoundary(point);
 
         /// <summary>
+        /// Gets the shortest segment leaving the edges of a triangle and landing on a point, using the default tolerance.
+        /// </summary>
+        public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoPoint2 point) => GetShortestLineTo(triangle, point, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the edges of a triangle and landing on a point.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance; not read, since <see cref="GetClosestPointOnBoundary(GeoTriangle2, GeoPoint2)"/> takes none.</param>
+        /// <returns>
+        /// A segment from the point <see cref="GetClosestPointOnBoundary(GeoTriangle2, GeoPoint2)"/> gives to
+        /// <paramref name="point"/>. It runs from the edges, so a point inside is carried out to the nearest edge and the
+        /// segment is as long as the depth to it, where <see cref="DistanceTo(GeoTriangle2, GeoPoint2)"/> reads the triangle
+        /// as filled and answers nought. Outside, it is as long as that distance; on an edge it has no length.
+        /// </returns>
+        public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(GetClosestPointOnBoundary(triangle, point), point);
+
+        /// <summary>
         /// Gets the shortest segment leaving a triangle and landing on a segment, using the default tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoLine2 line) => GetShortestLineTo(triangle, line, Tolerance.Global);

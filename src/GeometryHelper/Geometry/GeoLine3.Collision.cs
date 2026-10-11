@@ -130,5 +130,61 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Collision3.CollidesWith(this, ray, tolerance);
 
+        /// <summary>
+        /// Checks whether this segment touches an edge: the same answer as
+        /// <see cref="GeoEdge3.CollidesWith(GeoLine3)"/>.
+        /// </summary>
+        public bool CollidesWith(GeoEdge3 edge) => edge.CollidesWith(this);
+
+        /// <summary>
+        /// Checks whether this segment touches an edge, within a tolerance: the same answer as
+        /// <see cref="GeoEdge3.CollidesWith(GeoLine3, Tolerance)"/>.
+        /// </summary>
+        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance) => edge.CollidesWith(this, tolerance);
+
+        /// <summary>
+        /// Checks whether this segment touches a curved loop: the same answer as
+        /// <see cref="GeoPolygonArc3.CollidesWith(GeoLine3)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public bool CollidesWith(GeoPolygonArc3 loop) => ArcChain3.CollidesWith(loop, this);
+
+        /// <summary>
+        /// Checks whether this segment touches a curved loop, within a tolerance: the same answer as
+        /// <see cref="GeoPolygonArc3.CollidesWith(GeoLine3, Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance)
+            => ArcChain3.CollidesWith(loop, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this segment touches a straight chain: the same answer as
+        /// <see cref="GeoPolyline3.CollidesWith(GeoLine3)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool CollidesWith(GeoPolyline3 polyline) => Collision3.CollidesWith(polyline, this);
+
+        /// <summary>
+        /// Checks whether this segment touches a straight chain, within a tolerance: the same answer as
+        /// <see cref="GeoPolyline3.CollidesWith(GeoLine3, Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance)
+            => Collision3.CollidesWith(polyline, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this segment touches a curved chain: the same answer as
+        /// <see cref="GeoPolylineArc3.CollidesWith(GeoLine3)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool CollidesWith(GeoPolylineArc3 chain) => ArcChain3.CollidesWith(chain, this);
+
+        /// <summary>
+        /// Checks whether this segment touches a curved chain, within a tolerance: the same answer as
+        /// <see cref="GeoPolylineArc3.CollidesWith(GeoLine3, Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance)
+            => ArcChain3.CollidesWith(chain, this, tolerance);
     }
 }

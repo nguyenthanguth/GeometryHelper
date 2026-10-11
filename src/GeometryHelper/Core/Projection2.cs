@@ -324,6 +324,55 @@ namespace GeometryHelper.Core
 
         #endregion
 
+        #region Closest Segment From a Curve to a Point
+
+        /// <summary>
+        /// Finds the shortest line segment connecting a point on <paramref name="line"/> to <paramref name="point"/> using default tolerance.
+        /// </summary>
+        /// <param name="line">The line segment.</param>
+        /// <param name="point">The target point.</param>
+        /// <returns>A <see cref="GeoLine2"/> whose start point is on <paramref name="line"/> and end point is <paramref name="point"/>.</returns>
+        public static GeoLine2 GetShortestLineTo(GeoLine2 line, GeoPoint2 point) => GetShortestLineTo(line, point, Tolerance.Global);
+
+        /// <summary>
+        /// Finds the shortest line segment connecting a point on <paramref name="line"/> to <paramref name="point"/> within tolerance.
+        /// </summary>
+        /// <param name="line">The line segment.</param>
+        /// <param name="point">The target point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// A <see cref="GeoLine2"/> from the point <see cref="ProjectToLine(GeoLine2, GeoPoint2, Tolerance)"/> gives to
+        /// <paramref name="point"/>, so it is exactly as long as <see cref="Distance2.DistanceTo(GeoLine2, GeoPoint2)"/>. From the
+        /// segment (0, 0) to (100, 0) to the point (130, 40), it runs from (100, 0) and is 50 long.
+        /// </returns>
+        public static GeoLine2 GetShortestLineTo(GeoLine2 line, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToLine(line, point, tolerance), point);
+
+        /// <summary>
+        /// Finds the shortest line segment connecting a point on the path of <paramref name="polyline"/> to <paramref name="point"/> using default tolerance.
+        /// </summary>
+        /// <param name="polyline">The polyline.</param>
+        /// <param name="point">The target point.</param>
+        /// <returns>A <see cref="GeoLine2"/> whose start point is on <paramref name="polyline"/> and end point is <paramref name="point"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        public static GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, GeoPoint2 point) => GetShortestLineTo(polyline, point, Tolerance.Global);
+
+        /// <summary>
+        /// Finds the shortest line segment connecting a point on the path of <paramref name="polyline"/> to <paramref name="point"/> within tolerance.
+        /// </summary>
+        /// <param name="polyline">The polyline.</param>
+        /// <param name="point">The target point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// A <see cref="GeoLine2"/> from the point <see cref="ProjectToPolyline(GeoPolyline2, GeoPoint2, Tolerance)"/> gives to
+        /// <paramref name="point"/>, so it is exactly as long as <see cref="Distance2.DistanceTo(GeoPolyline2, GeoPoint2)"/>. Only
+        /// the path counts: a point in the mouth of a horseshoe gets the line out to the nearest leg, never one of no length.
+        /// Where two legs are equally near, the first of them along the polyline is taken.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        public static GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToPolyline(polyline, point, tolerance), point);
+
+        #endregion
+
         #region Closest Segment Between Line and Shapes
 
         /// <summary>
@@ -731,6 +780,29 @@ namespace GeometryHelper.Core
         #region Closest Segment Between Circle and Shapes
 
         /// <summary>
+        /// Finds the shortest line segment connecting a point on the circumference of <paramref name="circle"/> to <paramref name="point"/> using default tolerance.
+        /// </summary>
+        public static GeoLine2 GetShortestLineTo(GeoCircle2 circle, GeoPoint2 point) => GetShortestLineTo(circle, point, Tolerance.Global);
+
+        /// <summary>
+        /// Finds the shortest line segment connecting a point on the circumference of <paramref name="circle"/> to <paramref name="point"/> within tolerance.
+        /// </summary>
+        /// <param name="circle">The circle.</param>
+        /// <param name="point">The target point.</param>
+        /// <param name="tolerance">The tolerance <see cref="ProjectToCircle(GeoCircle2, GeoPoint2, Tolerance)"/> tells the centre with.</param>
+        /// <returns>
+        /// A <see cref="GeoLine2"/> from the point <see cref="ProjectToCircle(GeoCircle2, GeoPoint2, Tolerance)"/> gives to
+        /// <paramref name="point"/>. Like every shortest line in this class it runs from boundary to boundary, so a
+        /// point inside is carried out to the nearest edge and the segment is as long as the depth to it, where
+        /// <see cref="Distance2.DistanceTo(GeoCircle2, GeoPoint2)"/> reads the circle as filled and answers nought.
+        /// Outside, it is as long as <see cref="Distance2.DistanceTo(GeoCircle2, GeoPoint2)"/>; on the boundary it has
+        /// no length.
+        /// From the circle of radius 50 round the origin, the point (30, 0) gets the segment from (50, 0), 20 long, and
+        /// the centre gets the one from (50, 0).
+        /// </returns>
+        public static GeoLine2 GetShortestLineTo(GeoCircle2 circle, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToCircle(circle, point, tolerance), point);
+
+        /// <summary>
         /// Finds the shortest line segment connecting a point on the circumference of <paramref name="circle"/> to a point on <paramref name="line"/> using default tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoCircle2 circle, GeoLine2 line) => GetShortestLineTo(circle, line, Tolerance.Global);
@@ -828,6 +900,28 @@ namespace GeometryHelper.Core
         #endregion
 
         #region Closest Segment Between Rectangle and Shapes
+
+        /// <summary>
+        /// Finds the shortest line segment connecting a point on the boundary of <paramref name="rect"/> to <paramref name="point"/> using default tolerance.
+        /// </summary>
+        public static GeoLine2 GetShortestLineTo(GeoRectangle2 rect, GeoPoint2 point) => GetShortestLineTo(rect, point, Tolerance.Global);
+
+        /// <summary>
+        /// Finds the shortest line segment connecting a point on the boundary of <paramref name="rect"/> to <paramref name="point"/>.
+        /// </summary>
+        /// <param name="rect">The rectangle.</param>
+        /// <param name="point">The target point.</param>
+        /// <param name="tolerance">The tolerance; not read, since <see cref="ProjectToRectangle(GeoRectangle2, GeoPoint2)"/> takes none.</param>
+        /// <returns>
+        /// A <see cref="GeoLine2"/> from the point <see cref="ProjectToRectangle(GeoRectangle2, GeoPoint2)"/> gives to
+        /// <paramref name="point"/>. Like every shortest line in this class it runs from boundary to boundary, so a
+        /// point inside is carried out to the nearest edge and the segment is as long as the depth to it, where
+        /// <see cref="Distance2.DistanceTo(GeoRectangle2, GeoPoint2)"/> reads the rectangle as filled and answers
+        /// nought. Outside, it is as long as <see cref="Distance2.DistanceTo(GeoRectangle2, GeoPoint2)"/>; on the
+        /// boundary it has no length.
+        /// A point on a diagonal inside, as near two edges, is carried to the horizontal one.
+        /// </returns>
+        public static GeoLine2 GetShortestLineTo(GeoRectangle2 rect, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToRectangle(rect, point), point);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of <paramref name="rect"/> to a point on <paramref name="line"/> using default tolerance.
@@ -974,6 +1068,31 @@ namespace GeometryHelper.Core
         #endregion
 
         #region Closest Segment Between Polygon and Shapes
+
+        /// <summary>
+        /// Finds the shortest line segment connecting a point on the boundary of <paramref name="poly"/> to <paramref name="point"/> using default tolerance.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public static GeoLine2 GetShortestLineTo(GeoPolygon2 poly, GeoPoint2 point) => GetShortestLineTo(poly, point, Tolerance.Global);
+
+        /// <summary>
+        /// Finds the shortest line segment connecting a point on the boundary of <paramref name="poly"/> to <paramref name="point"/> within tolerance.
+        /// </summary>
+        /// <param name="poly">The polygon.</param>
+        /// <param name="point">The target point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// A <see cref="GeoLine2"/> from the point <see cref="ProjectToPolygon(GeoPolygon2, GeoPoint2, Tolerance)"/> gives to
+        /// <paramref name="point"/>. Like every shortest line in this class it runs from boundary to boundary, so a
+        /// point inside is carried out to the nearest edge and the segment is as long as the depth to it, where
+        /// <see cref="Distance2.DistanceTo(GeoPolygon2, GeoPoint2)"/> reads the polygon as filled and answers nought.
+        /// Outside, it is as long as <see cref="Distance2.DistanceTo(GeoPolygon2, GeoPoint2)"/>; on the boundary it has
+        /// no length.
+        /// Where two edges are equally near, the first of them round the polygon is taken. Inside the square 100 by 100 on
+        /// the origin, the point (50, 30) gets the segment from (50, 0), 30 long.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public static GeoLine2 GetShortestLineTo(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToPolygon(poly, point, tolerance), point);
 
         /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of <paramref name="poly"/> to a point on <paramref name="line"/> using default tolerance.

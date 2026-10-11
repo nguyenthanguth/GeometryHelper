@@ -173,5 +173,50 @@ namespace GeometryHelper.Geometry
         public GeoPoint2[] GetIntersections(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetIntersections(triangle, this, tolerance);
 
         #endregion
+
+        /// <summary>
+        /// Tries to find where this polyline meets a face: the same answer, and the same points in the same order, as
+        /// <see cref="GeoFace2.TryIntersectWith(GeoPolyline2, out GeoPoint2[])"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public bool TryIntersectWith(GeoFace2 face, out GeoPoint2[] intersections)
+            => (face ?? throw new ArgumentNullException(nameof(face))).TryIntersectWith(this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this polyline meets a face, within a tolerance: the same answer, and the same points in
+        /// the same order, as <see cref="GeoFace2.TryIntersectWith(GeoPolyline2, out GeoPoint2[], Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public bool TryIntersectWith(GeoFace2 face, out GeoPoint2[] intersections, Tolerance tolerance)
+            => (face ?? throw new ArgumentNullException(nameof(face))).TryIntersectWith(this, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this polyline meets a rectangle: the same answer, and the same points in the same order,
+        /// as <see cref="GeoRectangle2.TryIntersectWith(GeoPolyline2, out GeoPoint2[])"/>.
+        /// </summary>
+        public bool TryIntersectWith(GeoRectangle2 rect, out GeoPoint2[] intersections)
+            => rect.TryIntersectWith(this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this polyline meets a rectangle, within a tolerance: the same answer, and the same
+        /// points in the same order, as
+        /// <see cref="GeoRectangle2.TryIntersectWith(GeoPolyline2, out GeoPoint2[], Tolerance)"/>.
+        /// </summary>
+        public bool TryIntersectWith(GeoRectangle2 rect, out GeoPoint2[] intersections, Tolerance tolerance)
+            => rect.TryIntersectWith(this, out intersections, tolerance);
+
+        /// <summary>
+        /// Tries to find where this polyline meets a triangle: the same answer, and the same points in the same order,
+        /// as <see cref="GeoTriangle2.TryIntersectWith(GeoPolyline2, out GeoPoint2[])"/>.
+        /// </summary>
+        public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections)
+            => triangle.TryIntersectWith(this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this polyline meets a triangle, within a tolerance: the same answer, and the same points
+        /// in the same order, as <see cref="GeoTriangle2.TryIntersectWith(GeoPolyline2, out GeoPoint2[], Tolerance)"/>.
+        /// </summary>
+        public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections, Tolerance tolerance)
+            => triangle.TryIntersectWith(this, out intersections, tolerance);
     }
 }

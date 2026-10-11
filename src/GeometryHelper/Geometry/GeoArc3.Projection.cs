@@ -18,5 +18,25 @@ namespace GeometryHelper.Geometry
         /// Gets the point of this arc closest to a point, within a tolerance.
         /// </summary>
         public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance) => GetPointAtParameter(GetParameterAtPoint(point, tolerance));
+
+        /// <summary>
+        /// Gets the shortest line from this arc to the boundary of a curved loop in the same plane:
+        /// <see cref="GeoPolygonArc3.GetShortestLineTo(GeoArc3)"/> turned round, so that it leaves this arc and lands
+        /// on the loop.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when this arc does not lie in the loop's plane.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop)
+            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest line from this arc to the boundary of a curved loop in the same plane, within a tolerance:
+        /// <see cref="GeoPolygonArc3.GetShortestLineTo(GeoArc3, Tolerance)"/> turned round, so that it leaves this arc
+        /// and lands on the loop.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when this arc does not lie in the loop's plane.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance)
+            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
     }
 }

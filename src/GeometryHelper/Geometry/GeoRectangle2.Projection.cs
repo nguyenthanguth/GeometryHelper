@@ -20,6 +20,22 @@ namespace GeometryHelper.Geometry
         public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point) => Projection2.ProjectToRectangle(this, point);
 
         /// <summary>
+        /// Gets the shortest segment leaving the boundary of this rectangle and landing on a point, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// It starts where <see cref="GetClosestPointOnBoundary(GeoPoint2)"/> lands, even for a point inside, so inside
+        /// it is as long as the depth to the nearest edge; <see cref="DistanceTo(GeoPoint2)"/> reads the rectangle as filled and
+        /// answers nought there. Outside, the two agree.
+        /// </remarks>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Projection2.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this rectangle and landing on a point; the tolerance is not
+        /// read, since the nearest point takes none.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Projection2.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
         /// Finds the shortest line segment connecting a point on the boundary of this rectangle to a point on a line segment using default tolerance.
         /// </summary>
         /// <remarks>

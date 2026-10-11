@@ -34,5 +34,25 @@ namespace GeometryHelper.Geometry
         /// <returns>The ellipse in the plane of the frame.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the circle stands square to the plane, where it would flatten into a segment rather than an ellipse.</exception>
         public GeoEllipse2 ProjectToEllipse2(GeoCoordinateSystem3 frame) => PlanarMap.ProjectToEllipse2(frame, this);
+
+        /// <summary>
+        /// Gets the shortest line from this circle to the boundary of a curved loop in the same plane:
+        /// <see cref="GeoPolygonArc3.GetShortestLineTo(GeoCircle3)"/> turned round, so that it leaves this circle and
+        /// lands on the loop.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when this circle does not lie in the loop's plane.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop)
+            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest line from this circle to the boundary of a curved loop in the same plane, within a
+        /// tolerance: <see cref="GeoPolygonArc3.GetShortestLineTo(GeoCircle3, Tolerance)"/> turned round, so that it
+        /// leaves this circle and lands on the loop.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when this circle does not lie in the loop's plane.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance)
+            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
     }
 }

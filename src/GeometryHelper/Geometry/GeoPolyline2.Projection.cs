@@ -68,6 +68,21 @@ namespace GeometryHelper.Geometry
         public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point) => Projection2.ProjectToPolyline(this, point);
 
         /// <summary>
+        /// Gets the shortest segment leaving the path of this polyline and landing on a point, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// It starts where <see cref="GetClosestPointOnBoundary(GeoPoint2)"/> lands and is exactly as long as
+        /// <see cref="DistanceTo(GeoPoint2)"/>. A polyline is a path, not a region, so a point in the mouth of a horseshoe
+        /// gets the segment out to the nearest leg.
+        /// </remarks>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Projection2.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the path of this polyline and landing on a point, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Projection2.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
         /// Finds the shortest line segment connecting a point on this polyline to a point on a line segment using default tolerance.
         /// </summary>
         /// <remarks>

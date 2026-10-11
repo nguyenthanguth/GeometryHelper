@@ -97,6 +97,106 @@ namespace GeometryHelper.Geometry
         public GeoLine2 GetShortestLineTo(GeoFace2 face, Tolerance tolerance) => Face2.GetShortestLineTo(face, this, tolerance).Reverse();
 
         /// <summary>
+        /// Gets the shortest segment leaving this point and landing on a line segment, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoLine2 line) => Projection2.GetShortestLineTo(line, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on a line segment, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoLine2 line, Tolerance tolerance) => Projection2.GetShortestLineTo(line, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on an edge, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge) => edge.GetShortestLineTo(this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on an edge, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance) => edge.GetShortestLineTo(this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the path of a polyline, using the default tolerance.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline) => Projection2.GetShortestLineTo(polyline, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the path of a polyline, within a tolerance.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance) => Projection2.GetShortestLineTo(polyline, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on a curved chain, using the default tolerance.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain) => Projection2.GetShortestLineTo(chain, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on a curved chain, within a tolerance.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance) => Projection2.GetShortestLineTo(chain, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the circumference of a circle, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle) => Projection2.GetShortestLineTo(circle, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the circumference of a circle, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance) => Projection2.GetShortestLineTo(circle, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the boundary of a polygon, using the default tolerance.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly) => Projection2.GetShortestLineTo(poly, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the boundary of a polygon, within a tolerance.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly, Tolerance tolerance) => Projection2.GetShortestLineTo(poly, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the outline of a curved loop, using the default tolerance.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop) => Projection2.GetShortestLineTo(loop, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the outline of a curved loop, within a tolerance.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance) => Projection2.GetShortestLineTo(loop, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the boundary of a rectangle, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect) => Projection2.GetShortestLineTo(rect, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the boundary of a rectangle; the tolerance is not
+        /// read, as the rectangle's own line reads none.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance) => Projection2.GetShortestLineTo(rect, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the edges of a triangle, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle) => Triangle2.GetShortestLineTo(triangle, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment leaving this point and landing on the edges of a triangle; the tolerance is not read,
+        /// as the triangle's own line reads none.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetShortestLineTo(triangle, this, tolerance).Reverse();
+
+        /// <summary>
         /// Gets the edge of a polygon nearest this point, using the default tolerance.
         /// </summary>
         public GeoLine2 GetClosestEdge(GeoPolygon2 poly) => ClosestEdge2.GetClosestEdge(poly, this);

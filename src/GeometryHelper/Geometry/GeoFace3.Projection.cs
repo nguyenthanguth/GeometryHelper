@@ -27,5 +27,25 @@ namespace GeometryHelper.Geometry
         /// Gets the point of this face nearest a target point, within a tolerance.
         /// </summary>
         public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance) => Projection3.ProjectToFace(this, point, tolerance);
+
+        /// <summary>
+        /// Gets the shortest line from this face to the boundary of a curved loop in the same plane:
+        /// <see cref="GeoPolygonArc3.GetShortestLineTo(GeoFace3)"/> turned round, so that it leaves this face and lands
+        /// on the loop.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when this face does not lie in the loop's plane.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop)
+            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest line from this face to the boundary of a curved loop in the same plane, within a
+        /// tolerance: <see cref="GeoPolygonArc3.GetShortestLineTo(GeoFace3, Tolerance)"/> turned round, so that it
+        /// leaves this face and lands on the loop.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when this face does not lie in the loop's plane.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance)
+            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
     }
 }

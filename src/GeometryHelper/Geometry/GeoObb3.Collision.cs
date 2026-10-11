@@ -130,5 +130,19 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) => ArcChain3.CollidesWith(loop, this, tolerance);
 
+        /// <summary>
+        /// Checks whether this oriented box touches a straight chain: the same answer as
+        /// <see cref="GeoPolyline3.CollidesWith(GeoObb3)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool CollidesWith(GeoPolyline3 polyline) => Collision3.CollidesWith(polyline, this);
+
+        /// <summary>
+        /// Checks whether this oriented box touches a straight chain, within a tolerance: the same answer as
+        /// <see cref="GeoPolyline3.CollidesWith(GeoObb3, Tolerance)"/>.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance)
+            => Collision3.CollidesWith(polyline, this, tolerance);
     }
 }
