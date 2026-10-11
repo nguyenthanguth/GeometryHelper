@@ -50,7 +50,9 @@ namespace GeometryHelper.Core
         /// direction exists along which their shadows do not overlap, and for a pair of boxes it is enough
         /// to try fifteen directions: the three axes of each box, and the nine cross products pairing one
         /// axis from each. The first six catch a face separating them and the last nine catch an edge, the
-        /// case where two boxes pass by each other at an angle with no face facing the gap.
+        /// case where two boxes pass by each other at an angle with no face facing the gap. Along every one of
+        /// them the boxes may stand the point tolerance apart and no more, so two boxes whose nearest edges
+        /// cross at a sine of a tenth, 0.005 apart, do not touch, and 0.0009 apart they do.
         /// </remarks>
         public static bool CollidesWith(GeoObb3 box1, GeoObb3 box2, Tolerance tolerance)
         {
@@ -120,7 +122,12 @@ namespace GeometryHelper.Core
             }
 
             // The nine axes pairing one axis from each box. The expressions below are the general
-            // projection written out for each pair, with the zero terms of the cross product dropped.
+            // projection written out for each pair, with the zero terms of the cross product dropped. That
+            // cross product is as long as the sine between the two axes, and so is everything measured along
+            // it, so the slack is scaled by the same length: added whole, it let two edges crossing at a sine
+            // of a tenth stand ten point tolerances apart and still touch. Two axes parallel to within rounding
+            // have a cross product of no length and allow no slack, and the guard above keeps rounding from
+            // reading as a separation there; the axes of the boxes themselves have already been asked.
             for (int i = 0; i < 3; i++)
             {
                 int i1 = (i + 1) % 3;
@@ -134,8 +141,9 @@ namespace GeometryHelper.Core
                     double reach1 = e1[i1] * absR[i2, j] + e1[i2] * absR[i1, j];
                     double reach2 = e2[j1] * absR[i, j2] + e2[j2] * absR[i, j1];
                     double separation = Math.Abs(t[i2] * r[i1, j] - t[i1] * r[i2, j]);
+                    double length = Math.Sqrt(r[i1, j] * r[i1, j] + r[i2, j] * r[i2, j]);
 
-                    if (separation > reach1 + reach2 + slack)
+                    if (separation > reach1 + reach2 + slack * length)
                     {
                         return false;
                     }

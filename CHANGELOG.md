@@ -6,6 +6,11 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Two oriented boxes whose nearest edges cross at an angle no longer count as touching more than the point
+tolerance apart. The separating-axis test allowed the point tolerance along an edge-to-edge axis before that axis was
+brought to unit length, so it allowed the tolerance over the sine of the angle between the edges: boxes 0.005 apart
+across two skew edges were nought away and collided. Their distance is now the gap between their bodies.
+
 **FIXED.** A body is nought from a plane only where a face of its material reaches it. Before, the distance read all
 the body's corners at once, so two pieces of a body either side of a plane, neither touching it, were nought away:
 boxes at z 10 to 20 and -20 to -10, made one body by two shells or cut apart by an opening, are now 10 from z = 0, as
