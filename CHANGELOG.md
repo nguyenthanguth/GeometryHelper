@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `GetShortestLineTo` in space wherever `DistanceTo` was already answered: 21 pairs, from both sides and with
+and without a `Tolerance`. They are a point to every curve and region, a segment to a plane, a polygon and a chain,
+chains to chains, triangles, polygons, planes and bodies, a polygon and a plane to a body, and `GeoEllipse3` to a
+point. The line leaves the shape asked and lands on the other; flat regions are read as their distance reads them
+(a point 30 above a square is joined straight down, 30 long), bodies surface to surface (a chain inside a box, 10 above
+its floor, is joined to it by a segment 10 long where the distance is nought), and a shape lying level within the
+point tolerance keeps its true gap, so a chain 0.0004 above a plane gets a segment 0.0004 long; one coming at a
+polygon, a triangle or a body end-on within the tolerance is read as crossing it, as the segment to a triangle always
+has been. Boxes, two planes and two points have none, on purpose. Every
+existing `DistanceTo` gives the same bits as before.
+
+**NEW.** `GeoFace2` is measured by its material, the outline less its holes. `DistanceTo` against Arc, Circle, Edge,
+Face, Line, Polygon, PolygonArc, Polyline, PolylineArc, Rectangle and Triangle, and from `GeoEllipse2`, is nought where
+the two collide and otherwise the gap between their boundaries: a plate 200 by 200 with a hole 40 by 40 in its middle
+is 10 from a circle of radius 10 about its centre and 40 from one about (250, 100). Face against face gains
+`CollidesWith`, `GetIntersections`, `TryIntersectWith` and `GetShortestLineTo`; a face lying in the other's hole does
+not collide with it.
+
 **NEW.** Every query reads from either side. Wherever one shape could be asked `DistanceTo`, `CollidesWith`,
 `GetIntersections`, `TryIntersectWith` or `GetShortestLineTo` about another and the other could not be asked back, it
 now can: 87 pairs, among them every shape in space against a `GeoPolyline3`, segments and rays against the arc chains,

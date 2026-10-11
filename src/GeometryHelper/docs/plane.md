@@ -112,6 +112,23 @@ plate.CollidesWith(new GeoCircle2(new GeoPoint2(100, 100), 60));   // true  — 
 plate.CollidesWith(new GeoCircle2(new GeoPoint2(100, 100), 10));   // false — it lies in the hole
 ```
 
+The distance reads the face the same way, by its material. It is nought where the two touch, and otherwise the
+gap between their boundaries, so a shape in a hole is measured to the hole's rim and one outside to the outline.
+Two faces collide where their materials meet; a face lying in the other's hole does not:
+
+```csharp
+plate.DistanceTo(new GeoCircle2(new GeoPoint2(100, 100), 10));    // 10.0 — in the hole, ten from its rim
+plate.DistanceTo(new GeoCircle2(new GeoPoint2(250, 100), 10));    // 40.0 — outside, forty from the outline
+plate.DistanceTo(new GeoCircle2(new GeoPoint2(100, 100), 400));   // 0.0  — it holds the whole plate
+
+var insert = new GeoFace2(new GeoPolygon2(
+    new GeoPoint2(90, 90), new GeoPoint2(110, 90), new GeoPoint2(110, 110), new GeoPoint2(90, 110)), new GeoPolygon2[0]);
+
+plate.CollidesWith(insert);                 // false — it sits in the hole
+plate.DistanceTo(insert);                   // 10.0
+plate.GetShortestLineTo(insert);            // from the hole's rim to the insert's side, 10 long
+```
+
 #### An edge is a segment or an arc
 
 A `GeoEdge2` is a chord with a bulge, so it is one or the other, and it is read as whichever it is — in both

@@ -332,6 +332,32 @@ as long as the distance wherever the two readings agree at all. The shortest lin
 found by weighing face against face, skipping any pair whose boxes already stand farther apart than the
 best segment so far.
 
+Every pair that has a distance in space has a shortest line too, from either side: a point to every curve and
+region, a segment to a plane, a polygon or a chain, and chains to chains, triangles, polygons, planes and bodies.
+Flat regions are read as their distance reads them, bodies run surface to surface, and a shape lying level
+within the point tolerance of a plane, a polygon or a body keeps its true gap:
+
+```csharp
+var square = new GeoPolygon3(
+    new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+new GeoPoint3(50, 50, 30).GetShortestLineTo(square);   // straight down to (50, 50, 0), 30 long
+
+var box = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
+var bar = new GeoPolyline3(new GeoPoint3(20, 50, 10), new GeoPoint3(80, 50, 10), new GeoPoint3(80, 50, 60));
+bar.DistanceTo(box);                                   // 0.0  — inside the body
+bar.GetShortestLineTo(box).Length;                     // 10.0 — down to the floor
+
+var hover = new GeoPolyline3(new GeoPoint3(0, 0, 0.0004), new GeoPoint3(10, 0, 6));
+hover.DistanceTo(GeoPlane3.XY);                        // 0.0    — within the point tolerance of touching
+hover.GetShortestLineTo(GeoPlane3.XY).Length;          // 0.0004 — the line keeps its true length
+```
+
+A shape that crosses a plane meets it in a segment of no length at its first point of contact, along a segment
+or edge by edge. A segment or chain that comes at a polygon, a triangle or a body end-on and stops within the point
+tolerance of it is read as crossing it, as the segment to a triangle always has been: the segment of no length then
+sits at that end, up to the tolerance off the surface. Three kinds of pair have no shortest line, on purpose: a box, whose line goes through
+`ToSolid()`; two planes, which share no one segment; and two points, whose segment is `new GeoLine3(a, b)`.
+
 A ray is a half-line, so it cannot be cut into a segment and measured that way without first choosing how
 far to cut. It is measured as a ray instead: every answer is one the ray really holds, and a ray starting
 inside a body crosses its surface once on the way out.
