@@ -919,7 +919,8 @@ namespace GeometryHelper.Core
         /// <see cref="Distance2.DistanceTo(GeoRectangle2, GeoPoint2)"/> reads the rectangle as filled and answers
         /// nought. Outside, it is as long as <see cref="Distance2.DistanceTo(GeoRectangle2, GeoPoint2)"/>; on the
         /// boundary it has no length.
-        /// A point on a diagonal inside, as near two edges, is carried to the horizontal one.
+        /// A point inside as near two edges, on the line at 45 degrees from a corner, is carried to the edge along the
+        /// rectangle's width: inside the rectangle 200 by 100 about the origin, (75, 25) goes to (75, 50).
         /// </returns>
         public static GeoLine2 GetShortestLineTo(GeoRectangle2 rect, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToRectangle(rect, point), point);
 
@@ -1086,8 +1087,8 @@ namespace GeometryHelper.Core
         /// <paramref name="point"/>. Like every shortest line in this class it runs from boundary to boundary, so a
         /// point inside is carried out to the nearest edge and the segment is as long as the depth to it, where
         /// <see cref="Distance2.DistanceTo(GeoPolygon2, GeoPoint2)"/> reads the polygon as filled and answers nought.
-        /// Outside, it is as long as <see cref="Distance2.DistanceTo(GeoPolygon2, GeoPoint2)"/>; on the boundary it has
-        /// no length.
+        /// Outside, by more than the tolerance, it is as long as <see cref="Distance2.DistanceTo(GeoPolygon2, GeoPoint2)"/>,
+        /// which takes a point within the tolerance outside as in; on the boundary it has no length.
         /// Where two edges are equally near, the first of them round the polygon is taken. Inside the square 100 by 100 on
         /// the origin, the point (50, 30) gets the segment from (50, 0), 30 long.
         /// </returns>

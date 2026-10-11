@@ -40,8 +40,9 @@ namespace GeometryHelper.Core
         /// <paramref name="point"/>, measured on the arcs. Like every shortest line in this class it runs from boundary
         /// to boundary, so a point inside is carried out to the nearest edge and the segment is as long as the depth to
         /// it, where <see cref="Distance2.DistanceTo(GeoPolygonArc2, GeoPoint2, Tolerance)"/> reads the loop as filled
-        /// and answers nought. Outside, it is as long as
-        /// <see cref="Distance2.DistanceTo(GeoPolygonArc2, GeoPoint2, Tolerance)"/>; on the boundary it has no length.
+        /// and answers nought. Outside, by more than the tolerance, it is as long as
+        /// <see cref="Distance2.DistanceTo(GeoPolygonArc2, GeoPoint2, Tolerance)"/>, which takes a point within the
+        /// tolerance outside as in; on the boundary it has no length.
         /// Where two edges are equally near, the first of them round the loop is taken.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>

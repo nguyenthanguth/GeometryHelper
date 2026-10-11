@@ -501,14 +501,24 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="triangle">The triangle.</param>
         /// <param name="point">The point.</param>
-        /// <param name="tolerance">The tolerance; not read, since <see cref="GetClosestPointOnBoundary(GeoTriangle2, GeoPoint2)"/> takes none.</param>
+        /// <param name="tolerance">
+        /// The tolerance: it decides whether the triangle is read as one or, a sliver within it, as the segment of its hull,
+        /// and is passed to the projection onto either. A sliver 100 long and 0.5 high gives the point 1 past its tip the
+        /// segment from its short side at a thousandth, and from the hull's end at 1.
+        /// </param>
         /// <returns>
-        /// A segment from the point <see cref="GetClosestPointOnBoundary(GeoTriangle2, GeoPoint2)"/> gives to
-        /// <paramref name="point"/>. It runs from the edges, so a point inside is carried out to the nearest edge and the
-        /// segment is as long as the depth to it, where <see cref="DistanceTo(GeoTriangle2, GeoPoint2)"/> reads the triangle
-        /// as filled and answers nought. Outside, it is as long as that distance; on an edge it has no length.
+        /// A segment from the nearest point of the edges to <paramref name="point"/>, the point
+        /// <see cref="GetClosestPointOnBoundary(GeoTriangle2, GeoPoint2)"/> gives under the default tolerance. It runs from
+        /// the edges, so a point inside is carried out to the nearest edge and the segment is as long as the depth to it,
+        /// where <see cref="DistanceTo(GeoTriangle2, GeoPoint2)"/> reads the triangle as filled and answers nought. Outside
+        /// the tolerance, it is as long as that distance; on an edge it has no length.
         /// </returns>
-        public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(GetClosestPointOnBoundary(triangle, point), point);
+        public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoPoint2 point, Tolerance tolerance)
+            => new GeoLine2(
+                TryAsPolygon(triangle, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull)
+                    ? Projection2.ProjectToPolygon(polygon, point, tolerance)
+                    : Projection2.ProjectToLine(hull, point, tolerance),
+                point);
 
         /// <summary>
         /// Gets the shortest segment leaving a triangle and landing on a segment, using the default tolerance.

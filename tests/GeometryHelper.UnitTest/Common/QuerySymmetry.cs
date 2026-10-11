@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using GeometryHelper;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.UnitTest.Common
@@ -13,7 +14,7 @@ namespace GeometryHelper.UnitTest.Common
     /// </summary>
     /// <remarks>
     /// A pair is one-sided when <c>A.Query(B ...)</c> exists, in any overload, and no <c>B.Query(A ...)</c>
-    /// does. Two kinds of gap are written down as wanted and left out: a question taking an ellipse, which is
+    /// does, or when only one of the two has the form taking a <see cref="Tolerance"/>. Two kinds of gap are written down as wanted and left out: a question taking an ellipse, which is
     /// asked from the ellipse, and the point's <c>CollidesWith</c>, <c>GetIntersections</c> and
     /// <c>TryIntersectWith</c>, which a point answers with <c>IsPointOn</c> and <c>Contains</c>.
     /// </remarks>
@@ -53,6 +54,19 @@ namespace GeometryHelper.UnitTest.Common
         }
 
         /// <summary>
+        /// Gets whether a type answers a question whose first argument is another type in a form that takes a tolerance.
+        /// </summary>
+        internal static bool AnswersWithTolerance(Type asked, string query, Type argument)
+        {
+            return asked
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Any(m => m.Name == query
+                    && m.GetParameters().Length > 0
+                    && m.GetParameters()[0].ParameterType == argument
+                    && m.GetParameters().Any(p => p.ParameterType == typeof(Tolerance)));
+        }
+
+        /// <summary>
         /// Gets every one-sided pair of one dimension as the member missing, <c>B.Query(A)</c>, with the
         /// side that has it, in ordinal order.
         /// </summary>
@@ -67,9 +81,18 @@ namespace GeometryHelper.UnitTest.Common
                 {
                     foreach (Type b in shapes)
                     {
-                        if (a != b && Answers(a, query, b) && !Answers(b, query, a) && !Excepted(b, query, a))
+                        if (a == b || Excepted(b, query, a) || !Answers(a, query, b))
+                        {
+                            continue;
+                        }
+
+                        if (!Answers(b, query, a))
                         {
                             missing.Add(b.Name + "." + query + "(" + a.Name + ")  <- " + a.Name + "." + query + "(" + b.Name + ")");
+                        }
+                        else if (AnswersWithTolerance(a, query, b) && !AnswersWithTolerance(b, query, a))
+                        {
+                            missing.Add(b.Name + "." + query + "(" + a.Name + ", Tolerance)  <- " + a.Name + "." + query + "(" + b.Name + ", Tolerance)");
                         }
                     }
                 }
