@@ -487,7 +487,10 @@ namespace GeometryHelper.Core
         /// A point above the interior lands straight down on the surface; a point beyond the outline
         /// lands on the nearest edge. That is the difference between this and
         /// <see cref="ProjectToPolygonBoundary(GeoPolygon3, GeoPoint3, Tolerance)"/>, which always lands
-        /// on an edge.
+        /// on an edge. Whether the foot lands inside is read with the tolerance, so a foot within the point
+        /// tolerance past the outline counts as inside and is kept, up to the point tolerance off the polygon:
+        /// over the square 100 by 100 in the floor with a corner at the origin, the point (100.0005, 50, 30)
+        /// lands on (100.0005, 50, 0), 0.0005 past the edge.
         /// </remarks>
         public static GeoPoint3 ProjectToPolygon(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance)
         {

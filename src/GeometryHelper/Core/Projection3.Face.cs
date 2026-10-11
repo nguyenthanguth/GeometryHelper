@@ -30,6 +30,14 @@ namespace GeometryHelper.Core
         /// The foot of the perpendicular where that lands on the material, the rim of a hole where it lands
         /// in one, and the outline where it lands outside the face altogether.
         /// </returns>
+        /// <remarks>
+        /// Whether the foot lands on the material is read with the tolerance, so a foot within the point
+        /// tolerance past a rim counts as on it and is kept: the point given back may sit up to the point
+        /// tolerance outside the material. Over the square 100 by 100 in the floor with a corner at the origin
+        /// and a hole 20 by 20 in its middle, the point (100.0005, 50, 30) keeps its foot (100.0005, 50, 0),
+        /// 0.0005 past the outline, and the point (40.0005, 50, 30) its foot (40.0005, 50, 0), 0.0005 into the
+        /// hole; each is then 30 away, where the rim itself is 30.000000004 away.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoPoint3 ProjectToFace(GeoFace3 face, GeoPoint3 point, Tolerance tolerance)
         {

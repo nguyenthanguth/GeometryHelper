@@ -134,7 +134,9 @@ namespace GeometryHelper.Core
         /// <paramref name="point"/>, as long as <see cref="Distance3.DistanceTo(GeoPolygon3, GeoPoint3, Tolerance)"/>.
         /// From the square 100 by 100 on the XY plane with a corner at the origin, the point (50, 50, 30) gets the segment
         /// straight down from (50, 50, 0), 30 long, and the point (130, 50, 40) the one from the edge at (100, 50, 0),
-        /// 50 long.
+        /// 50 long. The foot is taken inside with the tolerance, so the segment may leave up to the point tolerance past
+        /// the outline: the point (100.0005, 50, 30) gets the segment from (100.0005, 50, 0), 30 long, where the edge is
+        /// 30.000000004 away.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance) => new GeoLine3(ProjectToPolygon(polygon, point, tolerance), point);
@@ -156,7 +158,10 @@ namespace GeometryHelper.Core
         /// <paramref name="point"/>, as long as <see cref="Distance3.DistanceTo(GeoFace3, GeoPoint3, Tolerance)"/>.
         /// From the square 100 by 100 on the XY plane with a corner at the origin and a hole 20 by 20 in its middle, the
         /// point (20, 50, 30) gets the segment straight down from (20, 50, 0), 30 long, and the point (45, 50, 30), over
-        /// the hole, the one from its rim at (40, 50, 0), 5 across and 30 down, about 30.41 long.
+        /// the hole, the one from its rim at (40, 50, 0), 5 across and 30 down, about 30.41 long. The foot is taken on
+        /// the material with the tolerance, so the segment may leave up to the point tolerance past a rim: the point
+        /// (40.0005, 50, 30) gets the segment from (40.0005, 50, 0), 0.0005 into the hole and 30 long, where the rim is
+        /// 30.000000004 away.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoLine3 GetShortestLineTo(GeoFace3 face, GeoPoint3 point, Tolerance tolerance) => new GeoLine3(ProjectToFace(face, point, tolerance), point);
