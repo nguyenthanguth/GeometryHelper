@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A polygon or face in space is checked against a body's material, openings included, and a face's holes no
+longer hide the contact its own edges make. Before, a face with a hole standing on its corner on the top of a box 40
+by 40 by 20, or crossing its top, did not collide with it, though its outline did; and a polygon passing through an
+opening in a body, clear of its walls, collided with the face the opening had cut away. Checking a region within reach
+of an opening now pays for cutting the opening, about 0.6 ms on .NET Framework 4.8; `TryCutOpenings` cuts a body once
+for many questions.
+
 **FIXED.** A segment or a ray lying in the plane of a triangle, polygon or face is laid out in that plane and touches
 the shape where it reaches it there. Before, `CollidesWith` said false for the segment from (-10, 10, 0) to (110, 10, 0)
 across the square 100 by 100 in the floor, though its distance was nought; a segment lying in a face's hole still

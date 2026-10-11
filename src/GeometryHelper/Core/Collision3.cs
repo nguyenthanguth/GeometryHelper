@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GeometryHelper;
 using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
@@ -495,9 +496,12 @@ namespace GeometryHelper.Core
         /// Checks whether a polygon overlaps a solid, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A flat region and a body meet in one of two ways: their surfaces cross, or the region lies
-        /// wholly within the body without touching its boundary. The first is found by testing the
-        /// triangles of each against the other, the second by testing one point of the region.
+        /// The polygon is read filled and the body by its material, every opening the polygon can reach cut in, as a
+        /// triangle is read against a body (<see cref="CollidesWith(GeoTriangle3, GeoSolid3, Tolerance)"/>): they
+        /// meet where an edge of the polygon crosses the surface, where an edge of the body crosses the polygon, or
+        /// where a corner of the polygon lies in the material. Through the box 40 by 40 by 20 from the origin with an opening 10 by 10
+        /// from x, y = 15 to 25 right through it, the square standing upright in y = 20 from x = 17 to 23, 2 clear
+        /// of the opening's walls, touches nothing.
         /// </remarks>
         public static bool CollidesWith(GeoPolygon3 polygon, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -516,15 +520,11 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            GeoTriangle3[] region = new GeoFace3(polygon).TriangulateSurface(tolerance);
-            GeoTriangle3[] body = solid.Triangulate(tolerance);
+            // The faces run straight across every opening; read the material the region can reach instead.
+            GeoSolid3 material = Material3.Near(solid, polygon.GetAabb(), tolerance);
 
-            if (SurfacesTouch(region, body, tolerance))
-            {
-                return true;
-            }
-
-            return Containment3.Contains(solid, polygon.Centroid, tolerance);
+            return ReachesMaterial(Intersection3.EdgesOf(polygon), polygon.Vertices, material, tolerance,
+                edge => Intersection3.TryCrossEdge(edge, polygon, out _, tolerance));
         }
 
         /// <summary>
@@ -554,10 +554,12 @@ namespace GeometryHelper.Core
         /// Checks whether a face overlaps a solid, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// Only the outer boundary of the face is tested. A hole is material that is not there, so a body
-        /// reaching a face only through one of its holes touches nothing — but a face whose holes were
-        /// ignored would report a collision that is not real. The boundary test is therefore the
-        /// conservative one, and is refined by asking whether the meeting place is over a hole.
+        /// The face is read by its material and the body by its own, every opening the face can reach cut in, as a
+        /// polygon is: they meet where an edge of the face, round its outline or round a hole, crosses the surface,
+        /// where an edge of the body crosses the material, or where a corner of the face lies in the body. A hole is
+        /// material that is not there, so a body reaching only into a hole touches nothing, while the rim of the hole
+        /// is material and counts. A diamond standing on its corner on the top of the box 40 by 40 by 20 from the
+        /// origin touches it whatever holes it has above.
         /// </remarks>
         public static bool CollidesWith(GeoFace3 face, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -566,33 +568,66 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
-            if (!CollidesWith(face.Boundary, solid, tolerance))
+            if (solid == null)
+            {
+                throw new ArgumentNullException(nameof(solid));
+            }
+
+            if (!face.GetAabb().CollidesWith(solid.GetAabb(), tolerance))
             {
                 return false;
             }
 
-            if (face.Holes.Count == 0)
+            // The faces run straight across every opening; read the material the region can reach instead.
+            GeoSolid3 material = Material3.Near(solid, face.GetAabb(), tolerance);
+            var corners = new List<GeoPoint3>(face.Boundary.Vertices);
+
+            foreach (GeoPolygon3 hole in face.Holes)
             {
-                return true;
+                corners.AddRange(hole.Vertices);
             }
 
-            // The body reaches the outer boundary somewhere. It only counts if it reaches material rather
-            // than a hole, so the crossing points of the body edges against the face are checked.
-            foreach (GeoTriangle3 triangle in solid.Triangulate(tolerance))
+            return ReachesMaterial(Intersection3.EdgesOf(face), corners, material, tolerance,
+                edge => Intersection3.TryCrossEdge(edge, face, out _, tolerance));
+        }
+
+        /// <summary>
+        /// Determines whether a flat region reaches a body's material: an edge of the region crosses the surface, an
+        /// edge of the body crosses the region, or a corner of the region lies in the material, as group C's triangle
+        /// against a body walks it.
+        /// </summary>
+        private static bool ReachesMaterial(
+            IEnumerable<GeoLine3> edges, IEnumerable<GeoPoint3> corners, GeoSolid3 material, Tolerance tolerance,
+            Func<GeoLine3, bool> crossesRegion)
+        {
+            foreach (GeoLine3 edge in edges)
             {
-                for (int i = 0; i < 3; i++)
+                if (Intersection3.SurfaceCrossings(edge, material, tolerance).Length > 0)
                 {
-                    if (Intersection3.TryIntersectWith(triangle.GetEdgeAt(i), face, out _, tolerance))
+                    return true;
+                }
+            }
+
+            foreach (GeoFace3 side in material.Faces)
+            {
+                foreach (GeoLine3 edge in Intersection3.EdgesOf(side))
+                {
+                    if (crossesRegion(edge))
                     {
                         return true;
                     }
                 }
             }
 
-            // No edge of the body pierces the material, so either the face sits inside the body or the
-            // contact was over a hole.
-            return Containment3.Contains(solid, face.Boundary.Centroid, tolerance) &&
-                   face.Contains(face.Boundary.Centroid, tolerance);
+            foreach (GeoPoint3 corner in corners)
+            {
+                if (Containment3.Contains(material, corner, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         #endregion
