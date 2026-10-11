@@ -310,7 +310,7 @@ namespace GeometryHelper.Spatial
                 {
                     for (int i = node.Start; i < node.Start + node.Count; i++)
                     {
-                        if (Intersection3.TryIntersectWith(ray, _triangles[_order[i]], out GeoPoint3 hit, tolerance))
+                        if (Intersection3.TryCrossTriangle(ray, _triangles[_order[i]], out GeoPoint3 hit, tolerance, true))
                         {
                             hits.Add(hit);
                         }
@@ -369,7 +369,7 @@ namespace GeometryHelper.Spatial
                     {
                         GeoTriangle3 triangle = _triangles[_order[i]];
 
-                        if (!Intersection3.TryIntersectWith(ray, triangle, out GeoPoint3 hit, tolerance))
+                        if (!Intersection3.TryCrossTriangle(ray, triangle, out GeoPoint3 hit, tolerance, true))
                         {
                             continue;
                         }

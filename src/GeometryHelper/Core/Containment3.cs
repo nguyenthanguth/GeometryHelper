@@ -502,7 +502,7 @@ namespace GeometryHelper.Core
 
                 foreach (GeoFace3 face in solid.Faces)
                 {
-                    if (!face.TryIntersectWith(ray, out GeoPoint3 hit, tolerance))
+                    if (!Intersection3.TryCrossFace(ray, face, out GeoPoint3 hit, tolerance, true))
                     {
                         continue;
                     }

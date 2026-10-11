@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A ray starting within the planar tolerance of a plane lies in it only when it runs level to rounding. Before,
+one dipping under the angle tolerance was read as lying in the plane and crossed nothing there: the ray from
+(5, 5, 0.0004) along (1, 0, -0.01) missed the square 10 by 10 in the floor it crosses at (5.04, 5, 0). It now crosses
+where it reaches height nought, and one rising from the band touches at its origin. Ray against triangle, polygon,
+face and body follow, with the ray distances and shortest lines. The ray casts inside `Locate`, the booleans and the
+clash keep their reading, and none of their results changes; `GeoPreparedSolid3`'s ray members, which share that
+casting, keep it too for now.
+
 **FIXED.** Two oriented boxes whose nearest edges cross at an angle no longer count as touching more than the point
 tolerance apart. The separating-axis test allowed the point tolerance along an edge-to-edge axis before that axis was
 brought to unit length, so it allowed the tolerance over the sine of the angle between the edges: boxes 0.005 apart

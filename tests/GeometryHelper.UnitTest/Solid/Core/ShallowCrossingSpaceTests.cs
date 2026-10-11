@@ -84,8 +84,14 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(10.0 / Math.Tan(HalfDegree), crossing.X, 6);
             Assert.Equal(0.0, crossing.Z, 9);
 
-            // Starting in the plane and running along it, the ray meets it over a stretch, not at a point.
-            var along = new GeoRay3(GeoPoint3.Origin, new GeoVector3(Math.Cos(HalfDegree), 0, Math.Sin(HalfDegree)));
+            // Starting in the plane and rising from it, however shallowly, the ray leaves it at once: it touches the
+            // plane at its origin and nowhere else.
+            var rising = new GeoRay3(GeoPoint3.Origin, new GeoVector3(Math.Cos(HalfDegree), 0, Math.Sin(HalfDegree)));
+            Assert.True(rising.TryIntersectWith(ground, out GeoPoint3 origin));
+            Assert.Equal(0.0, origin.DistanceTo(GeoPoint3.Origin), 12);
+
+            // Starting in the plane and running along it, level, the ray meets it over a stretch, not at a point.
+            var along = new GeoRay3(GeoPoint3.Origin, new GeoVector3(1, 0, 0));
             Assert.False(along.TryIntersectWith(ground, out _));
         }
 

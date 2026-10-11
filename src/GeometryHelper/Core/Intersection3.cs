@@ -250,7 +250,73 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find the point where a ray crosses a plane, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A ray starting within the planar tolerance of the plane lies in it only where it runs level with it to
+        /// rounding, and then meets it along its whole length and names no place. One dipping towards the plane,
+        /// however shallowly, crosses it where it reaches height nought, and one rising away from it touches it at
+        /// its origin, the one point of it within the tolerance it never comes back to: the ray from (5, 5, 0.0004)
+        /// along (1, 0, -0.01) crosses the floor at (5.04, 5, 0), and along (1, 0, 0.01) touches it at
+        /// (5, 5, 0.0004). A ray starting off the plane reaches it at one point at any angle but none at all.
+        /// </remarks>
         public static bool TryIntersectWith(GeoRay3 ray, GeoPlane3 plane, out GeoPoint3 intersection, Tolerance tolerance)
+            => TryCrossPlane(ray, plane, out intersection, tolerance, false);
+
+        /// <summary>
+        /// The sine below which a ray starting within the planar tolerance of a plane reads as level with it: rounding,
+        /// and no more.
+        /// </summary>
+        private const double LevelToRounding = 1E-12;
+
+        /// <summary>
+        /// Tries to find the point where a ray crosses a plane, either as <see cref="TryIntersectWith(GeoRay3, GeoPlane3,
+        /// out GeoPoint3, Tolerance)"/> reads it or, for the rays that count crossings to tell inside from outside, as
+        /// they have always read it.
+        /// </summary>
+        /// <remarks>
+        /// The rays cast behind <see cref="Containment3.Locate(GeoSolid3, GeoPoint3, Tolerance)"/>, the prepared
+        /// solid's Locate and bar reach, and the booleans' depth under a triangle refuse a ray starting within the
+        /// planar tolerance and running within the angle tolerance of the plane, as lying in it. They keep that
+        /// reading until it is judged on its own, since every containment, boolean, clash and take-off answer rests on
+        /// it.
+        /// </remarks>
+        internal static bool TryCrossPlane(GeoRay3 ray, GeoPlane3 plane, out GeoPoint3 intersection, Tolerance tolerance, bool countingCrossings)
+            => countingCrossings
+                ? TryCastThroughPlane(ray, plane, out intersection, tolerance)
+                : TryReachPlane(ray, plane, out intersection, tolerance);
+
+        /// <summary>
+        /// The public reading of <see cref="TryCrossPlane(GeoRay3, GeoPlane3, out GeoPoint3, Tolerance, bool)"/>: a ray
+        /// starting within the planar tolerance lies in the plane only where it is level with it to rounding.
+        /// </summary>
+        private static bool TryReachPlane(GeoRay3 ray, GeoPlane3 plane, out GeoPoint3 intersection, Tolerance tolerance)
+        {
+            double denominator = ray.Direction.DotProduct(plane.Normal);
+            double rise = ray.Origin.GetVectorTo(plane.Origin).DotProduct(plane.Normal);
+
+            if (Math.Abs(rise) <= tolerance.EqualPlanar)
+            {
+                // Both vectors are unit length here, so the dot product is the sine of the angle between the ray and
+                // the plane. Level to rounding, the ray lies in the plane and gives no single point. Otherwise it
+                // reaches height nought ahead of its origin, dipping, or behind it, rising, and then touches the plane
+                // at its origin, which lies within the tolerance of it.
+                if (!(Math.Abs(denominator) > LevelToRounding))
+                {
+                    intersection = GeoPoint3.Origin;
+                    return false;
+                }
+
+                intersection = Parametrization3.GetPointAtDistance(ray, Math.Max(0.0, rise / denominator));
+                return true;
+            }
+
+            return TryCastThroughPlane(ray, plane, out intersection, tolerance);
+        }
+
+        /// <summary>
+        /// The reading of <see cref="TryCrossPlane(GeoRay3, GeoPlane3, out GeoPoint3, Tolerance, bool)"/> the ray casts
+        /// that count crossings keep, and the public one off the planar tolerance.
+        /// </summary>
+        private static bool TryCastThroughPlane(GeoRay3 ray, GeoPlane3 plane, out GeoPoint3 intersection, Tolerance tolerance)
         {
             intersection = GeoPoint3.Origin;
 
@@ -340,6 +406,13 @@ namespace GeometryHelper.Core
         /// Tries to find the point where a ray crosses a triangle, within a tolerance.
         /// </summary>
         public static bool TryIntersectWith(GeoRay3 ray, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance)
+            => TryCrossTriangle(ray, triangle, out intersection, tolerance, false);
+
+        /// <summary>
+        /// Tries to find the point where a ray crosses a triangle, with the plane read as
+        /// <see cref="TryCrossPlane(GeoRay3, GeoPlane3, out GeoPoint3, Tolerance, bool)"/> reads it.
+        /// </summary>
+        internal static bool TryCrossTriangle(GeoRay3 ray, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance, bool countingCrossings)
         {
             intersection = GeoPoint3.Origin;
 
@@ -348,7 +421,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            if (!TryIntersectWith(ray, triangle.GetPlane(), out GeoPoint3 candidate, tolerance))
+            if (!TryCrossPlane(ray, triangle.GetPlane(), out GeoPoint3 candidate, tolerance, countingCrossings))
             {
                 return false;
             }
@@ -751,6 +824,13 @@ namespace GeometryHelper.Core
         /// Tries to find the point where a ray crosses a face, within a tolerance.
         /// </summary>
         public static bool TryIntersectWith(GeoRay3 ray, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance)
+            => TryCrossFace(ray, face, out intersection, tolerance, false);
+
+        /// <summary>
+        /// Tries to find the point where a ray crosses the material of a face, with the plane read as
+        /// <see cref="TryCrossPlane(GeoRay3, GeoPlane3, out GeoPoint3, Tolerance, bool)"/> reads it.
+        /// </summary>
+        internal static bool TryCrossFace(GeoRay3 ray, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance, bool countingCrossings)
         {
             intersection = GeoPoint3.Origin;
 
@@ -759,7 +839,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
-            if (!TryIntersectWith(ray, face.GetPlane(), out GeoPoint3 candidate, tolerance))
+            if (!TryCrossPlane(ray, face.GetPlane(), out GeoPoint3 candidate, tolerance, countingCrossings))
             {
                 return false;
             }
