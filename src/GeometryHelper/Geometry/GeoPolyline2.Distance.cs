@@ -88,5 +88,31 @@ namespace GeometryHelper.Geometry
         public double DistanceTo(GeoTriangle2 triangle) => Triangle2.DistanceTo(triangle, this);
 
         #endregion
+
+        /// <summary>
+        /// Calculates the shortest distance from this polyline to the material of a face: the same answer as
+        /// <see cref="GeoFace2.DistanceTo(GeoPolyline2)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material, its outline less its holes, so this polyline is nought from it where the
+        /// two collide, and as far as the nearest rim where it lies wholly in a hole. The chain (40, 40), (60, 40),
+        /// (60, 60) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its
+        /// middle and is 10 from its rim.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace2 face) => Face2.DistanceTo(face, this);
+
+        /// <summary>
+        /// Calculates the shortest distance from this polyline to the material of a face, within a tolerance: the same
+        /// answer as <see cref="GeoFace2.DistanceTo(GeoPolyline2, Tolerance)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material, its outline less its holes, so this polyline is nought from it where the
+        /// two collide, and as far as the nearest rim where it lies wholly in a hole. The chain (40, 40), (60, 40),
+        /// (60, 60) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its
+        /// middle and is 10 from its rim.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace2 face, Tolerance tolerance) => Face2.DistanceTo(face, this, tolerance);
     }
 }

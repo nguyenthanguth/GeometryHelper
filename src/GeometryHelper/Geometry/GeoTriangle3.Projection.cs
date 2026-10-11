@@ -87,5 +87,55 @@ namespace GeometryHelper.Geometry
         /// between them and nought where they touch.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoSolid3 solid, Tolerance tolerance) => Projection3.GetShortestLineTo(solid, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this triangle to a point, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The triangle is read as a filled surface, as its distance reads it, so the segment is as long as
+        /// <see cref="DistanceTo(GeoPoint3)"/>: from the triangle (0, 0, 0), (100, 0, 0), (0, 100, 0), the point (20,
+        /// 20, 30) gets the one straight down from (20, 20, 0), 30 long.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point) => Projection3.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment joining this triangle to a point, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The triangle is read as a filled surface, as its distance reads it, so the segment is as long as
+        /// <see cref="DistanceTo(GeoPoint3)"/>: from the triangle (0, 0, 0), (100, 0, 0), (0, 100, 0), the point (20,
+        /// 20, 30) gets the one straight down from (20, 20, 0), 30 long. The tolerance is taken so that this reads like
+        /// every other shape; it changes nothing here.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this triangle to a polyline:
+        /// <see cref="GeoPolyline3.GetShortestLineTo(GeoTriangle3)"/> turned round, so that it leaves this triangle and
+        /// lands on the polyline.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this triangle, read as a filled surface, and lands on the chain, of no length where the
+        /// chain passes through. The triangle (0, 0, 0), (100, 0, 0), (0, 100, 0) is joined to the chain (20, 20, 30),
+        /// (20, 20, 80) from (20, 20, 0) straight up, 30 long, as <see cref="DistanceTo(GeoPolyline3)"/> measures it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline)
+            => Projection3.GetShortestLineTo(polyline, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this triangle to a polyline, within a tolerance:
+        /// <see cref="GeoPolyline3.GetShortestLineTo(GeoTriangle3, Tolerance)"/> turned round, so that it leaves this
+        /// triangle and lands on the polyline.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this triangle, read as a filled surface, and lands on the chain, of no length where the
+        /// chain passes through. The triangle (0, 0, 0), (100, 0, 0), (0, 100, 0) is joined to the chain (20, 20, 30),
+        /// (20, 20, 80) from (20, 20, 0) straight up, 30 long, as <see cref="DistanceTo(GeoPolyline3)"/> measures it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(polyline, this, tolerance).Reverse();
     }
 }

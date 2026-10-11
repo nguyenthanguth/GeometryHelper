@@ -88,6 +88,20 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void WhereverTwoShapesInSpaceHaveADistanceEachGivesTheShortestLineToTheOther()
+        {
+            // Where A.DistanceTo(B) exists on either side, A.GetShortestLineTo(B) exists with and without a
+            // tolerance. Written down as having none: the boxes, which go through ToSolid(); two planes, which
+            // have no one segment; two points, joined by new GeoLine3(a, b); and an ellipse as the argument.
+            string[] missing = QuerySymmetry.MissingShortestLines('3');
+
+            if (missing.Length > 0)
+            {
+                Assert.Fail(missing.Length + " shortest lines missing in space where a distance exists:\n" + string.Join("\n", missing));
+            }
+        }
+
+        [Fact]
         public void TransformingThroughEitherFormGivesTheSameResult()
         {
             GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(3, -4, 5))

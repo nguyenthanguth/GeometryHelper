@@ -265,6 +265,180 @@ namespace GeometryHelper.Core
             return best;
         }
 
+        /// <summary>
+        /// Gets the shortest segment joining a solid to a polyline.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the solid or the polyline is null.</exception>
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPolyline3 polyline) => GetShortestLineTo(solid, polyline, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining a solid to a polyline, within a tolerance.
+        /// </summary>
+        /// <param name="solid">The solid the answer leaves.</param>
+        /// <param name="polyline">The chain the answer lands on.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// A segment leaving the surface of the solid and landing on the chain, of no length where the chain passes
+        /// through the surface. A chain lying wholly inside the body is joined out to the nearest face, where
+        /// <see cref="Distance3.DistanceTo(GeoSolid3, GeoPolyline3, Tolerance)"/> reads the body as solid through and
+        /// answers nought; outside, it is as long as that distance. A tie goes to the first face, and within it to the first
+        /// edge of the chain. In the box 100 by 100 by 100 with a corner at the origin, the chain (50, 50, 10),
+        /// (50, 50, 60), (50, 70, 60) is joined from the bottom face at (50, 50, 0) to (50, 50, 10), 10 long.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the solid or the polyline is null.</exception>
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPolyline3 polyline, Tolerance tolerance)
+        {
+            if (solid == null)
+            {
+                throw new ArgumentNullException(nameof(solid));
+            }
+
+            if (polyline == null)
+            {
+                throw new ArgumentNullException(nameof(polyline));
+            }
+
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
+
+            GeoTriangle3[] faces = solid.Triangulate(tolerance);
+            GeoLine3 best = GetShortestLineTo(polyline.GetEdgeAt(0), faces[0], tolerance).Reverse();
+            double shortest = best.Length;
+
+            for (int i = 0; i < faces.Length; i++)
+            {
+                for (int j = i == 0 ? 1 : 0; j < polyline.EdgeCount; j++)
+                {
+                    if (shortest <= 0.0)
+                    {
+                        return best;
+                    }
+
+                    Consider(ref best, ref shortest, GetShortestLineTo(polyline.GetEdgeAt(j), faces[i], tolerance).Reverse());
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining a solid to a polygon.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the solid or the polygon is null.</exception>
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPolygon3 polygon) => GetShortestLineTo(solid, polygon, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining a solid to a polygon, within a tolerance.
+        /// </summary>
+        /// <param name="solid">The solid the answer leaves.</param>
+        /// <param name="polygon">The polygon the answer lands on, read as a filled surface.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// A segment leaving the surface of the solid and landing on the polygon, of no length where the two surfaces meet.
+        /// A polygon lying wholly inside the body is joined out to the nearest face, where
+        /// <see cref="Distance3.DistanceTo(GeoSolid3, GeoPolygon3, Tolerance)"/> reads the body as solid through and
+        /// answers nought; outside, it is as long as that distance. The polygon is cut into triangles that each lie inside
+        /// it, as for the distance. A tie goes to the first face, and within it to the first of those triangles. In the box
+        /// 100 by 100 by 100 with a corner at the origin, the square 20 by 20 lying flat at a height of 30 with a corner at
+        /// (40, 40, 30) is joined from the bottom face to it, 30 long.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the solid or the polygon is null.</exception>
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPolygon3 polygon, Tolerance tolerance)
+        {
+            if (solid == null)
+            {
+                throw new ArgumentNullException(nameof(solid));
+            }
+
+            if (polygon == null)
+            {
+                throw new ArgumentNullException(nameof(polygon));
+            }
+
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
+
+            GeoTriangle3[] faces = solid.Triangulate(tolerance);
+            GeoTriangle3[] pieces = new GeoFace3(polygon).TriangulateSurface(tolerance);
+            GeoLine3 best = GetShortestLineTo(faces[0], pieces[0], tolerance);
+            double shortest = best.Length;
+
+            for (int i = 0; i < faces.Length; i++)
+            {
+                for (int j = i == 0 ? 1 : 0; j < pieces.Length; j++)
+                {
+                    if (shortest <= 0.0)
+                    {
+                        return best;
+                    }
+
+                    Consider(ref best, ref shortest, GetShortestLineTo(faces[i], pieces[j], tolerance));
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining a solid to a plane.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPlane3 plane) => GetShortestLineTo(solid, plane, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining a solid to a plane, within a tolerance.
+        /// </summary>
+        /// <param name="solid">The solid the answer leaves.</param>
+        /// <param name="plane">The plane the answer lands on.</param>
+        /// <param name="tolerance">The tolerance the openings are cut in and the faces cut into triangles with.</param>
+        /// <returns>
+        /// A segment of no length where the body crosses or touches the plane, at the first point of contact walking the
+        /// triangles of its surface in the order the other shortest lines here walk them, and the edges of each in turn:
+        /// the start of the first edge that reaches the plane when that start lies on it, otherwise where the edge passes
+        /// through, otherwise its end. Clear of the plane, the perpendicular from the nearest corner, the first of them
+        /// where several are equally near; beyond the point tolerance its length is
+        /// <see cref="Distance3.DistanceTo(GeoSolid3, GeoPlane3, Tolerance)"/>. The box 100 by 100 by 100 with a corner at
+        /// the origin is joined to the plane 30 under its bottom face from a corner of that face, 30 long, and to the
+        /// plane through its middle by a segment of no length at the height of 50.
+        /// </returns>
+        /// <remarks>
+        /// The segment is never snapped. A body standing 0.0004 above the plane is joined by a segment 0.0004 long,
+        /// though the distance, read within the point tolerance, is nought. The distance reads only where the corners
+        /// stand, so a body of two separate pieces lying either side of the plane, neither touching it, is nought from
+        /// it too, and is joined from its nearest corner all the same.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPlane3 plane, Tolerance tolerance)
+        {
+            if (solid == null)
+            {
+                throw new ArgumentNullException(nameof(solid));
+            }
+
+            // The faces run straight across every opening; the nearest material can sit on any opening's rim.
+            solid = Material3.Whole(solid, tolerance);
+
+            GeoTriangle3[] faces = solid.Triangulate(tolerance);
+
+            foreach (GeoTriangle3 face in faces)
+            {
+                if (TryReachPlane(new[] { face.A, face.B, face.C }, true, plane, out GeoPoint3 at))
+                {
+                    return new GeoLine3(at, at);
+                }
+            }
+
+            GeoPoint3 nearest = faces[0].A;
+            double reach = double.MaxValue;
+
+            foreach (GeoTriangle3 face in faces)
+            {
+                Nearer(new[] { face.A, face.B, face.C }, plane, ref nearest, ref reach);
+            }
+
+            return new GeoLine3(nearest, ProjectToPlane(plane, nearest));
+        }
+
         #endregion
 
         #region Rays

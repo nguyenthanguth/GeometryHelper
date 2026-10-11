@@ -149,5 +149,29 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest distance from this ellipse to another ellipse, within a tolerance.
         /// </summary>
         public double DistanceTo(GeoEllipse2 other, Tolerance tolerance) => Ellipse2.DistanceTo(this, other, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this ellipse to the material of a face.
+        /// </summary>
+        /// <remarks>
+        /// Nought where the ellipse collides with the face, and otherwise the length of
+        /// <see cref="GetShortestLineTo(GeoFace2)"/>. The ellipse 15 by 5 about (50, 50), its major axis along X, lies
+        /// in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle and is 5
+        /// from its rim, at the ends of that axis.
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace2 face) => Ellipse2.DistanceTo(this, face);
+
+        /// <summary>
+        /// Calculates the shortest distance from this ellipse to the material of a face, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// Nought where the ellipse collides with the face, and otherwise the length of
+        /// <see cref="GetShortestLineTo(GeoFace2, Tolerance)"/>. The ellipse 15 by 5 about (50, 50), its major axis
+        /// along X, lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its
+        /// middle and is 5 from its rim, at the ends of that axis.
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace2 face, Tolerance tolerance) => Ellipse2.DistanceTo(this, face, tolerance);
     }
 }

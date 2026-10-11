@@ -27,25 +27,12 @@ namespace GeometryHelper.Core
         public static double DistanceTo(GeoPolyline3 polyline, GeoLine3 line) => DistanceTo(polyline, line, Tolerance.Global);
 
         /// <summary>
-        /// Calculates the shortest distance between a chain and a line segment, within a tolerance.
+        /// Calculates the shortest distance between a chain and a line segment, within a tolerance: the length of
+        /// <see cref="Projection3.GetShortestLineTo(GeoPolyline3, GeoLine3, Tolerance)"/>.
         /// </summary>
         public static double DistanceTo(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-
-            double best = double.MaxValue;
-
-            foreach (GeoLine3 edge in polyline.GetEdges())
-            {
-                best = Math.Min(best, DistanceTo(edge, line, tolerance));
-
-                if (best <= 0.0)
-                {
-                    return 0.0;
-                }
-            }
-
-            return best;
+            return Projection3.GetShortestLineTo(polyline, line, tolerance).Length;
         }
 
         /// <summary>
@@ -54,26 +41,12 @@ namespace GeometryHelper.Core
         public static double DistanceTo(GeoPolyline3 polyline, GeoPolyline3 other) => DistanceTo(polyline, other, Tolerance.Global);
 
         /// <summary>
-        /// Calculates the shortest distance between two chains, within a tolerance.
+        /// Calculates the shortest distance between two chains, within a tolerance: the length of
+        /// <see cref="Projection3.GetShortestLineTo(GeoPolyline3, GeoPolyline3, Tolerance)"/>.
         /// </summary>
         public static double DistanceTo(GeoPolyline3 polyline, GeoPolyline3 other, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            if (other == null) throw new ArgumentNullException(nameof(other));
-
-            double best = double.MaxValue;
-
-            foreach (GeoLine3 edge in other.GetEdges())
-            {
-                best = Math.Min(best, DistanceTo(polyline, edge, tolerance));
-
-                if (best <= 0.0)
-                {
-                    return 0.0;
-                }
-            }
-
-            return best;
+            return Projection3.GetShortestLineTo(polyline, other, tolerance).Length;
         }
 
         /// <summary>

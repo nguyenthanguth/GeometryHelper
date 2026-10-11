@@ -117,5 +117,27 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.CollidesWith(triangle, this, tolerance);
 
         #endregion
+
+        /// <summary>
+        /// Checks whether the material of this face meets the material of another.
+        /// </summary>
+        /// <remarks>
+        /// The materials have to meet: a face lying wholly in a hole of this one does not collide with it, and one
+        /// lying on its material does. A square 20 by 20 about (50, 50) does not collide with the square 100 by 100
+        /// with a corner at the origin and a hole 40 by 40 in its middle; about (15, 50) it does.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the other face is null.</exception>
+        public bool CollidesWith(GeoFace2 other) => Face2.CollidesWith(this, other);
+
+        /// <summary>
+        /// Checks whether the material of this face meets the material of another, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The materials have to meet: a face lying wholly in a hole of this one does not collide with it, and one
+        /// lying on its material does. A square 20 by 20 about (50, 50) does not collide with the square 100 by 100
+        /// with a corner at the origin and a hole 40 by 40 in its middle; about (15, 50) it does.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the other face is null.</exception>
+        public bool CollidesWith(GeoFace2 other, Tolerance tolerance) => Face2.CollidesWith(this, other, tolerance);
     }
 }

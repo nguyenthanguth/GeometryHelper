@@ -26,6 +26,12 @@ namespace GeometryHelper.Core
     /// hole, or wholly outside it, or holds the hole within itself, and those are told apart by asking where
     /// one point of the probe falls and, for a probe that has an inside, whether the rim falls within it.
     /// </para>
+    /// <para>
+    /// The distance reads the face by its material: nought where the probe collides with it, and otherwise the
+    /// gap between the boundaries, which is then the gap to the material. A probe wholly inside a hole is as
+    /// far away as the rim of that hole, and a probe holding the whole face collides with it. Two faces are
+    /// asked the same way, each one's material against the other's.
+    /// </para>
     /// </remarks>
     public static class Face2
     {
@@ -110,6 +116,35 @@ namespace GeometryHelper.Core
         public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance) => Crossings(face, rim => rim.GetIntersections(chain, tolerance));
 
         /// <summary>
+        /// Gets every point where the boundaries of two faces cross.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoFace2 other) => GetIntersections(face, other, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where the boundaries of two faces cross, within a tolerance.
+        /// </summary>
+        /// <param name="face">The first face.</param>
+        /// <param name="other">The second face.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// The crossings of the outline and then each hole of <paramref name="face"/>, each against the outline and then
+        /// each hole of <paramref name="other"/>, in that order, as a polygon's crossings with a face are gathered. The
+        /// square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle crosses the square 20 by 20
+        /// about (30, 50) twice, at (30, 40) and (30, 60), on the rim of the hole and nowhere on its outline.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoFace2 other, Tolerance tolerance)
+        {
+            if (other == null)
+            {
+                throw new ArgumentNullException(nameof(other));
+            }
+
+            return Crossings(face, rim => Crossings(other, theirs => rim.GetIntersections(theirs, tolerance)));
+        }
+
+        /// <summary>
         /// Determines whether a segment reaches the material of a face.
         /// </summary>
         public static bool CollidesWith(GeoFace2 face, GeoLine2 line) => CollidesWith(face, line, Tolerance.Global);
@@ -188,6 +223,41 @@ namespace GeometryHelper.Core
         /// Determines whether a curved chain reaches the material of a face, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(chain, tolerance), rim => rim.GetIntersections(chain, tolerance), () => chain.Vertices[0], null, tolerance);
+
+        /// <summary>
+        /// Determines whether the materials of two faces meet.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
+        public static bool CollidesWith(GeoFace2 face, GeoFace2 other) => CollidesWith(face, other, Tolerance.Global);
+
+        /// <summary>
+        /// Determines whether the materials of two faces meet, within a tolerance.
+        /// </summary>
+        /// <param name="face">The first face.</param>
+        /// <param name="other">The second face.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// true if the two overlap or touch, one lying on the other's material included; false where they are apart,
+        /// and where one lies wholly in a hole of the other. A square 20 by 20 about (50, 50) does not collide with the
+        /// square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle; about (15, 50) it does.
+        /// </returns>
+        /// <remarks>
+        /// The other face is the probe, asked as a polygon is: it has to reach the outline, through
+        /// <see cref="CollidesWith(GeoFace2, GeoPolygon2, Tolerance)"/>, and no hole may hold it whole. A face that
+        /// crosses no rim of a hole lies wholly inside it, wholly outside it, or holds it, and the first is told by a
+        /// corner of the probe's outline falling inside the hole while the probe's material does not hold a corner of
+        /// the hole. No boolean is made.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
+        public static bool CollidesWith(GeoFace2 face, GeoFace2 other, Tolerance tolerance)
+        {
+            if (other == null)
+            {
+                throw new ArgumentNullException(nameof(other));
+            }
+
+            return Touches(face, rim => CollidesWith(other, rim, tolerance), rim => GetIntersections(other, rim, tolerance), () => other.Boundary.Vertices[0], at => Containment2.Contains(other, at, tolerance), tolerance);
+        }
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a point.
@@ -278,6 +348,332 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving the boundary of a face and landing on a curved chain, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance) => Nearest(face, rim => rim.GetShortestLineTo(chain, tolerance));
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of a face and landing on the boundary of another.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoFace2 other) => GetShortestLineTo(face, other, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of a face and landing on the boundary of another, within a
+        /// tolerance.
+        /// </summary>
+        /// <param name="face">The face the answer leaves.</param>
+        /// <param name="other">The face the answer lands on.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// The shortest of the segments joining each loop of <paramref name="face"/>, its outline and then each hole, to
+        /// each loop of <paramref name="other"/> in the same order, the first such pair winning a tie. Like every shortest
+        /// line here it runs boundary to boundary, so it has a length even where the materials overlap. From the square
+        /// 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, the square 20 by 20 about (45, 50)
+        /// is reached from the rim of the hole across the gap of 5 on its left.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoFace2 other, Tolerance tolerance)
+        {
+            if (other == null)
+            {
+                throw new ArgumentNullException(nameof(other));
+            }
+
+            return Nearest(face, rim => Nearest(other, theirs => rim.GetShortestLineTo(theirs, tolerance)));
+        }
+
+        #region Distances
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a segment.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoLine2 line) => DistanceTo(face, line, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a segment, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face: its outline, less its holes.</param>
+        /// <param name="line">The segment.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// Nought where <see cref="CollidesWith(GeoFace2, GeoLine2, Tolerance)"/> says the segment reaches the material;
+        /// otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoLine2, Tolerance)"/>. In the square 100 by
+        /// 100 with a corner at the origin and a hole 40 by 40 in its middle, the segment from (40, 50) to (60, 50) lies
+        /// in the hole and is 10 from its rim; the one from (10, 50) to (20, 50) lies on the material and is nought away.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoLine2 line, Tolerance tolerance)
+            => CollidesWith(face, line, tolerance) ? 0.0 : GetShortestLineTo(face, line, tolerance).Length;
+
+        /// <summary>
+        /// Gets the distance from the material of a face to an arc.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoArc2 arc) => DistanceTo(face, arc, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from the material of a face to an arc, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face: its outline, less its holes.</param>
+        /// <param name="arc">The arc.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// Nought where <see cref="CollidesWith(GeoFace2, GeoArc2, Tolerance)"/> says the arc reaches the material;
+        /// otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoArc2, Tolerance)"/>. In the square 100 by
+        /// 100 with a corner at the origin and a hole 40 by 40 in its middle, the upper half of the circle of radius 10
+        /// about (50, 50) lies in the hole and is 10 from its rim.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoArc2 arc, Tolerance tolerance)
+            => CollidesWith(face, arc, tolerance) ? 0.0 : GetShortestLineTo(face, arc, tolerance).Length;
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a circle.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoCircle2 circle) => DistanceTo(face, circle, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a circle, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face: its outline, less its holes.</param>
+        /// <param name="circle">The circle, a region.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// Nought where <see cref="CollidesWith(GeoFace2, GeoCircle2, Tolerance)"/> says the circle reaches the
+        /// material, a circle holding the whole face among them; otherwise the length of
+        /// <see cref="GetShortestLineTo(GeoFace2, GeoCircle2, Tolerance)"/>. In the square 100 by 100 with a corner at the
+        /// origin and a hole 40 by 40 in its middle, the circle of radius 10 about (50, 50) lies in the hole and is 10
+        /// from its rim; about (150, 50) it is 40 from the outline; about (15, 50), and of radius 200 about (50, 50), it
+        /// is nought away.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance)
+            => CollidesWith(face, circle, tolerance) ? 0.0 : GetShortestLineTo(face, circle, tolerance).Length;
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a rectangle.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoRectangle2 rect) => DistanceTo(face, rect, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a rectangle, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face: its outline, less its holes.</param>
+        /// <param name="rect">The rectangle, a region.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// Nought where <see cref="CollidesWith(GeoFace2, GeoRectangle2, Tolerance)"/> says the rectangle reaches the
+        /// material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoRectangle2, Tolerance)"/>. In the
+        /// square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, the rectangle 20 by 20 about
+        /// (50, 50) lies in the hole and is 10 from its rim.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance)
+            => CollidesWith(face, rect, tolerance) ? 0.0 : GetShortestLineTo(face, rect, tolerance).Length;
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a polyline.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face or the polyline is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoPolyline2 polyline) => DistanceTo(face, polyline, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a polyline, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face: its outline, less its holes.</param>
+        /// <param name="polyline">The polyline, a curve.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// Nought where <see cref="CollidesWith(GeoFace2, GeoPolyline2, Tolerance)"/> says the chain reaches the
+        /// material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoPolyline2, Tolerance)"/>. In the
+        /// square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, the chain (40, 40), (60, 40),
+        /// (60, 60) lies in the hole and is 10 from its rim.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face or the polyline is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoPolyline2 polyline, Tolerance tolerance)
+        {
+            Required(face, polyline, nameof(polyline));
+
+            return CollidesWith(face, polyline, tolerance) ? 0.0 : GetShortestLineTo(face, polyline, tolerance).Length;
+        }
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a polygon.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face or the polygon is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoPolygon2 polygon) => DistanceTo(face, polygon, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a polygon, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face: its outline, less its holes.</param>
+        /// <param name="polygon">The polygon, a region.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// Nought where <see cref="CollidesWith(GeoFace2, GeoPolygon2, Tolerance)"/> says the polygon reaches the
+        /// material, a polygon holding the whole face among them; otherwise the length of
+        /// <see cref="GetShortestLineTo(GeoFace2, GeoPolygon2, Tolerance)"/>. In the square 100 by 100 with a corner at the
+        /// origin and a hole 40 by 40 in its middle, the square 20 by 20 about (50, 50) lies in the hole and is 10 from
+        /// its rim; about (130, 50) it is 20 from the outline.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face or the polygon is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoPolygon2 polygon, Tolerance tolerance)
+        {
+            Required(face, polygon, nameof(polygon));
+
+            return CollidesWith(face, polygon, tolerance) ? 0.0 : GetShortestLineTo(face, polygon, tolerance).Length;
+        }
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a curved loop.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face or the loop is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoPolygonArc2 loop) => DistanceTo(face, loop, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a curved loop, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face: its outline, less its holes.</param>
+        /// <param name="loop">The loop, a region.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// Nought where <see cref="CollidesWith(GeoFace2, GeoPolygonArc2, Tolerance)"/> says the loop reaches the
+        /// material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoPolygonArc2, Tolerance)"/>,
+        /// measured on the arcs. In the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle,
+        /// the loop with corners (40, 40), (60, 40), (60, 60), (40, 60) and straight edges lies in the hole and is 10
+        /// from its rim.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face or the loop is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoPolygonArc2 loop, Tolerance tolerance)
+        {
+            Required(face, loop, nameof(loop));
+
+            return CollidesWith(face, loop, tolerance) ? 0.0 : GetShortestLineTo(face, loop, tolerance).Length;
+        }
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a curved chain.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face or the chain is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoPolylineArc2 chain) => DistanceTo(face, chain, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a curved chain, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face: its outline, less its holes.</param>
+        /// <param name="chain">The chain, a curve.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// Nought where <see cref="CollidesWith(GeoFace2, GeoPolylineArc2, Tolerance)"/> says the chain reaches the
+        /// material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoPolylineArc2, Tolerance)"/>,
+        /// measured on the arcs. In the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle,
+        /// the straight chain (40, 40), (60, 40), (60, 60) lies in the hole and is 10 from its rim.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face or the chain is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance)
+        {
+            Required(face, chain, nameof(chain));
+
+            return CollidesWith(face, chain, tolerance) ? 0.0 : GetShortestLineTo(face, chain, tolerance).Length;
+        }
+
+        /// <summary>
+        /// Gets the distance from the material of a face to an edge.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoEdge2 edge) => DistanceTo(face, edge, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from the material of a face to an edge, within a tolerance: as a segment or as an arc,
+        /// whichever the edge is.
+        /// </summary>
+        /// <param name="face">The face: its outline, less its holes.</param>
+        /// <param name="edge">The edge.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// <see cref="DistanceTo(GeoFace2, GeoLine2, Tolerance)"/> or <see cref="DistanceTo(GeoFace2, GeoArc2, Tolerance)"/>
+        /// of the edge. In the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, the
+        /// straight edge from (40, 50) to (60, 50) lies in the hole and is 10 from its rim.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoEdge2 edge, Tolerance tolerance)
+            => edge.IsArc ? DistanceTo(face, edge.ToArc(), tolerance) : DistanceTo(face, edge.ToLine(), tolerance);
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a triangle.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoTriangle2 triangle) => DistanceTo(face, triangle, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from the material of a face to a triangle, within a tolerance.
+        /// </summary>
+        /// <param name="face">The face: its outline, less its holes.</param>
+        /// <param name="triangle">The triangle, a region; one with corners on each other is read as its longest edge.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// Nought where <see cref="Triangle2.CollidesWith(GeoTriangle2, GeoFace2, Tolerance)"/> says the triangle
+        /// reaches the material; otherwise the length of
+        /// <see cref="Triangle2.GetShortestLineTo(GeoTriangle2, GeoFace2, Tolerance)"/>. In the square 100 by 100 with a
+        /// corner at the origin and a hole 40 by 40 in its middle, the triangle (40, 40), (60, 40), (50, 60) lies in the
+        /// hole and is 10 from its rim.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoTriangle2 triangle, Tolerance tolerance)
+        {
+            Required(face, nameof(face));
+
+            return Triangle2.CollidesWith(triangle, face, tolerance) ? 0.0 : Triangle2.GetShortestLineTo(triangle, face, tolerance).Length;
+        }
+
+        /// <summary>
+        /// Gets the distance between the materials of two faces.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoFace2 other) => DistanceTo(face, other, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance between the materials of two faces, within a tolerance.
+        /// </summary>
+        /// <param name="face">The first face.</param>
+        /// <param name="other">The second face.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// Nought where <see cref="CollidesWith(GeoFace2, GeoFace2, Tolerance)"/> says the materials meet; otherwise the
+        /// length of <see cref="GetShortestLineTo(GeoFace2, GeoFace2, Tolerance)"/>. A square 20 by 20 about (50, 50) is
+        /// 10 from the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, the width of the
+        /// gap round it in the hole; about (130, 50) it is 20 away.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
+        public static double DistanceTo(GeoFace2 face, GeoFace2 other, Tolerance tolerance)
+            => CollidesWith(face, other, tolerance) ? 0.0 : GetShortestLineTo(face, other, tolerance).Length;
+
+        #endregion
+
+        /// <summary>
+        /// Refuses a null face.
+        /// </summary>
+        private static void Required(GeoFace2 face, string name)
+        {
+            if (face == null)
+            {
+                throw new ArgumentNullException(name);
+            }
+        }
+
+        /// <summary>
+        /// Refuses a null face, and then a null probe.
+        /// </summary>
+        private static void Required(GeoFace2 face, object probe, string name)
+        {
+            Required(face, nameof(face));
+
+            if (probe == null)
+            {
+                throw new ArgumentNullException(name);
+            }
+        }
 
         /// <summary>
         /// Gathers what each of the outline and the rims answers into one.

@@ -54,5 +54,28 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentException">Thrown when this circle does not lie in the loop's plane.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance)
             => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this circle to a point, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The circle is read as the filled disc its distance reads, so the segment is as long as
+        /// <see cref="DistanceTo(GeoPoint3)"/>: from the circle of radius 50 about the origin on the XY plane, the
+        /// point (0, 0, 30) gets the one straight down from the centre, 30 long, and the point (80, 0, 40) the one from
+        /// (50, 0, 0), 50 long.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point) => Projection3.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment joining this circle to a point, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The circle is read as the filled disc its distance reads, so the segment is as long as
+        /// <see cref="DistanceTo(GeoPoint3)"/>: from the circle of radius 50 about the origin on the XY plane, the
+        /// point (0, 0, 30) gets the one straight down from the centre, 30 long, and the point (80, 0, 40) the one from
+        /// (50, 0, 0), 50 long.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(this, point, tolerance);
     }
 }

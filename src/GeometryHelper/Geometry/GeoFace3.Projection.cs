@@ -47,5 +47,28 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentException">Thrown when this face does not lie in the loop's plane.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance)
             => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this face to a point, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The face is its outline less its holes, as its distance reads it, so a point above a hole is joined from the
+        /// rim: from the square 100 by 100 on the XY plane with a corner at the origin and a hole 20 by 20 in its
+        /// middle, the point (45, 50, 30) gets the one from (40, 50, 0), about 30.41 long, as long as
+        /// <see cref="DistanceTo(GeoPoint3)"/>.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point) => Projection3.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment joining this face to a point, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The face is its outline less its holes, as its distance reads it, so a point above a hole is joined from the
+        /// rim: from the square 100 by 100 on the XY plane with a corner at the origin and a hole 20 by 20 in its
+        /// middle, the point (45, 50, 30) gets the one from (40, 50, 0), about 30.41 long, as long as
+        /// <see cref="DistanceTo(GeoPoint3)"/>.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(this, point, tolerance);
     }
 }

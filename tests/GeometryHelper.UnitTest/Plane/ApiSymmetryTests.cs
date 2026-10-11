@@ -29,6 +29,20 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
+        public void WhereverTwoShapesInThePlaneHaveADistanceEachGivesTheShortestLineToTheOther()
+        {
+            // The rule the space guard holds, in the plane: where A.DistanceTo(B) exists on either side,
+            // A.GetShortestLineTo(B) exists with and without a tolerance. Written down as having none: two
+            // points, joined by new GeoLine2(a, b), and an ellipse as the argument.
+            string[] missing = QuerySymmetry.MissingShortestLines('2');
+
+            if (missing.Length > 0)
+            {
+                Assert.Fail(missing.Length + " shortest lines missing in the plane where a distance exists:\n" + string.Join("\n", missing));
+            }
+        }
+
+        [Fact]
         public void EveryShapeInThePlaneGivesTheShortestLineToAPointWithAndWithoutATolerance()
         {
             // Each shape gives the line leaving it and landing on a point, in both forms, as the arc and the

@@ -316,6 +316,30 @@ namespace GeometryHelper.Core
             return best <= tolerance.EqualPoint ? 0.0 : best;
         }
 
+        /// <summary>
+        /// Gets the distance from an ellipse to the material of a face, using the default tolerance.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoFace2 face) => DistanceTo(ellipse, face, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from an ellipse to the material of a face, within a tolerance.
+        /// </summary>
+        /// <param name="ellipse">The ellipse.</param>
+        /// <param name="face">The face: its outline, less its holes.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// Nought where <see cref="CollidesWith(GeoEllipse2, GeoFace2, Tolerance)"/> says the ellipse reaches the material;
+        /// otherwise the length of <see cref="GetShortestLineTo(GeoEllipse2, GeoFace2, Tolerance)"/>, the gap between the
+        /// rim and the boundary. The ellipse 15 by 5 about (50, 50), its major axis along X, lies in the hole of the square
+        /// 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, and is 5 from its rim.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoFace2 face, Tolerance tolerance)
+        {
+            return CollidesWith(ellipse, face, tolerance) ? 0.0 : GetShortestLineTo(ellipse, face, tolerance).Length;
+        }
+
         #endregion
 
         #region Distance helpers

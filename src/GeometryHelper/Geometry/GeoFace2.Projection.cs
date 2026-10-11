@@ -143,5 +143,31 @@ namespace GeometryHelper.Geometry
         public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetShortestLineTo(triangle, this, tolerance).Reverse();
 
         #endregion
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on the boundary of another.
+        /// </summary>
+        /// <remarks>
+        /// The segment runs boundary to boundary, from a loop of this face to a loop of the other, the first pair
+        /// winning a tie, so it has a length even where the materials overlap. From the square 100 by 100 with a corner
+        /// at the origin and a hole 40 by 40 in its middle, the square 20 by 20 about (45, 50) is reached from the rim
+        /// of the hole across the gap of 5 on its left.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the other face is null.</exception>
+        public GeoLine2 GetShortestLineTo(GeoFace2 other) => Face2.GetShortestLineTo(this, other);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on the boundary of another, within a
+        /// tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment runs boundary to boundary, from a loop of this face to a loop of the other, the first pair
+        /// winning a tie, so it has a length even where the materials overlap. From the square 100 by 100 with a corner
+        /// at the origin and a hole 40 by 40 in its middle, the square 20 by 20 about (45, 50) is reached from the rim
+        /// of the hole across the gap of 5 on its left.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the other face is null.</exception>
+        public GeoLine2 GetShortestLineTo(GeoFace2 other, Tolerance tolerance)
+            => Face2.GetShortestLineTo(this, other, tolerance);
     }
 }

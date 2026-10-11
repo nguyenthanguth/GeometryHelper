@@ -366,28 +366,12 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The polygon counts as a filled surface, so a segment ending directly above its interior is
-        /// measured straight down rather than out to the nearest edge.
+        /// measured straight down rather than out to the nearest edge. This is the length of
+        /// <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoPolygon3, Tolerance)"/>.
         /// </remarks>
         public static double DistanceTo(GeoLine3 line, GeoPolygon3 polygon, Tolerance tolerance)
         {
-            if (polygon == null)
-            {
-                throw new ArgumentNullException(nameof(polygon));
-            }
-
-            if (Intersection3.TryIntersectWith(line, polygon, out _, tolerance))
-            {
-                return 0.0;
-            }
-
-            double best = Math.Min(DistanceTo(polygon, line.StartPoint, tolerance), DistanceTo(polygon, line.EndPoint, tolerance));
-
-            for (int i = 0; i < polygon.EdgeCount; i++)
-            {
-                best = Math.Min(best, DistanceTo(line, polygon.GetEdgeAt(i), tolerance));
-            }
-
-            return best;
+            return Projection3.GetShortestLineTo(line, polygon, tolerance).Length;
         }
 
         /// <summary>

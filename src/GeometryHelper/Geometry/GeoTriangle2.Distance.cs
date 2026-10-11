@@ -90,5 +90,31 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this triangle to a curved chain, within a tolerance.
         /// </summary>
         public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Triangle2.DistanceTo(this, chain, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance from this triangle to the material of a face: the same answer as
+        /// <see cref="GeoFace2.DistanceTo(GeoTriangle2)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material, its outline less its holes, so this triangle is nought from it where the
+        /// two collide, and as far as the nearest rim where it lies wholly in a hole. The triangle (40, 40), (60, 40),
+        /// (50, 60) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its
+        /// middle and is 10 from its rim.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace2 face) => Face2.DistanceTo(face, this);
+
+        /// <summary>
+        /// Calculates the shortest distance from this triangle to the material of a face, within a tolerance: the same
+        /// answer as <see cref="GeoFace2.DistanceTo(GeoTriangle2, Tolerance)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material, its outline less its holes, so this triangle is nought from it where the
+        /// two collide, and as far as the nearest rim where it lies wholly in a hole. The triangle (40, 40), (60, 40),
+        /// (50, 60) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its
+        /// middle and is 10 from its rim.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace2 face, Tolerance tolerance) => Face2.DistanceTo(face, this, tolerance);
     }
 }

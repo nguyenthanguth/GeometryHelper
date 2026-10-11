@@ -119,5 +119,104 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentException">Thrown when this segment does not lie in the loop's plane.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance)
             => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a point, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this segment and ends on the point, so it is as long as the distance between them: from
+        /// the segment joining (0, 0, 0) and (100, 0, 0), the point (50, 30, 40) gets the one from (50, 0, 0), 50 long.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point) => Projection3.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a point, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this segment and ends on the point, so it is as long as the distance between them: from
+        /// the segment joining (0, 0, 0) and (100, 0, 0), the point (50, 30, 40) gets the one from (50, 0, 0), 50 long.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(this, point, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a plane, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A segment that crosses or touches the plane meets it in a segment of no length, at its start where that lies
+        /// on the plane and otherwise where it passes through; one clear of it is joined from its nearer end, the start
+        /// where both are as near. The segment from (0, 0, 10) to (50, 0, 30) is joined to the XY plane from its start
+        /// to the origin, 10 long, as <see cref="DistanceTo(GeoPlane3)"/> measures it.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPlane3 plane) => Projection3.GetShortestLineTo(this, plane);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a plane, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A segment that crosses or touches the plane meets it in a segment of no length, at its start where that lies
+        /// on the plane and otherwise where it passes through; one clear of it is joined from its nearer end, the start
+        /// where both are as near. The segment from (0, 0, 10) to (50, 0, 30) is joined to the XY plane from its start
+        /// to the origin, 10 long, as <see cref="DistanceTo(GeoPlane3)"/> measures it. The tolerance is taken so that
+        /// this reads like every other shape; it changes nothing, since the distance reads a segment against a plane
+        /// exactly.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPlane3 plane, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(this, plane, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a polygon, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The polygon is read as a filled surface, as its distance reads it: a segment through it meets it in a
+        /// segment of no length at the crossing, and one ending above it is joined straight down. Over the square 100
+        /// by 100 on the XY plane with a corner at the origin, the segment from (20, 20, 30) to (80, 80, 60) is joined
+        /// from its start straight down, 30 long, as <see cref="DistanceTo(GeoPolygon3)"/> measures it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon) => Projection3.GetShortestLineTo(this, polygon);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a polygon, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The polygon is read as a filled surface, as its distance reads it: a segment through it meets it in a
+        /// segment of no length at the crossing, and one ending above it is joined straight down. Over the square 100
+        /// by 100 on the XY plane with a corner at the origin, the segment from (20, 20, 30) to (80, 80, 60) is joined
+        /// from its start straight down, 30 long, as <see cref="DistanceTo(GeoPolygon3)"/> measures it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(this, polygon, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a polyline:
+        /// <see cref="GeoPolyline3.GetShortestLineTo(GeoLine3)"/> turned round, so that it leaves this segment and
+        /// lands on the polyline.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this segment and lands on the chain, of no length where they meet, and a tie goes to the
+        /// first edge of the chain. The segment from (60, 50, 30) to (60, 50, 80) is joined to the chain (0, 0, 0),
+        /// (100, 0, 0), (100, 100, 0) from its start to (100, 50, 0), 50 long, as
+        /// <see cref="DistanceTo(GeoPolyline3)"/> measures it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline)
+            => Projection3.GetShortestLineTo(polyline, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a polyline, within a tolerance:
+        /// <see cref="GeoPolyline3.GetShortestLineTo(GeoLine3, Tolerance)"/> turned round, so that it leaves this
+        /// segment and lands on the polyline.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this segment and lands on the chain, of no length where they meet, and a tie goes to the
+        /// first edge of the chain. The segment from (60, 50, 30) to (60, 50, 80) is joined to the chain (0, 0, 0),
+        /// (100, 0, 0), (100, 100, 0) from its start to (100, 50, 0), 50 long, as
+        /// <see cref="DistanceTo(GeoPolyline3)"/> measures it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(polyline, this, tolerance).Reverse();
     }
 }

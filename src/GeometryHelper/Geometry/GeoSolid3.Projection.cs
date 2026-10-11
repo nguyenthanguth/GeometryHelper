@@ -80,5 +80,84 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment joining this solid to a ray, within a tolerance.
         /// </summary>
         public GeoLine3 GetShortestLineTo(GeoRay3 ray, Tolerance tolerance) => Projection3.GetShortestLineTo(this, ray, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a polyline, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment runs from the surface of this body to the chain, so a chain lying wholly inside is joined out to
+        /// the nearest face, where <see cref="DistanceTo(GeoPolyline3)"/> answers nought; outside, it is as long as
+        /// that distance. In the box 100 by 100 by 100 with a corner at the origin, the chain (50, 50, 10), (50, 50,
+        /// 60), (50, 70, 60) is joined from the bottom face at (50, 50, 0) to (50, 50, 10), 10 long.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline) => Projection3.GetShortestLineTo(this, polyline);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a polyline, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment runs from the surface of this body to the chain, so a chain lying wholly inside is joined out to
+        /// the nearest face, where <see cref="DistanceTo(GeoPolyline3)"/> answers nought; outside, it is as long as
+        /// that distance. In the box 100 by 100 by 100 with a corner at the origin, the chain (50, 50, 10), (50, 50,
+        /// 60), (50, 70, 60) is joined from the bottom face at (50, 50, 0) to (50, 50, 10), 10 long.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(this, polyline, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a polygon, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment runs from the surface of this body to the polygon, read as a filled surface, so a polygon lying
+        /// wholly inside is joined out to the nearest face, where <see cref="DistanceTo(GeoPolygon3)"/> answers nought;
+        /// outside, it is as long as that distance. In the box 100 by 100 by 100 with a corner at the origin, the
+        /// square 20 by 20 lying flat at a height of 30 is joined from the bottom face, 30 long.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon) => Projection3.GetShortestLineTo(this, polygon);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a polygon, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment runs from the surface of this body to the polygon, read as a filled surface, so a polygon lying
+        /// wholly inside is joined out to the nearest face, where <see cref="DistanceTo(GeoPolygon3)"/> answers nought;
+        /// outside, it is as long as that distance. In the box 100 by 100 by 100 with a corner at the origin, the
+        /// square 20 by 20 lying flat at a height of 30 is joined from the bottom face, 30 long.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(this, polygon, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a plane, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A body that crosses or touches the plane meets it in a segment of no length at the first point of contact,
+        /// walking the triangles of its surface in order; one clear of it is joined from its nearest corner, as long as
+        /// <see cref="DistanceTo(GeoPlane3)"/>. The box 100 by 100 by 100 with a corner at the origin is joined to the
+        /// plane 30 under it from a corner of its bottom face, 30 long. A body of separate pieces either side of the
+        /// plane, neither touching it, is nought from it by the distance, which reads only its corners, and is joined
+        /// from its nearest corner all the same. The segment is never snapped: a shape a hair off the plane is joined
+        /// by a segment that short, though the distance, read within the point tolerance, is nought.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPlane3 plane) => Projection3.GetShortestLineTo(this, plane);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a plane, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A body that crosses or touches the plane meets it in a segment of no length at the first point of contact,
+        /// walking the triangles of its surface in order; one clear of it is joined from its nearest corner, as long as
+        /// <see cref="DistanceTo(GeoPlane3)"/>. The box 100 by 100 by 100 with a corner at the origin is joined to the
+        /// plane 30 under it from a corner of its bottom face, 30 long. A body of separate pieces either side of the
+        /// plane, neither touching it, is nought from it by the distance, which reads only its corners, and is joined
+        /// from its nearest corner all the same. The segment is never snapped: a shape a hair off the plane is joined
+        /// by a segment that short, though the distance, read within the point tolerance, is nought.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPlane3 plane, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(this, plane, tolerance);
     }
 }

@@ -68,5 +68,25 @@ namespace GeometryHelper.Geometry
         /// between them and nought where they touch.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoSolid3 solid, Tolerance tolerance) => Projection3.GetShortestLineTo(solid, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this ray to a point, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this ray and ends on the point, so it is as long as <see cref="DistanceTo(GeoPoint3)"/>:
+        /// from the ray leaving the origin along X, the point (-30, 0, 40) gets the one from the origin, 50 long.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point) => Projection3.GetShortestLineTo(this, point);
+
+        /// <summary>
+        /// Gets the shortest segment joining this ray to a point, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment leaves this ray and ends on the point, so it is as long as <see cref="DistanceTo(GeoPoint3)"/>:
+        /// from the ray leaving the origin along X, the point (-30, 0, 40) gets the one from the origin, 50 long. The
+        /// tolerance is taken so that this reads like every other shape; it changes nothing here.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(this, point, tolerance);
     }
 }

@@ -329,5 +329,61 @@ namespace GeometryHelper.Geometry
         }
 
         #endregion
+
+        /// <summary>
+        /// Gets every point where the boundary of this face crosses the boundary of another.
+        /// </summary>
+        /// <remarks>
+        /// The crossings of the outline and then each hole of this face, each against the outline and then each hole of
+        /// the other. The square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle crosses the
+        /// square 20 by 20 about (30, 50) twice, at (30, 40) and (30, 60), on the rim of the hole.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the other face is null.</exception>
+        public GeoPoint2[] GetIntersections(GeoFace2 other) => Face2.GetIntersections(this, other);
+
+        /// <summary>
+        /// Gets every point where the boundary of this face crosses the boundary of another, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The crossings of the outline and then each hole of this face, each against the outline and then each hole of
+        /// the other. The square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle crosses the
+        /// square 20 by 20 about (30, 50) twice, at (30, 40) and (30, 60), on the rim of the hole.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the other face is null.</exception>
+        public GeoPoint2[] GetIntersections(GeoFace2 other, Tolerance tolerance)
+            => Face2.GetIntersections(this, other, tolerance);
+
+        /// <summary>
+        /// Tries to find where the boundary of this face crosses the boundary of another.
+        /// </summary>
+        /// <remarks>
+        /// This is <see cref="GetIntersections(GeoFace2, Tolerance)"/> read a second way, the list and whether it is
+        /// empty, as for every other shape. The square 100 by 100 with a corner at the origin and a hole 40 by 40 in its
+        /// middle meets the square 20 by 20 about (30, 50) at two points; a face lying in its hole without touching the
+        /// rim meets it nowhere, and the answer is false.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the other face is null.</exception>
+        public bool TryIntersectWith(GeoFace2 other, out GeoPoint2[] intersections)
+            => TryIntersectWith(other, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where the boundary of this face crosses the boundary of another, within a tolerance.
+        /// </summary>
+        /// <param name="other">The other face.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when the boundaries meet anywhere; otherwise, false.</returns>
+        /// <remarks>
+        /// The points are those of <see cref="GetIntersections(GeoFace2, Tolerance)"/>, in the same order. The square 100
+        /// by 100 with a corner at the origin and a hole 40 by 40 in its middle meets the square 20 by 20 about (30, 50)
+        /// at two points.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the other face is null.</exception>
+        public bool TryIntersectWith(GeoFace2 other, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(other, tolerance);
+
+            return intersections.Length > 0;
+        }
     }
 }

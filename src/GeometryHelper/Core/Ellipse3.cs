@@ -274,6 +274,26 @@ namespace GeometryHelper.Core
             return Math.Sqrt(height * height + du * du + dv * dv);
         }
 
+        /// <summary>
+        /// Gets the shortest segment joining the disc of an ellipse in space to a point, using the default tolerance.
+        /// </summary>
+        public static GeoLine3 GetShortestLineTo(GeoEllipse3 ellipse, GeoPoint3 point) => GetShortestLineTo(ellipse, point, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining the disc of an ellipse in space to a point.
+        /// </summary>
+        /// <param name="ellipse">The ellipse, read as the filled disc its distance reads.</param>
+        /// <param name="point">The point, anywhere.</param>
+        /// <param name="tolerance">The tolerance, taken as a circle's is; it changes nothing, as for <see cref="GetClosestPointOnSurface(GeoEllipse3, GeoPoint3, Tolerance)"/>.</param>
+        /// <returns>
+        /// A segment from the point <see cref="GetClosestPointOnSurface(GeoEllipse3, GeoPoint3, Tolerance)"/> gives to
+        /// <paramref name="point"/>, as long as <see cref="DistanceTo(GeoEllipse3, GeoPoint3, Tolerance)"/>: straight down
+        /// where the foot lies within the rim, of no length for a point on the disc. From the ellipse 300 by 100 about the
+        /// origin on the XY plane, the point (0, 0, 50) gets the segment from the centre, 50 long, and the point (330, 0, 40)
+        /// the one from the end of the major axis at (300, 0, 0), also 50 long.
+        /// </returns>
+        public static GeoLine3 GetShortestLineTo(GeoEllipse3 ellipse, GeoPoint3 point, Tolerance tolerance) => new GeoLine3(GetClosestPointOnSurface(ellipse, point, tolerance), point);
+
         #endregion
 
         #region Points on the disc and on the rim
