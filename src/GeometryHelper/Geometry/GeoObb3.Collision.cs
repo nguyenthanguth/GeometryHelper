@@ -144,5 +144,80 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance)
             => Collision3.CollidesWith(polyline, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this oriented box and a triangle touch: the same answer as
+        /// <see cref="Collision3.CollidesWith(GeoTriangle3, GeoObb3)"/>.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <remarks>
+        /// A box 100 by 100 by 100 with a corner at the origin and the triangle with corners (-50, -50, 50), (300, -50, 50)
+        /// and (-50, 300, 50) cross at four points at height 50; a triangle wholly inside the box touches it and crosses
+        /// nothing.
+        /// </remarks>
+        public bool CollidesWith(GeoTriangle3 triangle) => Collision3.CollidesWith(triangle, this);
+
+        /// <summary>
+        /// Checks whether this oriented box and a triangle touch, within a tolerance: the same answer as
+        /// <see cref="Collision3.CollidesWith(GeoTriangle3, GeoObb3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A box 100 by 100 by 100 with a corner at the origin and the triangle with corners (-50, -50, 50), (300, -50, 50)
+        /// and (-50, 300, 50) cross at four points at height 50; a triangle wholly inside the box touches it and crosses
+        /// nothing.
+        /// </remarks>
+        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) => Collision3.CollidesWith(triangle, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this oriented box and the material of a face touch: the same answer as
+        /// <see cref="Collision3.CollidesWith(GeoFace3, GeoObb3)"/>.
+        /// </summary>
+        /// <param name="face">The face, read by its material.</param>
+        /// <remarks>
+        /// The square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by 150 in its middle, around a box
+        /// 100 by 100 by 100 with a corner at the origin, crosses nothing and touches nothing; without the hole it crosses
+        /// the box at four points at height 50.
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
+        public bool CollidesWith(GeoFace3 face) => Collision3.CollidesWith(face, this);
+
+        /// <summary>
+        /// Checks whether this oriented box and the material of a face touch, within a tolerance: the same answer as
+        /// <see cref="Collision3.CollidesWith(GeoFace3, GeoObb3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="face">The face, read by its material.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by 150 in its middle, around a box
+        /// 100 by 100 by 100 with a corner at the origin, crosses nothing and touches nothing; without the hole it crosses
+        /// the box at four points at height 50.
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
+        public bool CollidesWith(GeoFace3 face, Tolerance tolerance) => Collision3.CollidesWith(face, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this oriented box touches a plane: the same answer as
+        /// <see cref="Collision3.CollidesWith(GeoPlane3, GeoObb3)"/>.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <remarks>
+        /// The plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50; the
+        /// plane z = 101 misses it.
+        /// </remarks>
+        public bool CollidesWith(GeoPlane3 plane) => Collision3.CollidesWith(plane, this);
+
+        /// <summary>
+        /// Checks whether this oriented box touches a plane, within a tolerance: the same answer as
+        /// <see cref="Collision3.CollidesWith(GeoPlane3, GeoObb3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50; the
+        /// plane z = 101 misses it.
+        /// </remarks>
+        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) => Collision3.CollidesWith(plane, this, tolerance);
     }
 }

@@ -245,5 +245,52 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoPolyline3 other, out GeoPoint3[] intersections, Tolerance tolerance)
             => Core.ArcChain3.TryIntersectWith(this, other, out intersections, tolerance);
 
+        /// <summary>
+        /// Gets every point where an edge crosses this curved loop: the same points, in the same order, as
+        /// <see cref="GeoEdge3.GetIntersections(GeoPolygonArc3)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoEdge3 edge) => edge.GetIntersections(this);
+
+        /// <summary>
+        /// Gets every point where an edge crosses this curved loop, within a tolerance: the same points, in the same order,
+        /// as <see cref="GeoEdge3.GetIntersections(GeoPolygonArc3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoEdge3 edge, Tolerance tolerance) => edge.GetIntersections(this, tolerance);
+
+        /// <summary>
+        /// Tries to find where an edge crosses this curved loop: the same answer, and the same points in the same order, as
+        /// <see cref="GeoEdge3.TryIntersectWith(GeoPolygonArc3, out GeoPoint3[])"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections) => edge.TryIntersectWith(this, out intersections);
+
+        /// <summary>
+        /// Tries to find where an edge crosses this curved loop, within a tolerance: the same answer, and the same points
+        /// in the same order, as <see cref="GeoEdge3.TryIntersectWith(GeoPolygonArc3, out GeoPoint3[], Tolerance)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections, Tolerance tolerance) => edge.TryIntersectWith(this, out intersections, tolerance);
     }
 }

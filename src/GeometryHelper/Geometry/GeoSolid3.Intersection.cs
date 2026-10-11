@@ -162,5 +162,169 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public bool TryIntersectWith(GeoPolyline3 polyline, out GeoPoint3[] intersections, Tolerance tolerance)
             => Intersection3.TryIntersectWith(polyline, this, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets the points where the surface of this solid and a triangle cross: the same points, in the same order, as
+        /// <see cref="Intersection3.GetIntersections(GeoTriangle3, GeoSolid3)"/>.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <remarks>
+        /// A box 100 by 100 by 100 with a corner at the origin and the triangle with corners (-50, -50, 50), (300, -50, 50)
+        /// and (-50, 300, 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0,
+        /// 100, 50); a triangle wholly inside the box crosses nothing and touches it.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle) => Intersection3.GetIntersections(triangle, this);
+
+        /// <summary>
+        /// Gets the points where the surface of this solid and a triangle cross, within a tolerance: the same points, in
+        /// the same order, as <see cref="Intersection3.GetIntersections(GeoTriangle3, GeoSolid3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A box 100 by 100 by 100 with a corner at the origin and the triangle with corners (-50, -50, 50), (300, -50, 50)
+        /// and (-50, 300, 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0,
+        /// 100, 50); a triangle wholly inside the box crosses nothing and touches it.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) => Intersection3.GetIntersections(triangle, this, tolerance);
+
+        /// <summary>
+        /// Tries to find where the surface of this solid and a triangle cross: the same answer, and the same points in the
+        /// same order, as <see cref="Intersection3.TryIntersectWith(GeoTriangle3, GeoSolid3, out GeoPoint3[])"/>.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <remarks>
+        /// A box 100 by 100 by 100 with a corner at the origin and the triangle with corners (-50, -50, 50), (300, -50, 50)
+        /// and (-50, 300, 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0,
+        /// 100, 50); a triangle wholly inside the box crosses nothing and touches it.
+        /// </remarks>
+        public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3[] intersections)
+            => Intersection3.TryIntersectWith(triangle, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where the surface of this solid and a triangle cross, within a tolerance: the same answer, and the
+        /// same points in the same order, as
+        /// <see cref="Intersection3.TryIntersectWith(GeoTriangle3, GeoSolid3, out GeoPoint3[], Tolerance)"/>.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A box 100 by 100 by 100 with a corner at the origin and the triangle with corners (-50, -50, 50), (300, -50, 50)
+        /// and (-50, 300, 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0,
+        /// 100, 50); a triangle wholly inside the box crosses nothing and touches it.
+        /// </remarks>
+        public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Intersection3.TryIntersectWith(triangle, this, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets the points where the surface of this solid and a polygon cross: the same points, in the same order, as
+        /// <see cref="Intersection3.GetIntersections(GeoPolygon3, GeoSolid3)"/>.
+        /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <remarks>
+        /// A box 100 by 100 by 100 with a corner at the origin and the square 200 by 200 from (-50, -50, 50) to (150, 150,
+        /// 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0, 100, 50).
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon) => Intersection3.GetIntersections(polygon, this);
+
+        /// <summary>
+        /// Gets the points where the surface of this solid and a polygon cross, within a tolerance: the same points, in the
+        /// same order, as <see cref="Intersection3.GetIntersections(GeoPolygon3, GeoSolid3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A box 100 by 100 by 100 with a corner at the origin and the square 200 by 200 from (-50, -50, 50) to (150, 150,
+        /// 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0, 100, 50).
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) => Intersection3.GetIntersections(polygon, this, tolerance);
+
+        /// <summary>
+        /// Tries to find where the surface of this solid and a polygon cross: the same answer, and the same points in the
+        /// same order, as <see cref="Intersection3.TryIntersectWith(GeoPolygon3, GeoSolid3, out GeoPoint3[])"/>.
+        /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <remarks>
+        /// A box 100 by 100 by 100 with a corner at the origin and the square 200 by 200 from (-50, -50, 50) to (150, 150,
+        /// 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0, 100, 50).
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
+        public bool TryIntersectWith(GeoPolygon3 polygon, out GeoPoint3[] intersections)
+            => Intersection3.TryIntersectWith(polygon, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where the surface of this solid and a polygon cross, within a tolerance: the same answer, and the
+        /// same points in the same order, as
+        /// <see cref="Intersection3.TryIntersectWith(GeoPolygon3, GeoSolid3, out GeoPoint3[], Tolerance)"/>.
+        /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A box 100 by 100 by 100 with a corner at the origin and the square 200 by 200 from (-50, -50, 50) to (150, 150,
+        /// 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0, 100, 50).
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
+        public bool TryIntersectWith(GeoPolygon3 polygon, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Intersection3.TryIntersectWith(polygon, this, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets the points where the surface of this solid and the material of a face cross: the same points, in the same
+        /// order, as <see cref="Intersection3.GetIntersections(GeoFace3, GeoSolid3)"/>.
+        /// </summary>
+        /// <param name="face">The face, read by its material.</param>
+        /// <remarks>
+        /// The square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by 150 in its middle, around a box
+        /// 100 by 100 by 100 with a corner at the origin, crosses nothing: the box passes through the hole.
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoFace3 face) => Intersection3.GetIntersections(face, this);
+
+        /// <summary>
+        /// Gets the points where the surface of this solid and the material of a face cross, within a tolerance: the same
+        /// points, in the same order, as <see cref="Intersection3.GetIntersections(GeoFace3, GeoSolid3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="face">The face, read by its material.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by 150 in its middle, around a box
+        /// 100 by 100 by 100 with a corner at the origin, crosses nothing: the box passes through the hole.
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) => Intersection3.GetIntersections(face, this, tolerance);
+
+        /// <summary>
+        /// Tries to find where the surface of this solid and the material of a face cross: the same answer, and the same
+        /// points in the same order, as <see cref="Intersection3.TryIntersectWith(GeoFace3, GeoSolid3, out GeoPoint3[])"/>.
+        /// </summary>
+        /// <param name="face">The face, read by its material.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <remarks>
+        /// The square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by 150 in its middle, around a box
+        /// 100 by 100 by 100 with a corner at the origin, crosses nothing: the box passes through the hole.
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
+        public bool TryIntersectWith(GeoFace3 face, out GeoPoint3[] intersections) => Intersection3.TryIntersectWith(face, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where the surface of this solid and the material of a face cross, within a tolerance: the same
+        /// answer, and the same points in the same order, as
+        /// <see cref="Intersection3.TryIntersectWith(GeoFace3, GeoSolid3, out GeoPoint3[], Tolerance)"/>.
+        /// </summary>
+        /// <param name="face">The face, read by its material.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by 150 in its middle, around a box
+        /// 100 by 100 by 100 with a corner at the origin, crosses nothing: the box passes through the hole.
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
+        public bool TryIntersectWith(GeoFace3 face, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Intersection3.TryIntersectWith(face, this, out intersections, tolerance);
     }
 }

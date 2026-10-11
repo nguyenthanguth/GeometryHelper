@@ -335,5 +335,52 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoPolyline3 other, out GeoPoint3[] intersections, Tolerance tolerance)
             => Intersection3.TryIntersectWith(this, other, out intersections, tolerance);
 
+        /// <summary>
+        /// Gets every point where an edge crosses this straight chain: the same points, in the same order, as
+        /// <see cref="GeoEdge3.GetIntersections(GeoPolyline3)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoEdge3 edge) => edge.GetIntersections(this);
+
+        /// <summary>
+        /// Gets every point where an edge crosses this straight chain, within a tolerance: the same points, in the same
+        /// order, as <see cref="GeoEdge3.GetIntersections(GeoPolyline3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoEdge3 edge, Tolerance tolerance) => edge.GetIntersections(this, tolerance);
+
+        /// <summary>
+        /// Tries to find where an edge crosses this straight chain: the same answer, and the same points in the same order,
+        /// as <see cref="GeoEdge3.TryIntersectWith(GeoPolyline3, out GeoPoint3[])"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections) => edge.TryIntersectWith(this, out intersections);
+
+        /// <summary>
+        /// Tries to find where an edge crosses this straight chain, within a tolerance: the same answer, and the same
+        /// points in the same order, as <see cref="GeoEdge3.TryIntersectWith(GeoPolyline3, out GeoPoint3[], Tolerance)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections, Tolerance tolerance) => edge.TryIntersectWith(this, out intersections, tolerance);
     }
 }

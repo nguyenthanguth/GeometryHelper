@@ -285,5 +285,150 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public bool TryIntersectWith(GeoPolylineArc3 chain, out GeoPoint3[] intersections, Tolerance tolerance)
             => ArcChain3.TryIntersectWith(chain, this, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets where this ray crosses a plane, as a list: the same points, in the same order, as
+        /// <see cref="Intersection3.GetIntersections(GeoRay3, GeoPlane3)"/>.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <remarks>
+        /// A ray from (0, 0, 10) pointing straight down crosses the floor plane at the origin; one lying in the floor
+        /// touches it everywhere and crosses it nowhere.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoPlane3 plane) => Intersection3.GetIntersections(this, plane);
+
+        /// <summary>
+        /// Gets where this ray crosses a plane, as a list, within a tolerance: the same points, in the same order, as
+        /// <see cref="Intersection3.GetIntersections(GeoRay3, GeoPlane3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A ray from (0, 0, 10) pointing straight down crosses the floor plane at the origin; one lying in the floor
+        /// touches it everywhere and crosses it nowhere.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoPlane3 plane, Tolerance tolerance) => Intersection3.GetIntersections(this, plane, tolerance);
+
+        /// <summary>
+        /// Gets where this ray and another cross, as a list: the same points, in the same order, as
+        /// <see cref="Intersection3.GetIntersections(GeoRay3, GeoRay3)"/>.
+        /// </summary>
+        /// <param name="other">The ray.</param>
+        /// <remarks>
+        /// A ray from the origin along X and one from (50, -50, 0) along Y cross at (50, 0, 0); two rays along the X axis
+        /// from 0 and from 100, facing each other, touch along the stretch between them and name no place.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoRay3 other) => Intersection3.GetIntersections(this, other);
+
+        /// <summary>
+        /// Gets where this ray and another cross, as a list, within a tolerance: the same points, in the same order, as
+        /// <see cref="Intersection3.GetIntersections(GeoRay3, GeoRay3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="other">The ray.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A ray from the origin along X and one from (50, -50, 0) along Y cross at (50, 0, 0); two rays along the X axis
+        /// from 0 and from 100, facing each other, touch along the stretch between them and name no place.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoRay3 other, Tolerance tolerance) => Intersection3.GetIntersections(this, other, tolerance);
+
+        /// <summary>
+        /// Tries to find where this ray and another cross: the same answer, and the same points in the same order, as
+        /// <see cref="Intersection3.TryIntersectWith(GeoRay3, GeoRay3, out GeoPoint3[])"/>.
+        /// </summary>
+        /// <param name="other">The ray.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <remarks>
+        /// A ray from the origin along X and one from (50, -50, 0) along Y cross at (50, 0, 0); two rays along the X axis
+        /// from 0 and from 100, facing each other, touch along the stretch between them and name no place.
+        /// </remarks>
+        public bool TryIntersectWith(GeoRay3 other, out GeoPoint3[] intersections) => Intersection3.TryIntersectWith(this, other, out intersections);
+
+        /// <summary>
+        /// Tries to find where this ray and another cross, within a tolerance: the same answer, and the same points in the
+        /// same order, as <see cref="Intersection3.TryIntersectWith(GeoRay3, GeoRay3, out GeoPoint3[], Tolerance)"/>.
+        /// </summary>
+        /// <param name="other">The ray.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A ray from the origin along X and one from (50, -50, 0) along Y cross at (50, 0, 0); two rays along the X axis
+        /// from 0 and from 100, facing each other, touch along the stretch between them and name no place.
+        /// </remarks>
+        public bool TryIntersectWith(GeoRay3 other, out GeoPoint3[] intersections, Tolerance tolerance)
+            => Intersection3.TryIntersectWith(this, other, out intersections, tolerance);
+
+        /// <summary>
+        /// Gets where this ray crosses a triangle, as a list: the same points, in the same order, as
+        /// <see cref="Intersection3.GetIntersections(GeoRay3, GeoTriangle3)"/>.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <remarks>
+        /// A ray from (20, 20, 10) pointing straight down crosses the triangle with corners (0, 0, 0), (100, 0, 0) and (0,
+        /// 100, 0) at (20, 20, 0).
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle) => Intersection3.GetIntersections(this, triangle);
+
+        /// <summary>
+        /// Gets where this ray crosses a triangle, as a list, within a tolerance: the same points, in the same order, as
+        /// <see cref="Intersection3.GetIntersections(GeoRay3, GeoTriangle3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A ray from (20, 20, 10) pointing straight down crosses the triangle with corners (0, 0, 0), (100, 0, 0) and (0,
+        /// 100, 0) at (20, 20, 0).
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) => Intersection3.GetIntersections(this, triangle, tolerance);
+
+        /// <summary>
+        /// Gets where this ray crosses a polygon, as a list: the same points, in the same order, as
+        /// <see cref="Intersection3.GetIntersections(GeoRay3, GeoPolygon3)"/>.
+        /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <remarks>
+        /// A ray from (20, 20, 10) pointing straight down crosses the square 100 by 100 in the floor with a corner at the
+        /// origin at (20, 20, 0).
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon) => Intersection3.GetIntersections(this, polygon);
+
+        /// <summary>
+        /// Gets where this ray crosses a polygon, as a list, within a tolerance: the same points, in the same order, as
+        /// <see cref="Intersection3.GetIntersections(GeoRay3, GeoPolygon3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A ray from (20, 20, 10) pointing straight down crosses the square 100 by 100 in the floor with a corner at the
+        /// origin at (20, 20, 0).
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) => Intersection3.GetIntersections(this, polygon, tolerance);
+
+        /// <summary>
+        /// Gets where this ray crosses the material of a face, as a list: the same points, in the same order, as
+        /// <see cref="Intersection3.GetIntersections(GeoRay3, GeoFace3)"/>.
+        /// </summary>
+        /// <param name="face">The face, read by its material.</param>
+        /// <remarks>
+        /// A ray from (50, 50, 10) pointing straight down passes through the hole 40 by 40 in the middle of the square 100
+        /// by 100 in the floor and crosses nothing; from (20, 20, 10) it crosses the material at (20, 20, 0).
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoFace3 face) => Intersection3.GetIntersections(this, face);
+
+        /// <summary>
+        /// Gets where this ray crosses the material of a face, as a list, within a tolerance: the same points, in the same
+        /// order, as <see cref="Intersection3.GetIntersections(GeoRay3, GeoFace3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="face">The face, read by its material.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A ray from (50, 50, 10) pointing straight down passes through the hole 40 by 40 in the middle of the square 100
+        /// by 100 in the floor and crosses nothing; from (20, 20, 10) it crosses the material at (20, 20, 0).
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) => Intersection3.GetIntersections(this, face, tolerance);
     }
 }

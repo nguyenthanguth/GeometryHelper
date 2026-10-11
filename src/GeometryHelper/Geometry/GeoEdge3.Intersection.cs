@@ -264,5 +264,175 @@ namespace GeometryHelper.Geometry
             return intersections.Length > 0;
         }
 
+        /// <summary>
+        /// Gets every point where this edge crosses a straight chain: a bend is asked as an arc and a straight edge as a
+        /// segment, so the points are that piece's, in the order it gives them.
+        /// </summary>
+        /// <param name="polyline">The straight chain.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolyline3 polyline) => GetIntersections(polyline, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a straight chain, within a tolerance: a bend is asked as an arc and a
+        /// straight edge as a segment, so the points are that piece's, in the order it gives them.
+        /// </summary>
+        /// <param name="polyline">The straight chain.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolyline3 polyline, Tolerance tolerance)
+            => IsArc ? ToArc().GetIntersections(polyline, tolerance) : ToLine().GetIntersections(polyline, tolerance);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a straight chain.
+        /// </summary>
+        /// <param name="polyline">The straight chain.</param>
+        /// <param name="intersections">The points of <see cref="GetIntersections(GeoPolyline3, Tolerance)"/>, in the same order; empty when there are none.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool TryIntersectWith(GeoPolyline3 polyline, out GeoPoint3[] intersections)
+            => TryIntersectWith(polyline, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a straight chain, within a tolerance.
+        /// </summary>
+        /// <param name="polyline">The straight chain.</param>
+        /// <param name="intersections">The points of <see cref="GetIntersections(GeoPolyline3, Tolerance)"/>, in the same order; empty when there are none.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool TryIntersectWith(GeoPolyline3 polyline, out GeoPoint3[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(polyline, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Gets every point where this edge crosses a curved chain: a bend is asked as an arc and a straight edge as a
+        /// segment, so the points are that piece's, in the order it gives them.
+        /// </summary>
+        /// <param name="chain">The curved chain.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a chain running straight from the
+        /// origin to (100, 100, 0) at (35.36, 35.36, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolylineArc3 chain) => GetIntersections(chain, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a curved chain, within a tolerance: a bend is asked as an arc and a
+        /// straight edge as a segment, so the points are that piece's, in the order it gives them.
+        /// </summary>
+        /// <param name="chain">The curved chain.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a chain running straight from the
+        /// origin to (100, 100, 0) at (35.36, 35.36, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolylineArc3 chain, Tolerance tolerance)
+            => IsArc ? ToArc().GetIntersections(chain, tolerance) : ToLine().GetIntersections(chain, tolerance);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a curved chain.
+        /// </summary>
+        /// <param name="chain">The curved chain.</param>
+        /// <param name="intersections">The points of <see cref="GetIntersections(GeoPolylineArc3, Tolerance)"/>, in the same order; empty when there are none.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a chain running straight from the
+        /// origin to (100, 100, 0) at (35.36, 35.36, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool TryIntersectWith(GeoPolylineArc3 chain, out GeoPoint3[] intersections)
+            => TryIntersectWith(chain, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a curved chain, within a tolerance.
+        /// </summary>
+        /// <param name="chain">The curved chain.</param>
+        /// <param name="intersections">The points of <see cref="GetIntersections(GeoPolylineArc3, Tolerance)"/>, in the same order; empty when there are none.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a chain running straight from the
+        /// origin to (100, 100, 0) at (35.36, 35.36, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool TryIntersectWith(GeoPolylineArc3 chain, out GeoPoint3[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(chain, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Gets every point where this edge crosses a curved loop: a bend is asked as an arc and a straight edge as a
+        /// segment, so the points are that piece's, in the order it gives them.
+        /// </summary>
+        /// <param name="loop">The curved loop.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolygonArc3 loop) => GetIntersections(loop, Tolerance.Global);
+
+        /// <summary>
+        /// Gets every point where this edge crosses a curved loop, within a tolerance: a bend is asked as an arc and a
+        /// straight edge as a segment, so the points are that piece's, in the order it gives them.
+        /// </summary>
+        /// <param name="loop">The curved loop.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, Tolerance tolerance)
+            => IsArc ? ToArc().GetIntersections(loop, tolerance) : ToLine().GetIntersections(loop, tolerance);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a curved loop.
+        /// </summary>
+        /// <param name="loop">The curved loop.</param>
+        /// <param name="intersections">The points of <see cref="GetIntersections(GeoPolygonArc3, Tolerance)"/>, in the same order; empty when there are none.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public bool TryIntersectWith(GeoPolygonArc3 loop, out GeoPoint3[] intersections)
+            => TryIntersectWith(loop, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this edge crosses a curved loop, within a tolerance.
+        /// </summary>
+        /// <param name="loop">The curved loop.</param>
+        /// <param name="intersections">The points of <see cref="GetIntersections(GeoPolygonArc3, Tolerance)"/>, in the same order; empty when there are none.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public bool TryIntersectWith(GeoPolygonArc3 loop, out GeoPoint3[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(loop, tolerance);
+
+            return intersections.Length > 0;
+        }
     }
 }

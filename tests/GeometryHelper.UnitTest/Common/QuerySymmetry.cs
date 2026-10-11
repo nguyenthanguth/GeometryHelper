@@ -10,7 +10,8 @@ namespace GeometryHelper.UnitTest.Common
     /// <summary>
     /// Reads the measuring questions every shape type answers, by reflection, so that the plane and space
     /// guards in the two ApiSymmetryTests can say which shape answers a question about another that the
-    /// other cannot answer back, and which pair has a distance but no shortest line.
+    /// other cannot answer back, which pair has a distance but no shortest line, and which pair of straight or
+    /// flat shapes in space cannot say from either side whether and where they meet.
     /// </summary>
     /// <remarks>
     /// A pair is one-sided when <c>A.Query(B ...)</c> exists, in any overload, and no <c>B.Query(A ...)</c>
@@ -145,6 +146,113 @@ namespace GeometryHelper.UnitTest.Common
             }
 
             return missing.OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        }
+
+        /// <summary>
+        /// The shapes in space that are straight or flat: every pair of them says whether and where the two meet.
+        /// </summary>
+        private static readonly Type[] StraightOrFlat3 =
+        {
+            typeof(GeoAabb3), typeof(GeoFace3), typeof(GeoLine3), typeof(GeoObb3), typeof(GeoPlane3), typeof(GeoPoint3),
+            typeof(GeoPolygon3), typeof(GeoPolyline3), typeof(GeoRay3), typeof(GeoSolid3), typeof(GeoTriangle3)
+        };
+
+        /// <summary>
+        /// The pairs with a bend in them that say whether and where they meet too: an edge, asked as a segment or an
+        /// arc by its kind, against the three chains.
+        /// </summary>
+        private static readonly Type[][] EdgeAgainstChains3 =
+        {
+            new[] { typeof(GeoEdge3), typeof(GeoPolyline3) },
+            new[] { typeof(GeoEdge3), typeof(GeoPolylineArc3) },
+            new[] { typeof(GeoEdge3), typeof(GeoPolygonArc3) }
+        };
+
+        /// <summary>
+        /// Gets every <c>CollidesWith</c> and <c>GetIntersections</c> missing between two straight or flat shapes in
+        /// space, and between an edge and a chain, as the member missing, in ordinal order.
+        /// </summary>
+        /// <remarks>
+        /// Each side of each pair must give both questions, without and with a <see cref="Tolerance"/>; a pair of one
+        /// type with itself needs the one member. A form missing is named with its arguments; both missing are written
+        /// <c>(B[, Tolerance])</c>. The written exceptions are in <see cref="WithoutMeeting"/>.
+        /// </remarks>
+        internal static string[] MissingMeetings3()
+        {
+            var pairs = new List<Type[]>();
+
+            foreach (Type a in StraightOrFlat3)
+            {
+                foreach (Type b in StraightOrFlat3)
+                {
+                    pairs.Add(new[] { a, b });
+                }
+            }
+
+            foreach (Type[] pair in EdgeAgainstChains3)
+            {
+                pairs.Add(pair);
+                pairs.Add(new[] { pair[1], pair[0] });
+            }
+
+            var missing = new List<string>();
+
+            foreach (string query in new[] { "CollidesWith", "GetIntersections" })
+            {
+                foreach (Type[] pair in pairs)
+                {
+                    Type a = pair[0];
+                    Type b = pair[1];
+
+                    if (WithoutMeeting(a, query, b))
+                    {
+                        continue;
+                    }
+
+                    bool plain = a.GetMethod(query, new[] { b }) != null;
+                    bool within = a.GetMethod(query, new[] { b, typeof(Tolerance) }) != null;
+
+                    if (!plain && !within)
+                    {
+                        missing.Add(a.Name + "." + query + "(" + b.Name + "[, Tolerance])");
+                    }
+                    else if (!plain)
+                    {
+                        missing.Add(a.Name + "." + query + "(" + b.Name + ")");
+                    }
+                    else if (!within)
+                    {
+                        missing.Add(a.Name + "." + query + "(" + b.Name + ", Tolerance)");
+                    }
+                }
+            }
+
+            return missing.OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        }
+
+        /// <summary>
+        /// Gets whether a pair is written down as not saying whether or where its two shapes meet.
+        /// </summary>
+        /// <remarks>
+        /// A point answers with <c>IsPointOn</c> and <c>Contains</c>; two planes meet in a line and not at points;
+        /// and where two bodies cross, a box being a body, is the booleans' and the clash's question (<c>Intersect</c>,
+        /// <c>Clash</c>), so a body or a box against a body or a box says whether they meet and not where.
+        /// </remarks>
+        private static bool WithoutMeeting(Type asked, string query, Type argument)
+        {
+            if (asked == typeof(GeoPoint3) || argument == typeof(GeoPoint3))
+            {
+                return true;
+            }
+
+            if (asked == typeof(GeoPlane3) && argument == typeof(GeoPlane3))
+            {
+                return true;
+            }
+
+            Type[] bodies = { typeof(GeoSolid3), typeof(GeoAabb3), typeof(GeoObb3) };
+
+            return query == "GetIntersections" && bodies.Contains(asked) && bodies.Contains(argument);
         }
 
         /// <summary>

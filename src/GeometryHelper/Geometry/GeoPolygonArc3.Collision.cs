@@ -177,5 +177,28 @@ namespace GeometryHelper.Geometry
         /// Determines whether this loop touches a straight chain, within a tolerance.
         /// </summary>
         public bool CollidesWith(GeoPolyline3 other, Tolerance tolerance) => Core.ArcChain3.CollidesWith(this, other, tolerance);
+
+        /// <summary>
+        /// Checks whether an edge touches this curved loop: the same answer as
+        /// <see cref="GeoEdge3.CollidesWith(GeoPolygonArc3)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        public bool CollidesWith(GeoEdge3 edge) => edge.CollidesWith(this);
+
+        /// <summary>
+        /// Checks whether an edge touches this curved loop, within a tolerance: the same answer as
+        /// <see cref="GeoEdge3.CollidesWith(GeoPolygonArc3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance) => edge.CollidesWith(this, tolerance);
     }
 }

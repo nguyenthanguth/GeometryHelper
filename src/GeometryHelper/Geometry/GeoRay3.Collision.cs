@@ -157,5 +157,51 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance)
             => ArcChain3.CollidesWith(chain, this, tolerance);
+
+        /// <summary>
+        /// Checks whether this ray touches a plane: the same answer as
+        /// <see cref="Collision3.CollidesWith(GeoRay3, GeoPlane3)"/>.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <remarks>
+        /// A ray from (0, 0, 10) pointing straight down crosses the floor plane at the origin; one lying in the floor
+        /// touches it everywhere and crosses it nowhere.
+        /// </remarks>
+        public bool CollidesWith(GeoPlane3 plane) => Collision3.CollidesWith(this, plane);
+
+        /// <summary>
+        /// Checks whether this ray touches a plane, within a tolerance: the same answer as
+        /// <see cref="Collision3.CollidesWith(GeoRay3, GeoPlane3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A ray from (0, 0, 10) pointing straight down crosses the floor plane at the origin; one lying in the floor
+        /// touches it everywhere and crosses it nowhere.
+        /// </remarks>
+        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) => Collision3.CollidesWith(this, plane, tolerance);
+
+        /// <summary>
+        /// Checks whether this ray and another touch: the same answer as
+        /// <see cref="Collision3.CollidesWith(GeoRay3, GeoRay3)"/>.
+        /// </summary>
+        /// <param name="other">The ray.</param>
+        /// <remarks>
+        /// A ray from the origin along X and one from (50, -50, 0) along Y cross at (50, 0, 0); two rays along the X axis
+        /// from 0 and from 100, facing each other, touch along the stretch between them and name no place.
+        /// </remarks>
+        public bool CollidesWith(GeoRay3 other) => Collision3.CollidesWith(this, other);
+
+        /// <summary>
+        /// Checks whether this ray and another touch, within a tolerance: the same answer as
+        /// <see cref="Collision3.CollidesWith(GeoRay3, GeoRay3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="other">The ray.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A ray from the origin along X and one from (50, -50, 0) along Y cross at (50, 0, 0); two rays along the X axis
+        /// from 0 and from 100, facing each other, touch along the stretch between them and name no place.
+        /// </remarks>
+        public bool CollidesWith(GeoRay3 other, Tolerance tolerance) => Collision3.CollidesWith(this, other, tolerance);
     }
 }

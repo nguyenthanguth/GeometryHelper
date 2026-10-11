@@ -177,5 +177,28 @@ namespace GeometryHelper.Geometry
         /// Determines whether this chain touches a straight chain, within a tolerance.
         /// </summary>
         public bool CollidesWith(GeoPolyline3 other, Tolerance tolerance) => Core.ArcChain3.CollidesWith(this, other, tolerance);
+
+        /// <summary>
+        /// Checks whether an edge touches this curved chain: the same answer as
+        /// <see cref="GeoEdge3.CollidesWith(GeoPolylineArc3)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a chain running straight from the
+        /// origin to (100, 100, 0) at (35.36, 35.36, 0).
+        /// </remarks>
+        public bool CollidesWith(GeoEdge3 edge) => edge.CollidesWith(this);
+
+        /// <summary>
+        /// Checks whether an edge touches this curved chain, within a tolerance: the same answer as
+        /// <see cref="GeoEdge3.CollidesWith(GeoPolylineArc3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a chain running straight from the
+        /// origin to (100, 100, 0) at (35.36, 35.36, 0).
+        /// </remarks>
+        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance) => edge.CollidesWith(this, tolerance);
     }
 }

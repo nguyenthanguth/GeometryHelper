@@ -102,6 +102,21 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void EveryPairOfStraightOrFlatShapesInSpaceSaysWhetherAndWhereTheyMeetFromEitherSide()
+        {
+            // CollidesWith and GetIntersections, with and without a tolerance, on both sides of every pair of straight
+            // or flat shapes, and of an edge against the three chains. Written down as answering neither: the point,
+            // which answers with IsPointOn and Contains, and two planes, which meet in a line; and as answering only
+            // whether they meet, a body or a box against a body or a box, whose crossings are the booleans' and the clash's.
+            string[] missing = QuerySymmetry.MissingMeetings3();
+
+            if (missing.Length > 0)
+            {
+                Assert.Fail(missing.Length + " collisions and crossings missing between straight or flat shapes in space:\n" + string.Join("\n", missing));
+            }
+        }
+
+        [Fact]
         public void TransformingThroughEitherFormGivesTheSameResult()
         {
             GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(3, -4, 5))

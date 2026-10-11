@@ -170,5 +170,79 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoEdge3 other, Tolerance tolerance)
             => other.IsArc ? CollidesWith(other.ToArc(), tolerance) : CollidesWith(other.ToLine(), tolerance);
 
+        /// <summary>
+        /// Checks whether this edge touches a straight chain: a bend is asked as an arc and a straight edge as a segment.
+        /// </summary>
+        /// <param name="polyline">The straight chain.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool CollidesWith(GeoPolyline3 polyline) => CollidesWith(polyline, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this edge touches a straight chain, within a tolerance: a bend is asked as an arc and a straight
+        /// edge as a segment.
+        /// </summary>
+        /// <param name="polyline">The straight chain.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance)
+            => IsArc ? ToArc().CollidesWith(polyline, tolerance) : ToLine().CollidesWith(polyline, tolerance);
+
+        /// <summary>
+        /// Checks whether this edge touches a curved chain: a bend is asked as an arc and a straight edge as a segment.
+        /// </summary>
+        /// <param name="chain">The curved chain.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a chain running straight from the
+        /// origin to (100, 100, 0) at (35.36, 35.36, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool CollidesWith(GeoPolylineArc3 chain) => CollidesWith(chain, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this edge touches a curved chain, within a tolerance: a bend is asked as an arc and a straight
+        /// edge as a segment.
+        /// </summary>
+        /// <param name="chain">The curved chain.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a chain running straight from the
+        /// origin to (100, 100, 0) at (35.36, 35.36, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance)
+            => IsArc ? ToArc().CollidesWith(chain, tolerance) : ToLine().CollidesWith(chain, tolerance);
+
+        /// <summary>
+        /// Checks whether this edge touches a curved loop: a bend is asked as an arc and a straight edge as a segment.
+        /// </summary>
+        /// <param name="loop">The curved loop.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public bool CollidesWith(GeoPolygonArc3 loop) => CollidesWith(loop, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether this edge touches a curved loop, within a tolerance: a bend is asked as an arc and a straight
+        /// edge as a segment.
+        /// </summary>
+        /// <param name="loop">The curved loop.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A bend of radius 50 about the origin, from (50, 0, 0) to (0, 50, 0), crosses a loop round the square 100 by 100
+        /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance)
+            => IsArc ? ToArc().CollidesWith(loop, tolerance) : ToLine().CollidesWith(loop, tolerance);
     }
 }

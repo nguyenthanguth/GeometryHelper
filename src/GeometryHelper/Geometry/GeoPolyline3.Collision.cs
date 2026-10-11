@@ -150,5 +150,27 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool CollidesWith(GeoPolyline3 other, Tolerance tolerance) => Collision3.CollidesWith(this, other, tolerance);
 
+        /// <summary>
+        /// Checks whether an edge touches this straight chain: the same answer as
+        /// <see cref="GeoEdge3.CollidesWith(GeoPolyline3)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        public bool CollidesWith(GeoEdge3 edge) => edge.CollidesWith(this);
+
+        /// <summary>
+        /// Checks whether an edge touches this straight chain, within a tolerance: the same answer as
+        /// <see cref="GeoEdge3.CollidesWith(GeoPolyline3, Tolerance)"/>.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A straight edge from (0, -50, 0) to (0, 50, 0) crosses the chain through (-50, 0, 0), (50, 0, 0) and (50, 100,
+        /// 0) at the origin.
+        /// </remarks>
+        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance) => edge.CollidesWith(this, tolerance);
     }
 }
