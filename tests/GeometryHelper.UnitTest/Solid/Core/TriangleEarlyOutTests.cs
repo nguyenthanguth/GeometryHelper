@@ -33,14 +33,13 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
 
-            if (!Parallel3.IsParallel(first.Normal, second.Normal, Tol))
+            // Amended with fault F3 (2026-10-12): the pair is in one plane when either lies wholly in the other's
+            // plane, read both ways round, and two that neither cross nor overlap in one plane still touch where they
+            // come within the point tolerance. The full test before it read one corner of the second only.
+            if (!Parallel3.IsParallel(first.Normal, second.Normal, Tol) ||
+                (!LiesIn(first, second) && !LiesIn(second, first)))
             {
-                return false;
-            }
-
-            if (Math.Abs(first.GetPlane().SignedDistanceTo(second.A)) > Tol.EqualPlanar)
-            {
-                return false;
+                return WithinThePointTolerance(first, second);
             }
 
             for (int i = 0; i < 3; i++)
@@ -51,6 +50,16 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
 
+            return WithinThePointTolerance(first, second);
+        }
+
+        private static bool LiesIn(GeoTriangle3 plane, GeoTriangle3 other)
+            => Math.Abs(plane.GetPlane().SignedDistanceTo(other.A)) <= Tol.EqualPlanar &&
+               Math.Abs(plane.GetPlane().SignedDistanceTo(other.B)) <= Tol.EqualPlanar &&
+               Math.Abs(plane.GetPlane().SignedDistanceTo(other.C)) <= Tol.EqualPlanar;
+
+        private static bool WithinThePointTolerance(GeoTriangle3 first, GeoTriangle3 second)
+        {
             for (int i = 0; i < 3; i++)
             {
                 for (int j = 0; j < 3; j++)
@@ -59,6 +68,14 @@ namespace GeometryHelper.UnitTest.Solid
                     {
                         return true;
                     }
+                }
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (Distance3.DistanceTo(second, first[i]) <= Tol.EqualPoint || Distance3.DistanceTo(first, second[i]) <= Tol.EqualPoint)
+                {
+                    return true;
                 }
             }
 

@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Two triangles in space give the same answer whichever is asked first, and touch wherever they come within
+the point tolerance, as two polygons do. Before, whether they lay in one plane was read from one corner of the second
+only, so 211 of 5 000 near-coplanar pairs collided one way round and not the other, and contacts at 1E-5 rad were
+missed. Solid collision and the clash go through this test; on the code-built models checked, none of their results
+changed, and the clash takes as long as before within 7 %. Two bodies whose surfaces pass just outside the tolerance of
+each other are checked about a fifth slower.
+
 **FIXED.** A ray starting within the planar tolerance of a plane lies in it only when it runs level to rounding. Before,
 one dipping under the angle tolerance was read as lying in the plane and crossed nothing there: the ray from
 (5, 5, 0.0004) along (1, 0, -0.01) missed the square 10 by 10 in the floor it crosses at (5.04, 5, 0). It now crosses

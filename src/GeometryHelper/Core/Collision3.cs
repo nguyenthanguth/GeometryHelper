@@ -193,7 +193,10 @@ namespace GeometryHelper.Core
         /// Two triangles that are not coplanar can only meet along a line, so it is enough to ask whether
         /// any edge of one pierces the other. Coplanar triangles meet across an area instead and that test
         /// finds nothing, so they are handled separately by looking for a vertex of one inside the other
-        /// or for a pair of edges crossing.
+        /// or for a pair of edges crossing. They count as coplanar when their normals are parallel and either
+        /// lies wholly within the planar tolerance of the other's plane, as two flat regions do, so the answer is
+        /// the same whichever is asked first. Two that do neither touch where they come within the point
+        /// tolerance of each other, as their distance reads nought there.
         /// </remarks>
         public static bool CollidesWith(GeoTriangle3 triangle1, GeoTriangle3 triangle2, Tolerance tolerance)
         {
@@ -218,12 +221,16 @@ namespace GeometryHelper.Core
 
             if (!Parallel3.IsParallel(triangle1.Normal, triangle2.Normal, tolerance))
             {
-                return false;
+                return ComeWithin(triangle1, triangle2, tolerance);
             }
 
-            if (Math.Abs(triangle1.GetPlane().SignedDistanceTo(triangle2.A)) > tolerance.EqualPlanar)
+            // In one plane as two flat regions are (Intersection3.Flat.InOnePlane): either lies wholly in the
+            // other's plane. One corner of the second against the first's plane read the pair one way round only,
+            // so two triangles a hundred-thousandth of a radian apart touched or not by which was asked first.
+            if (!Boolean3.LiesIn(triangle1.GetPlane(), new[] { triangle2.A, triangle2.B, triangle2.C }, tolerance) &&
+                !Boolean3.LiesIn(triangle2.GetPlane(), new[] { triangle1.A, triangle1.B, triangle1.C }, tolerance))
             {
-                return false;
+                return ComeWithin(triangle1, triangle2, tolerance);
             }
 
             for (int i = 0; i < 3; i++)
@@ -235,14 +242,57 @@ namespace GeometryHelper.Core
                 }
             }
 
+            return ComeWithin(triangle1, triangle2, tolerance);
+        }
+
+        /// <summary>
+        /// Determines whether two triangles that neither cross nor overlap in one plane still come within the point
+        /// tolerance of each other, which is where their distance reads nought.
+        /// </summary>
+        /// <remarks>
+        /// Two flat regions touch wherever their distance reads nought
+        /// (<see cref="CollidesWith(GeoPolygon3, GeoPolygon3, Tolerance)"/>), and a triangle is answered the same way: a
+        /// pair 0.0006 apart, turned a hundred-thousandth of a radian against each other so that neither lies in the
+        /// other's plane, touches, as two boxes 0.0009 apart do. Apart, the nearest pair lies on two edges or on a corner
+        /// of one and the other triangle, as <see cref="Distance3.DistanceTo(GeoTriangle3, GeoTriangle3, Tolerance)"/>
+        /// measures them; each against the other's plane and the boxes of the two are asked first, so that a pair
+        /// plainly apart pays nothing more.
+        /// </remarks>
+        private static bool ComeWithin(GeoTriangle3 triangle1, GeoTriangle3 triangle2, Tolerance tolerance)
+        {
+            double near = tolerance.EqualPoint;
+
+            // Either standing wholly to one side of the other's plane, further than the point tolerance, is further than
+            // that from all of the other: the test of IsClearOf, at the band's own width. Then the boxes of the two. Both
+            // are asked a millionth past the tolerance, so that the rounding of a height never refuses a pair standing
+            // exactly the tolerance apart, which the distances below take.
+            double clear = near * (1.0 + 1E-6);
+
+            if (StandsClear(triangle1.GetPlane(), triangle2, clear) || StandsClear(triangle2.GetPlane(), triangle1, clear) ||
+                Apart(triangle1.A.X, triangle1.B.X, triangle1.C.X, triangle2.A.X, triangle2.B.X, triangle2.C.X, clear) ||
+                Apart(triangle1.A.Y, triangle1.B.Y, triangle1.C.Y, triangle2.A.Y, triangle2.B.Y, triangle2.C.Y, clear) ||
+                Apart(triangle1.A.Z, triangle1.B.Z, triangle1.C.Z, triangle2.A.Z, triangle2.B.Z, triangle2.C.Z, clear))
+            {
+                return false;
+            }
+
             for (int i = 0; i < 3; i++)
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    if (Distance3.DistanceTo(triangle1.GetEdgeAt(i), triangle2.GetEdgeAt(j), tolerance) <= tolerance.EqualPoint)
+                    if (Distance3.DistanceTo(triangle1.GetEdgeAt(i), triangle2.GetEdgeAt(j), tolerance) <= near)
                     {
                         return true;
                     }
+                }
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (Distance3.DistanceTo(triangle2, triangle1[i]) <= near ||
+                    Distance3.DistanceTo(triangle1, triangle2[i]) <= near)
+                {
+                    return true;
                 }
             }
 
@@ -273,6 +323,26 @@ namespace GeometryHelper.Core
             double a = plane.SignedDistanceTo(other.A);
             double b = plane.SignedDistanceTo(other.B);
             double c = plane.SignedDistanceTo(other.C);
+
+            return (a > clear && b > clear && c > clear) || (a < -clear && b < -clear && c < -clear);
+        }
+
+        /// <summary>
+        /// Determines whether the spans of two triangles along one axis, given by their corners, stand more than a
+        /// distance apart.
+        /// </summary>
+        private static bool Apart(double a1, double b1, double c1, double a2, double b2, double c2, double clear)
+            => Math.Min(a1, Math.Min(b1, c1)) - clear > Math.Max(a2, Math.Max(b2, c2)) ||
+               Math.Min(a2, Math.Min(b2, c2)) - clear > Math.Max(a1, Math.Max(b1, c1));
+
+        /// <summary>
+        /// Determines whether every corner of a triangle stands more than a distance to one side of a plane.
+        /// </summary>
+        private static bool StandsClear(GeoPlane3 plane, GeoTriangle3 triangle, double clear)
+        {
+            double a = plane.SignedDistanceTo(triangle.A);
+            double b = plane.SignedDistanceTo(triangle.B);
+            double c = plane.SignedDistanceTo(triangle.C);
 
             return (a > clear && b > clear && c > clear) || (a < -clear && b < -clear && c < -clear);
         }
