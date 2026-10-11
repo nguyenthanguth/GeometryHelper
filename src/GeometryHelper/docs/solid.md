@@ -461,6 +461,46 @@ new GeoRay3(new GeoPoint3(-50, 50, 50), new GeoVector3(1, 0, 0)).CollidesWith(cr
 new GeoRay3(new GeoPoint3(-50, 50, 50), new GeoVector3(-1, 0, 0)).CollidesWith(crate);  // false, away
 ```
 
+#### Flat shapes against each other
+
+Triangles, polygons and faces in space say whether and where they meet each other, a plane, a ray and a body, and how
+far apart they are, from either side. They are read filled, a face by its material. Two in planes that are not one meet
+where an edge of either reaches the other, because the ends of every stretch they share lie on an edge of one of them,
+so the crossings named are those ends; two in one plane are laid out with `PlanarMap` and the plane half answers:
+
+```csharp
+var floor = new GeoPolygon3(
+    new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+var wall = new GeoPolygon3(
+    new GeoPoint3(-20, 50, -30), new GeoPoint3(120, 50, -30), new GeoPoint3(120, 50, 30), new GeoPoint3(-20, 50, 30));
+
+floor.CollidesWith(wall);        // true
+floor.GetIntersections(wall);    // (100, 50, 0), (0, 50, 0): where the wall's line runs out of the floor
+```
+
+Apart, the distance is the least of every edge of each against the other, which is exact, since two flat regions
+apart always have their nearest pair on an edge of one of them. A segment through a face's hole is measured to the
+hole's rim:
+
+```csharp
+var tilted = new GeoPolygon3(
+    new GeoPoint3(0, 0, 40), new GeoPoint3(100, 0, 40), new GeoPoint3(100, 100, 80), new GeoPoint3(0, 100, 80));
+floor.DistanceTo(tilted);                  // 40, from (0, 0, 0) to (0, 0, 40)
+
+var plate = new GeoFace3(floor, new[] { new GeoPolygon3(
+    new GeoPoint3(30, 30, 0), new GeoPoint3(70, 30, 0), new GeoPoint3(70, 70, 0), new GeoPoint3(30, 70, 0)) });
+var pin = new GeoLine3(new GeoPoint3(50, 45, -20), new GeoPoint3(50, 45, 20));
+pin.CollidesWith(plate);                   // false — it passes through the hole
+pin.GetShortestLineTo(plate);              // (50, 45, 0) to (50, 30, 0), 15 long, out to the hole's rim
+```
+
+A plane meets a shape where its corners' heights change sign or reach nought within the point tolerance, and a body
+where one of its faces straddles it, so a body in two pieces either side of a plane touches it nowhere. Two rays cross
+where two segments on the same lines would: a ray from (0, -1, 0) half a degree off the X axis crosses it at
+(114.59, 0, 0), and two rays along one line touch and name no point. A box is answered as its `ToSolid()`, and has no
+shortest line of its own. Left out, on purpose: two planes, which meet in a line; and the crossings of a body or a box
+with another, which are the booleans' and the clash's.
+
 ### How deep inside, not just whether
 
 `DistanceTo` reads a body as solid through, so a point anywhere inside one is nought away and how far in it

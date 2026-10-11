@@ -59,7 +59,7 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < 3; i++)
             {
-                if (Intersection3.GetIntersections(triangle.GetEdgeAt(i), material, tolerance).Length > 0)
+                if (Intersection3.SurfaceCrossings(triangle.GetEdgeAt(i), material, tolerance).Length > 0)
                 {
                     return true;
                 }
@@ -69,14 +69,18 @@ namespace GeometryHelper.Core
             {
                 foreach (GeoLine3 edge in Intersection3.EdgesOf(face))
                 {
-                    if (CollidesWith(edge, triangle, tolerance))
+                    if (Intersection3.TryCrossEdge(edge, triangle, out _, tolerance))
                     {
                         return true;
                     }
                 }
             }
 
-            return Containment3.Contains(material, triangle.A, tolerance);
+            // Every corner, as the distance asks them (Distance3.DistanceTo(GeoSolid3, GeoTriangle3, Tolerance)): one
+            // standing within the tolerance outside the surface, the others clear of it, is nought from the body.
+            return Containment3.Contains(material, triangle.A, tolerance)
+                || Containment3.Contains(material, triangle.B, tolerance)
+                || Containment3.Contains(material, triangle.C, tolerance);
         }
 
         #endregion

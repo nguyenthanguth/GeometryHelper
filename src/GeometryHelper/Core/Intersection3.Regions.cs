@@ -16,7 +16,9 @@ namespace GeometryHelper.Core
     /// That is the segment against a region the library already answers, asked once for each edge, the first
     /// region's edges first, ring by ring for a face, and a point found twice is named once. A square 100 by 100 lying
     /// in the floor with a corner at the origin, and one standing upright across it along y = 50 from z = -50 to 50,
-    /// cross at (100, 50, 0) and (0, 50, 0).
+    /// cross at (100, 50, 0) and (0, 50, 0). An edge the segment test refuses, as it refuses one climbing no more than
+    /// the planar tolerance, is read by the signs of its ends' heights instead, so a square tilted a tenth of a degree
+    /// with each side cut into 80 pieces crosses where the uncut square does.
     /// </para>
     /// <para>
     /// <b>Two regions in one plane.</b> Where the normals are parallel within the angle tolerance and either region
@@ -167,7 +169,9 @@ namespace GeometryHelper.Core
             if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame))
             {
                 return Lift(frame, Triangle2.GetIntersections(
-                    PlanarMap.ProjectToTriangle2(frame, triangle), PlanarMap.ProjectToPolygon2(frame, polygon), tolerance));
+                    PlanarMap.ProjectToTriangle2(frame, triangle),
+                    PlanarMap.ProjectToPolygon2(frame, polygon, tolerance),
+                    tolerance));
             }
 
             var found = new List<GeoPoint3>();
@@ -261,7 +265,9 @@ namespace GeometryHelper.Core
             if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame))
             {
                 return Lift(frame, Triangle2.GetIntersections(
-                    PlanarMap.ProjectToTriangle2(frame, triangle), PlanarMap.ProjectToFace2(frame, face), tolerance));
+                    PlanarMap.ProjectToTriangle2(frame, triangle),
+                    PlanarMap.ProjectToFace2(frame, face, tolerance),
+                    tolerance));
             }
 
             var found = new List<GeoPoint3>();
@@ -353,7 +359,9 @@ namespace GeometryHelper.Core
             if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame))
             {
                 return Lift(frame, Intersection2.GetIntersections(
-                    PlanarMap.ProjectToPolygon2(frame, polygon1), PlanarMap.ProjectToPolygon2(frame, polygon2), tolerance));
+                    PlanarMap.ProjectToPolygon2(frame, polygon1, tolerance),
+                    PlanarMap.ProjectToPolygon2(frame, polygon2, tolerance),
+                    tolerance));
             }
 
             var found = new List<GeoPoint3>();
@@ -446,7 +454,9 @@ namespace GeometryHelper.Core
             if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame))
             {
                 return Lift(frame, Face2.GetIntersections(
-                    PlanarMap.ProjectToFace2(frame, face), PlanarMap.ProjectToPolygon2(frame, polygon), tolerance));
+                    PlanarMap.ProjectToFace2(frame, face, tolerance),
+                    PlanarMap.ProjectToPolygon2(frame, polygon, tolerance),
+                    tolerance));
             }
 
             var found = new List<GeoPoint3>();
@@ -541,7 +551,9 @@ namespace GeometryHelper.Core
             if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame))
             {
                 return Lift(frame, Face2.GetIntersections(
-                    PlanarMap.ProjectToFace2(frame, face1), PlanarMap.ProjectToFace2(frame, face2), tolerance));
+                    PlanarMap.ProjectToFace2(frame, face1, tolerance),
+                    PlanarMap.ProjectToFace2(frame, face2, tolerance),
+                    tolerance));
             }
 
             var found = new List<GeoPoint3>();
@@ -1085,7 +1097,18 @@ namespace GeometryHelper.Core
             internal GeoCoordinateSystem3 Frame => PlanarMap.FrameOf(Outline, Normal);
 
             internal static Flat Of(GeoTriangle3 triangle)
-                => new Flat(triangle.Normal, triangle.GetPlane(), new[] { triangle.A, triangle.B, triangle.C }, new GeoPolygon3[0], triangle.GetAabb());
+            {
+                // The normal is the triangle's own where the global tolerance takes it; a triangle smaller than
+                // that, asked under a finer tolerance its caller has already found it not degenerate by, is read by
+                // its area vector.
+                GeoVector3 area = triangle.GetAreaVector();
+                GeoVector3 normal = area.TryGetNormal(out GeoVector3 unit) ? unit : area.Divide(area.Length);
+
+                GeoPoint3[] outline = { triangle.A, triangle.B, triangle.C };
+
+                return new Flat(
+                    normal, new GeoPlane3(triangle.A, normal), outline, new GeoPolygon3[0], triangle.GetAabb());
+            }
 
             internal static Flat Of(GeoPolygon3 polygon)
                 => new Flat(polygon.Normal, polygon.GetPlane(), polygon.Vertices, new GeoPolygon3[0], polygon.GetAabb());
@@ -1220,7 +1243,7 @@ namespace GeometryHelper.Core
         {
             foreach (GeoLine3 edge in edges)
             {
-                if (TryIntersectWith(edge, triangle, out GeoPoint3 crossing, tolerance))
+                if (TryCrossEdge(edge, triangle, out GeoPoint3 crossing, tolerance))
                 {
                     Arc3.AddOnce(found, crossing, tolerance);
                 }
@@ -1231,7 +1254,7 @@ namespace GeometryHelper.Core
         {
             foreach (GeoLine3 edge in edges)
             {
-                if (TryIntersectWith(edge, polygon, out GeoPoint3 crossing, tolerance))
+                if (TryCrossEdge(edge, polygon, out GeoPoint3 crossing, tolerance))
                 {
                     Arc3.AddOnce(found, crossing, tolerance);
                 }
@@ -1242,7 +1265,7 @@ namespace GeometryHelper.Core
         {
             foreach (GeoLine3 edge in edges)
             {
-                if (TryIntersectWith(edge, face, out GeoPoint3 crossing, tolerance))
+                if (TryCrossEdge(edge, face, out GeoPoint3 crossing, tolerance))
                 {
                     Arc3.AddOnce(found, crossing, tolerance);
                 }
@@ -1253,11 +1276,119 @@ namespace GeometryHelper.Core
         {
             foreach (GeoLine3 edge in edges)
             {
-                if (TryIntersectWith(edge, plane, out GeoPoint3 crossing, tolerance))
+                if (TryIntersectWith(edge, plane, out GeoPoint3 crossing, tolerance) ||
+                    TryReachRefused(edge, plane, out crossing))
                 {
                     Arc3.AddOnce(found, crossing, tolerance);
                 }
             }
+        }
+
+        /// <summary>
+        /// Tries to find where an edge of one shape meets a triangle: the crossing of the segment test, or, where that
+        /// refuses the edge, the place <see cref="TryReachRefused"/> finds on the triangle.
+        /// </summary>
+        /// <param name="edge">The edge.</param>
+        /// <param name="triangle">The triangle, read as a filled surface.</param>
+        /// <param name="at">The place they meet.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        internal static bool TryCrossEdge(GeoLine3 edge, GeoTriangle3 triangle, out GeoPoint3 at, Tolerance tolerance)
+        {
+            if (TryIntersectWith(edge, triangle, out at, tolerance))
+            {
+                return true;
+            }
+
+            if (triangle.IsDegenerate(tolerance))
+            {
+                return false;
+            }
+
+            GeoPlane3 plane = triangle.GetPlane();
+
+            return TryReachRefused(edge, plane, out at)
+                && Containment3.Contains(triangle, Projection3.ProjectToPlane(plane, at), tolerance);
+        }
+
+        /// <summary>
+        /// Tries to find where an edge of one shape meets a polygon, as
+        /// <see cref="TryCrossEdge(GeoLine3, GeoTriangle3, out GeoPoint3, Tolerance)"/> does a triangle.
+        /// </summary>
+        internal static bool TryCrossEdge(GeoLine3 edge, GeoPolygon3 polygon, out GeoPoint3 at, Tolerance tolerance)
+        {
+            if (TryIntersectWith(edge, polygon, out at, tolerance))
+            {
+                return true;
+            }
+
+            GeoPlane3 plane = polygon.GetPlane();
+
+            return TryReachRefused(edge, plane, out at)
+                && Containment3.Contains(polygon, Projection3.ProjectToPlane(plane, at), tolerance);
+        }
+
+        /// <summary>
+        /// Tries to find where an edge of one shape meets the material of a face, as
+        /// <see cref="TryCrossEdge(GeoLine3, GeoTriangle3, out GeoPoint3, Tolerance)"/> does a triangle.
+        /// </summary>
+        internal static bool TryCrossEdge(GeoLine3 edge, GeoFace3 face, out GeoPoint3 at, Tolerance tolerance)
+        {
+            if (TryIntersectWith(edge, face, out at, tolerance))
+            {
+                return true;
+            }
+
+            GeoPlane3 plane = face.GetPlane();
+
+            return TryReachRefused(edge, plane, out at)
+                && face.Contains(Projection3.ProjectToPlane(plane, at), tolerance);
+        }
+
+        /// <summary>
+        /// Reads an edge the segment test has refused against a plane by the signs of its two ends' heights, so that a
+        /// side cut into pieces too short or too level for that test to take meets the plane where the uncut side does.
+        /// </summary>
+        /// <param name="edge">
+        /// The edge, refused by <see cref="TryIntersectWith(GeoLine3, GeoPlane3, out GeoPoint3, Tolerance)"/>.
+        /// </param>
+        /// <param name="plane">The plane.</param>
+        /// <param name="at">Where the edge passes through, or the one end lying on the plane.</param>
+        /// <returns>
+        /// true when the ends stand strictly either side, or one of them, and only one, lies on the plane; otherwise,
+        /// false.
+        /// </returns>
+        /// <remarks>
+        /// The segment test refuses an edge that climbs no more than the planar tolerance from end to end. A square 40
+        /// by 40 tilted a tenth of a degree, each side cut into 80 pieces, has no piece the test takes, though the
+        /// uncut square crosses a plate under it at two points: read by its signs, the one piece that passes through
+        /// meets the plate where the uncut side does. No tolerance widens the plane here: a piece merely ending near it
+        /// is not taken, since the pieces either side of a crossing all end near it and would each name a place of
+        /// their own. An edge lying in the plane is left to the edges at its ends, as the segment test leaves it. Two
+        /// regions within the tolerance of each other without crossing are found touching by their distance instead
+        /// (<see cref="Collision3"/>).
+        /// </remarks>
+        internal static bool TryReachRefused(GeoLine3 edge, GeoPlane3 plane, out GeoPoint3 at)
+        {
+            double from = plane.SignedDistanceTo(edge.StartPoint);
+            double to = plane.SignedDistanceTo(edge.EndPoint);
+
+            if ((from < 0.0 && to > 0.0) || (from > 0.0 && to < 0.0))
+            {
+                at = edge.StartPoint.Add(edge.StartPoint.GetVectorTo(edge.EndPoint).Multiply(from / (from - to)));
+                return true;
+            }
+
+            bool startOn = !(from < 0.0 || from > 0.0);
+            bool endOn = !(to < 0.0 || to > 0.0);
+
+            if (startOn != endOn && !double.IsNaN(from) && !double.IsNaN(to))
+            {
+                at = startOn ? edge.StartPoint : edge.EndPoint;
+                return true;
+            }
+
+            at = default(GeoPoint3);
+            return false;
         }
 
         /// <summary>

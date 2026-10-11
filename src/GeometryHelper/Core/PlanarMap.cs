@@ -285,6 +285,60 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Lays a polygon out in a frame, as <see cref="ProjectToPolygon2(GeoCoordinateSystem3, GeoPolygon3)"/> does,
+        /// but merging only corners within the given tolerance of each other rather than within the global one.
+        /// </summary>
+        /// <remarks>
+        /// The public form builds its polygon through the constructor, which reads <see cref="Tolerance.Global"/>: two
+        /// squares of side 0.0005, asked under a tolerance of a ten-millionth, lost their corners to it and threw.
+        /// </remarks>
+        /// <exception cref="ArgumentException">
+        /// Thrown when fewer than three corners stand apart under the tolerance.
+        /// </exception>
+        internal static GeoPolygon2 ProjectToPolygon2(
+            GeoCoordinateSystem3 frame, GeoPolygon3 polygon, Tolerance tolerance)
+        {
+            List<GeoPoint2> flat = Flatten(frame, polygon.Vertices);
+            var kept = new List<GeoPoint2>(flat.Count);
+
+            foreach (GeoPoint2 vertex in flat)
+            {
+                if (kept.Count == 0 || !kept[kept.Count - 1].IsEqualTo(vertex, tolerance))
+                {
+                    kept.Add(vertex);
+                }
+            }
+
+            while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0], tolerance))
+            {
+                kept.RemoveAt(kept.Count - 1);
+            }
+
+            if (kept.Count < 3)
+            {
+                throw new ArgumentException("A polygon must have at least 3 distinct vertices.", nameof(polygon));
+            }
+
+            return new GeoPolygon2(kept.ToArray(), kept.Count);
+        }
+
+        /// <summary>
+        /// Lays a face and its holes out in a frame, as <see cref="ProjectToFace2(GeoCoordinateSystem3, GeoFace3)"/>
+        /// does, with each ring laid out under the given tolerance.
+        /// </summary>
+        internal static GeoFace2 ProjectToFace2(GeoCoordinateSystem3 frame, GeoFace3 face, Tolerance tolerance)
+        {
+            var holes = new List<GeoPolygon2>(face.Holes.Count);
+
+            foreach (GeoPolygon3 hole in face.Holes)
+            {
+                holes.Add(ProjectToPolygon2(frame, hole, tolerance));
+            }
+
+            return new GeoFace2(ProjectToPolygon2(frame, face.Boundary, tolerance), holes);
+        }
+
+        /// <summary>
         /// Puts a face of the plane back into space, holes and all.
         /// </summary>
         /// <param name="frame">The frame it was laid out in.</param>

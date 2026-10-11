@@ -285,10 +285,64 @@ namespace GeometryHelper.Core
         {
             foreach (GeoLine3 edge in edges)
             {
-                foreach (GeoPoint3 crossing in GetIntersections(edge, material, tolerance))
+                foreach (GeoPoint3 crossing in SurfaceCrossings(edge, material, tolerance))
                 {
                     Arc3.AddOnce(found, crossing, tolerance);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gets where an edge of a flat region meets the surface of a body with no openings left, in order along the
+        /// edge: the crossings of <see cref="GetIntersections(GeoLine3, GeoSolid3, Tolerance)"/>, and where the segment
+        /// test refuses the edge against a face, the place its heights find on that face.
+        /// </summary>
+        /// <remarks>
+        /// The edge is read against each face as an edge of one region is against another
+        /// (<see cref="TryCrossEdge(GeoLine3, GeoFace3, out GeoPoint3, Tolerance)"/>), so a region lying across the
+        /// top of a box a twentieth of a degree off level, its sides cut into 256 pieces none of which the segment test
+        /// takes, crosses the top where its uncut form would. Two places closer than the point tolerance along the edge
+        /// are named once, as the segment's own crossings are.
+        /// </remarks>
+        internal static GeoPoint3[] SurfaceCrossings(GeoLine3 edge, GeoSolid3 material, Tolerance tolerance)
+        {
+            var distances = new List<double>();
+
+            CollectSurfaceCrossings(edge, material, tolerance, distances);
+
+            distances.Sort();
+
+            var hits = new List<GeoPoint3>();
+
+            foreach (double distance in distances)
+            {
+                double last = hits.Count > 0 ? Parametrization3.GetDistanceAtPoint(edge, hits[hits.Count - 1]) : 0.0;
+
+                if (hits.Count > 0 && distance - last <= tolerance.EqualPoint)
+                {
+                    continue;
+                }
+
+                hits.Add(Parametrization3.GetPointAtDistance(edge, distance));
+            }
+
+            return hits.ToArray();
+        }
+
+        private static void CollectSurfaceCrossings(
+            GeoLine3 edge, GeoSolid3 solid, Tolerance tolerance, List<double> distances)
+        {
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                if (TryCrossEdge(edge, face, out GeoPoint3 hit, tolerance))
+                {
+                    distances.Add(Parametrization3.GetDistanceAtPoint(edge, hit));
+                }
+            }
+
+            foreach (GeoSolid3 opening in solid.Openings)
+            {
+                CollectSurfaceCrossings(edge, opening, tolerance, distances);
             }
         }
 
