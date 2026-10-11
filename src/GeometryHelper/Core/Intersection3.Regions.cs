@@ -166,11 +166,12 @@ namespace GeometryHelper.Core
                 return new GeoPoint3[0];
             }
 
-            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame))
+            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
+                && PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flatPolygon))
             {
                 return Lift(frame, Triangle2.GetIntersections(
                     PlanarMap.ProjectToTriangle2(frame, triangle),
-                    PlanarMap.ProjectToPolygon2(frame, polygon, tolerance),
+                    flatPolygon,
                     tolerance));
             }
 
@@ -262,11 +263,12 @@ namespace GeometryHelper.Core
                 return new GeoPoint3[0];
             }
 
-            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame))
+            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
+                && PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 flatFace))
             {
                 return Lift(frame, Triangle2.GetIntersections(
                     PlanarMap.ProjectToTriangle2(frame, triangle),
-                    PlanarMap.ProjectToFace2(frame, face, tolerance),
+                    flatFace,
                     tolerance));
             }
 
@@ -356,11 +358,13 @@ namespace GeometryHelper.Core
                 return new GeoPoint3[0];
             }
 
-            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame))
+            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
+                && PlanarMap.TryProjectToPolygon2(frame, polygon1, tolerance, out GeoPolygon2 flatPolygon1)
+                && PlanarMap.TryProjectToPolygon2(frame, polygon2, tolerance, out GeoPolygon2 flatPolygon2))
             {
                 return Lift(frame, Intersection2.GetIntersections(
-                    PlanarMap.ProjectToPolygon2(frame, polygon1, tolerance),
-                    PlanarMap.ProjectToPolygon2(frame, polygon2, tolerance),
+                    flatPolygon1,
+                    flatPolygon2,
                     tolerance));
             }
 
@@ -451,11 +455,13 @@ namespace GeometryHelper.Core
                 return new GeoPoint3[0];
             }
 
-            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame))
+            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
+                && PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 flatFace)
+                && PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flatPolygon))
             {
                 return Lift(frame, Face2.GetIntersections(
-                    PlanarMap.ProjectToFace2(frame, face, tolerance),
-                    PlanarMap.ProjectToPolygon2(frame, polygon, tolerance),
+                    flatFace,
+                    flatPolygon,
                     tolerance));
             }
 
@@ -548,11 +554,13 @@ namespace GeometryHelper.Core
                 return new GeoPoint3[0];
             }
 
-            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame))
+            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
+                && PlanarMap.TryProjectToFace2(frame, face1, tolerance, out GeoFace2 flatFace1)
+                && PlanarMap.TryProjectToFace2(frame, face2, tolerance, out GeoFace2 flatFace2))
             {
                 return Lift(frame, Face2.GetIntersections(
-                    PlanarMap.ProjectToFace2(frame, face1, tolerance),
-                    PlanarMap.ProjectToFace2(frame, face2, tolerance),
+                    flatFace1,
+                    flatFace2,
                     tolerance));
             }
 

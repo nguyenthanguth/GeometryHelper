@@ -25,7 +25,10 @@ namespace GeometryHelper.Core
         /// <param name="ray">The ray.</param>
         /// <param name="triangle">The triangle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>Zero where the ray pierces the face, otherwise the gap between them.</returns>
+        /// <returns>
+        /// Zero where <see cref="Collision3.CollidesWith(GeoRay3, GeoTriangle3, Tolerance)"/> says the two touch, as where
+        /// the ray pierces the face or lies in its plane towards it, otherwise the gap between them.
+        /// </returns>
         /// <remarks>
         /// A ray that pierces the face touches none of its edges, so the crossing is looked for first.
         /// After that the nearest pair lies either between the ray and an edge, or under the origin of the
@@ -33,7 +36,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static double DistanceTo(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            if (Intersection3.TryIntersectWith(ray, triangle, out _, tolerance))
+            if (Collision3.CollidesWith(ray, triangle, tolerance))
             {
                 return 0.0;
             }

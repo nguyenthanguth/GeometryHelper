@@ -41,15 +41,18 @@ namespace GeometryHelper.Core
         /// <param name="face">The face, read by its material.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// The length of <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoFace3, Tolerance)"/>: nought where the
-        /// segment crosses the material, which is where <see cref="Collision3.CollidesWith(GeoLine3, GeoFace3, Tolerance)"/>
-        /// says it touches. Over the square 100 by 100 in the floor with a corner at the origin and a hole 40 by 40 in its
-        /// middle, the segment from (45, 50, -10) to (45, 50, 10), through the hole, is 15 from the rim.
+        /// Nought where <see cref="Collision3.CollidesWith(GeoLine3, GeoFace3, Tolerance)"/> says the segment touches the
+        /// material, as where it crosses it or lies in its plane across it, otherwise the length of
+        /// <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoFace3, Tolerance)"/>. Over the square 100 by 100 in the
+        /// floor with a corner at the origin and a hole 40 by 40 in its middle, the segment from (45, 50, -10) to
+        /// (45, 50, 10), through the hole, is 15 from the rim.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static double DistanceTo(GeoLine3 line, GeoFace3 face, Tolerance tolerance)
         {
-            return Projection3.GetShortestLineTo(line, face, tolerance).Length;
+            return Collision3.CollidesWith(line, face, tolerance)
+                ? 0.0
+                : Projection3.GetShortestLineTo(line, face, tolerance).Length;
         }
 
         /// <summary>
@@ -65,15 +68,18 @@ namespace GeometryHelper.Core
         /// <param name="face">The face, read by its material.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// The length of <see cref="Projection3.GetShortestLineTo(GeoPolyline3, GeoFace3, Tolerance)"/>: nought where an
-        /// edge crosses the material, which is where <see cref="Collision3.CollidesWith(GeoPolyline3, GeoFace3, Tolerance)"/>
-        /// says the two touch. Over the square 100 by 100 in the floor with a corner at the origin and a hole 40 by 40 in
-        /// its middle, the chain (20, 20, 30), (20, 20, 80), (50, 50, 80) is 30 above the material.
+        /// Nought where <see cref="Collision3.CollidesWith(GeoPolyline3, GeoFace3, Tolerance)"/> says the two touch, as
+        /// where an edge crosses the material or lies in its plane across it, otherwise the length of
+        /// <see cref="Projection3.GetShortestLineTo(GeoPolyline3, GeoFace3, Tolerance)"/>. Over the square 100 by 100 in
+        /// the floor with a corner at the origin and a hole 40 by 40 in its middle, the chain (20, 20, 30), (20, 20, 80),
+        /// (50, 50, 80) is 30 above the material.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polyline or the face is null.</exception>
         public static double DistanceTo(GeoPolyline3 polyline, GeoFace3 face, Tolerance tolerance)
         {
-            return Projection3.GetShortestLineTo(polyline, face, tolerance).Length;
+            return Collision3.CollidesWith(polyline, face, tolerance)
+                ? 0.0
+                : Projection3.GetShortestLineTo(polyline, face, tolerance).Length;
         }
 
         /// <summary>
@@ -89,15 +95,18 @@ namespace GeometryHelper.Core
         /// <param name="face">The face, read by its material.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// The length of <see cref="Projection3.GetShortestLineTo(GeoRay3, GeoFace3, Tolerance)"/>: nought where the ray
-        /// runs into the material, which is where <see cref="Collision3.CollidesWith(GeoRay3, GeoFace3, Tolerance)"/> says
-        /// it touches. Over the square 100 by 100 in the floor with a corner at the origin and a hole 40 by 40 in its
-        /// middle, the ray from (45, 50, 10) pointing straight down, through the hole, is 15 from the rim.
+        /// Nought where <see cref="Collision3.CollidesWith(GeoRay3, GeoFace3, Tolerance)"/> says the ray touches the
+        /// material, as where it runs into it or lies in its plane towards it, otherwise the length of
+        /// <see cref="Projection3.GetShortestLineTo(GeoRay3, GeoFace3, Tolerance)"/>. Over the square 100 by 100 in the
+        /// floor with a corner at the origin and a hole 40 by 40 in its middle, the ray from (45, 50, 10) pointing
+        /// straight down, through the hole, is 15 from the rim.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static double DistanceTo(GeoRay3 ray, GeoFace3 face, Tolerance tolerance)
         {
-            return Projection3.GetShortestLineTo(ray, face, tolerance).Length;
+            return Collision3.CollidesWith(ray, face, tolerance)
+                ? 0.0
+                : Projection3.GetShortestLineTo(ray, face, tolerance).Length;
         }
 
         /// <summary>
@@ -113,15 +122,17 @@ namespace GeometryHelper.Core
         /// <param name="polygon">The polygon, read as a filled surface.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// The length of <see cref="Projection3.GetShortestLineTo(GeoRay3, GeoPolygon3, Tolerance)"/>: nought where the
-        /// ray runs into the polygon, which is where <see cref="Collision3.CollidesWith(GeoRay3, GeoPolygon3, Tolerance)"/>
-        /// says it touches. Beside the square 100 by 100 in the floor with a corner at the origin, the ray from
-        /// (130, 50, 40) along X is 50 from its edge.
+        /// Nought where <see cref="Collision3.CollidesWith(GeoRay3, GeoPolygon3, Tolerance)"/> says the ray touches the
+        /// polygon, as where it runs into it or lies in its plane towards it, otherwise the length of
+        /// <see cref="Projection3.GetShortestLineTo(GeoRay3, GeoPolygon3, Tolerance)"/>. Beside the square 100 by 100 in
+        /// the floor with a corner at the origin, the ray from (130, 50, 40) along X is 50 from its edge.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static double DistanceTo(GeoRay3 ray, GeoPolygon3 polygon, Tolerance tolerance)
         {
-            return Projection3.GetShortestLineTo(ray, polygon, tolerance).Length;
+            return Collision3.CollidesWith(ray, polygon, tolerance)
+                ? 0.0
+                : Projection3.GetShortestLineTo(ray, polygon, tolerance).Length;
         }
 
         #endregion

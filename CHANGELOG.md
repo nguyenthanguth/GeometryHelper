@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A segment or a ray lying in the plane of a triangle, polygon or face is laid out in that plane and touches
+the shape where it reaches it there. Before, `CollidesWith` said false for the segment from (-10, 10, 0) to (110, 10, 0)
+across the square 100 by 100 in the floor, though its distance was nought; a segment lying in a face's hole still
+touches nothing. The distances of a segment, chain or ray to a triangle, polygon or face now read nought wherever the
+two touch, so a segment lying level 0.0004 over a triangle is nought away, as it collides; the shortest line keeps the
+true gap. Two flat regions in one plane, one of them a sliver narrower than the tolerance, no longer throw.
+
 **NEW.** Flat shapes in space say whether and where they meet: `CollidesWith`, `GetIntersections` and
 `TryIntersectWith`, from both sides and with and without a `Tolerance`, for 39 pairs that neither side answered.
 Triangles, polygons and faces against each other, a plane, a ray and a body; a plane against a ray and a body; ray

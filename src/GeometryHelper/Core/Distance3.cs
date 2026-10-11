@@ -339,9 +339,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a line segment and a triangle, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Nought where <see cref="Collision3.CollidesWith(GeoLine3, GeoTriangle3, Tolerance)"/> says the two touch, as
+        /// where the segment crosses the triangle or lies in its plane across it: the segment from (-10, 10, 0.0004) to
+        /// (110, 10, 0.0004), level over the triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0) within the
+        /// tolerance, is nought from it.
+        /// </remarks>
         public static double DistanceTo(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            if (Intersection3.TryIntersectWith(line, triangle, out _, tolerance))
+            if (Collision3.CollidesWith(line, triangle, tolerance))
             {
                 return 0.0;
             }
@@ -366,12 +372,16 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The polygon counts as a filled surface, so a segment ending directly above its interior is
-        /// measured straight down rather than out to the nearest edge. This is the length of
+        /// measured straight down rather than out to the nearest edge. This is nought where
+        /// <see cref="Collision3.CollidesWith(GeoLine3, GeoPolygon3, Tolerance)"/> says the two touch, as where the
+        /// segment lies in the polygon's plane across it, and otherwise the length of
         /// <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoPolygon3, Tolerance)"/>.
         /// </remarks>
         public static double DistanceTo(GeoLine3 line, GeoPolygon3 polygon, Tolerance tolerance)
         {
-            return Projection3.GetShortestLineTo(line, polygon, tolerance).Length;
+            return Collision3.CollidesWith(line, polygon, tolerance)
+                ? 0.0
+                : Projection3.GetShortestLineTo(line, polygon, tolerance).Length;
         }
 
         /// <summary>

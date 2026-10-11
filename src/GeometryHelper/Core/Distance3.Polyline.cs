@@ -55,7 +55,9 @@ namespace GeometryHelper.Core
         public static double DistanceTo(GeoPolyline3 polyline, GeoTriangle3 triangle) => DistanceTo(polyline, triangle, Tolerance.Global);
 
         /// <summary>
-        /// Calculates the shortest distance between a chain and a triangle, within a tolerance.
+        /// Calculates the shortest distance between a chain and a triangle, within a tolerance: nought where
+        /// <see cref="Collision3.CollidesWith(GeoPolyline3, GeoTriangle3, Tolerance)"/> says the two touch, since that is
+        /// where one of its segments does, and each segment is nought away where it touches.
         /// </summary>
         public static double DistanceTo(GeoPolyline3 polyline, GeoTriangle3 triangle, Tolerance tolerance)
         {
@@ -82,12 +84,18 @@ namespace GeometryHelper.Core
         public static double DistanceTo(GeoPolyline3 polyline, GeoPolygon3 polygon) => DistanceTo(polyline, polygon, Tolerance.Global);
 
         /// <summary>
-        /// Calculates the shortest distance between a chain and a polygon, within a tolerance.
+        /// Calculates the shortest distance between a chain and a polygon, within a tolerance: nought where
+        /// <see cref="Collision3.CollidesWith(GeoPolyline3, GeoPolygon3, Tolerance)"/> says the two touch.
         /// </summary>
         public static double DistanceTo(GeoPolyline3 polyline, GeoPolygon3 polygon, Tolerance tolerance)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+
+            if (Collision3.CollidesWith(polyline, polygon, tolerance))
+            {
+                return 0.0;
+            }
 
             double best = double.MaxValue;
 
