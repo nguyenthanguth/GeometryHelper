@@ -95,5 +95,47 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this chain to a solid, within a tolerance.
         /// </summary>
         public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.DistanceTo(solid, this, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance between this polyline and a face: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoPolyline3, GeoFace3)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material. Over the square 100 by 100 in the floor with a corner at the origin and a hole
+        /// 40 by 40 in its middle, the chain (45, 50, 30), (45, 50, -30), through the hole, is 15 from the rim, and the
+        /// chain (20, 20, 30), (20, 20, 80), (50, 50, 80) is 30 above the material.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace3 face) => Distance3.DistanceTo(this, face);
+
+        /// <summary>
+        /// Calculates the shortest distance between this polyline and a face, within a tolerance: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoPolyline3, GeoFace3, Tolerance)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material. Over the square 100 by 100 in the floor with a corner at the origin and a hole
+        /// 40 by 40 in its middle, the chain (45, 50, 30), (45, 50, -30), through the hole, is 15 from the rim, and the
+        /// chain (20, 20, 30), (20, 20, 80), (50, 50, 80) is 30 above the material.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace3 face, Tolerance tolerance) => Distance3.DistanceTo(this, face, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance between this polyline and a ray: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoPolyline3, GeoRay3)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The chain (0, 0, 0), (100, 0, 0), (100, 100, 0) is 50 from the ray from (60, 50, 30) pointing straight up.
+        /// </remarks>
+        public double DistanceTo(GeoRay3 ray) => Distance3.DistanceTo(this, ray);
+
+        /// <summary>
+        /// Calculates the shortest distance between this polyline and a ray, within a tolerance: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoPolyline3, GeoRay3, Tolerance)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The chain (0, 0, 0), (100, 0, 0), (100, 100, 0) is 50 from the ray from (60, 50, 30) pointing straight up.
+        /// </remarks>
+        public double DistanceTo(GeoRay3 ray, Tolerance tolerance) => Distance3.DistanceTo(this, ray, tolerance);
     }
 }

@@ -138,5 +138,123 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoSolid3 solid, Tolerance tolerance)
             => Projection3.GetShortestLineTo(solid, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this plane to a face: <see cref="GeoFace3.GetShortestLineTo(GeoPlane3)"/>
+        /// turned round, so that it leaves this plane and lands on the face.
+        /// </summary>
+        /// <remarks>
+        /// A face that crosses or touches this plane meets it in a segment of no length at the first point of contact along
+        /// its outline; one clear of it is joined to its nearest corner. The floor plane is joined to the square 100 by 100
+        /// with a hole 40 by 40 in its middle, stood upright along y = 50 from z = 10 to 110, from (0, 50, 0) up to its
+        /// corner (0, 50, 10), 10 long, as <see cref="DistanceTo(GeoFace3)"/> measures it. The segment is never snapped: a
+        /// face a hair off the plane is joined by a segment that short, though the distance, read within the point
+        /// tolerance, is nought.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoFace3 face) => Projection3.GetShortestLineTo(face, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this plane to a face, within a tolerance:
+        /// <see cref="GeoFace3.GetShortestLineTo(GeoPlane3, Tolerance)"/> turned round, so that it leaves this plane and
+        /// lands on the face.
+        /// </summary>
+        /// <remarks>
+        /// A face that crosses or touches this plane meets it in a segment of no length at the first point of contact along
+        /// its outline; one clear of it is joined to its nearest corner. The floor plane is joined to the square 100 by 100
+        /// with a hole 40 by 40 in its middle, stood upright along y = 50 from z = 10 to 110, from (0, 50, 0) up to its
+        /// corner (0, 50, 10), 10 long, as <see cref="DistanceTo(GeoFace3)"/> measures it. The segment is never snapped: a
+        /// face a hair off the plane is joined by a segment that short, though the distance, read within the point
+        /// tolerance, is nought.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoFace3 face, Tolerance tolerance) => Projection3.GetShortestLineTo(face, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this plane to a polygon:
+        /// <see cref="GeoPolygon3.GetShortestLineTo(GeoPlane3)"/> turned round, so that it leaves this plane and lands on
+        /// the polygon.
+        /// </summary>
+        /// <remarks>
+        /// A polygon that crosses or touches this plane meets it in a segment of no length at the first point of contact
+        /// walking its edges in order; one clear of it is joined to its nearest corner. The floor plane meets a square 100
+        /// by 100 standing upright along y = 50 from z = -50 to 50 at (100, 50, 0), and is joined to one standing from z =
+        /// 10 to 110 from (0, 50, 0) up to its corner (0, 50, 10), 10 long, as <see cref="DistanceTo(GeoPolygon3)"/>
+        /// measures it. The segment is never snapped: a polygon a hair off the plane is joined by a segment that short,
+        /// though the distance, read within the point tolerance, is nought.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon) => Projection3.GetShortestLineTo(polygon, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this plane to a polygon, within a tolerance:
+        /// <see cref="GeoPolygon3.GetShortestLineTo(GeoPlane3, Tolerance)"/> turned round, so that it leaves this plane and
+        /// lands on the polygon.
+        /// </summary>
+        /// <remarks>
+        /// A polygon that crosses or touches this plane meets it in a segment of no length at the first point of contact
+        /// walking its edges in order; one clear of it is joined to its nearest corner. The floor plane meets a square 100
+        /// by 100 standing upright along y = 50 from z = -50 to 50 at (100, 50, 0), and is joined to one standing from z =
+        /// 10 to 110 from (0, 50, 0) up to its corner (0, 50, 10), 10 long, as <see cref="DistanceTo(GeoPolygon3)"/>
+        /// measures it. The segment is never snapped: a polygon a hair off the plane is joined by a segment that short,
+        /// though the distance, read within the point tolerance, is nought.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(polygon, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this plane to a ray: <see cref="GeoRay3.GetShortestLineTo(GeoPlane3)"/> turned
+        /// round, so that it leaves this plane and lands on the ray.
+        /// </summary>
+        /// <remarks>
+        /// A ray running into this plane meets it in a segment of no length where it passes through; one running along it
+        /// or away from it is joined to its origin. The floor plane meets the ray from (0, 0, 10) pointing straight down at
+        /// the origin, and is joined to the same ray pointing straight up from the origin to (0, 0, 10), 10 long, as
+        /// <see cref="DistanceTo(GeoRay3)"/> measures it.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoRay3 ray) => Projection3.GetShortestLineTo(ray, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this plane to a ray, within a tolerance:
+        /// <see cref="GeoRay3.GetShortestLineTo(GeoPlane3, Tolerance)"/> turned round, so that it leaves this plane and
+        /// lands on the ray.
+        /// </summary>
+        /// <remarks>
+        /// A ray running into this plane meets it in a segment of no length where it passes through; one running along it
+        /// or away from it is joined to its origin. The floor plane meets the ray from (0, 0, 10) pointing straight down at
+        /// the origin, and is joined to the same ray pointing straight up from the origin to (0, 0, 10), 10 long, as
+        /// <see cref="DistanceTo(GeoRay3)"/> measures it.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoRay3 ray, Tolerance tolerance) => Projection3.GetShortestLineTo(ray, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this plane to a triangle:
+        /// <see cref="GeoTriangle3.GetShortestLineTo(GeoPlane3)"/> turned round, so that it leaves this plane and lands on
+        /// the triangle.
+        /// </summary>
+        /// <remarks>
+        /// A triangle that crosses or touches this plane meets it in a segment of no length at the first point of contact
+        /// walking its edges from A to B; one clear of it is joined to its nearest corner. The floor plane meets the
+        /// triangle with corners (0, 50, -50), (100, 50, -50) and (0, 50, 50) at (50, 50, 0), and is joined to the triangle
+        /// with corners (0, 50, 10), (100, 50, 10) and (0, 50, 110) from (0, 50, 0) up to (0, 50, 10), 10 long, as
+        /// <see cref="DistanceTo(GeoTriangle3)"/> measures it.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoTriangle3 triangle) => Projection3.GetShortestLineTo(triangle, this).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this plane to a triangle, within a tolerance:
+        /// <see cref="GeoTriangle3.GetShortestLineTo(GeoPlane3, Tolerance)"/> turned round, so that it leaves this plane
+        /// and lands on the triangle.
+        /// </summary>
+        /// <remarks>
+        /// A triangle that crosses or touches this plane meets it in a segment of no length at the first point of contact
+        /// walking its edges from A to B; one clear of it is joined to its nearest corner. The floor plane meets the
+        /// triangle with corners (0, 50, -50), (100, 50, -50) and (0, 50, 50) at (50, 50, 0), and is joined to the triangle
+        /// with corners (0, 50, 10), (100, 50, 10) and (0, 50, 110) from (0, 50, 0) up to (0, 50, 10), 10 long, as
+        /// <see cref="DistanceTo(GeoTriangle3)"/> measures it.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoTriangle3 triangle, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(triangle, this, tolerance).Reverse();
     }
 }

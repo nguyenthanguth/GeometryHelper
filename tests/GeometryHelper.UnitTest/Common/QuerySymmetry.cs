@@ -11,7 +11,7 @@ namespace GeometryHelper.UnitTest.Common
     /// Reads the measuring questions every shape type answers, by reflection, so that the plane and space
     /// guards in the two ApiSymmetryTests can say which shape answers a question about another that the
     /// other cannot answer back, which pair has a distance but no shortest line, and which pair of straight or
-    /// flat shapes in space cannot say from either side whether and where they meet.
+    /// flat shapes in space cannot say from either side whether and where they meet, or how far apart they are.
     /// </summary>
     /// <remarks>
     /// A pair is one-sided when <c>A.Query(B ...)</c> exists, in any overload, and no <c>B.Query(A ...)</c>
@@ -228,6 +228,71 @@ namespace GeometryHelper.UnitTest.Common
             }
 
             return missing.OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        }
+
+        /// <summary>
+        /// Gets every <c>DistanceTo</c> missing between two straight or flat shapes in space, as the member missing, in
+        /// ordinal order.
+        /// </summary>
+        /// <remarks>
+        /// Each side of each pair must give the distance, returning a number, without and with a <see cref="Tolerance"/>;
+        /// a pair of one type with itself needs the one member. A form missing is named with its arguments; both missing
+        /// are written <c>(B[, Tolerance])</c>. The written exceptions are in <see cref="WithoutDistanceWithin"/>: pairs
+        /// that need only the form without a tolerance.
+        /// </remarks>
+        internal static string[] MissingDistances3()
+        {
+            var missing = new List<string>();
+
+            foreach (Type a in StraightOrFlat3)
+            {
+                foreach (Type b in StraightOrFlat3)
+                {
+                    bool plain = a.GetMethod("DistanceTo", new[] { b })?.ReturnType == typeof(double);
+                    bool within = a.GetMethod("DistanceTo", new[] { b, typeof(Tolerance) })?.ReturnType == typeof(double);
+
+                    if (!plain && !within)
+                    {
+                        missing.Add(a.Name + ".DistanceTo(" + b.Name + (WithoutDistanceWithin(a, b) ? ")" : "[, Tolerance])"));
+                    }
+                    else if (!plain)
+                    {
+                        missing.Add(a.Name + ".DistanceTo(" + b.Name + ")");
+                    }
+                    else if (!within && !WithoutDistanceWithin(a, b))
+                    {
+                        missing.Add(a.Name + ".DistanceTo(" + b.Name + ", Tolerance)");
+                    }
+                }
+            }
+
+            return missing.OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        }
+
+        /// <summary>
+        /// Gets whether a pair is written down as giving its distance only in the form without a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The point's distances, and those between two segments, a segment and a plane, a segment and a ray, and two
+        /// axis-aligned boxes, were given without a tolerance from either side before this guard, and are not in the
+        /// spec that brought it; every other pair gives both forms.
+        /// </remarks>
+        private static bool WithoutDistanceWithin(Type asked, Type argument)
+        {
+            if (asked == typeof(GeoPoint3) || argument == typeof(GeoPoint3))
+            {
+                return true;
+            }
+
+            Type[][] plainOnly =
+            {
+                new[] { typeof(GeoLine3), typeof(GeoLine3) },
+                new[] { typeof(GeoLine3), typeof(GeoPlane3) },
+                new[] { typeof(GeoLine3), typeof(GeoRay3) },
+                new[] { typeof(GeoAabb3), typeof(GeoAabb3) }
+            };
+
+            return plainOnly.Any(p => (p[0] == asked && p[1] == argument) || (p[0] == argument && p[1] == asked));
         }
 
         /// <summary>

@@ -430,6 +430,118 @@ namespace GeometryHelper.UnitTest.Solid
 
         #endregion
 
+        #region Distances to straight shapes and boxes
+
+        /// <summary>The distance from a point to a segment.</summary>
+        internal static double ToSegment(GeoPoint3 p, GeoPoint3 a, GeoPoint3 b) => SegmentDistance(V(p), V(a), V(b));
+
+        /// <summary>The distance from a point to a ray, its foot clamped to the origin.</summary>
+        internal static double ToRay(GeoPoint3 p, GeoPoint3 origin, GeoVector3 direction)
+        {
+            double[] d = Unit(new[] { direction.X, direction.Y, direction.Z });
+            double[] op = Sub(V(p), V(origin));
+            return Length(Sub(op, Add(new double[3], d, Math.Max(0.0, Dot(op, d)))));
+        }
+
+        /// <summary>The height of a point over a plane, along its normal of unit length.</summary>
+        internal static double Height(GeoPoint3 p, GeoPlane3 plane)
+            => Dot(Sub(V(p), V(plane.Origin)), Unit(new[] { plane.Normal.X, plane.Normal.Y, plane.Normal.Z }));
+
+        /// <summary>
+        /// The distance from a point to a box of half sizes <paramref name="half"/> about <paramref name="centre"/>, its
+        /// sides along <paramref name="x"/>, <paramref name="y"/> and their cross product: nought inside, as a body reads it.
+        /// </summary>
+        internal static double ToBox(GeoPoint3 p, GeoPoint3 centre, GeoVector3 x, GeoVector3 y, double[] half)
+        {
+            double[] ux = Unit(new[] { x.X, x.Y, x.Z });
+            double[] uy = Unit(new[] { y.X, y.Y, y.Z });
+            double[][] frame = { ux, uy, Cross(ux, uy) };
+            double[] d = Sub(V(p), V(centre));
+            double sum = 0.0;
+
+            for (int i = 0; i < 3; i++)
+            {
+                double beyond = Math.Max(0.0, Math.Abs(Dot(d, frame[i])) - half[i]);
+                sum += beyond * beyond;
+            }
+
+            return Math.Sqrt(sum);
+        }
+
+        /// <summary>
+        /// The distance from a point to the surface of an axis-aligned box: out to it from outside, in to the nearest face
+        /// from inside.
+        /// </summary>
+        internal static double ToBoxSurface(GeoPoint3 p, GeoPoint3 min, GeoPoint3 max)
+        {
+            double dx = Math.Max(Math.Max(min.X - p.X, 0), p.X - max.X);
+            double dy = Math.Max(Math.Max(min.Y - p.Y, 0), p.Y - max.Y);
+            double dz = Math.Max(Math.Max(min.Z - p.Z, 0), p.Z - max.Z);
+
+            if (dx > 0 || dy > 0 || dz > 0)
+            {
+                return Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            }
+
+            return new[] { p.X - min.X, max.X - p.X, p.Y - min.Y, max.Y - p.Y, p.Z - min.Z, max.Z - p.Z }.Min();
+        }
+
+        /// <summary>Points along a segment at most <paramref name="spacing"/> apart, both ends included.</summary>
+        internal static IEnumerable<GeoPoint3> Along(GeoPoint3 a, GeoPoint3 b, double spacing)
+        {
+            double[] pa = V(a), ab = Sub(V(b), pa);
+            int steps = Math.Max(1, (int)Math.Ceiling(Length(ab) / spacing));
+
+            for (int k = 0; k <= steps; k++)
+            {
+                yield return P(Add(pa, ab, (double)k / steps));
+            }
+        }
+
+        /// <summary>Points over the material of a region and along its rings, as <see cref="Samples(Flat)"/> places them.</summary>
+        internal static IEnumerable<GeoPoint3> SamplePoints(Flat f) => Samples(f).Concat(f.Rings.SelectMany(r => r)).Select(P);
+
+        #endregion
+
+        #region Shapes for the distances
+
+        /// <summary>
+        /// The region the distances are measured from, as a face: the square 40 by 40 on the XY plane with a corner at the
+        /// origin and a hole from (15, 15) to (25, 25).
+        /// </summary>
+        internal static GeoFace3 Plate() => Holed(Square(0, 0, 40, 40), Square(15, 15, 25, 25));
+
+        /// <summary>
+        /// The same as a polygon: an L on the XY plane, 40 by 40, with the square from (10, 10) to (40, 40) notched out. Its
+        /// bottom arm, y from 0 to 10, holds the places the probes below stand over.
+        /// </summary>
+        internal static GeoPolygon3 Ell() => Polygon(Pt(0, 0, 0), Pt(40, 0, 0), Pt(40, 10, 0), Pt(10, 10, 0), Pt(10, 40, 0), Pt(0, 40, 0));
+
+        /// <summary>
+        /// A small kite to measure against, its tip at <paramref name="tip"/>, running 6 along <paramref name="u"/> and 4
+        /// across along <paramref name="v"/>: corners (0, 0), (4, -2), (6, 0) and (4, 2) in that frame, the tip first.
+        /// </summary>
+        internal static GeoPolygon3 Kite(GeoPoint3 tip, GeoVector3 u, GeoVector3 v)
+            => Polygon(At(tip, u, v, 0, 0), At(tip, u, v, 4, -2), At(tip, u, v, 6, 0), At(tip, u, v, 4, 2));
+
+        /// <summary>The kite cut back to a triangle: corners (0, 0), (4, -2) and (4, 2), so its first edge is the kite's.</summary>
+        internal static GeoTriangle3 Dart(GeoPoint3 tip, GeoVector3 u, GeoVector3 v)
+            => Tri(At(tip, u, v, 0, 0), At(tip, u, v, 4, -2), At(tip, u, v, 4, 2));
+
+        /// <summary>The kite as a face, with a square hole 1 by 1 about (4, 0) in its frame.</summary>
+        internal static GeoFace3 HoledKite(GeoPoint3 tip, GeoVector3 u, GeoVector3 v)
+            => Holed(Kite(tip, u, v), Polygon(At(tip, u, v, 3.5, -0.5), At(tip, u, v, 4.5, -0.5), At(tip, u, v, 4.5, 0.5), At(tip, u, v, 3.5, 0.5)));
+
+        /// <summary>The point <paramref name="a"/> along <paramref name="u"/> and <paramref name="b"/> along <paramref name="v"/> from <paramref name="tip"/>.</summary>
+        private static GeoPoint3 At(GeoPoint3 tip, GeoVector3 u, GeoVector3 v, double a, double b)
+        {
+            double[] uu = Unit(new[] { u.X, u.Y, u.Z });
+            double[] vv = Unit(new[] { v.X, v.Y, v.Z });
+            return P(Add(Add(V(tip), uu, a), vv, b));
+        }
+
+        #endregion
+
         #region Shapes
 
         /// <summary>A point.</summary>

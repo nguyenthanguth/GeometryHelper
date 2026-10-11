@@ -207,5 +207,51 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoSolid3 solid, Tolerance tolerance)
             => Projection3.GetShortestLineTo(solid, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this polyline to a face, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material; a tie goes to the first edge of the chain. Over the square 100 by 100 in the
+        /// floor with a corner at the origin and a hole 40 by 40 in its middle, the chain (45, 50, 30), (45, 50, -30),
+        /// through the hole, is joined from (45, 50, 0) to the rim at (30, 50, 0), 15 long, as
+        /// <see cref="DistanceTo(GeoFace3)"/> measures it, and the chain (20, 20, 30), (20, 20, 80), (50, 50, 80) from (20,
+        /// 20, 30) straight down, 30 long.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoFace3 face) => Projection3.GetShortestLineTo(this, face);
+
+        /// <summary>
+        /// Gets the shortest segment joining this polyline to a face, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material; a tie goes to the first edge of the chain. Over the square 100 by 100 in the
+        /// floor with a corner at the origin and a hole 40 by 40 in its middle, the chain (45, 50, 30), (45, 50, -30),
+        /// through the hole, is joined from (45, 50, 0) to the rim at (30, 50, 0), 15 long, as
+        /// <see cref="DistanceTo(GeoFace3)"/> measures it, and the chain (20, 20, 30), (20, 20, 80), (50, 50, 80) from (20,
+        /// 20, 30) straight down, 30 long.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoFace3 face, Tolerance tolerance) => Projection3.GetShortestLineTo(this, face, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this polyline to a ray, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A tie goes to the first edge of the chain. The chain (0, 0, 0), (100, 0, 0), (100, 100, 0) is joined to the ray
+        /// from (60, 50, 30) pointing straight up from (100, 50, 0), on its second edge, to (60, 50, 30), 50 long, as
+        /// <see cref="DistanceTo(GeoRay3)"/> measures it.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoRay3 ray) => Projection3.GetShortestLineTo(this, ray);
+
+        /// <summary>
+        /// Gets the shortest segment joining this polyline to a ray, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A tie goes to the first edge of the chain. The chain (0, 0, 0), (100, 0, 0), (100, 100, 0) is joined to the ray
+        /// from (60, 50, 30) pointing straight up from (100, 50, 0), on its second edge, to (60, 50, 30), 50 long, as
+        /// <see cref="DistanceTo(GeoRay3)"/> measures it.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoRay3 ray, Tolerance tolerance) => Projection3.GetShortestLineTo(this, ray, tolerance);
     }
 }

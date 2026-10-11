@@ -73,5 +73,73 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this segment to a polyline, within a tolerance.
         /// </summary>
         public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance between this segment and a face: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoLine3, GeoFace3)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material. Over the square 100 by 100 in the floor with a corner at the origin and a hole
+        /// 40 by 40 in its middle, the segment from (45, 50, -10) to (45, 50, 10), through the hole, is 15 from the rim;
+        /// the segment from (20, 20, -10) to (20, 20, 10) crosses the material and is nought from it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace3 face) => Distance3.DistanceTo(this, face);
+
+        /// <summary>
+        /// Calculates the shortest distance between this segment and a face, within a tolerance: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoLine3, GeoFace3, Tolerance)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material. Over the square 100 by 100 in the floor with a corner at the origin and a hole
+        /// 40 by 40 in its middle, the segment from (45, 50, -10) to (45, 50, 10), through the hole, is 15 from the rim;
+        /// the segment from (20, 20, -10) to (20, 20, 10) crosses the material and is nought from it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace3 face, Tolerance tolerance) => Distance3.DistanceTo(this, face, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance between this segment and an oriented box: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoLine3, GeoObb3)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
+        /// 50 from the segment from (150, 50, 50) to (150, 50, 150), and nought from one reaching into it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the oriented box is null.</exception>
+        public double DistanceTo(GeoObb3 box) => Distance3.DistanceTo(this, box);
+
+        /// <summary>
+        /// Calculates the shortest distance between this segment and an oriented box, within a tolerance: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoLine3, GeoObb3, Tolerance)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
+        /// 50 from the segment from (150, 50, 50) to (150, 50, 150), and nought from one reaching into it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the oriented box is null.</exception>
+        public double DistanceTo(GeoObb3 box, Tolerance tolerance) => Distance3.DistanceTo(this, box, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance between this segment and an axis-aligned box: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoLine3, GeoAabb3)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The answer about the box's body, <c>ToObb().ToSolid()</c>. The box from the origin to (100, 100, 100) is 50 from
+        /// the segment from (150, 50, 50) to (150, 50, 150), and nought from one reaching into it.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
+        public double DistanceTo(GeoAabb3 box) => Distance3.DistanceTo(this, box);
+
+        /// <summary>
+        /// Calculates the shortest distance between this segment and an axis-aligned box, within a tolerance: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoLine3, GeoAabb3, Tolerance)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The answer about the box's body, <c>ToObb().ToSolid()</c>. The box from the origin to (100, 100, 100) is 50 from
+        /// the segment from (150, 50, 50) to (150, 50, 150), and nought from one reaching into it.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
+        public double DistanceTo(GeoAabb3 box, Tolerance tolerance) => Distance3.DistanceTo(this, box, tolerance);
     }
 }

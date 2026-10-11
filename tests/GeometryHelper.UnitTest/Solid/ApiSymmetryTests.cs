@@ -117,6 +117,20 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void EveryPairOfStraightOrFlatShapesInSpaceSaysHowFarApartTheyAreFromEitherSide()
+        {
+            // DistanceTo, with and without a tolerance, on both sides of every pair of straight or flat shapes. Written
+            // down as giving only the form without a tolerance: the point's, and those of two segments, a segment and a
+            // plane, a segment and a ray, and two axis-aligned boxes, which never took one.
+            string[] missing = QuerySymmetry.MissingDistances3();
+
+            if (missing.Length > 0)
+            {
+                Assert.Fail(missing.Length + " distances missing between straight or flat shapes in space:\n" + string.Join("\n", missing));
+            }
+        }
+
+        [Fact]
         public void TransformingThroughEitherFormGivesTheSameResult()
         {
             GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(3, -4, 5))

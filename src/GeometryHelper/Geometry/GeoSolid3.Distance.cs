@@ -142,5 +142,29 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this solid to a ray, within a tolerance.
         /// </summary>
         public double DistanceTo(GeoRay3 ray, Tolerance tolerance) => Distance3.DistanceTo(ray, this, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance between this solid and a face: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoSolid3, GeoFace3)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material and the body solid through. The box 100 by 100 by 100 with a corner at the
+        /// origin passes through the hole of the square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by
+        /// 150 in its middle and is 25 from its rim; the same square without its hole cuts the box and is nought from it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace3 face) => Distance3.DistanceTo(this, face);
+
+        /// <summary>
+        /// Calculates the shortest distance between this solid and a face, within a tolerance: the answer of
+        /// <see cref="Distance3.DistanceTo(GeoSolid3, GeoFace3, Tolerance)"/>.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material and the body solid through. The box 100 by 100 by 100 with a corner at the
+        /// origin passes through the hole of the square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by
+        /// 150 in its middle and is 25 from its rim; the same square without its hole cuts the box and is nought from it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public double DistanceTo(GeoFace3 face, Tolerance tolerance) => Distance3.DistanceTo(this, face, tolerance);
     }
 }

@@ -137,5 +137,83 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, Tolerance tolerance)
             => Projection3.GetShortestLineTo(polyline, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this triangle to a face, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material; the edges of this triangle are walked first, and a tie goes to the first. The
+        /// triangle with corners (110, 50, 0), (200, 50, 0) and (110, 50, 100), standing beside the square 100 by 100 in
+        /// the floor with a corner at the origin and a hole 40 by 40 in its middle, is joined from its corner (110, 50, 0)
+        /// to (100, 50, 0) on the outline, 10 long, as <see cref="DistanceTo(GeoFace3)"/> measures it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoFace3 face) => Projection3.GetShortestLineTo(this, face);
+
+        /// <summary>
+        /// Gets the shortest segment joining this triangle to a face, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material; the edges of this triangle are walked first, and a tie goes to the first. The
+        /// triangle with corners (110, 50, 0), (200, 50, 0) and (110, 50, 100), standing beside the square 100 by 100 in
+        /// the floor with a corner at the origin and a hole 40 by 40 in its middle, is joined from its corner (110, 50, 0)
+        /// to (100, 50, 0) on the outline, 10 long, as <see cref="DistanceTo(GeoFace3)"/> measures it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoFace3 face, Tolerance tolerance) => Projection3.GetShortestLineTo(this, face, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this triangle to a polygon, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// Both are read as filled surfaces; the edges of this triangle are walked first, and a tie goes to the first. The
+        /// triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0) and the square 100 by 100 standing upright along y
+        /// = 50 from z = 10 to 110 are joined from (50, 50, 0) straight up, 10 long, as
+        /// <see cref="DistanceTo(GeoPolygon3)"/> measures it; standing from z = -50, the square crosses the triangle and
+        /// the segment has no length at (50, 50, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon) => Projection3.GetShortestLineTo(this, polygon);
+
+        /// <summary>
+        /// Gets the shortest segment joining this triangle to a polygon, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// Both are read as filled surfaces; the edges of this triangle are walked first, and a tie goes to the first. The
+        /// triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0) and the square 100 by 100 standing upright along y
+        /// = 50 from z = 10 to 110 are joined from (50, 50, 0) straight up, 10 long, as
+        /// <see cref="DistanceTo(GeoPolygon3)"/> measures it; standing from z = -50, the square crosses the triangle and
+        /// the segment has no length at (50, 50, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, Tolerance tolerance) => Projection3.GetShortestLineTo(this, polygon, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this triangle to a plane, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A triangle that crosses or touches the plane meets it in a segment of no length at the first point of contact
+        /// walking its edges from A to B; one clear of it is joined from its nearest corner, the first of them where
+        /// several are equally near. The triangle with corners (0, 50, -50), (100, 50, -50) and (0, 50, 50) meets the floor
+        /// plane at (50, 50, 0); the triangle with corners (0, 50, 10), (100, 50, 10) and (0, 50, 110) is joined from (0,
+        /// 50, 10) straight down, 10 long, as <see cref="DistanceTo(GeoPlane3)"/> measures it. The segment is never
+        /// snapped: a triangle a hair off the plane is joined by a segment that short, though the distance, read within the
+        /// point tolerance, is nought.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPlane3 plane) => Projection3.GetShortestLineTo(this, plane);
+
+        /// <summary>
+        /// Gets the shortest segment joining this triangle to a plane, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// A triangle that crosses or touches the plane meets it in a segment of no length at the first point of contact
+        /// walking its edges from A to B; one clear of it is joined from its nearest corner, the first of them where
+        /// several are equally near. The triangle with corners (0, 50, -50), (100, 50, -50) and (0, 50, 50) meets the floor
+        /// plane at (50, 50, 0); the triangle with corners (0, 50, 10), (100, 50, 10) and (0, 50, 110) is joined from (0,
+        /// 50, 10) straight down, 10 long, as <see cref="DistanceTo(GeoPlane3)"/> measures it. The segment is never
+        /// snapped: a triangle a hair off the plane is joined by a segment that short, though the distance, read within the
+        /// point tolerance, is nought.
+        /// </remarks>
+        public GeoLine3 GetShortestLineTo(GeoPlane3 plane, Tolerance tolerance) => Projection3.GetShortestLineTo(this, plane, tolerance);
     }
 }

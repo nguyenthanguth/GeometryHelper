@@ -159,5 +159,31 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoPlane3 plane, Tolerance tolerance)
             => Projection3.GetShortestLineTo(this, plane, tolerance);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a face, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment runs from the surface of this body to the material of the face, so a face lying wholly inside is
+        /// joined out to the nearest face of the body, where <see cref="DistanceTo(GeoFace3)"/> answers nought; outside, it
+        /// is as long as that distance. The box 100 by 100 by 100 with a corner at the origin passes through the hole of
+        /// the square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by 150 in its middle and is joined
+        /// to its rim across the 25 between them.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoFace3 face) => Projection3.GetShortestLineTo(this, face);
+
+        /// <summary>
+        /// Gets the shortest segment joining this solid to a face, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The segment runs from the surface of this body to the material of the face, so a face lying wholly inside is
+        /// joined out to the nearest face of the body, where <see cref="DistanceTo(GeoFace3)"/> answers nought; outside, it
+        /// is as long as that distance. The box 100 by 100 by 100 with a corner at the origin passes through the hole of
+        /// the square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by 150 in its middle and is joined
+        /// to its rim across the 25 between them.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoFace3 face, Tolerance tolerance) => Projection3.GetShortestLineTo(this, face, tolerance);
     }
 }

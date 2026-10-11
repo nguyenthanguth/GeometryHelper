@@ -218,5 +218,31 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, Tolerance tolerance)
             => Projection3.GetShortestLineTo(polyline, this, tolerance).Reverse();
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a face, using the default tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material: a segment through it meets it in a segment of no length at the crossing, and
+        /// one through a hole is joined to the rim. Over the square 100 by 100 in the floor with a corner at the origin and
+        /// a hole 40 by 40 in its middle, the segment from (45, 50, -10) to (45, 50, 10) is joined from (45, 50, 0) to the
+        /// rim at (30, 50, 0), 15 long, as <see cref="DistanceTo(GeoFace3)"/> measures it, and the segment from (20, 20,
+        /// -10) to (20, 20, 10) meets the material at (20, 20, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoFace3 face) => Projection3.GetShortestLineTo(this, face);
+
+        /// <summary>
+        /// Gets the shortest segment joining this segment to a face, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The face is read by its material: a segment through it meets it in a segment of no length at the crossing, and
+        /// one through a hole is joined to the rim. Over the square 100 by 100 in the floor with a corner at the origin and
+        /// a hole 40 by 40 in its middle, the segment from (45, 50, -10) to (45, 50, 10) is joined from (45, 50, 0) to the
+        /// rim at (30, 50, 0), 15 long, as <see cref="DistanceTo(GeoFace3)"/> measures it, and the segment from (20, 20,
+        /// -10) to (20, 20, 10) meets the material at (20, 20, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public GeoLine3 GetShortestLineTo(GeoFace3 face, Tolerance tolerance) => Projection3.GetShortestLineTo(this, face, tolerance);
     }
 }
