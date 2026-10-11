@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Every query reads from either side. Wherever one shape could be asked `DistanceTo`, `CollidesWith`,
+`GetIntersections`, `TryIntersectWith` or `GetShortestLineTo` about another and the other could not be asked back, it
+now can: 87 pairs, among them every shape in space against a `GeoPolyline3`, segments and rays against the arc chains,
+and the plane's curves against faces, rectangles and triangles in `TryIntersectWith`, plus seven forms taking a
+`Tolerance` that only one side had. Each answers exactly as the other side does, a shortest line reversed so that it
+leaves the shape asked. A bare `null` or `default` given as the shape can now match more than one overload and has to
+be cast: `GetShortestLineTo` on `GeoLine3`, `GeoPoint3` and `GeoPoint2`, and `GeoLine3.DistanceTo(shape, tolerance)`.
+Code already compiled is not affected. A null argument of a class type to the new members throws
+`ArgumentNullException`. Ellipses are still asked from the ellipse, and a point answers with `IsPointOn` and
+`Contains`.
+
+**NEW.** `GetShortestLineTo(GeoPoint2)` on every shape in the plane, and `GeoPoint2.GetShortestLineTo` to every one
+but the ellipse. It runs from the nearest point of the boundary, as every shortest line does: a circle of radius 50
+gives the point (80, 0) a segment 30 long, and the point (30, 0), inside it, one 20 long, where `DistanceTo` reads the
+disc filled and says 0.
+
 **NEW.** `GeoEllipse3`, an elliptical disc in space, with its static forms in `Core.Ellipse3`. It is read as a
 `GeoCircle3` is read: a disc for `DistanceTo`, `Locate`, `Contains` and the nearest point of the surface, the rim for
 the nearest point of the boundary and for crossings. Everything in its own plane is `GeoEllipse2`'s arithmetic, so an

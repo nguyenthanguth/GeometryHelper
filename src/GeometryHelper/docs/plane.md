@@ -164,6 +164,17 @@ plate.DistanceTo(hole);                 // 0.0  — the circle is inside the pla
 plate.GetShortestLineTo(hole).Length;   // 40.0 — out to the nearest side
 ```
 
+A point is a shape like any other here. Every shape in the plane gives the segment to a point, and a point
+gives it back the other way round, from itself to the shape:
+
+```csharp
+var disc = new GeoCircle2(new GeoPoint2(0, 0), 50.0);
+
+disc.GetShortestLineTo(new GeoPoint2(80, 0));    // (50, 0) to (80, 0), 30 long, as DistanceTo says
+disc.GetShortestLineTo(new GeoPoint2(30, 0));    // (50, 0) to (30, 0), 20 long, where DistanceTo says 0
+new GeoPoint2(30, 0).GetShortestLineTo(disc);    // the same segment, from the point to the rim
+```
+
 `GetClosestEdge` takes a point, a segment, a circle or an arc, and nothing else. The nearest edge of one
 many-edged shape to another is really a *pair* of edges, which is a different answer from the one the name
 promises, so it is not offered.

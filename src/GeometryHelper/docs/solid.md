@@ -380,7 +380,10 @@ away.StartPoint.IsEqualTo(home.EndPoint);         // true
 away.Length == home.Length;                       // true, both 100
 ```
 
-A point, a segment, a ray, a triangle, a polygon, a face, a plane and either kind of box all take part.
+A point, a segment, a ray, a triangle, a polygon, a face, a plane, either kind of box, a polyline, an arc, a
+circle, an edge, and the chains and loops of arcs all take part. Two things are asked from one side only, on
+purpose: an ellipse is asked from the ellipse, and a point answers whether it lies on or in a shape with
+`IsPointOn` and `Contains` rather than with `CollidesWith` or `GetIntersections`.
 Every shape in space also moves, which is the translating transformation and nothing more:
 
 ```csharp
