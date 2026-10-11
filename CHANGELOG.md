@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Flat shapes in space say whether and where they meet: `CollidesWith`, `GetIntersections` and
+`TryIntersectWith`, from both sides and with and without a `Tolerance`, for 39 pairs that neither side answered.
+Triangles, polygons and faces against each other, a plane, a ray and a body; a plane against a ray and a body; ray
+against ray; the boxes against these, as their body; and an edge against the arc chains. Two regions in planes that
+are not one meet where an edge of either reaches the other, and the crossings named are the ends of what they share: a
+square 100 by 100 in the floor and one standing across it along y = 50 cross at (100, 50, 0) and (0, 50, 0). In one
+plane the plane half answers. A bare `null` is now ambiguous in `Intersection3.GetIntersections(GeoPlane3, null)` and
+`Collision3.CollidesWith(GeoFace3, null)`.
+
+**NEW.** `DistanceTo` between 29 pairs of straight or flat shapes in space that neither side measured, from both sides
+and with and without a `Tolerance`, and `GetShortestLineTo` for the 16 of them without a box: faces against every
+straight and flat shape and a body, polygons against polygons, triangles and rays, a plane against them, rays against
+rays and chains, and the boxes, as their body. Two shapes that touch are nought apart; otherwise the distance is the
+least of every edge of each against the other, which is exact: a segment through a face's hole, 15 from its rim, is
+15 away.
+
 **NEW.** `GetShortestLineTo` in space wherever `DistanceTo` was already answered: 21 pairs, from both sides and with
 and without a `Tolerance`. They are a point to every curve and region, a segment to a plane, a polygon and a chain,
 chains to chains, triangles, polygons, planes and bodies, a polygon and a plane to a body, and `GeoEllipse3` to a

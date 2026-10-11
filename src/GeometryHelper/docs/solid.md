@@ -466,7 +466,9 @@ new GeoRay3(new GeoPoint3(-50, 50, 50), new GeoVector3(-1, 0, 0)).CollidesWith(c
 Triangles, polygons and faces in space say whether and where they meet each other, a plane, a ray and a body, and how
 far apart they are, from either side. They are read filled, a face by its material. Two in planes that are not one meet
 where an edge of either reaches the other, because the ends of every stretch they share lie on an edge of one of them,
-so the crossings named are those ends; two in one plane are laid out with `PlanarMap` and the plane half answers:
+so the crossings named are those ends, however finely a side is cut into pieces; two within the point tolerance of
+each other touch, as their distance reads nought; two in one plane are laid out with `PlanarMap` and the plane half
+answers:
 
 ```csharp
 var floor = new GeoPolygon3(
