@@ -316,6 +316,20 @@ namespace GeometryHelper.UnitTest.Solid
 
         #endregion
 
+        [Fact]
+        public void AChainWithACornerNotANumberIsNotANumberAwayAsItWasBeforeItsDistanceWasReadOffItsLine()
+        {
+            // The chain distances used to keep the least of their candidates by Math.Min, which carries a NaN through;
+            // read off the shortest line, a strict comparison dropped a NaN met after the first edge and answered 50.
+            var tolerance = new Tolerance(1E-3, 1E-5);
+            var chain = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(double.NaN, 0, 0));
+            var segment = new GeoLine3(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
+            var other = new GeoPolyline3(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
+
+            Assert.True(double.IsNaN(chain.DistanceTo(segment, tolerance)));
+            Assert.True(double.IsNaN(chain.DistanceTo(other, tolerance)));
+        }
+
         #region Rows and cases
 
         private sealed class Row

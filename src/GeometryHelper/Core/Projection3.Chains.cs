@@ -16,13 +16,18 @@ namespace GeometryHelper.Core
     /// </para>
     /// <para>
     /// A polygon is read as a filled surface, as its distance reads it, so a chain passing through one meets it in a
-    /// segment of no length at the crossing, and a chain ending above it is joined straight down.
+    /// segment of no length at the crossing, and a chain ending above it is joined straight down. A chain that comes at
+    /// a polygon or a triangle end-on and stops within the point tolerance of it is read as crossing it, as the segment
+    /// to a triangle always has: the segment of no length then sits at that end, up to the tolerance off the surface.
+    /// One lying level within the tolerance is joined by its true gap.
     /// </para>
     /// <para>
     /// <b>A plane</b> is endless, so a shape that crosses or touches it is joined by a segment of no length at the
     /// first point of contact in the shape's own order: along a segment from its start, and edge by edge along a chain.
     /// A shape clear of the plane is joined from its nearest point, which is a vertex, and where several are equally
-    /// near, as for a shape lying parallel to the plane, from the first of them. The segment is never snapped: a
+    /// near as the arithmetic reads them, from the first of them. A shape lying parallel to a plane that is not level
+    /// has heights that differ in their last digits, so it may be joined from any of its nearest vertices; the length is
+    /// the same. The segment is never snapped: a
     /// chain standing 0.0004 above the plane is joined by a segment 0.0004 long, though its distance, read within the
     /// point tolerance, is nought.
     /// </para>
@@ -446,13 +451,15 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// As <see cref="Consider(ref GeoLine3, GeoLine3)"/>, strict so that the earlier of two equally short segments
-        /// stands, with the length kept rather than measured again for every candidate.
+        /// stands, with the length kept rather than measured again for every candidate. A length that is not a number
+        /// is kept and then stays, as <see cref="Math.Min(double, double)"/> carries it: the chain distances read their
+        /// length from here, and a chain with a corner that is not a number was not a number away before they did.
         /// </remarks>
         private static void Consider(ref GeoLine3 best, ref double shortest, GeoLine3 candidate)
         {
             double length = candidate.Length;
 
-            if (length < shortest)
+            if (length < shortest || double.IsNaN(length))
             {
                 best = candidate;
                 shortest = length;
