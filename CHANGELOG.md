@@ -6,6 +6,11 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A body is nought from a plane only where a face of its material reaches it. Before, the distance read all
+the body's corners at once, so two pieces of a body either side of a plane, neither touching it, were nought away:
+boxes at z 10 to 20 and -20 to -10, made one body by two shells or cut apart by an opening, are now 10 from z = 0, as
+the collision and the shortest line already said.
+
 **FIXED.** A polygon or face in space is checked against a body's material, openings included, and a face's holes no
 longer hide the contact its own edges make. Before, a face with a hole standing on its corner on the top of a box 40
 by 40 by 20, or crossing its top, did not collide with it, though its outline did; and a polygon passing through an

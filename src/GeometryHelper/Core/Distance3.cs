@@ -567,8 +567,12 @@ namespace GeometryHelper.Core
         /// <returns>Zero where the body reaches the plane or crosses it, otherwise the gap.</returns>
         /// <remarks>
         /// A plane is flat and endless, so nothing needs measuring but the corners of the body: the nearest
-        /// point of a solid to a plane is always one of them, and the body crosses the plane exactly when
-        /// two of them fall on opposite sides.
+        /// point of a solid to a plane is always one of them. The body reaches the plane where one of its
+        /// faces does, the corners of that face changing side or one of them lying on it within the point
+        /// tolerance, as <see cref="Collision3.CollidesWith(GeoPlane3, GeoSolid3, Tolerance)"/> reads it;
+        /// asked over all the corners at once, a body in two pieces either side would read as crossing. The
+        /// boxes 40 by 40 from z = 10 to 20 and from z = -20 to -10, read as one body, are 10 from the plane
+        /// z = 0, and so is the box from z = -20 to 20 with an opening from z = -10 to 10 cut right across it.
         /// </remarks>
         public static double DistanceTo(GeoSolid3 solid, GeoPlane3 plane, Tolerance tolerance)
         {
@@ -580,11 +584,13 @@ namespace GeometryHelper.Core
             // The faces run straight across every opening; the nearest material can sit on any opening's rim.
             solid = Material3.Whole(solid, tolerance);
 
-            double above = double.MinValue;
-            double below = double.MaxValue;
+            double nearest = double.MaxValue;
 
             foreach (GeoFace3 face in solid.Faces)
             {
+                double above = double.MinValue;
+                double below = double.MaxValue;
+
                 foreach (GeoPoint3 corner in face.Boundary.Vertices)
                 {
                     double reach = plane.SignedDistanceTo(corner);
@@ -592,20 +598,17 @@ namespace GeometryHelper.Core
                     above = Math.Max(above, reach);
                     below = Math.Min(below, reach);
                 }
+
+                // A face straddling the plane, or touching it, leaves nothing between them.
+                if (above >= -tolerance.EqualPoint && below <= tolerance.EqualPoint)
+                {
+                    return 0.0;
+                }
+
+                nearest = Math.Min(nearest, below > 0.0 ? below : -above);
             }
 
-            if (above == double.MinValue)
-            {
-                return 0.0;
-            }
-
-            // Straddling the plane, or touching it, leaves nothing between them.
-            if (above >= -tolerance.EqualPoint && below <= tolerance.EqualPoint)
-            {
-                return 0.0;
-            }
-
-            return below > 0.0 ? below : -above;
+            return nearest == double.MaxValue ? 0.0 : nearest;
         }
 
         /// <summary>

@@ -403,9 +403,8 @@ namespace GeometryHelper.Core
         /// </returns>
         /// <remarks>
         /// The segment is never snapped. A body standing 0.0004 above the plane is joined by a segment 0.0004 long,
-        /// though the distance, read within the point tolerance, is nought. The distance reads only where the corners
-        /// stand, so a body of two separate pieces lying either side of the plane, neither touching it, is nought from
-        /// it too, and is joined from its nearest corner all the same.
+        /// though the distance, read within the point tolerance, is nought. A body of two separate pieces lying either
+        /// side of the plane, neither touching it, is joined from its nearest corner, as far as its distance.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
         public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPlane3 plane, Tolerance tolerance)
