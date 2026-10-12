@@ -14,37 +14,40 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 12.0.0
+      NEW IN 12.1.0
 
-      BREAKING, label placement keeps the greedy algorithm alone
-      - ArrangeAlgorithmType and ArrangeOptions.Algorithm are removed, with MaxBacktrackSteps,
-        AnnealingInitialTemperature, AnnealingCoolingRate and ForceIterations, the options only the other four read.
-        The greedy placement, the default all along, places every label where it did, bit for bit. Delete the Algorithm
-        line and those options; code that chose another algorithm gets the greedy placement.
+      NEW, ellipses in space
+      - GeoEllipse3, an elliptical disc in space, with Core.Ellipse3, read as GeoCircle3 is read: its rim and measures,
+        points on and off it, every transformation that can be undone, collisions and crossings against everything a
+        circle in space is asked about and another ellipse, flattening and meshes. ProjectToPlane on GeoCircle3 and
+        GeoEllipse3 gives the shape seen square onto a plane: a circle of radius 300 tilted 60 degrees from the plan is
+        an ellipse 300 by 150 in plan. ProjectToEllipse2 and GeoEllipse2.ToEllipse3 carry an ellipse between space and
+        the plane.
 
-      NEW, net volumes of a model's parts
-      - GeometryHelper.Takeoff: VolumeTakeoff.Run takes off the volume of each part with every bit of material counted
-        once, by the part ranked first among those holding it: the higher VolumeItem.Priority, then the larger
-        VolumeItem.Id, then the earlier in the list. Only what the parts share is cut, never the parts. What the
-        booleans cannot make is worked out by exact slicing. It runs in parallel, the same bit for bit on any number of
-        threads. On a Tekla model of 30 921 parts it keeps 67 369.17 m3 net of 69 040.90 m3 gross, no part carrying an
-        issue, in 197 seconds on 24 processors.
-
-      NEW, ellipses
-      - GeoEllipse2, an ellipse as a region, with Core.Ellipse2: area, length, lengths along the rim, containment, the
-        nearest point, distances, crossings and collisions against every shape a circle takes and against another
-        ellipse, transformations, flattening by curvature, triangles and meshes.
-
-      NEW, angles
-      - Angle.ToReadableDegrees and Angle.ToReadableRadians turn the angle of a text the way up it reads, within a
-        tolerance of a tenth of a radian unless given, as Tekla Structures takes it.
+      NEW, every query from either side
+      - DistanceTo, CollidesWith, GetIntersections, TryIntersectWith and GetShortestLineTo answer from both sides of
+        every pair that had one side, the same answer bit for bit, a shortest line reversed.
+      - GetShortestLineTo(point) on every shape in the plane, and in space wherever the distance was answered.
+      - GeoFace2 is measured by its material: DistanceTo against every shape, and face against face.
+      - Flat shapes in space say whether and where they meet, and how far apart they are: triangles, polygons and faces
+        against each other, planes, rays, bodies and boxes.
 
       FIXED
-      - A circle or a coplanar arc in space a hair inside another, within the point tolerance of touching it, touches
-        it between the two rims where they come nearest, not at a point read off the radical line, and an arc of it is
-        no longer missed.
-      - A boolean with a contact no longer throws when putting the second body onto the first leaves too little of it
-        to build a body.
+      - Circles and arcs in space: a long segment nearly tangent keeps both crossings; two coplanar circles a hair
+        outside each other touch; planes nearly one no longer lose crossings far from the origin.
+      - A segment or ray lying in a flat shape's plane touches it where it reaches it.
+      - A polygon or face is checked against a body's material, holes and openings included.
+      - A body in two pieces either side of a plane is not nought from it.
+      - Two boxes across skew edges are not touching more than the tolerance apart.
+      - A ray dipping from a plane's tolerance band crosses where it reaches the plane, for the body, its prepared form
+        and the BVH; a clash bar dipping into a part from the band now enters it.
+      - Two triangles give the same answer whichever is asked first, and touch within the tolerance.
+      - Clash, simple-polygon and ring sweeps run along the axis with the fewest pairs, and label placement finds its
+        neighbours through an index: the same results to the last bit, much faster where the shapes lay along X.
+
+      SOURCE NOTE
+      - A bare null or default given as the shape to some GetShortestLineTo and DistanceTo overloads now matches more
+        than one and has to be cast. Code already compiled is not affected.
 
       Details in CHANGELOG.md.
 

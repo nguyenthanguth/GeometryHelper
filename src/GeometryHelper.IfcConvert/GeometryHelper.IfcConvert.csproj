@@ -19,6 +19,11 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 12.1.0
+      - GeometryHelper.IfcConvert is released at 12.1.0 with GeometryHelper, which adds GeoEllipse3, answers every query from either
+        side, and fixes collisions and distances of flat shapes in space, rays in a plane's tolerance band and the
+        clash's bars dipping into a part; nothing in IfcConvert changes.
+
       NEW IN 12.0.0
       - GeometryHelper.IfcConvert is released at 12.0.0 with GeometryHelper, which adds VolumeTakeoff and GeoEllipse2
         and keeps the greedy label placement alone, a breaking change; nothing in IfcConvert changes.

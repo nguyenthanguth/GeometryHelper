@@ -4,10 +4,10 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 12.1.0
 
 **FIXED.** `GeoPreparedSolid3` and `GeoBvh3` read a ray from a plane's tolerance band as the body itself does. Their
-ray members had kept the old reading after the fix above, so the ray from (5, 5, 0.0004) along (1, 0, -0.01) crossed a
+ray members had kept the old reading after the fix of a ray dipping from the band, below, so the ray from (5, 5, 0.0004) along (1, 0, -0.01) crossed a
 box's top at (5.04, 5, 0) for the body and nowhere for its prepared form. The clash's bars go through them: a bar 400
 long starting 0.0004 over a plate and dipping into it at half a degree was all inside it, and is now 399.954 inside, as
 the closed form gives.

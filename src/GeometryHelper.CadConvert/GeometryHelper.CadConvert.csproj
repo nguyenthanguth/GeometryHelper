@@ -19,8 +19,16 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
       Converts geometry between AutoCAD and GeometryHelper, both ways: points, vectors, line segments
-      and Line entities, polylines and polygons with the arcs their bulges draw, arcs, circles, and
-      Extents2d/Extents3d as rectangles.
+      and Line entities, polylines and polygons with the arcs their bulges draw, arcs, circles,
+      ellipses, and Extents2d/Extents3d as rectangles.
+
+      ELLIPSES (12.1.0)
+      - The Ellipse entity converts both ways: ToGeoEllipse3 reads it in its own plane, ToGeoEllipse2
+        reads it as seen in plan (TryToGeoEllipse2 reports false instead of throwing), and
+        ToAcadEllipse writes a GeoEllipse3 or GeoEllipse2 back as a whole turn. An elliptical arc is
+        refused, since GeometryHelper has none.
+      - ToGeoEllipse2 also reads a Circle as it is seen in plan, a tilted one included: a circle of
+        radius 300 tilted 60 degrees from the plan is an ellipse 300 by 150.
 
       ARCS AND BULGES
       - An AutoCAD polyline carries a bulge against each vertex, and a vertex with a bulge is joined to

@@ -29,6 +29,11 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 12.1.0
+      - GeometryHelper.TeklaConvert is released at 12.1.0 with GeometryHelper, which adds GeoEllipse3, answers every query from either
+        side, and fixes collisions and distances of flat shapes in space, rays in a plane's tolerance band and the
+        clash's bars dipping into a part; nothing in TeklaConvert changes.
+
       NEW IN 12.0.0
       - GeometryHelper.TeklaConvert is released at 12.0.0 with GeometryHelper, whose VolumeTakeoff takes off the net
         volumes of a model's parts, each overlap counted once by priority, as HDC WBS ranks its parts: on a Tekla model
