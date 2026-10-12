@@ -6,6 +6,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `GeoPreparedSolid3` and `GeoBvh3` read a ray from a plane's tolerance band as the body itself does. Their
+ray members had kept the old reading after the fix above, so the ray from (5, 5, 0.0004) along (1, 0, -0.01) crossed a
+box's top at (5.04, 5, 0) for the body and nowhere for its prepared form. The clash's bars go through them: a bar 400
+long starting 0.0004 over a plate and dipping into it at half a degree was all inside it, and is now 399.954 inside, as
+the closed form gives.
+
 **FIXED.** Two triangles in space give the same answer whichever is asked first, and touch wherever they come within
 the point tolerance, as two polygons do. Before, whether they lay in one plane was read from one corner of the second
 only, so 211 of 5 000 near-coplanar pairs collided one way round and not the other, and contacts at 1E-5 rad were
@@ -17,9 +23,8 @@ each other are checked about a fifth slower.
 one dipping under the angle tolerance was read as lying in the plane and crossed nothing there: the ray from
 (5, 5, 0.0004) along (1, 0, -0.01) missed the square 10 by 10 in the floor it crosses at (5.04, 5, 0). It now crosses
 where it reaches height nought, and one rising from the band touches at its origin. Ray against triangle, polygon,
-face and body follow, with the ray distances and shortest lines. The ray casts inside `Locate`, the booleans and the
-clash keep their reading, and none of their results changes; `GeoPreparedSolid3`'s ray members, which share that
-casting, keep it too for now.
+face and body follow, with the ray distances and shortest lines. The ray casts that count crossings, inside `Locate`
+and the booleans, keep their reading, and none of their results changes.
 
 **FIXED.** Two oriented boxes whose nearest edges cross at an angle no longer count as touching more than the point
 tolerance apart. The separating-axis test allowed the point tolerance along an edge-to-edge axis before that axis was

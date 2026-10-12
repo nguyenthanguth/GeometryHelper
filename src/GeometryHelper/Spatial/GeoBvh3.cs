@@ -283,7 +283,12 @@ namespace GeometryHelper.Spatial
         /// <remarks>
         /// The results come back in no particular order. A ray passing exactly along an edge shared by two
         /// triangles is reported by both of them, so a caller counting crossings should aim the ray away
-        /// from edges rather than trust the count.
+        /// from edges rather than trust the count. Each triangle is crossed as
+        /// <see cref="Intersection3.TryIntersectWith(GeoRay3, GeoTriangle3, out GeoPoint3, Tolerance)"/> crosses it:
+        /// a ray starting within the planar tolerance of a triangle's plane and dipping into it, however shallowly,
+        /// crosses where it reaches the plane, one rising from there touches at its origin, and one level with it to
+        /// rounding names no place on it. The ray from (5, 5, 0.0004) along (1, 0, -0.01) crosses a mesh whose top lies
+        /// in z = 0 at (5.04, 5, 0).
         /// </remarks>
         public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance)
         {
@@ -294,6 +299,9 @@ namespace GeometryHelper.Spatial
                 return hits.ToArray();
             }
 
+            // A crossing is named within the point tolerance of its triangle across it and the planar tolerance off its
+            // plane, so a branch whose box, grown by the larger of the two, the ray never enters holds none.
+            double grow = Math.Max(tolerance.EqualPoint, tolerance.EqualPlanar);
             Stack<int> pending = new Stack<int>();
             pending.Push(0);
 
@@ -301,7 +309,7 @@ namespace GeometryHelper.Spatial
             {
                 Node node = _nodes[pending.Pop()];
 
-                if (!RayHitsBox(ray, node.Bounds, tolerance))
+                if (!RayEntersBox(ray, node.Bounds, grow))
                 {
                     continue;
                 }
@@ -310,7 +318,7 @@ namespace GeometryHelper.Spatial
                 {
                     for (int i = node.Start; i < node.Start + node.Count; i++)
                     {
-                        if (Intersection3.TryCrossTriangle(ray, _triangles[_order[i]], out GeoPoint3 hit, tolerance, true))
+                        if (Intersection3.TryCrossTriangle(ray, _triangles[_order[i]], out GeoPoint3 hit, tolerance, false))
                         {
                             hits.Add(hit);
                         }
@@ -933,6 +941,64 @@ namespace GeometryHelper.Spatial
 
                 enter = Math.Max(enter, first - slack);
                 exit = Math.Min(exit, second + slack);
+
+                if (enter > exit)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Checks whether a ray enters a box grown by a distance on every side at any non-negative distance along it.
+        /// </summary>
+        /// <remarks>
+        /// The slab test of <see cref="RayHitsBox"/>, with the box grown in space rather than the intervals along the
+        /// ray: a ray starting 0.0004 over a box no thicker than a face and rising away at a slope of a hundredth passes
+        /// the box's height 0.04 behind its origin, which a slack along the ray of a thousandth does not reach, though
+        /// its origin is within the tolerance of the face.
+        /// </remarks>
+        private static bool RayEntersBox(GeoRay3 ray, GeoAabb3 box, double grow)
+        {
+            if (box.IsEmpty)
+            {
+                return false;
+            }
+
+            double enter = 0.0;
+            double exit = double.MaxValue;
+
+            for (int axis = 0; axis < 3; axis++)
+            {
+                double origin = Component(ray.Origin, axis);
+                double step = Component(GeoPoint3.Origin.Add(ray.Direction), axis);
+                double low = Component(box.Min, axis) - grow;
+                double high = Component(box.Max, axis) + grow;
+
+                if (step == 0.0)
+                {
+                    if (origin < low || origin > high)
+                    {
+                        return false;
+                    }
+
+                    continue;
+                }
+
+                double first = (low - origin) / step;
+                double second = (high - origin) / step;
+
+                if (first > second)
+                {
+                    double swap = first;
+                    first = second;
+                    second = swap;
+                }
+
+                enter = Math.Max(enter, first);
+                exit = Math.Min(exit, second);
 
                 if (enter > exit)
                 {

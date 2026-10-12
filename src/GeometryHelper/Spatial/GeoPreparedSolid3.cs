@@ -211,7 +211,10 @@ namespace GeometryHelper.Spatial
         /// </summary>
         /// <remarks>
         /// A crossing landing on a seam of the mesh arrives once per triangle and is reported once, as the body
-        /// reports it.
+        /// reports it. A ray starting within the planar tolerance of where the material ends is read as
+        /// <see cref="Intersection3.GetIntersections(GeoRay3, GeoSolid3, Tolerance)"/> reads it: dipping in, it crosses
+        /// where it reaches the surface, so the ray from (5, 5, 0.0004) along (1, 0, -0.01) enters the box whose top
+        /// lies in z = 0 at (5.04, 5, 0); rising, it touches at its origin.
         /// </remarks>
         public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance)
         {
@@ -236,7 +239,8 @@ namespace GeometryHelper.Spatial
         public bool CollidesWith(GeoRay3 ray) => CollidesWith(ray, Tolerance.Global);
 
         /// <summary>
-        /// Checks whether a ray starts in the material or passes through where it ends, within a tolerance.
+        /// Checks whether a ray starts in the material or passes through where it ends, within a tolerance, the
+        /// crossings read as <see cref="GetIntersections(GeoRay3, Tolerance)"/> reads them.
         /// </summary>
         public bool CollidesWith(GeoRay3 ray, Tolerance tolerance)
             => Contains(ray.Origin, tolerance) || Index.GetIntersections(ray, tolerance).Length > 0;

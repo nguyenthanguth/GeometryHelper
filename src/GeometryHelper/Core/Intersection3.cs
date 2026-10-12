@@ -274,10 +274,11 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The rays cast behind <see cref="Containment3.Locate(GeoSolid3, GeoPoint3, Tolerance)"/>, the prepared
-        /// solid's Locate and bar reach, and the booleans' depth under a triangle refuse a ray starting within the
-        /// planar tolerance and running within the angle tolerance of the plane, as lying in it. They keep that
-        /// reading until it is judged on its own, since every containment, boolean, clash and take-off answer rests on
-        /// it.
+        /// solid's Locate and the booleans' depth under a triangle count the faces they cross, and refuse a ray starting
+        /// within the planar tolerance and running within the angle tolerance of the plane, as lying in it. They keep
+        /// that reading until it is judged on its own, since every containment, boolean, clash and take-off answer
+        /// rests on it. The ray members of the index and the prepared solid, which the clash's bars cut their centre
+        /// lines by, name crossings rather than count them, and read a ray as the public members do.
         /// </remarks>
         internal static bool TryCrossPlane(GeoRay3 ray, GeoPlane3 plane, out GeoPoint3 intersection, Tolerance tolerance, bool countingCrossings)
             => countingCrossings
