@@ -169,5 +169,24 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public double DistanceTo(GeoFace2 face, Tolerance tolerance) => Face2.DistanceTo(face, this, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Gets the distance from the edge to a ray.
+        /// </summary>
+        public double DistanceTo(GeoRay2 ray) => DistanceTo(ray, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the distance from the edge to a ray, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRay2 ray, Tolerance tolerance)
+        {
+            return IsArc
+                ? Core.Arc2.DistanceTo(ToArc(), ray, tolerance)
+                : Core.Distance2.DistanceTo(ray, ToLine(), tolerance);
+        }
+
+        #endregion
     }
 }

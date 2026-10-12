@@ -243,5 +243,29 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections, Tolerance tolerance)
             => triangle.TryIntersectWith(this, out intersections, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Gets the points where the edge meets a ray.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRay2 ray) => GetIntersections(ray, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the points where the edge meets a ray, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRay2 ray, Tolerance tolerance)
+        {
+            if (IsArc)
+            {
+                return Core.Arc2.GetIntersections(ToArc(), ray, tolerance);
+            }
+
+            return Core.Intersection2.TryIntersectWith(ToLine(), ray, out GeoPoint2 meeting, tolerance)
+                ? new[] { meeting }
+                : new GeoPoint2[0];
+        }
+
+        #endregion
     }
 }

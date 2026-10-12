@@ -1154,5 +1154,35 @@ namespace GeometryHelper.UnitTest.Plane
             double longSide = tightest.Width >= tightest.Height ? tightest.AngleRad : tightest.AngleRad + Math.PI / 2;
             Assert.Equal(0.0, Math.Sin(longSide - Math.Atan2(3, 4)), 9);
         }
+
+        [Fact]
+        public void Rays()
+        {
+            var square = new GeoPolygon2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) });
+            var ray = new GeoRay2(new GeoPoint2(-50, 50), GeoVector2.XAxis);
+
+            // Edge by edge, as for a segment: the right side comes before the left one.
+            GeoPoint2[] crossings = ray.GetIntersections(square);
+            Assert.Equal(2, crossings.Length);
+            Assert.True(crossings[0].IsEqualTo(new GeoPoint2(100, 50), Tolerance.Default));
+            Assert.True(crossings[1].IsEqualTo(new GeoPoint2(0, 50), Tolerance.Default));
+            Assert.True(ray.CollidesWith(square));
+            Assert.Equal(50.0, ray.Reverse().DistanceTo(square), 9);
+
+            GeoLine2 back = ray.Reverse().GetShortestLineTo(square);
+            Assert.True(back.StartPoint.IsEqualTo(new GeoPoint2(-50, 50), Tolerance.Default));
+            Assert.True(back.EndPoint.IsEqualTo(new GeoPoint2(0, 50), Tolerance.Default));
+            Assert.True(ray.IsPointOn(new GeoPoint2(-50.0005, 50)));
+            Assert.False(ray.IsPointOn(new GeoPoint2(-60, 50)));
+
+            // A ray starting inside is nought from the square, asked from either side.
+            var inside = new GeoRay2(new GeoPoint2(50, 50), GeoVector2.XAxis);
+            Assert.Equal(0.0, inside.DistanceTo(square));
+            Assert.Equal(0.0, square.DistanceTo(inside));
+
+            var alongX = new GeoRay2(new GeoPoint2(0, 0), GeoVector2.XAxis);
+            Assert.True(alongX.TryIntersectWith(new GeoRay2(new GeoPoint2(50, -50), GeoVector2.YAxis), out GeoPoint2 crossing));
+            Assert.True(crossing.IsEqualTo(new GeoPoint2(50, 0), Tolerance.Default));
+        }
     }
 }

@@ -139,5 +139,19 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the other face is null.</exception>
         public bool CollidesWith(GeoFace2 other, Tolerance tolerance) => Face2.CollidesWith(this, other, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Determines whether a ray reaches the material of this face, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay2 ray) => Face2.CollidesWith(this, ray);
+
+        /// <summary>
+        /// Determines whether a ray reaches the material of this face, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay2 ray, Tolerance tolerance) => Face2.CollidesWith(this, ray, tolerance);
+
+        #endregion
     }
 }

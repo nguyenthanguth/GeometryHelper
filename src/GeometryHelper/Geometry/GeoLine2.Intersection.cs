@@ -302,5 +302,27 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections, Tolerance tolerance)
             => triangle.TryIntersectWith(this, out intersections, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Tries to find where this segment crosses a ray, using the default tolerance.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="intersection">The crossing point if successful.</param>
+        public bool TryIntersectWith(GeoRay2 ray, out GeoPoint2 intersection) => Intersection2.TryIntersectWith(this, ray, out intersection);
+
+        /// <summary>
+        /// Tries to find where this segment crosses a ray, within a tolerance.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="intersection">The crossing point if successful, placed on this segment.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A ray parallel to the segment is refused, as two parallel segments are, even where it lies along the segment.
+        /// </remarks>
+        public bool TryIntersectWith(GeoRay2 ray, out GeoPoint2 intersection, Tolerance tolerance) => Intersection2.TryIntersectWith(this, ray, out intersection, tolerance);
+
+        #endregion
     }
 }

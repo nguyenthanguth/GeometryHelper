@@ -23,7 +23,7 @@ namespace GeometryHelper.Core
     /// here, and turn a shortest segment round so that it leaves them.
     /// </para>
     /// </remarks>
-    public static class Triangle2
+    public static partial class Triangle2
     {
         /// <summary>
         /// Reads a triangle as the polygon of its corners, or, when two of them stand within the point tolerance of each

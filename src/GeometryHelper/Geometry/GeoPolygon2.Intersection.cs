@@ -202,5 +202,19 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections, Tolerance tolerance)
             => triangle.TryIntersectWith(this, out intersections, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Gets every point where a ray crosses the boundary of this polygon, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRay2 ray) => Intersection2.GetIntersections(this, ray);
+
+        /// <summary>
+        /// Gets every point where a ray crosses the boundary of this polygon, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRay2 ray, Tolerance tolerance) => Intersection2.GetIntersections(this, ray, tolerance);
+
+        #endregion
     }
 }

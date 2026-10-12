@@ -33,7 +33,7 @@ namespace GeometryHelper.Core
     /// asked the same way, each one's material against the other's.
     /// </para>
     /// </remarks>
-    public static class Face2
+    public static partial class Face2
     {
         /// <summary>
         /// Gets every point where a segment crosses the boundary of a face.

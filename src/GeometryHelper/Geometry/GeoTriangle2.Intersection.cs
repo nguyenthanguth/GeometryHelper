@@ -358,5 +358,39 @@ namespace GeometryHelper.Geometry
 
             return intersections.Length > 0;
         }
+
+        #region Rays
+
+        /// <summary>
+        /// Gets every point where the edges of this triangle meet a ray, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRay2 ray) => Triangle2.GetIntersections(this, ray);
+
+        /// <summary>
+        /// Gets every point where the edges of this triangle meet a ray, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRay2 ray, Tolerance tolerance) => Triangle2.GetIntersections(this, ray, tolerance);
+
+        /// <summary>
+        /// Tries to find where the edges of this triangle meet a ray, using the default tolerance.
+        /// </summary>
+        public bool TryIntersectWith(GeoRay2 ray, out GeoPoint2[] intersections)
+            => TryIntersectWith(ray, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where the edges of this triangle meet a ray, within a tolerance.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        public bool TryIntersectWith(GeoRay2 ray, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            intersections = GetIntersections(ray, tolerance);
+
+            return intersections.Length > 0;
+        }
+
+        #endregion
     }
 }

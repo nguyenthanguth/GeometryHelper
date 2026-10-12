@@ -173,5 +173,19 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
         public double DistanceTo(GeoFace2 face, Tolerance tolerance) => Ellipse2.DistanceTo(this, face, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Gets the distance from this ellipse to a ray, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRay2 ray) => Ellipse2.DistanceTo(this, ray);
+
+        /// <summary>
+        /// Gets the distance from this ellipse to a ray, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRay2 ray, Tolerance tolerance) => Ellipse2.DistanceTo(this, ray, tolerance);
+
+        #endregion
     }
 }

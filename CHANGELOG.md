@@ -4,6 +4,18 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**NEW.** `GeoRay2`, the ray in the plane: an origin and a direction it runs along for ever, the counterpart of
+`GeoRay3`. It is asked what a segment is asked, against every shape in the plane, and every shape that takes a
+`GeoLine2` takes a `GeoRay2` back; an ellipse is asked from the ellipse, as for a segment. The answers read as the
+segment's do: the ray from (-50, 50) along X crosses the square 0..100 at (100, 50) and (0, 50), edge by edge, and the
+same ray turned round is 50 from it. Against a shape the ray is asked as the segment from its origin to a point past
+the farthest the shape reaches along it, and answers as that segment does: nothing of the shape lies beyond. Two rays are
+measured directly, and are nought apart wherever they meet, at any angle. `PlanarMap.ProjectToRay2` and `ToRay3` carry
+a ray between space and a frame, `GeoBvh2.GetIntersections` takes a ray, and `GeoTransform2` transforms one. No
+existing answer changes.
+
 ## 12.1.0
 
 **FIXED.** `GeoPreparedSolid3` and `GeoBvh3` read a ray from a plane's tolerance band as the body itself does. Their

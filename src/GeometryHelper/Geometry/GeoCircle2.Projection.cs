@@ -248,5 +248,19 @@ namespace GeometryHelper.Geometry
         public GeoLine2 GetClosestEdge(GeoTriangle2 triangle) => Triangle2.GetClosestEdge(triangle, this);
 
         #endregion
+
+        #region Rays
+
+        /// <summary>
+        /// Gets the shortest segment leaving the circumference of this circle and landing on a ray, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray) => Projection2.GetShortestLineTo(this, ray);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the circumference of this circle and landing on a ray, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray, Tolerance tolerance) => Projection2.GetShortestLineTo(this, ray, tolerance);
+
+        #endregion
     }
 }

@@ -131,6 +131,16 @@ namespace GeometryHelper.Geometry
             return new GeoLine3(Origin, GetPointAtDistance(distance));
         }
 
+        /// <summary>
+        /// Lays this ray out in a frame: its origin dropped onto the plane of that frame and its direction laid along it.
+        /// </summary>
+        /// <param name="frame">The frame to lay it out in.</param>
+        /// <returns>The ray in the plane of the frame.</returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the ray runs along the normal of the frame, so that its direction has no length in the plane.
+        /// </exception>
+        public GeoRay2 ProjectToRay2(GeoCoordinateSystem3 frame) => PlanarMap.ProjectToRay2(frame, this);
+
         #region Predicates and intersection
 
         /// <summary>

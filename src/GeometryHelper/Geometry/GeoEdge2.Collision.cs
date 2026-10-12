@@ -137,5 +137,20 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.CollidesWith(triangle, this, tolerance);
 
         #endregion
+
+        #region Rays
+
+        /// <summary>
+        /// Checks whether the edge touches a ray.
+        /// </summary>
+        public bool CollidesWith(GeoRay2 ray) => CollidesWith(ray, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether the edge touches a ray, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay2 ray, Tolerance tolerance)
+            => IsArc ? ToArc().CollidesWith(ray, tolerance) : ToLine().CollidesWith(ray, tolerance);
+
+        #endregion
     }
 }

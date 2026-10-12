@@ -245,5 +245,34 @@ namespace GeometryHelper.Geometry
         /// <param name="intersections">The crossings when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
         public bool TryIntersectWith(GeoEllipse2 other, out GeoPoint2[] intersections, Tolerance tolerance) => Ellipse2.TryIntersectWith(this, other, out intersections, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Gets the points where a ray crosses the rim of this ellipse, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRay2 ray) => Ellipse2.GetIntersections(this, ray);
+
+        /// <summary>
+        /// Gets the points where a ray crosses the rim of this ellipse, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRay2 ray, Tolerance tolerance) => Ellipse2.GetIntersections(this, ray, tolerance);
+
+        /// <summary>
+        /// Tries to find where this ellipse crosses a ray, using the default tolerance.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoRay2 ray, out GeoPoint2[] intersections) => Ellipse2.TryIntersectWith(this, ray, out intersections);
+
+        /// <summary>
+        /// Tries to find where this ellipse crosses a ray, within a tolerance.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoRay2 ray, out GeoPoint2[] intersections, Tolerance tolerance) => Ellipse2.TryIntersectWith(this, ray, out intersections, tolerance);
+
+        #endregion
     }
 }

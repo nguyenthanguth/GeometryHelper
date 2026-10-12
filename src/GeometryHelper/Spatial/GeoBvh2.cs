@@ -286,6 +286,37 @@ namespace GeometryHelper.Spatial
         }
 
         /// <summary>
+        /// Gets the points where a ray crosses the indexed edges.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoRay2 ray) => GetIntersections(ray, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the points where a ray crosses the indexed edges, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The ray is cut past the box round everything indexed, by a margin of a millimetre or a hundred point
+        /// tolerances, whichever is more, and the segment it is cut to is walked as
+        /// <see cref="GetIntersections(GeoLine2, Tolerance)"/> walks one: nothing indexed lies past that end, so the
+        /// answer is that segment's. Over the edges of the square 100 by 100 with a corner at the origin, the ray from
+        /// (-50, 50) along X is cut at (101, 50) and crosses at (0, 50) and (100, 50). An empty hierarchy is crossed nowhere.
+        /// </remarks>
+        public GeoPoint2[] GetIntersections(GeoRay2 ray, Tolerance tolerance)
+        {
+            if (_nodeCount == 0)
+            {
+                return new GeoPoint2[0];
+            }
+
+            Box box = _nodes[0].Bounds;
+
+            double farthest = Math.Max(
+                Math.Max(ray.GetDistanceAtPoint(new GeoPoint2(box.MinX, box.MinY)), ray.GetDistanceAtPoint(new GeoPoint2(box.MaxX, box.MinY))),
+                Math.Max(ray.GetDistanceAtPoint(new GeoPoint2(box.MaxX, box.MaxY)), ray.GetDistanceAtPoint(new GeoPoint2(box.MinX, box.MaxY))));
+
+            return GetIntersections(Ray2.CutPast(ray, farthest, tolerance), tolerance);
+        }
+
+        /// <summary>
         /// Gets the distance between two hierarchies, measured between the edges they hold.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the other hierarchy is null.</exception>

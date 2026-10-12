@@ -222,5 +222,25 @@ namespace GeometryHelper.Geometry
         public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetShortestLineTo(triangle, this, tolerance).Reverse();
 
         #endregion
+
+        #region Rays
+
+        /// <summary>
+        /// Gets the shortest segment joining the edge to a ray.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray) => GetShortestLineTo(ray, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining the edge to a ray, within a tolerance.
+        /// </summary>
+        /// <returns>A segment leaving this edge and landing on <paramref name="ray"/>, of no length at all where the two cross.</returns>
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray, Tolerance tolerance)
+        {
+            return IsArc
+                ? Core.Arc2.GetShortestLineTo(ToArc(), ray, tolerance)
+                : Core.Projection2.GetShortestLineTo(ray, ToLine(), tolerance).Reverse();
+        }
+
+        #endregion
     }
 }

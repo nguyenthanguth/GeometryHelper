@@ -37,6 +37,33 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Checks whether a point lies on a ray using default tolerance.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="point">The target point.</param>
+        /// <returns>true if the point lies on the ray; otherwise, false.</returns>
+        public static bool IsPointOn(GeoRay2 ray, GeoPoint2 point)
+        {
+            return IsPointOn(ray, point, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Checks whether a point lies on a ray within tolerance.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="point">The target point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true if the point lies within the point tolerance of the ray; otherwise, false.</returns>
+        /// <remarks>
+        /// A ray starts at its origin, so a point on its carrier line but behind the origin by more than the tolerance is
+        /// not on it: of the ray from the origin along X, the point (100, 0) is on it and the point (-1, 0) is not.
+        /// </remarks>
+        public static bool IsPointOn(GeoRay2 ray, GeoPoint2 point, Tolerance tolerance)
+        {
+            return Distance2.DistanceTo(ray, point, tolerance) <= tolerance.EqualPoint;
+        }
+
+        /// <summary>
         /// Checks whether a point lies on the circumference of a circle using default tolerance.
         /// </summary>
         /// <param name="circle">The circle.</param>
@@ -441,6 +468,32 @@ namespace GeometryHelper.Core
         public static PointLocation Locate(GeoLine2 line, GeoPoint2 point, Tolerance tolerance)
         {
             return IsPointOn(line, point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
+        }
+
+        /// <summary>
+        /// Classifies the spatial location of a point relative to a ray using default tolerance.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="point">The target point.</param>
+        /// <returns>PointLocation.OnSide if on the ray; otherwise PointLocation.OutSide.</returns>
+        public static PointLocation Locate(GeoRay2 ray, GeoPoint2 point)
+        {
+            return Locate(ray, point, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Classifies the spatial location of a point relative to a ray within tolerance.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="point">The target point.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>PointLocation.OnSide if on the ray; otherwise PointLocation.OutSide.</returns>
+        /// <remarks>
+        /// A ray encloses nothing, so the answer is never <c>Inside</c>.
+        /// </remarks>
+        public static PointLocation Locate(GeoRay2 ray, GeoPoint2 point, Tolerance tolerance)
+        {
+            return IsPointOn(ray, point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
         }
 
         /// <summary>

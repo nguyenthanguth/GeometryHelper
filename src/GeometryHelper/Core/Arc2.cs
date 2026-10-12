@@ -14,7 +14,7 @@ namespace GeometryHelper.Core
     /// is left out; a point off the ends is measured to whichever end is nearer.
     /// </para>
     /// </summary>
-    public static class Arc2
+    public static partial class Arc2
     {
         #region Projection and distance
 

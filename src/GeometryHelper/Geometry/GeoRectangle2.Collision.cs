@@ -128,5 +128,19 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.CollidesWith(triangle, this, tolerance);
 
         #endregion
+
+        #region Rays
+
+        /// <summary>
+        /// Checks whether a ray starts inside this rectangle or runs into it, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay2 ray) => Collision2.CollidesWith(this, ray);
+
+        /// <summary>
+        /// Checks whether a ray starts inside this rectangle or runs into it, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay2 ray, Tolerance tolerance) => Collision2.CollidesWith(this, ray, tolerance);
+
+        #endregion
     }
 }

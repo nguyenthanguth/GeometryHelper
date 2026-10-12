@@ -125,5 +125,19 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.CollidesWith(triangle, this, tolerance);
 
         #endregion
+
+        #region Rays
+
+        /// <summary>
+        /// Determines whether this arc touches a ray, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay2 ray) => Collision2.CollidesWith(ray, this);
+
+        /// <summary>
+        /// Determines whether this arc touches a ray, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay2 ray, Tolerance tolerance) => Collision2.CollidesWith(ray, this, tolerance);
+
+        #endregion
     }
 }

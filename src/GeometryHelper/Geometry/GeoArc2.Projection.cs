@@ -166,5 +166,19 @@ namespace GeometryHelper.Geometry
         public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetShortestLineTo(triangle, this, tolerance).Reverse();
 
         #endregion
+
+        #region Rays
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a ray, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray) => Arc2.GetShortestLineTo(this, ray);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this arc and landing on a ray, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray, Tolerance tolerance) => Arc2.GetShortestLineTo(this, ray, tolerance);
+
+        #endregion
     }
 }

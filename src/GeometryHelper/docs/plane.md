@@ -13,7 +13,7 @@ measured with the same [shared types](common.md).
 
 | Namespace | Holds |
 |---|---|
-| `GeometryHelper.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoPolyline2`, `GeoPolygon2`, `GeoFace2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2`, `GeoTriangle2`, `GeoTransform2` |
+| `GeometryHelper.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2`, `GeoPolyline2`, `GeoPolygon2`, `GeoFace2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2`, `GeoTriangle2`, `GeoTransform2` |
 | `GeometryHelper.Core` | `Boolean2`, `Collision2`, `Containment2`, `Corner2`, `Distance2`, `Ellipse2`, `Intersection2`, `Lengthen2`, `Merge2`, `Offset2`, `Parallel2`, `Parametrization2`, `Projection2`, `Splition2`, `Triangle2`, `PlanarMap` |
 | `GeometryHelper.Meshing` | `GeoMesh2`, `Mesh2`, `MeshKind`, `MeshOptions`, `GridAlignment`: see [meshing the plane](mesh.md) |
 | `GeometryHelper.Extension` | `EnumerableExtension` |
@@ -25,7 +25,7 @@ imports one namespace and nothing collides.
 
 ## Geometric Types
 
-`GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2` (rotated rectangle — OBB), `GeoTriangle2`, `GeoPolygon2`, `GeoFace2` (a polygon with holes), `GeoPolyline2`, and the chains that may curve: `GeoEdge2`, `GeoPolylineArc2`, `GeoPolygonArc2`.
+`GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2` (a half-line), `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2` (rotated rectangle — OBB), `GeoTriangle2`, `GeoPolygon2`, `GeoFace2` (a polygon with holes), `GeoPolyline2`, and the chains that may curve: `GeoEdge2`, `GeoPolylineArc2`, `GeoPolygonArc2`.
 
 ### Regions and curves
 
@@ -34,7 +34,7 @@ The shapes split into two families, and the distinction decides what you can ask
 | Family | Types | Encloses an area |
 |---|---|---|
 | Region | `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2`, `GeoPolygon2`, `GeoFace2` | yes |
-| Curve | `GeoLine2`, `GeoArc2`, `GeoPolyline2`, `GeoPolylineArc2` | no |
+| Curve | `GeoLine2`, `GeoRay2`, `GeoArc2`, `GeoPolyline2`, `GeoPolylineArc2` | no |
 | Curved loop | `GeoPolygonArc2` | yes, but see below |
 
 A `GeoPolyline2` is always an open chain — it has no `IsClosed` flag and never joins its last vertex back to its first. Geometry meant to enclose something is a `GeoPolygon2`, and `polyline.ToPolygon()` converts between them.
@@ -905,6 +905,42 @@ The count is rounded up to a multiple of four, so an ellipse with equal radii ta
 takes 50. Past 4 096 corners the steps become even rather than adaptive, which keeps a tolerance too fine to
 meet from asking for an endless loop. `TriangulateSurface` fans from the centre, and `ToMesh` meshes the
 flattened rim as it does a circle's.
+
+## Rays
+
+`GeoRay2` is a half-line: an origin, and a direction of unit length it runs along for ever, the
+counterpart of `GeoRay3` in space. A direction of no length is refused.
+
+```csharp
+var square = new GeoPolygon2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) });
+var ray = new GeoRay2(new GeoPoint2(-50, 50), GeoVector2.XAxis);
+
+ray.GetIntersections(square);                 // (100, 50), (0, 50), edge by edge as for a segment
+ray.CollidesWith(square);                     // true
+ray.Reverse().DistanceTo(square);             // 50, from its origin to the left side
+ray.Reverse().GetShortestLineTo(square);      // (-50, 50) -> (0, 50)
+ray.IsPointOn(new GeoPoint2(-50.0005, 50));   // true: within the point tolerance of the origin
+ray.IsPointOn(new GeoPoint2(-60, 50));        // false: behind the origin
+```
+
+**It is asked what a segment is asked**, and every answer reads as the segment's does: a closed shape is
+filled for the distance and the collision, so a ray starting inside the square is nought from it, while
+the shortest line runs to the outline. Every shape that takes a `GeoLine2` takes a `GeoRay2` too, so
+`square.DistanceTo(ray)` gives the same 0. An ellipse is asked from the ellipse, as it is for a segment.
+
+Against any shape but another ray, the ray is answered as the segment from its origin to a point past
+the farthest the shape reaches along it. Nothing of the shape lies beyond that point, so the ray answers as
+that segment does: the ray above is asked as the segment from (-50, 50) to (101, 50). One thing does show the
+cut: two members are parallel when they draw apart by less than the point tolerance along the longer
+one drawn, and for a ray that is as far as the other shape reaches.
+
+Two rays are measured directly. The ray from the origin along X and the one from (50, -50) along Y cross
+at (50, 0). Two rays that meet at any angle are nought apart, but `TryIntersectWith` gives no point for
+two within the angle tolerance of parallel, as for two infinite lines.
+
+`PlanarMap.ProjectToRay2` lays a ray in space out in a frame and `ToRay3` puts it back; a ray along the
+frame's normal has no direction in the plane and is refused. `GeoBvh2.GetIntersections` takes a ray as it
+takes a segment.
 
 ## Moving geometry
 

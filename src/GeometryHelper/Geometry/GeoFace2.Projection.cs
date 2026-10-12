@@ -169,5 +169,19 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the other face is null.</exception>
         public GeoLine2 GetShortestLineTo(GeoFace2 other, Tolerance tolerance)
             => Face2.GetShortestLineTo(this, other, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a ray, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray) => Face2.GetShortestLineTo(this, ray);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the boundary of this face and landing on a ray, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray, Tolerance tolerance) => Face2.GetShortestLineTo(this, ray, tolerance);
+
+        #endregion
     }
 }

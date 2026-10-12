@@ -151,5 +151,19 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public double DistanceTo(GeoFace2 face, Tolerance tolerance) => Face2.DistanceTo(face, this, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Gets the shortest distance from this arc to a ray, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRay2 ray) => Arc2.DistanceTo(this, ray);
+
+        /// <summary>
+        /// Gets the shortest distance from this arc to a ray, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRay2 ray, Tolerance tolerance) => Arc2.DistanceTo(this, ray, tolerance);
+
+        #endregion
     }
 }

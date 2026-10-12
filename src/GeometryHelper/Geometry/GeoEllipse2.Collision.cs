@@ -136,5 +136,19 @@ namespace GeometryHelper.Geometry
         /// Determines whether this ellipse touches or overlaps another ellipse, within a tolerance.
         /// </summary>
         public bool CollidesWith(GeoEllipse2 other, Tolerance tolerance) => Ellipse2.CollidesWith(this, other, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Determines whether this ellipse touches a ray, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay2 ray) => Ellipse2.CollidesWith(this, ray);
+
+        /// <summary>
+        /// Determines whether this ellipse touches a ray, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoRay2 ray, Tolerance tolerance) => Ellipse2.CollidesWith(this, ray, tolerance);
+
+        #endregion
     }
 }

@@ -229,5 +229,19 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <exception cref="System.ArgumentNullException">Thrown when the chain is null.</exception>
         public GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, Tolerance tolerance) => Ellipse2.GetClosestEdge(this, chain, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Gets the shortest segment leaving the rim of this ellipse and landing on a ray, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray) => Ellipse2.GetShortestLineTo(this, ray);
+
+        /// <summary>
+        /// Gets the shortest segment leaving the rim of this ellipse and landing on a ray, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray, Tolerance tolerance) => Ellipse2.GetShortestLineTo(this, ray, tolerance);
+
+        #endregion
     }
 }

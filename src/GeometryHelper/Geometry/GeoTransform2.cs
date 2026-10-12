@@ -414,6 +414,28 @@ namespace GeometryHelper.Geometry
         public GeoLine2 Transform(GeoLine2 line) => new GeoLine2(Transform(line.StartPoint), Transform(line.EndPoint));
 
         /// <summary>
+        /// Transforms a ray: the origin as a point and the direction as a vector, normalized again.
+        /// </summary>
+        /// <remarks>
+        /// An uneven scaling turns the ray as well as moving it: the ray from the origin at 45 degrees, scaled by 2 along X
+        /// only, runs towards (2, 1).
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the transformation flattens the ray direction to nothing.
+        /// </exception>
+        public GeoRay2 Transform(GeoRay2 ray)
+        {
+            GeoVector2 direction = Transform(ray.Direction);
+
+            if (direction.IsZeroLength())
+            {
+                throw new InvalidOperationException("This transformation collapses the ray direction.");
+            }
+
+            return new GeoRay2(Transform(ray.Origin), direction);
+        }
+
+        /// <summary>
         /// Transforms a chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>

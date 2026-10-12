@@ -162,5 +162,24 @@ namespace GeometryHelper.Geometry
         public double SignedDistanceTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.SignedDistanceTo(triangle, this, tolerance);
 
         #endregion
+
+        #region Rays
+
+        /// <summary>
+        /// Calculates the Euclidean distance to a ray, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRay2 ray) => Distance2.DistanceTo(ray, this);
+
+        /// <summary>
+        /// Calculates the Euclidean distance to a ray, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The point is measured to its projection on the ray, stopped at the origin: the point (-30, 40) is 50 from
+        /// the ray leaving the origin along X. The tolerance is taken so that this reads like every other shape; it changes
+        /// nothing here.
+        /// </remarks>
+        public double DistanceTo(GeoRay2 ray, Tolerance tolerance) => Distance2.DistanceTo(ray, this, tolerance);
+
+        #endregion
     }
 }

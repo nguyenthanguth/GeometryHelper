@@ -204,6 +204,44 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Lays a ray out in a frame: its origin as a point, dropping its distance from the plane, and its direction as a
+        /// vector, dropping the part square to the plane and normalized again.
+        /// </summary>
+        /// <param name="frame">The frame to lay it out in.</param>
+        /// <param name="ray">The ray.</param>
+        /// <returns>The ray in the plane of the frame.</returns>
+        /// <remarks>
+        /// In the floor frame, the ray from (0, 0, 10) along (1, 0, -1), heading down at 45 degrees, is laid out as the ray
+        /// from the origin along X.
+        /// </remarks>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the ray runs along the normal of the frame, so that its direction has no length in the plane.
+        /// </exception>
+        public static GeoRay2 ProjectToRay2(GeoCoordinateSystem3 frame, GeoRay3 ray)
+        {
+            GeoVector2 direction = ProjectToVector2(frame, ray.Direction);
+
+            if (!direction.TryGetNormal(out _))
+            {
+                throw new ArgumentException("A ray along the normal of the frame has no direction in its plane.", nameof(ray));
+            }
+
+            return new GeoRay2(ProjectToPoint2(frame, ray.Origin), direction);
+        }
+
+        /// <summary>
+        /// Puts a ray of the plane back into space.
+        /// </summary>
+        /// <param name="frame">The frame it was laid out in.</param>
+        /// <param name="ray">The ray in the plane.</param>
+        /// <returns>The ray in space: its origin on the plane of the frame and its direction along it.</returns>
+        /// <exception cref="ArgumentException">Thrown when the ray has no direction, as a <c>default</c> one has.</exception>
+        public static GeoRay3 ToRay3(GeoCoordinateSystem3 frame, GeoRay2 ray)
+        {
+            return new GeoRay3(ToPoint3(frame, ray.Origin), ToVector3(frame, ray.Direction));
+        }
+
+        /// <summary>
         /// Lays a chain out in a frame, dropping each vertex's distance from the plane.
         /// </summary>
         /// <param name="frame">The frame to lay it out in.</param>

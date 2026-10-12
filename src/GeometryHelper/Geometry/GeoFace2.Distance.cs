@@ -301,5 +301,19 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the other face is null.</exception>
         public double DistanceTo(GeoFace2 other, Tolerance tolerance) => Face2.DistanceTo(this, other, tolerance);
+
+        #region Rays
+
+        /// <summary>
+        /// Gets the distance from the material of this face to a ray, using the default tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRay2 ray) => Face2.DistanceTo(this, ray);
+
+        /// <summary>
+        /// Gets the distance from the material of this face to a ray, within a tolerance.
+        /// </summary>
+        public double DistanceTo(GeoRay2 ray, Tolerance tolerance) => Face2.DistanceTo(this, ray, tolerance);
+
+        #endregion
     }
 }
