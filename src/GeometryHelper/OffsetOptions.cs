@@ -43,7 +43,10 @@ namespace GeometryHelper
         /// <param name="arcTolerance">
         /// The largest gap allowed between a <see cref="OffsetJoin.Round"/> corner and the true arc, in
         /// drawing units. Zero (the default) picks <see cref="AutomaticArcToleranceRatio"/> of the offset
-        /// distance. Ignored by the other joins.
+        /// distance. It is met down to 1.15E-9 of the distance, 65 536 chords a full turn: a corner grown by 80
+        /// with 1E-4 is drawn in chords of 0.0032 radians, 1 987 a turn. Nor is it met below about a hundredth
+        /// of the point tolerance the offset is worked to, where corners that close are taken as straight and
+        /// go. Ignored by the other joins.
         /// </param>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the join is not a defined value, the miter limit is below 1 or not a number, or the
@@ -85,7 +88,8 @@ namespace GeometryHelper
 
         /// <summary>
         /// Gets the largest gap allowed between a round corner and the true arc, in drawing units; zero means
-        /// automatic.
+        /// automatic. It is met down to 1.15E-9 of the offset distance and to about a hundredth of the point
+        /// tolerance; a finer one is drawn at those.
         /// </summary>
         public double ArcTolerance { get; }
 

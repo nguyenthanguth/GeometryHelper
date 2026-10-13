@@ -341,8 +341,17 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance; the planar threshold decides how flat is flat enough.</param>
         /// <returns>false when the vertices are collinear or do not share a plane.</returns>
         /// <remarks>
+        /// <para>
         /// Collinear vertices are refused rather than given an arbitrary plane through them: a straight
         /// chain lies on infinitely many planes and there is no ground for preferring one.
+        /// </para>
+        /// <para>
+        /// The plane is first read from the area the chain encloses when closed from its end back to its start,
+        /// whose normal turns the way the chain runs. A flat chain enclosing no area, a Z or a symmetric zigzag,
+        /// has its plane all the same: it is then laid through the first vertex, the vertex farthest from it and
+        /// the vertex farthest from the line between those two, and its normal turns whichever way those three
+        /// do. The Z through (0, 0, 2), (10, 0, 2), (0, 10, 2), (10, 10, 2) lies in z = 2.
+        /// </para>
         /// </remarks>
         public bool TryGetPlane(out GeoPlane3 plane, Tolerance tolerance)
         {
@@ -350,19 +359,79 @@ namespace GeometryHelper.Geometry
 
             GeoVector3 normal = Newell.GetAreaVector(_vertices);
 
-            if (!normal.TryGetNormal(out GeoVector3 unitNormal, tolerance))
+            if (normal.TryGetNormal(out GeoVector3 unitNormal, tolerance))
+            {
+                GeoPlane3 candidate = new GeoPlane3(_vertices[0], unitNormal);
+
+                if (candidate.ContainsAll(_vertices, tolerance))
+                {
+                    plane = candidate;
+                    return true;
+                }
+            }
+
+            // A chain whose closing loop cancels its own area has no normal from it, and one that nearly cancels
+            // has a poor one; the three vertices spanning the chain most widely give the plane then.
+            if (TryGetSpanningPlane(tolerance, out GeoPlane3 spanned) && spanned.ContainsAll(_vertices, tolerance))
+            {
+                plane = spanned;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The plane through the first vertex, the vertex farthest from it, and the vertex farthest from the line
+        /// between those two; none when the vertices all lie within the point tolerance of one line.
+        /// </summary>
+        private bool TryGetSpanningPlane(Tolerance tolerance, out GeoPlane3 plane)
+        {
+            plane = default;
+            GeoPoint3 first = _vertices[0];
+            int far = 0;
+            double farthest = 0.0;
+
+            for (int i = 1; i < _vertices.Length; i++)
+            {
+                double distance = first.DistanceTo(_vertices[i]);
+
+                if (distance > farthest)
+                {
+                    farthest = distance;
+                    far = i;
+                }
+            }
+
+            if (farthest <= tolerance.EqualPoint)
             {
                 return false;
             }
 
-            GeoPlane3 candidate = new GeoPlane3(_vertices[0], unitNormal);
+            GeoVector3 along = first.GetVectorTo(_vertices[far]).Divide(farthest);
+            GeoVector3 across = GeoVector3.Zero;
+            double widest = 0.0;
 
-            if (!candidate.ContainsAll(_vertices, tolerance))
+            for (int i = 1; i < _vertices.Length; i++)
+            {
+                GeoVector3 offset = first.GetVectorTo(_vertices[i]);
+                GeoVector3 square = offset.Subtract(along.Multiply(offset.DotProduct(along)));
+                double width = square.Length;
+
+                if (width > widest)
+                {
+                    widest = width;
+                    across = square;
+                }
+            }
+
+            if (widest <= tolerance.EqualPoint)
             {
                 return false;
             }
 
-            plane = candidate;
+            GeoVector3 normal = along.CrossProduct(across.Divide(widest));
+            plane = new GeoPlane3(first, normal.Divide(normal.Length));
             return true;
         }
 

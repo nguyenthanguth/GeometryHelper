@@ -211,7 +211,7 @@ var round  = new OffsetOptions(OffsetJoin.Round, arcTolerance: 0.5);      // cho
 |---|---|---|
 | `Join` | — | Which of the three corners to build. |
 | `MiterLimit` | `10` | How far a sharp corner may reach from its vertex, as a multiple of the offset distance; past it the corner is cut off square at that distance. At least 1, and 10 keeps every corner of 11.5° or wider sharp. |
-| `ArcTolerance` | `0` | The largest gap allowed between a round corner's chords and the true arc, in drawing units. Zero means 0.2 % of the offset distance, about 50 segments for a full turn. |
+| `ArcTolerance` | `0` | The largest gap allowed between a round corner's chords and the true arc, in drawing units. Zero means 0.2 % of the offset distance, about 50 segments for a full turn. It is met down to 1.15E-9 of the distance (65 536 chords a turn) and to about a hundredth of the point tolerance. |
 
 `GetArcTolerance(distance)` gives the gap a round corner is actually drawn to, which is where that 0.2 %
 is resolved. Each number is ignored by the joins it does not apply to — a `Round` join never reads

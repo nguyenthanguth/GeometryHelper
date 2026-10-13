@@ -398,13 +398,20 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance; the planar threshold decides how flat is flat enough.</param>
         /// <returns>true if one plane holds every vertex and every arc; otherwise, false.</returns>
         /// <remarks>
+        /// <para>
         /// The vertices alone are not enough to settle it: two straight runs and the bends between them can
         /// all share a plane while an arc bulges out of it, so every arc is asked whether its own plane is
         /// the same one.
+        /// </para>
+        /// <para>
+        /// The plane is the one the vertices lie in (see <see cref="GeoPolyline3.TryGetPlane(out GeoPlane3, Tolerance)"/>).
+        /// Where the vertices all lie on one line, as the two ends of a half circle do, the first arc's own plane
+        /// is taken, and holds the chain when the vertices lie in it and every other arc turns in it too.
+        /// </para>
         /// </remarks>
         public bool TryGetPlane(out GeoPlane3 plane, Tolerance tolerance)
         {
-            if (!new GeoPolyline3(_vertices).TryGetPlane(out plane, tolerance))
+            if (!new GeoPolyline3(_vertices).TryGetPlane(out plane, tolerance) && !TryGetPlaneOfFirstArc(tolerance, out plane))
             {
                 return false;
             }
@@ -424,6 +431,40 @@ namespace GeometryHelper.Geometry
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The plane of the first arc, through its start: the one plane a chain whose vertices lie on one line can
+        /// lie in. None when the chain has no arc or the vertices stand off that plane.
+        /// </summary>
+        private bool TryGetPlaneOfFirstArc(Tolerance tolerance, out GeoPlane3 plane)
+        {
+            plane = default(GeoPlane3);
+
+            for (int i = 0; i < EdgeCount; i++)
+            {
+                if (_bulges[i] == 0.0)
+                {
+                    continue;
+                }
+
+                if (!_normals[i].TryGetNormal(out GeoVector3 normal, tolerance))
+                {
+                    return false;
+                }
+
+                GeoPlane3 candidate = new GeoPlane3(_vertices[i], normal);
+
+                if (!candidate.ContainsAll(_vertices, tolerance))
+                {
+                    return false;
+                }
+
+                plane = candidate;
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

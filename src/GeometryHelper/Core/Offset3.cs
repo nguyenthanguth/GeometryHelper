@@ -591,8 +591,9 @@ namespace GeometryHelper.Core
                 return square.Divide(square.Length);
             }
 
-            // Newell's normal vanishes for a chain whose closing edge cancels its area, a figure eight for one;
-            // the plane square to the reference is the one to try then.
+            // The chain's own plane is found even where its closing edge cancels its area; a chain flat only to
+            // within the tolerance of a plane none of its vertices spans may still lie in the one square to the
+            // reference, so that is tried last.
             if (new GeoPlane3(polyline.StartPoint, reference).ContainsAll(polyline.Vertices, tolerance))
             {
                 return reference;

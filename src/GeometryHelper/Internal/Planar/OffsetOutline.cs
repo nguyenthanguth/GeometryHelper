@@ -47,9 +47,11 @@ namespace GeometryHelper.Internal.Planar
         private const double FoldBackSine = 1e-12;
 
         /// <summary>
-        /// The finest a round corner is ever divided: this many segments to a full turn.
+        /// The finest a round corner is ever divided: this many segments to a full turn, which keeps a chord
+        /// within 1.15E-9 of the radius. Any arc tolerance coarser than that is met; a finer one is drawn at it, so
+        /// that a tolerance asked far below the rounding of the coordinates cannot ask for millions of points.
         /// </summary>
-        private const int MaxSegmentsPerTurn = 1024;
+        private const int MaxSegmentsPerTurn = 65536;
 
         /// <summary>
         /// Builds the raw offset of a closed loop whose region lies on its left.

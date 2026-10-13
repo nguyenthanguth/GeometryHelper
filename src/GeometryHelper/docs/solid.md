@@ -786,6 +786,9 @@ chain.OffsetInPlane(1.0, GeoVector3.ZAxis);   // a GeoPolyline3 needs a plane, l
 circle.TryOffset(2.0, out GeoCircle3 wider); // a circle stays a circle
 ```
 
+A flat chain has its plane even when it encloses no area: the Z through (0, 0, 2), (10, 0, 2), (0, 10, 2),
+(10, 10, 2) lies in z = 2, and a curved chain whose vertices lie on one line takes the plane its arcs turn in.
+
 The corner joins are the same three AutoCAD's OFFSETGAPTYPE offers — `Miter`, `Round`, `Chamfer`, set
 through `OffsetJoin` or `OffsetOptions`, which is documented with the
 [shared types](common.md)

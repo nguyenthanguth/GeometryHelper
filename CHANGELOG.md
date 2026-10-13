@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A flat chain in space has a plane even when, closed from end to start, it encloses no area: the Z through
+(0, 0, 2), (10, 0, 2), (0, 10, 2), (10, 10, 2) lies in z = 2, and with an arc on its first edge `Offset3.OffsetInPlane`
+offsets it instead of throwing "does not lie in one plane". A curved chain whose vertices lie on one line takes its
+arcs' plane: the half circle from (0, 0, 2) to (10, 0, 2) offset by 1 is the half circle of radius 4 inside it.
+
+**FIXED.** Round joins keep within `OffsetOptions.ArcTolerance` down to 1.15E-9 of the distance: the square of side 100
+grown by 80 with 1E-4 was drawn in 1 024 chords a turn and stood 3.8E-4 off the arc; it now takes 1 987 a turn and
+stands within 1E-4.
+
 **CHANGED.** Offsetting a polygon, a face or a chain in a plane in space no longer slows with the square of its edges
 where edges between neighbouring points are counted: a zigzag of 100 000 vertices offset in its plane takes 1.0 s where
 it took 15.9 s. Results are unchanged.
