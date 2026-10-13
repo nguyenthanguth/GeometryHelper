@@ -503,7 +503,7 @@ namespace GeometryHelper.Geometry
         /// Moves the outline of the loop sideways in its own plane.
         /// </summary>
         /// <param name="distance">How far to move it: outward when positive, inward when negative.</param>
-        /// <returns>The loops that come of it, which may be none when the loop is eaten away, or more than one when it is pinched in two.</returns>
+        /// <returns>The loops that come of it, which may be none when the loop is eaten away, or more than one when it is pinched in two; a hole closed by a growing loop faces the other way, as <see cref="GeometryHelper.Core.Offset3"/> gives a polygon's holes.</returns>
         public GeoPolygonArc3[] Offset(double distance) => Offset(distance, Tolerance.Global);
 
         /// <summary>

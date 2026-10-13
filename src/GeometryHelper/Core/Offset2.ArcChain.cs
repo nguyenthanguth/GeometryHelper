@@ -58,7 +58,14 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far to move the boundary: outward when positive, inward when negative.</param>
         /// <param name="options">How to fill a corner that opens up, and how far a miter may run.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>The offset loops, each running the way the one that made it ran.</returns>
+        /// <returns>
+        /// The offset loops, which may be none when the loop is eaten away, or more than one when it is pinched in two.
+        /// Outer loops run the way the loop ran; where a growing loop closes a gap around empty space, that space comes
+        /// back as a hole wound the other way, so that signed areas add up, as the straight offsets give it, whether the
+        /// hole is a lens of two arcs or one of two a pinch leaves: the square of side 100 with a lens cut into it, tips
+        /// (-20, 0) and a mouth 1 wide, sides of bulge -0.5, grown by 3, keeps the lens of radius 22.002 as a hole of
+        /// 327.842.
+        /// </returns>
         /// <remarks>
         /// An arc whose radius runs out has no offset left, and the loop goes round its two ends instead, on the circle
         /// of the distance about each, whatever the join: that is what stands the distance from the shape there. The
@@ -96,13 +103,29 @@ namespace GeometryHelper.Core
             double sideways = loop.IsClockwise ? distance : -distance;
 
             List<List<GeoEdge2>> runs = ArcOffset2.Offset(ArcChain2.EdgesOf(loop), true, sideways, options, tolerance);
-            var results = new List<GeoPolygonArc2>(runs.Count);
+            var built = new List<GeoPolygonArc2>(runs.Count);
+            var closed = new List<List<GeoEdge2>>(runs.Count);
+            var against = new List<bool>(runs.Count);
 
             foreach (List<GeoEdge2> run in runs)
             {
-                if (TryLoop(run, loop.IsClockwise, tolerance, out GeoPolygonArc2 one))
+                if (TryLoop(run, loop.IsClockwise, tolerance, out GeoPolygonArc2 one, out bool turned))
                 {
-                    results.Add(one);
+                    built.Add(one);
+                    closed.Add(run);
+                    against.Add(turned);
+                }
+            }
+
+            // A lens running against the loop is a hole where it lies inside a loop running with it.
+            bool[] keep = ArcOffset2.KeepHoles(closed, against, loop.IsClockwise ? -1 : 1);
+            var results = new List<GeoPolygonArc2>(built.Count);
+
+            for (int i = 0; i < built.Count; i++)
+            {
+                if (keep[i])
+                {
+                    results.Add(built[i]);
                 }
             }
 
@@ -204,10 +227,12 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// Two arcs between the same two points enclose a lens, which is a shape, though a loop needs three corners: the
         /// longest arc is halved to give it one. A lens running against the loop it came from is a fold turned inside
-        /// out, and stays no answer.
+        /// out, or a hole, which <paramref name="turned"/> says for the caller to tell apart.
         /// </remarks>
-        private static bool TryLoop(List<GeoEdge2> run, bool clockwise, Tolerance tolerance, out GeoPolygonArc2 loop)
+        private static bool TryLoop(List<GeoEdge2> run, bool clockwise, Tolerance tolerance, out GeoPolygonArc2 loop, out bool turned)
         {
+            turned = false;
+
             if (TryLoopOf(run, out loop))
             {
                 return true;
@@ -232,12 +257,12 @@ namespace GeometryHelper.Core
             halved[longest] = first;
             halved.Insert(longest + 1, second);
 
-            if (!TryLoopOf(halved, out loop) || loop.IsClockwise != clockwise)
+            if (!TryLoopOf(halved, out loop))
             {
-                loop = null;
                 return false;
             }
 
+            turned = loop.IsClockwise != clockwise;
             return true;
         }
 

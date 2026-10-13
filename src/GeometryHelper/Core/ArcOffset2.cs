@@ -1608,6 +1608,7 @@ namespace GeometryHelper.Core
             int winding = 0;
 
             var loops = new List<List<GeoEdge2>>();
+            var against = new List<bool>();
 
             for (int i = 0; i < groups.Count; i++)
             {
@@ -1619,22 +1620,108 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                // Nor is one that closes only out of order and runs against the loop it came from: that is a fold
-                // turned inside out.
+                // One that closes only out of order and runs against the loop it came from is a fold turned inside out,
+                // or a hole the offset closed round empty space, which runs against it too.
+                bool doubtful = false;
+
                 if (joined[i])
                 {
                     winding = winding != 0 ? winding : Math.Sign(SignedArea(original));
-
-                    if (Math.Sign(SignedArea(group)) != winding)
-                    {
-                        continue;
-                    }
+                    doubtful = Math.Sign(SignedArea(group)) != winding;
                 }
 
                 loops.Add(group);
+                against.Add(doubtful);
             }
 
-            return loops;
+            bool[] keep = KeepHoles(loops, against, winding);
+            var kept = new List<List<GeoEdge2>>(loops.Count);
+
+            for (int i = 0; i < loops.Count; i++)
+            {
+                if (keep[i])
+                {
+                    kept.Add(loops[i]);
+                }
+            }
+
+            return kept;
+        }
+
+        /// <summary>
+        /// Says which loops of an offset stay: of those running against the loop they came from that may be folds turned
+        /// inside out, the holes, lying inside a loop that runs as it ran; and every other loop.
+        /// </summary>
+        /// <remarks>
+        /// A fold turned inside out and a hole both run against the loop, so the winding cannot tell them apart. Where
+        /// they lie can: a hole is space the offset closed round, inside one of its outer loops, and a fold turned
+        /// inside out is outside every one. The square of side 100 with a cavity whose bottom and top bow 20 into it,
+        /// grown by 11 until the bows pinch it, keeps both halves of the cavity as holes, though the second is put
+        /// together out of the order it was cut in.
+        /// </remarks>
+        /// <param name="loops">The loops, in order.</param>
+        /// <param name="against">For each loop, whether it is one of those in doubt.</param>
+        /// <param name="winding">The sign of the area of the loop they came from.</param>
+        /// <returns>For each loop, whether it stays.</returns>
+        internal static bool[] KeepHoles(List<List<GeoEdge2>> loops, List<bool> against, int winding)
+        {
+            var keep = new bool[loops.Count];
+
+            for (int i = 0; i < loops.Count; i++)
+            {
+                keep[i] = !against[i];
+            }
+
+            if (!against.Contains(true))
+            {
+                return keep;
+            }
+
+            var outer = new List<List<GeoEdge2>>(loops.Count);
+
+            for (int i = 0; i < loops.Count; i++)
+            {
+                if (!against[i] && Math.Sign(SignedArea(loops[i])) == winding)
+                {
+                    outer.Add(loops[i]);
+                }
+            }
+
+            for (int i = 0; i < loops.Count; i++)
+            {
+                keep[i] = keep[i] || LiesInside(loops[i], outer);
+            }
+
+            return keep;
+        }
+
+        /// <summary>
+        /// Determines whether a loop lies inside one of some others, read at the middle of its longest edge: the loops of
+        /// one offset do not cross, so one point of it says where the whole of it lies.
+        /// </summary>
+        private static bool LiesInside(List<GeoEdge2> loop, List<List<GeoEdge2>> others)
+        {
+            GeoEdge2 longest = loop[0];
+
+            foreach (GeoEdge2 edge in loop)
+            {
+                if (edge.Length > longest.Length)
+                {
+                    longest = edge;
+                }
+            }
+
+            GeoPoint2 point = longest.MidPoint;
+
+            foreach (List<GeoEdge2> other in others)
+            {
+                if (ArcChain2.Encloses(other, point))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

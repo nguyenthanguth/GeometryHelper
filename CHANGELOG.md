@@ -6,6 +6,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A curved loop grown until it closes a gap kept the space it closed round only when the hole's pieces met in
+the order they were cut in and were not a lens of two arcs. The square of side 100 with a lens-shaped cavity, grown by
+3, lost its hole of 327.84, and a cavity pinched in two by its bowed sides kept one of its two holes. A loop running
+against the source is now kept where it lies inside a loop running with it. Holes are wound against their outer loop,
+as the straight offsets wind them, and the documentation now says so.
+
 **FIXED.** A flat chain in space has a plane even when, closed from end to start, it encloses no area: the Z through
 (0, 0, 2), (10, 0, 2), (0, 10, 2), (10, 10, 2) lies in z = 2, and with an arc on its first edge `Offset3.OffsetInPlane`
 offsets it instead of throwing "does not lie in one plane". A curved chain whose vertices lie on one line takes its

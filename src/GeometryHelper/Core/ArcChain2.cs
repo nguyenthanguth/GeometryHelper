@@ -768,12 +768,44 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Determines whether a run of edges coming back to where it began encloses a point, not counting its boundary,
+        /// read as <see cref="Encloses(GeoPolygonArc2, GeoPoint2)"/> reads a loop: the straight loop through the starts of
+        /// the edges, turned inside out once for every piece an arc cuts off its chord that the point lies in.
+        /// </summary>
+        internal static bool Encloses(List<GeoEdge2> run, GeoPoint2 point)
+        {
+            bool inside = false;
+
+            for (int i = 0, j = run.Count - 1; i < run.Count; j = i++)
+            {
+                GeoPoint2 p1 = run[i].StartPoint;
+                GeoPoint2 p2 = run[j].StartPoint;
+
+                if ((p1.Y > point.Y) != (p2.Y > point.Y) && BeforeChord(p1, p2, point))
+                {
+                    inside = !inside;
+                }
+            }
+
+            foreach (GeoEdge2 edge in run)
+            {
+                if (edge.CutsOff(point))
+                {
+                    inside = !inside;
+                }
+            }
+
+            return inside;
+        }
+
+        /// <summary>
         /// Whether a point lies before the line through two points, read exactly: towards -X of it at the point's Y, or,
         /// for a line that runs along X, towards -Y of it. A point on the line is not before it.
         /// </summary>
         /// <remarks>
-        /// The straight loop of <see cref="Encloses"/> and the pieces of <see cref="GeoEdge2.CutsOff"/> both read the side
-        /// of a chord by this, with the chord's ends in the same order, so the two give the same answer to the last bit.
+        /// The straight loop of <see cref="Encloses(GeoPolygonArc2, GeoPoint2)"/> and the pieces of
+        /// <see cref="GeoEdge2.CutsOff"/> both read the side of a chord by this, with the chord's ends in the same order,
+        /// so the two give the same answer to the last bit.
         /// </remarks>
         internal static bool BeforeChord(GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 point)
         {

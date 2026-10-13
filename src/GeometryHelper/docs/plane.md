@@ -664,7 +664,9 @@ limit, the corner is rounded off at the distance. `Chamfer` cuts the corner squa
 offset distance, touching the arc a round join would draw, between straight pieces leaving the two ends
 along their tangents: the square of side 10 grown by 2 is cut from (8 + 2√2, -2) to (12, 2 − 2√2), as the
 straight offset cuts it. Two edges a fraction of a degree off straight are mitred like any others. Shrunk far enough a
-shape can fall into several pieces or vanish, so the answer is an array.
+shape can fall into several pieces or vanish, so the answer is an array. A growing loop that closes a gap
+around empty space gives that space as a hole wound the other way, so that signed areas add up, as the
+straight offsets do, however the hole's pieces meet.
 
 What tells the folded-over parts from the real ones is the one thing an offset cannot break: every point
 of a valid offset stands **exactly** the offset distance from the shape it came from. Each piece is cut
