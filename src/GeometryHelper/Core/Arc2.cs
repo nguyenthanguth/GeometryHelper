@@ -235,13 +235,74 @@ namespace GeometryHelper.Core
         /// <returns>true if they meet at least once; otherwise, false.</returns>
         /// <remarks>
         /// The circle carrying the arc may be met where the arc itself does not reach, and those crossings
-        /// are left out.
+        /// are left out. A segment whose line runs inside the rim within the point tolerance of it, and that
+        /// meets the arc nowhere so, still touches it where it comes within the tolerance of the arc: once, at
+        /// the foot of the perpendicular from the centre when the foot is on the segment and the arc holds
+        /// it, else at the point of the segment nearest the arc. At a tolerance of 0.001, a segment ending
+        /// 0.0002 from the end of an arc, its line 0.0002 inside the rim, touches the arc at that end of the
+        /// segment.
         /// </remarks>
         public static bool TryIntersectWith(GeoArc2 arc, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance)
         {
             Intersection2.TryIntersectWith(arc.GetCircle(), line, out GeoPoint2[] onCircle, tolerance);
 
-            return KeepWhatTheArcsReach(onCircle, arc, null, tolerance, out intersections);
+            if (KeepWhatTheArcsReach(onCircle, arc, null, tolerance, out intersections))
+            {
+                return true;
+            }
+
+            return TryTouchInsideTheRim(arc, line, tolerance, out intersections);
+        }
+
+        /// <summary>
+        /// Finds the one point where a segment whose line runs inside an arc's rim, within the point tolerance of it,
+        /// touches the arc without meeting it: at the foot of the perpendicular from the centre when the foot is on the
+        /// segment and the arc holds it, else at the point of the segment nearest the arc. None when the segment does
+        /// not come within the tolerance of the arc.
+        /// </summary>
+        private static bool TryTouchInsideTheRim(GeoArc2 arc, GeoLine2 line, Tolerance tolerance, out GeoPoint2[] intersections)
+        {
+            intersections = Array.Empty<GeoPoint2>();
+
+            GeoVector2 d = line.Direction;
+            double dLength = d.Length;
+
+            if (dLength <= tolerance.EqualPoint)
+            {
+                return false;
+            }
+
+            // The foot of the perpendicular, read as Intersection2 reads it.
+            double centerParameter = line.StartPoint.GetVectorTo(arc.Center).DotProduct(d) / (dLength * dLength);
+            double centerDistance = Distance2.DistanceTo(arc.Center, line.GetPointAtParameter(centerParameter));
+
+            if (!(centerDistance < arc.Radius && centerDistance >= arc.Radius - tolerance.EqualPoint))
+            {
+                return false;
+            }
+
+            GeoLine2 nearest = NearestPair(arc, line, tolerance);
+
+            if (!(nearest.Length <= tolerance.EqualPoint))
+            {
+                return false;
+            }
+
+            double parameterTolerance = tolerance.EqualPoint / dLength;
+
+            if (centerParameter >= -parameterTolerance && centerParameter <= 1.0 + parameterTolerance)
+            {
+                GeoPoint2 foot = line.GetPointAtParameter(Math.Max(0.0, Math.Min(1.0, centerParameter)));
+
+                if (IsPointOn(arc, foot, tolerance))
+                {
+                    intersections = new[] { foot };
+                    return true;
+                }
+            }
+
+            intersections = new[] { nearest.EndPoint };
+            return true;
         }
 
         /// <summary>
@@ -445,6 +506,15 @@ namespace GeometryHelper.Core
                 return new GeoLine2(meetings[0], meetings[0]);
             }
 
+            return NearestPair(arc, line, tolerance);
+        }
+
+        /// <summary>
+        /// Gets the nearest pair of an arc and a segment that do not cross, from the arc to the segment: an end of
+        /// one against the other, or the place where the segment runs straight at the centre.
+        /// </summary>
+        private static GeoLine2 NearestPair(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
+        {
             var best = new GeoLine2(arc.StartPoint, Projection2.ProjectToLine(line, arc.StartPoint, tolerance));
 
             Consider(ref best, arc.EndPoint, Projection2.ProjectToLine(line, arc.EndPoint, tolerance));

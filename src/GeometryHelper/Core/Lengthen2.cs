@@ -293,8 +293,13 @@ namespace GeometryHelper.Core
         public static bool TryExtendTo(GeoLine2 line, GeoCircle2 boundary, LineEnd end, out GeoLine2 result) => TryExtendTo(line, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
-        /// Extends one end of a segment until it meets a circle, within tolerance. A line passing within
-        /// tolerance of tangency touches the circle once, at the foot of the perpendicular from its centre.
+        /// Extends one end of a segment until it meets a circle, within tolerance. A line passing outside the
+        /// circle within tolerance of its rim touches it once, at the foot of the perpendicular from its centre;
+        /// one passing inside crosses it where it does, unless its two crossings lie within twice the tolerance
+        /// of each other, when they are one, at the foot. A segment whose line runs inside the rim within tolerance
+        /// of it, crossing it nowhere along its length, has an end already on the rim within tolerance left where
+        /// it is: at a tolerance of 0.1, extending the end (-0.3, 49.97) of the segment from (-0.4, 49.97) against
+        /// the circle of radius 50 about the origin leaves it there.
         /// </summary>
         /// <param name="line">The segment.</param>
         /// <param name="boundary">The circle.</param>
@@ -453,7 +458,10 @@ namespace GeometryHelper.Core
         public static bool TryTrimTo(GeoLine2 line, GeoCircle2 boundary, LineEnd end, out GeoLine2 result) => TryTrimTo(line, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
-        /// Trims one end of a segment back to the nearest place a circle crosses it, within tolerance.
+        /// Trims one end of a segment back to the nearest place a circle crosses it, within tolerance. A segment
+        /// whose line runs inside the rim within tolerance of it, crossing it nowhere along its length, has an end
+        /// already on the rim within tolerance left where it is, and is otherwise trimmed to the foot of the
+        /// perpendicular from the centre when that lies on it.
         /// </summary>
         /// <param name="line">The segment.</param>
         /// <param name="boundary">The circle.</param>
@@ -698,7 +706,10 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Adds the positions where the line carrying the reach crosses a circle. The tangency band matches
-        /// <see cref="Intersection2"/>: within tolerance of touching, the line meets the circle once.
+        /// <see cref="Intersection2"/>: a line outside the rim within tolerance of it meets the circle once, at the
+        /// foot, and one inside it twice, where it crosses, unless the two lie within twice the tolerance of each other;
+        /// a segment inside the rim that no crossing lands on touches it where it comes within the tolerance, an end that
+        /// moves and already lies within the tolerance of the rim being left where it is.
         /// </summary>
         private static void AddCrossings(List<double> found, Reach reach, GeoCircle2 circle, Tolerance tolerance)
         {
@@ -711,15 +722,55 @@ namespace GeometryHelper.Core
                 return;
             }
 
-            if (offset >= circle.Radius - tolerance.EqualPoint)
+            double halfChord = offset >= circle.Radius ? 0.0 : Math.Sqrt(circle.Radius * circle.Radius - offset * offset);
+            bool merged = halfChord <= tolerance.EqualPoint;
+
+            if (merged)
+            {
+                found.Add(foot);
+            }
+            else
+            {
+                found.Add(foot - halfChord);
+                found.Add(foot + halfChord);
+            }
+
+            // As Intersection2 reads it: inside the rim within the tolerance of it, a segment no crossing lands on still
+            // touches where it lies within the tolerance of the rim: where the end that moves is, when that end lies within
+            // the tolerance of the rim, else at the foot when the foot is on it, else at the other end.
+            if (offset >= circle.Radius || offset < circle.Radius - tolerance.EqualPoint)
+            {
+                return;
+            }
+
+            bool OnSegment(double position) => position >= -tolerance.EqualPoint && position <= reach.Length + tolerance.EqualPoint;
+
+            if (merged ? OnSegment(foot) : OnSegment(foot - halfChord) || OnSegment(foot + halfChord))
+            {
+                return;
+            }
+
+            // An end that moves and already lies on the rim within the tolerance is left where it is.
+            double movingGap = Math.Abs(reach.At(reach.Length).DistanceTo(circle.Center) - circle.Radius);
+
+            if (movingGap <= tolerance.EqualPoint)
+            {
+                found.Add(reach.Length);
+                return;
+            }
+
+            if (!merged && OnSegment(foot))
             {
                 found.Add(foot);
                 return;
             }
 
-            double halfChord = Math.Sqrt(circle.Radius * circle.Radius - offset * offset);
-            found.Add(foot - halfChord);
-            found.Add(foot + halfChord);
+            double anchorGap = Math.Abs(reach.Anchor.DistanceTo(circle.Center) - circle.Radius);
+
+            if (anchorGap <= tolerance.EqualPoint)
+            {
+                found.Add(0.0);
+            }
         }
 
         /// <summary>

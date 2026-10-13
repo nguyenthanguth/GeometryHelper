@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A segment whose line runs inside a circle within the point tolerance of its rim crosses it where it truly
+does, rather than once at the foot of the perpendicular; two crossings within twice the point tolerance of each other
+are still one. The segment 50 long from (0, 49.9995) along (1, 0.001) leaves the circle of radius 50 at
+(0.1791, 49.99968). It now has a crossing there and a shortest line of no length, where it had no crossing and a
+shortest line 21 long. A segment lying inside the rim within the tolerance without crossing it still touches the
+circle, or the arc, once: at the foot when that is on it, as before. Arcs, curved chains, rectangles, polygons,
+triangles, faces and rays against circles and arcs follow. So do extending and trimming a segment to a circle, and an
+end already within the tolerance of the circle is left where it is.
+
 **FIXED.** A segment collides with an open curve (a polyline, an arc, a curved edge or a curved chain) where the two
 cross or come within the point tolerance, as two segments do, asked from either side, and so does a ray. Before, the
 segment from (0, 0) to (21, 0) lying over the polyline from (10, 0) to (20, 0) did not collide with it, though it is

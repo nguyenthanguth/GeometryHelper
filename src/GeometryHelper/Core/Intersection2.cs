@@ -222,6 +222,16 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to calculate the intersection points between a circle and a line segment within tolerance.
         /// </summary>
+        /// <remarks>
+        /// A line passing outside the circle within the point tolerance of its rim touches it once, at the foot of the
+        /// perpendicular from the centre. A line passing inside it crosses it twice, each crossing kept where it lies on
+        /// the segment; two crossings no further apart than twice the point tolerance are one, at the foot. The segment
+        /// 50 long from (0, 49.9995) along (1, 0.001), against the circle of radius 50 about the origin at a tolerance of
+        /// 0.001, leaves the circle once, at (0.1791, 49.99968). A segment whose line runs inside the rim within the
+        /// tolerance of it, but which crosses the rim nowhere along its length, touches it once where it comes within
+        /// the tolerance: at the foot when the foot is on it, else at its end nearer the rim. At a tolerance of 0.1 the
+        /// segment from (-0.2, 49.97) to (0.2, 49.97) touches the circle of radius 50 at (0, 49.97).
+        /// </remarks>
         public static bool TryIntersectWith(GeoCircle2 circle, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance)
         {
             GeoVector2 d = line.Direction;
@@ -254,16 +264,45 @@ namespace GeometryHelper.Core
 
             List<GeoPoint2> points = new List<GeoPoint2>(2);
 
-            if (centerDistance >= circle.Radius - tolerance.EqualPoint)
+            // Outside the rim, within the tolerance of it, the line touches at the foot of the perpendicular. Inside, it
+            // crosses twice, and the two are one only when they lie within twice the tolerance of each other: a line a
+            // hair inside the rim still crosses it where it does, which may be well away from the foot.
+            double halfChord = centerDistance >= circle.Radius
+                ? 0.0
+                : Math.Sqrt(circle.Radius * circle.Radius - centerDistance * centerDistance) / dLength;
+
+            bool merged = halfChord * dLength <= tolerance.EqualPoint;
+
+            if (merged)
             {
-                // Tangent within tolerance: a single contact point at the foot of the perpendicular.
                 AddPointOnSegment(points, line, centerParameter, dLength, tolerance);
             }
             else
             {
-                double halfChord = Math.Sqrt(circle.Radius * circle.Radius - centerDistance * centerDistance) / dLength;
                 AddPointOnSegment(points, line, centerParameter - halfChord, dLength, tolerance);
                 AddPointOnSegment(points, line, centerParameter + halfChord, dLength, tolerance);
+            }
+
+            // Inside the rim within the tolerance of it, a segment that crosses it nowhere along its length may still lie
+            // within the tolerance of it: it touches once, at the foot when the foot is on it, else at its end nearer the
+            // rim.
+            if (points.Count == 0 && centerDistance < circle.Radius && centerDistance >= circle.Radius - tolerance.EqualPoint)
+            {
+                if (!merged)
+                {
+                    AddPointOnSegment(points, line, centerParameter, dLength, tolerance);
+                }
+
+                if (points.Count == 0)
+                {
+                    double startGap = Math.Abs(Distance2.DistanceTo(circle.Center, line.StartPoint) - circle.Radius);
+                    double endGap = Math.Abs(Distance2.DistanceTo(circle.Center, line.EndPoint) - circle.Radius);
+
+                    if (Math.Min(startGap, endGap) <= tolerance.EqualPoint)
+                    {
+                        points.Add(startGap <= endGap ? line.StartPoint : line.EndPoint);
+                    }
+                }
             }
 
             intersections = points.ToArray();
