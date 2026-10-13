@@ -38,7 +38,13 @@ namespace GeometryHelper.Core
         /// <param name="polyline">The chain.</param>
         /// <param name="radius">The radius of every corner; a bending radius, in the language of a bar.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>The chain with its corners rounded; a corner with too little edge, or none to turn, is left as it was.</returns>
+        /// <returns>The chain with its corners rounded; a corner with too little edge, or none to turn, or whose arc would be too small for the tolerance to tell its two ends apart, is left as it was.</returns>
+        /// <remarks>
+        /// Where the bends at a leg take all of it, give or take the tolerance, nothing of the leg is left and the
+        /// arcs either side meet midway along it; the bar's two ends never move. The bar (0, 0, 0), (10, 0, 0),
+        /// (20, 0.7, 0) bent at 1E-4 at the default tolerance keeps its bend square: the arc would touch the legs
+        /// 3.5E-6 either side of it.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number.</exception>
         public static GeoPolylineArc3 Fillet(GeoPolyline3 polyline, double radius, Tolerance tolerance)
@@ -159,15 +165,32 @@ namespace GeometryHelper.Core
                 return false;
             }
 
+            GeoEdge3 incoming = chain.GetEdgeAt(index - 1);
+            GeoEdge3 outgoing = chain.GetEdgeAt(index);
+
+            // A bend that takes the whole of a leg, give or take the tolerance, leaves nothing of it, and the arc
+            // runs from the leg's far end, which does not move.
+            bool allOfFirst = incoming.Length - rounded.Before.EndPoint.DistanceTo(incoming.EndPoint) <= tolerance.EqualPoint;
+            bool allOfSecond = outgoing.Length - rounded.After.StartPoint.DistanceTo(outgoing.StartPoint) <= tolerance.EqualPoint;
+
             var edges = new List<GeoEdge3>();
 
             for (int e = 0; e < chain.EdgeCount; e++)
             {
                 if (e == index - 1)
                 {
-                    Keep(edges, rounded.Before, tolerance);
-                    edges.Add(rounded.Arc);
-                    Keep(edges, rounded.After, tolerance);
+                    if (!allOfFirst)
+                    {
+                        edges.Add(rounded.Before);
+                    }
+
+                    edges.Add(Moved(rounded.Arc, allOfFirst, incoming.StartPoint, allOfSecond, outgoing.EndPoint, tolerance));
+
+                    if (!allOfSecond)
+                    {
+                        edges.Add(rounded.After);
+                    }
+
                     e++;
                     continue;
                 }
@@ -215,8 +238,11 @@ namespace GeometryHelper.Core
                 doCut[c] = true;
                 cutFrom[c] = rounded.Before.EndPoint;
                 cutTo[c] = rounded.After.StartPoint;
-                takenAtEnd[c] = edges[c].Length - rounded.Before.Length;
-                takenAtStart[c + 1] = edges[c + 1].Length - rounded.After.Length;
+
+                // Measured from the corner, so that a touching point beyond the far end of a leg, by up to the
+                // tolerance, counts as taking more of the leg rather than less.
+                takenAtEnd[c] = rounded.Before.EndPoint.DistanceTo(edges[c].EndPoint);
+                takenAtStart[c + 1] = rounded.After.StartPoint.DistanceTo(edges[c + 1].StartPoint);
             }
 
             // An edge can only give away as much as it is long, counting both of its ends.
@@ -263,7 +289,36 @@ namespace GeometryHelper.Core
                 GeometryHelperLog.Debug($"Fillet left {refused} corner(s) in space alone: too little edge, no turn, or a leg that curves.");
             }
 
-            var result = new List<GeoEdge3>(count * 2);
+            return new GeoPolylineArc3(Assemble(edges, doCut, cutFrom, cutTo, arcAt, takenAtStart, takenAtEnd, tolerance));
+        }
+
+        /// <summary>
+        /// Walks the legs of an open chain, shortening each end a corner took something from and putting the
+        /// corner's new piece in, and gives back the edges of the result.
+        /// </summary>
+        /// <remarks>
+        /// Where the corners at a leg take all of it, give or take the tolerance, nothing of it is left, and a stub
+        /// running back along it is no answer: three sides of a square of side 10 bent at 5.02 at a tolerance of
+        /// 0.1 left stubs that the chain refused, and threw. The pieces either side meet at one point instead: the
+        /// leg's own end where only one of its corners was reshaped, so the ends of the chain and a corner left
+        /// alone never move, and midway between the two where both were. A straight leg of no length that no corner
+        /// touched goes too, as it always has, and the corner after it stays.
+        /// </remarks>
+        internal static List<GeoEdge3> Assemble(
+            List<GeoEdge3> edges,
+            bool[] doCut,
+            GeoPoint3[] cutFrom,
+            GeoPoint3[] cutTo,
+            GeoEdge3[] newPiece,
+            double[] takenAtStart,
+            double[] takenAtEnd,
+            Tolerance tolerance)
+        {
+            int count = edges.Count;
+
+            var pieces = new List<GeoEdge3>(count * 2);
+            var gone = new List<bool>(count * 2);
+            var meetAt = new List<GeoPoint3>(count * 2);
 
             for (int e = 0; e < count; e++)
             {
@@ -273,16 +328,116 @@ namespace GeometryHelper.Core
                 GeoPoint3 start = cutBefore ? cutTo[e - 1] : edge.StartPoint;
                 GeoPoint3 end = doCut[e] ? cutFrom[e] : edge.EndPoint;
 
-                Keep(result, Remade(edge, start, end), tolerance);
+                pieces.Add(Remade(edge, start, end));
+
+                if (cutBefore || doCut[e])
+                {
+                    gone.Add(edge.Length - takenAtStart[e] - takenAtEnd[e] <= tolerance.EqualPoint);
+                    meetAt.Add(!doCut[e] ? edge.EndPoint : !cutBefore ? edge.StartPoint : Midway(start, end));
+                }
+                else
+                {
+                    gone.Add(!edge.IsArc && edge.StartPoint.IsEqualTo(edge.EndPoint, tolerance));
+                    meetAt.Add(edge.EndPoint);
+                }
 
                 if (doCut[e])
                 {
-                    result.Add(arcAt[e]);
+                    // A cut no longer than the tolerance is no edge at that tolerance and goes, its two ends meeting
+                    // where it starts; an arc stays.
+                    pieces.Add(newPiece[e]);
+                    gone.Add(!newPiece[e].IsArc && newPiece[e].StartPoint.IsEqualTo(newPiece[e].EndPoint, tolerance));
+                    meetAt.Add(newPiece[e].StartPoint);
                 }
             }
 
-            return new GeoPolylineArc3(result);
+            int n = pieces.Count;
+
+            if (!gone.Contains(true) || !gone.Contains(false))
+            {
+                return pieces;
+            }
+
+            var starts = new GeoPoint3?[n];
+            var ends = new GeoPoint3?[n];
+            int position = 0;
+
+            while (position < n)
+            {
+                if (!gone[position])
+                {
+                    position++;
+                    continue;
+                }
+
+                int runStart = position;
+
+                while (position < n && gone[position])
+                {
+                    position++;
+                }
+
+                // A run at the start or the end of the chain meets at the chain's own end, which never moves.
+                GeoPoint3 meet = runStart == 0 ? pieces[0].StartPoint
+                               : position == n ? pieces[n - 1].EndPoint
+                               : meetAt[position - 1];
+
+                if (runStart > 0)
+                {
+                    ends[runStart - 1] = meet;
+                }
+
+                if (position < n)
+                {
+                    starts[position] = meet;
+                }
+            }
+
+            var result = new List<GeoEdge3>(n);
+
+            for (int k = 0; k < n; k++)
+            {
+                if (!gone[k])
+                {
+                    result.Add(Moved(pieces[k], starts[k].HasValue, starts[k] ?? default(GeoPoint3), ends[k].HasValue, ends[k] ?? default(GeoPoint3), tolerance));
+                }
+            }
+
+            return result;
         }
+
+        /// <summary>
+        /// Gets the piece a corner was reshaped into, its ends moved to where the legs either side vanished.
+        /// </summary>
+        /// <remarks>
+        /// An arc keeps its bulge and its plane: the point it moves to lies on a leg, and both legs lie in the
+        /// plane of the corner.
+        /// </remarks>
+        private static GeoEdge3 Moved(GeoEdge3 piece, bool movedStart, GeoPoint3 newStart, bool movedEnd, GeoPoint3 newEnd, Tolerance tolerance)
+        {
+            if (!movedStart && !movedEnd)
+            {
+                return piece;
+            }
+
+            GeoPoint3 start = movedStart ? newStart : piece.StartPoint;
+            GeoPoint3 end = movedEnd ? newEnd : piece.EndPoint;
+
+            // An arc squeezed to a chord the tolerance cannot tell from a point has no chord left to bulge along,
+            // and what is left of the corner is the straight piece between the two.
+            if (!piece.IsArc || !start.GetVectorTo(end).TryGetNormal(out _, tolerance))
+            {
+                return new GeoEdge3(start, end);
+            }
+
+            return new GeoEdge3(start, end, piece.Bulge, piece.Normal, tolerance);
+        }
+
+        /// <summary>
+        /// Gets the point half way between two points.
+        /// </summary>
+        private static GeoPoint3 Midway(GeoPoint3 first, GeoPoint3 second)
+            => new GeoPoint3((first.X + second.X) * 0.5, (first.Y + second.Y) * 0.5, (first.Z + second.Z) * 0.5);
 
         /// <summary>
         /// Rounds one corner between two straight pieces, in the plane the corner itself lies in.
@@ -303,16 +458,19 @@ namespace GeometryHelper.Core
             }
 
             GeoPoint3 corner = incoming.EndPoint;
-            GeoVector3 toPrev = corner.GetVectorTo(incoming.StartPoint);
-            GeoVector3 toNext = corner.GetVectorTo(outgoing.EndPoint);
 
-            // Two legs running straight on have no corner to round, and name no plane either.
-            if (!toNext.CrossProduct(toPrev).TryGetNormal(out _, tolerance))
+            // Two legs running straight on have no corner to round, and name no plane either. The frame is built
+            // from the unit legs and the plane the tolerance finds them to span, so that it cannot call the legs
+            // parallel where the tolerance did not: a bend of 1E-7 radians at (1E-4, 1E-6) passed the test and
+            // then threw building its frame.
+            if (!corner.GetVectorTo(incoming.StartPoint).TryGetNormal(out GeoVector3 toPrev, tolerance) ||
+                !corner.GetVectorTo(outgoing.EndPoint).TryGetNormal(out GeoVector3 toNext, tolerance) ||
+                !toNext.CrossProduct(toPrev).TryGetNormal(out GeoVector3 normal, tolerance))
             {
                 return false;
             }
 
-            var frame = new GeoCoordinateSystem3(corner, toNext, toPrev);
+            var frame = new GeoCoordinateSystem3(corner, toNext, normal.CrossProduct(toNext));
 
             var flatIn = new GeoEdge2(Flat(frame, incoming.StartPoint), Flat(frame, corner));
             var flatOut = new GeoEdge2(Flat(frame, corner), Flat(frame, outgoing.EndPoint));
@@ -324,6 +482,14 @@ namespace GeometryHelper.Core
 
             GeoPoint3 first = Lift(frame, shorter1.EndPoint);
             GeoPoint3 second = Lift(frame, shorter2.StartPoint);
+
+            // An arc whose two ends the tolerance cannot tell apart has no chord to bulge along, and rounds
+            // nothing: the bend from (10, 0, 0) on to (20, 0.7, 0) at a radius of 1E-4 touches its legs 3.5E-6
+            // either side of the corner. It is left as it is.
+            if (!first.GetVectorTo(second).TryGetNormal(out _, tolerance))
+            {
+                return false;
+            }
 
             rounded = new Rounded(
                 new GeoEdge3(incoming.StartPoint, first),
@@ -349,18 +515,6 @@ namespace GeometryHelper.Core
             double sweep = 4.0 * Math.Atan(edge.Bulge);
 
             return new GeoEdge3(start, end, Math.Tan(sweep * (to - from) * 0.25), edge.Normal);
-        }
-
-        /// <summary>
-        /// Adds an edge unless it has shrunk to nothing, which is not geometry and would cost the arc after
-        /// it its bulge.
-        /// </summary>
-        private static void Keep(List<GeoEdge3> edges, GeoEdge3 edge, Tolerance tolerance)
-        {
-            if (edge.IsArc || !edge.StartPoint.IsEqualTo(edge.EndPoint, tolerance))
-            {
-                edges.Add(edge);
-            }
         }
 
         /// <summary>

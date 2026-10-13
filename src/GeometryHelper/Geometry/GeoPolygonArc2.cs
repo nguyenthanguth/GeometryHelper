@@ -137,6 +137,44 @@ namespace GeometryHelper.Geometry
             => new GeoPolygonArc2(starts, bulges, false);
 
         /// <summary>
+        /// Builds a loop from the start and bulge of each of its edges, as <see cref="FromEdges"/> does, unless
+        /// fewer than three of the starts would be left once those the constructor drops are gone.
+        /// </summary>
+        /// <param name="starts">Where each edge starts.</param>
+        /// <param name="bulges">The bulge of each edge.</param>
+        /// <param name="loop">The loop, when the method returns true.</param>
+        /// <returns>true when the starts hold a loop; otherwise, false.</returns>
+        internal static bool TryFromEdges(IReadOnlyList<GeoPoint2> starts, IReadOnlyList<double> bulges, out GeoPolygonArc2 loop)
+        {
+            loop = null;
+
+            // Counted the way the constructor keeps them: a start in the same place as the one kept before it
+            // goes, and so do starts at the end in the same place as the first.
+            var kept = new List<GeoPoint2>(starts.Count);
+
+            foreach (GeoPoint2 start in starts)
+            {
+                if (kept.Count == 0 || !kept[kept.Count - 1].IsEqualTo(start))
+                {
+                    kept.Add(start);
+                }
+            }
+
+            while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0]))
+            {
+                kept.RemoveAt(kept.Count - 1);
+            }
+
+            if (kept.Count < 3)
+            {
+                return false;
+            }
+
+            loop = FromEdges(starts, bulges);
+            return true;
+        }
+
+        /// <summary>
         /// Initializes a loop from a straight polygon, with no bulges.
         /// </summary>
         /// <param name="polygon">The straight polygon to widen.</param>

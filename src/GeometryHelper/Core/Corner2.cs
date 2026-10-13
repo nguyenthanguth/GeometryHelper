@@ -307,6 +307,8 @@ namespace GeometryHelper.Core
                 return null;
             }
 
+            MeetWhereNothingIsLeft(vertices, closed, cut, from, to, distance1, distance2, tolerance);
+
             var result = new List<GeoPoint2>(count + cutCount);
 
             for (int i = 0; i < count; i++)
@@ -378,6 +380,56 @@ namespace GeometryHelper.Core
             return dropped;
         }
 
+        /// <summary>
+        /// Moves the two cuts either side of an edge to one point where between them they take all of it, give
+        /// or take the tolerance.
+        /// </summary>
+        /// <remarks>
+        /// Nothing of such an edge is left, and a stub running back along it would make the shape cross
+        /// itself: the square of side 10 chamfered by 5.04 at a tolerance of 0.1 kept stubs 0.08 long. The
+        /// point is the edge's own end where only one of its corners was cut, so the end of a chain and a
+        /// corner left alone never move, and midway between the two cuts where both were. The repeated
+        /// point this leaves is dropped by the constructor.
+        /// </remarks>
+        private static void MeetWhereNothingIsLeft(
+            IReadOnlyList<GeoPoint2> vertices,
+            bool closed,
+            bool[] cut,
+            GeoPoint2[] from,
+            GeoPoint2[] to,
+            double distance1,
+            double distance2,
+            Tolerance tolerance)
+        {
+            int count = vertices.Count;
+            int edgeCount = closed ? count : count - 1;
+
+            for (int e = 0; e < edgeCount; e++)
+            {
+                int start = e;
+                int end = (e + 1) % count;
+
+                if (!cut[start] && !cut[end])
+                {
+                    continue;
+                }
+
+                double left = vertices[start].DistanceTo(vertices[end]) - (cut[start] ? distance2 : 0.0) - (cut[end] ? distance1 : 0.0);
+
+                if (left > tolerance.EqualPoint)
+                {
+                    continue;
+                }
+
+                GeoPoint2 meet = !cut[end] ? vertices[end]
+                               : !cut[start] ? vertices[start]
+                               : Midway(to[start], from[end]);
+
+                if (cut[start]) to[start] = meet;
+                if (cut[end]) from[end] = meet;
+            }
+        }
+
         private static bool TryCut(
             IReadOnlyList<GeoPoint2> vertices,
             bool closed,
@@ -388,7 +440,26 @@ namespace GeometryHelper.Core
             out GeoPoint2 from,
             out GeoPoint2 to)
         {
-            return TryCut(vertices, closed, index, distance1, distance2, tolerance, out from, out to, out _);
+            if (!TryCut(vertices, closed, index, distance1, distance2, tolerance, out from, out to, out _))
+            {
+                return false;
+            }
+
+            // One corner cut on its own: a cut taking the whole of an edge, give or take the tolerance, ends at
+            // that edge's far end.
+            var cut = new bool[vertices.Count];
+            var froms = new GeoPoint2[vertices.Count];
+            var tos = new GeoPoint2[vertices.Count];
+
+            cut[index] = true;
+            froms[index] = from;
+            tos[index] = to;
+
+            MeetWhereNothingIsLeft(vertices, closed, cut, froms, tos, distance1, distance2, tolerance);
+
+            from = froms[index];
+            to = tos[index];
+            return true;
         }
 
         private static bool TryCut(
@@ -466,7 +537,13 @@ namespace GeometryHelper.Core
         /// <param name="distance1">How far back along the edge running into the corner.</param>
         /// <param name="distance2">How far back along the edge running out of it.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>The chamfered chain, its arcs untouched.</returns>
+        /// <returns>The chamfered chain, its arcs untouched and both of its end points where they were.</returns>
+        /// <remarks>
+        /// A cut taking all of an edge, give or take the tolerance, starts or ends at the edge's far end, or
+        /// midway along it where the corner there is cut too: the chain (0, 0), (10, 0), (10, 10) chamfered by
+        /// 10.05 and 5 at a tolerance of 0.1 is (0, 0), (10, 5), (10, 10). A cut no longer than the tolerance
+        /// is no edge at that tolerance, and the chain runs through the point it would have started at.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
         public static GeoPolylineArc2 Chamfer(GeoPolylineArc2 polyline, double distance1, double distance2, Tolerance tolerance)
@@ -508,6 +585,13 @@ namespace GeometryHelper.Core
         /// edges on the edges themselves, never past the corner; a corner no circle of the radius fits that
         /// way is left alone. The chain (0, 0), (10, 0), (3, 5) filleted at 0.002 is cut back 0.0062 along
         /// both edges and turns through an arc of 144.5°, as much as the corner turns.
+        /// <para>
+        /// Where the corners at an edge take all of it, give or take the tolerance, nothing of the edge is left
+        /// and the arcs either side meet at one point, midway along it; past the tolerance the corner taking more
+        /// gives way. The chain's own end points never move. Three sides of the square of side 10 filleted at 5.02
+        /// at a tolerance of 0.1 run from (0, 0) to (4.98, 0), turn a quarter to (10, 5), another to (4.98, 10),
+        /// and end at (0, 10).
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number.</exception>
@@ -530,7 +614,11 @@ namespace GeometryHelper.Core
         /// <returns>The filleted loop.</returns>
         /// <remarks>
         /// Each arc lies on the inside of its corner and runs the way the loop runs, touching both edges on
-        /// the edges themselves; a corner no circle of the radius fits that way is left alone.
+        /// the edges themselves; a corner no circle of the radius fits that way is left alone. Where the corners
+        /// at an edge take all of it, give or take the tolerance, the arcs either side meet midway along it: the
+        /// square of side 10 filleted at 5.02 at a tolerance of 0.1 is the circle of radius 5 through the
+        /// midpoints of its sides. A loop the fillets would leave with fewer than three corners is given back as
+        /// it was.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number.</exception>
@@ -575,7 +663,16 @@ namespace GeometryHelper.Core
                 bulges.Add(edge.Bulge);
             }
 
-            return GeoPolygonArc2.FromEdges(vertices, bulges);
+            // A loop whose corners between them take nearly all of it, as a hairpin 0.1 wide filleted at a
+            // tolerance of 0.1, can come back with fewer than three corners the loop can tell apart. It cannot
+            // take those fillets, and is given back as it was.
+            if (!GeoPolygonArc2.TryFromEdges(vertices, bulges, out GeoPolygonArc2 loop))
+            {
+                GeometryHelperLog.Debug("Fillet or chamfer left the loop alone: what it would leave has fewer than three corners.");
+                return polygon;
+            }
+
+            return loop;
         }
 
         /// <summary>
@@ -647,10 +744,17 @@ namespace GeometryHelper.Core
                     cutFrom[before] = shorter1.EndPoint;
                     cutTo[before] = shorter2.StartPoint;
                     doCut[before] = true;
-                    takenAtEnd[before] = incoming.Length - shorter1.Length;
-                    takenAtStart[after] = outgoing.Length - shorter2.Length;
+                    takenAtEnd[before] = ArcFillet2.Taken(incoming, shorter1.EndPoint, true);
+                    takenAtStart[after] = ArcFillet2.Taken(outgoing, shorter2.StartPoint, false);
                     keepTo[before] = incoming.GetParameterAtPoint(shorter1.EndPoint, tolerance);
                     keepFrom[after] = outgoing.GetParameterAtPoint(shorter2.StartPoint, tolerance);
+                    continue;
+                }
+
+                // A fillet asked corner by corner leaves the corners it gives no radius alone; they are not
+                // chamfers of nought.
+                if (radiusAtCorner != null)
+                {
                     continue;
                 }
 
@@ -730,7 +834,9 @@ namespace GeometryHelper.Core
             }
 
             // Walk the edges, shortening each end that gave something up and putting the new piece in.
-            var result = new List<GeoEdge2>(count * 2);
+            var pieces = new List<GeoEdge2>(count * 2);
+            var gone = new List<bool>(count * 2);
+            var meetAt = new List<GeoPoint2>(count * 2);
 
             for (int e = 0; e < count; e++)
             {
@@ -744,25 +850,136 @@ namespace GeometryHelper.Core
                     ? Math.Tan(edge.ToArc().SweptAngle * (keepTo[e] - keepFrom[e]) * 0.25)
                     : 0.0;
 
-                result.Add(new GeoEdge2(start, end, bulge));
+                pieces.Add(new GeoEdge2(start, end, bulge));
+
+                // Where the corners at an edge take all of it, give or take the tolerance, nothing of it is left,
+                // and the pieces either side meet at one point: a square of side one hundred filleted at fifty is
+                // four quarter turns and nothing else. The point is the edge's own end where only one of its
+                // corners was reshaped, so the end of a chain and a corner left alone never move, and midway
+                // between the two where both were. A straight edge of no length that no corner touched goes too,
+                // as it always has; the corner after it stays.
+                if (doCut[atStart] || doCut[e])
+                {
+                    bool none = edge.Length - takenAtStart[e] - takenAtEnd[e] <= tolerance.EqualPoint;
+
+                    gone.Add(none);
+                    meetAt.Add(!doCut[e] ? edge.EndPoint : !doCut[atStart] ? edge.StartPoint : Midway(start, end));
+                }
+                else
+                {
+                    gone.Add(!edge.IsArc && edge.StartPoint.IsEqualTo(edge.EndPoint, tolerance));
+                    meetAt.Add(closed || e > 0 ? edge.EndPoint : edge.StartPoint);
+                }
 
                 if (doCut[e])
                 {
-                    result.Add(arcAt[e].HasValue
-                        ? new GeoEdge2(arcAt[e].Value)
-                        : new GeoEdge2(cutFrom[e], cutTo[e]));
+                    // A cut no longer than the tolerance is no edge at that tolerance and goes, its two ends meeting
+                    // where it starts; an arc stays, however small.
+                    pieces.Add(arcAt[e].HasValue ? new GeoEdge2(arcAt[e].Value) : new GeoEdge2(cutFrom[e], cutTo[e]));
+                    gone.Add(!arcAt[e].HasValue && cutFrom[e].IsEqualTo(cutTo[e], tolerance));
+                    meetAt.Add(cutFrom[e]);
                 }
             }
 
-            // Two corners can between them take the whole of the edge they share, leaving a straight piece
-            // of no length: a square of side one hundred filleted at fifty is four quarter turns and
-            // nothing else. Such a piece is not geometry, and leaving it in would cost the arc that
-            // follows it its bulge, because a chain drops a repeated vertex and keeps the bulge of the
-            // first of the two.
-            result.RemoveAll(edge => edge.StartPoint.IsEqualTo(edge.EndPoint, tolerance) && !edge.IsArc);
+            return Joined(pieces, gone, meetAt, closed);
+        }
+
+        /// <summary>
+        /// Takes out the pieces that have gone, and moves the ends of the pieces either side of each to the
+        /// one point they meet at.
+        /// </summary>
+        /// <remarks>
+        /// A run of pieces gone at the start or the end of a chain meets at the chain's own end, which never
+        /// moves; any other run meets where its last piece says. A piece that moves keeps its bulge, so an arc
+        /// stays an arc between its new ends. Pieces with nothing gone beside them are given back as they were.
+        /// </remarks>
+        private static List<GeoEdge2> Joined(List<GeoEdge2> pieces, List<bool> gone, List<GeoPoint2> meetAt, bool closed)
+        {
+            int n = pieces.Count;
+            int first = gone.IndexOf(false);
+
+            if (first < 0 || !gone.Contains(true))
+            {
+                return pieces;
+            }
+
+            var starts = new GeoPoint2?[n];
+            var ends = new GeoPoint2?[n];
+
+            // Walk the runs of pieces gone: round a loop from its first piece kept, or along a chain from its start.
+            int origin = closed ? first : 0;
+            int position = 0;
+
+            while (position < n)
+            {
+                if (!gone[(origin + position) % n])
+                {
+                    position++;
+                    continue;
+                }
+
+                int runStart = position;
+
+                while (position < n && gone[(origin + position) % n])
+                {
+                    position++;
+                }
+
+                bool atChainStart = !closed && runStart == 0;
+                bool atChainEnd = !closed && position == n;
+
+                GeoPoint2 meet = atChainStart ? pieces[0].StartPoint
+                               : atChainEnd ? pieces[n - 1].EndPoint
+                               : meetAt[(origin + position - 1) % n];
+
+                if (!atChainStart)
+                {
+                    ends[(origin + runStart - 1 + n) % n] = meet;
+                }
+
+                if (!atChainEnd)
+                {
+                    starts[(origin + position) % n] = meet;
+                }
+            }
+
+            var result = new List<GeoEdge2>(n);
+
+            for (int k = 0; k < n; k++)
+            {
+                if (gone[k])
+                {
+                    continue;
+                }
+
+                GeoEdge2 piece = pieces[k];
+
+                result.Add(starts[k].HasValue || ends[k].HasValue
+                    ? new GeoEdge2(starts[k] ?? piece.StartPoint, ends[k] ?? piece.EndPoint, piece.Bulge)
+                    : piece);
+            }
 
             return result;
         }
+
+        /// <summary>
+        /// Gets the arc a corner was rounded into, its ends moved where the edge either side has gone.
+        /// </summary>
+        private static GeoEdge2 NewPiece(GeoArc2 arc, bool movedFrom, GeoPoint2 newFrom, bool movedTo, GeoPoint2 newTo)
+        {
+            if (!movedFrom && !movedTo)
+            {
+                return new GeoEdge2(arc);
+            }
+
+            return new GeoEdge2(movedFrom ? newFrom : arc.StartPoint, movedTo ? newTo : arc.EndPoint, arc.Bulge);
+        }
+
+        /// <summary>
+        /// Gets the point half way between two points.
+        /// </summary>
+        private static GeoPoint2 Midway(GeoPoint2 first, GeoPoint2 second)
+            => new GeoPoint2((first.X + second.X) * 0.5, (first.Y + second.Y) * 0.5);
 
         /// <summary>
         /// Gets one radius for every corner of a run of edges.
@@ -1004,15 +1221,22 @@ namespace GeometryHelper.Core
                 bulges.Add(edge.Bulge);
             }
 
-            result = GeoPolygonArc2.FromEdges(vertices, bulges);
+            // A loop left with fewer than three corners it can tell apart cannot take this one.
+            if (!GeoPolygonArc2.TryFromEdges(vertices, bulges, out GeoPolygonArc2 loop))
+            {
+                return false;
+            }
+
+            result = loop;
             return true;
         }
 
         /// <summary>
         /// Rounds the corner between two edges, and gives back the edges that replace them.
         /// </summary>
-        /// <returns>The shortened first edge, the arc, and the shortened second edge, with any piece left
-        /// with no length dropped; null when the corner had no room for that radius.</returns>
+        /// <returns>The shortened first edge, the arc, and the shortened second edge, an edge the corner takes all
+        /// of, give or take the tolerance, dropped and the arc run from its far end; null when the corner had no
+        /// room for that radius.</returns>
         private static List<GeoEdge2> RoundOneCorner(GeoEdge2 incoming, GeoEdge2 outgoing, double radius, Tolerance tolerance)
         {
             if (!ArcFillet2.TryFillet(incoming, outgoing, radius, out GeoArc2 arc, out GeoEdge2 shorter1, out GeoEdge2 shorter2, tolerance))
@@ -1020,17 +1244,21 @@ namespace GeometryHelper.Core
                 return null;
             }
 
+            // A corner that eats the whole of an edge, give or take the tolerance, leaves nothing of it, and the
+            // arc runs from the edge's far end, which does not move.
+            bool allOfFirst = incoming.Length - ArcFillet2.Taken(incoming, shorter1.EndPoint, true) <= tolerance.EqualPoint;
+            bool allOfSecond = outgoing.Length - ArcFillet2.Taken(outgoing, shorter2.StartPoint, false) <= tolerance.EqualPoint;
+
             var edges = new List<GeoEdge2>(3);
 
-            // A corner that eats the whole of an edge leaves a piece of no length, which is not geometry.
-            if (!shorter1.StartPoint.IsEqualTo(shorter1.EndPoint, tolerance) || shorter1.IsArc)
+            if (!allOfFirst)
             {
                 edges.Add(shorter1);
             }
 
-            edges.Add(new GeoEdge2(arc));
+            edges.Add(NewPiece(arc, allOfFirst, incoming.StartPoint, allOfSecond, outgoing.EndPoint));
 
-            if (!shorter2.StartPoint.IsEqualTo(shorter2.EndPoint, tolerance) || shorter2.IsArc)
+            if (!allOfSecond)
             {
                 edges.Add(shorter2);
             }
@@ -1161,7 +1389,13 @@ namespace GeometryHelper.Core
                 bulges.Add(edge.Bulge);
             }
 
-            result = GeoPolygonArc2.FromEdges(vertices, bulges);
+            // A loop left with fewer than three corners it can tell apart cannot take this one.
+            if (!GeoPolygonArc2.TryFromEdges(vertices, bulges, out GeoPolygonArc2 loop))
+            {
+                return false;
+            }
+
+            result = loop;
             return true;
         }
 
@@ -1189,12 +1423,26 @@ namespace GeometryHelper.Core
                 return null;
             }
 
-            return new List<GeoEdge2>
+            // A cut taking the whole of an edge, give or take the tolerance, starts or ends at that edge's far end,
+            // which does not move.
+            bool allOfFirst = incoming.Length - distance1 <= tolerance.EqualPoint;
+            bool allOfSecond = outgoing.Length - distance2 <= tolerance.EqualPoint;
+
+            var edges = new List<GeoEdge2>(3);
+
+            if (!allOfFirst)
             {
-                new GeoEdge2(incoming.StartPoint, from),
-                new GeoEdge2(from, to),
-                new GeoEdge2(to, outgoing.EndPoint)
-            };
+                edges.Add(new GeoEdge2(incoming.StartPoint, from));
+            }
+
+            edges.Add(new GeoEdge2(allOfFirst ? incoming.StartPoint : from, allOfSecond ? outgoing.EndPoint : to));
+
+            if (!allOfSecond)
+            {
+                edges.Add(new GeoEdge2(to, outgoing.EndPoint));
+            }
+
+            return edges;
         }
 
         /// <summary>

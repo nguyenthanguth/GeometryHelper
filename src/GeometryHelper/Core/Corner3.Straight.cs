@@ -111,7 +111,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            if (!TryCutVertex(polyline.Vertices, false, index, distance1, distance2, tolerance, out GeoPoint3 from, out GeoPoint3 to, out _))
+            if (!TryCutOne(polyline.Vertices, false, index, distance1, distance2, tolerance, out GeoPoint3 from, out GeoPoint3 to))
             {
                 return false;
             }
@@ -205,7 +205,7 @@ namespace GeometryHelper.Core
 
             result = polygon;
 
-            if (!TryCutVertex(polygon.Vertices, true, index, distance1, distance2, tolerance, out GeoPoint3 from, out GeoPoint3 to, out _))
+            if (!TryCutOne(polygon.Vertices, true, index, distance1, distance2, tolerance, out GeoPoint3 from, out GeoPoint3 to))
             {
                 return false;
             }
@@ -470,25 +470,17 @@ namespace GeometryHelper.Core
                     $"{tooShort} had too little leg to cut, {straight} were straight, {curved} had a leg that curves.");
             }
 
-            var result = new List<GeoEdge3>(count * 2);
+            var cuts = new GeoEdge3[count];
 
-            for (int e = 0; e < count; e++)
+            for (int c = 0; c < count; c++)
             {
-                GeoEdge3 edge = edges[e];
-                bool cutBefore = e > 0 && doCut[e - 1];
-
-                GeoPoint3 start = cutBefore ? cutTo[e - 1] : edge.StartPoint;
-                GeoPoint3 end = doCut[e] ? cutFrom[e] : edge.EndPoint;
-
-                Keep(result, Remade(edge, start, end), tolerance);
-
-                if (doCut[e])
+                if (doCut[c])
                 {
-                    result.Add(new GeoEdge3(cutFrom[e], cutTo[e]));
+                    cuts[c] = new GeoEdge3(cutFrom[c], cutTo[c]);
                 }
             }
 
-            return new GeoPolylineArc3(result);
+            return new GeoPolylineArc3(Assemble(edges, doCut, cutFrom, cutTo, cuts, takenAtStart, takenAtEnd, tolerance));
         }
 
         /// <summary>
@@ -607,6 +599,8 @@ namespace GeometryHelper.Core
                 return null;
             }
 
+            MeetWhereNothingIsLeft(vertices, closed, cut, from, to, distance1, distance2, tolerance);
+
             var result = new List<GeoPoint3>(count + cutCount);
 
             for (int i = 0; i < count; i++)
@@ -623,6 +617,89 @@ namespace GeometryHelper.Core
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Moves the two cuts either side of a leg to one point where between them they take all of it, give or
+        /// take the tolerance.
+        /// </summary>
+        /// <remarks>
+        /// Nothing of such a leg is left, and a stub running back along it would make the walk turn back on
+        /// itself. The point is the leg's own end where only one of its corners was cut, so the ends of a chain
+        /// and a corner left alone never move, and midway between the two cuts where both were. The repeated
+        /// point this leaves is dropped by the constructor.
+        /// </remarks>
+        private static void MeetWhereNothingIsLeft(
+            IReadOnlyList<GeoPoint3> vertices,
+            bool closed,
+            bool[] cut,
+            GeoPoint3[] from,
+            GeoPoint3[] to,
+            double distance1,
+            double distance2,
+            Tolerance tolerance)
+        {
+            int count = vertices.Count;
+            int legs = closed ? count : count - 1;
+
+            for (int e = 0; e < legs; e++)
+            {
+                int start = e;
+                int end = (e + 1) % count;
+
+                if (!cut[start] && !cut[end])
+                {
+                    continue;
+                }
+
+                double left = vertices[start].DistanceTo(vertices[end]) - (cut[start] ? distance2 : 0.0) - (cut[end] ? distance1 : 0.0);
+
+                if (left > tolerance.EqualPoint)
+                {
+                    continue;
+                }
+
+                GeoPoint3 meet = !cut[end] ? vertices[end]
+                               : !cut[start] ? vertices[start]
+                               : Midway(to[start], from[end]);
+
+                if (cut[start]) to[start] = meet;
+                if (cut[end]) from[end] = meet;
+            }
+        }
+
+        /// <summary>
+        /// Works out where a chamfer cuts one corner of a walk on its own, the cut ending at a leg's far end
+        /// where it takes all of the leg, give or take the tolerance.
+        /// </summary>
+        private static bool TryCutOne(
+            IReadOnlyList<GeoPoint3> vertices,
+            bool closed,
+            int index,
+            double distance1,
+            double distance2,
+            Tolerance tolerance,
+            out GeoPoint3 from,
+            out GeoPoint3 to)
+        {
+            if (!TryCutVertex(vertices, closed, index, distance1, distance2, tolerance, out from, out to, out _))
+            {
+                return false;
+            }
+
+            var cut = new bool[vertices.Count];
+            var froms = new GeoPoint3[vertices.Count];
+            var tos = new GeoPoint3[vertices.Count];
+
+            cut[index] = true;
+            froms[index] = from;
+            tos[index] = to;
+
+            MeetWhereNothingIsLeft(vertices, closed, cut, froms, tos, distance1, distance2, tolerance);
+
+            from = froms[index];
+            to = tos[index];
+            return true;
         }
 
         /// <summary>

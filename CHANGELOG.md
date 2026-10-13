@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Fillets and chamfers that take an edge whole, give or take the tolerance, no longer throw or leave stubs:
+the pieces either side meet at one point, and a chain keeps both its end points. Three sides of the square of side 10
+filleted at 5.02 at a tolerance of 0.1 threw "The edges of a chain must run end to end"; they now turn at (10, 5). A
+chamfer of 10.05 on a first edge 10 long moved the chain's start to (-0.05, 0), and the square chamfered at 5.04 came
+back crossing itself. `Corner3`, which the Tekla bars and ties go through, leaves a bend whose arc is too small for the
+tolerance instead of throwing "Two points in the same place have no chord to bulge", and no longer throws "The X and Y
+directions must not be parallel". A loop that would keep fewer than three corners is given back unchanged.
+
 **FIXED.** A fillet is now the arc on the inside of the corner, running the way the two edges run and touching
 neither past the corner. Where the radius times the cotangent of half the turn was within the point tolerance, a
 circle outside the corner could win: the chain (0, 0), (10, 0), (3, 5) filleted at 0.002 ran on to (10.00064, 0) and

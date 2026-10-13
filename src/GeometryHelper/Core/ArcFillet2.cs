@@ -384,6 +384,50 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets how much of an edge a fillet touching it at a point takes, measured along the edge from the
+        /// corner, and read on past the far end when the point lies beyond it.
+        /// </summary>
+        /// <remarks>
+        /// The far end may be overrun by up to the tolerance, and the piece left then runs backwards: its length
+        /// says how far, but not which way. A fillet touching a side 10 long at 0.04 beyond its far end takes
+        /// 10.04 of it, not the 9.96 the length of what is left would say.
+        /// </remarks>
+        internal static double Taken(GeoEdge2 edge, GeoPoint2 at, bool cornerAtEnd)
+        {
+            GeoPoint2 corner = cornerAtEnd ? edge.EndPoint : edge.StartPoint;
+
+            if (!edge.IsArc)
+            {
+                GeoVector2 along = edge.StartPoint.GetVectorTo(edge.EndPoint);
+                double ahead = corner.GetVectorTo(at).DotProduct(along) / along.Length;
+
+                return cornerAtEnd ? -ahead : ahead;
+            }
+
+            // As in PastCorner: the angle from the corner, the way the arc runs, with the far half of the rest
+            // of the circle read as lying beyond the far end.
+            GeoArc2 arc = edge.ToArc();
+            GeoVector2 toCorner = arc.Center.GetVectorTo(corner);
+            GeoVector2 toPoint = arc.Center.GetVectorTo(at);
+
+            double angle = Math.Atan2(toCorner.CrossProduct(toPoint), toCorner.DotProduct(toPoint));
+
+            if (arc.IsClockwise)
+            {
+                angle = -angle;
+            }
+
+            double halfGap = (Math.PI * 2.0 - Math.Abs(arc.SweptAngle)) * 0.5;
+
+            if (cornerAtEnd)
+            {
+                return -(angle > halfGap ? angle - Math.PI * 2.0 : angle) * arc.Radius;
+            }
+
+            return (angle < -halfGap ? angle + Math.PI * 2.0 : angle) * arc.Radius;
+        }
+
+        /// <summary>
         /// Gets the part of an edge from its start up to a point on it.
         /// </summary>
         private static GeoEdge2 Upto(GeoEdge2 edge, GeoPoint2 at, Tolerance tolerance)

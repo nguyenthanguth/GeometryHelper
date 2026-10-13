@@ -797,7 +797,13 @@ corner: the chain (0, 0), (10, 0), (3, 5) filleted at 0.002 is cut back 0.0062 a
 arc of 144.5°.
 
 Exactly enough is enough: a square of side 100 filleted at 50 loses every straight edge and comes back
-four quarter turns — a circle. Chamfered at 50 it comes back the diamond through the four midpoints.
+four quarter turns — a circle. Chamfered at 50 it comes back the diamond through the four midpoints. So is
+a hair more or less, within the tolerance: where the corners at an edge take all of it, give or take the
+tolerance, the edge vanishes and the pieces either side meet at one point, midway along it, or at its far
+end when only one of its corners was reshaped. The two ends of a chain never move. Past the tolerance the
+corner taking more gives way, as above. The square of side 10 filleted at 5.02 at a tolerance of 0.1 is the
+circle of radius 5 through the midpoints of its sides. A loop that would keep fewer than three corners is
+given back as it was.
 
 ## Circles as polygons
 
