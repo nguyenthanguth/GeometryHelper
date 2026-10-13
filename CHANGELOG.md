@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A loop that may curve reads a point near the chord of a bowed edge by its true boundary. Only the boundary
+itself is read with the tolerance, and every other point is in or out exactly. The square 100 by 100 with its top bowed
+20 inwards held the point (50, 99.95), 0.05 under the chord and 19.95 above the arc, at a tolerance of 0.1, and
+measured it nought away; it is now outside and 19.95 away. A point exactly on a chord that is not the boundary is read
+as lying a hair towards +X of it. A segment or ray now also collides with such a loop wherever it comes within the
+point tolerance of the boundary, not only where it crosses it or starts inside, and its distance still measures the
+gap. Locating a point in a curved loop is about a fifth faster.
+
 **FIXED.** A segment whose line runs inside a circle within the point tolerance of its rim crosses it where it truly
 does, rather than once at the foot of the perpendicular; two crossings within twice the point tolerance of each other
 are still one. The segment 50 long from (0, 49.9995) along (1, 0.001) leaves the circle of radius 50 at

@@ -710,24 +710,65 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a straight segment, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// One shape lying wholly inside the other counts, so the boundaries need not cross.
+        /// One shape lying wholly inside the other counts, so the boundaries need not cross. Outside, they collide where
+        /// an edge and the segment cross or come within the point tolerance of each other, as two segments do, a curved
+        /// edge read as its arc. At a tolerance of a tenth, the segment from (101, 40) to (100.05, 60) collides with the
+        /// square from the origin to (100, 100), coming within 0.05 of its right side, though its line meets the side only
+        /// 1.05 past its end. Its distance stays the gap, 0.05.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoLine2 line, Tolerance tolerance)
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
-            
+
+            if (CrossesOrStartsIn(loop, line, tolerance))
+            {
+                return true;
+            }
+
+            for (int i = 0; i < loop.EdgeCount; i++)
+            {
+                GeoEdge2 edge = loop.GetEdgeAt(i);
+                bool touches = edge.IsArc
+                    ? !Clear(line, edge, tolerance) && CollidesWith(line, edge.ToArc(), tolerance)
+                    : !Clear(line, edge.ToLine(), tolerance) && CollidesWith(edge.ToLine(), line, tolerance);
+
+                if (touches)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Whether a segment lies more than twice the point tolerance clear of a box holding a curved edge, read before
+        /// the arc is made. Every point of the arc lies within half the chord, or within the sagitta, half the chord
+        /// times the bulge, of the chord's middle: so within half the chord times one plus the size of the bulge.
+        /// </summary>
+        private static bool Clear(GeoLine2 line, GeoEdge2 edge, Tolerance tolerance)
+        {
+            double midX = 0.5 * (edge.StartPoint.X + edge.EndPoint.X);
+            double midY = 0.5 * (edge.StartPoint.Y + edge.EndPoint.Y);
+            double reach = 0.5 * Distance2.DistanceTo(edge.StartPoint, edge.EndPoint) * (1.0 + Math.Abs(edge.Bulge));
+
+            return Clear(line, midX - reach, midY - reach, midX + reach, midY + reach, tolerance);
+        }
+
+        /// <summary>
+        /// Whether a segment crosses the boundary of a loop that may curve or starts inside it: where the distance
+        /// between them is taken as nought without measuring. A segment that only comes within the tolerance of the
+        /// boundary is measured, so its distance is the gap, not nought.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoLine2 line, Tolerance tolerance)
+        {
             if (Intersection2.TryIntersectWith(loop, line, out _, tolerance))
             {
                 return true;
             }
 
-            if (Containment2.Contains(loop, line.StartPoint, tolerance))
-            {
-                return true;
-            }
-
-            return false;
+            return Containment2.Contains(loop, line.StartPoint, tolerance);
         }
 
         /// <summary>

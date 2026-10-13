@@ -697,7 +697,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             
-            if (Collision2.CollidesWith(loop, line, tolerance)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(loop, line, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), line, tolerance);
         }

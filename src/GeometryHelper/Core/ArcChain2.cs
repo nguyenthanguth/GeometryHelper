@@ -545,27 +545,59 @@ namespace GeometryHelper.Core
         /// bulges outward, and takes it away where the arc bulges inward. So the answer is the straight
         /// loop through the vertices, turned inside out once for every such piece the point lies in. It is
         /// exact: no arc is approximated anywhere in it.
+        /// <para>
+        /// No tolerance is read here: a point within the tolerance of the true boundary is on it, and is
+        /// settled before this is asked. A chord is not the boundary, so the straight loop and each piece
+        /// read the side of a chord by one exact rule, <see cref="BeforeChord"/>, and agree on every point
+        /// near it. A point exactly on a chord counts as lying a hair towards +X of it, or a hair towards +Y
+        /// of a chord that runs along X.
+        /// </para>
         /// </remarks>
-        internal static bool Encloses(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
+        internal static bool Encloses(GeoPolygonArc2 loop, GeoPoint2 point)
         {
-            var chords = new GeoPoint2[loop.VertexCount];
+            // The straight loop through the vertices, by crossings of the ray from the point towards +X: a chord counts
+            // when it spans the point's Y, half-open, and the point lies before it.
+            bool inside = false;
+            int n = loop.VertexCount;
 
-            for (int i = 0; i < loop.VertexCount; i++)
+            for (int i = 0, j = n - 1; i < n; j = i++)
             {
-                chords[i] = loop[i];
-            }
+                GeoPoint2 p1 = loop[i];
+                GeoPoint2 p2 = loop[j];
 
-            bool inside = Containment2.Contains(new GeoPolygon2(chords), point, tolerance);
+                if ((p1.Y > point.Y) != (p2.Y > point.Y) && BeforeChord(p1, p2, point))
+                {
+                    inside = !inside;
+                }
+            }
 
             for (int i = 0; i < loop.EdgeCount; i++)
             {
-                if (loop.GetEdgeAt(i).CutsOff(point, tolerance))
+                if (loop.GetEdgeAt(i).CutsOff(point))
                 {
                     inside = !inside;
                 }
             }
 
             return inside;
+        }
+
+        /// <summary>
+        /// Whether a point lies before the line through two points, read exactly: towards -X of it at the point's Y, or,
+        /// for a line that runs along X, towards -Y of it. A point on the line is not before it.
+        /// </summary>
+        /// <remarks>
+        /// The straight loop of <see cref="Encloses"/> and the pieces of <see cref="GeoEdge2.CutsOff"/> both read the side
+        /// of a chord by this, with the chord's ends in the same order, so the two give the same answer to the last bit.
+        /// </remarks>
+        internal static bool BeforeChord(GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 point)
+        {
+            if (p1.Y == p2.Y)
+            {
+                return point.Y < p1.Y;
+            }
+
+            return point.X < (p2.X - p1.X) * (point.Y - p1.Y) / (p2.Y - p1.Y) + p1.X;
         }
     }
 }

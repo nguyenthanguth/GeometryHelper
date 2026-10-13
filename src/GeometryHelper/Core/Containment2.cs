@@ -906,7 +906,12 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The answer is exact, with no arc cut into pieces anywhere in it: it is the straight loop through
         /// the vertices, turned inside out once for every piece an arc cuts off its own chord that the
-        /// point happens to lie in.
+        /// point happens to lie in. Only the true boundary, arcs and all, is read with the tolerance: a point
+        /// within it of the boundary is on the side, and every other point is in or out exactly, however near
+        /// a chord it lies. The square from the origin to (100, 100) with its top bowed 20 inwards (bulge -0.4)
+        /// has the point (50, 99.95), 0.05 under the chord, outside at a tolerance of 0.1: it is 19.95 above
+        /// the arc. A point exactly on a chord that is not the boundary is read as lying a hair towards +X of
+        /// it, or towards +Y of a chord running along X.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static PointLocation Locate(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
@@ -918,7 +923,7 @@ namespace GeometryHelper.Core
                 return PointLocation.OnSide;
             }
 
-            return ArcChain2.Encloses(loop, point, tolerance) ? PointLocation.Inside : PointLocation.OutSide;
+            return ArcChain2.Encloses(loop, point) ? PointLocation.Inside : PointLocation.OutSide;
         }
 
         /// <summary>

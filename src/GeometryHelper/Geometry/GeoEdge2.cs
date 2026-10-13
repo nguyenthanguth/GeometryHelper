@@ -219,14 +219,15 @@ namespace GeometryHelper.Geometry
         /// Gets the circular segment of the edge: the piece between its arc and its chord.
         /// </summary>
         /// <param name="point">The point to test.</param>
-        /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the point lies strictly inside the piece the arc cuts off its chord.</returns>
         /// <remarks>
         /// This is what tells an arc loop from the straight loop through its vertices: walking the arc
         /// rather than the chord adds that piece where the arc bulges out and takes it away where the arc
-        /// bulges in. A straight edge cuts nothing off, so it never holds a point.
+        /// bulges in. A straight edge cuts nothing off, so it never holds a point. The side of the chord is
+        /// read exactly, by the rule the straight loop's own test reads it with (see
+        /// <see cref="Core.ArcChain2.BeforeChord"/>), so that the two agree on every point near the chord.
         /// </remarks>
-        internal bool CutsOff(GeoPoint2 point, Tolerance tolerance)
+        internal bool CutsOff(GeoPoint2 point)
         {
             if (!IsArc)
             {
@@ -242,16 +243,7 @@ namespace GeometryHelper.Geometry
 
             // Inside the circle, the chord cuts the disc in two and the piece wanted is the one the middle
             // of the arc lies in. That holds whichever way the arc leans and however far it sweeps.
-            GeoVector2 along = StartPoint.GetVectorTo(EndPoint);
-            double atPoint = along.CrossProduct(StartPoint.GetVectorTo(point));
-            double atMiddle = along.CrossProduct(StartPoint.GetVectorTo(arc.MidPoint));
-
-            if (Math.Abs(atPoint) <= tolerance.EqualPoint * along.Length)
-            {
-                return false;
-            }
-
-            return atPoint > 0.0 == atMiddle > 0.0;
+            return Core.ArcChain2.BeforeChord(EndPoint, StartPoint, point) == Core.ArcChain2.BeforeChord(EndPoint, StartPoint, arc.MidPoint);
         }
 
         /// <summary>
