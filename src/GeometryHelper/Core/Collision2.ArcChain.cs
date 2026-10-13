@@ -10,7 +10,8 @@ namespace GeometryHelper.Core
     /// The rule is the one used everywhere else in this class: two shapes collide when their boundaries
     /// meet, or when one lies inside the other and the two never cross at all. A polygon, a rectangle and
     /// a circle are closed and so have an inside; a segment, a polyline and an arc do not, so for those
-    /// nothing but a meeting counts.
+    /// nothing but a meeting counts. A segment meets an arc, as it meets another segment, where the two
+    /// cross or come within the point tolerance of each other.
     /// </remarks>
     public static partial class Collision2
     {
@@ -23,11 +24,14 @@ namespace GeometryHelper.Core
         /// Determines whether a segment touches an arc, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// Neither has an inside, so they collide only where they cross.
+        /// Neither has an inside, so they collide where they cross or come within the point tolerance of each
+        /// other, as two segments do. At a tolerance of a thousandth, a segment ending half a thousandth short of
+        /// an arc collides with it, and one ending two thousandths short does not.
         /// </remarks>
         public static bool CollidesWith(GeoLine2 line, GeoArc2 arc, Tolerance tolerance)
         {
-            return Arc2.TryIntersectWith(arc, line, out _, tolerance);
+            // The distance is nought where they cross.
+            return !Clear(line, arc, tolerance) && Arc2.DistanceTo(arc, line, tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>

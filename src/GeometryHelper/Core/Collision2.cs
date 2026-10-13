@@ -344,21 +344,70 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a polyline collides with a line segment within tolerance.
         /// </summary>
+        /// <remarks>
+        /// They collide where an edge and the segment cross or come within the point tolerance of each other, as two
+        /// segments do. The segment from (0, 0) to (21, 0) lying over the polyline from (10, 0) to (20, 0) collides with
+        /// it, though the two cross nowhere.
+        /// </remarks>
         public static bool CollidesWith(GeoPolyline2 polyline, GeoLine2 line, Tolerance tolerance)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
-                if (Intersection2.TryIntersectWith(polyline.GetEdgeAt(i), line, out _, tolerance))
+                GeoLine2 edge = polyline.GetEdgeAt(i);
+
+                if (!Clear(line, edge, tolerance) && CollidesWith(edge, line, tolerance))
                 {
                     return true;
                 }
             }
 
-            // A segment lying exactly along one of the edges is reported as parallel by the intersection
-            // test above, never as a crossing, so this is what catches the overlap.
-            return Containment2.IsPointOn(polyline, line.StartPoint, tolerance);
+            return false;
+        }
+
+        /// <summary>
+        /// Whether a segment lies more than twice the point tolerance clear of a box, on X or on Y. Then it neither
+        /// crosses nor comes within the tolerance of anything in the box: a crossing accepted within the tolerance lies
+        /// within it of both shapes.
+        /// </summary>
+        private static bool Clear(GeoLine2 line, double minX, double minY, double maxX, double maxY, Tolerance tolerance)
+        {
+            double reach = 2.0 * tolerance.EqualPoint;
+
+            return Math.Min(line.StartPoint.X, line.EndPoint.X) - maxX > reach
+                || minX - Math.Max(line.StartPoint.X, line.EndPoint.X) > reach
+                || Math.Min(line.StartPoint.Y, line.EndPoint.Y) - maxY > reach
+                || minY - Math.Max(line.StartPoint.Y, line.EndPoint.Y) > reach;
+        }
+
+        /// <summary>
+        /// Whether a segment lies more than twice the point tolerance clear of another segment's box.
+        /// </summary>
+        private static bool Clear(GeoLine2 line, GeoLine2 other, Tolerance tolerance)
+            => Clear(line,
+                Math.Min(other.StartPoint.X, other.EndPoint.X), Math.Min(other.StartPoint.Y, other.EndPoint.Y),
+                Math.Max(other.StartPoint.X, other.EndPoint.X), Math.Max(other.StartPoint.Y, other.EndPoint.Y),
+                tolerance);
+
+        /// <summary>
+        /// Whether a segment lies more than twice the point tolerance clear of an arc's whole circle: outside the
+        /// circle's box, or with both ends that far inside the circle, which holds the whole segment that far inside.
+        /// </summary>
+        private static bool Clear(GeoLine2 line, GeoArc2 arc, Tolerance tolerance)
+        {
+            if (Clear(line,
+                arc.Center.X - arc.Radius, arc.Center.Y - arc.Radius, arc.Center.X + arc.Radius, arc.Center.Y + arc.Radius,
+                tolerance))
+            {
+                return true;
+            }
+
+            double inside = arc.Radius - 2.0 * tolerance.EqualPoint;
+
+            return inside > 0.0
+                && Distance2.GetDistanceSquaredTo(arc.Center, line.StartPoint) < inside * inside
+                && Distance2.GetDistanceSquaredTo(arc.Center, line.EndPoint) < inside * inside;
         }
 
         /// <summary>
@@ -465,14 +514,27 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a chain that may curve touches or overlaps a straight segment, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// They collide where an edge and the segment cross or come within the point tolerance of each other, as two
+        /// segments do, a curved edge read as its arc. A segment lying along a straight edge of the chain collides with
+        /// it, and so does one ending half a thousandth short of a curved edge, at a tolerance of a thousandth.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoLine2 line, Tolerance tolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
-            
-            if (Intersection2.TryIntersectWith(chain, line, out _, tolerance))
+
+            for (int i = 0; i < chain.EdgeCount; i++)
             {
-                return true;
+                GeoEdge2 edge = chain.GetEdgeAt(i);
+                bool touches = edge.IsArc
+                    ? CollidesWith(line, edge.ToArc(), tolerance)
+                    : !Clear(line, edge.ToLine(), tolerance) && CollidesWith(edge.ToLine(), line, tolerance);
+
+                if (touches)
+                {
+                    return true;
+                }
             }
 
             return false;

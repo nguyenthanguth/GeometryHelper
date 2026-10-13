@@ -403,7 +403,7 @@ namespace GeometryHelper.Core
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            if (Collision2.CollidesWith(polyline, line))
+            if (CrossesOrStartsOn(polyline, line, Tolerance.Global))
             {
                 return 0.0;
             }
@@ -417,6 +417,24 @@ namespace GeometryHelper.Core
             }
 
             return minDistance;
+        }
+
+        /// <summary>
+        /// Whether a segment crosses an edge of a polyline or starts on it: where the distance between them is taken
+        /// as nought without measuring. A segment that only comes within the tolerance is measured, so its distance is
+        /// the gap, not nought.
+        /// </summary>
+        private static bool CrossesOrStartsOn(GeoPolyline2 polyline, GeoLine2 line, Tolerance tolerance)
+        {
+            for (int i = 0; i < polyline.EdgeCount; i++)
+            {
+                if (Intersection2.TryIntersectWith(polyline.GetEdgeAt(i), line, out _, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return Containment2.IsPointOn(polyline, line.StartPoint, tolerance);
         }
 
         /// <summary>

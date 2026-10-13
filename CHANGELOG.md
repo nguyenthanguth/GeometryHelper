@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A segment collides with an open curve (a polyline, an arc, a curved edge or a curved chain) where the two
+cross or come within the point tolerance, as two segments do, asked from either side, and so does a ray. Before, the
+segment from (0, 0) to (21, 0) lying over the polyline from (10, 0) to (20, 0) did not collide with it, though it is
+nought from it. A segment ending 0.0005 short of an arc did not collide at a tolerance of 0.001, and nor did a curved
+chain lying along a segment. Distances are unchanged. A segment passing within half a unit of an arc's rim is checked
+about twice as slowly, since its distance is now measured.
+
 **FIXED.** Queries in the plane that are given a tolerance read it all the way down. Some read `Tolerance.Global`
 underneath, so a segment shorter than the global point tolerance was taken as a point: under a tolerance of 1E-4 the
 slivers from (0, 0) to (0.0004, 0) and from (5.0008, 0) to (5.0004, 0) measured 5.0004 apart, and now measure 5. The

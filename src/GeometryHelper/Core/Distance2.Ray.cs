@@ -165,7 +165,7 @@ namespace GeometryHelper.Core
             // DistanceTo(polyline, line) read with the tolerance passed down, which it takes from the global one.
             GeoLine2 cut = Ray2.CutPast(ray, polyline, tolerance);
 
-            if (Collision2.CollidesWith(polyline, cut, tolerance))
+            if (CrossesOrStartsOn(polyline, cut, tolerance))
             {
                 return 0.0;
             }
