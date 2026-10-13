@@ -219,7 +219,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            if (Containment2.Contains(rect, line.StartPoint))
+            if (Containment2.Contains(rect, line.StartPoint, tolerance))
             {
                 return true;
             }

@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A segment against a rectangle read whether the rectangle holds the segment's start under
+`Tolerance.Global`, whatever tolerance was passed. Under a tolerance of 1E-4 the segment from (50.0002, 0) to (60, 0)
+collided with the square 100 by 100 centred at the origin, though it starts two ten-thousandths outside it; it now
+reads the tolerance given and does not collide. A polyline or a straight edge against a rectangle follows, and so does
+label placement given an `ArrangeOptions.Tolerance` other than the global one. Under the default tolerance nothing
+changes.
+
 **NEW.** `GeoRay2`, the ray in the plane: an origin and a direction it runs along for ever, the counterpart of
 `GeoRay3`. It is asked what a segment is asked, against every shape in the plane, and every shape that takes a
 `GeoLine2` takes a `GeoRay2` back; an ellipse is asked from the ellipse, as for a segment. The answers read as the
