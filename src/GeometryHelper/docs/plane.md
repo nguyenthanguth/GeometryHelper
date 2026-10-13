@@ -661,8 +661,11 @@ across, which is what AutoCAD's OFFSET does. Where they would never meet, or mee
 shape can fall into several pieces or vanish, so the answer is an array.
 
 What tells the folded-over parts from the real ones is the one thing an offset cannot break: every point
-of a valid offset stands **exactly** the offset distance from the shape it came from. A piece standing
-nearer has been folded over by a neighbour and goes. No winding rule, no clipper, no tessellation.
+of a valid offset stands **exactly** the offset distance from the shape it came from. Each piece is cut
+where it comes to the offset distance from another part of the shape, and the stretches standing nearer go;
+the rest of the piece stays. A chamfer or a miter is held to its own shape at the corner it fills. The hairpin
+1 wide, 10 along x, 1 down and 9 back, offset by -0.6 into its inside, keeps (0, -0.6) to (0.553, -0.6). No
+winding rule, no clipper, no tessellation.
 
 **What still needs flattening.** The four boolean operations do, because a boolean cannot be done piece by
 piece. They take an optional chord tolerance and hand back the straight types, which say plainly that the

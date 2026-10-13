@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Curved offsets keep what stands the offset distance from the shape and nothing else. A corner that closes
+is no longer bridged where its moved pieces do not meet: the chain 10 along x and then round an arc of bulge 0.5
+curling back, offset by 1 to the left, is the segment to x = 7.271 and the arc from (7.484, -1) on, not one piece with
+a chord across the fold. A piece partly folded over is cut where it comes nearer than the distance rather than kept or
+dropped whole: the hairpin 1 wide, 10 along x, 1 down and 9 back, offset by -0.6 into its inside, keeps (0, -0.6) to
+(0.553, -0.6) where it gave nothing. Chamfers and miters cut short inside a fold are no longer kept, and two moved
+pieces lying along each other are kept once. Offsets of curved shapes with hundreds of edges are 8 to 75 times faster;
+shapes of a few edges take about twice as long, some 12 to 20 microseconds a call.
+
 **FIXED.** A curved offset at a tolerance of its own no longer throws "The edges of a chain must run end to end": its
 pieces were joined within the tolerance passed but put together within the global one. The chain from the origin to
 (-5, 0) and round an arc of bulge -0.5 to (-7, 5), offset by 0.3 with an unlimited miter at 0.1, is now one chain from

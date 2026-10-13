@@ -15,11 +15,12 @@ namespace GeometryHelper.Core
     /// </para>
     /// <para>
     /// The test that decides what folds over is the one fact an offset cannot break: every point of a
-    /// valid offset stands exactly the offset distance away from the shape it came from. A piece whose
-    /// middle stands nearer than that has been folded over by a neighbour and goes.
+    /// valid offset stands exactly the offset distance away from the shape it came from. Each piece is cut
+    /// where it comes to that distance from another part of the shape, and the stretches standing nearer
+    /// have been folded over and go; the rest of the piece stays.
     /// </para>
     /// </summary>
-    internal static class ArcOffset2
+    internal static partial class ArcOffset2
     {
         /// <summary>
         /// One piece of the offset, and whether it came from moving an edge or was built to bridge a
@@ -29,21 +30,41 @@ namespace GeometryHelper.Core
         /// The difference matters when the folded parts are thrown away. A piece that was moved stands
         /// exactly the offset distance from the shape, and anything nearer has been folded over. A bridge
         /// does not: a chamfer across a corner deliberately cuts inside that distance, and is no less
-        /// wanted for it.
+        /// wanted for it, so round the corner it crosses the offset leaves out only the triangle under it.
+        /// A bridge left joining nothing goes.
         /// </remarks>
         private struct Piece
         {
-            internal Piece(GeoEdge2 edge, bool bridge)
+            internal Piece(GeoEdge2 edge, bool bridge, int source, int corner, bool across)
             {
                 Edge = edge;
                 Bridge = bridge;
+                Source = source;
+                Corner = corner;
+                Across = across;
             }
 
             internal GeoEdge2 Edge { get; }
 
             internal bool Bridge { get; }
 
-            internal Piece With(GeoEdge2 edge) => new Piece(edge, Bridge);
+            /// <summary>
+            /// Gets the index of the edge the piece was moved from, or -1 for a piece built at a corner.
+            /// </summary>
+            internal int Source { get; }
+
+            /// <summary>
+            /// Gets the index of the vertex a piece built at a corner was built about, or -1 for a moved piece.
+            /// </summary>
+            internal int Corner { get; }
+
+            /// <summary>
+            /// Gets a value indicating whether a piece built at a corner spans an edge dropped between the two pieces
+            /// it joins, an arc whose radius ran out.
+            /// </summary>
+            internal bool Across { get; }
+
+            internal Piece With(GeoEdge2 edge) => new Piece(edge, Bridge, Source, Corner, Across);
         }
 
         /// <summary>
@@ -79,9 +100,10 @@ namespace GeometryHelper.Core
                 return new List<List<GeoEdge2>>();
             }
 
-            List<Piece> joined = Join(edges, kept, moved, closed, distance, options, tolerance);
+            var mitres = new List<Mitre>();
+            List<Piece> joined = Join(edges, kept, moved, closed, distance, options, mitres, tolerance);
 
-            return Prune(joined, edges, closed, Math.Abs(distance), tolerance);
+            return Prune(joined, mitres, edges, closed, distance, tolerance);
         }
 
         /// <summary>
@@ -132,17 +154,20 @@ namespace GeometryHelper.Core
             bool closed,
             double distance,
             OffsetOptions options,
+            List<Mitre> mitres,
             Tolerance tolerance)
         {
             var result = new List<Piece>(moved.Count * 2);
 
             for (int i = 0; i < moved.Count; i++)
             {
-                result.Add(new Piece(moved[i], false));
+                result.Add(new Piece(moved[i], false, kept[i], -1, false));
 
                 if (i < moved.Count - 1)
                 {
-                    moved[i + 1] = Corner(result, moved[i + 1], edges[kept[i]].EndPoint, distance, options, tolerance);
+                    bool across = kept[i + 1] != kept[i] + 1;
+
+                    moved[i + 1] = Corner(result, moved[i + 1], edges[kept[i]], edges[kept[i + 1]], kept[i] + 1, across, distance, options, mitres, tolerance);
                 }
             }
 
@@ -151,9 +176,10 @@ namespace GeometryHelper.Core
             // has to be put right rather than the one it was made from.
             if (closed && result.Count > 1)
             {
-                GeoPoint2 corner = edges[kept[moved.Count - 1]].EndPoint;
+                int vertex = (kept[moved.Count - 1] + 1) % edges.Count;
+                bool across = kept[0] != vertex;
 
-                result[0] = result[0].With(Corner(result, result[0].Edge, corner, distance, options, tolerance));
+                result[0] = result[0].With(Corner(result, result[0].Edge, edges[kept[moved.Count - 1]], edges[kept[0]], vertex, across, distance, options, mitres, tolerance));
             }
 
             return result;
@@ -164,51 +190,126 @@ namespace GeometryHelper.Core
         /// join in between them when they no longer reach each other.
         /// </summary>
         /// <returns>The piece that follows the corner, cut back when the corner closed up.</returns>
+        /// <remarks>
+        /// Only a corner that turns towards the side the offset goes closes up, and only there are the pieces cut
+        /// back to where they cross: a crossing at a corner that opens lies further along them, where one folds
+        /// over the other, and is the pruning's to deal with. A closing corner whose pieces do not reach each other
+        /// is tied by a chord and never filled, and the pruning throws the chord away with the parts of the pieces
+        /// the shape comes nearer to. The chain 10 along x and then round an arc of bulge 0.5 that leaves turning 168
+        /// degrees back to the left, offset by 1 to the left: the moved segment and the moved arc never meet, and
+        /// what stands 1 from the chain is the segment as far as x = 7.271 and the arc from (7.484, -1) on.
+        /// </remarks>
         private static GeoEdge2 Corner(
             List<Piece> result,
             GeoEdge2 after,
-            GeoPoint2 corner,
+            GeoEdge2 arriving,
+            GeoEdge2 leaving,
+            int vertex,
+            bool across,
             double distance,
             OffsetOptions options,
+            List<Mitre> mitres,
             Tolerance tolerance)
         {
             GeoEdge2 before = result[result.Count - 1].Edge;
+            GeoPoint2 corner = arriving.EndPoint;
 
             if (before.EndPoint.IsEqualTo(after.StartPoint, tolerance))
             {
                 return after;
             }
 
-            // Where the two pieces still cross, the corner closed up and both are cut back to the crossing.
+            // Where the corner closed up and the two pieces still cross, both are cut back to the crossing. Where it
+            // opened, they cross only further along, unless they touch within the tolerance where they end. Which it
+            // does is read off the edges themselves, since a moved piece may have been cut back to nothing.
+            // Across an edge that was dropped the two edges do not meet, and their turn says nothing: the corner is
+            // read as it always was, cut back wherever the pieces cross and bridged where they do not.
+            bool closes = !across && Closes(arriving, leaving, distance, tolerance);
             GeoPoint2[] crossings = before.GetIntersections(after, tolerance);
 
             if (crossings.Length > 0)
             {
                 GeoPoint2 at = Nearest(crossings, corner);
 
-                result[result.Count - 1] = result[result.Count - 1].With(Upto(before, at, tolerance));
-                return From(after, at, tolerance);
+                if (closes || across || at.IsEqualTo(before.EndPoint, tolerance) || at.IsEqualTo(after.StartPoint, tolerance))
+                {
+                    result[result.Count - 1] = result[result.Count - 1].With(Upto(before, at, tolerance));
+                    return From(after, at, tolerance);
+                }
             }
 
-            // Otherwise it opened up, and something has to bridge the gap.
             GeoPoint2 from = before.EndPoint;
             GeoPoint2 to = after.StartPoint;
 
+            // A corner that closes is never filled: the pieces are only tied by a straight chord, which stands nearer
+            // to the shape than the distance unless the corner hardly turns, and goes with the folded parts.
+            if (closes)
+            {
+                result.Add(new Piece(new GeoEdge2(from, to), true, -1, -1, false));
+                return after;
+            }
+
+            // Otherwise the corner opened up, and something has to bridge the gap.
             switch (options.Join)
             {
                 case OffsetJoin.Round:
                     // An arc of the offset distance about the corner stands exactly that far from it, so
                     // it is held to the same rule as everything that was moved.
-                    result.Add(new Piece(RoundJoin(from, to, corner, distance), false));
+                    result.Add(new Piece(RoundJoin(from, to, corner, distance), false, -1, vertex, across));
                     return after;
 
                 case OffsetJoin.Chamfer:
-                    result.Add(new Piece(new GeoEdge2(from, to), true));
+                    result.Add(new Piece(new GeoEdge2(from, to), true, -1, vertex, across));
                     return after;
 
                 default:
-                    return MiterJoin(result, after, from, to, corner, distance, options, tolerance);
+                    return MiterJoin(result, after, from, to, corner, vertex, across, distance, options, mitres, tolerance);
             }
+        }
+
+        /// <summary>
+        /// Determines whether the corner between two edges turns towards the side the offset goes, so that the moved
+        /// pieces run into each other there rather than apart.
+        /// </summary>
+        /// <remarks>
+        /// A corner turning right back, within the point tolerance over its edges, turns both ways at once, and is
+        /// read as closing: where its pieces cross, they are cut back to the crossing. The chain along x to (100, 0),
+        /// round the half circle of radius 50 back over itself to (100, 100) and along x again, offset by 10 into the
+        /// U: the moved line y = 10 and the moved circle of radius 60 meet at (55.28, 10), where the corner closes.
+        /// </remarks>
+        private static bool Closes(GeoEdge2 arriving, GeoEdge2 leaving, double distance, Tolerance tolerance)
+        {
+            GeoVector2 first = Heading(arriving, arriving.EndPoint);
+            GeoVector2 second = Heading(leaving, leaving.StartPoint);
+            double turn = first.CrossProduct(second);
+
+            // Back along itself as near as the tolerance can tell: the two draw apart by no more than the point
+            // tolerance over the longer edge, the reading Intersection2 gives parallel lines.
+            double sine = Math.Abs(turn) / (first.Length * second.Length);
+            double reach = Math.Max(arriving.Length, leaving.Length);
+
+            if (first.DotProduct(second) < 0.0 && sine * reach <= tolerance.EqualPoint)
+            {
+                return true;
+            }
+
+            return turn * distance > 0.0;
+        }
+
+        /// <summary>
+        /// Gets the way an edge runs at a point of it.
+        /// </summary>
+        private static GeoVector2 Heading(GeoEdge2 edge, GeoPoint2 at)
+        {
+            if (!edge.IsArc)
+            {
+                return edge.StartPoint.GetVectorTo(edge.EndPoint);
+            }
+
+            GeoArc2 arc = edge.ToArc();
+            GeoVector2 radial = arc.Center.GetVectorTo(at);
+
+            return arc.SweptAngle > 0.0 ? new GeoVector2(-radial.Y, radial.X) : new GeoVector2(radial.Y, -radial.X);
         }
 
         /// <summary>
@@ -263,21 +364,29 @@ namespace GeometryHelper.Core
             GeoPoint2 from,
             GeoPoint2 to,
             GeoPoint2 corner,
+            int vertex,
+            bool across,
             double distance,
             OffsetOptions options,
+            List<Mitre> mitres,
             Tolerance tolerance)
         {
             GeoEdge2 before = result[result.Count - 1].Edge;
 
             if (TryMeeting(before, after, from, to, corner, distance, options, tolerance, out GeoPoint2 meeting))
             {
+                if (!across)
+                {
+                    mitres.Add(new Mitre(vertex, before, after, meeting));
+                }
+
                 result[result.Count - 1] = result[result.Count - 1].With(CurveMeet2.Stretch(before, meeting, true));
 
                 return CurveMeet2.Stretch(after, meeting, false);
             }
 
             // A miter that runs away is cut straight across instead.
-            result.Add(new Piece(new GeoEdge2(from, to), true));
+            result.Add(new Piece(new GeoEdge2(from, to), true, -1, vertex, across));
             return after;
         }
 
@@ -353,7 +462,8 @@ namespace GeometryHelper.Core
             GeoArc2 arc = edge.ToArc();
             GeoEdge2 grown = CurveMeet2.Stretch(edge, at, true);
 
-            if (!grown.IsArc)
+            // Run on to its own start, an arc would sweep a whole turn and end where it began.
+            if (!grown.IsArc || IsPoint(grown))
             {
                 return false;
             }
@@ -419,53 +529,236 @@ namespace GeometryHelper.Core
         /// Throws away the parts of the offset that folded over, and puts what is left back into runs.
         /// </summary>
         /// <remarks>
-        /// Every point of a valid offset stands exactly the offset distance from the shape it came from.
-        /// Where the offset crosses itself, the piece on the wrong side of that crossing stands nearer, and
-        /// that is what marks it. Nothing else is needed: no winding rule, no clipper, no tessellation.
+        /// Every point of a valid offset stands exactly the offset distance from the shape it came from. A piece is
+        /// cut wherever it crosses another piece, and wherever it comes to that distance from another part of the
+        /// shape: where it crosses the curve that part moves to on either side, or the circle of the distance about
+        /// one of the shape's vertices. Each stretch between the cuts then stands the distance away or nearer, and
+        /// the nearer ones go. One more thing marks a fold where a piece crosses a join, which may stand further
+        /// than the distance: the part of a piece leaving a crossing to the side of the other piece that faces
+        /// the shape is inside the offset, and goes too. The hairpin 1 wide, 10 along x, 1 down and 9 back,
+        /// offset by -0.6 into its inside, keeps the first leg moved to y = -0.6 as far as x = 0.553, where it
+        /// comes within 0.6 of the chain's end, and nothing else.
         /// </remarks>
         private static List<List<GeoEdge2>> Prune(
             List<Piece> offset,
+            List<Mitre> mitres,
             List<GeoEdge2> original,
             bool closed,
-            double distance,
+            double sideways,
             Tolerance tolerance)
         {
-            List<List<Piece>> runs = Cut(offset, closed, tolerance);
-            var survivors = new List<List<GeoEdge2>>();
+            double distance = Math.Abs(sideways);
 
             // A hair of slack, so that the piece running exactly along the offset is never thrown away.
-            double least = distance - Math.Max(tolerance.EqualPoint, distance * 1E-6);
+            double slack = Math.Max(tolerance.EqualPoint, distance * 1E-6);
 
-            foreach (List<Piece> run in runs)
+            var shape = new Shape(original, closed, sideways, slack, offset, mitres, tolerance);
+            List<List<Meet>> crossings = Crossings(offset, closed, tolerance);
+            var parts = new List<KeyValuePair<GeoEdge2, bool>>[offset.Count];
+
+            for (int i = 0; i < offset.Count; i++)
             {
-                if (!Reaches(run, original, least, tolerance))
+                // An arc cut back to a point is no piece, and nothing can be read off it.
+                if (!IsPoint(offset[i].Edge))
+                {
+                    parts[i] = Parts(offset[i], crossings[i], shape, sideways, slack, tolerance);
+                }
+            }
+
+            // A join built across an edge that was dropped stands about a corner that is not its own, so it is read
+            // as it always was: it stays only as long as the pieces it joins stay where they meet it.
+            for (int i = 0; i < offset.Count; i++)
+            {
+                if (parts[i] == null || !offset[i].Across)
                 {
                     continue;
                 }
 
-                var edges = new List<GeoEdge2>(run.Count);
+                List<KeyValuePair<GeoEdge2, bool>> before = Neighbour(parts, i, -1, closed);
+                List<KeyValuePair<GeoEdge2, bool>> after = Neighbour(parts, i, 1, closed);
 
-                foreach (Piece piece in run)
+                if (before != null && before[before.Count - 1].Value && after != null && after[0].Value)
                 {
-                    edges.Add(piece.Edge);
+                    continue;
                 }
 
-                survivors.Add(edges);
+                for (int j = 0; j < parts[i].Count; j++)
+                {
+                    parts[i][j] = new KeyValuePair<GeoEdge2, bool>(parts[i][j].Key, false);
+                }
             }
 
-            return Group(survivors, closed, tolerance);
-        }
+            DropCovered(parts, tolerance);
 
-        /// <summary>
-        /// Cuts a run wherever it crosses itself, so that each piece is wholly kept or wholly thrown away.
-        /// </summary>
-        private static List<List<Piece>> Cut(List<Piece> offset, bool closed, Tolerance tolerance)
-        {
-            var cuts = new List<List<GeoPoint2>>();
+            var survivors = new List<List<GeoEdge2>>();
+            var held = new List<bool>();
+            var current = new List<GeoEdge2>();
+            bool holds = false;
 
             for (int i = 0; i < offset.Count; i++)
             {
-                cuts.Add(new List<GeoPoint2>());
+                if (parts[i] == null)
+                {
+                    continue;
+                }
+
+                foreach (KeyValuePair<GeoEdge2, bool> part in parts[i])
+                {
+                    // A join built across a dropped edge about the wrong corner can end short of the piece after it;
+                    // a chain does not carry on over the gap. A loop is built from where its edges start, and closes
+                    // over it as it always did.
+                    if (!closed && part.Value && current.Count > 0 && !current[current.Count - 1].EndPoint.IsEqualTo(part.Key.StartPoint, tolerance))
+                    {
+                        survivors.Add(current);
+                        held.Add(holds);
+                        current = new List<GeoEdge2>();
+                        holds = false;
+                    }
+
+                    if (part.Value)
+                    {
+                        current.Add(part.Key);
+                        holds |= !offset[i].Bridge;
+                    }
+                    else if (current.Count > 0)
+                    {
+                        survivors.Add(current);
+                        held.Add(holds);
+                        current = new List<GeoEdge2>();
+                        holds = false;
+                    }
+                }
+            }
+
+            if (current.Count > 0)
+            {
+                survivors.Add(current);
+                held.Add(holds);
+            }
+
+            return Group(survivors, held, closed, tolerance);
+        }
+
+        /// <summary>
+        /// Drops each kept part that runs along one kept before it, within the tolerance from end to end.
+        /// </summary>
+        /// <remarks>
+        /// Two pieces can stand the distance away along the same stretch: two edges on one line, either side of a
+        /// notch, each moved and run on to its miter, or the teeth of a comb whose feet line up. The offset passes
+        /// there once. Kept twice, the stretch leaves the run it belongs to ending where the next one does not begin,
+        /// and a loop round it never closes. Parts running the other way along each other are a spike, and stay.
+        /// </remarks>
+        private static void DropCovered(List<KeyValuePair<GeoEdge2, bool>>[] parts, Tolerance tolerance)
+        {
+            var kept = new List<Carrier>();
+            var boxes = new List<Box>();
+
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (parts[i] == null)
+                {
+                    continue;
+                }
+
+                for (int j = 0; j < parts[i].Count; j++)
+                {
+                    if (!parts[i][j].Value)
+                    {
+                        continue;
+                    }
+
+                    GeoEdge2 part = parts[i][j].Key;
+                    Box box = Box.Of(part).Grown(tolerance.EqualPoint);
+                    bool covered = false;
+
+                    for (int k = 0; k < kept.Count && !covered; k++)
+                    {
+                        covered = boxes[k].Overlaps(box) && Covers(kept[k], part, tolerance);
+                    }
+
+                    if (covered)
+                    {
+                        parts[i][j] = new KeyValuePair<GeoEdge2, bool>(part, false);
+                        continue;
+                    }
+
+                    kept.Add(new Carrier(part));
+                    boxes.Add(box);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Determines whether one edge runs along another the same way, its ends and its middle all within the
+        /// tolerance of it.
+        /// </summary>
+        private static bool Covers(Carrier over, GeoEdge2 part, Tolerance tolerance)
+        {
+            if (!Touches(over, part.StartPoint, tolerance) || !Touches(over, part.EndPoint, tolerance))
+            {
+                return false;
+            }
+
+            GeoPoint2 middle = part.GetPointAtParameter(0.5);
+            GeoPoint2 near = over.Closest(middle, tolerance);
+
+            return middle.IsEqualTo(near, tolerance) && Heading(over.Edge, near).DotProduct(Heading(part, middle)) > 0.0;
+        }
+
+        private static bool Touches(Carrier edge, GeoPoint2 point, Tolerance tolerance)
+        {
+            return point.IsEqualTo(edge.Closest(point, tolerance), tolerance);
+        }
+
+        /// <summary>
+        /// Gets the parts of the nearest piece before or after one that is a piece at all, or null at the end of a
+        /// chain.
+        /// </summary>
+        private static List<KeyValuePair<GeoEdge2, bool>> Neighbour(List<KeyValuePair<GeoEdge2, bool>>[] parts, int index, int step, bool closed)
+        {
+            for (int k = 1; k < parts.Length; k++)
+            {
+                int at = index + step * k;
+
+                if (closed)
+                {
+                    at = ((at % parts.Length) + parts.Length) % parts.Length;
+                }
+                else if (at < 0 || at >= parts.Length)
+                {
+                    return null;
+                }
+
+                if (parts[at] != null)
+                {
+                    return parts[at];
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Determines whether an edge is an arc with its two ends in one place, which no arc can be read from.
+        /// </summary>
+        private static bool IsPoint(GeoEdge2 edge)
+        {
+            // The test GeoArc2.FromBulge refuses such an edge by.
+            return edge.IsArc && edge.StartPoint.GetDistanceSquaredTo(edge.EndPoint) <= 0.0;
+        }
+
+        /// <summary>
+        /// Finds where the pieces of a run cross each other, other than where neighbours meet.
+        /// </summary>
+        private static List<List<Meet>> Crossings(List<Piece> offset, bool closed, Tolerance tolerance)
+        {
+            var cuts = new List<List<Meet>>(offset.Count);
+            var boxes = new Box[offset.Count];
+
+            for (int i = 0; i < offset.Count; i++)
+            {
+                cuts.Add(new List<Meet>());
+                boxes[i] = IsPoint(offset[i].Edge) ? Box.Empty : Box.Of(offset[i].Edge).Grown(tolerance.EqualPoint);
             }
 
             for (int i = 0; i < offset.Count; i++)
@@ -477,58 +770,193 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
+                    // Two pieces whose boxes stay further apart than the tolerance meet nowhere.
+                    if (!boxes[i].Overlaps(boxes[j]))
+                    {
+                        continue;
+                    }
+
                     foreach (GeoPoint2 meeting in offset[i].Edge.GetIntersections(offset[j].Edge, tolerance))
                     {
-                        Mark(cuts[i], offset[i].Edge, meeting, tolerance);
-                        Mark(cuts[j], offset[j].Edge, meeting, tolerance);
+                        // Where one piece only touches the other with an end, neither crosses to a side of the other.
+                        bool touches = Ends(offset[i].Edge, meeting, tolerance) || Ends(offset[j].Edge, meeting, tolerance);
+
+                        Mark(cuts[i], offset[i].Edge, meeting, touches ? default(GeoVector2) : Heading(offset[j].Edge, meeting), tolerance);
+                        Mark(cuts[j], offset[j].Edge, meeting, touches ? default(GeoVector2) : Heading(offset[i].Edge, meeting), tolerance);
                     }
                 }
             }
 
-            var runs = new List<List<Piece>>();
-            var current = new List<Piece>();
-
-            for (int i = 0; i < offset.Count; i++)
-            {
-                GeoEdge2 rest = offset[i].Edge;
-
-                cuts[i].Sort((one, other) => rest.GetParameterAtPoint(one, tolerance).CompareTo(rest.GetParameterAtPoint(other, tolerance)));
-
-                foreach (GeoPoint2 at in cuts[i])
-                {
-                    double parameter = rest.GetParameterAtPoint(at, tolerance);
-
-                    if (rest.TrySplitAtParameter(parameter, out GeoEdge2 before, out GeoEdge2 after, tolerance))
-                    {
-                        current.Add(offset[i].With(before));
-                        runs.Add(current);
-                        current = new List<Piece>();
-                        rest = after;
-                    }
-                    else if (parameter <= 0.0 && current.Count > 0)
-                    {
-                        runs.Add(current);
-                        current = new List<Piece>();
-                    }
-                }
-
-                current.Add(offset[i].With(rest));
-            }
-
-            if (current.Count > 0)
-            {
-                runs.Add(current);
-            }
-
-            return runs;
+            return cuts;
         }
 
         /// <summary>
-        /// Notes a crossing on an edge, unless it is one of its ends or is already noted.
+        /// Cuts one piece where it crosses another and where it comes to the offset distance from the shape, and
+        /// says of each part whether it stands far enough away to be kept.
+        /// </summary>
+        /// <remarks>
+        /// A crossing is always cut, as it always was. A place where the piece only comes to the distance is cut
+        /// only where the stretches either side of it differ, so a piece standing the distance away all along
+        /// comes back whole.
+        /// </remarks>
+        private static List<KeyValuePair<GeoEdge2, bool>> Parts(
+            Piece piece,
+            List<Meet> crossings,
+            Shape shape,
+            double sideways,
+            double slack,
+            Tolerance tolerance)
+        {
+            GeoEdge2 edge = piece.Edge;
+            double distance = Math.Abs(sideways);
+            var points = new List<GeoPoint2>(crossings.Count);
+
+            // A bridge across an edge that was dropped joins pieces whose corner is not where it stands, so it is
+            // read as it always was: kept, and cut only where another piece crosses it.
+            bool asBefore = piece.Bridge && piece.Across;
+
+            foreach (Meet crossing in crossings)
+            {
+                points.Add(crossing.Point);
+            }
+
+            if (!piece.Bridge)
+            {
+                shape.AddReaches(piece, points, tolerance);
+            }
+
+            var cuts = new List<Cut>(points.Count);
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                GeoVector2 across = i < crossings.Count ? crossings[i].Across : default(GeoVector2);
+
+                cuts.Add(new Cut(edge.GetParameterAtPoint(points[i], tolerance), points[i], i < crossings.Count, across));
+            }
+
+            cuts.Sort((one, other) =>
+            {
+                int byParameter = one.Parameter.CompareTo(other.Parameter);
+
+                if (byParameter != 0)
+                {
+                    return byParameter;
+                }
+
+                int byX = one.Point.X.CompareTo(other.Point.X);
+
+                return byX != 0 ? byX : one.Point.Y.CompareTo(other.Point.Y);
+            });
+
+            // Whether each stretch between the cuts stands far enough away, read at its middle.
+            var stands = new bool[cuts.Count + 1];
+            double from = 0.0;
+
+            for (int i = 0; i <= cuts.Count; i++)
+            {
+                double to = i < cuts.Count ? cuts[i].Parameter : 1.0;
+
+                stands[i] = asBefore || Stands(edge.GetPointAtParameter((from + to) * 0.5), shape, distance, slack);
+                from = to;
+            }
+
+            // Where another piece crosses this one, the part of this one on the side of it facing the shape is
+            // inside the offset. Where that piece was moved, the distance has already said so; where it is a join,
+            // such as a miter run on past its edge, the part inside can stand further than the distance and only
+            // this tells it.
+            for (int i = 0; i < cuts.Count; i++)
+            {
+                if (!cuts[i].Crossing)
+                {
+                    continue;
+                }
+
+                GeoVector2 along = Heading(edge, cuts[i].Point);
+                double turn = cuts[i].Across.CrossProduct(along) * Math.Sign(sideways);
+
+                // Two pieces running along each other within the angle tolerance give no side.
+                if (Math.Abs(turn) <= tolerance.EqualAngleSin * cuts[i].Across.Length * along.Length)
+                {
+                    continue;
+                }
+
+                if (turn < 0.0)
+                {
+                    stands[i + 1] = false;
+                }
+                else
+                {
+                    stands[i] = false;
+                }
+            }
+
+            var parts = new List<KeyValuePair<GeoEdge2, bool>>(cuts.Count + 1);
+            GeoEdge2 rest = edge;
+
+            for (int i = 0; i < cuts.Count; i++)
+            {
+                if (!cuts[i].Crossing && stands[i] == stands[i + 1])
+                {
+                    continue;
+                }
+
+                double parameter = rest.GetParameterAtPoint(cuts[i].Point, tolerance);
+
+                if (rest.TrySplitAtParameter(parameter, out GeoEdge2 before, out GeoEdge2 after, tolerance))
+                {
+                    parts.Add(new KeyValuePair<GeoEdge2, bool>(before, stands[i]));
+                    rest = after;
+                }
+            }
+
+            parts.Add(new KeyValuePair<GeoEdge2, bool>(rest, stands[cuts.Count]));
+            return parts;
+        }
+
+        /// <summary>
+        /// Determines whether a point of a piece stands far enough from the shape for the piece to be kept there.
+        /// </summary>
+        private static bool Stands(GeoPoint2 point, Shape shape, double distance, double slack)
+        {
+            return !shape.Nearer(point, distance - slack) && !shape.InMitre(point);
+        }
+
+        /// <summary>
+        /// Notes where another piece crosses an edge, and the way that one runs there, unless it is one of the
+        /// edge's ends or is already noted.
+        /// </summary>
+        private static void Mark(List<Meet> cuts, GeoEdge2 edge, GeoPoint2 at, GeoVector2 across, Tolerance tolerance)
+        {
+            if (Ends(edge, at, tolerance))
+            {
+                return;
+            }
+
+            foreach (Meet already in cuts)
+            {
+                if (already.Point.IsEqualTo(at, tolerance))
+                {
+                    return;
+                }
+            }
+
+            cuts.Add(new Meet(at, across));
+        }
+
+        /// <summary>
+        /// Determines whether a point is one of the ends of an edge.
+        /// </summary>
+        private static bool Ends(GeoEdge2 edge, GeoPoint2 at, Tolerance tolerance)
+        {
+            return at.IsEqualTo(edge.StartPoint, tolerance) || at.IsEqualTo(edge.EndPoint, tolerance);
+        }
+
+        /// <summary>
+        /// Notes a place to cut an edge, unless it is one of its ends or is already noted.
         /// </summary>
         private static void Mark(List<GeoPoint2> cuts, GeoEdge2 edge, GeoPoint2 at, Tolerance tolerance)
         {
-            if (at.IsEqualTo(edge.StartPoint, tolerance) || at.IsEqualTo(edge.EndPoint, tolerance))
+            if (Ends(edge, at, tolerance))
             {
                 return;
             }
@@ -545,26 +973,64 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Determines whether a run really stands the offset distance away from the shape it came from.
+        /// A corner joined by a miter, and the two moved pieces it ran on, as they stood before.
         /// </summary>
-        private static bool Reaches(List<Piece> run, List<GeoEdge2> original, double least, Tolerance tolerance)
+        private struct Mitre
         {
-            foreach (Piece piece in run)
+            internal Mitre(int corner, GeoEdge2 before, GeoEdge2 after, GeoPoint2 meeting)
             {
-                // A bridge was put there on purpose and is allowed to cut inside the distance.
-                if (piece.Bridge)
-                {
-                    continue;
-                }
-
-                // The middle of a piece, which is the part of it furthest from wherever it was cut.
-                if (ArcChain2.DistanceTo(original, piece.Edge.GetPointAtParameter(0.5), tolerance) < least)
-                {
-                    return false;
-                }
+                Corner = corner;
+                Before = before;
+                After = after;
+                Meeting = meeting;
             }
 
-            return true;
+            internal int Corner { get; }
+
+            internal GeoEdge2 Before { get; }
+
+            internal GeoEdge2 After { get; }
+
+            internal GeoPoint2 Meeting { get; }
+        }
+
+        /// <summary>
+        /// Where another piece crosses a piece, and the way it runs there.
+        /// </summary>
+        private struct Meet
+        {
+            internal Meet(GeoPoint2 point, GeoVector2 across)
+            {
+                Point = point;
+                Across = across;
+            }
+
+            internal GeoPoint2 Point { get; }
+
+            internal GeoVector2 Across { get; }
+        }
+
+        /// <summary>
+        /// A place to cut a piece: how far along it, where, and, where another piece crosses it, the way that one
+        /// runs.
+        /// </summary>
+        private struct Cut
+        {
+            internal Cut(double parameter, GeoPoint2 point, bool crossing, GeoVector2 across)
+            {
+                Parameter = parameter;
+                Point = point;
+                Crossing = crossing;
+                Across = across;
+            }
+
+            internal double Parameter { get; }
+
+            internal GeoPoint2 Point { get; }
+
+            internal bool Crossing { get; }
+
+            internal GeoVector2 Across { get; }
         }
 
         /// <summary>
@@ -577,25 +1043,39 @@ namespace GeometryHelper.Core
         /// points instead would step into the wrong branch wherever the offset pinches itself, and one
         /// shape would come back where two were wanted.
         /// </remarks>
-        private static List<List<GeoEdge2>> Group(List<List<GeoEdge2>> survivors, bool closed, Tolerance tolerance)
+        private static List<List<GeoEdge2>> Group(List<List<GeoEdge2>> survivors, List<bool> held, bool closed, Tolerance tolerance)
         {
             var groups = new List<List<GeoEdge2>>();
+            var holding = new List<bool>();
 
-            foreach (List<GeoEdge2> run in survivors)
+            for (int i = 0; i < survivors.Count; i++)
             {
-                if (groups.Count > 0 && Meets(groups[groups.Count - 1], run, tolerance))
+                if (groups.Count > 0 && Meets(groups[groups.Count - 1], survivors[i], tolerance))
                 {
-                    groups[groups.Count - 1].AddRange(run);
+                    groups[groups.Count - 1].AddRange(survivors[i]);
+                    holding[holding.Count - 1] |= held[i];
                 }
                 else
                 {
-                    groups.Add(new List<GeoEdge2>(run));
+                    groups.Add(new List<GeoEdge2>(survivors[i]));
+                    holding.Add(held[i]);
                 }
             }
 
             if (!closed)
             {
-                return groups;
+                // A bridge left with nothing it joins is no answer.
+                var chains = new List<List<GeoEdge2>>(groups.Count);
+
+                for (int i = 0; i < groups.Count; i++)
+                {
+                    if (holding[i])
+                    {
+                        chains.Add(groups[i]);
+                    }
+                }
+
+                return chains;
             }
 
             // The offset was cut from a loop, so the run it ends on may carry on into the one it starts

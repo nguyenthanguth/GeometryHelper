@@ -135,7 +135,10 @@ namespace GeometryHelper.Core
         /// the global one: the chain from the origin to (-5, 0) and round an arc of bulge -0.5 to (-7, 5), offset by 0.3
         /// with an unlimited miter at a tolerance of 0.1, is one chain from (0, -0.3) to (-7.256, 5.156). A curve that
         /// cannot stand the distance away anywhere gives nothing: the U from (10, 0) to the origin, round the half
-        /// circle of radius 2 about (0, 2) and back to (10, 4), offset by -2.5 to its inside, which is 4 wide.
+        /// circle of radius 2 about (0, 2) and back to (10, 4), offset by -2.5 to its inside, which is 4 wide. A piece
+        /// is cut where another part of the chain comes nearer than the distance, and what still stands the distance
+        /// away stays: the hairpin 1 wide, 10 along x, 1 down and 9 back, offset by -0.6 into its inside, keeps the
+        /// start of its first leg, from (0, -0.6) to (0.553, -0.6), short of the circle of 0.6 about the chain's end.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the options are null.</exception>
         public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, OffsetOptions options, Tolerance tolerance)
