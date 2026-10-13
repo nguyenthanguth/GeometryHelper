@@ -47,15 +47,19 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
-        public void ThreeSidesOfASquareBentTwoHundredthsPastHalfASideAtATenth_DoNotThrow()
+        public void ThreeSidesOfASquareBentTwoHundredthsPastHalfASideAtATenth_MeetInTheMiddle()
         {
+            // Amendment S2a: 0.04 of overrun within 0.1 is an exact fit, so the two bends meet at the middle of the side
+            // between them, (10, 5, 0), and that side goes; the bar's ends stay exactly where they were.
             var bar = new GeoPolyline3(P(0, 0, 0), P(10, 0, 0), P(10, 10, 0), P(0, 10, 0));
 
             GeoPolylineArc3 bent = Corner3.Fillet(bar, new[] { 0.0, 5.02, 5.02, 0.0 }, Tenth);
 
             Assert.Equal(0.0, bent.StartPoint.DistanceTo(P(0, 0, 0)));
             Assert.Equal(0.0, bent.EndPoint.DistanceTo(P(0, 10, 0)));
-            Assert.Contains(bent.GetEdges(), e => e.IsArc);
+            Assert.Equal(5, bent.VertexCount);
+            Assert.True(bent.Vertices[2].DistanceTo(P(10, 5, 0)) <= Tenth.EqualPoint, "the bends meet at " + bent.Vertices[2]);
+            Assert.True(bent.GetEdgeAt(1).IsArc && bent.GetEdgeAt(2).IsArc, "the two bends are not both rounded");
         }
 
         [Fact]

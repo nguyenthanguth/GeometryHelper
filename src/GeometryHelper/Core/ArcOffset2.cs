@@ -214,6 +214,14 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Bridges an opened corner with an arc of the offset distance about the corner it came from.
         /// </summary>
+        /// <remarks>
+        /// Where the two ends lie on one line out from the corner, the arc about it runs from a point back to the same
+        /// point, a whole turn or none, while the pieces stop apart. That is no turn to round, and the two are joined
+        /// straight instead, held to the distance like the rest. Both moved pieces end the distance from the corner
+        /// they share, so this happens only past an edge that was dropped, such as an arc whose radius ran out: the U
+        /// from (10, 0) to the origin, round the half circle of radius 2 about (0, 2) and back to (10, 4), offset 2.5
+        /// to its inside, ends the two straights at (0, 2.5) and (0, 1.5), both straight above the origin.
+        /// </remarks>
         private static GeoEdge2 RoundJoin(GeoPoint2 from, GeoPoint2 to, GeoPoint2 corner, double distance)
         {
             GeoVector2 first = corner.GetVectorTo(from);
@@ -228,6 +236,14 @@ namespace GeometryHelper.Core
                 Math.Atan2(first.Y, first.X),
                 Math.Atan2(second.Y, second.X),
                 clockwise);
+
+            // Read the way GeoEdge2 reads a whole turn: within rounding of one, or of none.
+            double swept = Math.Abs(arc.SweptAngle);
+
+            if (swept <= 1E-12 || swept >= Math.PI * 2.0 - 1E-12)
+            {
+                return new GeoEdge2(from, to);
+            }
 
             return new GeoEdge2(arc);
         }

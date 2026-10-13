@@ -101,6 +101,20 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the edges are null.</exception>
         /// <exception cref="ArgumentException">Thrown when no edges are given, or one does not start where the one before it ended.</exception>
         public GeoPolylineArc2(IEnumerable<GeoEdge2> edges)
+            : this(edges, Tolerance.Global)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a chain from edges that run end to end within a tolerance.
+        /// </summary>
+        /// <param name="edges">The edges, each starting within the tolerance of where the one before it ended.</param>
+        /// <param name="tolerance">The tolerance that says whether two edges meet.</param>
+        /// <remarks>
+        /// Where two edges meet a hair apart, the chain runs on from the end of the first: the second keeps its bulge
+        /// and starts there.
+        /// </remarks>
+        private GeoPolylineArc2(IEnumerable<GeoEdge2> edges, Tolerance tolerance)
         {
             if (edges == null) throw new ArgumentNullException(nameof(edges));
 
@@ -113,7 +127,7 @@ namespace GeometryHelper.Geometry
                 {
                     vertices.Add(edge.StartPoint);
                 }
-                else if (!vertices[vertices.Count - 1].IsEqualTo(edge.StartPoint))
+                else if (!vertices[vertices.Count - 1].IsEqualTo(edge.StartPoint, tolerance))
                 {
                     throw new ArgumentException("The edges of a chain must run end to end.", nameof(edges));
                 }
@@ -132,6 +146,22 @@ namespace GeometryHelper.Geometry
             _vertices = vertices.ToArray();
             _bulges = bulges.ToArray();
         }
+
+        /// <summary>
+        /// Builds a chain from edges that run end to end within a tolerance, as the edges constructor does within
+        /// the global one.
+        /// </summary>
+        /// <param name="edges">The edges, each starting within the tolerance of where the one before it ended.</param>
+        /// <param name="tolerance">The tolerance that says whether two edges meet.</param>
+        /// <returns>The chain.</returns>
+        /// <remarks>
+        /// Work done at a tolerance of its own leaves its pieces meeting within that tolerance, not the global one: an
+        /// offset at 0.1 runs a segment ending at (-5, -0.3) on into an arc starting 0.078 away, and the constructor,
+        /// at 1E-3, would refuse the two.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when no edges are given, or one does not start within the tolerance of where the one before it ended.</exception>
+        internal static GeoPolylineArc2 FromEdges(IEnumerable<GeoEdge2> edges, Tolerance tolerance)
+            => new GeoPolylineArc2(edges, tolerance);
 
         /// <summary>
         /// Initializes a chain from a straight one, with no bulges.

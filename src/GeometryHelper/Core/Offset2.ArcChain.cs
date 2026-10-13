@@ -128,8 +128,15 @@ namespace GeometryHelper.Core
         /// <param name="chain">The chain.</param>
         /// <param name="distance">How far to move it, to the left of the way it runs when positive.</param>
         /// <param name="options">How to fill a corner that opens up, and how far a miter may run.</param>
-        /// <param name="tolerance">The tolerance.</param>
-        /// <returns>The offset chains.</returns>
+        /// <param name="tolerance">The tolerance, which also says where two pieces of the offset meet.</param>
+        /// <returns>The offset chains, which may be none when nothing survives.</returns>
+        /// <remarks>
+        /// The pieces are joined within the tolerance given, and the chains are put together within it too, not within
+        /// the global one: the chain from the origin to (-5, 0) and round an arc of bulge -0.5 to (-7, 5), offset by 0.3
+        /// with an unlimited miter at a tolerance of 0.1, is one chain from (0, -0.3) to (-7.256, 5.156). A curve that
+        /// cannot stand the distance away anywhere gives nothing: the U from (10, 0) to the origin, round the half
+        /// circle of radius 2 about (0, 2) and back to (10, 4), offset by -2.5 to its inside, which is 4 wide.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the options are null.</exception>
         public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, OffsetOptions options, Tolerance tolerance)
         {
@@ -148,7 +155,8 @@ namespace GeometryHelper.Core
             {
                 if (run.Count > 0)
                 {
-                    results.Add(new GeoPolylineArc2(run));
+                    // The pieces were joined within the tolerance passed, so they are put together within it.
+                    results.Add(GeoPolylineArc2.FromEdges(run, tolerance));
                 }
             }
 

@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A curved offset at a tolerance of its own no longer throws "The edges of a chain must run end to end": its
+pieces were joined within the tolerance passed but put together within the global one. The chain from the origin to
+(-5, 0) and round an arc of bulge -0.5 to (-7, 5), offset by 0.3 with an unlimited miter at 0.1, is now one chain from
+(0, -0.3) to (-7.256, 5.156). A Round offset past an arc whose radius runs out no longer throws "An arc sweeping a whole
+turn has no chord": the U from (10, 0) to the origin, round the half circle of radius 2 about (0, 2) and back to (10, 4),
+offset 2.5 to its inside, gives nothing. This applies to `GeoPolylineArc2`, `GeoPolygonArc2`, `GeoPolygonArc3.Offset`
+and `OffsetInPlane` of `GeoPolylineArc3`.
+
 **FIXED.** Fillets and chamfers that take an edge whole, give or take the tolerance, no longer throw or leave stubs:
 the pieces either side meet at one point, and a chain keeps both its end points. Three sides of the square of side 10
 filleted at 5.02 at a tolerance of 0.1 threw "The edges of a chain must run end to end"; they now turn at (10, 5). A
