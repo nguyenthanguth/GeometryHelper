@@ -169,11 +169,33 @@ namespace GeometryHelper.Core
                 return;
             }
 
+            // Worked from the smaller circle, as Intersection2 does. From the circle of radius 2.5E8 behind an edge 100
+            // long of bulge 1E-7, the half chord to a circle of radius 40 is the root of the difference of two squares
+            // near 6E16 and came out 0.076 off, so a miter beside a nearly flat edge was run on to the wrong point.
+            var unit = new GeoVector2(between.X / apart, between.Y / apart);
+
+            if (secondRadius < firstRadius)
+            {
+                double back = (secondRadius * secondRadius - firstRadius * firstRadius + apart * apart) / (2.0 * apart);
+                double remaining = secondRadius * secondRadius - back * back;
+                double half = remaining <= 0.0 ? 0.0 : Math.Sqrt(remaining);
+                double footX = second.X - unit.X * back;
+                double footY = second.Y - unit.Y * back;
+
+                found.Add(new GeoPoint2(footX - unit.Y * half, footY + unit.X * half));
+
+                if (half > 0.0)
+                {
+                    found.Add(new GeoPoint2(footX + unit.Y * half, footY - unit.X * half));
+                }
+
+                return;
+            }
+
             double along = (firstRadius * firstRadius - secondRadius * secondRadius + apart * apart) / (2.0 * apart);
             double square = firstRadius * firstRadius - along * along;
             double across = square <= 0.0 ? 0.0 : Math.Sqrt(square);
 
-            var unit = new GeoVector2(between.X / apart, between.Y / apart);
             GeoPoint2 middle = first.Add(unit.Multiply(along));
 
             found.Add(new GeoPoint2(middle.X - unit.Y * across, middle.Y + unit.X * across));

@@ -341,6 +341,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to calculate the intersection points between two circles within tolerance.
         /// </summary>
+        /// <remarks>
+        /// The crossings are worked out from the smaller circle, so they are the same two points whichever circle is
+        /// asked first, and stay accurate when the other is huge. The circle of radius 2.5E8 that carries an edge 100
+        /// long of bulge 1E-7, from (0, 0) to (100, 0), meets the circle of radius 40 about (50, 30) at (23.54249, 0)
+        /// and (76.45751, 0) either way round; worked from the larger circle, they came out 0.076 off.
+        /// </remarks>
         public static bool TryIntersectWith(GeoCircle2 c1, GeoCircle2 c2, out GeoPoint2[] intersections, Tolerance tolerance)
         {
             double d = Distance2.DistanceTo(c1.Center, c2.Center);
@@ -374,13 +380,31 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            double a = (c1.Radius * c1.Radius - c2.Radius * c2.Radius + d * d) / (2.0 * d);
-            double hSq = c1.Radius * c1.Radius - a * a;
+            // Worked from the smaller circle. From the larger, the square of its radius swamps the other's: an edge 100
+            // long of bulge 1E-7 lies on a circle of radius 2.5E8, whose square is held to about 8, and the half chord
+            // to a circle of radius 40, the root of the difference of two such squares, came out 0.076 off, so the edge
+            // missed an arc it crosses. Of two circles of one radius, the one whose centre comes first by X, then by Y,
+            // is worked from, so the answer is the same to the last bit whichever is asked first.
+            double firstRadius = c1.Radius, secondRadius = c2.Radius;
+            GeoPoint2 first = c1.Center, second = c2.Center;
+            bool fromSecond = secondRadius < firstRadius
+                || (!(firstRadius < secondRadius)
+                    && (second.X < first.X || (!(first.X < second.X) && second.Y < first.Y)));
+
+            double nearX = fromSecond ? second.X : first.X;
+            double nearY = fromSecond ? second.Y : first.Y;
+            double nearRadius = fromSecond ? secondRadius : firstRadius;
+            double farRadius = fromSecond ? firstRadius : secondRadius;
+            double towardsX = fromSecond ? first.X - second.X : second.X - first.X;
+            double towardsY = fromSecond ? first.Y - second.Y : second.Y - first.Y;
+
+            double a = (nearRadius * nearRadius - farRadius * farRadius + d * d) / (2.0 * d);
+            double hSq = nearRadius * nearRadius - a * a;
             double h = hSq > 0 ? Math.Sqrt(hSq) : 0.0;
 
             GeoPoint2 p2 = new GeoPoint2(
-                c1.Center.X + a * (c2.Center.X - c1.Center.X) / d,
-                c1.Center.Y + a * (c2.Center.Y - c1.Center.Y) / d);
+                nearX + a * towardsX / d,
+                nearY + a * towardsY / d);
 
             if (h <= tolerance.EqualPoint)
             {

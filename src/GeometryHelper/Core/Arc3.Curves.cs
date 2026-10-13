@@ -98,9 +98,30 @@ namespace GeometryHelper.Core
                 return found;
             }
 
+            // Worked from the smaller circle, as in the plane (Intersection2): the foot is placed from its centre and the
+            // radical line crossed with that circle. From the circle of radius 2.5E8 behind an edge 100 long of bulge
+            // 1E-7, the square of the half chord is the difference of two squares near 6E16, and the crossings with a
+            // circle of radius 40 were lost. The line still runs the way it did, so the points come in the same order.
+            GeoVector3 across = first.Normal.CrossProduct(between);
+
+            if (second.Radius < first.Radius)
+            {
+                double back = (apart * apart + second.Radius * second.Radius - first.Radius * first.Radius) / (2.0 * apart);
+                GeoPoint3 nearer = second.Center.Add(between.Multiply(-back / apart));
+
+                foreach (GeoPoint3 candidate in PointsOnLine(second, nearer, across, tolerance))
+                {
+                    if (first.IsPointOn(candidate, tolerance))
+                    {
+                        AddOnce(found, candidate, tolerance);
+                    }
+                }
+
+                return found;
+            }
+
             double along =(apart * apart + first.Radius * first.Radius - second.Radius * second.Radius) / (2.0 * apart);
             GeoPoint3 foot = first.Center.Add(between.Multiply(along / apart));
-            GeoVector3 across = first.Normal.CrossProduct(between);
 
             foreach (GeoPoint3 candidate in PointsOnLine(first, foot, across, tolerance))
             {
@@ -129,6 +150,11 @@ namespace GeometryHelper.Core
         /// At most two points. Two arcs of one circle give none: they share a whole stretch rather than a
         /// point, which <see cref="CollidesWith(GeoArc3, GeoArc3, Tolerance)"/> reports instead.
         /// </returns>
+        /// <remarks>
+        /// Two arcs in one plane are crossed from the smaller circle, so a nearly flat arc keeps its crossings whichever
+        /// is asked first: the edge 100 long of bulge 1E-7 from (0, 0, 0) to (100, 0, 0), an arc of radius 2.5E8, crosses
+        /// the arc of radius 40 about (50, 30, 0) sweeping 1.6 radians at (23.54249, 0, 0) either way round.
+        /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoArc3 first, GeoArc3 second, Tolerance tolerance)
         {
             if (IsCoplanar(first, second.GetPlane(), tolerance))

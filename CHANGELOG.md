@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Two circles, and two arcs, now meet at the same points whichever is asked first; the crossings are worked
+out from the smaller circle. A nearly flat arc lost its crossings when its huge circle came first. The edge 100 long
+of bulge 1E-7 from (0, 0) to (100, 0) missed the arc of radius 40 about (50, 30) from 3.4 radians sweeping 1.6, and
+measured 8.357 to it, while asked the other way round they crossed and measured nought. The crossings came out 0.076
+off at bulge 1E-7 and up to 982 off at 1E-9; they are now within 1.3E-6 and 1.03E-4. The same held for fillets, mitred
+offsets and arcs in space. The chain from (0, 0) by bulge 1E-7 to (100, 0), then by bulge 0.4 to (110, 30), was left
+unrounded by a fillet of radius 3, and its offset of 2 took a stray corner at (99.06, 1.77). Both are now rounded and
+mitred as beside a straight edge. Crossings of ordinary circles keep their last bit when the smaller is asked first,
+and move by at most 2E-12 otherwise.
+
 **FIXED.** A loop that may curve reads a point near the chord of a bowed edge by its true boundary. Only the boundary
 itself is read with the tolerance, and every other point is in or out exactly. The square 100 by 100 with its top bowed
 20 inwards held the point (50, 99.95), 0.05 under the chord and 19.95 above the arc, at a tolerance of 0.1, and

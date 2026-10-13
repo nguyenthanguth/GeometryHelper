@@ -341,7 +341,10 @@ namespace GeometryHelper.Core
         /// <returns>true if they meet at least once; otherwise, false.</returns>
         /// <remarks>
         /// A crossing counts only where both arcs reach it, so two arcs of the same circle that do not
-        /// overlap have none even though their circles are everywhere the same.
+        /// overlap have none even though their circles are everywhere the same. The crossings do not depend on which arc
+        /// is asked first, however flat one of them is: the edge 100 long of bulge 1E-7 from (0, 0) to (100, 0), an arc
+        /// of radius 2.5E8, crosses the arc of radius 40 about (50, 30) from 3.4 radians sweeping 1.6 at (23.54249, 0)
+        /// either way round.
         /// </remarks>
         public static bool TryIntersectWith(GeoArc2 first, GeoArc2 second, out GeoPoint2[] intersections, Tolerance tolerance)
         {
