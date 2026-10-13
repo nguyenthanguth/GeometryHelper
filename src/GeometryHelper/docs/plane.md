@@ -787,9 +787,14 @@ the order you pass them in does not change the answer.
 | the radius needs more edge than there is | the arc would not be tangent to both |
 | two neighbours together ask for more than the shared edge is long | the one taking more of that edge is dropped, which may leave room for the rest |
 | the corner is straighter than `Tolerance.EqualAngleRad` | there is nothing to round |
+| no circle of the radius touches both edges on the inside of the corner | a circle outside it would run back against the edges and leave a cusp |
 | either edge is already an arc | a circle tangent to two curves has several answers, and picking one is not this method's business |
 
 What was skipped, and why, is written to `GeometryHelperLog`.
+
+The arc always runs the way the shape runs and touches each edge on the edge itself, never past the
+corner: the chain (0, 0), (10, 0), (3, 5) filleted at 0.002 is cut back 0.0062 along both edges by an
+arc of 144.5°.
 
 Exactly enough is enough: a square of side 100 filleted at 50 loses every straight edge and comes back
 four quarter turns — a circle. Chamfered at 50 it comes back the diamond through the four midpoints.

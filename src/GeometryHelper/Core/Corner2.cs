@@ -501,8 +501,14 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="polyline">The chain.</param>
         /// <param name="radius">The radius of the arcs.</param>
-        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="tolerance">The tolerance: a corner straighter than <see cref="Tolerance.EqualAngleRad"/> is left alone, as where a straight edge runs on into an arc it is tangent to.</param>
         /// <returns>The filleted chain.</returns>
+        /// <remarks>
+        /// Each arc lies on the inside of its corner and runs the way the chain runs, and it touches both
+        /// edges on the edges themselves, never past the corner; a corner no circle of the radius fits that
+        /// way is left alone. The chain (0, 0), (10, 0), (3, 5) filleted at 0.002 is cut back 0.0062 along
+        /// both edges and turns through an arc of 144.5°, as much as the corner turns.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number.</exception>
         public static GeoPolylineArc2 Fillet(GeoPolylineArc2 polyline, double radius, Tolerance tolerance)
@@ -518,7 +524,14 @@ namespace GeometryHelper.Core
         /// Rounds every corner of a loop that has room for it with an arc of a given radius, within a
         /// tolerance.
         /// </summary>
+        /// <param name="polygon">The loop.</param>
+        /// <param name="radius">The radius of the arcs.</param>
+        /// <param name="tolerance">The tolerance: a corner straighter than <see cref="Tolerance.EqualAngleRad"/> is left alone, as where a straight edge runs on into an arc it is tangent to.</param>
         /// <returns>The filleted loop.</returns>
+        /// <remarks>
+        /// Each arc lies on the inside of its corner and runs the way the loop runs, touching both edges on
+        /// the edges themselves; a corner no circle of the radius fits that way is left alone.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number.</exception>
         public static GeoPolygonArc2 Fillet(GeoPolygonArc2 polygon, double radius, Tolerance tolerance)
@@ -880,7 +893,7 @@ namespace GeometryHelper.Core
         /// <param name="radius">The radius of the arc to put there.</param>
         /// <param name="result">The filleted chain, or the chain unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true if the corner had room for the arc; otherwise, false.</returns>
+        /// <returns>true if the corner had room for the arc on its inside; false when it had not, or when it turns by no more than <see cref="Tolerance.EqualAngleRad"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the chain or the radius is not a positive number.</exception>
         public static bool TryFilletAt(GeoPolylineArc2 polyline, int index, double radius, out GeoPolylineArc2 result, Tolerance tolerance)
@@ -943,7 +956,7 @@ namespace GeometryHelper.Core
         /// <param name="radius">The radius of the arc to put there.</param>
         /// <param name="result">The filleted loop, or the loop unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true if the corner had room for the arc; otherwise, false.</returns>
+        /// <returns>true if the corner had room for the arc on its inside; false when it had not, or when it turns by no more than <see cref="Tolerance.EqualAngleRad"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the loop or the radius is not a positive number.</exception>
         public static bool TryFilletAt(GeoPolygonArc2 polygon, int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance)

@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A fillet is now the arc on the inside of the corner, running the way the two edges run and touching
+neither past the corner. Where the radius times the cotangent of half the turn was within the point tolerance, a
+circle outside the corner could win: the chain (0, 0), (10, 0), (3, 5) filleted at 0.002 ran on to (10.00064, 0) and
+turned back through 35.5° for the corner's 144.5°. It now stops 0.0062 short and turns through 144.5°. `Corner3`,
+`GeoPolygonArc3.Fillet` and the Tekla bars and ties built through them follow; no real bending radius was affected. A
+tip where no circle of the radius fits inside is now left alone and `TryFilletAt` says false: the tip of 157.8° between
+arcs of radius 25.2 and 75.5, filleted at 50, used to get an arc outside that grew the area from 167.2 to 185.5. A
+corner against an arc that turns by no more than `Tolerance.EqualAngleRad` is left alone, as the guide says. A straight
+running on into a tangent arc used to get an arc of no sweep between two copies of the joint 1E-15 apart. Fillets of
+curved loops are also faster, up to twelve times where most corners are nearly straight.
+
 **FIXED.** Two segments now collide exactly where their distance is at most the point tolerance, and measure nought
 only where they truly cross or overlap. The crossing of their lines was accepted up to the tolerance past the end of
 each, so two corners up to twice the tolerance apart collided and measured nought: the segment from the origin to
