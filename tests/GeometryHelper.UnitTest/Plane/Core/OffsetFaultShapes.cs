@@ -243,6 +243,35 @@ namespace GeometryHelper.UnitTest.Plane
 
         #endregion
 
+        #region S6a: corners that open beside an arc
+
+        /// <summary>
+        /// The square 10 by 10 from the origin, counter-clockwise, its right side an arc of 45 degrees bowed out (bulge
+        /// tan(pi / 16): radius 13.06563 about (-2.07107, 5)). It leaves (10, 0) at 67.5 degrees and reaches (10, 10) at
+        /// 112.5, so both corners beside it turn 67.5 degrees.
+        /// </summary>
+        internal static GeoPolygonArc2 SquareWithItsRightSideBowedOut()
+            => Loop(Square10(), 0.0, Math.Tan(Math.PI / 16.0), 0.0, 0.0);
+
+        /// <summary>
+        /// The chain from (100, 0) to the origin and on round an arc of bulge 0.05 (radius 501.25, 11.45 degrees), 100 long,
+        /// that leaves the origin at 10 degrees: a 10 degree tip whose second leg curves away from the first.
+        /// </summary>
+        internal static GeoPolylineArc2 TenDegreeTipWithAnArcLeg()
+        {
+            double chord = Math.PI / 18.0 + 2.0 * Math.Atan(0.05);
+            return Chain(new[] { P(100, 0), P(0, 0), P(100 * Math.Cos(chord), 100 * Math.Sin(chord)) }, 0.0, 0.05);
+        }
+
+        /// <summary>
+        /// The chain 100 along x from the origin, then clockwise round an arc of bulge -0.9 (radius 36.25582 about
+        /// (123.16667, 27.88889), 167.95 degrees) to (140, 60): the corner (100, 0) turns 140.28 degrees to the left.
+        /// </summary>
+        internal static GeoPolylineArc2 StraightIntoATightArc()
+            => Chain(new[] { P(0, 0), P(100, 0), P(140, 60) }, 0.0, -0.9);
+
+        #endregion
+
         #region S7: straight chains
 
         /// <summary>

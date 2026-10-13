@@ -447,7 +447,7 @@ The corners that open up on the outside of a turn are closed by the join, the th
 
 `OffsetOptions` sets the rest: `MiterLimit` (default 10) cuts a sharp corner off square once it would reach that many distances from its vertex, and `ArcTolerance` bounds the gap between a round corner's chords and the true arc (by default 0.2 % of the distance).
 
-**What comes back.** The offset of a region is exact, not the edges moved one by one, so a polygon does not always give one polygon back. `polygon.Offset` returns the boundary loops of the result: a shrinking polygon that pinches off gives one per piece, one that shrinks past its own width gives none, and a growing polygon that closes a gap around empty space gives that space as a hole, wound the other way so that signed areas add up. `face.Offset` on a `GeoFace2` returns faces with their holes attached, and its holes shrink as the boundary grows. A polyline's parallel curve has the loops a tight turn would make cut away, and comes back in pieces when a turn cuts it clean through. At a turn on the inside sharper than a right angle, the stretch of a moved segment that runs on past the other leg goes with the loop. Where the band's edge lies along another part of the polyline, within the tolerance, it is the polyline itself and goes too: the step (0, 0), (10, 0), (10, 1), (−5, 1) offset by 1 gives only (0, 0) to (−5, 0). Pieces come in order by where most of each lies. `GeoCircle2` and `GeoRectangle2` offer `TryOffset`, which keeps them what they are.
+**What comes back.** The offset of a region is exact, not the edges moved one by one, so a polygon does not always give one polygon back. `polygon.Offset` returns the boundary loops of the result: a shrinking polygon that pinches off gives one per piece, one that shrinks past its own width gives none, and a growing polygon that closes a gap around empty space gives that space as a hole, wound the other way so that signed areas add up. `face.Offset` on a `GeoFace2` returns faces with their holes attached, and its holes shrink as the boundary grows. A polyline's parallel curve has the loops a tight turn would make cut away, and comes back in pieces when a turn cuts it clean through. A `GeoPolyline2` gives the edge of the band it sweeps sideways, so a strip that crosses another leg of the polyline stays; a curved chain, offset as a `GeoPolylineArc2`, keeps only what stands exactly the distance from it. At a turn on the inside sharper than a right angle, the stretch of a moved segment that runs on past the other leg goes with the loop. Where the band's edge lies along another part of the polyline, within the tolerance, it is the polyline itself and goes too: the step (0, 0), (10, 0), (10, 1), (−5, 1) offset by 1 gives only (0, 0) to (−5, 0). Pieces come in order by where most of each lies. `GeoCircle2` and `GeoRectangle2` offer `TryOffset`, which keeps them what they are.
 
 ## Combining regions
 
@@ -807,11 +807,12 @@ the order you pass them in does not change the answer.
 | two neighbours together ask for more than the shared edge is long | the one taking more of that edge is dropped, which may leave room for the rest |
 | the corner is straighter than `Tolerance.EqualAngleRad` | there is nothing to round |
 | no circle of the radius touches both edges on the inside of the corner | a circle outside it would run back against the edges and leave a cusp |
-| either edge is already an arc | a circle tangent to two curves has several answers, and picking one is not this method's business |
 
 What was skipped, and why, is written to `GeometryHelperLog`.
 
-The arc always runs the way the shape runs and touches each edge on the edge itself, never past the
+A corner where an edge is already an arc is rounded too, by the one circle of the radius that touches both
+edges on the inside of the corner, the arc moved in by the radius standing in for the straight edge's
+parallel line. The arc always runs the way the shape runs and touches each edge on the edge itself, never past the
 corner: the chain (0, 0), (10, 0), (3, 5) filleted at 0.002 is cut back 0.0062 along both edges by an
 arc of 144.5°.
 

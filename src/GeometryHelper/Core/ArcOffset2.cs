@@ -543,7 +543,7 @@ namespace GeometryHelper.Core
         /// an arc's circle never reaches the cut at the limit, the corner is rounded off on the circle of the
         /// distance about it, which stands exactly the distance from it, as it is beside an arc whose radius ran
         /// out. The chain 100 along x and round an arc of bulge -0.9 to (140, 60), offset by 20 to its right, would
-        /// be squared off 200 from the corner (100, 0), which the arc's moved circle, of radius 16.16, never reaches:
+        /// be squared off 200 from the corner (100, 0), which the arc's moved circle, of radius 16.256, never reaches:
         /// it is rounded off by the circle of 20 about the corner instead.
         /// </remarks>
         private static GeoEdge2 MiterJoin(
