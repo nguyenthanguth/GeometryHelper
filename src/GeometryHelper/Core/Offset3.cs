@@ -442,7 +442,8 @@ namespace GeometryHelper.Core
         /// <returns>
         /// The pieces of the parallel curve, in order along the polyline and running the same way; usually one.
         /// Loops the parallel curve would make at turns tighter than the distance are cut away, as in
-        /// <c>Offset2</c>.
+        /// <c>Offset2</c>, with the stretches that run on past the other leg of an inside corner sharper than a
+        /// right angle and those lying along the polyline itself.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polyline or the options are null.</exception>
         /// <exception cref="ArgumentException">
@@ -474,7 +475,7 @@ namespace GeometryHelper.Core
 
             List<GeoPolyline3> result = new List<GeoPolyline3>();
 
-            foreach (List<GeoPoint2> run in PlanarRegion3.OffsetChain(chain, distance, options, snap))
+            foreach (List<GeoPoint2> run in PlanarRegion3.OffsetChain(chain, distance, options, tolerance, snap))
             {
                 List<GeoPoint2> cleaned = LoopTools.CleanChain(run, tolerance.EqualPoint, snap);
 

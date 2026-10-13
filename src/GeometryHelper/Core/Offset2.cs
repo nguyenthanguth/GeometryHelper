@@ -329,12 +329,18 @@ namespace GeometryHelper.Core
         /// The pieces of the parallel curve, in order along the polyline and running the same way. Usually
         /// one. Where the polyline turns tighter than the distance, the parallel curve would loop back over
         /// itself; those loops are cut away, as AutoCAD does, and a curve cut clean through comes back in
-        /// several pieces.
+        /// several pieces. Each piece takes its place by the middle of its longest edge, so a piece that runs on
+        /// across a pinch, or one left closed, comes where most of it lies.
         /// </returns>
         /// <remarks>
         /// The parallel curve is the edge of the band the polyline sweeps sideways, minus the polyline itself
         /// and the band's two ends. Its corners are joined on the outside of each turn, so it keeps the
-        /// distance from every segment on the side it was offset to.
+        /// distance from every segment on the side it was offset to. At a turn on the inside sharper than a
+        /// right angle, the stretch of each moved segment that runs on past the other leg is cut away with the
+        /// loop: the chain (10, 10), (0, 0), (10, 0) offset by 1 is the one piece from (10.707, 9.293) through
+        /// (2.414, 1) to (10, 1). Where the edge of the band lies along another part of the polyline, within the
+        /// tolerance, it is the polyline itself and goes: the step (0, 0), (10, 0), (10, 1), (-5, 1) offset by
+        /// 1 is the one piece from (0, 0) to (-5, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline or the options are null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
@@ -497,7 +503,7 @@ namespace GeometryHelper.Core
             CornerStyle style = new CornerStyle(options.Join, options.MiterLimit, options.GetArcTolerance(width));
 
             // The shared builder offsets to the right for a positive distance, so the left takes a negative one.
-            List<GeoPoint2> raw = OffsetOutline.BuildOpenChain(path, -width, style, out List<bool> throughCorner);
+            List<GeoPoint2> raw = OffsetOutline.BuildOpenChain(path, -width, style, out List<bool> throughCorner, out List<(GeoPoint2 From, GeoPoint2 To)> pastTheOtherLeg);
 
             // The band the chain sweeps to its left, as one loop with the band on its left: along the chain, out
             // along the end, back along the raw offset, and in along the start.
@@ -527,196 +533,21 @@ namespace GeometryHelper.Core
                 }
             }
 
-            List<List<GeoPoint2>> runs = new List<List<GeoPoint2>>();
+            ChainRuns runs = new ChainRuns(path, pastTheOtherLeg, extent, match, tolerance.EqualPoint);
 
             foreach (List<GeoPoint2> loop in ClipperRegion.ResolveOutline(new[] { band }, Clipper.FillRule.Positive, precision))
             {
-                CollectRuns(loop, offsetEdges, match, runs);
-            }
+                bool[] alongRaw = new bool[loop.Count];
 
-            // The band lies on the left of its outline, so the surviving pieces run against the path: with the
-            // chain for a right offset and against it for a left one.
-            if (toLeft)
-            {
-                foreach (List<GeoPoint2> run in runs)
+                for (int k = 0; k < loop.Count; k++)
                 {
-                    run.Reverse();
-                }
-            }
-
-            // In order along the parallel curve.
-            List<GeoPoint2> forward = new List<GeoPoint2>(raw);
-
-            if (!toLeft)
-            {
-                forward.Reverse();
-            }
-
-            runs.Sort((a, b) => PositionAlong(forward, a[0]).CompareTo(PositionAlong(forward, b[0])));
-            return runs;
-        }
-
-        /// <summary>
-        /// Collects the stretches of a band outline that lie along the raw offset, rather than along the chain,
-        /// its ends, or the detours through inside corners.
-        /// </summary>
-        private static void CollectRuns(List<GeoPoint2> loop, SegmentIndex offsetEdges, double match, List<List<GeoPoint2>> runs)
-        {
-            int count = loop.Count;
-            bool[] isOffset = new bool[count];
-            int start = -1;
-
-            for (int k = 0; k < count; k++)
-            {
-                isOffset[k] = offsetEdges.Covers(loop[k], loop[(k + 1) % count], match);
-
-                if (!isOffset[k] && start < 0)
-                {
-                    start = k;
-                }
-            }
-
-            if (start < 0)
-            {
-                // The whole loop is offset curve: a closed chain offset to where nothing else remains.
-                List<GeoPoint2> closed = new List<GeoPoint2>(loop) { loop[0] };
-                runs.Add(closed);
-                return;
-            }
-
-            List<GeoPoint2> current = null;
-
-            for (int step = 1; step <= count; step++)
-            {
-                int edge = (start + step) % count;
-
-                if (isOffset[edge])
-                {
-                    if (current == null)
-                    {
-                        current = new List<GeoPoint2> { loop[edge] };
-                    }
-
-                    current.Add(loop[(edge + 1) % count]);
-                }
-                else if (current != null)
-                {
-                    runs.Add(current);
-                    current = null;
-                }
-            }
-
-            if (current != null)
-            {
-                runs.Add(current);
-            }
-        }
-
-        /// <summary>
-        /// Segments bucketed on a grid, to tell quickly whether an edge lies along one of them.
-        /// </summary>
-        private sealed class SegmentIndex
-        {
-            private const int CellsAcross = 64;
-
-            private readonly List<GeoPoint2> _from = new List<GeoPoint2>();
-            private readonly List<GeoPoint2> _to = new List<GeoPoint2>();
-            private readonly Dictionary<(long, long), List<int>> _cells = new Dictionary<(long, long), List<int>>();
-            private readonly double _cell;
-
-            public SegmentIndex(double extent)
-            {
-                _cell = Math.Max(extent, 1e-9) * 2.0 / CellsAcross;
-            }
-
-            public void Add(GeoPoint2 a, GeoPoint2 b, double margin)
-            {
-                int id = _from.Count;
-                _from.Add(a);
-                _to.Add(b);
-
-                long x0 = Cell(Math.Min(a.X, b.X) - margin);
-                long x1 = Cell(Math.Max(a.X, b.X) + margin);
-                long y0 = Cell(Math.Min(a.Y, b.Y) - margin);
-                long y1 = Cell(Math.Max(a.Y, b.Y) + margin);
-
-                for (long x = x0; x <= x1; x++)
-                {
-                    for (long y = y0; y <= y1; y++)
-                    {
-                        if (!_cells.TryGetValue((x, y), out List<int> list))
-                        {
-                            list = new List<int>();
-                            _cells.Add((x, y), list);
-                        }
-
-                        list.Add(id);
-                    }
-                }
-            }
-
-            /// <summary>
-            /// Whether an edge lies along one of the segments: both its ends within the margin of it.
-            /// </summary>
-            public bool Covers(GeoPoint2 p, GeoPoint2 q, double margin)
-            {
-                GeoPoint2 middle = PlanarMath.Midpoint(p, q);
-
-                if (!_cells.TryGetValue((Cell(middle.X), Cell(middle.Y)), out List<int> list))
-                {
-                    return false;
+                    alongRaw[k] = offsetEdges.Covers(loop[k], loop[(k + 1) % loop.Count], match);
                 }
 
-                foreach (int id in list)
-                {
-                    if (DistanceToSegment(p, _from[id], _to[id]) <= margin && DistanceToSegment(q, _from[id], _to[id]) <= margin)
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
+                runs.Collect(loop, alongRaw);
             }
 
-            private long Cell(double value) => (long)Math.Floor(value / _cell);
-
-            private static double DistanceToSegment(GeoPoint2 point, GeoPoint2 a, GeoPoint2 b)
-            {
-                GeoVector2 direction = b - a;
-                double lengthSquared = direction.LengthSquared;
-                double t = lengthSquared > 0.0 ? Math.Max(0.0, Math.Min(1.0, (point - a).Dot(direction) / lengthSquared)) : 0.0;
-                return point.DistanceTo(a + direction * t);
-            }
-        }
-
-        /// <summary>
-        /// The arc length along a chain to the point on it nearest a given point.
-        /// </summary>
-        private static double PositionAlong(List<GeoPoint2> chain, GeoPoint2 point)
-        {
-            double best = double.MaxValue;
-            double position = 0.0;
-            double travelled = 0.0;
-
-            for (int i = 0; i + 1 < chain.Count; i++)
-            {
-                GeoPoint2 a = chain[i];
-                GeoVector2 direction = chain[i + 1] - a;
-                double length = direction.Length;
-                double along = length > 0.0 ? Math.Max(0.0, Math.Min(length, (point - a).Dot(direction) / length)) : 0.0;
-                GeoPoint2 nearest = length > 0.0 ? a + direction * (along / length) : a;
-                double distance = nearest.DistanceSquaredTo(point);
-
-                if (distance < best)
-                {
-                    best = distance;
-                    position = travelled + along;
-                }
-
-                travelled += length;
-            }
-
-            return position;
+            return runs.InOrder(raw, toLeft);
         }
 
         private static double ChainLength(List<GeoPoint2> chain)

@@ -165,9 +165,10 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Offsets an open chain to the left by a distance (to the right when negative) and returns the pieces of
-        /// the parallel curve that survive, running the same way as the chain.
+        /// the parallel curve that survive, running the same way as the chain. A stretch lying within the point
+        /// tolerance along the chain is the chain itself, and goes.
         /// </summary>
-        public static List<List<GeoPoint2>> OffsetChain(List<GeoPoint2> chain, double distance, OffsetOptions options, double snap)
+        public static List<List<GeoPoint2>> OffsetChain(List<GeoPoint2> chain, double distance, OffsetOptions options, Tolerance tolerance, double snap)
         {
             bool toLeft = distance > 0.0;
             double width = Math.Abs(distance);
@@ -182,7 +183,7 @@ namespace GeometryHelper.Core
             CornerStyle style = new CornerStyle(options.Join, options.MiterLimit, options.GetArcTolerance(width));
 
             // The shared builder offsets to the right for a positive distance, so the left takes a negative one.
-            List<GeoPoint2> raw = OffsetOutline.BuildOpenChain(path, -width, style, out List<bool> throughCorner);
+            List<GeoPoint2> raw = OffsetOutline.BuildOpenChain(path, -width, style, out List<bool> throughCorner, out List<(GeoPoint2 From, GeoPoint2 To)> pastTheOtherLeg);
 
             // The band the chain sweeps to its left, traced with the band on the left of every edge: along the
             // chain, out along the end, back along the raw offset, and in along the start. Each edge carries a
@@ -203,32 +204,23 @@ namespace GeometryHelper.Core
 
             band.AddEdge(raw[0], path[0], CapFlag);
 
-            List<List<GeoPoint2>> runs = new List<List<GeoPoint2>>();
+            ChainRuns runs = new ChainRuns(path, pastTheOtherLeg, Extent(new[] { path, raw }), snap, tolerance.EqualPoint);
 
             foreach (RegionLoop loop in band.Resolve(FillRule.Positive, snap))
             {
-                CollectRuns(loop, runs);
-            }
+                // The stretches that come from the raw offset itself, rather than from the chain, its ends, or the
+                // detours through inside corners.
+                bool[] alongRaw = new bool[loop.Points.Length];
 
-            // The band lies on the left of its edge, so the surviving pieces run against the path: with the chain
-            // for a right offset and against it for a left one.
-            if (toLeft)
-            {
-                foreach (List<GeoPoint2> run in runs)
+                for (int k = 0; k < alongRaw.Length; k++)
                 {
-                    run.Reverse();
+                    alongRaw[k] = (loop.Flags[k] & OffsetFlag) != 0 && (loop.Flags[k] & ThroughCornerFlag) == 0;
                 }
+
+                runs.Collect(loop.Points, alongRaw);
             }
 
-            List<GeoPoint2> forward = new List<GeoPoint2>(raw);
-
-            if (!toLeft)
-            {
-                forward.Reverse();
-            }
-
-            runs.Sort((a, b) => PositionAlong(forward, a[0]).CompareTo(PositionAlong(forward, b[0])));
-            return runs;
+            return runs.InOrder(raw, toLeft);
         }
 
         /// <summary>
@@ -252,93 +244,6 @@ namespace GeometryHelper.Core
             }
 
             return kept;
-        }
-
-        /// <summary>
-        /// Collects the stretches of a band loop that come from the raw offset itself, rather than from the
-        /// chain, its ends, or the detours through inside corners.
-        /// </summary>
-        private static void CollectRuns(RegionLoop loop, List<List<GeoPoint2>> runs)
-        {
-            int count = loop.Points.Length;
-
-            bool IsOffset(int edge) => (loop.Flags[edge] & OffsetFlag) != 0 && (loop.Flags[edge] & ThroughCornerFlag) == 0;
-
-            int start = -1;
-
-            for (int k = 0; k < count; k++)
-            {
-                if (!IsOffset(k))
-                {
-                    start = k;
-                    break;
-                }
-            }
-
-            if (start < 0)
-            {
-                // The whole loop is offset curve: a closed chain offset to where nothing else remains.
-                List<GeoPoint2> closed = new List<GeoPoint2>(loop.Points) { loop.Points[0] };
-                runs.Add(closed);
-                return;
-            }
-
-            List<GeoPoint2> current = null;
-
-            for (int step = 1; step <= count; step++)
-            {
-                int edge = (start + step) % count;
-
-                if (IsOffset(edge))
-                {
-                    if (current == null)
-                    {
-                        current = new List<GeoPoint2> { loop.Points[edge] };
-                    }
-
-                    current.Add(loop.Points[(edge + 1) % count]);
-                }
-                else if (current != null)
-                {
-                    runs.Add(current);
-                    current = null;
-                }
-            }
-
-            if (current != null)
-            {
-                runs.Add(current);
-            }
-        }
-
-        /// <summary>
-        /// The arc length along a chain to the point on it nearest a given point.
-        /// </summary>
-        private static double PositionAlong(List<GeoPoint2> chain, GeoPoint2 point)
-        {
-            double best = double.MaxValue;
-            double position = 0.0;
-            double travelled = 0.0;
-
-            for (int i = 0; i + 1 < chain.Count; i++)
-            {
-                GeoPoint2 a = chain[i];
-                GeoVector2 direction = chain[i + 1] - a;
-                double length = direction.Length;
-                double along = length > 0.0 ? Math.Max(0.0, Math.Min(length, (point - a).Dot(direction) / length)) : 0.0;
-                GeoPoint2 nearest = length > 0.0 ? a + direction * (along / length) : a;
-                double distance = nearest.DistanceSquaredTo(point);
-
-                if (distance < best)
-                {
-                    best = distance;
-                    position = travelled + along;
-                }
-
-                travelled += length;
-            }
-
-            return position;
         }
     }
 }

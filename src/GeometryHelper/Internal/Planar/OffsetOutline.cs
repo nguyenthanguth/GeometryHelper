@@ -89,8 +89,14 @@ namespace GeometryHelper.Internal.Planar
         /// For each point but the last, whether the edge leaving it is one of the two that run back through an
         /// original corner on the inside of a turn, rather than an offset edge or part of a join.
         /// </param>
+        /// <param name="pastTheOtherLeg">
+        /// The stretches of the moved edges that run on past the other leg of an inside corner sharper than a
+        /// right angle, from where they cross that leg to the detour: they stand on the leg's far side, nearer it
+        /// than the distance, and are never part of the parallel curve. The chain (10, 10), (0, 0), (10, 0) offset
+        /// by 1 to its left has two: (1.414, 0) to (0.707, -0.707) and (0, 1) to (1, 1).
+        /// </param>
         /// <returns>The raw offset chain, running the same way as the original.</returns>
-        public static List<GeoPoint2> BuildOpenChain(IReadOnlyList<GeoPoint2> chain, double distance, CornerStyle style, out List<bool> throughCorner)
+        public static List<GeoPoint2> BuildOpenChain(IReadOnlyList<GeoPoint2> chain, double distance, CornerStyle style, out List<bool> throughCorner, out List<(GeoPoint2 From, GeoPoint2 To)> pastTheOtherLeg)
         {
             int count = chain.Count;
             GeoVector2[] tangents = new GeoVector2[count - 1];
@@ -105,14 +111,72 @@ namespace GeometryHelper.Internal.Planar
             raw.Add(chain[0] + tangents[0].Right() * distance);
             throughCorner.Add(false);
 
+            // Where each detour starts in the raw offset, and the corner it runs through.
+            List<(int Raw, int Corner)> detours = new List<(int Raw, int Corner)>();
+
             for (int i = 1; i + 1 < count; i++)
             {
+                int before = raw.Count;
                 AppendCorner(raw, throughCorner, chain[i], tangents[i - 1], tangents[i], distance, style);
+
+                if (throughCorner[before])
+                {
+                    detours.Add((before, i));
+                }
             }
 
             raw.Add(chain[count - 1] + tangents[count - 2].Right() * distance);
             throughCorner.Add(false);
+
+            // A detour is the end of the incoming edge, the corner, and the start of the outgoing edge. At a corner
+            // sharper than a right angle the incoming edge crosses the outgoing leg before it gets there, and the
+            // outgoing edge crosses the incoming leg after it leaves.
+            pastTheOtherLeg = new List<(GeoPoint2 From, GeoPoint2 To)>();
+
+            foreach ((int at, int corner) in detours)
+            {
+                if (TryCross(raw[at - 1], raw[at], chain[corner], chain[corner + 1], out GeoPoint2 crossing))
+                {
+                    pastTheOtherLeg.Add((crossing, raw[at]));
+                }
+
+                if (TryCross(raw[at + 2], raw[at + 3], chain[corner - 1], chain[corner], out crossing))
+                {
+                    pastTheOtherLeg.Add((raw[at + 2], crossing));
+                }
+            }
+
             return raw;
+        }
+
+        /// <summary>
+        /// Finds where segment <paramref name="p0"/> to <paramref name="p1"/> crosses segment
+        /// <paramref name="q0"/> to <paramref name="q1"/>, ends included; segments closer to parallel than
+        /// <see cref="FoldBackSine"/> never cross.
+        /// </summary>
+        private static bool TryCross(GeoPoint2 p0, GeoPoint2 p1, GeoPoint2 q0, GeoPoint2 q1, out GeoPoint2 crossing)
+        {
+            crossing = p0;
+            GeoVector2 r = p1 - p0;
+            GeoVector2 s = q1 - q0;
+            double denominator = r.Cross(s);
+
+            if (Math.Abs(denominator) <= FoldBackSine * r.Length * s.Length)
+            {
+                return false;
+            }
+
+            GeoVector2 w = q0 - p0;
+            double t = w.Cross(s) / denominator;
+            double u = w.Cross(r) / denominator;
+
+            if (t < 0.0 || t > 1.0 || u < 0.0 || u > 1.0)
+            {
+                return false;
+            }
+
+            crossing = p0 + r * t;
+            return true;
         }
 
         /// <summary>

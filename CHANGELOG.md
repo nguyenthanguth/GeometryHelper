@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A straight polyline's offset is the edge of the band it sweeps and nothing more. At an inside corner
+sharper than a right angle the stretch of each moved segment running on past the other leg is no longer kept: the
+chain (10, 10), (0, 0), (10, 0) offset by 1 is one piece through (2.414, 1), where it came with two extra pieces beside
+the corner. Where the band's edge lies along another part of the polyline within the tolerance, it is the polyline and
+goes: the step (0, 0), (10, 0), (10, 1), (-5, 1) offset by 1 gives (0, 0) to (-5, 0) alone, where it gave two pieces
+lying on the chain. Pieces are put in order by the middle of their longest edge, and the ordering no longer grows with
+the square of the pieces: a zigzag of 10 000 vertices offset by 1 is one chain in 0.57 s, where it came in 9 998
+fragments in 36 s. The same holds for `Offset3.OffsetInPlane` of a `GeoPolyline3`, and of a `GeoPolylineArc3` holding no
+arc.
+
 **FIXED.** Curved offsets join an opening corner as the straight ones do. A chamfer is cut square to the corner's
 bisector at the distance, touching the round join's arc, not along the chord between the moved ends: the square of side
 10 as a `GeoPolygonArc2` grown by 2 encloses 193.255, where the chord came 1.414 from the corner and left 188. A miter
