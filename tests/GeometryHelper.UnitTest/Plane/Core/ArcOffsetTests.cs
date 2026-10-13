@@ -179,14 +179,18 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(filled.ToArc().Center.IsEqualTo(new GeoPoint2(100, 0), Loose));
             Assert.Equal(Math.PI / 2.0, Math.Abs(filled.ToArc().SweptAngle), 8);
 
-            // Chamfer cuts straight across it, and miter runs both pieces on to where they meet.
+            // Chamfer cuts square to the corner's bisector at the distance, touching the round join's arc, and miter runs
+            // both pieces on to where they meet.
             Assert.False(chamfer.HasArcs);
             Assert.False(miter.HasArcs);
+            Assert.Contains(chamfer.Vertices, v => v.IsEqualTo(new GeoPoint2(100 + 20 * Math.Tan(Math.PI / 8), -20), Loose));
+            Assert.Contains(chamfer.Vertices, v => v.IsEqualTo(new GeoPoint2(120, -20 * Math.Tan(Math.PI / 8)), Loose));
             Assert.Contains(miter.Vertices, v => v.IsEqualTo(new GeoPoint2(120, -20), Loose));
 
-            // Round is the longest way round the corner and miter the shortest across it.
-            Assert.True(round.Length > chamfer.Length);
-            Assert.True(miter.Length > round.Length);
+            // Round is the shortest way round the corner, the chamfer just outside it and the miter further out still:
+            // 231.416, 233.137 and 240.
+            Assert.True(chamfer.Length > round.Length);
+            Assert.True(miter.Length > chamfer.Length);
         }
 
         [Fact]
@@ -214,10 +218,11 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolylineArc2 rounded = bent.Offset(-20.0, OffsetJoin.Round)[0];
             GeoPolylineArc2 chamfered = bent.Offset(-20.0, OffsetJoin.Chamfer)[0];
 
-            // Mitered, the two pieces reach each other, so nothing is put in between them.
+            // Mitered, the two pieces reach each other, so nothing is put in between them. Chamfered, the segment is run
+            // on, the cut made, and the arc reached by a straight piece along its tangent.
             Assert.Equal(2, mitered.EdgeCount);
             Assert.Equal(3, rounded.EdgeCount);
-            Assert.Equal(3, chamfered.EdgeCount);
+            Assert.Equal(4, chamfered.EdgeCount);
 
             GeoArc2 now = mitered.GetEdges().Single(edge => edge.IsArc).ToArc();
 
@@ -233,16 +238,18 @@ namespace GeometryHelper.UnitTest.Plane
             GeoEdge2 bridge = rounded.GetEdges().First(edge => edge.IsArc);
             Assert.Equal(20.0, bridge.ToArc().Radius, 8);
 
-            // Round goes the long way round, chamfer the short way across, miter further than either.
-            Assert.True(mitered.Length > rounded.Length);
-            Assert.True(rounded.Length > chamfered.Length);
+            // Round goes the shortest way round, chamfer just outside it, miter further than either: 184.008, 186.399 and
+            // 216.895.
+            Assert.True(mitered.Length > chamfered.Length);
+            Assert.True(chamfered.Length > rounded.Length);
 
-            // Where the curves do not reach each other there is no miter, and it says so by cutting across.
+            // Where the curves do not reach each other there is no miter, and no square to cut: the arc's moved circle,
+            // of radius 16.16, never reaches the square 200 from the corner. The corner is rounded off instead.
             var steep = new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(140, 60) },
                 new[] { 0.0, -0.9 });
 
-            Assert.Equal(steep.Offset(-20.0, OffsetJoin.Chamfer)[0].Length, steep.Offset(-20.0, OffsetJoin.Miter)[0].Length, 9);
+            Assert.Equal(steep.Offset(-20.0, OffsetJoin.Round)[0].Length, steep.Offset(-20.0, OffsetJoin.Miter)[0].Length, 9);
         }
     }
 }

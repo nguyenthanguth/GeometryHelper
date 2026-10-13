@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Curved offsets join an opening corner as the straight ones do. A chamfer is cut square to the corner's
+bisector at the distance, touching the round join's arc, not along the chord between the moved ends: the square of side
+10 as a `GeoPolygonArc2` grown by 2 encloses 193.255, where the chord came 1.414 from the corner and left 188. A miter
+past `OffsetOptions.MiterLimit` is squared off at the limit: the triangle with a 10 degree tip grown by 1 is cut 10 from
+the tip, where the chord came within 0.087 of it. Where a miter can neither meet nor be squared off, the corner is
+rounded at the distance. Edges 0.8 degrees off straight are mitred: the loop (0, 0), (50, 0), (100, 0.698), (100, 50),
+(0, 50) grown by 80 meets at (50.558, -80). At a coarse tolerance pieces folded by a vertex now go: the U 2.2 wide
+offset 6.28 into itself at 0.1 kept two round joins 4.08 from it, and gives nothing. Chamfered curved offsets take up
+to 2.2 times as long, mitred ones up to 1.7 times, on small shapes.
+
 **FIXED.** A curved offset past an arc whose radius runs out goes round the arc's two ends, and comes back the same
 from every start and both ways. The join was drawn about the end of the edge before: the rectangle 100 by 30 with its
 right side bowed 6 in, grown by 40 with round joins, stood 40.18 off or came back as nothing, depending on the corner

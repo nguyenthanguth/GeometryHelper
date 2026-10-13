@@ -30,10 +30,11 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The difference matters when the folded parts are thrown away. A piece that was moved stands
-        /// exactly the offset distance from the shape, and anything nearer has been folded over. A bridge
-        /// does not: a chamfer across a corner deliberately cuts inside that distance, and is no less
-        /// wanted for it, so round the corner it crosses the offset leaves out only the triangle under it.
-        /// A bridge left joining nothing goes.
+        /// exactly the offset distance from the shape, and anything nearer has been folded over; so does a
+        /// round join, and a chamfer or a square cut stands that far or further. A bridge does not: a chord tied
+        /// across a corner that closes, or across one that has nothing else to join it, cuts inside that distance,
+        /// so round the corner it crosses the offset leaves out only the triangle under it. A bridge left joining
+        /// nothing goes.
         /// </remarks>
         private struct Piece
         {
@@ -396,11 +397,24 @@ namespace GeometryHelper.Core
                     return after;
 
                 case OffsetJoin.Chamfer:
+                    // Across an edge that was dropped the corner is not the pieces' own, and is tied as it always was.
+                    if (across)
+                    {
+                        result.Add(new Piece(new GeoEdge2(from, to), true, -1, vertex, across));
+                        return after;
+                    }
+
+                    // The cut touches the circle a round join would draw, square to the corner's bisector.
+                    if (TrySquareJoin(result, after, arriving, leaving, from, to, corner, vertex, Math.Abs(distance), false, mitres, tolerance, out GeoEdge2 cut))
+                    {
+                        return cut;
+                    }
+
                     result.Add(new Piece(new GeoEdge2(from, to), true, -1, vertex, across));
                     return after;
 
                 default:
-                    return MiterJoin(result, after, from, to, corner, vertex, across, distance, options, mitres, tolerance);
+                    return MiterJoin(result, after, arriving, leaving, from, to, corner, vertex, across, distance, options, mitres, tolerance);
             }
         }
 
@@ -517,17 +531,26 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Bridges an opened corner by running both pieces on to where they would meet, or gives up and
-        /// cuts straight across when that point is further away than the miter limit allows.
+        /// Bridges an opened corner by running both pieces on to where they would meet, or, when that point is
+        /// further away than the miter limit allows or there is none, cuts the corner off square at the limit.
         /// </summary>
         /// <remarks>
         /// The pieces are run on along the curves behind them, so an arc reaches further round its own
         /// circle rather than being cut straight across: that is what AutoCAD's OFFSET does at a corner.
-        /// A miter can run away at a nearly straight corner, and the limit is where it is given up on.
+        /// A miter can run away at a sharp corner, and the limit is where it is given up on: the corner is
+        /// squared off there, as <see cref="OffsetOptions.MiterLimit"/> says and the straight offsets do. Where
+        /// there is no sharp corner and no square to cut, because the curves never meet and there is no limit, or
+        /// an arc's circle never reaches the cut at the limit, the corner is rounded off on the circle of the
+        /// distance about it, which stands exactly the distance from it, as it is beside an arc whose radius ran
+        /// out. The chain 100 along x and round an arc of bulge -0.9 to (140, 60), offset by 20 to its right, would
+        /// be squared off 200 from the corner (100, 0), which the arc's moved circle, of radius 16.16, never reaches:
+        /// it is rounded off by the circle of 20 about the corner instead.
         /// </remarks>
         private static GeoEdge2 MiterJoin(
             List<Piece> result,
             GeoEdge2 after,
+            GeoEdge2 arriving,
+            GeoEdge2 leaving,
             GeoPoint2 from,
             GeoPoint2 to,
             GeoPoint2 corner,
@@ -539,8 +562,9 @@ namespace GeometryHelper.Core
             Tolerance tolerance)
         {
             GeoEdge2 before = result[result.Count - 1].Edge;
+            double limit = Math.Abs(distance) * options.MiterLimit;
 
-            if (TryMeeting(before, after, from, to, corner, distance, options, tolerance, out GeoPoint2 meeting))
+            if (TryMeeting(before, after, from, to, corner, limit, tolerance, out GeoPoint2 meeting))
             {
                 if (!across)
                 {
@@ -552,9 +576,230 @@ namespace GeometryHelper.Core
                 return CurveMeet2.Stretch(after, meeting, false);
             }
 
-            // A miter that runs away is cut straight across instead.
-            result.Add(new Piece(new GeoEdge2(from, to), true, -1, vertex, across));
+            // Across an edge that was dropped the corner is not the pieces' own, and is tied straight across as it was.
+            if (across)
+            {
+                result.Add(new Piece(new GeoEdge2(from, to), true, -1, vertex, across));
+                return after;
+            }
+
+            // Past the limit the corner is squared off there, the pieces run on as the miter would run them.
+            if (!double.IsInfinity(limit) && TrySquareJoin(result, after, arriving, leaving, from, to, corner, vertex, limit, true, mitres, tolerance, out GeoEdge2 squared))
+            {
+                return squared;
+            }
+
+            result.Add(new Piece(RoundJoin(from, to, corner, distance), false, -1, vertex, false));
             return after;
+        }
+
+        /// <summary>
+        /// Bridges an opened corner by cutting it off square: both pieces are run on to the line square to the
+        /// corner's bisector a given reach from the corner, and joined along it.
+        /// </summary>
+        /// <param name="result">The run so far, ending with the piece before the corner.</param>
+        /// <param name="after">The piece after the corner.</param>
+        /// <param name="arriving">The edge of the shape arriving at the corner.</param>
+        /// <param name="leaving">The edge of the shape leaving it.</param>
+        /// <param name="from">Where the piece before the corner ends.</param>
+        /// <param name="to">Where the piece after it starts.</param>
+        /// <param name="corner">The vertex the corner was moved from.</param>
+        /// <param name="vertex">The index of that vertex.</param>
+        /// <param name="reach">How far out from the corner the cut lies.</param>
+        /// <param name="roundTheCurves">
+        /// true to run an arc on round its own circle, as a miter does; false to run every piece on along the line it
+        /// leaves its end by, the tangent of the round join there.
+        /// </param>
+        /// <param name="mitres">The joins whose inside the pruning leaves out, which this one is added to.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="next">Set to the piece after the corner, run back to the cut.</param>
+        /// <returns>
+        /// false, leaving the run as it was, where a piece cannot be run on to the cut: running it on takes it away
+        /// from the cut, or it is an arc whose circle does not reach the cut short of a whole turn.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// A chamfer is the cut at the offset distance, touching the circle a round join would draw where it crosses
+        /// the bisector, between the lines that touch that circle where the two pieces end: the round join's corner
+        /// drawn as three straight sides, as the straight offsets cut it. Next to a segment the line is the segment
+        /// run on; next to an arc it is a short straight piece leaving the arc's end along its tangent. The square of
+        /// side 10 grown by 2 with chamfers is cut at the corner (10, 0) from (8 + 2 sqrt 2, -2) to (12, 2 - 2 sqrt 2),
+        /// 2 from the corner at its middle, and encloses 193.255.
+        /// </para>
+        /// <para>
+        /// A miter past its limit is the miter cut off at the limit times the distance, as the straight offsets cut
+        /// it: the pieces are run on as the miter runs them, an arc round its own circle, until they reach the cut.
+        /// The triangle with a tip of 10 degrees at the origin, grown by 1, would miter 11.47 from the tip, past the
+        /// default limit of 10, and is squared off 10 from it, from (-9.973, -0.743) to (-9.951, -1). Pieces that cross
+        /// short of the cut, as two arcs curling towards each other can, meet where they cross.
+        /// </para>
+        /// </remarks>
+        private static bool TrySquareJoin(
+            List<Piece> result,
+            GeoEdge2 after,
+            GeoEdge2 arriving,
+            GeoEdge2 leaving,
+            GeoPoint2 from,
+            GeoPoint2 to,
+            GeoPoint2 corner,
+            int vertex,
+            double reach,
+            bool roundTheCurves,
+            List<Mitre> mitres,
+            Tolerance tolerance,
+            out GeoEdge2 next)
+        {
+            GeoEdge2 before = result[result.Count - 1].Edge;
+
+            next = after;
+
+            if (IsPoint(before) ||
+                IsPoint(after) ||
+                !corner.GetVectorTo(from).TryGetNormal(out GeoVector2 outFirst, tolerance) ||
+                !corner.GetVectorTo(to).TryGetNormal(out GeoVector2 outSecond, tolerance) ||
+                !Heading(arriving, corner).TryGetNormal(out GeoVector2 onward, tolerance) ||
+                !Heading(leaving, corner).TryGetNormal(out GeoVector2 onwardAfter, tolerance))
+            {
+                return false;
+            }
+
+            // The bisector of the two ways out from the corner to the moved ends. Where the corner turns right back
+            // they point apart, and the corner is squared off straight ahead, the way the chain was running.
+            if (!(outFirst + outSecond).TryGetNormal(out GeoVector2 bisector, tolerance))
+            {
+                bisector = onward;
+            }
+
+            // The pieces run on the way the shape's edges run at the corner, which a piece cut back past its own end
+            // by the corner before no longer does.
+            if (!TryRunOn(before, true, onward, corner, bisector, reach, roundTheCurves, tolerance, out GeoPoint2 first) ||
+                !TryRunOn(after, false, -onwardAfter, corner, bisector, reach, roundTheCurves, tolerance, out GeoPoint2 second))
+            {
+                return false;
+            }
+
+            // The cut runs from the side the first piece ends on to the side the second begins on. Pieces that come
+            // to it the other way round have crossed short of it, and meet where they cross.
+            if (first.GetVectorTo(second).DotProduct(outSecond - outFirst) <= 0.0)
+            {
+                if (!roundTheCurves || !TryMeeting(before, after, from, to, corner, double.PositiveInfinity, tolerance, out GeoPoint2 meeting))
+                {
+                    return false;
+                }
+
+                mitres.Add(new Mitre(vertex, before, after, meeting));
+                result[result.Count - 1] = result[result.Count - 1].With(CurveMeet2.Stretch(before, meeting, true));
+                next = CurveMeet2.Stretch(after, meeting, false);
+                return true;
+            }
+
+            // A cut no longer than the tolerance is the corner itself: both pieces end where the first one reaches it.
+            bool cut = !first.IsEqualTo(second, tolerance);
+
+            if (!cut)
+            {
+                second = first;
+            }
+
+            // A segment is run on along itself; an arc run on along its tangent gets a straight piece of its own.
+            bool straightFirst = !roundTheCurves && before.IsArc;
+            bool straightSecond = !roundTheCurves && after.IsArc;
+
+            mitres.Add(new Mitre(vertex, before, after, first, second, cut, straightFirst, straightSecond));
+
+            if (straightFirst)
+            {
+                result.Add(new Piece(new GeoEdge2(from, first), false, -1, vertex, false));
+            }
+            else
+            {
+                result[result.Count - 1] = result[result.Count - 1].With(CurveMeet2.Stretch(before, first, true));
+            }
+
+            if (cut)
+            {
+                result.Add(new Piece(new GeoEdge2(first, second), false, -1, vertex, false));
+            }
+
+            if (straightSecond)
+            {
+                result.Add(new Piece(new GeoEdge2(second, to), false, -1, vertex, false));
+                return true;
+            }
+
+            next = CurveMeet2.Stretch(after, second, false);
+            return true;
+        }
+
+        /// <summary>
+        /// Finds where a piece reaches the line square to a corner's bisector a given reach from it, run on past its
+        /// end, or back past its start.
+        /// </summary>
+        /// <param name="edge">The piece.</param>
+        /// <param name="atEnd">true to run it on past its end, false to run it back past its start.</param>
+        /// <param name="onward">The way to run it on, a unit vector along it there.</param>
+        /// <param name="corner">The corner.</param>
+        /// <param name="bisector">The way out from the corner, a unit vector, that the line is square to.</param>
+        /// <param name="reach">How far out from the corner the line lies.</param>
+        /// <param name="roundTheCurve">true to run an arc on round its own circle, false along its tangent.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="at">Set to where the piece reaches the line.</param>
+        /// <returns>
+        /// false when running the piece on takes it away from the line, or when it is an arc run round its circle that
+        /// does not reach the line short of a whole turn.
+        /// </returns>
+        private static bool TryRunOn(GeoEdge2 edge, bool atEnd, GeoVector2 onward, GeoPoint2 corner, GeoVector2 bisector, double reach, bool roundTheCurve, Tolerance tolerance, out GeoPoint2 at)
+        {
+            GeoPoint2 end = atEnd ? edge.EndPoint : edge.StartPoint;
+
+            at = end;
+
+            // How much further out along the bisector the line lies, and how fast running on gains on it.
+            double gap = reach - corner.GetVectorTo(end).DotProduct(bisector);
+            double gains = onward.DotProduct(bisector);
+
+            if (gap <= 0.0)
+            {
+                return true;
+            }
+
+            if (gains <= 0.0)
+            {
+                return false;
+            }
+
+            if (!roundTheCurve || !edge.IsArc)
+            {
+                at = end.Add(onward.Multiply(gap / gains));
+                return true;
+            }
+
+            GeoArc2 arc = edge.ToArc();
+            GeoVector2 radial = arc.Center.GetVectorTo(end);
+            double radius = arc.Radius;
+
+            // Turned on by an angle t, the end moves radial (cos t - 1) + onward radius sin t, so it gains
+            // radius gains sin t - (radial . bisector)(1 - cos t) on the line. That is the gap at the first root of a
+            // quadratic in tan(t / 2), taken in the form that keeps its digits when the circle is nearly flat.
+            double ahead = radius * gains;
+            double square = ahead * ahead - gap * (2.0 * radial.DotProduct(bisector) + gap);
+
+            if (square < 0.0)
+            {
+                return false;
+            }
+
+            double half = Math.Atan(gap / (ahead + Math.Sqrt(square)));
+            double sine = Math.Sin(half);
+
+            // Stretched a whole turn or more, an arc would end where it began.
+            if (Math.Abs(arc.SweptAngle) + half * 2.0 >= Math.PI * 2.0 - tolerance.EqualAngleRad)
+            {
+                return false;
+            }
+
+            at = end.Add(radial.Multiply(-2.0 * sine * sine)).Add(onward.Multiply(radius * Math.Sin(half * 2.0)));
+            return true;
         }
 
         /// <summary>
@@ -567,8 +812,7 @@ namespace GeometryHelper.Core
             GeoPoint2 from,
             GeoPoint2 to,
             GeoPoint2 corner,
-            double distance,
-            OffsetOptions options,
+            double limit,
             Tolerance tolerance,
             out GeoPoint2 meeting)
         {
@@ -577,7 +821,6 @@ namespace GeometryHelper.Core
             // The pieces have already been moved, so the curves behind them are taken as they stand.
             List<GeoPoint2> candidates = CurveMeet2.Where(before, 0.0, after, 0.0, tolerance);
 
-            double limit = Math.Abs(distance) * options.MiterLimit;
             double nearest = double.MaxValue;
             bool found = false;
 
@@ -812,18 +1055,26 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Drops each kept part that runs along one kept before it, within the tolerance from end to end.
+        /// Drops each kept part that runs along another kept part, within the tolerance from end to end: of two that
+        /// run along each other end to end, the later.
         /// </summary>
         /// <remarks>
         /// Two pieces can stand the distance away along the same stretch: two edges on one line, either side of a
         /// notch, each moved and run on to its miter, or the teeth of a comb whose feet line up. The offset passes
         /// there once. Kept twice, the stretch leaves the run it belongs to ending where the next one does not begin,
-        /// and a loop round it never closes. Parts running the other way along each other are a spike, and stay.
+        /// and a loop round it never closes. Which of the two goes does not depend on which came first: the shorter
+        /// goes, and the longer carries the run on. Grown by 20 with chamfers at a tolerance of 0.1, a notch whose
+        /// two outer sides lie all but on one line is crossed by the straight piece leaving one side's moved arc and
+        /// by the other side's moved arc, 0.04 apart; when the shorter was kept for coming first, the loop broke open
+        /// at it from four of its eight starting corners. Parts running the other way along each other are a spike,
+        /// and stay.
         /// </remarks>
         private static void DropCovered(List<KeyValuePair<GeoEdge2, bool>>[] parts, Tolerance tolerance)
         {
-            var kept = new List<Carrier>();
+            // Every kept part in the order of the run, and whether it is kept still.
+            var carriers = new List<Carrier>();
             var boxes = new List<Box>();
+            var places = new List<KeyValuePair<int, int>>();
 
             for (int i = 0; i < parts.Length; i++)
             {
@@ -834,29 +1085,62 @@ namespace GeometryHelper.Core
 
                 for (int j = 0; j < parts[i].Count; j++)
                 {
-                    if (!parts[i][j].Value)
+                    if (parts[i][j].Value)
                     {
-                        continue;
+                        carriers.Add(new Carrier(parts[i][j].Key));
+                        boxes.Add(Box.Of(parts[i][j].Key).Grown(tolerance.EqualPoint));
+                        places.Add(new KeyValuePair<int, int>(i, j));
                     }
-
-                    GeoEdge2 part = parts[i][j].Key;
-                    Box box = Box.Of(part).Grown(tolerance.EqualPoint);
-                    bool covered = false;
-
-                    for (int k = 0; k < kept.Count && !covered; k++)
-                    {
-                        covered = boxes[k].Overlaps(box) && Covers(kept[k], part, tolerance);
-                    }
-
-                    if (covered)
-                    {
-                        parts[i][j] = new KeyValuePair<GeoEdge2, bool>(part, false);
-                        continue;
-                    }
-
-                    kept.Add(new Carrier(part));
-                    boxes.Add(box);
                 }
+            }
+
+            var alive = new bool[carriers.Count];
+            var order = new BoxOrder(boxes);
+            var near = new List<int>();
+
+            for (int n = 0; n < carriers.Count; n++)
+            {
+                GeoEdge2 part = carriers[n].Edge;
+                bool covered = false;
+
+                // The parts kept before this one whose boxes overlap its own, in the order they came.
+                order.Overlapping(boxes[n], near);
+
+                foreach (int k in near)
+                {
+                    if (k >= n || covered)
+                    {
+                        break;
+                    }
+
+                    if (!alive[k] || !boxes[k].Overlaps(boxes[n]))
+                    {
+                        continue;
+                    }
+
+                    // A part runs along another only if its ends lie in the other's box, grown by the tolerance.
+                    covered = boxes[k].Holds(part.StartPoint) && boxes[k].Holds(part.EndPoint) && Covers(carriers[k], part, tolerance);
+
+                    // A part kept before that runs along this one, and is shorter, goes instead, whichever came first:
+                    // the run it was cut from carries on where this one does.
+                    GeoEdge2 earlier = carriers[k].Edge;
+
+                    if (!covered && boxes[n].Holds(earlier.StartPoint) && boxes[n].Holds(earlier.EndPoint) && Covers(carriers[n], earlier, tolerance))
+                    {
+                        KeyValuePair<int, int> place = places[k];
+                        parts[place.Key][place.Value] = new KeyValuePair<GeoEdge2, bool>(carriers[k].Edge, false);
+                        alive[k] = false;
+                    }
+                }
+
+                if (covered)
+                {
+                    KeyValuePair<int, int> place = places[n];
+                    parts[place.Key][place.Value] = new KeyValuePair<GeoEdge2, bool>(part, false);
+                    continue;
+                }
+
+                alive[n] = true;
             }
         }
 
@@ -934,11 +1218,18 @@ namespace GeometryHelper.Core
                 boxes[i] = IsPoint(offset[i].Edge) || offset[i].Spent ? Box.Empty : Box.Of(offset[i].Edge).Grown(tolerance.EqualPoint);
             }
 
+            // Each piece is tried against the later ones whose boxes overlap its own along the axis that parts them most,
+            // in the order they come in the run, as if every pair were tried.
+            var order = new BoxOrder(boxes);
+            var near = new List<int>();
+
             for (int i = 0; i < offset.Count; i++)
             {
-                for (int j = i + 2; j < offset.Count; j++)
+                order.Overlapping(boxes[i], near);
+
+                foreach (int j in near)
                 {
-                    if (closed && i == 0 && j == offset.Count - 1)
+                    if (j < i + 2 || (closed && i == 0 && j == offset.Count - 1))
                     {
                         continue;
                     }
@@ -1021,7 +1312,13 @@ namespace GeometryHelper.Core
                 return byX != 0 ? byX : one.Point.Y.CompareTo(other.Point.Y);
             });
 
-            // Whether each stretch between the cuts stands far enough away, read at its middle.
+            // Whether each stretch between the cuts stands far enough away, read at its middle. A stretch lies wholly on
+            // one side of the distance, but one that runs to an end of the piece rather than to a cut can come nearer
+            // towards that end than it is at its middle, by more than the slack where its middle is within it, so it
+            // is read at that end as well. The distance from the shape changes no faster than the piece runs, so an
+            // end that a cut was too near to make stands within the tolerance of the distance, and still stands. At a
+            // tolerance of 0.1 the chamfer 0.25 long across a notch 0.28 wide, grown by 0.3, stands 0.08 too near at
+            // its middle and 0.17 too near at its end.
             var stands = new bool[cuts.Count + 1];
             double from = 0.0;
 
@@ -1030,6 +1327,17 @@ namespace GeometryHelper.Core
                 double to = i < cuts.Count ? cuts[i].Parameter : 1.0;
 
                 stands[i] = asBefore || Stands(edge.GetPointAtParameter((from + to) * 0.5), shape, distance, slack);
+
+                if (stands[i] && !asBefore && i == 0)
+                {
+                    stands[i] = Stands(edge.StartPoint, shape, distance, slack);
+                }
+
+                if (stands[i] && !asBefore && i == cuts.Count)
+                {
+                    stands[i] = Stands(edge.EndPoint, shape, distance, slack);
+                }
+
                 from = to;
             }
 
@@ -1146,16 +1454,25 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// A corner joined by a miter, and the two moved pieces it ran on, as they stood before.
+        /// A corner joined by a miter, or cut off square, and the two moved pieces it ran on, as they stood before.
         /// </summary>
         private struct Mitre
         {
             internal Mitre(int corner, GeoEdge2 before, GeoEdge2 after, GeoPoint2 meeting)
+                : this(corner, before, after, meeting, meeting, false, false, false)
+            {
+            }
+
+            internal Mitre(int corner, GeoEdge2 before, GeoEdge2 after, GeoPoint2 first, GeoPoint2 second, bool square, bool straightFirst, bool straightSecond)
             {
                 Corner = corner;
                 Before = before;
                 After = after;
-                Meeting = meeting;
+                First = first;
+                Second = second;
+                Square = square;
+                StraightFirst = straightFirst;
+                StraightSecond = straightSecond;
             }
 
             internal int Corner { get; }
@@ -1164,7 +1481,32 @@ namespace GeometryHelper.Core
 
             internal GeoEdge2 After { get; }
 
-            internal GeoPoint2 Meeting { get; }
+            /// <summary>
+            /// Gets where the piece before the corner was run on to: the miter, or the start of the square cut.
+            /// </summary>
+            internal GeoPoint2 First { get; }
+
+            /// <summary>
+            /// Gets where the piece after the corner was run back to: the miter again, or the end of the square cut.
+            /// </summary>
+            internal GeoPoint2 Second { get; }
+
+            /// <summary>
+            /// Gets a value indicating whether the piece before was run on straight, along the line it leaves its end by,
+            /// rather than round its own curve.
+            /// </summary>
+            internal bool StraightFirst { get; }
+
+            /// <summary>
+            /// Gets a value indicating whether the piece after was run back straight.
+            /// </summary>
+            internal bool StraightSecond { get; }
+
+            /// <summary>
+            /// Gets a value indicating whether a cut lies between the two pieces as run on: false for a miter, and for a
+            /// square cut no longer than the tolerance, where both pieces end at one point.
+            /// </summary>
+            internal bool Square { get; }
         }
 
         /// <summary>

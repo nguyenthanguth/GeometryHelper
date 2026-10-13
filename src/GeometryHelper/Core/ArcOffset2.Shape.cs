@@ -16,17 +16,17 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// <para>
-        /// The part of the shape nearest a point is the inside of an edge, the foot of the perpendicular, or a
-        /// vertex, and then the point lies in the wedge between the two edges' normals there: anywhere else, one of
-        /// the edges runs nearer. A vertex nearer than the distance folds a point only in that wedge, so that what
-        /// stands nearer than the distance is exactly what the distance says, and a circle about a vertex bounds the
-        /// offset only there.
+        /// A point stands nearer than the distance wherever any part of the shape does, an edge or one of its ends,
+        /// and nothing else is asked. The part of the shape nearest a point is the inside of an edge, the foot of
+        /// the perpendicular, or a vertex, and then the point lies in the wedge between the two edges' normals
+        /// there: so a circle about a vertex bounds the offset only in that wedge.
         /// </para>
         /// <para>
-        /// In the wedge of a corner bridged by a straight chord, a chamfer or a miter cut short, what the offset
-        /// leaves out is the triangle between the corner and the chord, not the circle: the chord cuts inside the
-        /// circle on purpose, and a piece passing between the two still bounds the offset there. In the wedge of a
-        /// corner joined by a miter, it leaves out the whole point of the miter, which reaches beyond the circle.
+        /// In the wedge of a corner tied by a straight chord, where nothing else could join it, what the offset leaves
+        /// out is the triangle between the corner and the chord, not the circle: the chord cuts inside the circle, and
+        /// a piece passing between the two still bounds the offset there. In the wedge of a corner joined by a miter or
+        /// cut off square, it leaves out the whole of the join, which reaches beyond the circle: from the corner out to
+        /// the pieces' ends, along them as run on, and across the cut.
         /// </para>
         /// </remarks>
         private sealed class Shape
@@ -45,8 +45,14 @@ namespace GeometryHelper.Core
             private readonly GeoLine2?[] _chords;
             private readonly List<Mitre> _mitres;
             private readonly GeoPolygonArc2[] _mitreLoops;
+            private readonly GeoPoint2[][] _mitreCorners;
+            private readonly double[] _mitreTurns;
             private readonly bool[] _mitreBuilt;
             private readonly List<Box> _mitreBoxes = new List<Box>();
+            private BoxOrder _edgeOrder;
+            private BoxOrder _vertexOrder;
+            private BoxOrder _mitreOrder;
+            private readonly List<int> _near = new List<int>();
             private readonly Tolerance _inside;
             private readonly bool _closed;
             private readonly double _sideways;
@@ -104,6 +110,8 @@ namespace GeometryHelper.Core
                 // is drawn as a loop only when a point comes near enough to need it.
                 _mitres = mitres;
                 _mitreLoops = new GeoPolygonArc2[mitres.Count];
+                _mitreCorners = new GeoPoint2[mitres.Count][];
+                _mitreTurns = new double[mitres.Count];
                 _mitreBuilt = new bool[mitres.Count];
                 _inside = new Tolerance(slack, tolerance.EqualVector, tolerance.EqualAngleRad, tolerance.EqualPlanar);
             }
@@ -138,8 +146,8 @@ namespace GeometryHelper.Core
 
                 foreach (Mitre mitre in _mitres)
                 {
-                    Box first = Box.Of(CurveMeet2.Stretch(mitre.Before, mitre.Meeting, true));
-                    Box second = Box.Of(CurveMeet2.Stretch(mitre.After, mitre.Meeting, false));
+                    Box first = mitre.StraightFirst ? Box.Of(mitre.Before).With(mitre.First) : Box.Of(CurveMeet2.Stretch(mitre.Before, mitre.First, true));
+                    Box second = mitre.StraightSecond ? Box.Of(mitre.After).With(mitre.Second) : Box.Of(CurveMeet2.Stretch(mitre.After, mitre.Second, false));
 
                     _mitreBoxes.Add(first.With(second).With(_vertices[mitre.Corner]).Grown(_slack));
                 }
@@ -150,48 +158,115 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Determines whether some part of the shape comes nearer to a point than a distance.
             /// </summary>
+            /// <remarks>
+            /// Read by the distance alone. It used to ask, of a point whose nearest part of an edge lay within the
+            /// tolerance of the edge's end, whether it lay in that vertex's wedge, and let it stand when it did not: at
+            /// a coarse tolerance the foot can lie a tolerance from the end and the point well outside the wedge, and
+            /// neither edge at the vertex then claimed it. The U from (32.45, 0) to the origin, round a half turn of
+            /// radius 1.1 and back along y = 2.2, offset by 6.28 into its inside at a tolerance of 0.1, kept the round
+            /// joins about the half turn's ends, 4.08 from the shape.
+            /// </remarks>
             internal bool Nearer(GeoPoint2 point, double limit)
             {
-                for (int i = 0; i < _edges.Count; i++)
+                if (limit > _distance)
                 {
-                    if (!_boxes[i].Grown(limit).Holds(point))
+                    for (int i = 0; i < _edges.Count; i++)
                     {
-                        continue;
+                        if (NearerThan(i, point, limit))
+                        {
+                            return true;
+                        }
                     }
 
-                    GeoPoint2 closest = Own(i).Closest(point, _tolerance);
+                    return false;
+                }
 
-                    if (point.DistanceTo(closest) >= limit)
+                // Only an edge whose box, grown by the distance, holds the point can come nearer to it than that.
+                BoxOrder order = EdgeOrder();
+
+                for (int k = order.CountUpTo(point) - 1; k >= 0 && order.Reaches(k, point); k--)
+                {
+                    if (NearerThan(order[k], point, limit))
                     {
-                        continue;
+                        return true;
                     }
-
-                    int corner = closest.IsEqualTo(_edges[i].StartPoint, _tolerance) ? i
-                        : closest.IsEqualTo(_edges[i].EndPoint, _tolerance) ? Next(i)
-                        : -1;
-
-                    if (corner >= 0 && !Folds(corner, point))
-                    {
-                        continue;
-                    }
-
-                    return true;
                 }
 
                 return false;
             }
 
             /// <summary>
-            /// Determines whether a vertex nearer to a point than the distance folds it.
+            /// Gets the edges in order by their boxes grown by the distance and the tolerance, worked out the first time
+            /// they are asked for.
             /// </summary>
-            private bool Folds(int corner, GeoPoint2 point)
+            private BoxOrder EdgeOrder()
             {
-                if (!InCone(corner, point))
+                if (_edgeOrder == null)
+                {
+                    double reach = _distance + _tolerance.EqualPoint;
+                    var grown = new Box[_edges.Count];
+
+                    for (int i = 0; i < grown.Length; i++)
+                    {
+                        grown[i] = _boxes[i].Grown(reach);
+                    }
+
+                    _edgeOrder = new BoxOrder(grown);
+                }
+
+                return _edgeOrder;
+            }
+
+            /// <summary>
+            /// Gets the vertices in order by the boxes round them as far as the distance and the tolerance, worked out
+            /// the first time they are asked for.
+            /// </summary>
+            private BoxOrder VertexOrder()
+            {
+                if (_vertexOrder == null)
+                {
+                    double reach = _distance + _tolerance.EqualPoint;
+                    var around = new Box[_vertices.Length];
+
+                    for (int i = 0; i < around.Length; i++)
+                    {
+                        around[i] = Box.Around(_vertices[i], reach);
+                    }
+
+                    _vertexOrder = new BoxOrder(around);
+                }
+
+                return _vertexOrder;
+            }
+
+            /// <summary>
+            /// Determines whether one edge of the shape comes nearer to a point than a distance.
+            /// </summary>
+            private bool NearerThan(int edge, GeoPoint2 point, double limit)
+            {
+                if (!_boxes[edge].Grown(limit).Holds(point))
                 {
                     return false;
                 }
 
-                return !_chords[corner].HasValue || !InWedge(_chords[corner].Value, corner, point) || !BeyondChord(corner, point);
+                GeoPoint2 closest = Own(edge).Closest(point, _tolerance);
+
+                if (point.DistanceTo(closest) >= limit)
+                {
+                    return false;
+                }
+
+                // Beyond the chord tied across one of the edge's ends, that end and the edges either side of it are what
+                // the offset leaves out there, and they fold only the triangle under the chord.
+                return !BeyondChordAt(edge, point) && !BeyondChordAt(Next(edge), point);
+            }
+
+            /// <summary>
+            /// Determines whether a point lies in the wedge of a corner tied by a chord, beyond the chord.
+            /// </summary>
+            private bool BeyondChordAt(int corner, GeoPoint2 point)
+            {
+                return _chords[corner].HasValue && InWedge(_chords[corner].Value, corner, point) && BeyondChord(corner, point);
             }
 
             /// <summary>
@@ -217,14 +292,33 @@ namespace GeometryHelper.Core
             {
                 List<Box> boxes = _mitres.Count == 0 ? _mitreBoxes : MitreBoxes();
 
-                for (int i = 0; i < boxes.Count; i++)
+                if (boxes.Count == 0)
                 {
+                    return false;
+                }
+
+                _mitreOrder = _mitreOrder ?? new BoxOrder(boxes);
+
+                for (int k = _mitreOrder.CountUpTo(point) - 1; k >= 0 && _mitreOrder.Reaches(k, point); k--)
+                {
+                    int i = _mitreOrder[k];
+
                     if (!boxes[i].Holds(point))
                     {
                         continue;
                     }
 
                     GeoPolygonArc2 loop = MitreLoop(i);
+
+                    if (_mitreCorners[i] != null)
+                    {
+                        if (InsideStraight(_mitreCorners[i], _mitreTurns[i], point))
+                        {
+                            return true;
+                        }
+
+                        continue;
+                    }
 
                     if (loop != null && loop.Locate(point, _inside) == PointLocation.Inside)
                     {
@@ -237,7 +331,8 @@ namespace GeometryHelper.Core
 
             /// <summary>
             /// Gets the point of a miter as a loop: from the corner out to the end of the first piece, along it as run
-            /// on to where the two meet, back along the second to its start, and home; null where it has no inside.
+            /// on to where the two meet, back along the second to its start, and home; null where it has no inside. A
+            /// corner cut off square is the same loop with the cut between the two pieces as run on.
             /// </summary>
             private GeoPolygonArc2 MitreLoop(int index)
             {
@@ -247,16 +342,95 @@ namespace GeometryHelper.Core
                 }
 
                 Mitre mitre = _mitres[index];
-                GeoEdge2 first = Beyond(CurveMeet2.Stretch(mitre.Before, mitre.Meeting, true), mitre.Before.EndPoint, true, _tolerance);
-                GeoEdge2 second = Beyond(CurveMeet2.Stretch(mitre.After, mitre.Meeting, false), mitre.After.StartPoint, false, _tolerance);
+                GeoEdge2 first = mitre.StraightFirst
+                    ? new GeoEdge2(mitre.Before.EndPoint, mitre.First)
+                    : Beyond(CurveMeet2.Stretch(mitre.Before, mitre.First, true), mitre.Before.EndPoint, true, _tolerance);
+                GeoEdge2 second = mitre.StraightSecond
+                    ? new GeoEdge2(mitre.Second, mitre.After.StartPoint)
+                    : Beyond(CurveMeet2.Stretch(mitre.After, mitre.Second, false), mitre.After.StartPoint, false, _tolerance);
 
-                var starts = new[] { _vertices[mitre.Corner], first.StartPoint, second.StartPoint, second.EndPoint };
-                var bulges = new[] { 0.0, first.Bulge, second.Bulge, 0.0 };
+                GeoPoint2[] starts = mitre.Square
+                    ? new[] { _vertices[mitre.Corner], first.StartPoint, first.EndPoint, second.StartPoint, second.EndPoint }
+                    : new[] { _vertices[mitre.Corner], first.StartPoint, second.StartPoint, second.EndPoint };
+                double[] bulges = mitre.Square
+                    ? new[] { 0.0, first.Bulge, 0.0, second.Bulge, 0.0 }
+                    : new[] { 0.0, first.Bulge, second.Bulge, 0.0 };
 
-                _mitreLoops[index] = GeoPolygonArc2.TryFromEdges(starts, bulges, out GeoPolygonArc2 loop) ? loop : null;
                 _mitreBuilt[index] = true;
 
+                // A corner cut off square with straight sides all round is a convex loop, read side by side.
+                if (mitre.Square && !first.IsArc && !second.IsArc && TryConvex(starts, out double turn))
+                {
+                    _mitreCorners[index] = starts;
+                    _mitreTurns[index] = turn;
+                    return null;
+                }
+
+                _mitreLoops[index] = GeoPolygonArc2.TryFromEdges(starts, bulges, out GeoPolygonArc2 loop) ? loop : null;
+
                 return _mitreLoops[index];
+            }
+
+            /// <summary>
+            /// Determines whether a loop of straight sides turns one way only, and which: 1 counter-clockwise, -1
+            /// clockwise. Sides of no length are passed over.
+            /// </summary>
+            private static bool TryConvex(GeoPoint2[] corners, out double turn)
+            {
+                turn = 0.0;
+
+                int count = corners.Length;
+
+                for (int i = 0; i < count; i++)
+                {
+                    GeoVector2 side = corners[i].GetVectorTo(corners[(i + 1) % count]);
+                    GeoVector2 next = corners[(i + 1) % count].GetVectorTo(corners[(i + 2) % count]);
+                    double cross = side.CrossProduct(next);
+
+                    if (cross == 0.0)
+                    {
+                        continue;
+                    }
+
+                    if (turn == 0.0)
+                    {
+                        turn = Math.Sign(cross);
+                    }
+                    else if (Math.Sign(cross) != turn)
+                    {
+                        return false;
+                    }
+                }
+
+                return turn != 0.0;
+            }
+
+            /// <summary>
+            /// Determines whether a point lies inside a convex loop of straight sides by more than the slack: further than
+            /// the slack inside the line of every side, which is how far it lies inside the loop.
+            /// </summary>
+            private bool InsideStraight(GeoPoint2[] corners, double turn, GeoPoint2 point)
+            {
+                int count = corners.Length;
+
+                for (int i = 0; i < count; i++)
+                {
+                    GeoPoint2 from = corners[i];
+                    GeoVector2 side = from.GetVectorTo(corners[(i + 1) % count]);
+                    double length = side.Length;
+
+                    if (length <= 0.0)
+                    {
+                        continue;
+                    }
+
+                    if (side.CrossProduct(from.GetVectorTo(point)) * turn / length <= _slack)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
             private Carrier Own(int edge) => (_own[edge] ?? (_own[edge] = new Carrier(_edges[edge]))).Value;
@@ -351,7 +525,10 @@ namespace GeometryHelper.Core
                 Box box = Box.Of(edge).Grown(tolerance.EqualPoint);
                 double reach = _distance + tolerance.EqualPoint;
 
-                for (int i = 0; i < _edges.Count; i++)
+                // The edges and vertices near enough to matter, taken in the order they come in the shape.
+                EdgeOrder().Overlapping(box, _near);
+
+                foreach (int i in _near)
                 {
                     // A moved piece stands the distance from the whole of its own edge, and an edge further from the
                     // piece than the distance cannot come to it.
@@ -373,7 +550,9 @@ namespace GeometryHelper.Core
                     }
                 }
 
-                for (int i = 0; i < _vertices.Length; i++)
+                VertexOrder().Overlapping(box, _near);
+
+                foreach (int i in _near)
                 {
                     // And from the ends of its own edge, as a join does from the corner it was built about.
                     if (i == piece.Corner || (piece.Source >= 0 && (i == piece.Source || i == Next(piece.Source))))
@@ -457,6 +636,147 @@ namespace GeometryHelper.Core
             {
                 return _edge.IsArc ? _arc.GetIntersections(circle, tolerance) : _edge.ToLine().GetIntersections(circle, tolerance);
             }
+        }
+
+        /// <summary>
+        /// Boxes in order along the axis a point lies within fewest of them on, so that those that can hold a point are
+        /// found without trying every one: the boxes starting at or before the point along that axis, back to where none
+        /// of the ones before reaches it.
+        /// </summary>
+        /// <remarks>
+        /// The axis is read off the boxes, as a sweep's is: on a shape long in x every box spans little of x, and a
+        /// point lies within few of them along it. Ties are broken by the order the boxes came in, so the order never
+        /// depends on the sort.
+        /// </remarks>
+        private sealed class BoxOrder
+        {
+            /// <summary>
+            /// Up to this many boxes, trying every one costs less than putting them in order.
+            /// </summary>
+            private const int Few = 32;
+
+            private readonly int[] _order;
+            private readonly double[] _starts;
+            private readonly double[] _reaches;
+            private readonly bool _alongX;
+
+            internal BoxOrder(IList<Box> boxes)
+            {
+                _order = new int[boxes.Count];
+
+                for (int i = 0; i < _order.Length; i++)
+                {
+                    _order[i] = i;
+                }
+
+                // A few boxes stay in the order they came, and every one of them is tried.
+                if (_order.Length <= Few)
+                {
+                    return;
+                }
+
+                double widthX = 0.0;
+                double widthY = 0.0;
+                Box all = Box.Empty;
+
+                foreach (Box box in boxes)
+                {
+                    if (box.MaxX < box.MinX || box.MaxY < box.MinY)
+                    {
+                        continue;
+                    }
+
+                    widthX += box.MaxX - box.MinX;
+                    widthY += box.MaxY - box.MinY;
+                    all = all.With(box);
+                }
+
+                // How many boxes a point lies within along each axis, on average: their widths over their spread.
+                bool alongX = widthX * (all.MaxY - all.MinY) <= widthY * (all.MaxX - all.MinX);
+
+                _alongX = alongX;
+
+                Array.Sort(_order, (one, other) =>
+                {
+                    int byStart = (alongX ? boxes[one].MinX : boxes[one].MinY).CompareTo(alongX ? boxes[other].MinX : boxes[other].MinY);
+
+                    return byStart != 0 ? byStart : one.CompareTo(other);
+                });
+
+                _starts = new double[_order.Length];
+                _reaches = new double[_order.Length];
+
+                double reach = double.NegativeInfinity;
+
+                for (int k = 0; k < _order.Length; k++)
+                {
+                    Box box = boxes[_order[k]];
+
+                    _starts[k] = alongX ? box.MinX : box.MinY;
+                    reach = Math.Max(reach, alongX ? box.MaxX : box.MaxY);
+                    _reaches[k] = reach;
+                }
+            }
+
+            /// <summary>
+            /// Gets the index of the box at a place in the order.
+            /// </summary>
+            internal int this[int place] => _order[place];
+
+            /// <summary>
+            /// Gets how many boxes start at or before a point along the axis.
+            /// </summary>
+            internal int CountUpTo(GeoPoint2 point) => _starts == null ? _order.Length : CountUpTo(_alongX ? point.X : point.Y);
+
+            /// <summary>
+            /// Gets the indices of the boxes that overlap a box along the axis, smallest first: the order they came in.
+            /// </summary>
+            internal void Overlapping(Box box, List<int> into)
+            {
+                into.Clear();
+
+                if (_starts == null)
+                {
+                    into.AddRange(_order);
+                    return;
+                }
+
+                double low = _alongX ? box.MinX : box.MinY;
+
+                for (int k = CountUpTo(_alongX ? box.MaxX : box.MaxY) - 1; k >= 0 && _reaches[k] >= low; k--)
+                {
+                    into.Add(_order[k]);
+                }
+
+                into.Sort();
+            }
+
+            private int CountUpTo(double at)
+            {
+                int low = 0;
+                int high = _starts.Length;
+
+                while (low < high)
+                {
+                    int middle = low + (high - low) / 2;
+
+                    if (_starts[middle] <= at)
+                    {
+                        low = middle + 1;
+                    }
+                    else
+                    {
+                        high = middle;
+                    }
+                }
+
+                return low;
+            }
+
+            /// <summary>
+            /// Determines whether any box up to a place in the order reaches as far as a point along the axis.
+            /// </summary>
+            internal bool Reaches(int place, GeoPoint2 point) => _reaches == null || _reaches[place] >= (_alongX ? point.X : point.Y);
         }
 
         /// <summary>

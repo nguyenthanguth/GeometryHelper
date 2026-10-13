@@ -67,6 +67,17 @@ namespace GeometryHelper.Core
         /// whichever corner it starts from and whichever way it runs. A loop whose pieces meet out of the order they
         /// were cut in is put together where they meet, and a lens left between two arcs comes back as a loop of three
         /// corners.
+        /// <para>
+        /// A corner that opens is filled as the straight offsets fill it. A chamfer is cut square to the corner's
+        /// bisector at the distance, touching the arc a round join would draw: the square of side 10 grown by 2 is cut
+        /// at its corner (10, 0) from (8 + 2 sqrt 2, -2) to (12, 2 - 2 sqrt 2), and encloses 193.255. A miter that would
+        /// reach further than <see cref="OffsetOptions.MiterLimit"/> times the distance is squared off there, its pieces
+        /// run on as the miter runs them: the triangle with a tip of 10 degrees, grown by 1, is squared off 10 from the
+        /// tip, from (-9.973, -0.743) to (-9.951, -1). Two straight edges a fraction of a degree off straight are mitered
+        /// like any others. Where there is neither a miter nor a square to cut, because an arc and the piece next to it
+        /// never meet and the miter has no limit, or an arc's circle never reaches the cut, the corner is rounded off at
+        /// the distance.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the options are null.</exception>
         public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetOptions options, Tolerance tolerance)
@@ -152,6 +163,13 @@ namespace GeometryHelper.Core
         /// of the distance about each, whatever the join: the chain 10 along x, a half turn of radius 5 below the axis
         /// to (20, 0) and 10 more, offset by 10 upwards, runs along y = 10 to (10, 10), round the circle of 10 about
         /// (10, 0) to (15, 8.660), round the circle about (20, 0) to (20, 10) and on to (30, 10), 30.472 long.
+        /// <para>
+        /// A corner that opens is filled as the straight offsets fill it: a chamfer square to the corner's bisector at
+        /// the distance, and a miter past <see cref="OffsetOptions.MiterLimit"/> squared off at the limit. The chain
+        /// (0, 0), (10, 0), (10, 10) offset by -2 with a chamfer runs along y = -2 to (8 + 2 sqrt 2, -2), across to
+        /// (12, 2 - 2 sqrt 2) and on to (12, 10). Where there is neither a miter nor a square to cut, the corner is
+        /// rounded off at the distance.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the options are null.</exception>
         public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, OffsetOptions options, Tolerance tolerance)

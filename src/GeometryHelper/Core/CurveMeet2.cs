@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Core
@@ -116,12 +115,34 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Adds where two endless lines cross.
         /// </summary>
+        /// <remarks>
+        /// Only lines exactly parallel never cross. Two that are a hair off parallel cross far away, and how far is
+        /// for the caller to judge: a miter's limit says whether it is too far. They were taken as parallel within the
+        /// angle tolerance, so the loop (0, 0), (50, 0), (100, 0.698), (100, 50), (0, 50), turning 0.8 degrees at
+        /// (50, 0), grown by 80 had no miter there, though it lies at (50.558, -80), 80.002 from the corner. A line
+        /// drawn no longer than the point tolerance has no direction to cross by.
+        /// </remarks>
         internal static void Lines(List<GeoPoint2> found, GeoLine2 first, GeoLine2 second, Tolerance tolerance)
         {
-            if (Intersection2.TryIntersectWith(first, second, LineExtension.Both, out GeoPoint2 meeting, tolerance))
+            GeoVector2 along = first.Direction;
+            GeoVector2 other = second.Direction;
+
+            if (along.Length <= tolerance.EqualPoint || other.Length <= tolerance.EqualPoint)
             {
-                found.Add(meeting);
+                return;
             }
+
+            double turn = along.CrossProduct(other);
+
+            if (turn == 0.0)
+            {
+                return;
+            }
+
+            // Worked as Intersection2 works it, so that lines it would have crossed meet at the same point to the bit.
+            double parameter = first.StartPoint.GetVectorTo(second.StartPoint).CrossProduct(other) / turn;
+
+            found.Add(first.GetPointAtParameter(parameter));
         }
 
         /// <summary>

@@ -656,8 +656,14 @@ slot.Offset(20.0, OffsetJoin.Round);                           // Round, Miter o
 A corner that closes up is trimmed to where the two moved pieces cross; one that opens is bridged the way
 `OffsetJoin` says. `Round` bridges it with a true arc of the offset distance, and `Miter` — the default —
 runs both pieces on until they meet, an arc reaching further round its own circle rather than being cut
-across, which is what AutoCAD's OFFSET does. Where they would never meet, or meet further away than
-`OffsetOptions.MiterLimit` allows, it cuts straight across instead. Shrunk far enough a
+across, which is what AutoCAD's OFFSET does. Where they would meet further away than
+`OffsetOptions.MiterLimit` allows, the corner is squared off at the limit, as the straight offsets square
+it: the triangle with a 10 degree tip grown by 1 is cut 10 from the tip, from (-9.973, -0.743) to
+(-9.951, -1). Where there is no square to cut, because an arc's circle never reaches it or the miter has no
+limit, the corner is rounded off at the distance. `Chamfer` cuts the corner square to its bisector at the
+offset distance, touching the arc a round join would draw, between straight pieces leaving the two ends
+along their tangents: the square of side 10 grown by 2 is cut from (8 + 2√2, -2) to (12, 2 − 2√2), as the
+straight offset cuts it. Two edges a fraction of a degree off straight are mitred like any others. Shrunk far enough a
 shape can fall into several pieces or vanish, so the answer is an array.
 
 What tells the folded-over parts from the real ones is the one thing an offset cannot break: every point
