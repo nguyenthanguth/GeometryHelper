@@ -617,7 +617,7 @@ namespace GeometryHelper.Core
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
             
-            if (Collision2.CollidesWith(chain, polygon, tolerance)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(chain, polygon, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon), tolerance);
         }
@@ -657,7 +657,7 @@ namespace GeometryHelper.Core
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             
-            if (Collision2.CollidesWith(chain, loop, tolerance)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(chain, loop, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop), tolerance);
         }
@@ -716,7 +716,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             
-            if (Collision2.CollidesWith(loop, arc, tolerance)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(loop, arc, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), arc, tolerance);
         }
@@ -737,7 +737,7 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
             
-            if (Collision2.CollidesWith(loop, polyline, tolerance)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(loop, polyline, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline), tolerance);
         }
@@ -758,7 +758,7 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
             
-            if (Collision2.CollidesWith(loop, polygon, tolerance)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(loop, polygon, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon), tolerance);
         }
@@ -779,7 +779,7 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             
-            if (Collision2.CollidesWith(loop, chain, tolerance)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(loop, chain, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain), tolerance);
         }
@@ -800,7 +800,7 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (other == null) throw new ArgumentNullException(nameof(other));
             
-            if (Collision2.CollidesWith(loop, other, tolerance)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(loop, other, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other), tolerance);
         }
@@ -821,7 +821,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            if (Collision2.CollidesWith(chain, circle, tolerance)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(chain, circle, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), circle, tolerance);
         }
@@ -840,7 +840,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            if (Collision2.CollidesWith(loop, circle, tolerance)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(loop, circle, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), circle, tolerance);
         }

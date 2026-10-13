@@ -549,17 +549,18 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a chain that may curve touches or overlaps an arc, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Neither has an inside, so they collide where they cross or come within the point tolerance of each other,
+        /// edge against edge, and one lying along the other collides with it. At a tolerance of a thousandth, two ends
+        /// half a thousandth apart collide and two ends two thousandths apart do not.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoArc2 arc, Tolerance tolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
-            
-            if (Intersection2.TryIntersectWith(chain, arc, out _, tolerance))
-            {
-                return true;
-            }
 
-            return false;
+            return Intersection2.TryIntersectWith(chain, arc, out _, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), arc, tolerance);
         }
 
         /// <summary>
@@ -572,24 +573,27 @@ namespace GeometryHelper.Core
         /// Determines whether a chain that may curve touches or overlaps a circle, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// One shape lying wholly inside the other counts, so the boundaries need not cross.
+        /// One shape lying wholly inside the other counts, so the boundaries need not cross. Outside each other, they
+        /// collide where they come within the point tolerance, edge against edge: at a tolerance of a thousandth, two
+        /// boundaries half a thousandth apart collide and two thousandths apart do not.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoCircle2 circle, Tolerance tolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
-            
-            if (Intersection2.TryIntersectWith(chain, circle, out _, tolerance))
-            {
-                return true;
-            }
 
-            if (Containment2.Contains(circle, chain[0], tolerance))
-            {
-                return true;
-            }
+            return CrossesOrStartsIn(chain, circle, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), circle, tolerance);
+        }
 
-            return false;
+        /// <summary>
+        /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
+        /// nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolylineArc2 chain, GeoCircle2 circle, Tolerance tolerance)
+        {
+            return Intersection2.TryIntersectWith(chain, circle, out _, tolerance)
+                || Containment2.Contains(circle, chain[0], tolerance);
         }
 
         /// <summary>
@@ -601,18 +605,19 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a chain that may curve touches or overlaps a straight chain, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Neither has an inside, so they collide where they cross or come within the point tolerance of each other,
+        /// edge against edge, and one lying along the other collides with it. At a tolerance of a thousandth, two ends
+        /// half a thousandth apart collide and two ends two thousandths apart do not.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolyline2 polyline, Tolerance tolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            
-            if (Intersection2.TryIntersectWith(chain, polyline, out _, tolerance))
-            {
-                return true;
-            }
 
-            return false;
+            return Intersection2.TryIntersectWith(chain, polyline, out _, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polyline), tolerance);
         }
 
         /// <summary>
@@ -625,25 +630,28 @@ namespace GeometryHelper.Core
         /// Determines whether a chain that may curve touches or overlaps a straight loop, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// One shape lying wholly inside the other counts, so the boundaries need not cross.
+        /// One shape lying wholly inside the other counts, so the boundaries need not cross. Outside each other, they
+        /// collide where they come within the point tolerance, edge against edge: at a tolerance of a thousandth, two
+        /// boundaries half a thousandth apart collide and two thousandths apart do not.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolygon2 polygon, Tolerance tolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
-            
-            if (Intersection2.TryIntersectWith(chain, polygon, out _, tolerance))
-            {
-                return true;
-            }
 
-            if (Containment2.Contains(polygon, chain[0], tolerance))
-            {
-                return true;
-            }
+            return CrossesOrStartsIn(chain, polygon, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon), tolerance);
+        }
 
-            return false;
+        /// <summary>
+        /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
+        /// nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolylineArc2 chain, GeoPolygon2 polygon, Tolerance tolerance)
+        {
+            return Intersection2.TryIntersectWith(chain, polygon, out _, tolerance)
+                || Containment2.Contains(polygon, chain[0], tolerance);
         }
 
         /// <summary>
@@ -655,18 +663,19 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a chain that may curve touches or overlaps a chain that may curve, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Neither has an inside, so they collide where they cross or come within the point tolerance of each other,
+        /// edge against edge, and one lying along the other collides with it. At a tolerance of a thousandth, two ends
+        /// half a thousandth apart collide and two ends two thousandths apart do not.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolylineArc2 other, Tolerance tolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (other == null) throw new ArgumentNullException(nameof(other));
-            
-            if (Intersection2.TryIntersectWith(chain, other, out _, tolerance))
-            {
-                return true;
-            }
 
-            return false;
+            return Intersection2.TryIntersectWith(chain, other, out _, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(other), tolerance);
         }
 
         /// <summary>
@@ -679,25 +688,28 @@ namespace GeometryHelper.Core
         /// Determines whether a chain that may curve touches or overlaps a loop that may curve, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// One shape lying wholly inside the other counts, so the boundaries need not cross.
+        /// One shape lying wholly inside the other counts, so the boundaries need not cross. Outside each other, they
+        /// collide where they come within the point tolerance, edge against edge: at a tolerance of a thousandth, two
+        /// boundaries half a thousandth apart collide and two thousandths apart do not.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolygonArc2 loop, Tolerance tolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (loop == null) throw new ArgumentNullException(nameof(loop));
-            
-            if (Intersection2.TryIntersectWith(chain, loop, out _, tolerance))
-            {
-                return true;
-            }
 
-            if (Containment2.Contains(loop, chain[0], tolerance))
-            {
-                return true;
-            }
+            return CrossesOrStartsIn(chain, loop, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop), tolerance);
+        }
 
-            return false;
+        /// <summary>
+        /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
+        /// nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolylineArc2 chain, GeoPolygonArc2 loop, Tolerance tolerance)
+        {
+            return Intersection2.TryIntersectWith(chain, loop, out _, tolerance)
+                || Containment2.Contains(loop, chain[0], tolerance);
         }
 
         /// <summary>
@@ -781,24 +793,27 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps an arc, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// One shape lying wholly inside the other counts, so the boundaries need not cross.
+        /// One shape lying wholly inside the other counts, so the boundaries need not cross. Outside each other, they
+        /// collide where they come within the point tolerance, edge against edge: at a tolerance of a thousandth, two
+        /// boundaries half a thousandth apart collide and two thousandths apart do not.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoArc2 arc, Tolerance tolerance)
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
-            
-            if (Intersection2.TryIntersectWith(loop, arc, out _, tolerance))
-            {
-                return true;
-            }
 
-            if (Containment2.Contains(loop, arc.StartPoint, tolerance))
-            {
-                return true;
-            }
+            return CrossesOrStartsIn(loop, arc, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), arc, tolerance);
+        }
 
-            return false;
+        /// <summary>
+        /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
+        /// nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoArc2 arc, Tolerance tolerance)
+        {
+            return Intersection2.TryIntersectWith(loop, arc, out _, tolerance)
+                || Containment2.Contains(loop, arc.StartPoint, tolerance);
         }
 
         /// <summary>
@@ -811,29 +826,28 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a circle, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// One shape lying wholly inside the other counts, so the boundaries need not cross.
+        /// One shape lying wholly inside the other counts, so the boundaries need not cross. Outside each other, they
+        /// collide where they come within the point tolerance, edge against edge: at a tolerance of a thousandth, two
+        /// boundaries half a thousandth apart collide and two thousandths apart do not.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoCircle2 circle, Tolerance tolerance)
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
-            
-            if (Intersection2.TryIntersectWith(loop, circle, out _, tolerance))
-            {
-                return true;
-            }
 
-            if (Containment2.Contains(loop, circle.Center, tolerance))
-            {
-                return true;
-            }
+            return CrossesOrStartsIn(loop, circle, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), circle, tolerance);
+        }
 
-            if (Containment2.Contains(circle, loop[0], tolerance))
-            {
-                return true;
-            }
-
-            return false;
+        /// <summary>
+        /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
+        /// nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoCircle2 circle, Tolerance tolerance)
+        {
+            return Intersection2.TryIntersectWith(loop, circle, out _, tolerance)
+                || Containment2.Contains(loop, circle.Center, tolerance)
+                || Containment2.Contains(circle, loop[0], tolerance);
         }
 
         /// <summary>
@@ -846,25 +860,28 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a straight chain, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// One shape lying wholly inside the other counts, so the boundaries need not cross.
+        /// One shape lying wholly inside the other counts, so the boundaries need not cross. Outside each other, they
+        /// collide where they come within the point tolerance, edge against edge: at a tolerance of a thousandth, two
+        /// boundaries half a thousandth apart collide and two thousandths apart do not.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolyline2 polyline, Tolerance tolerance)
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            
-            if (Intersection2.TryIntersectWith(loop, polyline, out _, tolerance))
-            {
-                return true;
-            }
 
-            if (Containment2.Contains(loop, polyline[0], tolerance))
-            {
-                return true;
-            }
+            return CrossesOrStartsIn(loop, polyline, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline), tolerance);
+        }
 
-            return false;
+        /// <summary>
+        /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
+        /// nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoPolyline2 polyline, Tolerance tolerance)
+        {
+            return Intersection2.TryIntersectWith(loop, polyline, out _, tolerance)
+                || Containment2.Contains(loop, polyline[0], tolerance);
         }
 
         /// <summary>
@@ -877,30 +894,29 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a straight loop, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// One shape lying wholly inside the other counts, so the boundaries need not cross.
+        /// One shape lying wholly inside the other counts, so the boundaries need not cross. Outside each other, they
+        /// collide where they come within the point tolerance, edge against edge: at a tolerance of a thousandth, two
+        /// boundaries half a thousandth apart collide and two thousandths apart do not.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolygon2 polygon, Tolerance tolerance)
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
-            
-            if (Intersection2.TryIntersectWith(loop, polygon, out _, tolerance))
-            {
-                return true;
-            }
 
-            if (Containment2.Contains(loop, polygon[0], tolerance))
-            {
-                return true;
-            }
+            return CrossesOrStartsIn(loop, polygon, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon), tolerance);
+        }
 
-            if (Containment2.Contains(polygon, loop[0], tolerance))
-            {
-                return true;
-            }
-
-            return false;
+        /// <summary>
+        /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
+        /// nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoPolygon2 polygon, Tolerance tolerance)
+        {
+            return Intersection2.TryIntersectWith(loop, polygon, out _, tolerance)
+                || Containment2.Contains(loop, polygon[0], tolerance)
+                || Containment2.Contains(polygon, loop[0], tolerance);
         }
 
         /// <summary>
@@ -913,25 +929,28 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a chain that may curve, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// One shape lying wholly inside the other counts, so the boundaries need not cross.
+        /// One shape lying wholly inside the other counts, so the boundaries need not cross. Outside each other, they
+        /// collide where they come within the point tolerance, edge against edge: at a tolerance of a thousandth, two
+        /// boundaries half a thousandth apart collide and two thousandths apart do not.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolylineArc2 chain, Tolerance tolerance)
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (chain == null) throw new ArgumentNullException(nameof(chain));
-            
-            if (Intersection2.TryIntersectWith(loop, chain, out _, tolerance))
-            {
-                return true;
-            }
 
-            if (Containment2.Contains(loop, chain[0], tolerance))
-            {
-                return true;
-            }
+            return CrossesOrStartsIn(loop, chain, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain), tolerance);
+        }
 
-            return false;
+        /// <summary>
+        /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
+        /// nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoPolylineArc2 chain, Tolerance tolerance)
+        {
+            return Intersection2.TryIntersectWith(loop, chain, out _, tolerance)
+                || Containment2.Contains(loop, chain[0], tolerance);
         }
 
         /// <summary>
@@ -944,30 +963,29 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a loop that may curve, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// One shape lying wholly inside the other counts, so the boundaries need not cross.
+        /// One shape lying wholly inside the other counts, so the boundaries need not cross. Outside each other, they
+        /// collide where they come within the point tolerance, edge against edge: at a tolerance of a thousandth, two
+        /// boundaries half a thousandth apart collide and two thousandths apart do not.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolygonArc2 other, Tolerance tolerance)
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (other == null) throw new ArgumentNullException(nameof(other));
-            
-            if (Intersection2.TryIntersectWith(loop, other, out _, tolerance))
-            {
-                return true;
-            }
 
-            if (Containment2.Contains(loop, other[0], tolerance))
-            {
-                return true;
-            }
+            return CrossesOrStartsIn(loop, other, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other), tolerance);
+        }
 
-            if (Containment2.Contains(other, loop[0], tolerance))
-            {
-                return true;
-            }
-
-            return false;
+        /// <summary>
+        /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
+        /// nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoPolygonArc2 other, Tolerance tolerance)
+        {
+            return Intersection2.TryIntersectWith(loop, other, out _, tolerance)
+                || Containment2.Contains(loop, other[0], tolerance)
+                || Containment2.Contains(other, loop[0], tolerance);
         }
 
         #endregion

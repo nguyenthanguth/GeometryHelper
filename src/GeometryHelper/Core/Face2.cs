@@ -162,7 +162,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a arc reaches the material of a face, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoArc2 arc, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(arc, tolerance), rim => rim.GetIntersections(arc, tolerance), () => arc.StartPoint, null, tolerance);
+        /// <remarks>
+        /// The arc collides where it crosses a rim, lies on the material, or comes within the point tolerance of a rim,
+        /// the outline from outside or a hole's from within the hole. At a tolerance of a thousandth, an arc ending half
+        /// a thousandth above the top of the square 100 by 100 collides with it, and one ending two thousandths above
+        /// does not.
+        /// </remarks>
+        public static bool CollidesWith(GeoFace2 face, GeoArc2 arc, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(arc, tolerance), rim => rim.GetIntersections(arc, tolerance), () => arc.StartPoint, null, tolerance, hole => ArcChain2.ComeWithin(ArcChain2.EdgesOf(hole), arc, tolerance));
 
         /// <summary>
         /// Determines whether a circle reaches the material of a face.
@@ -212,7 +218,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a curved loop reaches the material of a face, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoPolygonArc2 loop, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(loop, tolerance), rim => rim.GetIntersections(loop, tolerance), () => loop.Vertices[0], at => loop.Contains(at, tolerance), tolerance);
+        /// <remarks>
+        /// The loop collides where it crosses a rim, where its material and the face's overlap, or where it comes within
+        /// the point tolerance of a rim, the outline from outside or a hole's from within the hole.
+        /// </remarks>
+        public static bool CollidesWith(GeoFace2 face, GeoPolygonArc2 loop, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(loop, tolerance), rim => rim.GetIntersections(loop, tolerance), () => loop.Vertices[0], at => loop.Contains(at, tolerance), tolerance, hole => ArcChain2.ComeWithin(ArcChain2.EdgesOf(hole), ArcChain2.EdgesOf(loop), tolerance));
 
         /// <summary>
         /// Determines whether a curved chain reaches the material of a face.
@@ -222,7 +232,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a curved chain reaches the material of a face, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(chain, tolerance), rim => rim.GetIntersections(chain, tolerance), () => chain.Vertices[0], null, tolerance);
+        /// <remarks>
+        /// The chain collides where it crosses a rim, lies on the material, or comes within the point tolerance of a rim,
+        /// the outline from outside or a hole's from within the hole.
+        /// </remarks>
+        public static bool CollidesWith(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(chain, tolerance), rim => rim.GetIntersections(chain, tolerance), () => chain.Vertices[0], null, tolerance, hole => ArcChain2.ComeWithin(ArcChain2.EdgesOf(hole), ArcChain2.EdgesOf(chain), tolerance));
 
         /// <summary>
         /// Determines whether the materials of two faces meet.
@@ -417,14 +431,20 @@ namespace GeometryHelper.Core
         /// <param name="arc">The arc.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Nought where <see cref="CollidesWith(GeoFace2, GeoArc2, Tolerance)"/> says the arc reaches the material;
-        /// otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoArc2, Tolerance)"/>. In the square 100 by
+        /// Nought where the arc crosses a rim or lies on the material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoArc2, Tolerance)"/>. In the square 100 by
         /// 100 with a corner at the origin and a hole 40 by 40 in its middle, the upper half of the circle of radius 10
         /// about (50, 50) lies in the hole and is 10 from its rim.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static double DistanceTo(GeoFace2 face, GeoArc2 arc, Tolerance tolerance)
-            => CollidesWith(face, arc, tolerance) ? 0.0 : GetShortestLineTo(face, arc, tolerance).Length;
+            => CrossesOrLiesOn(face, arc, tolerance) ? 0.0 : GetShortestLineTo(face, arc, tolerance).Length;
+
+        /// <summary>
+        /// Whether an arc crosses a rim of a face or lies on its material: where the distance is taken as nought
+        /// without measuring.
+        /// </summary>
+        private static bool CrossesOrLiesOn(GeoFace2 face, GeoArc2 arc, Tolerance tolerance)
+            => Touches(face, rim => Collision2.CrossesOrStartsIn(rim, arc, tolerance), rim => rim.GetIntersections(arc, tolerance), () => arc.StartPoint, null, tolerance);
 
         /// <summary>
         /// Gets the distance from the material of a face to a circle.
@@ -538,8 +558,7 @@ namespace GeometryHelper.Core
         /// <param name="loop">The loop, a region.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Nought where <see cref="CollidesWith(GeoFace2, GeoPolygonArc2, Tolerance)"/> says the loop reaches the
-        /// material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoPolygonArc2, Tolerance)"/>,
+        /// Nought where the loop crosses a rim or overlaps the material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoPolygonArc2, Tolerance)"/>,
         /// measured on the arcs. In the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle,
         /// the loop with corners (40, 40), (60, 40), (60, 60), (40, 60) and straight edges lies in the hole and is 10
         /// from its rim.
@@ -549,8 +568,15 @@ namespace GeometryHelper.Core
         {
             Required(face, loop, nameof(loop));
 
-            return CollidesWith(face, loop, tolerance) ? 0.0 : GetShortestLineTo(face, loop, tolerance).Length;
+            return CrossesOrLiesOn(face, loop, tolerance) ? 0.0 : GetShortestLineTo(face, loop, tolerance).Length;
         }
+
+        /// <summary>
+        /// Whether a curved loop crosses a rim of a face or overlaps its material: where the distance is taken as
+        /// nought without measuring.
+        /// </summary>
+        private static bool CrossesOrLiesOn(GeoFace2 face, GeoPolygonArc2 loop, Tolerance tolerance)
+            => Touches(face, rim => Collision2.CrossesOrStartsIn(loop, rim, tolerance), rim => rim.GetIntersections(loop, tolerance), () => loop.Vertices[0], at => loop.Contains(at, tolerance), tolerance);
 
         /// <summary>
         /// Gets the distance from the material of a face to a curved chain.
@@ -565,8 +591,7 @@ namespace GeometryHelper.Core
         /// <param name="chain">The chain, a curve.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Nought where <see cref="CollidesWith(GeoFace2, GeoPolylineArc2, Tolerance)"/> says the chain reaches the
-        /// material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoPolylineArc2, Tolerance)"/>,
+        /// Nought where the chain crosses a rim or lies on the material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoPolylineArc2, Tolerance)"/>,
         /// measured on the arcs. In the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle,
         /// the straight chain (40, 40), (60, 40), (60, 60) lies in the hole and is 10 from its rim.
         /// </returns>
@@ -575,8 +600,15 @@ namespace GeometryHelper.Core
         {
             Required(face, chain, nameof(chain));
 
-            return CollidesWith(face, chain, tolerance) ? 0.0 : GetShortestLineTo(face, chain, tolerance).Length;
+            return CrossesOrLiesOn(face, chain, tolerance) ? 0.0 : GetShortestLineTo(face, chain, tolerance).Length;
         }
+
+        /// <summary>
+        /// Whether a curved chain crosses a rim of a face or lies on its material: where the distance is taken as
+        /// nought without measuring.
+        /// </summary>
+        private static bool CrossesOrLiesOn(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance)
+            => Touches(face, rim => Collision2.CrossesOrStartsIn(chain, rim, tolerance), rim => rim.GetIntersections(chain, tolerance), () => chain.Vertices[0], null, tolerance);
 
         /// <summary>
         /// Gets the distance from the material of a face to an edge.
@@ -729,13 +761,15 @@ namespace GeometryHelper.Core
         /// <param name="somewhereOnProbe">One point of the probe, asked for only once the probe is known to be there.</param>
         /// <param name="probeHolds">Whether the probe holds a point, or null for a probe with no inside.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <param name="nearRim">Whether the probe comes within the point tolerance of a hole's rim, which keeps the hole from holding it; null not to ask.</param>
         private static bool Touches(
             GeoFace2 face,
             Func<GeoPolygon2, bool> collides,
             Func<GeoPolygon2, GeoPoint2[]> crossings,
             Func<GeoPoint2> somewhereOnProbe,
             Func<GeoPoint2, bool> probeHolds,
-            Tolerance tolerance)
+            Tolerance tolerance,
+            Func<GeoPolygon2, bool> nearRim = null)
         {
             if (face == null)
             {
@@ -751,7 +785,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoPolygon2 hole in face.Holes)
             {
-                if (Swallowed(hole, crossings(hole), on, probeHolds, tolerance))
+                if (Swallowed(hole, crossings(hole), on, probeHolds, tolerance) && (nearRim == null || !nearRim(hole)))
                 {
                     return false;
                 }

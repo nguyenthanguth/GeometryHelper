@@ -410,6 +410,146 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Determines whether two runs of edges come within the point tolerance of each other anywhere.
+        /// </summary>
+        /// <remarks>
+        /// Edge against edge, each pair measured exactly, a segment against a segment, a segment against an arc or
+        /// two arcs, once a test of their boxes has set aside the pairs more than twice the point tolerance apart; the
+        /// first pair near enough ends the search. Nothing here asks whether the two collide, so the collision tests
+        /// can lean on it.
+        /// </remarks>
+        internal static bool ComeWithin(List<GeoEdge2> first, List<GeoEdge2> second, Tolerance tolerance)
+        {
+            var boxes = new Box[second.Count];
+
+            for (int j = 0; j < second.Count; j++)
+            {
+                boxes[j] = Box.Of(second[j]);
+            }
+
+            foreach (GeoEdge2 one in first)
+            {
+                Box box = Box.Of(one);
+
+                for (int j = 0; j < second.Count; j++)
+                {
+                    if (box.Near(boxes[j], tolerance) && one.DistanceTo(second[j], tolerance) <= tolerance.EqualPoint)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether a run of edges comes within the point tolerance of an arc anywhere.
+        /// </summary>
+        internal static bool ComeWithin(List<GeoEdge2> edges, GeoArc2 arc, Tolerance tolerance)
+        {
+            Box box = Box.Around(arc.Center, arc.Radius);
+
+            foreach (GeoEdge2 edge in edges)
+            {
+                if (box.Near(Box.Of(edge), tolerance) && edge.DistanceTo(arc, tolerance) <= tolerance.EqualPoint)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether a run of edges comes within the point tolerance of a circle, read as the disc it bounds.
+        /// </summary>
+        internal static bool ComeWithin(List<GeoEdge2> edges, GeoCircle2 circle, Tolerance tolerance)
+        {
+            Box box = Box.Around(circle.Center, circle.Radius);
+
+            foreach (GeoEdge2 edge in edges)
+            {
+                if (box.Near(Box.Of(edge), tolerance) && edge.DistanceTo(circle, tolerance) <= tolerance.EqualPoint)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// A box holding an edge, an arc or a circle, for setting aside the pairs that are plainly apart.
+        /// </summary>
+        private readonly struct Box
+        {
+            private readonly double _minX;
+            private readonly double _minY;
+            private readonly double _maxX;
+            private readonly double _maxY;
+
+            private Box(double minX, double minY, double maxX, double maxY)
+            {
+                _minX = minX;
+                _minY = minY;
+                _maxX = maxX;
+                _maxY = maxY;
+            }
+
+            /// <summary>
+            /// The box of an edge. An arc of at most a half turn, a bulge of at most one, lies within its sagitta,
+            /// half the chord times the size of the bulge, of its chord, so within the chord's box grown by that much.
+            /// A longer one lies within half its chord times the size of the bulge of the chord's middle.
+            /// </summary>
+            internal static Box Of(GeoEdge2 edge)
+            {
+                var chord = new Box(
+                    Math.Min(edge.StartPoint.X, edge.EndPoint.X), Math.Min(edge.StartPoint.Y, edge.EndPoint.Y),
+                    Math.Max(edge.StartPoint.X, edge.EndPoint.X), Math.Max(edge.StartPoint.Y, edge.EndPoint.Y));
+
+                if (!edge.IsArc)
+                {
+                    return chord;
+                }
+
+                double bulge = Math.Abs(edge.Bulge);
+                double half = 0.5 * Distance2.DistanceTo(edge.StartPoint, edge.EndPoint);
+
+                if (bulge <= 1.0)
+                {
+                    double sagitta = half * bulge;
+
+                    return new Box(chord._minX - sagitta, chord._minY - sagitta, chord._maxX + sagitta, chord._maxY + sagitta);
+                }
+
+                return Around(
+                    new GeoPoint2(0.5 * (edge.StartPoint.X + edge.EndPoint.X), 0.5 * (edge.StartPoint.Y + edge.EndPoint.Y)),
+                    half * bulge);
+            }
+
+            /// <summary>
+            /// The box of everything within a reach of a centre, which holds an arc or a circle about it.
+            /// </summary>
+            internal static Box Around(GeoPoint2 centre, double reach)
+                => new Box(centre.X - reach, centre.Y - reach, centre.X + reach, centre.Y + reach);
+
+            /// <summary>
+            /// Whether two boxes come within twice the point tolerance of each other, so that nothing within the
+            /// tolerance is set aside.
+            /// </summary>
+            internal bool Near(Box other, Tolerance tolerance)
+            {
+                double reach = 2.0 * tolerance.EqualPoint;
+
+                return other._minX - _maxX <= reach
+                    && _minX - other._maxX <= reach
+                    && other._minY - _maxY <= reach
+                    && _minY - other._maxY <= reach;
+            }
+        }
+
+        /// <summary>
         /// Gets the points where a run of edges meets a straight segment.
         /// </summary>
         internal static GeoPoint2[] Intersections(List<GeoEdge2> edges, GeoLine2 line, Tolerance tolerance)

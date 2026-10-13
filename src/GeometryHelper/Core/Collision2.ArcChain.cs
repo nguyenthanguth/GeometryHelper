@@ -10,8 +10,8 @@ namespace GeometryHelper.Core
     /// The rule is the one used everywhere else in this class: two shapes collide when their boundaries
     /// meet, or when one lies inside the other and the two never cross at all. A polygon, a rectangle and
     /// a circle are closed and so have an inside; a segment, a polyline and an arc do not, so for those
-    /// nothing but a meeting counts. A segment meets an arc, as it meets another segment, where the two
-    /// cross or come within the point tolerance of each other.
+    /// nothing but a meeting counts. Two shapes meet where they cross or come within the point tolerance of
+    /// each other, measured edge by edge along the arcs.
     /// </remarks>
     public static partial class Collision2
     {
@@ -43,9 +43,11 @@ namespace GeometryHelper.Core
         /// Determines whether an arc touches another arc, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// Neither has an inside, so they collide only where they cross. Two arcs of the same circle are the
-        /// exception: they cross nowhere, because two circles lying on each other meet along their whole
-        /// length rather than at points, so those are settled by asking whether either holds an end of the
+        /// Neither has an inside, so they collide where they cross or come within the point tolerance of each
+        /// other. At a tolerance of a thousandth, an arc ending half a thousandth above the top of the circle of
+        /// radius 50 about the origin collides with its upper half, and one ending two thousandths above does not.
+        /// Two arcs of the same circle cross nowhere, because two circles lying on each other meet along their
+        /// whole length rather than at points, so those are settled by asking whether either holds an end of the
         /// other, which is where an overlap of two arcs of one circle always begins and ends.
         /// </remarks>
         public static bool CollidesWith(GeoArc2 first, GeoArc2 second, Tolerance tolerance)
@@ -59,7 +61,18 @@ namespace GeometryHelper.Core
                     || second.IsPointOn(first.EndPoint, tolerance);
             }
 
-            return Arc2.TryIntersectWith(first, second, out _, tolerance);
+            // Two arcs come no nearer than their whole circles do, so circles more than the point tolerance apart, one
+            // beside the other or one inside the other, settle it without measuring.
+            double apart = Distance2.DistanceTo(first.Center, second.Center);
+
+            if (apart > first.Radius + second.Radius + tolerance.EqualPoint
+                || apart < Math.Abs(first.Radius - second.Radius) - tolerance.EqualPoint)
+            {
+                return false;
+            }
+
+            // The distance is nought where they cross.
+            return Arc2.DistanceTo(first, second, tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -71,12 +84,14 @@ namespace GeometryHelper.Core
         /// Determines whether a circle touches or overlaps an arc, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A circle is read as a filled disc, so an arc lying wholly within one collides with it.
+        /// A circle is read as a filled disc, so an arc lying wholly within one collides with it, and so does one
+        /// coming within the point tolerance of its rim from outside.
         /// </remarks>
         public static bool CollidesWith(GeoCircle2 circle, GeoArc2 arc, Tolerance tolerance)
         {
             return Arc2.TryIntersectWith(arc, circle, out _, tolerance)
-                || Containment2.Contains(circle, arc.StartPoint, tolerance);
+                || Containment2.Contains(circle, arc.StartPoint, tolerance)
+                || Arc2.DistanceTo(arc, circle, tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -89,12 +104,22 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// An arc lying wholly inside the polygon crosses none of its edges, so where it starts is asked
-        /// as well.
+        /// as well. Outside, an arc coming within the point tolerance of an edge collides with it.
         /// </remarks>
         public static bool CollidesWith(GeoPolygon2 poly, GeoArc2 arc, Tolerance tolerance)
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
+            return CrossesOrStartsIn(poly, arc, tolerance)
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(poly), arc, tolerance);
+        }
+
+        /// <summary>
+        /// Whether an arc crosses the boundary of a polygon or starts inside it: where the distance between them is
+        /// taken as nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygon2 poly, GeoArc2 arc, Tolerance tolerance)
+        {
             return Intersection2.GetIntersections(poly, arc, tolerance).Length > 0
                 || Containment2.Contains(poly, arc.StartPoint, tolerance);
         }
@@ -108,13 +133,14 @@ namespace GeometryHelper.Core
         /// Determines whether a polyline touches an arc, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// Neither has an inside, so they collide only where they cross.
+        /// Neither has an inside, so they collide where they cross or come within the point tolerance of each other.
         /// </remarks>
         public static bool CollidesWith(GeoPolyline2 polyline, GeoArc2 arc, Tolerance tolerance)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            return Intersection2.GetIntersections(polyline, arc, tolerance).Length > 0;
+            return Intersection2.GetIntersections(polyline, arc, tolerance).Length > 0
+                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(polyline), arc, tolerance);
         }
 
         /// <summary>

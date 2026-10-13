@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Every pair of curves now collides where the two come within the point tolerance, not only where they cross
+or one holds the other. That covers an arc, a curved edge, a polyline against a curve, a curved chain, a curved loop,
+and a circle against a curve, and also a polygon, rectangle, triangle or face against an arc, curved chain or curved
+loop. An arc ending 0.0005 from another arc did not collide with it even at a tolerance of 0.1, though their distance
+was 0.0005; it now collides at 1E-3. A polyline lying along a straight edge of a curved chain collided with it at no
+tolerance, though their distance was nought, and now does. Distances are unchanged.
+
 **FIXED.** A curved chain or loop that drops a vertex as a repeat of the one before keeps the bulge of the edge that
 still has a length, in the plane and in space. The chain (0, 0), (10, 0), (10.0004, 0), (20, 0) with bulges 0, 0, 1
 lost its half circle to the chord, and a rectangle 100 by 50 filleted at radius 0.0005 came back with arcs of radius 35

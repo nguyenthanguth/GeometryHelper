@@ -21,7 +21,7 @@ namespace GeometryHelper.Geometry
         /// is and asks that shape. What counts as touching is then whatever it counts as for a segment or
         /// an arc: neither has an inside, so against another open shape only a meeting counts, while a
         /// closed one swallowing the edge whole counts as well. A segment meets a segment or an arc where
-        /// the two cross or come within the point tolerance; two arcs meet only where they cross.
+        /// the two cross or come within the point tolerance, and so do two arcs.
         /// </remarks>
         public bool CollidesWith(GeoLine2 line, Tolerance tolerance)
             => IsArc ? ToArc().CollidesWith(line, tolerance) : ToLine().CollidesWith(line, tolerance);
