@@ -67,6 +67,31 @@ namespace GeometryHelper.Core
         #region Collision
 
         /// <summary>
+        /// Whether a segment crosses a triangle or starts inside it, read as before near misses counted: the reading the
+        /// shapes of space keep when they lay a triangle out in its plane, where they weigh a near miss in their own way.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoTriangle2 triangle, GeoLine2 line, Tolerance tolerance)
+            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+                ? Collision2.CrossesOrStartsIn(shape, line, tolerance)
+                : hull.CollidesWith(line, tolerance);
+
+        /// <summary>
+        /// Whether a triangle and a polygon cross or one starts inside the other, read as before near misses counted.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoTriangle2 triangle, GeoPolygon2 polygon, Tolerance tolerance)
+            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+                ? Collision2.CrossesOrStartsIn(shape, polygon, tolerance)
+                : Collision2.CrossesOrStartsIn(polygon, hull, tolerance);
+
+        /// <summary>
+        /// Whether a triangle crosses a rim of a face or lies on its material, read as before near misses counted.
+        /// </summary>
+        internal static bool CrossesOrLiesOn(GeoTriangle2 triangle, GeoFace2 face, Tolerance tolerance)
+            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+                ? Face2.CrossesOrLiesOn(face, shape, tolerance)
+                : Face2.CrossesOrLiesOn(face, hull, tolerance);
+
+        /// <summary>
         /// Checks whether a triangle touches an arc, using the default tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoArc2 arc) => CollidesWith(triangle, arc, Tolerance.Global);

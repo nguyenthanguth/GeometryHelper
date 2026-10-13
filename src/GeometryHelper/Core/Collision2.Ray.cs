@@ -49,7 +49,8 @@ namespace GeometryHelper.Core
         public static bool CollidesWith(GeoPolygon2 poly, GeoRay2 ray) => CollidesWith(poly, ray, Tolerance.Global);
 
         /// <summary>
-        /// Checks whether a ray starts inside a polygon or runs into it, within a tolerance.
+        /// Checks whether a ray starts inside a polygon, runs into it, or passes within the point tolerance of it,
+        /// within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool CollidesWith(GeoPolygon2 poly, GeoRay2 ray, Tolerance tolerance)
@@ -116,22 +117,12 @@ namespace GeometryHelper.Core
         public static bool CollidesWith(GeoRectangle2 rect, GeoRay2 ray) => CollidesWith(rect, ray, Tolerance.Global);
 
         /// <summary>
-        /// Checks whether a ray starts inside a rectangle or runs into it, within a tolerance.
+        /// Checks whether a ray starts inside a rectangle, runs into it, or passes within the point tolerance of it,
+        /// within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoRectangle2 rect, GeoRay2 ray, Tolerance tolerance)
         {
-            // CollidesWith(rect, line, tolerance) read through.
-            GeoLine2 cut = Ray2.CutPast(ray, rect, tolerance);
-
-            foreach (GeoLine2 edge in rect.GetEdges())
-            {
-                if (Intersection2.TryIntersectWith(cut, edge, out _, tolerance))
-                {
-                    return true;
-                }
-            }
-
-            return Containment2.Contains(rect, cut.StartPoint, tolerance);
+            return CollidesWith(rect, Ray2.CutPast(ray, rect, tolerance), tolerance);
         }
 
         /// <summary>

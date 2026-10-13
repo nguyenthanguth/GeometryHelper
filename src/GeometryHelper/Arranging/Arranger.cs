@@ -231,9 +231,9 @@ namespace GeometryHelper.Arranging
                     continue;
                 }
 
-                // AnyCollides passes over every block whose box does not overlap that of the label, so the blocks the
-                // index finds for it are all it would look at, in the same order.
-                bool clear = !Obstacle.AnyCollides(blocks.Overlapping(bounds[i]), boxes[i], options.Tolerance);
+                // AnyCollides passes over every block whose box does not overlap that of the label grown by the point
+                // tolerance, so the blocks the index finds for that grown box are all it would look at, in the same order.
+                bool clear = !Obstacle.AnyCollides(blocks.Overlapping(bounds[i].Expand(options.Tolerance.EqualPoint)), boxes[i], options.Tolerance);
 
                 // Only the labels whose boxes overlap, bounds[i].Overlaps(bounds[j]), are judged against this one, in
                 // the order of the items. Two boxes standing apart by less than the tolerance are not judged, as before:

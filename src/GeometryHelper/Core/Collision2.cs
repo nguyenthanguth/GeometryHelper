@@ -209,9 +209,32 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a rectangle collides with a line segment within tolerance.
         /// </summary>
+        /// <remarks>
+        /// They collide where they cross, where one holds the other, or where they come within the point tolerance of
+        /// each other, edge against edge with no slack past the ends. At a tolerance of a thousandth, the segment from
+        /// (40, 100.01) to (60, 100.0005) collides with the square from the origin to (100, 100), ending half a
+        /// thousandth above its top, and one ending two thousandths above does not.
+        /// </remarks>
         public static bool CollidesWith(GeoRectangle2 rect, GeoLine2 line, Tolerance tolerance)
         {
-            foreach (var edge in rect.GetEdges())
+            GeoLine2[] edges = rect.GetEdges();
+
+            return CrossesOrStartsIn(rect, edges, line, tolerance) || ComeWithin(edges, line, tolerance);
+        }
+
+        /// <summary>
+        /// Whether a segment crosses a rectangle or starts inside it: where the distance between them is taken as
+        /// nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoRectangle2 rect, GeoLine2 line, Tolerance tolerance)
+            => CrossesOrStartsIn(rect, rect.GetEdges(), line, tolerance);
+
+        /// <summary>
+        /// Whether a segment crosses a rectangle, given as it is and as its edges, or starts inside it.
+        /// </summary>
+        private static bool CrossesOrStartsIn(GeoRectangle2 rect, GeoLine2[] edges, GeoLine2 line, Tolerance tolerance)
+        {
+            foreach (var edge in edges)
             {
                 if (Intersection2.TryIntersectWith(line, edge, out _, tolerance))
                 {
@@ -238,13 +261,35 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a rectangle collides with a polygon within tolerance.
         /// </summary>
+        /// <remarks>
+        /// They collide where they cross, where one holds the other, or where they come within the point tolerance of
+        /// each other, edge against edge with no slack past the ends. At a tolerance of a thousandth, the segment from
+        /// (40, 100.01) to (60, 100.0005) collides with the square from the origin to (100, 100), ending half a
+        /// thousandth above its top, and one ending two thousandths above does not.
+        /// </remarks>
         public static bool CollidesWith(GeoRectangle2 rect, GeoPolygon2 poly, Tolerance tolerance)
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
             GeoLine2[] rectEdges = rect.GetEdges();
+            GeoLine2[] polyEdges = EdgesOf(poly);
 
-            foreach (var polyEdge in poly.GetEdges())
+            return CrossesOrStartsIn(rect, rectEdges, poly, polyEdges, tolerance) || ComeWithin(rectEdges, polyEdges, tolerance);
+        }
+
+        /// <summary>
+        /// Whether a rectangle and a polygon cross or one starts inside the other: where the distance between them is
+        /// taken as nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoRectangle2 rect, GeoPolygon2 poly, Tolerance tolerance)
+            => CrossesOrStartsIn(rect, rect.GetEdges(), poly, EdgesOf(poly), tolerance);
+
+        /// <summary>
+        /// Whether a rectangle and a polygon, each given with its edges, cross or one starts inside the other.
+        /// </summary>
+        private static bool CrossesOrStartsIn(GeoRectangle2 rect, GeoLine2[] rectEdges, GeoPolygon2 poly, GeoLine2[] polyEdges, Tolerance tolerance)
+        {
+            foreach (var polyEdge in polyEdges)
             {
                 foreach (var rectEdge in rectEdges)
                 {
@@ -283,11 +328,34 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a polygon collides with a line segment within tolerance.
         /// </summary>
+        /// <remarks>
+        /// They collide where they cross, where one holds the other, or where they come within the point tolerance of
+        /// each other, edge against edge with no slack past the ends. At a tolerance of a thousandth, the segment from
+        /// (40, 100.01) to (60, 100.0005) collides with the square from the origin to (100, 100), ending half a
+        /// thousandth above its top, and one ending two thousandths above does not.
+        /// </remarks>
         public static bool CollidesWith(GeoPolygon2 poly, GeoLine2 line, Tolerance tolerance)
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
-            foreach (var polyEdge in poly.GetEdges())
+            GeoLine2[] edges = EdgesOf(poly);
+
+            return CrossesOrStartsIn(poly, edges, line, tolerance) || ComeWithin(edges, line, tolerance);
+        }
+
+        /// <summary>
+        /// Whether a segment crosses a polygon or starts inside it: where the distance between them is taken as nought
+        /// without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygon2 poly, GeoLine2 line, Tolerance tolerance)
+            => CrossesOrStartsIn(poly, EdgesOf(poly), line, tolerance);
+
+        /// <summary>
+        /// Whether a segment crosses a polygon, given as it is and as its edges, or starts inside it.
+        /// </summary>
+        private static bool CrossesOrStartsIn(GeoPolygon2 poly, GeoLine2[] edges, GeoLine2 line, Tolerance tolerance)
+        {
+            foreach (var polyEdge in edges)
             {
                 if (Intersection2.TryIntersectWith(line, polyEdge, out _, tolerance))
                 {
@@ -314,9 +382,27 @@ namespace GeometryHelper.Core
             if (poly1 == null) throw new ArgumentNullException(nameof(poly1));
             if (poly2 == null) throw new ArgumentNullException(nameof(poly2));
 
-            foreach (var edge1 in poly1.GetEdges())
+            GeoLine2[] edges1 = EdgesOf(poly1);
+            GeoLine2[] edges2 = EdgesOf(poly2);
+
+            return CrossesOrStartsIn(poly1, edges1, poly2, edges2, tolerance) || ComeWithin(edges1, edges2, tolerance);
+        }
+
+        /// <summary>
+        /// Whether two polygons cross or one starts inside the other: where the distance between them is taken as
+        /// nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygon2 poly1, GeoPolygon2 poly2, Tolerance tolerance)
+            => CrossesOrStartsIn(poly1, EdgesOf(poly1), poly2, EdgesOf(poly2), tolerance);
+
+        /// <summary>
+        /// Whether two polygons, each given with its edges, cross or one starts inside the other.
+        /// </summary>
+        private static bool CrossesOrStartsIn(GeoPolygon2 poly1, GeoLine2[] edges1, GeoPolygon2 poly2, GeoLine2[] edges2, Tolerance tolerance)
+        {
+            foreach (var edge1 in edges1)
             {
-                foreach (var edge2 in poly2.GetEdges())
+                foreach (var edge2 in edges2)
                 {
                     if (Intersection2.TryIntersectWith(edge1, edge2, out _, tolerance))
                     {
@@ -391,6 +477,116 @@ namespace GeometryHelper.Core
                 tolerance);
 
         /// <summary>
+        /// Whether a segment comes within the point tolerance of another, measured exactly: they meet where they truly
+        /// cross, and otherwise the least of the distances from an end of one to the other decides. Nothing past an end
+        /// counts, so two corners between one and two tolerances apart do not meet here.
+        /// </summary>
+        internal static bool Near(GeoLine2 first, GeoLine2 second, Tolerance tolerance)
+        {
+            if (Clear(first, second, tolerance))
+            {
+                return false;
+            }
+
+            if (CrossExactly(first, second))
+            {
+                return true;
+            }
+
+            double reach = tolerance.EqualPoint;
+
+            return Distance2.DistanceTo(first, second.StartPoint, tolerance) <= reach
+                || Distance2.DistanceTo(first, second.EndPoint, tolerance) <= reach
+                || Distance2.DistanceTo(second, first.StartPoint, tolerance) <= reach
+                || Distance2.DistanceTo(second, first.EndPoint, tolerance) <= reach;
+        }
+
+        /// <summary>
+        /// Whether two segments cross at a point inside both, each pair of ends lying strictly either side of the
+        /// other's line. A touch at an end, or two segments on one line, is left to the distances from the ends.
+        /// </summary>
+        private static bool CrossExactly(GeoLine2 first, GeoLine2 second)
+        {
+            double a = Turn(first.StartPoint, first.EndPoint, second.StartPoint);
+            double b = Turn(first.StartPoint, first.EndPoint, second.EndPoint);
+            double c = Turn(second.StartPoint, second.EndPoint, first.StartPoint);
+            double d = Turn(second.StartPoint, second.EndPoint, first.EndPoint);
+
+            return ((a > 0.0 && b < 0.0) || (a < 0.0 && b > 0.0)) && ((c > 0.0 && d < 0.0) || (c < 0.0 && d > 0.0));
+        }
+
+        /// <summary>
+        /// Which way a path from one point through a second turns to reach a third: positive anticlockwise.
+        /// </summary>
+        private static double Turn(GeoPoint2 from, GeoPoint2 through, GeoPoint2 to)
+            => (through.X - from.X) * (to.Y - from.Y) - (through.Y - from.Y) * (to.X - from.X);
+
+        /// <summary>
+        /// Whether a segment comes within the point tolerance of any of a run of segments, measured exactly.
+        /// </summary>
+        internal static bool ComeWithin(GeoLine2[] edges, GeoLine2 line, Tolerance tolerance)
+        {
+            for (int i = 0; i < edges.Length; i++)
+            {
+                if (Near(line, edges[i], tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Whether two runs of segments come within the point tolerance of each other anywhere, measured exactly.
+        /// </summary>
+        internal static bool ComeWithin(GeoLine2[] first, GeoLine2[] second, Tolerance tolerance)
+        {
+            for (int i = 0; i < first.Length; i++)
+            {
+                for (int j = 0; j < second.Length; j++)
+                {
+                    if (Near(first[i], second[j], tolerance))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The edges of a polygon, in order.
+        /// </summary>
+        private static GeoLine2[] EdgesOf(GeoPolygon2 poly)
+        {
+            var edges = new GeoLine2[poly.EdgeCount];
+
+            for (int i = 0; i < edges.Length; i++)
+            {
+                edges[i] = poly.GetEdgeAt(i);
+            }
+
+            return edges;
+        }
+
+        /// <summary>
+        /// The edges of a polyline, in order.
+        /// </summary>
+        private static GeoLine2[] EdgesOf(GeoPolyline2 polyline)
+        {
+            var edges = new GeoLine2[polyline.EdgeCount];
+
+            for (int i = 0; i < edges.Length; i++)
+            {
+                edges[i] = polyline.GetEdgeAt(i);
+            }
+
+            return edges;
+        }
+
+        /// <summary>
         /// Whether a segment lies more than twice the point tolerance clear of an arc's whole circle: outside the
         /// circle's box, or with both ends that far inside the circle, which holds the whole segment that far inside.
         /// </summary>
@@ -439,6 +635,23 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Whether a polyline crosses a rectangle or starts an edge inside it: where the distance between them is
+        /// taken as nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolyline2 polyline, GeoRectangle2 rect, Tolerance tolerance)
+        {
+            for (int i = 0; i < polyline.EdgeCount; i++)
+            {
+                if (CrossesOrStartsIn(rect, polyline.GetEdgeAt(i), tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return Containment2.IsPointOn(polyline, rect.Center, tolerance);
+        }
+
+        /// <summary>
         /// Checks whether a polyline collides with a polygon using default tolerance.
         /// </summary>
         public static bool CollidesWith(GeoPolyline2 polyline, GeoPolygon2 poly)
@@ -468,6 +681,23 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Whether a polyline crosses a polygon or starts an edge inside it: where the distance between them is taken
+        /// as nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolyline2 polyline, GeoPolygon2 poly, Tolerance tolerance)
+        {
+            for (int i = 0; i < polyline.EdgeCount; i++)
+            {
+                if (CrossesOrStartsIn(poly, polyline.GetEdgeAt(i), tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return Containment2.IsPointOn(polyline, poly.Vertices[0], tolerance);
+        }
+
+        /// <summary>
         /// Checks whether two polylines collide using default tolerance.
         /// </summary>
         public static bool CollidesWith(GeoPolyline2 pl1, GeoPolyline2 pl2)
@@ -478,11 +708,26 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two polylines collide within tolerance.
         /// </summary>
+        /// <remarks>
+        /// Neither has an inside, so they collide where they cross or come within the point tolerance of each other,
+        /// edge against edge with no slack past the ends. At a tolerance of a thousandth, the polyline from (40, 100.01)
+        /// to (60, 100.0005) collides with the one from (0, 100) to (100, 100), and one ending two thousandths above
+        /// does not.
+        /// </remarks>
         public static bool CollidesWith(GeoPolyline2 pl1, GeoPolyline2 pl2, Tolerance tolerance)
         {
             if (pl1 == null) throw new ArgumentNullException(nameof(pl1));
             if (pl2 == null) throw new ArgumentNullException(nameof(pl2));
 
+            return CrossesOrStartsOn(pl1, pl2, tolerance) || ComeWithin(EdgesOf(pl1), EdgesOf(pl2), tolerance);
+        }
+
+        /// <summary>
+        /// Whether two polylines cross or one starts on the other: where the distance between them is taken as nought
+        /// without measuring.
+        /// </summary>
+        internal static bool CrossesOrStartsOn(GeoPolyline2 pl1, GeoPolyline2 pl2, Tolerance tolerance)
+        {
             for (int i = 0; i < pl1.EdgeCount; i++)
             {
                 GeoLine2 edge1 = pl1.GetEdgeAt(i);

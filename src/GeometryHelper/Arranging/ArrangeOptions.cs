@@ -87,6 +87,11 @@ namespace GeometryHelper.Arranging
         /// Tolerance used for geometric calculations and intersection checks: <see cref="GeometryHelper.Tolerance.Global"/>
         /// as it stands when the options are made, unless set.
         /// </summary>
+        /// <remarks>
+        /// A place that comes within the point tolerance of a region or a line kept clear of collides with it, though
+        /// their boxes do not overlap: at a tolerance of a thousandth, a label whose place ends half a thousandth below a
+        /// line is not put there. Two labels are judged on their boxes as they stand.
+        /// </remarks>
         public Tolerance Tolerance { get; set; } = Tolerance.Global;
     }
 }

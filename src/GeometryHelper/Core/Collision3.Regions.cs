@@ -80,7 +80,7 @@ namespace GeometryHelper.Core
             if (Intersection3.Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
                 && PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flatPolygon))
             {
-                return Triangle2.CollidesWith(
+                return Triangle2.CrossesOrStartsIn(
                     PlanarMap.ProjectToTriangle2(frame, triangle),
                     flatPolygon,
                     tolerance)
@@ -153,7 +153,7 @@ namespace GeometryHelper.Core
             if (Intersection3.Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
                 && PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 flatFace))
             {
-                return Triangle2.CollidesWith(
+                return Triangle2.CrossesOrLiesOn(
                     PlanarMap.ProjectToTriangle2(frame, triangle),
                     flatFace,
                     tolerance)
@@ -225,7 +225,7 @@ namespace GeometryHelper.Core
                 && PlanarMap.TryProjectToPolygon2(frame, polygon1, tolerance, out GeoPolygon2 flatPolygon1)
                 && PlanarMap.TryProjectToPolygon2(frame, polygon2, tolerance, out GeoPolygon2 flatPolygon2))
             {
-                return Collision2.CollidesWith(
+                return Collision2.CrossesOrStartsIn(
                     flatPolygon1,
                     flatPolygon2,
                     tolerance)
@@ -297,7 +297,7 @@ namespace GeometryHelper.Core
                 && PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 flatFace)
                 && PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flatPolygon))
             {
-                return Face2.CollidesWith(
+                return Face2.CrossesOrLiesOn(
                     flatFace,
                     flatPolygon,
                     tolerance)
@@ -370,7 +370,7 @@ namespace GeometryHelper.Core
                 && PlanarMap.TryProjectToFace2(frame, face1, tolerance, out GeoFace2 flatFace1)
                 && PlanarMap.TryProjectToFace2(frame, face2, tolerance, out GeoFace2 flatFace2))
             {
-                return Face2.CollidesWith(
+                return Face2.CrossesOrLiesOn(
                     flatFace1,
                     flatFace2,
                     tolerance)

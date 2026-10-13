@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A polygon, rectangle, triangle or face now collides with a segment, a ray, a polyline or another such shape
+wherever the two come within the point tolerance, not only where they cross or one starts inside the other. A hole's
+rim counts as boundary. The segment from (40, 100.01) to (60, 100.0005) ends 0.0005 above the square 100 by 100. It did
+not collide with the square as a polygon, rectangle, triangle or face at a tolerance of 1E-3, though the same square as
+a curved loop said it did; now all agree. Distances are unchanged. Label placement follows: a place within the
+tolerance of a line or a region kept clear is no longer taken, though their boxes do not overlap. Two labels are still
+judged on their boxes. A pair that does not collide is checked about a third slower on shapes of thousands of edges.
+
 **FIXED.** Every pair of curves now collides where the two come within the point tolerance, not only where they cross
 or one holds the other. That covers an arc, a curved edge, a polyline against a curve, a curved chain, a curved loop,
 and a circle against a curve, and also a polygon, rectangle, triangle or face against an arc, curved chain or curved

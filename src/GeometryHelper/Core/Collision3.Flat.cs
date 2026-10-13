@@ -230,7 +230,7 @@ namespace GeometryHelper.Core
 
             GeoCoordinateSystem3 frame = Intersection3.Flat.Of(triangle).Frame;
 
-            return Triangle2.CollidesWith(PlanarMap.ProjectToTriangle2(frame, triangle), LayOut(frame, from, to), tolerance);
+            return Triangle2.CrossesOrStartsIn(PlanarMap.ProjectToTriangle2(frame, triangle), LayOut(frame, from, to), tolerance);
         }
 
         /// <summary>
@@ -247,7 +247,7 @@ namespace GeometryHelper.Core
             GeoCoordinateSystem3 frame = PlanarMap.FrameOf(polygon);
 
             return PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flat)
-                && Collision2.CollidesWith(flat, LayOut(frame, from, to), tolerance);
+                && Collision2.CrossesOrStartsIn(flat, LayOut(frame, from, to), tolerance);
         }
 
         /// <summary>
@@ -264,7 +264,7 @@ namespace GeometryHelper.Core
             GeoCoordinateSystem3 frame = PlanarMap.FrameOf(face);
 
             return PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 flat)
-                && Face2.CollidesWith(flat, LayOut(frame, from, to), tolerance);
+                && Face2.CrossesOrLiesOn(flat, LayOut(frame, from, to), tolerance);
         }
 
         #endregion

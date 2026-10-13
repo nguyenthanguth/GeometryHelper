@@ -152,7 +152,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a segment reaches the material of a face, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoLine2 line, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(line, tolerance), rim => rim.GetIntersections(line, tolerance), () => line.StartPoint, null, tolerance);
+        /// <remarks>
+        /// The segment collides where it crosses a rim, lies on the material, or comes within the point tolerance of a rim,
+        /// the outline from outside or a hole's from within the hole. At a tolerance of a thousandth, the segment from (41, 58) to
+        /// (50, 59.9995), in the hole from (40, 40) to (60, 60) of the square 100 by 100, reaches the material half a
+        /// thousandth below the hole's top.
+        /// </remarks>
+        public static bool CollidesWith(GeoFace2 face, GeoLine2 line, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(line, tolerance), rim => rim.GetIntersections(line, tolerance), () => line.StartPoint, null, tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), line, tolerance));
 
         /// <summary>
         /// Determines whether a arc reaches the material of a face.
@@ -178,7 +184,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a circle reaches the material of a face, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(circle, tolerance), rim => rim.GetIntersections(circle, tolerance), () => circle.Center, at => circle.Contains(at, tolerance), tolerance);
+        /// <remarks>
+        /// The circle, read as its disc, collides where it reaches the material or comes within the point tolerance of
+        /// a rim, a hole's from within the hole included.
+        /// </remarks>
+        public static bool CollidesWith(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(circle, tolerance), rim => rim.GetIntersections(circle, tolerance), () => circle.Center, at => circle.Contains(at, tolerance), tolerance, hole => NearDisc(hole, circle, tolerance));
 
         /// <summary>
         /// Determines whether a rectangle reaches the material of a face.
@@ -188,7 +198,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a rectangle reaches the material of a face, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(rect, tolerance), rim => rim.GetIntersections(rect, tolerance), () => rect.Center, at => Containment2.Contains(rect, at, tolerance), tolerance);
+        /// <remarks>
+        /// The rectangle collides where it crosses a rim, where its material and the face's overlap, or where it comes
+        /// within the point tolerance of a rim, the outline from outside or a hole's from within the hole.
+        /// </remarks>
+        public static bool CollidesWith(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(rect, tolerance), rim => rim.GetIntersections(rect, tolerance), () => rect.Center, at => Containment2.Contains(rect, at, tolerance), tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), rect.GetEdges(), tolerance));
 
         /// <summary>
         /// Determines whether a polyline reaches the material of a face.
@@ -198,7 +212,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a polyline reaches the material of a face, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoPolyline2 polyline, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(polyline, tolerance), rim => rim.GetIntersections(polyline, tolerance), () => polyline.Vertices[0], null, tolerance);
+        /// <remarks>
+        /// The polyline collides where it crosses a rim, lies on the material, or comes within the point tolerance of a
+        /// rim, the outline from outside or a hole's from within the hole.
+        /// </remarks>
+        public static bool CollidesWith(GeoFace2 face, GeoPolyline2 polyline, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(polyline, tolerance), rim => rim.GetIntersections(polyline, tolerance), () => polyline.Vertices[0], null, tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), ToArray(polyline.GetEdges()), tolerance));
 
         /// <summary>
         /// Determines whether a polygon reaches the material of a face.
@@ -208,7 +226,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a polygon reaches the material of a face, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoPolygon2 polygon, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(polygon, tolerance), rim => rim.GetIntersections(polygon, tolerance), () => polygon.Vertices[0], at => polygon.Contains(at, tolerance), tolerance);
+        /// <remarks>
+        /// The polygon collides where it crosses a rim, where its material and the face's overlap, or where it comes
+        /// within the point tolerance of a rim, the outline from outside or a hole's from within the hole.
+        /// </remarks>
+        public static bool CollidesWith(GeoFace2 face, GeoPolygon2 polygon, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(polygon, tolerance), rim => rim.GetIntersections(polygon, tolerance), () => polygon.Vertices[0], at => polygon.Contains(at, tolerance), tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), ToArray(polygon.GetEdges()), tolerance));
 
         /// <summary>
         /// Determines whether a curved loop reaches the material of a face.
@@ -270,7 +292,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(other));
             }
 
-            return Touches(face, rim => CollidesWith(other, rim, tolerance), rim => GetIntersections(other, rim, tolerance), () => other.Boundary.Vertices[0], at => Containment2.Contains(other, at, tolerance), tolerance);
+            return Touches(face, rim => CollidesWith(other, rim, tolerance), rim => GetIntersections(other, rim, tolerance), () => other.Boundary.Vertices[0], at => Containment2.Contains(other, at, tolerance), tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), ToArray(other.Boundary.GetEdges()), tolerance));
         }
 
         /// <summary>
@@ -409,14 +431,20 @@ namespace GeometryHelper.Core
         /// <param name="line">The segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Nought where <see cref="CollidesWith(GeoFace2, GeoLine2, Tolerance)"/> says the segment reaches the material;
-        /// otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoLine2, Tolerance)"/>. In the square 100 by
+        /// Nought where the segment crosses a rim or lies on the material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoLine2, Tolerance)"/>. In the square 100 by
         /// 100 with a corner at the origin and a hole 40 by 40 in its middle, the segment from (40, 50) to (60, 50) lies
         /// in the hole and is 10 from its rim; the one from (10, 50) to (20, 50) lies on the material and is nought away.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static double DistanceTo(GeoFace2 face, GeoLine2 line, Tolerance tolerance)
-            => CollidesWith(face, line, tolerance) ? 0.0 : GetShortestLineTo(face, line, tolerance).Length;
+            => CrossesOrLiesOn(face, line, tolerance) ? 0.0 : GetShortestLineTo(face, line, tolerance).Length;
+
+        /// <summary>
+        /// Whether a segment crosses a rim of a face or lies on its material: where the distance is taken as nought
+        /// without measuring.
+        /// </summary>
+        internal static bool CrossesOrLiesOn(GeoFace2 face, GeoLine2 line, Tolerance tolerance)
+            => Touches(face, rim => Collision2.CrossesOrStartsIn(rim, line, tolerance), rim => rim.GetIntersections(line, tolerance), () => line.StartPoint, null, tolerance);
 
         /// <summary>
         /// Gets the distance from the material of a face to an arc.
@@ -459,8 +487,8 @@ namespace GeometryHelper.Core
         /// <param name="circle">The circle, a region.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Nought where <see cref="CollidesWith(GeoFace2, GeoCircle2, Tolerance)"/> says the circle reaches the
-        /// material, a circle holding the whole face among them; otherwise the length of
+        /// Nought where the circle crosses a rim or reaches the material, a circle holding the whole face among them;
+        /// otherwise the length of
         /// <see cref="GetShortestLineTo(GeoFace2, GeoCircle2, Tolerance)"/>. In the square 100 by 100 with a corner at the
         /// origin and a hole 40 by 40 in its middle, the circle of radius 10 about (50, 50) lies in the hole and is 10
         /// from its rim; about (150, 50) it is 40 from the outline; about (15, 50), and of radius 200 about (50, 50), it
@@ -468,7 +496,14 @@ namespace GeometryHelper.Core
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static double DistanceTo(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance)
-            => CollidesWith(face, circle, tolerance) ? 0.0 : GetShortestLineTo(face, circle, tolerance).Length;
+            => CrossesOrLiesOn(face, circle, tolerance) ? 0.0 : GetShortestLineTo(face, circle, tolerance).Length;
+
+        /// <summary>
+        /// Whether a circle's disc crosses a rim of a face or lies on its material: where the distance is taken as
+        /// nought without measuring.
+        /// </summary>
+        private static bool CrossesOrLiesOn(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance)
+            => Touches(face, rim => rim.CollidesWith(circle, tolerance), rim => rim.GetIntersections(circle, tolerance), () => circle.Center, at => circle.Contains(at, tolerance), tolerance);
 
         /// <summary>
         /// Gets the distance from the material of a face to a rectangle.
@@ -483,14 +518,20 @@ namespace GeometryHelper.Core
         /// <param name="rect">The rectangle, a region.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Nought where <see cref="CollidesWith(GeoFace2, GeoRectangle2, Tolerance)"/> says the rectangle reaches the
-        /// material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoRectangle2, Tolerance)"/>. In the
+        /// Nought where the rectangle crosses a rim or overlaps the material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoRectangle2, Tolerance)"/>. In the
         /// square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, the rectangle 20 by 20 about
         /// (50, 50) lies in the hole and is 10 from its rim.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static double DistanceTo(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance)
-            => CollidesWith(face, rect, tolerance) ? 0.0 : GetShortestLineTo(face, rect, tolerance).Length;
+            => CrossesOrLiesOn(face, rect, tolerance) ? 0.0 : GetShortestLineTo(face, rect, tolerance).Length;
+
+        /// <summary>
+        /// Whether a rectangle crosses a rim of a face or overlaps its material: where the distance is taken as nought
+        /// without measuring.
+        /// </summary>
+        private static bool CrossesOrLiesOn(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance)
+            => Touches(face, rim => Collision2.CrossesOrStartsIn(rect, rim, tolerance), rim => rim.GetIntersections(rect, tolerance), () => rect.Center, at => Containment2.Contains(rect, at, tolerance), tolerance);
 
         /// <summary>
         /// Gets the distance from the material of a face to a polyline.
@@ -505,8 +546,7 @@ namespace GeometryHelper.Core
         /// <param name="polyline">The polyline, a curve.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Nought where <see cref="CollidesWith(GeoFace2, GeoPolyline2, Tolerance)"/> says the chain reaches the
-        /// material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoPolyline2, Tolerance)"/>. In the
+        /// Nought where the chain crosses a rim or lies on the material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoPolyline2, Tolerance)"/>. In the
         /// square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, the chain (40, 40), (60, 40),
         /// (60, 60) lies in the hole and is 10 from its rim.
         /// </returns>
@@ -515,8 +555,15 @@ namespace GeometryHelper.Core
         {
             Required(face, polyline, nameof(polyline));
 
-            return CollidesWith(face, polyline, tolerance) ? 0.0 : GetShortestLineTo(face, polyline, tolerance).Length;
+            return CrossesOrLiesOn(face, polyline, tolerance) ? 0.0 : GetShortestLineTo(face, polyline, tolerance).Length;
         }
+
+        /// <summary>
+        /// Whether a polyline crosses a rim of a face or lies on its material: where the distance is taken as nought
+        /// without measuring.
+        /// </summary>
+        private static bool CrossesOrLiesOn(GeoFace2 face, GeoPolyline2 polyline, Tolerance tolerance)
+            => Touches(face, rim => Collision2.CrossesOrStartsIn(polyline, rim, tolerance), rim => rim.GetIntersections(polyline, tolerance), () => polyline.Vertices[0], null, tolerance);
 
         /// <summary>
         /// Gets the distance from the material of a face to a polygon.
@@ -531,8 +578,8 @@ namespace GeometryHelper.Core
         /// <param name="polygon">The polygon, a region.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Nought where <see cref="CollidesWith(GeoFace2, GeoPolygon2, Tolerance)"/> says the polygon reaches the
-        /// material, a polygon holding the whole face among them; otherwise the length of
+        /// Nought where the polygon crosses a rim or overlaps the material, a polygon holding the whole face among them;
+        /// otherwise the length of
         /// <see cref="GetShortestLineTo(GeoFace2, GeoPolygon2, Tolerance)"/>. In the square 100 by 100 with a corner at the
         /// origin and a hole 40 by 40 in its middle, the square 20 by 20 about (50, 50) lies in the hole and is 10 from
         /// its rim; about (130, 50) it is 20 from the outline.
@@ -542,8 +589,15 @@ namespace GeometryHelper.Core
         {
             Required(face, polygon, nameof(polygon));
 
-            return CollidesWith(face, polygon, tolerance) ? 0.0 : GetShortestLineTo(face, polygon, tolerance).Length;
+            return CrossesOrLiesOn(face, polygon, tolerance) ? 0.0 : GetShortestLineTo(face, polygon, tolerance).Length;
         }
+
+        /// <summary>
+        /// Whether a polygon crosses a rim of a face or overlaps its material: where the distance is taken as nought
+        /// without measuring.
+        /// </summary>
+        internal static bool CrossesOrLiesOn(GeoFace2 face, GeoPolygon2 polygon, Tolerance tolerance)
+            => Touches(face, rim => Collision2.CrossesOrStartsIn(rim, polygon, tolerance), rim => rim.GetIntersections(polygon, tolerance), () => polygon.Vertices[0], at => polygon.Contains(at, tolerance), tolerance);
 
         /// <summary>
         /// Gets the distance from the material of a face to a curved loop.
@@ -645,8 +699,7 @@ namespace GeometryHelper.Core
         /// <param name="triangle">The triangle, a region; one with corners on each other is read as its longest edge.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Nought where <see cref="Triangle2.CollidesWith(GeoTriangle2, GeoFace2, Tolerance)"/> says the triangle
-        /// reaches the material; otherwise the length of
+        /// Nought where the triangle crosses a rim or overlaps the material; otherwise the length of
         /// <see cref="Triangle2.GetShortestLineTo(GeoTriangle2, GeoFace2, Tolerance)"/>. In the square 100 by 100 with a
         /// corner at the origin and a hole 40 by 40 in its middle, the triangle (40, 40), (60, 40), (50, 60) lies in the
         /// hole and is 10 from its rim.
@@ -656,7 +709,11 @@ namespace GeometryHelper.Core
         {
             Required(face, nameof(face));
 
-            return Triangle2.CollidesWith(triangle, face, tolerance) ? 0.0 : Triangle2.GetShortestLineTo(triangle, face, tolerance).Length;
+            bool meets = Triangle2.TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+                ? CrossesOrLiesOn(face, shape, tolerance)
+                : CrossesOrLiesOn(face, hull, tolerance);
+
+            return meets ? 0.0 : Triangle2.GetShortestLineTo(triangle, face, tolerance).Length;
         }
 
         /// <summary>
@@ -672,14 +729,40 @@ namespace GeometryHelper.Core
         /// <param name="other">The second face.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Nought where <see cref="CollidesWith(GeoFace2, GeoFace2, Tolerance)"/> says the materials meet; otherwise the
-        /// length of <see cref="GetShortestLineTo(GeoFace2, GeoFace2, Tolerance)"/>. A square 20 by 20 about (50, 50) is
+        /// Nought where the materials cross or overlap; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoFace2, Tolerance)"/>. A square 20 by 20 about (50, 50) is
         /// 10 from the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, the width of the
         /// gap round it in the hole; about (130, 50) it is 20 away.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
         public static double DistanceTo(GeoFace2 face, GeoFace2 other, Tolerance tolerance)
-            => CollidesWith(face, other, tolerance) ? 0.0 : GetShortestLineTo(face, other, tolerance).Length;
+            => CrossesOrLiesOn(face, other, tolerance) ? 0.0 : GetShortestLineTo(face, other, tolerance).Length;
+
+        /// <summary>
+        /// Whether the materials of two faces cross or overlap: where the distance is taken as nought without measuring.
+        /// </summary>
+        internal static bool CrossesOrLiesOn(GeoFace2 face, GeoFace2 other, Tolerance tolerance)
+            => Touches(face, rim => CrossesOrLiesOn(other, rim, tolerance), rim => GetIntersections(other, rim, tolerance), () => other.Boundary.Vertices[0], at => Containment2.Contains(other, at, tolerance), tolerance);
+
+        /// <summary>
+        /// Whether a circle's disc comes within the point tolerance of a polygon's rim.
+        /// </summary>
+        private static bool NearDisc(GeoPolygon2 rim, GeoCircle2 circle, Tolerance tolerance)
+        {
+            foreach (GeoLine2 edge in rim.GetEdges())
+            {
+                if (Distance2.DistanceTo(circle, edge, tolerance) <= tolerance.EqualPoint)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The edges of a rim as a list, for measuring against.
+        /// </summary>
+        private static GeoLine2[] ToArray(IEnumerable<GeoLine2> edges) => new List<GeoLine2>(edges).ToArray();
 
         #endregion
 

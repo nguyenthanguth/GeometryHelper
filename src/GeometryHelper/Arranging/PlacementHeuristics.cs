@@ -137,18 +137,19 @@ namespace GeometryHelper.Arranging
                 return beyond ? 0 : -1;
             }
 
-            // Only the obstacles whose box overlaps the box around the boxes of every place sampled. AnyCollides passes
-            // over each obstacle whose box the box of the place does not overlap; an obstacle whose box it does overlap
-            // overlaps the box around them all as well, since that box takes each of its sides from one of them as it
-            // is, with no arithmetic, and so is no smaller on any side. So these are all AnyCollides would look at, in
-            // the same order, whatever NeighbourMargin and the other options make of the reach of the label.
+            // Only the obstacles whose box overlaps the box around the boxes of every place sampled, grown by the point
+            // tolerance. AnyCollides passes over each obstacle whose box the box of the place, grown the same way, does
+            // not overlap; an obstacle whose box it does overlap overlaps the grown box around them all as well, since
+            // that box takes each of its sides from one of them as it is, with no arithmetic but the same growth, and
+            // so is no smaller on any side. So these are all AnyCollides would look at, in the same order, whatever
+            // NeighbourMargin and the other options make of the reach of the label.
             Bounds reach = Bounds.Of(sampled[0]);
             for (int k = 1; k < sampled.Count; k++)
             {
                 reach = reach.Union(Bounds.Of(sampled[k]));
             }
 
-            List<Obstacle> near = staticObstacles.Overlapping(reach);
+            List<Obstacle> near = staticObstacles.Overlapping(reach.Expand(options.Tolerance.EqualPoint));
             int free = 0;
 
             foreach (GeoRectangle2 moved in sampled)

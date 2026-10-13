@@ -215,7 +215,7 @@ namespace GeometryHelper.Core
         /// <returns>The shortest boundary distance.</returns>
         public static double DistanceTo(GeoRectangle2 rect, GeoLine2 line)
         {
-            if (Collision2.CollidesWith(rect, line))
+            if (Collision2.CrossesOrStartsIn(rect, line, Tolerance.Global))
             {
                 return 0.0;
             }
@@ -273,7 +273,7 @@ namespace GeometryHelper.Core
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
-            if (Collision2.CollidesWith(rect, poly))
+            if (Collision2.CrossesOrStartsIn(rect, poly, Tolerance.Global))
             {
                 return 0.0;
             }
@@ -336,7 +336,7 @@ namespace GeometryHelper.Core
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
             // Zero when the segment crosses the polygon or lies inside it, matching DistanceTo(rect, line).
-            if (Collision2.CollidesWith(poly, line))
+            if (Collision2.CrossesOrStartsIn(poly, line, Tolerance.Global))
             {
                 return 0.0;
             }
@@ -358,7 +358,7 @@ namespace GeometryHelper.Core
         {
             if (poly1 == null) throw new ArgumentNullException(nameof(poly1));
             if (poly2 == null) throw new ArgumentNullException(nameof(poly2));
-            if (Collision2.CollidesWith(poly1, poly2)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(poly1, poly2, Tolerance.Global)) return 0.0;
 
             double minDistance = double.MaxValue;
             for (int i = 0; i < poly1.EdgeCount; i++)
@@ -444,7 +444,7 @@ namespace GeometryHelper.Core
         public static double DistanceTo(GeoPolyline2 polyline, GeoRectangle2 rect)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            if (Collision2.CollidesWith(polyline, rect)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(polyline, rect, Tolerance.Global)) return 0.0;
 
             double minDistance = double.MaxValue;
             GeoLine2[] rectEdges = rect.GetEdges();
@@ -468,7 +468,7 @@ namespace GeometryHelper.Core
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
             if (poly == null) throw new ArgumentNullException(nameof(poly));
-            if (Collision2.CollidesWith(polyline, poly)) return 0.0;
+            if (Collision2.CrossesOrStartsIn(polyline, poly, Tolerance.Global)) return 0.0;
 
             double minDistance = double.MaxValue;
             for (int i = 0; i < polyline.EdgeCount; i++)
@@ -509,7 +509,7 @@ namespace GeometryHelper.Core
         {
             if (pl1 == null) throw new ArgumentNullException(nameof(pl1));
             if (pl2 == null) throw new ArgumentNullException(nameof(pl2));
-            if (Collision2.CollidesWith(pl1, pl2)) return 0.0;
+            if (Collision2.CrossesOrStartsOn(pl1, pl2, Tolerance.Global)) return 0.0;
 
             double minDistance = double.MaxValue;
             for (int i = 0; i < pl1.EdgeCount; i++)
