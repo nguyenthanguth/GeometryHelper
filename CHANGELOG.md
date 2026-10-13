@@ -6,6 +6,10 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** Offsetting a polygon, a face or a chain in a plane in space no longer slows with the square of its edges
+where edges between neighbouring points are counted: a zigzag of 100 000 vertices offset in its plane takes 1.0 s where
+it took 15.9 s. Results are unchanged.
+
 **FIXED.** A straight polyline's offset is the edge of the band it sweeps and nothing more. At an inside corner
 sharper than a right angle the stretch of each moved segment running on past the other leg is no longer kept: the
 chain (10, 10), (0, 0), (10, 0) offset by 1 is one piece through (2.414, 1), where it came with two extra pieces beside

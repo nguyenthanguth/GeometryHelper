@@ -501,7 +501,7 @@ namespace GeometryHelper.Internal.Planar
             {
                 // Pieces running between the same two points are one piece, crossed as many times as the input
                 // runs along it one way minus the other; one crossed as often each way bounds nothing.
-                Dictionary<long, int> slot = new Dictionary<long, int>();
+                Dictionary<long, int> slot = new Dictionary<long, int>(PairKeys.Instance);
                 List<int> lows = new List<int>();
                 List<int> highs = new List<int>();
                 List<int> nets = new List<int>();
@@ -958,6 +958,21 @@ namespace GeometryHelper.Internal.Planar
 
                 return sum * 0.5;
             }
+        }
+
+        /// <summary>
+        /// Hashes a key packed from two point numbers as (low &lt;&lt; 32) | high. The default hash of a long folds its
+        /// halves together with an exclusive or, so the pieces between neighbouring points, whose numbers differ in a
+        /// few low bits, would pile into a few buckets; the multiply spreads every bit over the hash.
+        /// </summary>
+        private sealed class PairKeys : IEqualityComparer<long>
+        {
+            /// <summary>Gets the one instance.</summary>
+            public static PairKeys Instance { get; } = new PairKeys();
+
+            public bool Equals(long x, long y) => x == y;
+
+            public int GetHashCode(long key) => unchecked((int)(((ulong)key * 0x9E3779B97F4A7C15UL) >> 32));
         }
 
         #endregion
