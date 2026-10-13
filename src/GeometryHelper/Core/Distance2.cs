@@ -70,13 +70,20 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between two line segments within tolerance.
         /// </summary>
+        /// <remarks>
+        /// Nought exactly where the two truly cross or overlap, read with no slack past their ends; otherwise the least of
+        /// the distances from an end of one to the other. The segment from the origin to (10, 0) and the one leaving
+        /// (10.00135, 0.00078) at 60 degrees, whose lines cross 0.0009 past the first one's end, are 0.00156 apart at every
+        /// tolerance.
+        /// </remarks>
         public static double DistanceTo(GeoLine2 line1, GeoLine2 line2, Tolerance tolerance)
         {
             // Not Intersection2.TryIntersectWith: that one reports no intersection for any pair meeting at
             // less than the angular tolerance, which is right when the intersection point is wanted but
             // would make two crossing segments measure the gap between their endpoints instead of zero,
-            // by an amount that grows with their length.
-            if (Projection2.TryGetCrossingPoint(line1, line2, tolerance, out _))
+            // by an amount that grows with their length. Nor its slack past the ends, which made two
+            // corners up to twice the tolerance apart measure nought.
+            if (Projection2.TryGetCrossingPoint(line1, line2, tolerance, false, out _))
             {
                 return 0.0;
             }
@@ -422,13 +429,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Whether a segment crosses an edge of a polyline or starts on it: where the distance between them is taken
         /// as nought without measuring. A segment that only comes within the tolerance is measured, so its distance is
-        /// the gap, not nought.
+        /// the gap, not nought; so is one whose line crosses an edge's only past their ends.
         /// </summary>
         private static bool CrossesOrStartsOn(GeoPolyline2 polyline, GeoLine2 line, Tolerance tolerance)
         {
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
-                if (Intersection2.TryIntersectWith(polyline.GetEdgeAt(i), line, out _, tolerance))
+                if (Collision2.Crosses(polyline.GetEdgeAt(i), line, tolerance))
                 {
                     return true;
                 }

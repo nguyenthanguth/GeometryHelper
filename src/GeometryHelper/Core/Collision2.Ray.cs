@@ -172,7 +172,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The ray from the origin along X and the one from (50, -50) along Y cross at (50, 0); two rays along the X axis
         /// from 0 and from 100, facing each other, touch along the stretch between them; turned back to back, they touch
-        /// nowhere.
+        /// nowhere. A crossing of the carriers behind an origin does not count: the ray from (0.0009, 0) along X and the one
+        /// leaving 0.0009 along 120 degrees from the origin, their origins 0.00156 apart, do not touch at a tolerance of a
+        /// thousandth.
         /// </remarks>
         public static bool CollidesWith(GeoRay2 ray1, GeoRay2 ray2, Tolerance tolerance)
         {

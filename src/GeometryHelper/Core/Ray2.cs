@@ -167,8 +167,15 @@ namespace GeometryHelper.Core
         /// along cross there, though <see cref="Intersection2.TryIntersectWith(GeoRay2, GeoRay2, out GeoPoint2, Tolerance)"/>
         /// calls them parallel by angle: distance, collision and the shortest line ask where the rays are, not whether the
         /// crossing is well placed.
+        /// <para>
+        /// With <paramref name="pastEnds"/> a crossing up to the point tolerance behind either origin counts, as it does for
+        /// that method, which places the point. Without it the crossing has to be at or ahead of both origins, which is how
+        /// the distance, the collision and the shortest line read two rays: the ray from (0.0009, 0) along X and the one
+        /// leaving 0.0009 along 120 degrees from the origin, whose carriers cross 0.0009 behind each, cross nowhere and are
+        /// 0.00156 apart.
+        /// </para>
         /// </remarks>
-        internal static bool TryCross(GeoRay2 ray1, GeoRay2 ray2, Tolerance tolerance, out GeoPoint2 crossing)
+        internal static bool TryCross(GeoRay2 ray1, GeoRay2 ray2, Tolerance tolerance, bool pastEnds, out GeoPoint2 crossing)
         {
             crossing = new GeoPoint2(0, 0);
 
@@ -187,9 +194,11 @@ namespace GeometryHelper.Core
             double t = between.CrossProduct(ray2.Direction) / sine;
             double u = between.CrossProduct(ray1.Direction) / sine;
 
-            // The distances along are lengths, so the slack behind each origin is the point tolerance itself. Written as what
-            // has to hold, so that a NaN fails it.
-            if (!(t >= -tolerance.EqualPoint && u >= -tolerance.EqualPoint))
+            // The distances along are lengths, so the slack behind each origin, where it is asked for, is the point tolerance
+            // itself. Written as what has to hold, so that a NaN fails it.
+            double slack = pastEnds ? tolerance.EqualPoint : 0.0;
+
+            if (!(t >= -slack && u >= -slack))
             {
                 return false;
             }

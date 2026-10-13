@@ -72,6 +72,16 @@ rect.CollidesWith(otherRect);   poly.CollidesWith(otherPoly);   line.CollidesWit
 GeoPoint2[] points = poly.GetIntersections(line);
 ```
 
+Two shapes collide exactly where they come within the point tolerance of each other: where they cross, where
+one holds the other, or where their boundaries pass within `EqualPoint`, measured along the arcs. Closed shapes
+count as filled and open curves as curves, so the answer is the same whichever way round they are asked and
+whatever kind holds the edges. At a tolerance of a thousandth, the segment from (40, 100.01) to (60, 100.0005)
+collides with the square 100 by 100, though it ends 0.0005 above it; one ending 0.002 above does not. `DistanceTo`
+still gives the gap, 0.0005: it reads nought only where the shapes truly cross, overlap or one holds the other.
+Two segments whose corners stand 0.00156 apart therefore neither collide nor measure nought at a thousandth.
+`TryIntersectWith` and `GetIntersections` still accept a crossing up to the tolerance past a segment's end,
+because they place points for cutting and extending rather than test for contact.
+
 The straight shapes and the curved ones are pairs like any other, in either order and for measuring as
 well as meeting:
 
@@ -935,8 +945,11 @@ cut: two members are parallel when they draw apart by less than the point tolera
 one drawn, and for a ray that is as far as the other shape reaches.
 
 Two rays are measured directly. The ray from the origin along X and the one from (50, -50) along Y cross
-at (50, 0). Two rays that meet at any angle are nought apart, but `TryIntersectWith` gives no point for
-two within the angle tolerance of parallel, as for two infinite lines.
+at (50, 0). Two rays that cross at any angle, at or ahead of both origins, are nought apart; a crossing
+behind an origin does not count, so two rays leaving origins 0.00156 apart are 0.00156 apart and, at a
+tolerance of a thousandth, do not collide. `TryIntersectWith` still places a crossing up to the tolerance
+behind an origin, and gives no point for two within the angle tolerance of parallel, as for two infinite
+lines.
 
 `PlanarMap.ProjectToRay2` lays a ray in space out in a frame and `ToRay3` puts it back; a ray along the
 frame's normal has no direction in the plane and is refused. `GeoBvh2.GetIntersections` takes a ray as it

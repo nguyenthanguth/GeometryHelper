@@ -23,12 +23,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two line segments collide / intersect within tolerance.
         /// </summary>
+        /// <remarks>
+        /// They collide exactly where their distance is at most the point tolerance: where they truly cross, or where an
+        /// end of one comes that near the other. A crossing of their lines past the ends does not count, as it does for
+        /// <see cref="Intersection2.TryIntersectWith(GeoLine2, GeoLine2, out GeoPoint2, Tolerance)"/>, which places points
+        /// rather than testing for contact. The segment from the origin to (10, 0) and the one leaving (10.00135, 0.00078) at
+        /// 60 degrees, 0.00156 apart at their corners, do not collide at a tolerance of a thousandth and do at two.
+        /// </remarks>
         public static bool CollidesWith(GeoLine2 line1, GeoLine2 line2, Tolerance tolerance)
         {
-            if (Intersection2.TryIntersectWith(line1, line2, out _, tolerance))
-            {
-                return true;
-            }
             return Distance2.DistanceTo(line1, line2, tolerance) <= tolerance.EqualPoint;
         }
 
@@ -236,7 +239,7 @@ namespace GeometryHelper.Core
         {
             foreach (var edge in edges)
             {
-                if (Intersection2.TryIntersectWith(line, edge, out _, tolerance))
+                if (Crosses(line, edge, tolerance))
                 {
                     return true;
                 }
@@ -293,7 +296,7 @@ namespace GeometryHelper.Core
             {
                 foreach (var rectEdge in rectEdges)
                 {
-                    if (Intersection2.TryIntersectWith(polyEdge, rectEdge, out _, tolerance))
+                    if (Crosses(polyEdge, rectEdge, tolerance))
                     {
                         return true;
                     }
@@ -340,7 +343,7 @@ namespace GeometryHelper.Core
 
             GeoLine2[] edges = EdgesOf(poly);
 
-            return CrossesOrStartsIn(poly, edges, line, tolerance) || ComeWithin(edges, line, tolerance);
+            return CrossesOrStartsIn(poly, edges, line, tolerance, false) || ComeWithin(edges, line, tolerance);
         }
 
         /// <summary>
@@ -348,22 +351,78 @@ namespace GeometryHelper.Core
         /// without measuring.
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolygon2 poly, GeoLine2 line, Tolerance tolerance)
-            => CrossesOrStartsIn(poly, EdgesOf(poly), line, tolerance);
+            => CrossesOrStartsIn(poly, EdgesOf(poly), line, tolerance, false);
+
+        /// <summary>
+        /// Whether a segment crosses a polygon or starts inside it, a crossing up to the point tolerance past the ends
+        /// counted when asked: the reading the shapes of space keep when they lay a polygon out in its plane.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygon2 poly, GeoLine2 line, Tolerance tolerance, bool pastEnds)
+            => CrossesOrStartsIn(poly, EdgesOf(poly), line, tolerance, pastEnds);
 
         /// <summary>
         /// Whether a segment crosses a polygon, given as it is and as its edges, or starts inside it.
         /// </summary>
-        private static bool CrossesOrStartsIn(GeoPolygon2 poly, GeoLine2[] edges, GeoLine2 line, Tolerance tolerance)
+        private static bool CrossesOrStartsIn(GeoPolygon2 poly, GeoLine2[] edges, GeoLine2 line, Tolerance tolerance, bool pastEnds)
         {
             foreach (var polyEdge in edges)
             {
-                if (Intersection2.TryIntersectWith(line, polyEdge, out _, tolerance))
+                if (Cross(line, polyEdge, tolerance, pastEnds))
                 {
                     return true;
                 }
             }
 
             return Containment2.Contains(poly, line.StartPoint, tolerance);
+        }
+
+        /// <summary>
+        /// Whether two segments cross: truly, at a point on both, or, with <paramref name="pastEnds"/>, where
+        /// <see cref="Intersection2.TryIntersectWith(GeoLine2, GeoLine2, out GeoPoint2, Tolerance)"/> places a crossing,
+        /// up to the point tolerance past the end of either.
+        /// </summary>
+        private static bool Cross(GeoLine2 first, GeoLine2 second, Tolerance tolerance, bool pastEnds)
+            => pastEnds
+                ? Intersection2.TryIntersectWith(first, second, out _, tolerance)
+                : Crosses(first, second, tolerance);
+
+        /// <summary>
+        /// Whether two segments truly cross, at a point on both, with no slack past their ends: where the distance between
+        /// them is nought. A touch at an end counts, and two segments on one line are left to the distances from the ends.
+        /// </summary>
+        internal static bool Crosses(GeoLine2 first, GeoLine2 second, Tolerance tolerance)
+            => Projection2.TryGetCrossingPoint(first, second, tolerance, false, out _);
+
+        /// <summary>
+        /// Whether a segment truly crosses any of a run of segments, at a point on both.
+        /// </summary>
+        internal static bool Crosses(GeoLine2[] edges, GeoLine2 line, Tolerance tolerance)
+        {
+            for (int i = 0; i < edges.Length; i++)
+            {
+                if (Crosses(edges[i], line, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Whether two runs of segments truly cross anywhere, at a point on both.
+        /// </summary>
+        internal static bool Crosses(GeoLine2[] first, GeoLine2[] second, Tolerance tolerance)
+        {
+            for (int i = 0; i < first.Length; i++)
+            {
+                if (Crosses(second, first[i], tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -377,6 +436,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two polygons collide within tolerance.
         /// </summary>
+        /// <remarks>
+        /// They collide where they cross, where one holds the other, or where they come within the point tolerance of
+        /// each other, edge against edge with no slack past the ends. A triangle whose corner stands 0.00156 off the corner
+        /// (100, 100) of the square from the origin, its sides leaving at 60 and 31 degrees, does not collide with the square
+        /// at a tolerance of a thousandth, though the line of one side crosses the line of the square's top within a
+        /// thousandth of both corners; at two thousandths it does.
+        /// </remarks>
         public static bool CollidesWith(GeoPolygon2 poly1, GeoPolygon2 poly2, Tolerance tolerance)
         {
             if (poly1 == null) throw new ArgumentNullException(nameof(poly1));
@@ -385,7 +451,7 @@ namespace GeometryHelper.Core
             GeoLine2[] edges1 = EdgesOf(poly1);
             GeoLine2[] edges2 = EdgesOf(poly2);
 
-            return CrossesOrStartsIn(poly1, edges1, poly2, edges2, tolerance) || ComeWithin(edges1, edges2, tolerance);
+            return CrossesOrStartsIn(poly1, edges1, poly2, edges2, tolerance, false) || ComeWithin(edges1, edges2, tolerance);
         }
 
         /// <summary>
@@ -393,18 +459,25 @@ namespace GeometryHelper.Core
         /// nought without measuring.
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolygon2 poly1, GeoPolygon2 poly2, Tolerance tolerance)
-            => CrossesOrStartsIn(poly1, EdgesOf(poly1), poly2, EdgesOf(poly2), tolerance);
+            => CrossesOrStartsIn(poly1, EdgesOf(poly1), poly2, EdgesOf(poly2), tolerance, false);
+
+        /// <summary>
+        /// Whether two polygons cross or one starts inside the other, a crossing up to the point tolerance past the ends
+        /// of two edges counted when asked: the reading the shapes of space keep when they lay polygons out in a plane.
+        /// </summary>
+        internal static bool CrossesOrStartsIn(GeoPolygon2 poly1, GeoPolygon2 poly2, Tolerance tolerance, bool pastEnds)
+            => CrossesOrStartsIn(poly1, EdgesOf(poly1), poly2, EdgesOf(poly2), tolerance, pastEnds);
 
         /// <summary>
         /// Whether two polygons, each given with its edges, cross or one starts inside the other.
         /// </summary>
-        private static bool CrossesOrStartsIn(GeoPolygon2 poly1, GeoLine2[] edges1, GeoPolygon2 poly2, GeoLine2[] edges2, Tolerance tolerance)
+        private static bool CrossesOrStartsIn(GeoPolygon2 poly1, GeoLine2[] edges1, GeoPolygon2 poly2, GeoLine2[] edges2, Tolerance tolerance, bool pastEnds)
         {
             foreach (var edge1 in edges1)
             {
                 foreach (var edge2 in edges2)
                 {
-                    if (Intersection2.TryIntersectWith(edge1, edge2, out _, tolerance))
+                    if (Cross(edge1, edge2, tolerance, pastEnds))
                     {
                         return true;
                     }
@@ -734,7 +807,7 @@ namespace GeometryHelper.Core
                 for (int j = 0; j < pl2.EdgeCount; j++)
                 {
                     GeoLine2 edge2 = pl2.GetEdgeAt(j);
-                    if (Intersection2.TryIntersectWith(edge1, edge2, out _, tolerance))
+                    if (Crosses(edge1, edge2, tolerance))
                     {
                         return true;
                     }
@@ -861,8 +934,10 @@ namespace GeometryHelper.Core
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            return Intersection2.TryIntersectWith(chain, polyline, out _, tolerance)
-                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polyline), tolerance);
+            List<GeoEdge2> edges = ArcChain2.EdgesOf(chain);
+            List<GeoEdge2> others = ArcChain2.EdgesOf(polyline);
+
+            return ArcChain2.Cross(edges, others, tolerance) || ArcChain2.ComeWithin(edges, others, tolerance);
         }
 
         /// <summary>
@@ -895,7 +970,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolylineArc2 chain, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            return Intersection2.TryIntersectWith(chain, polygon, out _, tolerance)
+            return ArcChain2.Cross(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon), tolerance)
                 || Containment2.Contains(polygon, chain[0], tolerance);
         }
 
@@ -919,8 +994,10 @@ namespace GeometryHelper.Core
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (other == null) throw new ArgumentNullException(nameof(other));
 
-            return Intersection2.TryIntersectWith(chain, other, out _, tolerance)
-                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(other), tolerance);
+            List<GeoEdge2> edges = ArcChain2.EdgesOf(chain);
+            List<GeoEdge2> others = ArcChain2.EdgesOf(other);
+
+            return ArcChain2.Cross(edges, others, tolerance) || ArcChain2.ComeWithin(edges, others, tolerance);
         }
 
         /// <summary>
@@ -953,7 +1030,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolylineArc2 chain, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            return Intersection2.TryIntersectWith(chain, loop, out _, tolerance)
+            return ArcChain2.Cross(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop), tolerance)
                 || Containment2.Contains(loop, chain[0], tolerance);
         }
 
@@ -1020,7 +1097,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoLine2 line, Tolerance tolerance)
         {
-            if (Intersection2.TryIntersectWith(loop, line, out _, tolerance))
+            if (ArcChain2.Cross(ArcChain2.EdgesOf(loop), line, tolerance))
             {
                 return true;
             }
@@ -1125,7 +1202,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            return Intersection2.TryIntersectWith(loop, polyline, out _, tolerance)
+            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline), tolerance)
                 || Containment2.Contains(loop, polyline[0], tolerance);
         }
 
@@ -1159,7 +1236,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            return Intersection2.TryIntersectWith(loop, polygon, out _, tolerance)
+            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon), tolerance)
                 || Containment2.Contains(loop, polygon[0], tolerance)
                 || Containment2.Contains(polygon, loop[0], tolerance);
         }
@@ -1194,7 +1271,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            return Intersection2.TryIntersectWith(loop, chain, out _, tolerance)
+            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain), tolerance)
                 || Containment2.Contains(loop, chain[0], tolerance);
         }
 
@@ -1228,7 +1305,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoPolygonArc2 other, Tolerance tolerance)
         {
-            return Intersection2.TryIntersectWith(loop, other, out _, tolerance)
+            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other), tolerance)
                 || Containment2.Contains(loop, other[0], tolerance)
                 || Containment2.Contains(other, loop[0], tolerance);
         }

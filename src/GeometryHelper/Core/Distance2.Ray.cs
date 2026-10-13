@@ -61,9 +61,10 @@ namespace GeometryHelper.Core
         /// <param name="ray2">The second ray.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Zero where the two cross at any angle, each within the point tolerance of its origin or ahead of it; otherwise
-        /// the distance of the nearer of the two origins to the other ray, kept even where it is within the point tolerance,
-        /// as two segments keep theirs. Two rays along the X axis from 0 and from 100, facing each other, are nought apart;
+        /// Zero where the two truly cross at any angle, at or ahead of both origins; otherwise the distance of the nearer of
+        /// the two origins to the other ray, kept even where it is within the point tolerance, as two segments keep theirs.
+        /// The ray from (0.0009, 0) along X and the one leaving 0.0009 along 120 degrees from the origin, whose carriers
+        /// cross 0.0009 behind each, are 0.00156 apart, origin to origin, at every tolerance. Two rays along the X axis from 0 and from 100, facing each other, are nought apart;
         /// two at half a degree that meet a thousand along are nought apart too, though
         /// <see cref="Intersection2.TryIntersectWith(GeoRay2, GeoRay2, out GeoPoint2, Tolerance)"/> calls them parallel.
         /// </returns>
@@ -73,7 +74,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static double DistanceTo(GeoRay2 ray1, GeoRay2 ray2, Tolerance tolerance)
         {
-            if (Ray2.TryCross(ray1, ray2, tolerance, out _))
+            if (Ray2.TryCross(ray1, ray2, tolerance, false, out _))
             {
                 return 0.0;
             }

@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Two segments now collide exactly where their distance is at most the point tolerance, and measure nought
+only where they truly cross or overlap. The crossing of their lines was accepted up to the tolerance past the end of
+each, so two corners up to twice the tolerance apart collided and measured nought: the segment from the origin to
+(10, 0) and the one leaving (10.00135, 0.00078) at 60 degrees, 0.00156 apart, collided at 1E-3 and measured 0. Now they
+do not collide at 1E-3, and measure 0.00156 at every tolerance. Rectangles, polygons, triangles, faces, polylines,
+curved chains and curved loops follow, in their collisions and in the distances that took nought from a crossing, and a
+polygon with two corners 0.00127 apart is now simple at 1E-3. Two rays likewise measure nought only where they cross at
+or ahead of both origins. `TryIntersectWith` and the segment's shortest line keep the slack, since they place points
+for cutting and extending, and shapes laid out in a plane in space read as before.
+
 **FIXED.** A polygon, rectangle, triangle or face now collides with a segment, a ray, a polyline or another such shape
 wherever the two come within the point tolerance, not only where they cross or one starts inside the other. A hole's
 rim counts as boundary. The segment from (40, 100.01) to (60, 100.0005) ends 0.0005 above the square 100 by 100. It did

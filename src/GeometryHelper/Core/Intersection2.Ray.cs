@@ -203,7 +203,8 @@ namespace GeometryHelper.Core
         /// </returns>
         /// <remarks>
         /// The ray from the origin along X and the one from (50, -50) along Y cross at (50, 0); the one from (50, 50) along
-        /// Y runs away from the first and does not.
+        /// Y runs away from the first and does not. A crossing within the point tolerance behind an origin is given, brought
+        /// onto the first ray: this places a point, and whether the two touch is read by their distance.
         /// </remarks>
         public static bool TryIntersectWith(GeoRay2 ray1, GeoRay2 ray2, out GeoPoint2 intersection, Tolerance tolerance)
         {
@@ -218,7 +219,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            return Ray2.TryCross(ray1, ray2, tolerance, out intersection);
+            return Ray2.TryCross(ray1, ray2, tolerance, true, out intersection);
         }
 
         /// <summary>

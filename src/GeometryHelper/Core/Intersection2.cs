@@ -68,6 +68,12 @@ namespace GeometryHelper.Core
         /// where the first would reach the second if it were extended. Parallel lines are refused whatever the
         /// extension, as they are without one: they either never meet or share a whole stretch, and neither is
         /// a single point. The point returned lies on every segment that was not extended.
+        /// <para>
+        /// A segment that is not extended is reached up to the point tolerance past its ends, and the point is clamped
+        /// onto it, so that splitting, trimming and extending find the crossing on both. This places points; it is not a
+        /// test of contact. The segment ending at (10, 0) and the one leaving (10.00135, 0.00078) at 60 degrees meet here
+        /// at (10, 0) at a tolerance of a thousandth, though they are 0.00156 apart and do not collide.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the extension is not a defined value.</exception>
         public static bool TryIntersectWith(GeoLine2 line1, GeoLine2 line2, LineExtension extension, out GeoPoint2 intersection, Tolerance tolerance)
@@ -849,8 +855,11 @@ namespace GeometryHelper.Core
         /// <see cref="GeoPolygon2"/> does not check this when it is built, because the check costs more than
         /// building it. A polygon that is not simple is still read consistently, under the even-odd rule, but
         /// its area no longer means what it says. A vertex touching another edge counts as not simple, and so
-        /// does an edge folding back over its neighbour. Edges are swept in order along X, so the cost grows
-        /// with the number of edges whose extents overlap rather than with the square of the edge count.
+        /// does an edge folding back over its neighbour. Two edges that are not neighbours touch where they come
+        /// within the point tolerance of each other, measured with no slack past their ends: the loop with corners
+        /// (10, 0) and (10.0009, 0.0009), 0.00127 apart, is simple at a tolerance of a thousandth and not at two.
+        /// Edges are swept in order along X, so the cost grows with the number of edges whose extents overlap
+        /// rather than with the square of the edge count.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool IsSimple(GeoPolygon2 polygon, Tolerance tolerance)

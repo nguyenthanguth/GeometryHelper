@@ -315,6 +315,51 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Determines whether two runs of edges cross anywhere: two straight edges where they truly cross, at a point on
+        /// both, with no slack past their ends, and a pair with an arc in it where its crossings say so.
+        /// </summary>
+        internal static bool Cross(List<GeoEdge2> first, List<GeoEdge2> second, Tolerance tolerance)
+        {
+            foreach (GeoEdge2 one in first)
+            {
+                foreach (GeoEdge2 other in second)
+                {
+                    bool crossing = one.IsArc || other.IsArc
+                        ? one.GetIntersections(other, tolerance).Length > 0
+                        : Collision2.Crosses(one.ToLine(), other.ToLine(), tolerance);
+
+                    if (crossing)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether a run of edges crosses a straight segment anywhere: a straight edge where the two truly
+        /// cross, with no slack past their ends, and an arc where its crossings say so.
+        /// </summary>
+        internal static bool Cross(List<GeoEdge2> edges, GeoLine2 line, Tolerance tolerance)
+        {
+            foreach (GeoEdge2 edge in edges)
+            {
+                bool crossing = edge.IsArc
+                    ? edge.GetIntersections(line, tolerance).Length > 0
+                    : Collision2.Crosses(edge.ToLine(), line, tolerance);
+
+                if (crossing)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Adds a point to a list unless the same point is already in it.
         /// </summary>
         /// <remarks>

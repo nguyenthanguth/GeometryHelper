@@ -412,7 +412,7 @@ namespace GeometryHelper.Core
         {
             contactExtent = 0.0;
 
-            if (TryGetCrossingPoint(line1, line2, tolerance, out GeoPoint2 crossing))
+            if (TryGetCrossingPoint(line1, line2, tolerance, true, out GeoPoint2 crossing))
             {
                 return new GeoLine2(crossing, crossing);
             }
@@ -511,8 +511,15 @@ namespace GeometryHelper.Core
         /// near-parallel crossing pins it down very poorly. Here only the distance matters and it is
         /// exactly zero, so applying the angular gate would make a crossing pair report the gap between
         /// their endpoints instead - an error that grows with segment length.
+        /// <para>
+        /// With <paramref name="pastEnds"/> a crossing of the two lines up to the point tolerance past the end of either
+        /// counts, as it does for that method, and the point is clamped onto the first: the shortest line reads two
+        /// segments meeting so as touching. Without it the crossing has to lie on both, which is how the distance and the
+        /// collision read them: the segment ending at (10, 0) and the one leaving (10.00135, 0.00078) at 60 degrees, whose
+        /// lines cross at (10.0009, 0), cross nowhere, and are 0.00156 apart.
+        /// </para>
         /// </remarks>
-        internal static bool TryGetCrossingPoint(GeoLine2 line1, GeoLine2 line2, Tolerance tolerance, out GeoPoint2 crossing)
+        internal static bool TryGetCrossingPoint(GeoLine2 line1, GeoLine2 line2, Tolerance tolerance, bool pastEnds, out GeoPoint2 crossing)
         {
             crossing = new GeoPoint2(0.0, 0.0);
 
@@ -542,10 +549,10 @@ namespace GeometryHelper.Core
             double t = qMinusP.CrossProduct(d2) / denom;
             double u = qMinusP.CrossProduct(d1) / denom;
 
-            // Same endpoint slack as Intersection2.TryIntersectWith: the allowance is a distance, so it
-            // has to be carried into each segment's parameter space before it can be applied.
-            double tTolerance = tolerance.EqualPoint / len1;
-            double uTolerance = tolerance.EqualPoint / len2;
+            // Same endpoint slack as Intersection2.TryIntersectWith, where it is asked for: the allowance is a
+            // distance, so it has to be carried into each segment's parameter space before it can be applied.
+            double tTolerance = pastEnds ? tolerance.EqualPoint / len1 : 0.0;
+            double uTolerance = pastEnds ? tolerance.EqualPoint / len2 : 0.0;
 
             if (t < -tTolerance || t > 1.0 + tTolerance || u < -uTolerance || u > 1.0 + uTolerance)
             {

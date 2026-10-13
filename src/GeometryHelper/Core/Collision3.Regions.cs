@@ -228,7 +228,8 @@ namespace GeometryHelper.Core
                 return Collision2.CrossesOrStartsIn(
                     flatPolygon1,
                     flatPolygon2,
-                    tolerance)
+                    tolerance,
+                    true)
                     || ComeWithin(Projection3.Join(polygon1, polygon2, tolerance.EqualPoint, tolerance), tolerance);
             }
 
@@ -300,7 +301,8 @@ namespace GeometryHelper.Core
                 return Face2.CrossesOrLiesOn(
                     flatFace,
                     flatPolygon,
-                    tolerance)
+                    tolerance,
+                    true)
                     || ComeWithin(Projection3.Join(face, polygon, tolerance.EqualPoint, tolerance), tolerance);
             }
 
@@ -373,7 +375,8 @@ namespace GeometryHelper.Core
                 return Face2.CrossesOrLiesOn(
                     flatFace1,
                     flatFace2,
-                    tolerance)
+                    tolerance,
+                    true)
                     || ComeWithin(Projection3.Join(face1, face2, tolerance.EqualPoint, tolerance), tolerance);
             }
 

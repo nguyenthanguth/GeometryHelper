@@ -7,9 +7,10 @@ namespace GeometryHelper.UnitTest.Plane
 {
     /// <summary>
     /// The ray in the plane against a point (D12), another ray (D11) and a segment (D9). Every expected number is worked
-    /// out by hand from the rule the spec gives: the clamped projection for a point; for two rays the crossing where both
-    /// reach it, within the point tolerance behind either origin, and otherwise the nearer of the two origins brought onto
-    /// the other ray; for a segment, the answer of the segment from the origin out past the segment's reach.
+    /// out by hand from the rule the spec gives: the clamped projection for a point; for two rays nought where they truly
+    /// cross, at or ahead of both origins, and otherwise the nearer of the two origins brought onto the other ray (a crossing
+    /// within the point tolerance behind an origin is still given by TryIntersectWith, which places points); for a segment,
+    /// the answer of the segment from the origin out past the segment's reach.
     /// </summary>
     /// <remarks>
     /// The point tolerance is a thousandth. Offsets of 0.0005 and 0.002 sit either side of it. The angle tolerance is a
@@ -160,16 +161,17 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void ACrossingFiveTenThousandthsBehindTheOrigin_Counts_AndIsPlacedOnTheOrigin()
+        public void ACrossingFiveTenThousandthsBehindTheOrigin_IsPlacedOnTheOrigin_AndMeasuresItsGap()
         {
-            // The carriers cross at (-0.0005, 0), within the tolerance behind the first origin: the crossing is given,
-            // brought onto the first ray at t = 0.
+            // The carriers cross at (-0.0005, 0), within the tolerance behind the first origin: TryIntersectWith gives the
+            // crossing, brought onto the first ray at t = 0, but the rays do not truly cross. The second passes 0.0005
+            // behind the first origin, so they are 0.0005 apart and, within the tolerance, collide (B8c).
             GeoRay2 ray = AlongX();
             var other = new GeoRay2(P(-0.0005, -5), GeoVector2.YAxis);
 
             Assert.True(ray.TryIntersectWith(other, out GeoPoint2 crossing, Strict));
             Assert.Equal(P(0, 0), crossing);
-            Assert.Equal(0.0, ray.DistanceTo(other, Strict));
+            Assert.Equal(0.0005, ray.DistanceTo(other, Strict), 12);
             Assert.True(ray.CollidesWith(other, Strict));
         }
 

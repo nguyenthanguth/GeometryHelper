@@ -69,16 +69,16 @@ namespace GeometryHelper.Core
         /// <param name="ray2">The ray the segment lands on.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// The segment of no length at the crossing where the two cross; otherwise the shorter of two candidates, the
-        /// origin of the second brought onto the first and the origin of the first brought onto the second, the first of
-        /// them on a tie.
+        /// The segment of no length at the crossing where the two truly cross, at or ahead of both origins; otherwise the
+        /// shorter of two candidates, the origin of the second brought onto the first and the origin of the first brought
+        /// onto the second, the first of them on a tie.
         /// </returns>
         /// <remarks>
         /// The ray from the origin along X gets the segment from (50, 0) to (50, 30) to the ray from (50, 30) along Y.
         /// </remarks>
         public static GeoLine2 GetShortestLineTo(GeoRay2 ray1, GeoRay2 ray2, Tolerance tolerance)
         {
-            if (Ray2.TryCross(ray1, ray2, tolerance, out GeoPoint2 crossing))
+            if (Ray2.TryCross(ray1, ray2, tolerance, false, out GeoPoint2 crossing))
             {
                 return new GeoLine2(crossing, crossing);
             }
