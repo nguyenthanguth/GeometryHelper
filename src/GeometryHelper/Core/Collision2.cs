@@ -65,7 +65,7 @@ namespace GeometryHelper.Core
         /// </summary>
         public static bool CollidesWith(GeoCircle2 circle, GeoLine2 line, Tolerance tolerance)
         {
-            return Distance2.DistanceTo(line, circle.Center) <= circle.Radius + tolerance.EqualPoint;
+            return Distance2.DistanceTo(line, circle.Center, tolerance) <= circle.Radius + tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -81,7 +81,7 @@ namespace GeometryHelper.Core
         /// </summary>
         public static bool CollidesWith(GeoCircle2 circle, GeoRectangle2 rect, Tolerance tolerance)
         {
-            if (Containment2.Contains(rect, circle.Center))
+            if (Containment2.Contains(rect, circle.Center, tolerance))
             {
                 return true;
             }
@@ -107,7 +107,7 @@ namespace GeometryHelper.Core
             {
                 return true;
             }
-            return Distance2.DistanceTo(poly, circle.Center) <= circle.Radius + tolerance.EqualPoint;
+            return Distance2.DistanceTo(poly, circle.Center, tolerance) <= circle.Radius + tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -255,7 +255,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            if (Containment2.Contains(rect, poly.Vertices[0]))
+            if (Containment2.Contains(rect, poly.Vertices[0], tolerance))
             {
                 return true;
             }

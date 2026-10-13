@@ -115,7 +115,7 @@ namespace GeometryHelper.Core
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            double best = ToEdges(ellipse, polyline.GetEdges());
+            double best = ToEdges(ellipse, polyline.GetEdges(), tolerance);
             return best <= tolerance.EqualPoint ? 0.0 : best;
         }
 
@@ -137,7 +137,7 @@ namespace GeometryHelper.Core
         {
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
 
-            return Containment2.Contains(polygon, ellipse.Center, tolerance) ? 0.0 : ToEdges(ellipse, polygon.GetEdges());
+            return Containment2.Contains(polygon, ellipse.Center, tolerance) ? 0.0 : ToEdges(ellipse, polygon.GetEdges(), tolerance);
         }
 
         /// <summary>
@@ -154,7 +154,7 @@ namespace GeometryHelper.Core
         /// <returns>Nought when the two overlap; otherwise the distance from the nearest side.</returns>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoRectangle2 rect, Tolerance tolerance)
         {
-            return Containment2.Contains(rect, ellipse.Center, tolerance) ? 0.0 : ToEdges(ellipse, rect.GetEdges());
+            return Containment2.Contains(rect, ellipse.Center, tolerance) ? 0.0 : ToEdges(ellipse, rect.GetEdges(), tolerance);
         }
 
         /// <summary>
@@ -512,13 +512,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the least distance from the rim to a run of straight edges, each read as a segment.
         /// </summary>
-        private static double ToEdges(GeoEllipse2 ellipse, IEnumerable<GeoLine2> edges)
+        private static double ToEdges(GeoEllipse2 ellipse, IEnumerable<GeoLine2> edges, Tolerance tolerance)
         {
             double best = double.MaxValue;
 
             foreach (GeoLine2 edge in edges)
             {
-                double reach = DistanceTo(ellipse, edge, Tolerance.Global);
+                double reach = DistanceTo(ellipse, edge, tolerance);
 
                 if (reach < best)
                 {

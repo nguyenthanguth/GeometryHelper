@@ -73,13 +73,13 @@ namespace GeometryHelper.Core
 
             double best = Math.Min(
                 Math.Min(DistanceTo(arc, line.StartPoint, tolerance), DistanceTo(arc, line.EndPoint, tolerance)),
-                Math.Min(Distance2.DistanceTo(line, arc.StartPoint), Distance2.DistanceTo(line, arc.EndPoint)));
+                Math.Min(Distance2.DistanceTo(line, arc.StartPoint, tolerance), Distance2.DistanceTo(line, arc.EndPoint, tolerance)));
 
             // Where the segment runs straight at the centre, the nearest point of the circle lies on that
             // line. Clamping it onto the arc keeps the candidate on the arc whether or not the arc reaches
             // that far round: when it does the clamp changes nothing, and when it does not the candidate
             // falls back to the end, which is where the nearest pair really is.
-            GeoPoint2 nearestOnLine = Projection2.ProjectToLine(line, arc.Center);
+            GeoPoint2 nearestOnLine = Projection2.ProjectToLine(line, arc.Center, tolerance);
 
             if (arc.Center.GetVectorTo(nearestOnLine).Length > tolerance.EqualPoint)
             {
@@ -445,15 +445,15 @@ namespace GeometryHelper.Core
                 return new GeoLine2(meetings[0], meetings[0]);
             }
 
-            var best = new GeoLine2(arc.StartPoint, Projection2.ProjectToLine(line, arc.StartPoint));
+            var best = new GeoLine2(arc.StartPoint, Projection2.ProjectToLine(line, arc.StartPoint, tolerance));
 
-            Consider(ref best, arc.EndPoint, Projection2.ProjectToLine(line, arc.EndPoint));
+            Consider(ref best, arc.EndPoint, Projection2.ProjectToLine(line, arc.EndPoint, tolerance));
             Consider(ref best, ProjectToArc(arc, line.StartPoint, tolerance), line.StartPoint);
             Consider(ref best, ProjectToArc(arc, line.EndPoint, tolerance), line.EndPoint);
 
             // Where the segment runs straight at the centre, the nearest point of the circle lies on that
             // line, clamped onto the arc so that the pair is one the arc really holds.
-            GeoPoint2 nearestOnLine = Projection2.ProjectToLine(line, arc.Center);
+            GeoPoint2 nearestOnLine = Projection2.ProjectToLine(line, arc.Center, tolerance);
 
             if (arc.Center.GetVectorTo(nearestOnLine).Length > tolerance.EqualPoint)
             {

@@ -51,7 +51,7 @@ namespace GeometryHelper.Core
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            return ToEdges(ellipse, polyline.GetEdges()) <= tolerance.EqualPoint;
+            return ToEdges(ellipse, polyline.GetEdges(), tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace GeometryHelper.Core
         {
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
 
-            return Containment2.Contains(polygon, ellipse.Center, tolerance) || ToEdges(ellipse, polygon.GetEdges()) <= tolerance.EqualPoint;
+            return Containment2.Contains(polygon, ellipse.Center, tolerance) || ToEdges(ellipse, polygon.GetEdges(), tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace GeometryHelper.Core
         /// <returns>true if the rectangle holds the centre, or a side comes within the point tolerance of the region; otherwise, false.</returns>
         public static bool CollidesWith(GeoEllipse2 ellipse, GeoRectangle2 rect, Tolerance tolerance)
         {
-            return Containment2.Contains(rect, ellipse.Center, tolerance) || ToEdges(ellipse, rect.GetEdges()) <= tolerance.EqualPoint;
+            return Containment2.Contains(rect, ellipse.Center, tolerance) || ToEdges(ellipse, rect.GetEdges(), tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>

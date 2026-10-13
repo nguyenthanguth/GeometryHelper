@@ -235,7 +235,7 @@ namespace GeometryHelper.Core
         public static double SignedDistanceTo(GeoTriangle2 triangle, GeoPoint2 point, Tolerance tolerance)
             => TryAsPolygon(triangle, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull)
                 ? polygon.SignedDistanceTo(point, tolerance)
-                : hull.DistanceTo(point);
+                : Distance2.DistanceTo(hull, point, tolerance);
 
         /// <summary>
         /// Gets the distance from a triangle to a polygon.

@@ -182,7 +182,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a rectangle reaches the material of a face, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(rect, tolerance), rim => rim.GetIntersections(rect, tolerance), () => rect.Center, at => rect.Contains(at), tolerance);
+        public static bool CollidesWith(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(rect, tolerance), rim => rim.GetIntersections(rect, tolerance), () => rect.Center, at => Containment2.Contains(rect, at, tolerance), tolerance);
 
         /// <summary>
         /// Determines whether a polyline reaches the material of a face.

@@ -33,7 +33,7 @@ namespace GeometryHelper.Core
         /// <returns>true if the point lies on the line segment within tolerance; otherwise, false.</returns>
         public static bool IsPointOn(GeoLine2 line, GeoPoint2 point, Tolerance tolerance)
         {
-            return Distance2.DistanceTo(line, point) <= tolerance.EqualPoint;
+            return Distance2.DistanceTo(line, point, tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -745,7 +745,7 @@ namespace GeometryHelper.Core
             {
                 if (Intersection2.TryIntersectWith(line, poly.GetEdgeAt(i), out GeoPoint2 crossing, tolerance))
                 {
-                    parameters.Add(Parametrization2.GetParameterAtPoint(line, crossing));
+                    parameters.Add(Parametrization2.GetParameterAtPoint(line, crossing, tolerance));
                 }
             }
 

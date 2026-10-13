@@ -14,8 +14,7 @@ namespace GeometryHelper.Core
     /// corner at the origin, the ray from (-50, 150) along X is measured as the segment from there to (101, 150), 50
     /// from the square. Against a point or another ray nothing is cut: every candidate is one the ray really holds, an
     /// origin brought onto the other or the place where the two cross. Every answer against a cut is the cut segment's,
-    /// with the tolerance passed through. Where the segment code reads the global tolerance underneath, as the distance
-    /// from a segment to a point does for a segment shorter than the point tolerance, the ray's answer does too.
+    /// with the tolerance passed through.
     /// </remarks>
     public static partial class Distance2
     {
@@ -96,8 +95,7 @@ namespace GeometryHelper.Core
         /// <returns>Zero where the ray starts inside the circle or runs into it; otherwise the gap between them.</returns>
         public static double DistanceTo(GeoCircle2 circle, GeoRay2 ray, Tolerance tolerance)
         {
-            // DistanceTo(circle, line) reads no tolerance at all, global or other: the gap is the circle's alone.
-            return DistanceTo(circle, Ray2.CutPast(ray, circle, tolerance));
+            return DistanceTo(circle, Ray2.CutPast(ray, circle, tolerance), tolerance);
         }
 
         /// <summary>

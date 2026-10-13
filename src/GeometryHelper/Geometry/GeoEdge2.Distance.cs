@@ -73,7 +73,7 @@ namespace GeometryHelper.Geometry
             // does, a curved one the way its arc does.
             return IsArc
                 ? Core.Arc2.DistanceTo(ToArc(), circle, tolerance)
-                : Core.Distance2.DistanceTo(circle, ToLine());
+                : Core.Distance2.DistanceTo(circle, ToLine(), tolerance);
         }
 
         /// <summary>

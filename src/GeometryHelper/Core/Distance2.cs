@@ -47,7 +47,16 @@ namespace GeometryHelper.Core
         /// <returns>The shortest Euclidean distance.</returns>
         public static double DistanceTo(GeoLine2 line, GeoPoint2 point)
         {
-            return DistanceTo(point, Projection2.ProjectToLine(line, point));
+            return DistanceTo(line, point, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Calculates the shortest distance from a line segment to a point, a segment no longer than the tolerance
+        /// read as the point at its start.
+        /// </summary>
+        internal static double DistanceTo(GeoLine2 line, GeoPoint2 point, Tolerance tolerance)
+        {
+            return DistanceTo(point, Projection2.ProjectToLine(line, point, tolerance));
         }
 
         /// <summary>
@@ -72,10 +81,10 @@ namespace GeometryHelper.Core
                 return 0.0;
             }
 
-            double d1 = DistanceTo(line1, line2.StartPoint);
-            double d2 = DistanceTo(line1, line2.EndPoint);
-            double d3 = DistanceTo(line2, line1.StartPoint);
-            double d4 = DistanceTo(line2, line1.EndPoint);
+            double d1 = DistanceTo(line1, line2.StartPoint, tolerance);
+            double d2 = DistanceTo(line1, line2.EndPoint, tolerance);
+            double d3 = DistanceTo(line2, line1.StartPoint, tolerance);
+            double d4 = DistanceTo(line2, line1.EndPoint, tolerance);
 
             return Math.Min(Math.Min(d1, d2), Math.Min(d3, d4));
         }
@@ -105,7 +114,15 @@ namespace GeometryHelper.Core
         /// <returns>The shortest distance between circle and line segment.</returns>
         public static double DistanceTo(GeoCircle2 circle, GeoLine2 line)
         {
-            return Math.Max(0.0, DistanceTo(line, circle.Center) - circle.Radius);
+            return DistanceTo(circle, line, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Calculates the shortest boundary distance from a circle to a line segment, the segment read under a tolerance.
+        /// </summary>
+        internal static double DistanceTo(GeoCircle2 circle, GeoLine2 line, Tolerance tolerance)
+        {
+            return Math.Max(0.0, DistanceTo(line, circle.Center, tolerance) - circle.Radius);
         }
 
         /// <summary>
@@ -289,17 +306,26 @@ namespace GeometryHelper.Core
         /// <returns>The shortest distance to the polygon boundary.</returns>
         public static double DistanceTo(GeoPolygon2 poly, GeoPoint2 point)
         {
+            return DistanceTo(poly, point, Tolerance.Global);
+        }
+
+        /// <summary>
+        /// Calculates the shortest distance from a polygon boundary to a point, a point within the tolerance of the
+        /// polygon read as inside it.
+        /// </summary>
+        internal static double DistanceTo(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance)
+        {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
             // A polygon is a filled region here, exactly like a rectangle or a circle, so a point inside
             // it is at distance zero. Projection2 reports the boundary point instead, so the two
             // deliberately disagree for interior points.
-            if (Containment2.Contains(poly, point))
+            if (Containment2.Contains(poly, point, tolerance))
             {
                 return 0.0;
             }
 
-            return DistanceTo(point, Projection2.ProjectToPolygon(poly, point));
+            return DistanceTo(point, Projection2.ProjectToPolygon(poly, point, tolerance));
         }
 
         /// <summary>

@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Queries in the plane that are given a tolerance read it all the way down. Some read `Tolerance.Global`
+underneath, so a segment shorter than the global point tolerance was taken as a point: under a tolerance of 1E-4 the
+slivers from (0, 0) to (0.0004, 0) and from (5.0008, 0) to (5.0004, 0) measured 5.0004 apart, and now measure 5. The
+same holds for an arc against a segment; a circle against a segment, polygon, rectangle or ray; a rectangle against a
+polygon; a face against a rectangle; an ellipse against a polyline, polygon or rectangle; and a point on a segment. The
+forms without a tolerance read the global one, as before, and under the default tolerance nothing changes. A shape
+still drops its repeated corners under the global tolerance when it is made.
+
 **FIXED.** A segment against a rectangle read whether the rectangle holds the segment's start under
 `Tolerance.Global`, whatever tolerance was passed. Under a tolerance of 1E-4 the segment from (50.0002, 0) to (60, 0)
 collided with the square 100 by 100 centred at the origin, though it starts two ten-thousandths outside it; it now

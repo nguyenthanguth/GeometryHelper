@@ -120,8 +120,7 @@ namespace GeometryHelper.Core
         /// </summary>
         public static bool CollidesWith(GeoRectangle2 rect, GeoRay2 ray, Tolerance tolerance)
         {
-            // CollidesWith(rect, line, tolerance) read through, but for where the start lies, which it asks under the global
-            // tolerance and this asks under the one passed.
+            // CollidesWith(rect, line, tolerance) read through.
             GeoLine2 cut = Ray2.CutPast(ray, rect, tolerance);
 
             foreach (GeoLine2 edge in rect.GetEdges())
