@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A curved offset past an arc whose radius runs out goes round the arc's two ends, and comes back the same
+from every start and both ways. The join was drawn about the end of the edge before: the rectangle 100 by 30 with its
+right side bowed 6 in, grown by 40 with round joins, stood 40.18 off or came back as nothing, depending on the corner
+it started from. It is now one loop of 18 397.80, rounded by the circles of 40 about (100, 0) and (100, 30). The chain
+10 along x, a half turn of radius 5 below the axis and 10 more, offset by 10 upwards, is one chain 30.472 long. Loops
+whose runs meet out of order, lenses of two arcs, and the outside of a cusp where an arc meets a side reversed are no
+longer dropped: the rectangle 20 by 10 whose left side is a half circle bowed in, grown by 2, came back empty.
+
 **FIXED.** Curved offsets keep what stands the offset distance from the shape and nothing else. A corner that closes
 is no longer bridged where its moved pieces do not meet: the chain 10 along x and then round an arc of bulge 0.5
 curling back, offset by 1 to the left, is the segment to x = 7.271 and the arc from (7.484, -1) on, not one piece with

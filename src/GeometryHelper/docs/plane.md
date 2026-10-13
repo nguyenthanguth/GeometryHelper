@@ -667,6 +667,14 @@ the rest of the piece stays. A chamfer or a miter is held to its own shape at th
 1 wide, 10 along x, 1 down and 9 back, offset by -0.6 into its inside, keeps (0, -0.6) to (0.553, -0.6). No
 winding rule, no clipper, no tessellation.
 
+An arc whose radius runs out has no offset left, and the offset goes round its two ends instead, on the circle
+of the distance about each, whatever the join: that is what stands the distance from the shape there. The
+rectangle 100 by 30 with its right side bowed 6 in, a radius of 21.75, grown by 40 with round joins, is rounded
+off by the circles of 40 about (100, 0) and (100, 30), which meet at (137.081, 15); the loop encloses 18 397.80
+whichever corner it starts from and whichever way it runs. Where the moved pieces meet in another order than
+they were cut in, the loop is put together where they meet, and a lens left between two arcs comes back as a
+loop of three corners.
+
 **What still needs flattening.** The four boolean operations do, because a boolean cannot be done piece by
 piece. They take an optional chord tolerance and hand back the straight types, which say plainly that the
 arcs are gone:
