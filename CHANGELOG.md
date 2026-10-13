@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A curved chain or loop that drops a vertex as a repeat of the one before keeps the bulge of the edge that
+still has a length, in the plane and in space. The chain (0, 0), (10, 0), (10.0004, 0), (20, 0) with bulges 0, 0, 1
+lost its half circle to the chord, and a rectangle 100 by 50 filleted at radius 0.0005 came back with arcs of radius 35
+and 71 and an area of 7 140. Now the half circle is kept, and the rectangle keeps four straight sides and its area of
+5 000. A loop built from edges, by a fillet, a chamfer, an offset, a transform or a projection from space, drops an
+edge too short to keep, the closing one too. A loop given a repeated first vertex at the end still closes as the guide
+says.
+
 **FIXED.** Two circles, and two arcs, now meet at the same points whichever is asked first; the crossings are worked
 out from the smaller circle. A nearly flat arc lost its crossings when its huge circle came first. The edge 100 long
 of bulge 1E-7 from (0, 0) to (100, 0) missed the arc of radius 40 about (50, 30) from 3.4 radians sweeping 1.6, and

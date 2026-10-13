@@ -562,7 +562,7 @@ namespace GeometryHelper.Core
                 bulges.Add(edge.Bulge);
             }
 
-            return new GeoPolygonArc2(vertices, bulges);
+            return GeoPolygonArc2.FromEdges(vertices, bulges);
         }
 
         /// <summary>
@@ -991,7 +991,7 @@ namespace GeometryHelper.Core
                 bulges.Add(edge.Bulge);
             }
 
-            result = new GeoPolygonArc2(vertices, bulges);
+            result = GeoPolygonArc2.FromEdges(vertices, bulges);
             return true;
         }
 
@@ -1148,7 +1148,7 @@ namespace GeometryHelper.Core
                 bulges.Add(edge.Bulge);
             }
 
-            result = new GeoPolygonArc2(vertices, bulges);
+            result = GeoPolygonArc2.FromEdges(vertices, bulges);
             return true;
         }
 

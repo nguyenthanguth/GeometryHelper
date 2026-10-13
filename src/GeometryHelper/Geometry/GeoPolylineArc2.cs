@@ -48,6 +48,12 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vertices">The vertices, in order; at least two, and no two neighbours in the same place.</param>
         /// <param name="bulges">The bulge of the edge leaving each vertex; null or short means the rest are straight, and anything past the last edge is ignored.</param>
+        /// <remarks>
+        /// A vertex within the global point tolerance of the one kept before it is dropped, and so is the edge
+        /// between the two, which has no length; the edge running on from the dropped vertex keeps its own bulge. The
+        /// chain (0, 0), (10, 0), (10.0004, 0), (20, 0) with bulges 0, 0, 1 is the straight edge to (10, 0) and then
+        /// the half circle of bulge 1 from there to (20, 0).
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the vertices are null.</exception>
         /// <exception cref="ArgumentException">Thrown when fewer than two distinct vertices are given.</exception>
         public GeoPolylineArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges)
@@ -66,9 +72,12 @@ namespace GeometryHelper.Geometry
                 index++;
 
                 // Two vertices in the same place leave an edge with no length, which no arc and no segment
-                // can be drawn along; the later one goes, as GeoPolyline2 drops it too.
+                // can be drawn along; the later one goes, as GeoPolyline2 drops it too. The edge that vanishes
+                // is the one between them, so the vertex kept takes the bulge of the edge running on from the
+                // one dropped, which still has its length.
                 if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(vertex))
                 {
+                    keptBulges[keptBulges.Count - 1] = bulge;
                     continue;
                 }
 

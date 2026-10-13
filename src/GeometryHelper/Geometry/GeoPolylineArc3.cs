@@ -83,6 +83,12 @@ namespace GeometryHelper.Geometry
         /// <param name="bulges">The bulge of the edge leaving each vertex; null or short means the rest are straight.</param>
         /// <param name="normals">The plane each bulge is read about; only wanted where a bulge is not nought.</param>
         /// <param name="tolerance">The tolerance, which decides when two vertices are in the same place and how square to its chord a normal must be.</param>
+        /// <remarks>
+        /// A vertex within the point tolerance of the one kept before it is dropped, and so is the edge between the
+        /// two, which has no length; the edge running on from the dropped vertex keeps its own bulge and normal. The
+        /// chain (0, 0, 0), (10, 0, 0), (10.0004, 0, 0), (20, 0, 0) with bulges 0, 0, 1 about Z is the straight edge
+        /// to (10, 0, 0) and then the half circle of bulge 1 from there to (20, 0, 0).
+        /// </remarks>
         public GeoPolylineArc3(
             IEnumerable<GeoPoint3> vertices,
             IEnumerable<double> bulges,
@@ -107,9 +113,13 @@ namespace GeometryHelper.Geometry
                 index++;
 
                 // Two vertices in the same place leave an edge with no length, which no arc and no segment
-                // can be drawn along; the later one goes, as GeoPolyline3 drops it too.
+                // can be drawn along; the later one goes, as GeoPolyline3 drops it too. The edge that vanishes
+                // is the one between them, so the vertex kept takes the bulge and the plane of the edge running
+                // on from the one dropped, which still has its length.
                 if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(vertex, tolerance))
                 {
+                    keptBulges[keptBulges.Count - 1] = bulge;
+                    keptNormals[keptNormals.Count - 1] = normal;
                     continue;
                 }
 

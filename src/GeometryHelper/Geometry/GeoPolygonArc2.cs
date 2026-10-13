@@ -46,9 +46,31 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vertices">The vertices, in order; at least three distinct ones.</param>
         /// <param name="bulges">The bulge of the edge leaving each vertex; null or short means the rest are straight.</param>
+        /// <remarks>
+        /// A vertex within the global point tolerance of the one kept before it is dropped, and so is the edge
+        /// between the two, which has no length; the edge running on from the dropped vertex keeps its own bulge. The
+        /// square (0, 0), (10, 0), (10.0004, 0), (20, 0), (20, 20), (0, 20) with bulges 0, 0, 1, 0, 0, 0 has five
+        /// corners, and a half circle from (10, 0) to (20, 0) below its bottom. A last vertex repeating the first says
+        /// nothing the loop does not already say and is dropped too, but its bulge is kept for the closing edge: the
+        /// edge coming into it keeps its own bulge when it curves, and takes the repeated vertex's when it is straight.
+        /// The loop (0, 0), (100, 0), (100, 100), (0, 0) with bulges 0, 0, 0, 0.25 is three corners whose closing edge,
+        /// from (100, 100) back to the origin, bulges 0.25.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the vertices are null.</exception>
         /// <exception cref="ArgumentException">Thrown when fewer than three distinct vertices are given.</exception>
         public GeoPolygonArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges)
+            : this(vertices, bulges, true)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a loop whose edges may be arcs, saying what a last vertex repeating the first does to the
+        /// closing edge.
+        /// </summary>
+        /// <param name="vertices">The vertices, in order; at least three distinct ones.</param>
+        /// <param name="bulges">The bulge of the edge leaving each vertex; null or short means the rest are straight.</param>
+        /// <param name="repeatBendsClosingEdge">true to give a straight closing edge the bulge on the repeated vertex, as the public constructor does; false to let it keep its own.</param>
+        private GeoPolygonArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges, bool repeatBendsClosingEdge)
         {
             if (vertices == null) throw new ArgumentNullException(nameof(vertices));
 
@@ -63,8 +85,11 @@ namespace GeometryHelper.Geometry
                 double bulge = index < given.Count ? given[index] : 0.0;
                 index++;
 
+                // The edge between two vertices in the same place has no length and goes with the later vertex;
+                // the vertex kept takes the bulge of the edge running on from the one dropped.
                 if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(vertex))
                 {
+                    keptBulges[keptBulges.Count - 1] = bulge;
                     continue;
                 }
 
@@ -76,7 +101,11 @@ namespace GeometryHelper.Geometry
             // already say. Its bulge, though, belongs to the closing edge.
             while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0]))
             {
-                keptBulges[kept.Count - 2] = keptBulges[kept.Count - 2] != 0.0 ? keptBulges[kept.Count - 2] : keptBulges[kept.Count - 1];
+                if (repeatBendsClosingEdge)
+                {
+                    keptBulges[kept.Count - 2] = keptBulges[kept.Count - 2] != 0.0 ? keptBulges[kept.Count - 2] : keptBulges[kept.Count - 1];
+                }
+
                 kept.RemoveAt(kept.Count - 1);
                 keptBulges.RemoveAt(keptBulges.Count - 1);
             }
@@ -89,6 +118,23 @@ namespace GeometryHelper.Geometry
             _vertices = kept.ToArray();
             _bulges = keptBulges.ToArray();
         }
+
+        /// <summary>
+        /// Builds a loop from the start and bulge of each of its edges, in order, the last one closing it.
+        /// </summary>
+        /// <param name="starts">Where each edge starts.</param>
+        /// <param name="bulges">The bulge of each edge.</param>
+        /// <returns>The loop.</returns>
+        /// <remarks>
+        /// Every bulge here is its own edge's, so an edge too short to keep goes with its bulge, the last one as
+        /// well: a last edge starting within the global point tolerance of the first vanishes, and the edge coming
+        /// into it closes the loop with its own bulge. The public constructor reads a repeated first vertex as a
+        /// drawing does instead: a fillet of radius 0.0005 at the first corner of a rectangle 100 by 50 would turn
+        /// the straight side before it into an arc of radius 35.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when fewer than three distinct starts are given.</exception>
+        internal static GeoPolygonArc2 FromEdges(IEnumerable<GeoPoint2> starts, IEnumerable<double> bulges)
+            => new GeoPolygonArc2(starts, bulges, false);
 
         /// <summary>
         /// Initializes a loop from a straight polygon, with no bulges.
@@ -455,7 +501,7 @@ namespace GeometryHelper.Geometry
                 bulges.Add(edge.Bulge);
             }
 
-            return new GeoPolygonArc2(vertices, bulges);
+            return FromEdges(vertices, bulges);
         }
 
         /// <summary>

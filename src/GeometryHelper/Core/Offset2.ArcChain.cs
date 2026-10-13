@@ -174,7 +174,7 @@ namespace GeometryHelper.Core
 
             try
             {
-                loop = new GeoPolygonArc2(vertices, bulges);
+                loop = GeoPolygonArc2.FromEdges(vertices, bulges);
                 return true;
             }
             catch (ArgumentException)

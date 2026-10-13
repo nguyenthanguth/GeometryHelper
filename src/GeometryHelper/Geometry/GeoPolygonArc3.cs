@@ -81,6 +81,12 @@ namespace GeometryHelper.Geometry
         /// <param name="bulges">The bulge of the edge leaving each vertex; null or short means the rest are straight.</param>
         /// <param name="normals">The plane each bulge is read about; only wanted where a bulge is not nought.</param>
         /// <param name="tolerance">The tolerance; the planar threshold decides how flat is flat enough.</param>
+        /// <remarks>
+        /// A vertex within the point tolerance of the one kept before it is dropped, and so is the edge between the
+        /// two, which has no length; the edge running on from the dropped vertex keeps its own bulge and normal. A last
+        /// vertex on the first is dropped with the edge from it back to the first, and the edge coming into it closes
+        /// the loop with its own bulge.
+        /// </remarks>
         /// <exception cref="ArgumentException">
         /// Thrown when fewer than three distinct vertices are given, when they do not lie in one plane, or
         /// when an arc bulges out of that plane.
@@ -108,8 +114,12 @@ namespace GeometryHelper.Geometry
                 GeoVector3 normal = index < givenNormals.Count ? givenNormals[index] : default(GeoVector3);
                 index++;
 
+                // The edge between two vertices in the same place has no length and goes with the later vertex;
+                // the vertex kept takes the bulge and the plane of the edge running on from the one dropped.
                 if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(vertex, tolerance))
                 {
+                    keptBulges[keptBulges.Count - 1] = bulge;
+                    keptNormals[keptNormals.Count - 1] = normal;
                     continue;
                 }
 
@@ -280,7 +290,7 @@ namespace GeometryHelper.Geometry
                 bulges.Add(facingAway ? -edge.Bulge : edge.Bulge);
             }
 
-            return new GeoPolygonArc2(vertices, bulges);
+            return GeoPolygonArc2.FromEdges(vertices, bulges);
         }
 
         /// <summary>
