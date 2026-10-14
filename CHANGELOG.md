@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 12.2.0
 
 **FIXED.** A curved loop grown until it closes a gap kept the space it closed round only when the hole's pieces met in
 the order they were cut in and were not a lens of two arcs. The square of side 100 with a lens-shaped cavity, grown by

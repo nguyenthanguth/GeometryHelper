@@ -14,40 +14,49 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 12.1.0
+      NEW IN 12.2.0
 
-      NEW, ellipses in space
-      - GeoEllipse3, an elliptical disc in space, with Core.Ellipse3, read as GeoCircle3 is read: its rim and measures,
-        points on and off it, every transformation that can be undone, collisions and crossings against everything a
-        circle in space is asked about and another ellipse, flattening and meshes. ProjectToPlane on GeoCircle3 and
-        GeoEllipse3 gives the shape seen square onto a plane: a circle of radius 300 tilted 60 degrees from the plan is
-        an ellipse 300 by 150 in plan. ProjectToEllipse2 and GeoEllipse2.ToEllipse3 carry an ellipse between space and
-        the plane.
+      NEW, the ray in the plane
+      - GeoRay2, an origin and a direction it runs along for ever, the counterpart of GeoRay3. It is asked what a
+        segment is asked, against every shape in the plane, and every shape that takes a GeoLine2 takes a GeoRay2 back.
+        PlanarMap.ProjectToRay2/ToRay3, GeoBvh2.GetIntersections and GeoTransform2 take it too.
 
-      NEW, every query from either side
-      - DistanceTo, CollidesWith, GetIntersections, TryIntersectWith and GetShortestLineTo answer from both sides of
-        every pair that had one side, the same answer bit for bit, a shortest line reversed.
-      - GetShortestLineTo(point) on every shape in the plane, and in space wherever the distance was answered.
-      - GeoFace2 is measured by its material: DistanceTo against every shape, and face against face.
-      - Flat shapes in space say whether and where they meet, and how far apart they are: triangles, polygons and faces
-        against each other, planes, rays, bodies and boxes.
+      FIXED, collisions in the plane read by the tolerance everywhere
+      - Two shapes in the plane collide exactly where they come within the point tolerance of each other: they cross,
+        one holds the other, or their boundaries pass within EqualPoint. Segments and rays against open curves, curved
+        loops, polygons, rectangles, triangles and faces, and every pair of curves, now read so; distances still give
+        the gap, and are nought only where the shapes truly cross or overlap.
+      - Two segments no longer collide, nor measure nought, where a crossing lies up to the tolerance past their ends:
+        corners 0.00156 apart at 1E-3 are apart. TryIntersectWith still places such a crossing.
+      - A segment inside a circle's tangent band gets its true crossings; a curved loop near a chord of a bowed edge is
+        read by its true boundary; nearly flat arcs keep their crossings whichever is asked first; tolerance forms read
+        the tolerance passed all the way down.
+      - Label placement no longer puts a label within the tolerance of a line or region kept clear.
 
-      FIXED
-      - Circles and arcs in space: a long segment nearly tangent keeps both crossings; two coplanar circles a hair
-        outside each other touch; planes nearly one no longer lose crossings far from the origin.
-      - A segment or ray lying in a flat shape's plane touches it where it reaches it.
-      - A polygon or face is checked against a body's material, holes and openings included.
-      - A body in two pieces either side of a plane is not nought from it.
-      - Two boxes across skew edges are not touching more than the tolerance apart.
-      - A ray dipping from a plane's tolerance band crosses where it reaches the plane, for the body, its prepared form
-        and the BVH; a clash bar dipping into a part from the band now enters it.
-      - Two triangles give the same answer whichever is asked first, and touch within the tolerance.
-      - Clash, simple-polygon and ring sweeps run along the axis with the fewest pairs, and label placement finds its
-        neighbours through an index: the same results to the last bit, much faster where the shapes lay along X.
+      FIXED, fillets and chamfers
+      - A fillet is the arc on the inside of the corner and never runs past it: no more cusps where the radius was
+        small against the tolerance. A corner that does not turn is left alone.
+      - A fillet or chamfer taking an edge whole, give or take the tolerance, meets its neighbour instead of throwing;
+        a chain's end points never move. Corner3, and the Tekla bars and ties built through it, no longer throw on tiny
+        bends.
+      - A curved chain that drops a repeated vertex keeps the bulge of the edge that still has a length.
 
-      SOURCE NOTE
-      - A bare null or default given as the shape to some GetShortestLineTo and DistanceTo overloads now matches more
-        than one and has to be cast. Code already compiled is not affected.
+      FIXED, offsets
+      - Curved offsets keep what stands exactly the distance from the shape: folds are cut where they come nearer,
+        closing corners are no longer bridged, an arc whose radius runs out is gone round at its two ends, holes are
+        kept however their pieces meet, and the answer no longer depends on the start vertex or direction.
+      - Curved offsets join corners as the straight ones do: a chamfer at the distance, a miter squared off at the
+        limit. They no longer throw at a coarse tolerance.
+      - A straight polyline's offset is its band's edge with no fragments past a sharp corner or lying on the
+        polyline, and its pieces are ordered in near-linear time: 10 000 vertices in 0.57 s where it took 36 s.
+      - A flat chain in space that encloses no area has its plane; round joins keep within OffsetOptions.ArcTolerance.
+
+      CHANGED
+      - Offsetting in a plane in space no longer slows with the square of its edges where neighbouring points are
+        counted: 100 000 vertices in 1.0 s where it took 15.9 s. Results are unchanged.
+      - Reading a near miss as a collision measures a distance where only a crossing was looked for: such pairs, and
+        curved offsets of shapes with a few edges, take up to about twice as long; curved offsets of large shapes are
+        many times faster.
 
       Details in CHANGELOG.md.
 
