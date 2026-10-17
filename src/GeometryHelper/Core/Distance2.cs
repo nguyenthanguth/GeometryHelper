@@ -568,15 +568,15 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// Measured to the arcs themselves rather than to the chords that stand in for them elsewhere, so
-        /// a point beyond a round end is as far away as it looks. The straight edges are the edges they are, however
-        /// short; the tolerance only decides whether a point near the centre of an arc is read at its start.
+        /// a point beyond a round end is as far away as it looks. The edges are the edges they are, however short, and a
+        /// point at the centre of an arc is as far from it as any other: the tolerance changes nothing here.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double DistanceTo(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), point, tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), point);
         }
 
         /// <summary>
@@ -716,15 +716,14 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// Measured to the arcs themselves rather than to the chords that stand in for them elsewhere, so
         /// a point beyond a round end is as far away as it looks. Nought only where the point lies in the loop or on its
-        /// rim: a point 0.0005 off the square 100 by 100 with straight edges is 0.0005 from it. The straight edges are the edges they
-        /// are, however short.
+        /// rim: a point 0.0005 off the square 100 by 100 with straight edges is 0.0005 from it. The edges are the edges they are, however short.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (Containment2.Contains(loop, point, Exactly)) return 0.0;
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), point, tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), point);
         }
 
         /// <summary>

@@ -19,6 +19,13 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the point of the chain nearest a point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A point within the tolerance of the centre of an arc is read as at the centre, which has no direction, and
+        /// is carried to the arc's start; the distance to the point is the exact one, so the line can be longer than
+        /// it, by at most twice the point's offset from the centre. At a tolerance of a thousandth, the point (0,
+        /// -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest
+        /// point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
+        /// </remarks>
         public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point, Tolerance tolerance) => Projection2.ProjectToPolylineArc(this, point, tolerance);
 
         /// <summary>
@@ -26,13 +33,21 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// It starts where <see cref="GetClosestPointOnBoundary(GeoPoint2)"/> lands, on the arcs themselves, and is exactly
-        /// as long as <see cref="DistanceTo(GeoPoint2)"/>.
+        /// as long as <see cref="DistanceTo(GeoPoint2)"/> but for a point within the tolerance of the centre of an arc, which is carried to
+        /// the arc's start.
         /// </remarks>
         public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Projection2.GetShortestLineTo(this, point);
 
         /// <summary>
         /// Gets the shortest segment leaving this chain and landing on a point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A point within the tolerance of the centre of an arc is read as at the centre, which has no direction, and
+        /// is carried to the arc's start; the distance to the point is the exact one, so the line can be longer than
+        /// it, by at most twice the point's offset from the centre. At a tolerance of a thousandth, the point (0,
+        /// -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest
+        /// point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
+        /// </remarks>
         public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Projection2.GetShortestLineTo(this, point, tolerance);
 
         /// <summary>

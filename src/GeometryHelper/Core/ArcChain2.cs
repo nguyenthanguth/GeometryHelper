@@ -174,36 +174,12 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets the point of a run of edges nearest a point, the straight edges as the edges they are however short. A point
-        /// within the tolerance of the centre of an arc is read at the arc's start, as
-        /// <see cref="Arc2.ProjectToArc(GeoArc2, GeoPoint2, Tolerance)"/> reads it.
+        /// Gets the distance from a run of edges to a point, exactly: the edges are the edges they are however short, and a
+        /// point at the centre of an arc is as far from it as any other.
         /// </summary>
-        internal static GeoPoint2 ClosestOnSides(List<GeoEdge2> edges, GeoPoint2 point, Tolerance tolerance)
+        internal static double DistanceTo(List<GeoEdge2> edges, GeoPoint2 point)
         {
-            GeoPoint2 nearest = edges[0].GetClosestPointOnBoundary(point, edges[0].IsArc ? tolerance : Exactly);
-            double best = point.GetDistanceSquaredTo(nearest);
-
-            for (int i = 1; i < edges.Count; i++)
-            {
-                GeoPoint2 candidate = edges[i].GetClosestPointOnBoundary(point, edges[i].IsArc ? tolerance : Exactly);
-                double distance = point.GetDistanceSquaredTo(candidate);
-
-                if (distance < best)
-                {
-                    best = distance;
-                    nearest = candidate;
-                }
-            }
-
-            return nearest;
-        }
-
-        /// <summary>
-        /// Gets the distance from a run of edges to a point, read as <see cref="ClosestOnSides"/> reads it.
-        /// </summary>
-        internal static double DistanceTo(List<GeoEdge2> edges, GeoPoint2 point, Tolerance tolerance)
-        {
-            return point.DistanceTo(ClosestOnSides(edges, point, tolerance));
+            return point.DistanceTo(ClosestPoint(edges, point, Exactly));
         }
 
         /// <summary>

@@ -26,6 +26,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the point of an arc closest to a point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A point within the tolerance of the centre of an arc is read as at the centre, which has no direction, and
+        /// is carried to the arc's start; the distance to the point is the exact one, so the line can be longer than
+        /// it, by at most twice the point's offset from the centre. At a tolerance of a thousandth, the point (0,
+        /// -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest
+        /// point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
+        /// </remarks>
         /// <param name="arc">The arc.</param>
         /// <param name="point">The point; it does not have to lie on the arc.</param>
         /// <param name="tolerance">The tolerance.</param>
@@ -43,9 +50,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the distance from an arc to a point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// The distance is the exact one, and the tolerance changes nothing in it: a point at the centre of the arc is as far
+        /// from it as any other, and a point near the centre is not carried to the arc's start. The arc of radius 50 from
+        /// (-50, 0) to (50, 0) through (0, 50) is 49.9991 from (0, -0.0009), at a tolerance of a thousandth. The projection
+        /// <see cref="ProjectToArc(GeoArc2, GeoPoint2, Tolerance)"/> keeps that snap.
+        /// </remarks>
         public static double DistanceTo(GeoArc2 arc, GeoPoint2 point, Tolerance tolerance)
         {
-            return point.DistanceTo(ProjectToArc(arc, point, tolerance));
+            return point.DistanceTo(ProjectToArc(arc, point, Exactly));
         }
 
         /// <summary>
@@ -419,6 +432,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining an arc to a point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A point within the tolerance of the centre of an arc is read as at the centre, which has no direction, and
+        /// is carried to the arc's start; the distance to the point is the exact one, so the line can be longer than
+        /// it, by at most twice the point's offset from the centre. At a tolerance of a thousandth, the point (0,
+        /// -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest
+        /// point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
+        /// </remarks>
         /// <param name="arc">The arc.</param>
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance.</param>
@@ -493,7 +513,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static double Bowed(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
         {
-            return Meets(arc, line) ? 0.0 : NearestPair(arc, line, tolerance).Length;
+            return Meets(arc, line) ? 0.0 : NearestPair(arc, line, tolerance, Exactly).Length;
         }
 
         /// <summary>
@@ -714,7 +734,13 @@ namespace GeometryHelper.Core
         /// Gets the nearest pair of an arc and a segment that do not cross, from the arc to the segment: an end of
         /// one against the other, or the place where the segment runs straight at the centre.
         /// </summary>
-        private static GeoLine2 NearestPair(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
+        private static GeoLine2 NearestPair(GeoArc2 arc, GeoLine2 line, Tolerance tolerance) => NearestPair(arc, line, tolerance, tolerance);
+
+        /// <summary>
+        /// Gets the nearest pair of an arc and a segment as above, a point read on the arc with its own tolerance: nought for the
+        /// exact distance, which carries no point near the centre of the arc to its start.
+        /// </summary>
+        private static GeoLine2 NearestPair(GeoArc2 arc, GeoLine2 line, Tolerance tolerance, Tolerance onArc)
         {
             // Each end of an arc costs a cosine and a sine, so each is worked out once.
             GeoPoint2 start = arc.StartPoint;
@@ -722,8 +748,8 @@ namespace GeometryHelper.Core
             var best = new GeoLine2(start, Projection2.ProjectToLine(line, start, tolerance));
 
             Consider(ref best, end, Projection2.ProjectToLine(line, end, tolerance));
-            Consider(ref best, ProjectToArc(arc, line.StartPoint, tolerance), line.StartPoint);
-            Consider(ref best, ProjectToArc(arc, line.EndPoint, tolerance), line.EndPoint);
+            Consider(ref best, ProjectToArc(arc, line.StartPoint, onArc), line.StartPoint);
+            Consider(ref best, ProjectToArc(arc, line.EndPoint, onArc), line.EndPoint);
 
             // Where the segment runs straight at the centre, the nearest point of the circle lies on that
             // line, clamped onto the arc so that the pair is one the arc really holds.
@@ -731,7 +757,7 @@ namespace GeometryHelper.Core
 
             if (arc.Center.GetVectorTo(nearestOnLine).Length > tolerance.EqualPoint)
             {
-                Consider(ref best, ProjectToArc(arc, nearestOnLine, tolerance), nearestOnLine);
+                Consider(ref best, ProjectToArc(arc, nearestOnLine, onArc), nearestOnLine);
             }
 
             return best;

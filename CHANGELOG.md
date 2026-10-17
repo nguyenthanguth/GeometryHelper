@@ -192,6 +192,17 @@ triangle reads the global tolerance for it: a triangle with corners 0.004 apart 
 global tolerance is 1E-5 or 1E-2. The shortest line from a sliver 100 long and 0.5 high to the point 1 past its tip
 starts on its short side at a tolerance of 1, as it does at a thousandth.
 
+**FIXED.** The distance from an arc, a curved edge, chain or loop to a point is the exact one for a point near the centre
+of the arc too. A point within the point tolerance of the arc's centre was carried to the arc's start first, which is up to
+twice the tolerance off: the chain from (-60, 0) to (-50, 0) and then by a bulge of 1 to (50, 0) was 50.00000001 from
+(0, -0.0009) at a tolerance of a thousandth, where it is 49.9991, and so were the edge and the arc alone; the same arc
+scaled to a radius of 0.0012 was 0.00124 from (0, -0.0003), off it, where it is 0.0009 and on it. The signed distance
+of a curved loop reads the same, which moves the 32 planar cases of a point 0.00002 to 0.06 off the centre of an arc of
+radius 50 from 50 to 49.99998 to 49.94. The projections `GetShortestLineTo` and `GetClosestPointOnBoundary` keep carrying
+such a point to the start, so their line can be longer than the distance, by at most twice the point's offset from the
+centre: from (0, -0.0009) to the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50), at a tolerance
+of a thousandth, the line runs from (-50, 0) and is 50.00000001 long, where the distance is 49.9991.
+
 **FIXED.** The distance from a polygon, rectangle, triangle, curved chain or curved loop to a point or a circle reads its
 straight sides as the sides they are, however short. A side shorter than the global tolerance was read as its start
 point: the triangle (0, 0), (0.004, 0), (0.002, -5) was 0.006325 from the point (0.002, 0.006) at a global tolerance of

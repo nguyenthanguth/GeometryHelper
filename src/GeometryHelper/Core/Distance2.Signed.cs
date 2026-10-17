@@ -106,7 +106,7 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
             return Signed(
-                ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), point, tolerance),
+                ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), point),
                 Containment2.Locate(loop, point, tolerance));
         }
 

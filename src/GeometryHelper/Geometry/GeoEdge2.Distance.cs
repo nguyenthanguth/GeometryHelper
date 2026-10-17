@@ -16,7 +16,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from the edge to a point, within a tolerance.
         /// </summary>
-        public double DistanceTo(GeoPoint2 point, Tolerance tolerance) => point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
+        public double DistanceTo(GeoPoint2 point, Tolerance tolerance)
+            => IsArc ? Core.Arc2.DistanceTo(ToArc(), point, tolerance) : point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
 
         /// <summary>
         /// Gets the distance from the edge to a straight segment.

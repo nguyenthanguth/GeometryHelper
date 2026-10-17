@@ -12,7 +12,8 @@ namespace GeometryHelper.Core
     /// Both ends of the segment sit on a boundary, so a shape lying wholly inside a closed one still
     /// reports the gap out to its outline rather than nothing at all. <see cref="Distance2"/> takes the
     /// opposite view and reads a closed shape as a filled region, so the two deliberately disagree for
-    /// that pair; everywhere else the segment is exactly as long as the distance.
+    /// that pair; everywhere else the segment is exactly as long as the distance, except for a point within the tolerance of the centre of an
+    /// arc, which is carried to the arc's start.
     /// </para>
     /// <para>
     /// Arcs are measured as arcs, not cut into pieces first, so the answer is exact. Where the two
@@ -32,6 +33,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A point within the tolerance of the centre of an arc is read as at the centre, which has no direction, and
+        /// is carried to the arc's start; the distance to the point is the exact one, so the line can be longer than
+        /// it, by at most twice the point's offset from the centre. At a tolerance of a thousandth, the point (0,
+        /// -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest
+        /// point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
+        /// </remarks>
         /// <param name="loop">The curved loop.</param>
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance.</param>
@@ -198,6 +206,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A point within the tolerance of the centre of an arc is read as at the centre, which has no direction, and
+        /// is carried to the arc's start; the distance to the point is the exact one, so the line can be longer than
+        /// it, by at most twice the point's offset from the centre. At a tolerance of a thousandth, the point (0,
+        /// -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest
+        /// point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
+        /// </remarks>
         /// <param name="chain">The curved chain.</param>
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance.</param>

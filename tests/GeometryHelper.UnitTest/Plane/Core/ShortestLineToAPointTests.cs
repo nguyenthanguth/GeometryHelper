@@ -50,6 +50,7 @@ namespace GeometryHelper.UnitTest.Plane
             On,
             Outside,
             JustOutside,
+            NearArcCentre,
         }
 
         public static TheoryData<string> Rows()
@@ -121,7 +122,7 @@ namespace GeometryHelper.UnitTest.Plane
                     ("at the centre, as near the whole arc", P(50, 0), Where.Inside),
                     // Within the tolerance of 1 of the centre the edge reads the point as at it, and gives the
                     // end (100, 0) rather than the top (50, 50): the line has to follow the tolerance it is given.
-                    ("0.4 above the centre", P(50, 0.4), Where.Inside),
+                    ("0.4 above the centre", P(50, 0.4), Where.NearArcCentre),
                     ("on the arc", P(50, 50), Where.On),
                     ("30 outside the arc", P(50, 80), Where.Outside),
                     ("0.4 outside the arc", P(50, 50.4), Where.JustOutside),
@@ -227,7 +228,7 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     ("at the arc's centre, as near the whole arc", P(50, 0), Where.Inside),
                     // As for the edge: within the tolerance of 1 of the centre the chain gives the end (0, 0).
-                    ("0.4 below the arc's centre", P(50, -0.4), Where.Inside),
+                    ("0.4 below the arc's centre", P(50, -0.4), Where.NearArcCentre),
                     ("on the arc", P(50, -50), Where.On),
                     ("on the straight piece", P(125, 0), Where.On),
                     ("30 below the arc", P(50, -80), Where.Outside),
@@ -318,8 +319,11 @@ namespace GeometryHelper.UnitTest.Plane
                         Assert.True(onBoundary(shape, found.StartPoint), name + ": the start is off the shape");
 
                         // Within the tolerance of 1 the point 0.4 out is as good as on the rim, so which reading
-                        // its length follows is the tolerance's to decide, and not checked here.
-                        if (!(c.Where == Where.JustOutside && loose))
+                        // its length follows is the tolerance's to decide, and not checked here. Nor is it for a point
+                        // within the tolerance of an arc's centre: the distance is the exact one, while the projection
+                        // carries such a point onto the arc's start, so the line can be longer than the distance, by at
+                        // most twice the offset from the centre. The start the line leaves from is still checked above.
+                        if (!((c.Where == Where.JustOutside || c.Where == Where.NearArcCentre) && loose))
                         {
                             Assert.Equal(Expected(c.Where, isRegion, distance(shape, c.Point, tolerance), depth?.Invoke(shape, c.Point, tolerance)), found.Length, Slack);
                         }

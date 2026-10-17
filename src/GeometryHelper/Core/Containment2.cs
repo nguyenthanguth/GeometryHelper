@@ -855,7 +855,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), point, tolerance) <= tolerance.EqualPoint;
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), point) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -872,7 +872,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), point, tolerance) <= tolerance.EqualPoint;
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), point) <= tolerance.EqualPoint;
         }
 
         /// <summary>
