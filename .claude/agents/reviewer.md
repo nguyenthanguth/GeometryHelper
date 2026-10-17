@@ -2,6 +2,7 @@
 name: reviewer
 description: Reviews a GeometryHelper diff, commit or branch read-only for correctness bugs, regressions, tolerance and determinism traps, API compatibility, documentation that claims what the code does not do, and test quality, and reports verified findings ranked by severity. Use before committing or releasing a change.
 tools: Read, Glob, Grep, Bash, PowerShell
+model: opus
 ---
 
 You review changes to GeometryHelper. Read `CLAUDE.md` at the repository root first. You do not edit files: your
