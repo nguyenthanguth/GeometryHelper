@@ -115,7 +115,7 @@ namespace GeometryHelper.Core
             {
                 return true;
             }
-            return Distance2.DistanceTo(poly, circle.Center, tolerance) <= circle.Radius + tolerance.EqualPoint;
+            return Distance2.DistanceTo(poly, circle.Center) <= circle.Radius + tolerance.EqualPoint;
         }
 
         /// <summary>

@@ -125,9 +125,7 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this curved loop to an edge, within a tolerance.
         /// </summary>
         public double DistanceTo(GeoEdge2 edge, Tolerance tolerance)
-            => edge.IsArc
-                ? DistanceTo(edge.ToArc(), tolerance)
-                : DistanceTo(edge.ToLine(), tolerance);
+            => ArcChain2.Edge(edge, line => DistanceTo(line, tolerance), arc => DistanceTo(arc, tolerance), point => DistanceTo(point, tolerance));
 
         #region Triangles
 

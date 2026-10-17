@@ -676,7 +676,7 @@ namespace GeometryHelper.Core
         {
             Required(face, nameof(face));
 
-            return Triangle2.TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            return Triangle2.TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? DistanceTo(face, shape, tolerance)
                 : DistanceTo(face, hull, tolerance);
         }

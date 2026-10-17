@@ -26,6 +26,16 @@ namespace GeometryHelper.Core
     public static partial class Triangle2
     {
         /// <summary>
+        /// Gets a triangle as a polygon for measuring and colliding it: its sides are its own, so a side shorter than the
+        /// caller's tolerance is the side it is, not a reason to read the triangle as its longest side alone. Only corners
+        /// that coincide exactly, which no polygon can hold apart, make it a segment, so the answer reads no tolerance at
+        /// all, the global one included. The polygon is built as it stands, without the merging of the constructor that
+        /// takes the corners alone, which reads the global tolerance.
+        /// </summary>
+        internal static bool TryAsPolygonByItsSides(GeoTriangle2 triangle, out GeoPolygon2 polygon, out GeoLine2 hull)
+            => TryAsPolygon(triangle, default(Tolerance), out polygon, out hull);
+
+        /// <summary>
         /// Reads a triangle as the polygon of its corners, or, when two of them stand within the point tolerance of each
         /// other, as the segment between the two furthest apart.
         /// </summary>
@@ -71,7 +81,7 @@ namespace GeometryHelper.Core
         /// shapes of space keep when they lay a triangle out in its plane, where they weigh a near miss in their own way.
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoTriangle2 triangle, GeoLine2 line, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? Collision2.CrossesOrStartsIn(shape, line, tolerance, true)
                 : hull.CollidesWith(line, tolerance);
 
@@ -79,7 +89,7 @@ namespace GeometryHelper.Core
         /// Whether a triangle and a polygon cross or one starts inside the other, read as before near misses counted.
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoTriangle2 triangle, GeoPolygon2 polygon, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? Collision2.CrossesOrStartsIn(shape, polygon, tolerance, true)
                 : Collision2.CrossesOrStartsIn(polygon, hull, tolerance, true);
 
@@ -87,7 +97,7 @@ namespace GeometryHelper.Core
         /// Whether a triangle crosses a rim of a face or lies on its material, read as before near misses counted.
         /// </summary>
         internal static bool CrossesOrLiesOn(GeoTriangle2 triangle, GeoFace2 face, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? Face2.CrossesOrLiesOn(face, shape, tolerance, true)
                 : Face2.CrossesOrLiesOn(face, hull, tolerance, true);
 
@@ -100,7 +110,7 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle touches an arc, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoArc2 arc, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.CollidesWith(arc, tolerance)
                 : hull.CollidesWith(arc, tolerance);
 
@@ -113,7 +123,7 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle touches a curved loop, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoPolygonArc2 loop, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.CollidesWith(loop, tolerance)
                 : hull.CollidesWith(loop, tolerance);
 
@@ -126,7 +136,7 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle touches a curved chain, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoPolylineArc2 chain, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.CollidesWith(chain, tolerance)
                 : hull.CollidesWith(chain, tolerance);
 
@@ -139,7 +149,7 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle touches a rectangle, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoRectangle2 rect, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.CollidesWith(rect, tolerance)
                 : hull.CollidesWith(rect, tolerance);
 
@@ -152,7 +162,7 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle touches a segment, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoLine2 line, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.CollidesWith(line, tolerance)
                 : hull.CollidesWith(line, tolerance);
 
@@ -165,7 +175,7 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle touches a polygon, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoPolygon2 polygon, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.CollidesWith(polygon, tolerance)
                 : hull.CollidesWith(polygon, tolerance);
 
@@ -178,7 +188,7 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle touches a circle, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoCircle2 circle, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.CollidesWith(circle, tolerance)
                 : hull.CollidesWith(circle, tolerance);
 
@@ -191,7 +201,7 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle touches a polyline, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoPolyline2 polyline, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.CollidesWith(polyline, tolerance)
                 : hull.CollidesWith(polyline, tolerance);
 
@@ -204,7 +214,7 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle touches a face, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoFace2 face, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.CollidesWith(face, tolerance)
                 : hull.CollidesWith(face, tolerance);
 
@@ -217,7 +227,7 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle touches an edge, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoEdge2 edge, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.CollidesWith(edge, tolerance)
                 : hull.CollidesWith(edge, tolerance);
 
@@ -230,7 +240,7 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle touches another triangle, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoTriangle2 triangle, GeoTriangle2 other, Tolerance tolerance)
-            => TryAsPolygon(other, tolerance, out GeoPolygon2 otherPolygon, out GeoLine2 otherHull)
+            => TryAsPolygonByItsSides(other, out GeoPolygon2 otherPolygon, out GeoLine2 otherHull)
                 ? CollidesWith(triangle, otherPolygon, tolerance)
                 : CollidesWith(triangle, otherHull, tolerance);
 
@@ -244,7 +254,7 @@ namespace GeometryHelper.Core
         /// 0.0005 from it.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoPoint2 point)
-            => TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.DistanceTo(point)
                 : hull.DistanceTo(point);
 
@@ -260,7 +270,7 @@ namespace GeometryHelper.Core
         /// A triangle of no width has no inside, so no point is within it and the distance is never negative.
         /// </remarks>
         public static double SignedDistanceTo(GeoTriangle2 triangle, GeoPoint2 point, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out GeoLine2 hull)
                 ? polygon.SignedDistanceTo(point, tolerance)
                 : Distance2.DistanceTo(hull, point, tolerance);
 
@@ -268,7 +278,7 @@ namespace GeometryHelper.Core
         /// Gets the distance from a triangle to a polygon.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoPolygon2 polygon)
-            => TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.DistanceTo(polygon)
                 : hull.DistanceTo(polygon);
 
@@ -276,7 +286,7 @@ namespace GeometryHelper.Core
         /// Gets the distance from a triangle to a segment.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoLine2 line)
-            => TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.DistanceTo(line)
                 : hull.DistanceTo(line);
 
@@ -284,7 +294,7 @@ namespace GeometryHelper.Core
         /// Gets the distance from a triangle to a circle.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoCircle2 circle)
-            => TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.DistanceTo(circle)
                 : hull.DistanceTo(circle);
 
@@ -292,7 +302,7 @@ namespace GeometryHelper.Core
         /// Gets the distance from a triangle to a polyline.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoPolyline2 polyline)
-            => TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.DistanceTo(polyline)
                 : hull.DistanceTo(polyline);
 
@@ -300,7 +310,7 @@ namespace GeometryHelper.Core
         /// Gets the distance from a triangle to a rectangle.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoRectangle2 rect)
-            => TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.DistanceTo(rect)
                 : hull.DistanceTo(rect);
 
@@ -308,7 +318,7 @@ namespace GeometryHelper.Core
         /// Gets the distance from a triangle to an edge.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoEdge2 edge)
-            => TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.DistanceTo(edge)
                 : hull.DistanceTo(edge);
 
@@ -316,7 +326,7 @@ namespace GeometryHelper.Core
         /// Gets the distance from a triangle to another triangle.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoTriangle2 other)
-            => TryAsPolygon(other, Tolerance.Global, out GeoPolygon2 otherPolygon, out GeoLine2 otherHull)
+            => TryAsPolygonByItsSides(other, out GeoPolygon2 otherPolygon, out GeoLine2 otherHull)
                 ? DistanceTo(triangle, otherPolygon)
                 : DistanceTo(triangle, otherHull);
 
@@ -329,7 +339,7 @@ namespace GeometryHelper.Core
         /// Gets the distance from a triangle to an arc, within a tolerance.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoArc2 arc, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.DistanceTo(arc, tolerance)
                 : hull.DistanceTo(arc, tolerance);
 
@@ -342,7 +352,7 @@ namespace GeometryHelper.Core
         /// Gets the distance from a triangle to a curved loop, within a tolerance.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoPolygonArc2 loop, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.DistanceTo(loop, tolerance)
                 : hull.DistanceTo(loop, tolerance);
 
@@ -355,7 +365,7 @@ namespace GeometryHelper.Core
         /// Gets the distance from a triangle to a curved chain, within a tolerance.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoPolylineArc2 chain, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.DistanceTo(chain, tolerance)
                 : hull.DistanceTo(chain, tolerance);
 
@@ -372,7 +382,7 @@ namespace GeometryHelper.Core
         /// Gets every point where the edges of a triangle meet an arc, within a tolerance.
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoArc2 arc, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetIntersections(arc, tolerance)
                 : hull.GetIntersections(arc, tolerance);
 
@@ -385,7 +395,7 @@ namespace GeometryHelper.Core
         /// Gets every point where the edges of a triangle meet a curved loop, within a tolerance.
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoPolygonArc2 loop, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetIntersections(loop, tolerance)
                 : hull.GetIntersections(loop, tolerance);
 
@@ -398,7 +408,7 @@ namespace GeometryHelper.Core
         /// Gets every point where the edges of a triangle meet a curved chain, within a tolerance.
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoPolylineArc2 chain, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetIntersections(chain, tolerance)
                 : hull.GetIntersections(chain, tolerance);
 
@@ -411,7 +421,7 @@ namespace GeometryHelper.Core
         /// Gets every point where the edges of a triangle meet a rectangle, within a tolerance.
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoRectangle2 rect, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetIntersections(rect, tolerance)
                 : hull.GetIntersections(rect, tolerance);
 
@@ -424,7 +434,7 @@ namespace GeometryHelper.Core
         /// Gets every point where the edges of a triangle meet a segment, within a tolerance.
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoLine2 line, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetIntersections(line, tolerance)
                 : Meet(hull, line, tolerance);
 
@@ -437,7 +447,7 @@ namespace GeometryHelper.Core
         /// Gets every point where the edges of a triangle meet a polygon, within a tolerance.
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoPolygon2 polygon, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetIntersections(polygon, tolerance)
                 : hull.GetIntersections(polygon, tolerance);
 
@@ -450,7 +460,7 @@ namespace GeometryHelper.Core
         /// Gets every point where the edges of a triangle meet a circle, within a tolerance.
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoCircle2 circle, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetIntersections(circle, tolerance)
                 : hull.GetIntersections(circle, tolerance);
 
@@ -463,7 +473,7 @@ namespace GeometryHelper.Core
         /// Gets every point where the edges of a triangle meet a polyline, within a tolerance.
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoPolyline2 polyline, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetIntersections(polyline, tolerance)
                 : hull.GetIntersections(polyline, tolerance);
 
@@ -476,7 +486,7 @@ namespace GeometryHelper.Core
         /// Gets every point where the edges of a triangle meet a face, within a tolerance.
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoFace2 face, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetIntersections(face, tolerance)
                 : hull.GetIntersections(face, tolerance);
 
@@ -489,7 +499,7 @@ namespace GeometryHelper.Core
         /// Gets every point where the edges of a triangle meet an edge, within a tolerance.
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoEdge2 edge, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetIntersections(edge, tolerance)
                 : hull.GetIntersections(edge, tolerance);
 
@@ -502,7 +512,7 @@ namespace GeometryHelper.Core
         /// Gets every point where the edges of a triangle meet another triangle, within a tolerance.
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoTriangle2 other, Tolerance tolerance)
-            => TryAsPolygon(other, tolerance, out GeoPolygon2 otherPolygon, out GeoLine2 otherHull)
+            => TryAsPolygonByItsSides(other, out GeoPolygon2 otherPolygon, out GeoLine2 otherHull)
                 ? GetIntersections(triangle, otherPolygon, tolerance)
                 : GetIntersections(triangle, otherHull, tolerance);
 
@@ -514,7 +524,7 @@ namespace GeometryHelper.Core
         /// Gets the point on the edges of a triangle closest to a point.
         /// </summary>
         public static GeoPoint2 GetClosestPointOnBoundary(GeoTriangle2 triangle, GeoPoint2 point)
-            => TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 polygon, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out GeoLine2 hull)
                 ? polygon.GetClosestPointOnBoundary(point)
                 : hull.GetClosestPointOnBoundary(point);
 
@@ -529,9 +539,10 @@ namespace GeometryHelper.Core
         /// <param name="triangle">The triangle.</param>
         /// <param name="point">The point.</param>
         /// <param name="tolerance">
-        /// The tolerance: it decides whether the triangle is read as one or, a sliver within it, as the segment of its hull,
-        /// and is passed to the projection onto either. A sliver 100 long and 0.5 high gives the point 1 past its tip the
-        /// segment from its short side at a thousandth, and from the hull's end at 1.
+        /// The tolerance, passed to the projection onto the triangle only where its corners coincide and it is a segment. It
+        /// is read by its own sides however thin and however short, so that they are projected on as the sides they are: a
+        /// sliver 100 long and 0.5 high gives the point 1 past its tip the segment from its short side at any tolerance. Only
+        /// corners that coincide exactly make it a segment.
         /// </param>
         /// <returns>
         /// A segment from the nearest point of the edges to <paramref name="point"/>, the point
@@ -542,8 +553,8 @@ namespace GeometryHelper.Core
         /// </returns>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoPoint2 point, Tolerance tolerance)
             => new GeoLine2(
-                TryAsPolygon(triangle, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull)
-                    ? Projection2.ProjectToPolygon(polygon, point, tolerance)
+                TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out GeoLine2 hull)
+                    ? Projection2.ProjectToPolygon(polygon, point, default(Tolerance))
                     : Projection2.ProjectToLine(hull, point, tolerance),
                 point);
 
@@ -556,7 +567,7 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a triangle and landing on a segment, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoLine2 line, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetShortestLineTo(line, tolerance)
                 : hull.GetShortestLineTo(line, tolerance);
 
@@ -569,7 +580,7 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a triangle and landing on a circle, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoCircle2 circle, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetShortestLineTo(circle, tolerance)
                 : hull.GetShortestLineTo(circle, tolerance);
 
@@ -582,7 +593,7 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a triangle and landing on a rectangle, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoRectangle2 rect, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetShortestLineTo(rect, tolerance)
                 : hull.GetShortestLineTo(rect, tolerance);
 
@@ -595,7 +606,7 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a triangle and landing on a polyline, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoPolyline2 polyline, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetShortestLineTo(polyline, tolerance)
                 : hull.GetShortestLineTo(polyline, tolerance);
 
@@ -608,7 +619,7 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a triangle and landing on a polygon, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoPolygon2 polygon, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetShortestLineTo(polygon, tolerance)
                 : hull.GetShortestLineTo(polygon, tolerance);
 
@@ -621,7 +632,7 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a triangle and landing on an arc, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoArc2 arc, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetShortestLineTo(arc, tolerance)
                 : hull.GetShortestLineTo(arc, tolerance);
 
@@ -634,7 +645,7 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a triangle and landing on a curved loop, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoPolygonArc2 loop, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetShortestLineTo(loop, tolerance)
                 : hull.GetShortestLineTo(loop, tolerance);
 
@@ -647,7 +658,7 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a triangle and landing on a curved chain, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoPolylineArc2 chain, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetShortestLineTo(chain, tolerance)
                 : hull.GetShortestLineTo(chain, tolerance);
 
@@ -660,7 +671,7 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a triangle and landing on a face, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoFace2 face, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetShortestLineTo(face, tolerance)
                 : hull.GetShortestLineTo(face, tolerance);
 
@@ -673,7 +684,7 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a triangle and landing on an edge, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoEdge2 edge, Tolerance tolerance)
-            => TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetShortestLineTo(edge, tolerance)
                 : hull.GetShortestLineTo(edge, tolerance);
 
@@ -686,7 +697,7 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a triangle and landing on another triangle, within a tolerance.
         /// </summary>
         public static GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, GeoTriangle2 other, Tolerance tolerance)
-            => TryAsPolygon(other, tolerance, out GeoPolygon2 otherPolygon, out GeoLine2 otherHull)
+            => TryAsPolygonByItsSides(other, out GeoPolygon2 otherPolygon, out GeoLine2 otherHull)
                 ? GetShortestLineTo(triangle, otherPolygon, tolerance)
                 : GetShortestLineTo(triangle, otherHull, tolerance);
 
@@ -698,7 +709,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoLine2 GetClosestEdge(GeoTriangle2 triangle, GeoPoint2 point)
         {
-            if (TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 polygon, out _))
+            if (TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out _))
             {
                 return ClosestEdge2.GetClosestEdge(polygon, point);
             }
@@ -729,7 +740,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoLine2 GetClosestEdge(GeoTriangle2 triangle, GeoLine2 line)
         {
-            if (TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 polygon, out _))
+            if (TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out _))
             {
                 return ClosestEdge2.GetClosestEdge(polygon, line);
             }
@@ -760,7 +771,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoLine2 GetClosestEdge(GeoTriangle2 triangle, GeoCircle2 circle)
         {
-            if (TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 polygon, out _))
+            if (TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out _))
             {
                 return ClosestEdge2.GetClosestEdge(polygon, circle);
             }
@@ -800,7 +811,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool Contains(GeoTriangle2 triangle, GeoLine2 line, Tolerance tolerance)
         {
-            if (TryAsPolygon(triangle, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull))
+            if (TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out GeoLine2 hull))
             {
                 return Containment2.Contains(polygon, line, tolerance);
             }
@@ -826,7 +837,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polyline));
             }
 
-            if (TryAsPolygon(triangle, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull))
+            if (TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out GeoLine2 hull))
             {
                 return Containment2.Contains(polygon, polyline, tolerance);
             }
@@ -937,7 +948,7 @@ namespace GeometryHelper.Core
         /// The triangle is asked as the polygon of its corners, as <see cref="Lengthen2"/> asks a polygon; one of no width as the segment it is.
         /// </remarks>
         public static bool TryExtendTo(GeoLine2 line, GeoTriangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance)
-            => TryAsPolygon(boundary, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(boundary, out GeoPolygon2 polygon, out GeoLine2 hull)
                 ? Lengthen2.TryExtendTo(line, polygon, end, out result, tolerance)
                 : Lengthen2.TryExtendTo(line, hull, end, out result, tolerance);
 
@@ -953,7 +964,7 @@ namespace GeometryHelper.Core
         /// The triangle is asked as the polygon of its corners, as <see cref="Lengthen2"/> asks a polygon; one of no width as the segment it is.
         /// </remarks>
         public static bool TryTrimTo(GeoLine2 line, GeoTriangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance)
-            => TryAsPolygon(boundary, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull)
+            => TryAsPolygonByItsSides(boundary, out GeoPolygon2 polygon, out GeoLine2 hull)
                 ? Lengthen2.TryTrimTo(line, polygon, end, out result, tolerance)
                 : Lengthen2.TryTrimTo(line, hull, end, out result, tolerance);
 

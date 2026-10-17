@@ -91,10 +91,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from this rectangle to an edge.
         /// </summary>
-        public double DistanceTo(GeoEdge2 edge)
-            => edge.IsArc
-                ? DistanceTo(edge.ToArc())
-                : DistanceTo(edge.ToLine());
+        public double DistanceTo(GeoEdge2 edge) => ArcChain2.Edge(edge, DistanceTo, DistanceTo, DistanceTo);
 
         #region Triangles
 

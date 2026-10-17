@@ -88,7 +88,7 @@ namespace GeometryHelper.Core
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
             return Signed(
-                point.DistanceTo(Projection2.ProjectToPolygon(poly, point, tolerance)),
+                point.DistanceTo(Projection2.ProjectToPolygon(poly, point, Exactly)),
                 Containment2.Locate(poly, point, tolerance));
         }
 
@@ -106,7 +106,7 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
             return Signed(
-                point.DistanceTo(Projection2.ProjectToPolygonArc(loop, point, tolerance)),
+                ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), point, tolerance),
                 Containment2.Locate(loop, point, tolerance));
         }
 
@@ -139,7 +139,7 @@ namespace GeometryHelper.Core
                 return 0.0;
             }
 
-            return Reach(face, point, tolerance);
+            return Reach(face, point);
         }
 
         /// <summary>
@@ -159,19 +159,19 @@ namespace GeometryHelper.Core
         {
             if (face == null) throw new ArgumentNullException(nameof(face));
 
-            return Signed(Reach(face, point, tolerance), Containment2.Locate(face, point, tolerance));
+            return Signed(Reach(face, point), Containment2.Locate(face, point, tolerance));
         }
 
         /// <summary>
         /// Gets the distance from a point to the nearest edge of a face, its outline or the rim of a hole.
         /// </summary>
-        private static double Reach(GeoFace2 face, GeoPoint2 point, Tolerance tolerance)
+        private static double Reach(GeoFace2 face, GeoPoint2 point)
         {
-            double reach = point.DistanceTo(Projection2.ProjectToPolygon(face.Boundary, point, tolerance));
+            double reach = point.DistanceTo(Projection2.ProjectToPolygon(face.Boundary, point, Exactly));
 
             foreach (GeoPolygon2 hole in face.Holes)
             {
-                reach = Math.Min(reach, point.DistanceTo(Projection2.ProjectToPolygon(hole, point, tolerance)));
+                reach = Math.Min(reach, point.DistanceTo(Projection2.ProjectToPolygon(hole, point, Exactly)));
             }
 
             return reach;

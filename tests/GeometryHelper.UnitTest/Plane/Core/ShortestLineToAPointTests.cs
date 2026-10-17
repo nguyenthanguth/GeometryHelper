@@ -360,19 +360,20 @@ namespace GeometryHelper.UnitTest.Plane
             P(0, 0), P(100, 0), P(100, 60), P(70, 60), P(70, 20), P(30, 20), P(30, 60), P(0, 60));
 
         [Fact]
-        public void ATriangleReadsTheToleranceItIsGivenForTheShortestLineToAPoint()
+        public void ATriangleIsReadByItsSidesForTheShortestLineToAPointWhateverTheTolerance()
         {
-            // A sliver 100 long and 0.5 high, and a point 1 past its tip. Read at a thousandth the sliver is a triangle and
-            // the nearest point is on its short side, (100, 0.25); read at 1 it is no triangle at all but its hull, and the
-            // nearest point is the hull's end, (100, 0.5). The form taking a tolerance read the process-wide one instead.
+            // A sliver 100 long and 0.5 high, and a point 1 past its tip. Its nearest point is on its short side, (100, 0.25),
+            // at any tolerance. At a tolerance of 1 the sliver used to be read as the segment of its hull, whose end
+            // (100, 0.5) was the nearest point; before that, the form taking a tolerance read the process-wide one instead.
+            // The triangle is now read by its own sides, however thin, and no tolerance decides it.
             var sliver = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 0.5));
             var point = new GeoPoint2(101, 0.25);
             var fine = new Tolerance(1E-3, 1E-5);
             var coarse = new Tolerance(1.0, 1E-5);
 
             Assert.True(sliver.GetShortestLineTo(point, fine).StartPoint.IsEqualTo(new GeoPoint2(100, 0.25), new Tolerance(1E-9, 1E-9)));
-            Assert.True(sliver.GetShortestLineTo(point, coarse).StartPoint.IsEqualTo(new GeoPoint2(100, 0.5), new Tolerance(1E-9, 1E-9)));
-            Assert.True(point.GetShortestLineTo(sliver, coarse).EndPoint.IsEqualTo(new GeoPoint2(100, 0.5), new Tolerance(1E-9, 1E-9)));
+            Assert.True(sliver.GetShortestLineTo(point, coarse).StartPoint.IsEqualTo(new GeoPoint2(100, 0.25), new Tolerance(1E-9, 1E-9)));
+            Assert.True(point.GetShortestLineTo(sliver, coarse).EndPoint.IsEqualTo(new GeoPoint2(100, 0.25), new Tolerance(1E-9, 1E-9)));
         }
 
         #endregion

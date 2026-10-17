@@ -174,17 +174,43 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets the distance from a run of edges to a point.
+        /// Gets the point of a run of edges nearest a point, the straight edges as the edges they are however short. A point
+        /// within the tolerance of the centre of an arc is read at the arc's start, as
+        /// <see cref="Arc2.ProjectToArc(GeoArc2, GeoPoint2, Tolerance)"/> reads it.
         /// </summary>
-        internal static double DistanceTo(List<GeoEdge2> edges, GeoPoint2 point, Tolerance tolerance)
+        internal static GeoPoint2 ClosestOnSides(List<GeoEdge2> edges, GeoPoint2 point, Tolerance tolerance)
         {
-            return point.DistanceTo(ClosestPoint(edges, point, tolerance));
+            GeoPoint2 nearest = edges[0].GetClosestPointOnBoundary(point, edges[0].IsArc ? tolerance : Exactly);
+            double best = point.GetDistanceSquaredTo(nearest);
+
+            for (int i = 1; i < edges.Count; i++)
+            {
+                GeoPoint2 candidate = edges[i].GetClosestPointOnBoundary(point, edges[i].IsArc ? tolerance : Exactly);
+                double distance = point.GetDistanceSquaredTo(candidate);
+
+                if (distance < best)
+                {
+                    best = distance;
+                    nearest = candidate;
+                }
+            }
+
+            return nearest;
         }
 
         /// <summary>
-        /// Gets the distance between two runs of edges, measured along their arcs.
+        /// Gets the distance from a run of edges to a point, read as <see cref="ClosestOnSides"/> reads it.
         /// </summary>
-        internal static double DistanceTo(List<GeoEdge2> first, List<GeoEdge2> second, Tolerance tolerance)
+        internal static double DistanceTo(List<GeoEdge2> edges, GeoPoint2 point, Tolerance tolerance)
+        {
+            return point.DistanceTo(ClosestOnSides(edges, point, tolerance));
+        }
+
+        /// <summary>
+        /// Gets the distance between two runs of edges, measured along their arcs. Each run is the sides of a shape, so a
+        /// side shorter than the point tolerance is the side it is, not a segment read as its start.
+        /// </summary>
+        internal static double DistanceTo(List<GeoEdge2> first, List<GeoEdge2> second)
         {
             double best = double.MaxValue;
 
@@ -192,7 +218,7 @@ namespace GeometryHelper.Core
             {
                 foreach (GeoEdge2 other in second)
                 {
-                    double distance = one.DistanceTo(other, tolerance);
+                    double distance = one.DistanceTo(other, Exactly);
 
                     if (distance < best)
                     {
@@ -502,6 +528,24 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the distance from a shape to an edge that may curve, given how the shape measures a segment, an arc and a
+        /// point: an edge that bows too little reads as its chord, and a true arc edge also tries its stored end points
+        /// where the answer is within the rounding of the arc, so that a vertex the shape shares with the edge reads nought.
+        /// </summary>
+        internal static double Edge(GeoEdge2 edge, Func<GeoLine2, double> line, Func<GeoArc2, double> arc, Func<GeoPoint2, double> point)
+        {
+            if (Straight(edge, out GeoLine2 straight))
+            {
+                return line(straight);
+            }
+
+            GeoArc2 round = edge.ToArc();
+            double gap = arc(round);
+
+            return Rounds(gap, round) ? Math.Min(gap, Math.Min(point(edge.StartPoint), point(edge.EndPoint))) : gap;
+        }
+
+        /// <summary>
         /// Gets the exact distance from an edge to a segment: nought only where they truly meet, a segment no longer than
         /// the tolerance read as its start point where it does not cross.
         /// </summary>
@@ -665,13 +709,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the distance from a run of edges to an arc.
         /// </summary>
-        internal static double DistanceTo(List<GeoEdge2> edges, GeoArc2 arc, Tolerance tolerance)
+        internal static double DistanceTo(List<GeoEdge2> edges, GeoArc2 arc)
         {
             double best = double.MaxValue;
 
             foreach (GeoEdge2 edge in edges)
             {
-                double distance = edge.DistanceTo(arc, tolerance);
+                double distance = edge.DistanceTo(arc, Exactly);
 
                 if (distance < best)
                 {
@@ -690,13 +734,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the distance from a run of edges to a circle.
         /// </summary>
-        internal static double DistanceTo(List<GeoEdge2> edges, GeoCircle2 circle, Tolerance tolerance)
+        internal static double DistanceTo(List<GeoEdge2> edges, GeoCircle2 circle)
         {
             double best = double.MaxValue;
 
             foreach (GeoEdge2 edge in edges)
             {
-                double distance = edge.DistanceTo(circle, tolerance);
+                double distance = edge.DistanceTo(circle, Exactly);
 
                 if (distance < best)
                 {
@@ -736,7 +780,7 @@ namespace GeometryHelper.Core
 
                 for (int j = 0; j < second.Count; j++)
                 {
-                    if (box.Near(boxes[j], tolerance) && one.DistanceTo(second[j], tolerance) <= tolerance.EqualPoint)
+                    if (box.Near(boxes[j], tolerance) && one.DistanceTo(second[j], Exactly) <= tolerance.EqualPoint)
                     {
                         return true;
                     }
@@ -755,7 +799,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoEdge2 edge in edges)
             {
-                if (box.Near(Box.Of(edge), tolerance) && edge.DistanceTo(arc, tolerance) <= tolerance.EqualPoint)
+                if (box.Near(Box.Of(edge), tolerance) && edge.DistanceTo(arc, Exactly) <= tolerance.EqualPoint)
                 {
                     return true;
                 }
@@ -773,7 +817,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoEdge2 edge in edges)
             {
-                if (box.Near(Box.Of(edge), tolerance) && edge.DistanceTo(circle, tolerance) <= tolerance.EqualPoint)
+                if (box.Near(Box.Of(edge), tolerance) && edge.DistanceTo(circle, Exactly) <= tolerance.EqualPoint)
                 {
                     return true;
                 }

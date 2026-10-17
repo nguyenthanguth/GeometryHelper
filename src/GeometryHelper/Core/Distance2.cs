@@ -323,21 +323,14 @@ namespace GeometryHelper.Core
         #region Polygon - Shapes
 
         /// <summary>
-        /// Calculates the shortest distance from a polygon boundary to a point.
+        /// Calculates the shortest distance from a polygon to a point: nought only where the point lies in the polygon or on
+        /// its rim, otherwise the gap, measured exactly, the polygon's sides as the sides they are however short. A point
+        /// 0.0005 off the square 100 by 100 is 0.0005 from it.
         /// </summary>
         /// <param name="poly">The polygon.</param>
         /// <param name="point">The target point.</param>
-        /// <returns>The shortest distance to the polygon boundary.</returns>
+        /// <returns>Nought for a point in the polygon or on its rim, otherwise the distance to the nearest side.</returns>
         public static double DistanceTo(GeoPolygon2 poly, GeoPoint2 point)
-        {
-            return DistanceTo(poly, point, Tolerance.Global);
-        }
-
-        /// <summary>
-        /// Calculates the shortest distance from a polygon to a point: nought only where the point lies in the polygon or on
-        /// its rim, otherwise the gap, measured exactly. A point 0.0005 off the square 100 by 100 is 0.0005 from it.
-        /// </summary>
-        internal static double DistanceTo(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance)
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
@@ -349,7 +342,7 @@ namespace GeometryHelper.Core
                 return 0.0;
             }
 
-            return DistanceTo(point, Projection2.ProjectToPolygon(poly, point, tolerance));
+            return DistanceTo(point, Projection2.ProjectToPolygon(poly, point, Exactly));
         }
 
         /// <summary>
@@ -575,7 +568,8 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// Measured to the arcs themselves rather than to the chords that stand in for them elsewhere, so
-        /// a point beyond a round end is as far away as it looks.
+        /// a point beyond a round end is as far away as it looks. The straight edges are the edges they are, however
+        /// short; the tolerance only decides whether a point near the centre of an arc is read at its start.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double DistanceTo(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance)
@@ -623,7 +617,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), arc, tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), arc);
         }
 
         /// <summary>
@@ -643,7 +637,7 @@ namespace GeometryHelper.Core
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
             
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polyline), tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polyline));
         }
 
         /// <summary>
@@ -665,7 +659,7 @@ namespace GeometryHelper.Core
             
             if (Collision2.Meets(chain, polygon)) return 0.0;
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon), tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon));
         }
 
         /// <summary>
@@ -685,7 +679,7 @@ namespace GeometryHelper.Core
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (other == null) throw new ArgumentNullException(nameof(other));
             
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(other), tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(other));
         }
 
         /// <summary>
@@ -707,7 +701,7 @@ namespace GeometryHelper.Core
             
             if (Collision2.Meets(chain, loop)) return 0.0;
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop), tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop));
         }
 
         /// <summary>
@@ -722,7 +716,8 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// Measured to the arcs themselves rather than to the chords that stand in for them elsewhere, so
         /// a point beyond a round end is as far away as it looks. Nought only where the point lies in the loop or on its
-        /// rim: a point 0.0005 off the square 100 by 100 with straight edges is 0.0005 from it.
+        /// rim: a point 0.0005 off the square 100 by 100 with straight edges is 0.0005 from it. The straight edges are the edges they
+        /// are, however short.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
@@ -769,7 +764,7 @@ namespace GeometryHelper.Core
             
             if (Containment2.Contains(loop, arc.StartPoint, Exactly)) return 0.0;
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), arc, tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), arc);
         }
 
         /// <summary>
@@ -791,7 +786,7 @@ namespace GeometryHelper.Core
             
             if (Collision2.Meets(loop, polyline)) return 0.0;
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline), tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline));
         }
 
         /// <summary>
@@ -813,7 +808,7 @@ namespace GeometryHelper.Core
             
             if (Collision2.Meets(loop, polygon)) return 0.0;
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon), tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon));
         }
 
         /// <summary>
@@ -835,7 +830,7 @@ namespace GeometryHelper.Core
             
             if (Collision2.Meets(loop, chain)) return 0.0;
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain), tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain));
         }
 
         /// <summary>
@@ -857,7 +852,7 @@ namespace GeometryHelper.Core
             
             if (Collision2.Meets(loop, other)) return 0.0;
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other), tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other));
         }
 
         #endregion
@@ -877,7 +872,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), circle, tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), circle);
         }
 
         /// <summary>
@@ -897,7 +892,7 @@ namespace GeometryHelper.Core
 
             if (Containment2.Contains(loop, circle.Center, Exactly)) return 0.0;
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), circle, tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), circle);
         }
 
     }

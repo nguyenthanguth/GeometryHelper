@@ -171,6 +171,40 @@ read as its chord and measured 1.6E-6 off; it is now measured to its arc, within
 of them bows that little: the edge of bulge 1E-7 from (0, 0) to (100, 0) read 8.8E-8 from a segment leaving (100, 0).
 The distance from a face reads the same threshold.
 
+**FIXED.** A shape's own sides are measured as the sides they are against arcs, circles and curved chains and loops,
+however short. A side shorter than the point tolerance was read as a stub, its start point, which is only for a segment
+the caller gives, and a triangle with a side that short was read as its longest side alone: the triangle (0.678308,
+-0.078659), (0.627916, 0.0335963), (0.567449, -0.0252647) was 0.1301 from the arc about the origin of radius 0.665358
+from 0.111401 to 2.78899 radians at a tolerance of 0.1, where it stands 0.0523 off it and collides. A polygon, rectangle,
+curved chain or loop with a side that short read as far off in the same way, so that one 0.13724 off the arc did not
+collide at a tolerance of 0.138. A segment or ray the caller gives is still read as its start when it is shorter than
+the tolerance.
+
+**FIXED.** A triangle is read as the triangle it is by every member, against every shape but an ellipse, which is read
+so in the fix of the ellipses below. One whose corners stood within the caller's tolerance of each other was read as its
+longest side alone by its collisions with lines, polygons, rectangles, polylines, rays, triangles, edges and faces, by
+its distance to a ray or a face, by every other distance reading the global tolerance, and by its signed distance,
+shortest line, closest point and edge, containment and intersections: the triangle (0, 0), (0, 1), (0.08, 1) is 0.07
+from the segment along y = 0.5 that ends at x = -0.07, and collides with it at a tolerance of 0.1, where it was 0.11
+away and did not; the sliver (0, 0), (10, 0), (0, 0.0005) had the point (1, 0.0001) inside it, at distance nought, and
+0.00035 off by its signed distance. Only corners that coincide exactly make a triangle a segment now, and no member of a
+triangle reads the global tolerance for it: a triangle with corners 0.004 apart is as far from a polygon whether the
+global tolerance is 1E-5 or 1E-2. The shortest line from a sliver 100 long and 0.5 high to the point 1 past its tip
+starts on its short side at a tolerance of 1, as it does at a thousandth.
+
+**FIXED.** The distance from a polygon, rectangle, triangle, curved chain or curved loop to a point or a circle reads its
+straight sides as the sides they are, however short. A side shorter than the global tolerance was read as its start
+point: the triangle (0, 0), (0.004, 0), (0.002, -5) was 0.006325 from the point (0.002, 0.006) at a global tolerance of
+0.01, and 0.006 at 0.00001; it is 0.006 at both. At the default tolerance the triangle (0, 0), (0.0009, 0), (0.00045, -5)
+was 0.00104849 from the circle of radius 0.00015 about (0.00045, 0.0011) and did not collide with it, where it is 0.00095
+from it and does. The signed distance of a polygon, curved loop or face reads its sides so too. A point within the
+tolerance of the centre of an arc of a chain or loop is still read at the arc's start.
+
+**FIXED.** The distance from a chain, loop, polygon, polyline, rectangle or triangle to an edge, and from an edge to
+them, is nought for a vertex they share with an edge of bulge 1E-7, as it is for a segment or another edge. They took
+the edge's arc as it was placed through its centre, which puts its end 1.1E-8 off on a chord of 100 and 1.1E-6 off on a
+chord of 10 000 at 100 000 from the origin.
+
 **FIXED.** A segment shorter than the point tolerance that crosses a curved chain's straight edge is nought from the
 chain, as it is from a polyline, a polygon or a curved loop: the stub from (50, -0.0004) to (50, 0.0002) across the edge
 from (0, 0) to (100, 0) read 0.0002. A stub that does not cross is still read as its start, so the placements of such a

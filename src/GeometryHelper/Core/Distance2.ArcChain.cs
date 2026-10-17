@@ -34,7 +34,7 @@ namespace GeometryHelper.Core
 
             if (Containment2.Contains(poly, arc.StartPoint, Exactly)) return 0.0;
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(poly), arc, tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(poly), arc);
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace GeometryHelper.Core
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(polyline), arc, tolerance);
+            return ArcChain2.DistanceTo(ArcChain2.EdgesOf(polyline), arc);
         }
 
         /// <summary>

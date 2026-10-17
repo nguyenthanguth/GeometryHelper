@@ -40,7 +40,7 @@ namespace GeometryHelper.Core
         public static double DistanceTo(GeoTriangle2 triangle, GeoRay2 ray, Tolerance tolerance)
         {
             // DistanceTo(triangle, line) read with the tolerance passed down, which it takes from the global one.
-            return TryAsPolygon(triangle, tolerance, out GeoPolygon2 shape, out GeoLine2 hull)
+            return TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? Distance2.DistanceTo(shape, ray, tolerance)
                 : Distance2.DistanceTo(hull, Ray2.CutPast(ray, triangle, tolerance), tolerance);
         }

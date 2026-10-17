@@ -78,8 +78,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from this edge to a polygon.
         /// </summary>
-        public double DistanceTo(GeoPolygon2 poly)
-            => IsArc ? ToArc().DistanceTo(poly) : ToLine().DistanceTo(poly);
+        public double DistanceTo(GeoPolygon2 poly) => (poly ?? throw new ArgumentNullException(nameof(poly))).DistanceTo(this);
 
         /// <summary>
         /// Gets the distance from this edge to a curved loop.
@@ -89,14 +88,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from this edge to a curved loop, within a tolerance.
         /// </summary>
-        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance)
-            => IsArc ? ToArc().DistanceTo(loop, tolerance) : ToLine().DistanceTo(loop, tolerance);
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => (loop ?? throw new ArgumentNullException(nameof(loop))).DistanceTo(this, tolerance);
 
         /// <summary>
         /// Gets the distance from this edge to a polyline.
         /// </summary>
-        public double DistanceTo(GeoPolyline2 polyline)
-            => IsArc ? ToArc().DistanceTo(polyline) : ToLine().DistanceTo(polyline);
+        public double DistanceTo(GeoPolyline2 polyline) => (polyline ?? throw new ArgumentNullException(nameof(polyline))).DistanceTo(this);
 
         /// <summary>
         /// Gets the distance from this edge to a curved chain.
@@ -106,14 +103,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from this edge to a curved chain, within a tolerance.
         /// </summary>
-        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance)
-            => IsArc ? ToArc().DistanceTo(chain, tolerance) : ToLine().DistanceTo(chain, tolerance);
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => (chain ?? throw new ArgumentNullException(nameof(chain))).DistanceTo(this, tolerance);
 
         /// <summary>
         /// Gets the distance from this edge to a rectangle.
         /// </summary>
-        public double DistanceTo(GeoRectangle2 rect)
-            => IsArc ? ToArc().DistanceTo(rect) : ToLine().DistanceTo(rect);
+        public double DistanceTo(GeoRectangle2 rect) => rect.DistanceTo(this);
 
         #region Triangles
 
