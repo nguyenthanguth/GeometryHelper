@@ -46,21 +46,13 @@ namespace GeometryHelper.Core
         /// Neither has an inside, so they collide where they cross or come within the point tolerance of each
         /// other. At a tolerance of a thousandth, an arc ending half a thousandth above the top of the circle of
         /// radius 50 about the origin collides with its upper half, and one ending two thousandths above does not.
-        /// Two arcs of the same circle cross nowhere, because two circles lying on each other meet along their
-        /// whole length rather than at points, so those are settled by asking whether either holds an end of the
-        /// other, which is where an overlap of two arcs of one circle always begins and ends.
+        /// They collide exactly where <see cref="Arc2.DistanceTo(GeoArc2, GeoArc2, Tolerance)"/> is at most the point
+        /// tolerance, also for arcs of a radius smaller than it: two arcs of radius 0.0004 about the origin, one of them
+        /// 1E-7 outside the other, collide where their spans overlap. Two arcs of one circle cross nowhere, but an overlap
+        /// of them always begins and ends at an end of one, which the nearest pair weighs.
         /// </remarks>
         public static bool CollidesWith(GeoArc2 first, GeoArc2 second, Tolerance tolerance)
         {
-            if (first.Center.IsEqualTo(second.Center, tolerance)
-                && Math.Abs(first.Radius - second.Radius) <= tolerance.EqualPoint)
-            {
-                return first.IsPointOn(second.StartPoint, tolerance)
-                    || first.IsPointOn(second.EndPoint, tolerance)
-                    || second.IsPointOn(first.StartPoint, tolerance)
-                    || second.IsPointOn(first.EndPoint, tolerance);
-            }
-
             // Two arcs come no nearer than their whole circles do, so circles more than the point tolerance apart, one
             // beside the other or one inside the other, settle it without measuring.
             double apart = Distance2.DistanceTo(first.Center, second.Center);
@@ -89,9 +81,9 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoCircle2 circle, GeoArc2 arc, Tolerance tolerance)
         {
-            return Arc2.TryIntersectWith(arc, circle, out _, tolerance)
-                || Containment2.Contains(circle, arc.StartPoint, tolerance)
-                || Arc2.DistanceTo(arc, circle, tolerance) <= tolerance.EqualPoint;
+            // The distance to the disc is nought for an arc inside it or crossing its rim; the crossings of two circles are
+            // read with a band of their own, which lets in a touch past the tolerance.
+            return Arc2.DistanceTo(arc, circle, tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>

@@ -15,6 +15,11 @@ namespace GeometryHelper.Core
     internal static class ArcChain2
     {
         /// <summary>
+        /// A tolerance of nought, for measuring and crossing with no slack.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
+
+        /// <summary>
         /// Gets the edges of a chain, in order.
         /// </summary>
         internal static List<GeoEdge2> EdgesOf(GeoPolylineArc2 chain)
@@ -316,24 +321,17 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Determines whether two runs of edges cross anywhere: two straight edges where they truly cross, at a point on
-        /// both, with no slack past their ends, and a pair with an arc in it where its crossings say so.
+        /// both, with no slack past their ends, and a pair with an arc in it where they truly meet, with no slack at all.
         /// </summary>
         internal static bool Cross(List<GeoEdge2> first, List<GeoEdge2> second, Tolerance tolerance)
-            => Cross(first, second, tolerance, tolerance);
-
-        /// <summary>
-        /// Determines whether two runs of edges cross anywhere, a pair with an arc in it read at one tolerance and two
-        /// straight edges at another: at a tolerance of nought a segment shorter than the point tolerance can cross.
-        /// </summary>
-        internal static bool Cross(List<GeoEdge2> first, List<GeoEdge2> second, Tolerance tolerance, Tolerance straight)
         {
             foreach (GeoEdge2 one in first)
             {
                 foreach (GeoEdge2 other in second)
                 {
                     bool crossing = one.IsArc || other.IsArc
-                        ? one.GetIntersections(other, tolerance).Length > 0
-                        : Collision2.Crosses(one.ToLine(), other.ToLine(), straight);
+                        ? Meet(one, other)
+                        : Collision2.Crosses(one.ToLine(), other.ToLine(), tolerance);
 
                     if (crossing)
                     {
@@ -347,22 +345,15 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Determines whether a run of edges crosses a straight segment anywhere: a straight edge where the two truly
-        /// cross, with no slack past their ends, and an arc where its crossings say so.
+        /// cross, with no slack past their ends, and an arc where it truly meets the segment, with no slack at all.
         /// </summary>
         internal static bool Cross(List<GeoEdge2> edges, GeoLine2 line, Tolerance tolerance)
-            => Cross(edges, line, tolerance, tolerance);
-
-        /// <summary>
-        /// Determines whether a run of edges crosses a straight segment anywhere, an arc read at one tolerance and a
-        /// straight edge at another: at a tolerance of nought a segment shorter than the point tolerance can cross.
-        /// </summary>
-        internal static bool Cross(List<GeoEdge2> edges, GeoLine2 line, Tolerance tolerance, Tolerance straight)
         {
             foreach (GeoEdge2 edge in edges)
             {
                 bool crossing = edge.IsArc
-                    ? edge.GetIntersections(line, tolerance).Length > 0
-                    : Collision2.Crosses(edge.ToLine(), line, straight);
+                    ? Meet(edge, line)
+                    : Collision2.Crosses(edge.ToLine(), line, tolerance);
 
                 if (crossing)
                 {
@@ -372,6 +363,259 @@ namespace GeometryHelper.Core
 
             return false;
         }
+
+        /// <summary>
+        /// Determines whether two runs of edges truly meet anywhere, with no slack: two straight edges where they cross
+        /// or touch, and a pair with an arc in it where <see cref="Arc2.Meets(GeoArc2, GeoLine2)"/> or
+        /// <see cref="Arc2.Meets(GeoArc2, GeoArc2)"/> says so.
+        /// </summary>
+        internal static bool Meet(List<GeoEdge2> first, List<GeoEdge2> second)
+        {
+            foreach (GeoEdge2 one in first)
+            {
+                foreach (GeoEdge2 other in second)
+                {
+                    if (Meet(one, other))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether a run of edges truly meets a straight segment anywhere, with no slack.
+        /// </summary>
+        internal static bool Meet(List<GeoEdge2> edges, GeoLine2 line)
+        {
+            foreach (GeoEdge2 edge in edges)
+            {
+                if (Meet(edge, line))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether a run of edges truly meets an arc anywhere, with no slack.
+        /// </summary>
+        internal static bool Meet(List<GeoEdge2> edges, GeoArc2 arc)
+        {
+            foreach (GeoEdge2 edge in edges)
+            {
+                bool meets = Straight(edge, out GeoLine2 straight)
+                    ? Arc2.Meets(arc, straight)
+                    : Arc2.Meets(edge.ToArc(), arc);
+
+                if (meets)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether two edges truly meet, with no slack.
+        /// </summary>
+        private static bool Meet(GeoEdge2 edge, GeoEdge2 other)
+        {
+            if (!edge.IsArc)
+            {
+                return Meet(other, edge.ToLine());
+            }
+
+            GeoArc2 arc = edge.ToArc();
+
+            if (Chord(edge, arc, out GeoLine2 chord))
+            {
+                return Meet(other, chord);
+            }
+
+            if (!other.IsArc)
+            {
+                return Arc2.Meets(arc, other.ToLine());
+            }
+
+            GeoArc2 otherArc = other.ToArc();
+
+            return Chord(other, otherArc, out GeoLine2 otherChord)
+                ? Arc2.Meets(arc, otherChord)
+                : Arc2.Meets(arc, otherArc);
+        }
+
+        /// <summary>
+        /// Determines whether an edge truly meets a segment, with no slack.
+        /// </summary>
+        private static bool Meet(GeoEdge2 edge, GeoLine2 line)
+        {
+            if (!edge.IsArc)
+            {
+                return Collision2.Crosses(edge.ToLine(), line, Exactly);
+            }
+
+            GeoArc2 arc = edge.ToArc();
+
+            return Chord(edge, arc, out GeoLine2 chord)
+                ? Collision2.Crosses(chord, line, Exactly)
+                : Arc2.Meets(arc, line);
+        }
+
+        /// <summary>
+        /// Gets an edge as the segment it is read as: itself when it is straight, and its chord when it bows so little that
+        /// the chord is no further from it than the arc's own rounding, see <see cref="Arc2.IsFlat"/>. A bulge of 3E-9 over
+        /// a chord of 100, bowing 1.5E-7 on a radius of 8E8, is read so; a bulge of a ten-millionth is not.
+        /// </summary>
+        /// <returns>true if the edge reads as a segment; false for a true arc.</returns>
+        internal static bool Straight(GeoEdge2 edge, out GeoLine2 line)
+        {
+            if (!edge.IsArc)
+            {
+                line = edge.ToLine();
+                return true;
+            }
+
+            return Chord(edge, edge.ToArc(), out line);
+        }
+
+        /// <summary>
+        /// Gets the chord of a curved edge, given as the arc it is, when the edge bows so little that the chord is read for it.
+        /// </summary>
+        private static bool Chord(GeoEdge2 edge, GeoArc2 arc, out GeoLine2 chord)
+        {
+            double sag = Math.Abs(edge.Bulge) * edge.StartPoint.DistanceTo(edge.EndPoint) * 0.5;
+
+            if (Math.Abs(edge.Bulge) <= 1.0 && Arc2.IsFlat(sag, arc.Center, arc.Radius))
+            {
+                chord = new GeoLine2(edge.StartPoint, edge.EndPoint);
+                return true;
+            }
+
+            chord = default(GeoLine2);
+            return false;
+        }
+
+        /// <summary>
+        /// Gets the exact distance from an edge to a segment: nought only where they truly meet, a segment no longer than
+        /// the tolerance read as its start point where it does not cross.
+        /// </summary>
+        internal static double Gap(GeoEdge2 edge, GeoLine2 line, Tolerance tolerance)
+        {
+            if (!edge.IsArc)
+            {
+                return Distance2.DistanceTo(edge.ToLine(), line, tolerance);
+            }
+
+            GeoArc2 arc = edge.ToArc();
+
+            if (Chord(edge, arc, out GeoLine2 chord))
+            {
+                return Distance2.DistanceTo(chord, line, tolerance);
+            }
+
+            double gap = Arc2.Bowed(arc, line, tolerance);
+
+            return Rounds(gap, arc)
+                ? Math.Min(gap, Math.Min(Distance2.DistanceTo(line, edge.StartPoint, tolerance), Distance2.DistanceTo(line, edge.EndPoint, tolerance)))
+                : gap;
+        }
+
+        /// <summary>
+        /// Gets the exact distance from an edge to an arc: nought only where they truly meet.
+        /// </summary>
+        internal static double Gap(GeoEdge2 edge, GeoArc2 arc, Tolerance tolerance)
+        {
+            if (Straight(edge, out GeoLine2 straight))
+            {
+                return Arc2.Gap(arc, straight, tolerance);
+            }
+
+            GeoArc2 round = edge.ToArc();
+            double gap = Arc2.Gap(round, arc);
+
+            return Rounds(gap, round)
+                ? Math.Min(gap, Math.Min(Arc2.DistanceTo(arc, edge.StartPoint, Exactly), Arc2.DistanceTo(arc, edge.EndPoint, Exactly)))
+                : gap;
+        }
+
+        /// <summary>
+        /// Gets the exact distance between two edges: nought only where they truly meet, a segment no longer than the
+        /// tolerance read as its start point where it does not cross.
+        /// </summary>
+        internal static double Gap(GeoEdge2 edge, GeoEdge2 other, Tolerance tolerance)
+        {
+            if (!edge.IsArc)
+            {
+                return Gap(other, edge.ToLine(), tolerance);
+            }
+
+            GeoArc2 arc = edge.ToArc();
+
+            if (Chord(edge, arc, out GeoLine2 chord))
+            {
+                return Gap(other, chord, tolerance);
+            }
+
+            if (!other.IsArc)
+            {
+                return Gap(edge, arc, other.ToLine(), tolerance);
+            }
+
+            GeoArc2 otherArc = other.ToArc();
+
+            if (Chord(other, otherArc, out GeoLine2 otherChord))
+            {
+                return Gap(edge, arc, otherChord, tolerance);
+            }
+
+            double gap = Arc2.Gap(arc, otherArc);
+
+            if (!Rounds(gap, arc, otherArc))
+            {
+                return gap;
+            }
+
+            // Two edges that share a vertex share it exactly, though each arc places its ends through its centre.
+            gap = Math.Min(gap, Math.Min(
+                Math.Min(edge.StartPoint.DistanceTo(other.StartPoint), edge.StartPoint.DistanceTo(other.EndPoint)),
+                Math.Min(edge.EndPoint.DistanceTo(other.StartPoint), edge.EndPoint.DistanceTo(other.EndPoint))));
+
+            return Math.Min(gap, Math.Min(
+                Math.Min(Arc2.DistanceTo(otherArc, edge.StartPoint, Exactly), Arc2.DistanceTo(otherArc, edge.EndPoint, Exactly)),
+                Math.Min(Arc2.DistanceTo(arc, other.StartPoint, Exactly), Arc2.DistanceTo(arc, other.EndPoint, Exactly))));
+        }
+
+        /// <summary>
+        /// Gets the exact distance from a curved edge, given with its arc, to a segment, with the edge's own end points as
+        /// candidates where the answer is within the rounding of the arc.
+        /// </summary>
+        private static double Gap(GeoEdge2 edge, GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
+        {
+            double gap = Arc2.Bowed(arc, line, tolerance);
+
+            return Rounds(gap, arc)
+                ? Math.Min(gap, Math.Min(Distance2.DistanceTo(line, edge.StartPoint, tolerance), Distance2.DistanceTo(line, edge.EndPoint, tolerance)))
+                : gap;
+        }
+
+        /// <summary>
+        /// Whether a distance to an arc is so small that the rounding of the arc's own points, up to 1E-15 of how far its
+        /// centre and radius reach from the origin, could be all there is to it: a vertex shared with another edge, which
+        /// the arc places a few parts in 1E16 of its radius off.
+        /// </summary>
+        private static bool Rounds(double gap, GeoArc2 arc)
+            => gap <= 1E-14 * (Math.Abs(arc.Center.X) + Math.Abs(arc.Center.Y) + arc.Radius);
+
+        /// <summary>
+        /// Whether a distance between two arcs is within the rounding of either.
+        /// </summary>
+        private static bool Rounds(double gap, GeoArc2 arc, GeoArc2 other) => Rounds(gap, arc) || Rounds(gap, other);
 
         /// <summary>
         /// Adds a point to a list unless the same point is already in it.

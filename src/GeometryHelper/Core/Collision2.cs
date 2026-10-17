@@ -91,10 +91,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static bool CollidesWith(GeoCircle2 circle, GeoRectangle2 rect, Tolerance tolerance)
         {
-            if (Containment2.Contains(rect, circle.Center, tolerance))
-            {
-                return true;
-            }
+            // A centre in the rectangle is nought from it, so no test of its own is needed, and none is read at a band per
+            // axis: that is up to the square root of two too wide at a corner.
             return Distance2.DistanceTo(rect, circle.Center) <= circle.Radius + tolerance.EqualPoint;
         }
 
@@ -1052,16 +1050,18 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// Neither has an inside, so they collide where they cross or come within the point tolerance of each other,
-        /// edge against edge, and one lying along the other collides with it. At a tolerance of a thousandth, two ends
-        /// half a thousandth apart collide and two ends two thousandths apart do not.
+        /// edge against edge, and one lying along the other collides with it: exactly where
+        /// <see cref="Distance2.DistanceTo(GeoPolylineArc2, GeoArc2, Tolerance)"/> is at most the tolerance. At a tolerance of a
+        /// thousandth, two ends half a thousandth apart collide and two ends two thousandths apart do not.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoArc2 arc, Tolerance tolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return Intersection2.TryIntersectWith(chain, arc, out _, tolerance)
-                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), arc, tolerance);
+            // A crossing is nought apart, which comes within the tolerance. The crossings of two arcs are read with a band
+            // at their ends, which let in two arcs 1.2 tolerances apart whose circles cross at a point near both ends.
+            return ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), arc, tolerance);
         }
 
         /// <summary>
@@ -1083,18 +1083,9 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return CrossesOrStartsIn(chain, circle, tolerance)
-                || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), circle, tolerance);
-        }
-
-        /// <summary>
-        /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
-        /// nought without measuring.
-        /// </summary>
-        internal static bool CrossesOrStartsIn(GeoPolylineArc2 chain, GeoCircle2 circle, Tolerance tolerance)
-        {
-            return Intersection2.TryIntersectWith(chain, circle, out _, tolerance)
-                || Containment2.Contains(circle, chain[0], tolerance);
+            // A chain is a curve, so it collides with the disc where it comes within the point tolerance of it. The crossings
+            // of its arcs with the circle are read with a band of their own, which lets in a touch past the tolerance.
+            return ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), circle, tolerance);
         }
 
         /// <summary>
@@ -1149,12 +1140,11 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Whether a chain that may curve truly meets a straight loop: they cross, or the loop holds the chain's start, a
-        /// start on the rim counting as held. The distance between them is nought exactly there, as far as
-        /// straight edges go: an arc is crossed at the tolerance given.
+        /// start on the rim counting as held. The distance between them is nought exactly there.
         /// </summary>
-        internal static bool Meets(GeoPolylineArc2 chain, GeoPolygon2 polygon, Tolerance tolerance)
+        internal static bool Meets(GeoPolylineArc2 chain, GeoPolygon2 polygon)
         {
-            return ArcChain2.Cross(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon), tolerance, Exactly)
+            return ArcChain2.Meet(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon))
                 || Containment2.Contains(polygon, chain[0], Exactly);
         }
 
@@ -1220,12 +1210,11 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Whether a chain that may curve truly meets a loop that may curve: they cross, or the loop holds the chain's
-        /// start, a start on the rim counting as held. The distance between them is nought exactly there, as far as
-        /// straight edges go: an arc is crossed at the tolerance given.
+        /// start, a start on the rim counting as held. The distance between them is nought exactly there.
         /// </summary>
-        internal static bool Meets(GeoPolylineArc2 chain, GeoPolygonArc2 loop, Tolerance tolerance)
+        internal static bool Meets(GeoPolylineArc2 chain, GeoPolygonArc2 loop)
         {
-            return ArcChain2.Cross(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop), tolerance, Exactly)
+            return ArcChain2.Meet(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop))
                 || Containment2.Contains(loop, chain[0], Exactly);
         }
 
@@ -1297,12 +1286,11 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Whether a segment truly meets a loop that may curve: crosses its boundary, or starts in it, a start on the rim
-        /// counting as in. The distance between them is nought exactly there, as far as
-        /// straight edges go: an arc is crossed at the tolerance given.
+        /// counting as in. The distance between them is nought exactly there.
         /// </summary>
-        internal static bool Meets(GeoPolygonArc2 loop, GeoLine2 line, Tolerance tolerance)
+        internal static bool Meets(GeoPolygonArc2 loop, GeoLine2 line)
         {
-            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), line, tolerance, Exactly)
+            return ArcChain2.Meet(ArcChain2.EdgesOf(loop), line)
                 || Containment2.Contains(loop, line.StartPoint, Exactly);
         }
 
@@ -1350,7 +1338,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoArc2 arc, Tolerance tolerance)
         {
-            return Intersection2.TryIntersectWith(loop, arc, out _, tolerance)
+            return ArcChain2.Meet(ArcChain2.EdgesOf(loop), arc)
                 || Containment2.Contains(loop, arc.StartPoint, tolerance);
         }
 
@@ -1373,19 +1361,9 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return CrossesOrStartsIn(loop, circle, tolerance)
+            // A circle holding nothing of the loop's boundary still collides where it sits in the loop, centre and all.
+            return Containment2.Contains(loop, circle.Center, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), circle, tolerance);
-        }
-
-        /// <summary>
-        /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
-        /// nought without measuring.
-        /// </summary>
-        internal static bool CrossesOrStartsIn(GeoPolygonArc2 loop, GeoCircle2 circle, Tolerance tolerance)
-        {
-            return Intersection2.TryIntersectWith(loop, circle, out _, tolerance)
-                || Containment2.Contains(loop, circle.Center, tolerance)
-                || Containment2.Contains(circle, loop[0], tolerance);
         }
 
         /// <summary>
@@ -1414,12 +1392,11 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Whether a loop that may curve truly meets a straight chain: they cross, or the loop holds the chain's start, a
-        /// start on the rim counting as held. The distance between them is nought exactly there, as far as
-        /// straight edges go: an arc is crossed at the tolerance given.
+        /// start on the rim counting as held. The distance between them is nought exactly there.
         /// </summary>
-        internal static bool Meets(GeoPolygonArc2 loop, GeoPolyline2 polyline, Tolerance tolerance)
+        internal static bool Meets(GeoPolygonArc2 loop, GeoPolyline2 polyline)
         {
-            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline), tolerance, Exactly)
+            return ArcChain2.Meet(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline))
                 || Containment2.Contains(loop, polyline[0], Exactly);
         }
 
@@ -1459,12 +1436,11 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Whether a loop that may curve truly meets a straight loop: they cross, or one holds a start of the other, a
-        /// start on the rim counting as held. The distance between them is nought exactly there, as far as
-        /// straight edges go: an arc is crossed at the tolerance given.
+        /// start on the rim counting as held. The distance between them is nought exactly there.
         /// </summary>
-        internal static bool Meets(GeoPolygonArc2 loop, GeoPolygon2 polygon, Tolerance tolerance)
+        internal static bool Meets(GeoPolygonArc2 loop, GeoPolygon2 polygon)
         {
-            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon), tolerance, Exactly)
+            return ArcChain2.Meet(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon))
                 || Containment2.Contains(loop, polygon[0], Exactly)
                 || Containment2.Contains(polygon, loop[0], Exactly);
         }
@@ -1506,12 +1482,11 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Whether a loop that may curve truly meets a chain that may curve: they cross, or the loop holds the chain's
-        /// start, a start on the rim counting as held. The distance between them is nought exactly there, as far as
-        /// straight edges go: an arc is crossed at the tolerance given.
+        /// start, a start on the rim counting as held. The distance between them is nought exactly there.
         /// </summary>
-        internal static bool Meets(GeoPolygonArc2 loop, GeoPolylineArc2 chain, Tolerance tolerance)
+        internal static bool Meets(GeoPolygonArc2 loop, GeoPolylineArc2 chain)
         {
-            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain), tolerance, Exactly)
+            return ArcChain2.Meet(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain))
                 || Containment2.Contains(loop, chain[0], Exactly);
         }
 
@@ -1551,12 +1526,11 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Whether two loops that may curve truly meet: they cross, or one holds a start of the other, a start on the rim
-        /// counting as held. The distance between them is nought exactly there, as far as
-        /// straight edges go: an arc is crossed at the tolerance given.
+        /// counting as held. The distance between them is nought exactly there.
         /// </summary>
-        internal static bool Meets(GeoPolygonArc2 loop, GeoPolygonArc2 other, Tolerance tolerance)
+        internal static bool Meets(GeoPolygonArc2 loop, GeoPolygonArc2 other)
         {
-            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other), tolerance, Exactly)
+            return ArcChain2.Meet(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other))
                 || Containment2.Contains(loop, other[0], Exactly)
                 || Containment2.Contains(other, loop[0], Exactly);
         }

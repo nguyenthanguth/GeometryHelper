@@ -79,6 +79,15 @@ whatever kind holds the edges. At a tolerance of a thousandth, the segment from 
 collides with the square 100 by 100, though it ends 0.0005 above it; one ending 0.002 above does not. `DistanceTo`
 still gives the gap, 0.0005: it reads nought only where the shapes truly cross, overlap or one holds the other.
 Two segments whose corners stand 0.00156 apart therefore neither collide nor measure nought at a thousandth.
+Arcs, circles and curved chains and loops read the same way. The upper half of the circle of radius 50 about the
+origin and a segment 0.0005 above its top are 0.0005 apart at a tolerance of a thousandth, and so are two arcs whose
+tops stand 0.0005 apart; two arcs whose ends stand 0.0015 apart are 0.0015 apart and do not collide, and two arcs of
+one radius that cross 0.000005 of a radian inside both their ends are nought apart. A segment shorter than the
+tolerance that crosses an arc, or an edge of a chain, is nought from it. An edge that bows so little that its chord is
+no further from it than the rounding of the centre route by which an arc places its points, a bulge under about
+1.6E-8 on an edge near the origin, is read as its chord; the edge from (0, 0) to (100, 0) of bulge 1E-7 is measured to
+its arc, and reads nought from an edge or a segment that shares its end. `GetShortestLineTo` keeps its reading of a
+touch within the tolerance, so for both it may hand back a line of no length.
 `TryIntersectWith` and `GetIntersections` still accept a crossing up to the tolerance past a segment's end,
 because they place points for cutting and extending rather than test for contact.
 

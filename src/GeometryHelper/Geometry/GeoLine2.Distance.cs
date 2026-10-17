@@ -84,10 +84,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from this segment to an edge, within a tolerance.
         /// </summary>
-        public double DistanceTo(GeoEdge2 edge, Tolerance tolerance)
-            => edge.IsArc
-                ? DistanceTo(edge.ToArc(), tolerance)
-                : DistanceTo(edge.ToLine(), tolerance);
+        public double DistanceTo(GeoEdge2 edge, Tolerance tolerance) => edge.DistanceTo(this, tolerance);
 
         #region Triangles
 

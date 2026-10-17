@@ -59,35 +59,15 @@ namespace GeometryHelper.Core
         /// <param name="arc">The arc.</param>
         /// <param name="line">The segment.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>Zero when they cross, otherwise the shortest gap between them.</returns>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The nearest pair is either at an end of one of them, or where the segment runs straight at the
-        /// centre of the arc. Both are checked, so the answer is exact rather than sampled.
+        /// centre of the arc. Both are checked, so the answer is exact rather than sampled. A segment ending 0.0005 above
+        /// the top of the arc of radius 50 about the origin is 0.0005 from it, whatever the tolerance; the tolerance only
+        /// reads a segment no longer than itself as its start point, and an arc bowing less than its own rounding as its
+        /// chord.
         /// </remarks>
-        public static double DistanceTo(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
-        {
-            if (TryIntersectWith(arc, line, out _, tolerance))
-            {
-                return 0.0;
-            }
-
-            double best = Math.Min(
-                Math.Min(DistanceTo(arc, line.StartPoint, tolerance), DistanceTo(arc, line.EndPoint, tolerance)),
-                Math.Min(Distance2.DistanceTo(line, arc.StartPoint, tolerance), Distance2.DistanceTo(line, arc.EndPoint, tolerance)));
-
-            // Where the segment runs straight at the centre, the nearest point of the circle lies on that
-            // line. Clamping it onto the arc keeps the candidate on the arc whether or not the arc reaches
-            // that far round: when it does the clamp changes nothing, and when it does not the candidate
-            // falls back to the end, which is where the nearest pair really is.
-            GeoPoint2 nearestOnLine = Projection2.ProjectToLine(line, arc.Center, tolerance);
-
-            if (arc.Center.GetVectorTo(nearestOnLine).Length > tolerance.EqualPoint)
-            {
-                best = Math.Min(best, ProjectToArc(arc, nearestOnLine, tolerance).DistanceTo(nearestOnLine));
-            }
-
-            return best;
-        }
+        public static double DistanceTo(GeoArc2 arc, GeoLine2 line, Tolerance tolerance) => Gap(arc, line, tolerance);
 
         /// <summary>
         /// Gets the distance between two arcs, using the default tolerance.
@@ -99,54 +79,16 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="first">The first arc.</param>
         /// <param name="second">The second arc.</param>
-        /// <param name="tolerance">The tolerance.</param>
-        /// <returns>Zero when they cross, otherwise the shortest gap between them.</returns>
+        /// <param name="tolerance">The tolerance, taken so that this reads like every other pair; it changes nothing here.</param>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The nearest pair is either at an end of one of them, or on the line joining the two centres,
-        /// where two full circles are nearest. Both are checked.
+        /// where two full circles are nearest. Both are checked. The upper half of the circle of radius 50 about the
+        /// origin, with its top at (0, 50), and the lower half of the circle of radius 50 about (0, 100.0005), with its
+        /// bottom at (0, 50.0005), are 0.0005 apart whatever the tolerance; two arcs of one radius that cross 5E-6 of a
+        /// radian inside both their ends are nought apart.
         /// </remarks>
-        public static double DistanceTo(GeoArc2 first, GeoArc2 second, Tolerance tolerance)
-        {
-            if (TryIntersectWith(first, second, out _, tolerance))
-            {
-                return 0.0;
-            }
-
-            double best = Math.Min(
-                Math.Min(DistanceTo(first, second.StartPoint, tolerance), DistanceTo(first, second.EndPoint, tolerance)),
-                Math.Min(DistanceTo(second, first.StartPoint, tolerance), DistanceTo(second, first.EndPoint, tolerance)));
-
-            GeoVector2 betweenCenters = first.Center.GetVectorTo(second.Center);
-            double apart = betweenCenters.Length;
-
-            if (apart > tolerance.EqualPoint)
-            {
-                GeoVector2 unit = betweenCenters.Multiply(1.0 / apart);
-
-                // Two whole circles are nearest and furthest at points on the line joining their centres:
-                // facing each other when the circles lie apart, on the same side when one lies inside the
-                // other. All four pairings are weighed — weighing only the facing and the facing-away pair
-                // missed the circle inside, and an arc round a small circle measured three to it where the
-                // gap was one. Each point is clamped onto its own arc: an arc that does not reach that far
-                // round is nearest at an end instead, and every end is weighed above. Testing the direction
-                // against Tolerance.EqualAngleRad instead would admit a point a whole degree past the end,
-                // which on a radius of a hundred is nearly two of whatever the drawing is measured in.
-                foreach (int sideFirst in new[] { 1, -1 })
-                {
-                    foreach (int sideSecond in new[] { 1, -1 })
-                    {
-                        GeoPoint2 onFirst = first.Center.Add(unit.Multiply(sideFirst * first.Radius));
-                        GeoPoint2 onSecond = second.Center.Add(unit.Multiply(sideSecond * second.Radius));
-
-                        best = Math.Min(
-                            best,
-                            ProjectToArc(first, onFirst, tolerance).DistanceTo(ProjectToArc(second, onSecond, tolerance)));
-                    }
-                }
-            }
-
-            return best;
-        }
+        public static double DistanceTo(GeoArc2 first, GeoArc2 second, Tolerance tolerance) => Gap(first, second);
 
         #endregion
 
@@ -170,7 +112,9 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static double DistanceTo(GeoArc2 arc, GeoCircle2 circle, Tolerance tolerance)
         {
-            return Math.Max(0.0, DistanceTo(arc, circle.Center, tolerance) - circle.Radius);
+            // The centre is measured with no snapping: a centre within the point tolerance of the arc's own would be taken for
+            // the arc's start, though every point of a concentric arc is as far from it as any other.
+            return Math.Max(0.0, DistanceTo(arc, circle.Center, Exactly) - circle.Radius);
         }
 
         /// <summary>
@@ -500,7 +444,9 @@ namespace GeometryHelper.Core
         /// The candidates are the ones <see cref="DistanceTo(GeoArc2, GeoLine2, Tolerance)"/> already
         /// weighs &#8212; an end of one against the other, and the place where the segment runs straight at
         /// the centre &#8212; so this hands back the pair that measurement was of, and its length is that
-        /// same distance rather than anything sampled.
+        /// same distance rather than anything sampled. The exception is a touch: where the two come within the point
+        /// tolerance, this reads them as meeting and hands back a segment of no length, as the line to cut and extend
+        /// by, where the distance is the gap.
         /// </remarks>
         public static GeoLine2 GetShortestLineTo(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
         {
@@ -513,38 +459,146 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// A tolerance of nought, for measuring with no slack.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
+
+        /// <summary>
         /// Gets the exact distance between an arc and a segment: nought only where they truly meet.
         /// </summary>
         /// <remarks>
-        /// <see cref="DistanceTo(GeoArc2, GeoLine2, Tolerance)"/> reads nought wherever they come within the point
+        /// <see cref="DistanceTo(GeoArc2, GeoLine2, Tolerance)"/> used to read nought wherever they came within the point
         /// tolerance, as its crossing test does; this one reads the gap however small, and a crossing however short
         /// the segment. A segment ending 0.0005 off an arc is 0.0005 from it.
         /// </remarks>
-        internal static double Gap(GeoArc2 arc, GeoLine2 line)
-        {
-            // Half the sweep's sine squared, twice, is the sag from the chord without cancelling.
-            double quarter = Math.Sin(arc.SweptAngle * 0.25);
-            double sag = 2.0 * arc.Radius * quarter * quarter;
+        internal static double Gap(GeoArc2 arc, GeoLine2 line) => Gap(arc, line, Exactly);
 
-            if (Math.Abs(arc.SweptAngle) <= Math.PI && IsFlat(sag, arc.Center, arc.Radius))
+        /// <summary>
+        /// Gets the exact distance between an arc and a segment, a segment no longer than the tolerance read as its start
+        /// point where it does not cross the arc.
+        /// </summary>
+        internal static double Gap(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
+        {
+            if (TryChord(arc, out GeoLine2 chord))
             {
-                return Distance2.DistanceTo(new GeoLine2(arc.StartPoint, arc.EndPoint), line, default(Tolerance));
+                return Distance2.DistanceTo(chord, line, tolerance);
             }
 
-            return Meets(arc, line) ? 0.0 : NearestPair(arc, line, default(Tolerance)).Length;
+            return Bowed(arc, line, tolerance);
         }
 
         /// <summary>
-        /// Determines whether an arc bows less off its chord than its own points are known to: its sag below a few parts
-        /// in 1E15 of how far its centre lies from the origin.
+        /// Gets the exact distance between an arc that bows, one <see cref="TryChord"/> does not read as its chord, and a
+        /// segment.
+        /// </summary>
+        internal static double Bowed(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
+        {
+            return Meets(arc, line) ? 0.0 : NearestPair(arc, line, tolerance).Length;
+        }
+
+        /// <summary>
+        /// Gets the exact distance between two arcs: nought only where they truly meet.
         /// </summary>
         /// <remarks>
-        /// An arc kept as its centre and radius places its points within about that much of where they are, and the
-        /// circle test squares numbers that large: an arc 1 000 long bowing a trillionth, of radius 2.5E14, met a
-        /// segment 0.002 off it. Its chord is then as true a reading of it as its circle, and an exact one.
+        /// Where the circles cross, the crossings are solved for directly and each is kept where both arcs sweep
+        /// through it, with no slack at the ends. Otherwise the nearest pair is an end of one against the other arc, or a
+        /// point of each on the line joining the centres, all of which are weighed. An arc bowing less than its own rounding
+        /// is read as its chord.
+        /// </remarks>
+        internal static double Gap(GeoArc2 first, GeoArc2 second)
+        {
+            if (TryChord(first, out GeoLine2 chord))
+            {
+                return Gap(second, chord);
+            }
+
+            if (TryChord(second, out chord))
+            {
+                return Gap(first, chord);
+            }
+
+            if (Meets(first, second))
+            {
+                return 0.0;
+            }
+
+            double best = Math.Min(
+                Math.Min(DistanceTo(first, second.StartPoint, Exactly), DistanceTo(first, second.EndPoint, Exactly)),
+                Math.Min(DistanceTo(second, first.StartPoint, Exactly), DistanceTo(second, first.EndPoint, Exactly)));
+
+            GeoVector2 betweenCenters = first.Center.GetVectorTo(second.Center);
+            double apart = betweenCenters.Length;
+
+            if (apart > 0.0)
+            {
+                GeoVector2 unit = betweenCenters.Multiply(1.0 / apart);
+
+                // Two whole circles are nearest and furthest at points on the line joining their centres: facing each other
+                // when the circles lie apart, on the same side when one lies inside the other. All four pairings are
+                // weighed, each point clamped onto its own arc: an arc that does not reach that far round is nearest at an
+                // end instead, and every end is weighed above.
+                foreach (int sideFirst in new[] { 1, -1 })
+                {
+                    foreach (int sideSecond in new[] { 1, -1 })
+                    {
+                        GeoPoint2 onFirst = first.Center.Add(unit.Multiply(sideFirst * first.Radius));
+                        GeoPoint2 onSecond = second.Center.Add(unit.Multiply(sideSecond * second.Radius));
+
+                        best = Math.Min(
+                            best,
+                            ProjectToArc(first, onFirst, Exactly).DistanceTo(ProjectToArc(second, onSecond, Exactly)));
+                    }
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Gets the chord of an arc that bows less off it than its own points are known to, which reads as the arc.
+        /// </summary>
+        private static bool TryChord(GeoArc2 arc, out GeoLine2 chord)
+        {
+            double sweep = Math.Abs(arc.SweptAngle);
+
+            // The sag of the arc, 2 r sin(sweep / 4) squared, is at least 0.8 times r sweep squared over 8 up to a half turn,
+            // so an arc that bows plainly more than its rounding is settled without the sine.
+            if (sweep <= Math.PI
+                && 0.1 * arc.Radius * sweep * sweep <= (Math.Abs(arc.Center.X) + Math.Abs(arc.Center.Y) + arc.Radius) * FlatFraction)
+            {
+                // Half the sweep's sine squared, twice, is the sag from the chord without cancelling.
+                double quarter = Math.Sin(arc.SweptAngle * 0.25);
+                double sag = 2.0 * arc.Radius * quarter * quarter;
+
+                if (IsFlat(sag, arc.Center, arc.Radius))
+                {
+                    chord = new GeoLine2(arc.StartPoint, arc.EndPoint);
+                    return true;
+                }
+            }
+
+            chord = default(GeoLine2);
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether an arc bows so little off its chord that the chord is read for it: its sag at most 2.5 parts
+        /// in 1E16 of how far its centre and its radius reach from the origin.
+        /// </summary>
+        /// <remarks>
+        /// An arc kept as its centre and radius places its points through the centre, within up to 2.4 parts in 1E16 of that
+        /// reach of where they are, and the circle test squares numbers that large: an arc 1 000 long bowing a trillionth,
+        /// of radius 2.5E14, met a segment 0.002 off it. Where it bows no more than that, the chord is no further from the
+        /// arc than the centre route's own rounding, so it is read in its place, and is exact. A bulge of a ten-millionth
+        /// over a chord of 100, which bows 5E-7 on a radius of 2.5E8, is not read so: the centre route is the better there.
         /// </remarks>
         internal static bool IsFlat(double sag, GeoPoint2 center, double radius)
-            => sag <= (Math.Abs(center.X) + Math.Abs(center.Y) + radius) * 4E-15;
+            => sag <= (Math.Abs(center.X) + Math.Abs(center.Y) + radius) * FlatFraction;
+
+        /// <summary>
+        /// How much of the reach of an arc's centre and radius the arc may bow by and be read as its chord.
+        /// </summary>
+        private const double FlatFraction = 2.5E-16;
 
         /// <summary>
         /// Determines whether a segment truly meets an arc, with no tolerance: where the segment crosses or touches
@@ -555,7 +609,7 @@ namespace GeometryHelper.Core
         /// the segment and the arc sweeps through its angle. A touch lost to rounding leaves a gap of a few parts in
         /// 1E16 of the radius, which the nearest pair then measures.
         /// </remarks>
-        private static bool Meets(GeoArc2 arc, GeoLine2 line)
+        internal static bool Meets(GeoArc2 arc, GeoLine2 line)
         {
             GeoVector2 along = line.Direction;
             GeoVector2 fromCentre = arc.Center.GetVectorTo(line.StartPoint);
@@ -578,15 +632,69 @@ namespace GeometryHelper.Core
 
             double root = Math.Sqrt(discriminant);
 
-            foreach (double t in new[] { (-b - root) / (2.0 * a), (-b + root) / (2.0 * a) })
+            double first = (-b - root) / (2.0 * a);
+            double second = (-b + root) / (2.0 * a);
+
+            return (first >= 0.0 && first <= 1.0 && Sweeps(arc, line.GetPointAtParameter(first)))
+                || (second >= 0.0 && second <= 1.0 && Sweeps(arc, line.GetPointAtParameter(second)));
+        }
+
+        /// <summary>
+        /// Determines whether two arcs truly meet, with no tolerance: where their circles cross or touch at a point both
+        /// arcs sweep through, or lie on each other along a stretch.
+        /// </summary>
+        /// <remarks>
+        /// The crossings are worked out from the smaller circle, as <see cref="Intersection2"/> works them, so they hold
+        /// when the other is huge. Circles on each other have no crossings, and the arcs meet where either holds an end of
+        /// the other. A touch lost to rounding leaves a gap of a few parts in 1E16 of the radius, which the nearest pair
+        /// then measures.
+        /// </remarks>
+        internal static bool Meets(GeoArc2 first, GeoArc2 second)
+        {
+            double towardsX = second.Center.X - first.Center.X;
+            double towardsY = second.Center.Y - first.Center.Y;
+            double apart = Math.Sqrt(towardsX * towardsX + towardsY * towardsY);
+
+            if (apart > first.Radius + second.Radius || apart < Math.Abs(first.Radius - second.Radius))
             {
-                if (t >= 0.0 && t <= 1.0 && Sweeps(arc, line.GetPointAtParameter(t)))
-                {
-                    return true;
-                }
+                return false;
             }
 
-            return false;
+            if (apart == 0.0)
+            {
+                return Sweeps(first, second.StartPoint) || Sweeps(first, second.EndPoint)
+                    || Sweeps(second, first.StartPoint) || Sweeps(second, first.EndPoint);
+            }
+
+            // Of two circles of one radius, the one whose centre comes first by X, then by Y, is worked from.
+            bool fromSecond = second.Radius < first.Radius
+                || (!(first.Radius < second.Radius)
+                    && (second.Center.X < first.Center.X || (!(first.Center.X < second.Center.X) && second.Center.Y < first.Center.Y)));
+
+            GeoPoint2 near = fromSecond ? second.Center : first.Center;
+            double nearRadius = fromSecond ? second.Radius : first.Radius;
+            double farRadius = fromSecond ? first.Radius : second.Radius;
+            double directionX = fromSecond ? -towardsX : towardsX;
+            double directionY = fromSecond ? -towardsY : towardsY;
+
+            double along = (nearRadius * nearRadius - farRadius * farRadius + apart * apart) / (2.0 * apart);
+            double heightSquared = nearRadius * nearRadius - along * along;
+
+            if (heightSquared < 0.0)
+            {
+                return false;
+            }
+
+            double height = Math.Sqrt(heightSquared);
+            double footX = near.X + along * directionX / apart;
+            double footY = near.Y + along * directionY / apart;
+            double acrossX = -directionY * (height / apart);
+            double acrossY = directionX * (height / apart);
+
+            var one = new GeoPoint2(footX + acrossX, footY + acrossY);
+            var other = new GeoPoint2(footX - acrossX, footY - acrossY);
+
+            return (Sweeps(first, one) && Sweeps(second, one)) || (Sweeps(first, other) && Sweeps(second, other));
         }
 
         /// <summary>
@@ -608,9 +716,12 @@ namespace GeometryHelper.Core
         /// </summary>
         private static GeoLine2 NearestPair(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
         {
-            var best = new GeoLine2(arc.StartPoint, Projection2.ProjectToLine(line, arc.StartPoint, tolerance));
+            // Each end of an arc costs a cosine and a sine, so each is worked out once.
+            GeoPoint2 start = arc.StartPoint;
+            GeoPoint2 end = arc.EndPoint;
+            var best = new GeoLine2(start, Projection2.ProjectToLine(line, start, tolerance));
 
-            Consider(ref best, arc.EndPoint, Projection2.ProjectToLine(line, arc.EndPoint, tolerance));
+            Consider(ref best, end, Projection2.ProjectToLine(line, end, tolerance));
             Consider(ref best, ProjectToArc(arc, line.StartPoint, tolerance), line.StartPoint);
             Consider(ref best, ProjectToArc(arc, line.EndPoint, tolerance), line.EndPoint);
 
@@ -641,7 +752,8 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// As with an arc and a segment, the pair is one of those
         /// <see cref="DistanceTo(GeoArc2, GeoArc2, Tolerance)"/> already weighs: an end of one against the
-        /// other, or a point of each on the line joining the centres.
+        /// other, or a point of each on the line joining the centres. Where they come within the point tolerance, this
+        /// reads them as meeting and hands back a segment of no length, where the distance is the gap.
         /// </remarks>
         public static GeoLine2 GetShortestLineTo(GeoArc2 first, GeoArc2 second, Tolerance tolerance)
         {

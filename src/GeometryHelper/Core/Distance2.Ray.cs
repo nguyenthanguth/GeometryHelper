@@ -144,9 +144,9 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between a curved loop and a ray, within a tolerance.
         /// </summary>
         /// <returns>
-        /// Nought where the ray starts in the loop, on its rim included, or runs into it; otherwise the gap. Exact for the
-        /// straight edges of the loop: a ray crossing or passing an arc still reads the tolerance, as it did, and follows in
-        /// a later fix.
+        /// Nought only where the ray starts in the loop, on its rim included, or runs into it; otherwise the gap, measured
+        /// exactly, an arc of the loop included. The ray from (150.0005, 50) along X is 0.0005 from the square 100 by 100
+        /// with a corner at the origin whose right side is bowed out to x = 150 by a bulge of 1.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoRay2 ray, Tolerance tolerance)

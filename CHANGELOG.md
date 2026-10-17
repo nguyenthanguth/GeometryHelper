@@ -105,7 +105,7 @@ and a further 144 that read nought for a segment shorter than the point toleranc
 right answer went wrong; 188 true touches now read a rounding residue of at most 2.3E-13 in place of 0. A segment
 shorter than the point tolerance that does not meet a shape is still read as its start, by every distance to a segment,
 polyline, polygon, rectangle, triangle, ray, loop or chain; a face measures it as it is. Such a stub that crosses a side
-of a polygon, a rectangle or a polyline now reads 0; against a segment or a ray it is still read from its start. Curved shapes keep their own readings for now.
+of a polygon, a rectangle or a polyline now reads 0; against a segment or a ray it is still read from its start.
 
 **FIXED.** A rectangle of no width or height, or of next to none, is parted from another by all its axes. The axes of
 each rectangle were taken from its sides and one with a side shorter than the vector tolerance lost an axis: a rectangle
@@ -132,6 +132,49 @@ rectangle of no height is measured where the old reading through a polygon refus
 kind placed 0.5 to 5 times the tolerance off a face with a hole, outside it or inside the hole, 855 to 987 of each
 straight kind and about 1 000 of each curved one read wrong; none do now, and every one collides exactly where its
 distance is within the tolerance.
+
+**FIXED.** The distance from an arc, a circle, a curved edge, chain or loop to anything is nought only where they truly
+meet, and otherwise the exact gap, and they collide exactly where it is at most the point tolerance. It read nought from
+the crossing tests, which keep a band of the point tolerance, so a segment 0.0005 above the top of the arc of radius 50
+about the origin was nought away at a tolerance of 0.001, and so were two arcs whose tops stood 0.0005 apart and two whose
+ends stood 0.0015 apart; a circle of radius 40 and a polyline starting 0.0005 off it were nought apart, and an arc, chain
+or loop starting 0.0005 off a straight shape or a bowed side was too, whichever way round it ran. Two arcs of one radius
+whose circles cross 5E-6 of a radian inside both ends read 2.5E-9 apart; they are nought apart. The crossing of two arcs
+is now worked out from their circles directly and kept where both arcs sweep through it, with no slack at the ends.
+Of 154 548 placements of shapes asked both ways, 31 036 answers that read nought for shapes apart are now right, and 262
+collisions answered past the tolerance now answer within it; no answer for shapes longer than the point tolerance went
+wrong. A circle of radius 0.0001 about (100.00085, 100.00085) collided with the square 100 by 100 from the origin, 0.0011
+away, by the centre's band per axis; it no longer does, nor does it read nought. A segment shorter than the point
+tolerance is still read as its start, except that one crossing an arc is nought from it. Ellipses keep their readings for
+now.
+
+**FIXED.** Collisions with arcs in chains and loops no longer keep a band at the ends of their arcs. A chain, a curved
+loop or an arc whose circles cross within a tolerance of both their ends collided 1.2 tolerances apart: the chain from
+(0, 0) by (40, 0) with a bulge of -0.35 to (70, 25) and (100, 25), read as a loop or as a chain, and the arc of radius 50
+about (25.858, -47.958) from 5.317 to 7.567 radians, which ends 0.00012 from (40, 0), collided at a tolerance of 0.0001.
+So did a circle and an arc whose circles stand 0.1 apart at a tolerance of 0.1, when the arc begins 0.0003 of a radian
+past the nearest point. Of 42 205 shapes of every kind, placed so that a vertex of one stands 0.3 to 1.9 tolerances off
+a vertex of the other, 35 collided against their own distance at a thousandth; none do now, nor at 1E-4 or 1E-2.
+Two arcs of a radius under the point tolerance about one point, one 0.0001 outside the other, did not collide where
+their spans overlap, and now do.
+
+**FIXED.** An arc, edge or chain and a circle whose centre stands within the point tolerance of the arc's own are
+measured to the circle's centre, not to the arc's start. The distance read the circle's centre as the arc's centre,
+taking it for a point with no direction: the circle of radius 49.9995 about (0.0007, 0.0005) was 0.0012 from the arc of
+radius 50 about the origin from 3.14159 to 7.9506 radians, and did not collide with it, where it crosses it.
+
+**FIXED.** An edge is read as its chord only where the chord is no further from it than the rounding of the centre route
+by which an arc places its points, 2.5 parts in 1E16 of how far its centre and radius reach from the origin, which is
+where the two stand equally good. It was 4 parts in 1E15, so an edge of bulge 3.2E-8 over 100, which bows 1.6E-6, was
+read as its chord and measured 1.6E-6 off; it is now measured to its arc, within 2.5E-16 of the reach, and so is one of
+10 000. A bulge of a ten-millionth is not read so, and two edges that share a vertex read nought from it, also when one
+of them bows that little: the edge of bulge 1E-7 from (0, 0) to (100, 0) read 8.8E-8 from a segment leaving (100, 0).
+The distance from a face reads the same threshold.
+
+**FIXED.** A segment shorter than the point tolerance that crosses a curved chain's straight edge is nought from the
+chain, as it is from a polyline, a polygon or a curved loop: the stub from (50, -0.0004) to (50, 0.0002) across the edge
+from (0, 0) to (100, 0) read 0.0002. A stub that does not cross is still read as its start, so the placements of such a
+stub that read nought now read that.
 
 **FIXED.** An arc lies in a plane when no point of it stands further off it than the planar tolerance. A curved
 chain's plane, a curved loop and the `PlanarMap` layouts of an edge and an arc compared the arc's own normal with the

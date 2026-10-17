@@ -22,15 +22,17 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance from a polygon to an arc, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// A polygon is a filled region here, as everywhere else in this class, so an arc lying wholly
-        /// inside one is at no distance from it.
+        /// inside one is at no distance from it. An arc starting 0.0005 off the square 100 by 100 with a corner at the origin,
+        /// and running away from it, is 0.0005 from it.
         /// </remarks>
         public static double DistanceTo(GeoPolygon2 poly, GeoArc2 arc, Tolerance tolerance)
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
-            if (Containment2.Contains(poly, arc.StartPoint, tolerance)) return 0.0;
+            if (Containment2.Contains(poly, arc.StartPoint, Exactly)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(poly), arc, tolerance);
         }
@@ -43,6 +45,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance from a polyline to an arc, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolyline2 polyline, GeoArc2 arc, Tolerance tolerance)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
@@ -58,6 +61,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance from a rectangle to an arc, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoRectangle2 rect, GeoArc2 arc, Tolerance tolerance)
         {
             return DistanceTo(rect.ToPolygon(), arc, tolerance);
@@ -71,6 +75,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance from a rectangle to a loop that may curve, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoRectangle2 rect, GeoPolygonArc2 loop, Tolerance tolerance)
         {
             return DistanceTo(loop, rect.ToPolygon(), tolerance);
@@ -84,6 +89,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance from a rectangle to a chain that may curve, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoRectangle2 rect, GeoPolylineArc2 chain, Tolerance tolerance)
         {
             return DistanceTo(chain, rect.ToPolygon(), tolerance);

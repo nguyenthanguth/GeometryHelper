@@ -26,12 +26,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from the edge to a straight segment, within a tolerance.
         /// </summary>
-        public double DistanceTo(GeoLine2 line, Tolerance tolerance)
-        {
-            return IsArc
-                ? Core.Arc2.DistanceTo(ToArc(), line, tolerance)
-                : Core.Distance2.DistanceTo(ToLine(), line, tolerance);
-        }
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
+        public double DistanceTo(GeoLine2 line, Tolerance tolerance) => Core.ArcChain2.Gap(this, line, tolerance);
 
         /// <summary>
         /// Gets the distance from the edge to another edge.
@@ -41,23 +37,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from the edge to another edge, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// Four cases, and each is answered exactly rather than by cutting the arcs up: segment to segment,
         /// segment to arc either way round, and arc to arc.
         /// </remarks>
-        public double DistanceTo(GeoEdge2 other, Tolerance tolerance)
-        {
-            if (IsArc)
-            {
-                return other.IsArc
-                    ? Core.Arc2.DistanceTo(ToArc(), other.ToArc(), tolerance)
-                    : Core.Arc2.DistanceTo(ToArc(), other.ToLine(), tolerance);
-            }
-
-            return other.IsArc
-                ? Core.Arc2.DistanceTo(other.ToArc(), ToLine(), tolerance)
-                : Core.Distance2.DistanceTo(ToLine(), other.ToLine(), tolerance);
-        }
+        public double DistanceTo(GeoEdge2 other, Tolerance tolerance) => Core.ArcChain2.Gap(this, other, tolerance);
 
         /// <summary>
         /// Gets the distance from the edge to a circle.
@@ -71,9 +56,9 @@ namespace GeometryHelper.Geometry
         {
             // The circle is the disc it bounds, whichever the edge is: a straight edge goes the way a segment
             // does, a curved one the way its arc does.
-            return IsArc
-                ? Core.Arc2.DistanceTo(ToArc(), circle, tolerance)
-                : Core.Distance2.DistanceTo(circle, ToLine(), tolerance);
+            return Core.ArcChain2.Straight(this, out GeoLine2 straight)
+                ? Core.Distance2.DistanceTo(circle, straight, tolerance)
+                : Core.Arc2.DistanceTo(ToArc(), circle, tolerance);
         }
 
         /// <summary>
@@ -88,12 +73,7 @@ namespace GeometryHelper.Geometry
         /// The arc is taken as it is rather than as an edge, so one sweeping a whole turn is measured
         /// against too.
         /// </remarks>
-        public double DistanceTo(GeoArc2 arc, Tolerance tolerance)
-        {
-            return IsArc
-                ? Core.Arc2.DistanceTo(ToArc(), arc, tolerance)
-                : Core.Arc2.DistanceTo(arc, ToLine(), tolerance);
-        }
+        public double DistanceTo(GeoArc2 arc, Tolerance tolerance) => Core.ArcChain2.Gap(this, arc, tolerance);
 
         /// <summary>
         /// Gets the distance from this edge to a polygon.
@@ -182,9 +162,9 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public double DistanceTo(GeoRay2 ray, Tolerance tolerance)
         {
-            return IsArc
-                ? Core.Arc2.DistanceTo(ToArc(), ray, tolerance)
-                : Core.Distance2.DistanceTo(ray, ToLine(), tolerance);
+            return Core.ArcChain2.Straight(this, out GeoLine2 straight)
+                ? Core.Distance2.DistanceTo(ray, straight, tolerance)
+                : Core.Arc2.DistanceTo(ToArc(), ray, tolerance);
         }
 
         #endregion

@@ -89,10 +89,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from this circle to an edge.
         /// </summary>
-        public double DistanceTo(GeoEdge2 edge)
-            => edge.IsArc
-                ? DistanceTo(edge.ToArc())
-                : DistanceTo(edge.ToLine());
+        public double DistanceTo(GeoEdge2 edge) => edge.DistanceTo(this);
 
         /// <summary>
         /// Gets the distance from this circle to an edge, within a tolerance: the same answer as
