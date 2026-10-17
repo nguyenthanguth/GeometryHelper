@@ -111,7 +111,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this polygon is nought from it where the
-        /// two collide, and as far as the nearest rim where it lies wholly in a hole. The square 20 by 20 about (50,
+        /// two meet, and as far as the nearest rim where it lies wholly in a hole. The square 20 by 20 about (50,
         /// 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle
         /// and is 10 from its rim; about (130, 50) it is 20 from the outline.
         /// </remarks>
@@ -124,7 +124,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this polygon is nought from it where the
-        /// two collide, and as far as the nearest rim where it lies wholly in a hole. The square 20 by 20 about (50,
+        /// two meet, and as far as the nearest rim where it lies wholly in a hole. The square 20 by 20 about (50,
         /// 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle
         /// and is 10 from its rim; about (130, 50) it is 20 from the outline.
         /// </remarks>

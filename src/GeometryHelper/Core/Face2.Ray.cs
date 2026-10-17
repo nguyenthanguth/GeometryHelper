@@ -79,7 +79,7 @@ namespace GeometryHelper.Core
         /// <param name="ray">The ray.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Nought where the ray crosses a rim or lies on the material; otherwise the length of <see cref="GetShortestLineTo(GeoFace2, GeoRay2, Tolerance)"/>. A ray starting in a hole
+        /// Nought where the ray crosses a rim or lies on the material; otherwise the gap from its nearest rim, measured exactly. A ray starting in a hole
         /// always runs out of it into the material, so it is nought away; the ray from (-50, 150) along X passes 50 above
         /// the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle.
         /// </returns>

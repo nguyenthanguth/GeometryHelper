@@ -46,8 +46,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to an arc.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoArc2)"/>. The upper half of the
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The upper half of the
         /// circle of radius 10 about (50, 50) lies in the hole of the square 100 by 100 with a corner at the origin and
         /// a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -57,8 +57,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to an arc, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoArc2, Tolerance)"/>. The upper
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The upper
         /// half of the circle of radius 10 about (50, 50) lies in the hole of the square 100 by 100 with a corner at
         /// the origin and a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -68,8 +68,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a circle.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoCircle2)"/>. The circle of radius
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The circle of radius
         /// 10 about (50, 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40
         /// in its middle and is 10 from its rim; about (150, 50) it is 40 from the outline; about (15, 50), and of
         /// radius 200 about (50, 50), holding the whole face, it is nought away.
@@ -80,8 +80,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a circle, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoCircle2, Tolerance)"/>. The circle
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The circle
         /// of radius 10 about (50, 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole
         /// 40 by 40 in its middle and is 10 from its rim; about (150, 50) it is 40 from the outline; about (15, 50),
         /// and of radius 200 about (50, 50), holding the whole face, it is nought away.
@@ -92,8 +92,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to an edge.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoEdge2)"/>. The straight edge from
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The straight edge from
         /// (40, 50) to (60, 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by
         /// 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -103,8 +103,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to an edge, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoEdge2, Tolerance)"/>. The straight
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The straight
         /// edge from (40, 50) to (60, 50) lies in the hole of the square 100 by 100 with a corner at the origin and a
         /// hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -114,8 +114,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a segment.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoLine2)"/>. The segment from (40,
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The segment from (40,
         /// 50) to (60, 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in
         /// its middle and is 10 from its rim; the one from (10, 50) to (20, 50) lies on the material and is nought
         /// away.
@@ -126,8 +126,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a segment, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoLine2, Tolerance)"/>. The segment
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The segment
         /// from (40, 50) to (60, 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole
         /// 40 by 40 in its middle and is 10 from its rim; the one from (10, 50) to (20, 50) lies on the material and is
         /// nought away.
@@ -138,8 +138,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a polygon.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoPolygon2)"/>. The square 20 by 20
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The square 20 by 20
         /// about (50, 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in
         /// its middle and is 10 from its rim; about (130, 50) it is 20 from the outline.
         /// </remarks>
@@ -150,8 +150,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a polygon, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoPolygon2, Tolerance)"/>. The
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The
         /// square 20 by 20 about (50, 50) lies in the hole of the square 100 by 100 with a corner at the origin and a
         /// hole 40 by 40 in its middle and is 10 from its rim; about (130, 50) it is 20 from the outline.
         /// </remarks>
@@ -163,8 +163,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a curved loop.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoPolygonArc2)"/>. The loop with
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The loop with
         /// corners (40, 40), (60, 40), (60, 60), (40, 60) and straight edges lies in the hole of the square 100 by 100
         /// with a corner at the origin and a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -175,8 +175,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a curved loop, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoPolygonArc2, Tolerance)"/>. The
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The
         /// loop with corners (40, 40), (60, 40), (60, 60), (40, 60) and straight edges lies in the hole of the square
         /// 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -187,8 +187,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a polyline.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoPolyline2)"/>. The chain (40, 40),
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The chain (40, 40),
         /// (60, 40), (60, 60) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40
         /// in its middle and is 10 from its rim.
         /// </remarks>
@@ -199,8 +199,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a polyline, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoPolyline2, Tolerance)"/>. The
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The
         /// chain (40, 40), (60, 40), (60, 60) lies in the hole of the square 100 by 100 with a corner at the origin and
         /// a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -212,8 +212,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a curved chain.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoPolylineArc2)"/>. The straight
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The straight
         /// chain (40, 40), (60, 40), (60, 60) lies in the hole of the square 100 by 100 with a corner at the origin and
         /// a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -224,8 +224,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a curved chain, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoPolylineArc2, Tolerance)"/>. The
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The
         /// straight chain (40, 40), (60, 40), (60, 60) lies in the hole of the square 100 by 100 with a corner at the
         /// origin and a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -237,8 +237,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a rectangle.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoRectangle2)"/>. The rectangle 20
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The rectangle 20
         /// by 20 about (50, 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by
         /// 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -248,8 +248,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a rectangle, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoRectangle2, Tolerance)"/>. The
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The
         /// rectangle 20 by 20 about (50, 50) lies in the hole of the square 100 by 100 with a corner at the origin and
         /// a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -259,8 +259,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a triangle.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoTriangle2)"/>. The triangle (40,
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The triangle (40,
         /// 40), (60, 40), (50, 60) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40
         /// by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -270,8 +270,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from the material of this face to a triangle, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoTriangle2, Tolerance)"/>. The
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. The
         /// triangle (40, 40), (60, 40), (50, 60) lies in the hole of the square 100 by 100 with a corner at the origin
         /// and a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -282,8 +282,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between the materials of this face and another.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoFace2)"/>. A square 20 by 20 about
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. A square 20 by 20 about
         /// (50, 50) is 10 from the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, the
         /// width of the gap round it in the hole; about (130, 50) it is 20 away.
         /// </remarks>
@@ -294,8 +294,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between the materials of this face and another, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The face is read by its material, its outline less its holes: nought where the two collide, otherwise the
-        /// gap between the boundaries, the length of <see cref="GetShortestLineTo(GeoFace2, Tolerance)"/>. A square 20
+        /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
+        /// gap between the boundaries, measured exactly. A square 20
         /// by 20 about (50, 50) is 10 from the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its
         /// middle, the width of the gap round it in the hole; about (130, 50) it is 20 away.
         /// </remarks>

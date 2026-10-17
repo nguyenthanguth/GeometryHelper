@@ -132,7 +132,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this arc is nought from it where the two
-        /// collide, and as far as the nearest rim where it lies wholly in a hole. The upper half of the circle of
+        /// meet, and as far as the nearest rim where it lies wholly in a hole. The upper half of the circle of
         /// radius 10 about (50, 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40
         /// by 40 in its middle and is 10 from its rim.
         /// </remarks>
@@ -145,7 +145,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this arc is nought from it where the two
-        /// collide, and as far as the nearest rim where it lies wholly in a hole. The upper half of the circle of
+        /// meet, and as far as the nearest rim where it lies wholly in a hole. The upper half of the circle of
         /// radius 10 about (50, 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40
         /// by 40 in its middle and is 10 from its rim.
         /// </remarks>

@@ -124,6 +124,10 @@ plate.CollidesWith(new GeoCircle2(new GeoPoint2(100, 100), 10));   // false — 
 
 The distance reads the face the same way, by its material. It is nought where the two touch, and otherwise the
 gap between their boundaries, so a shape in a hole is measured to the hole's rim and one outside to the outline.
+The gap is measured exactly: at a tolerance of a thousandth, a triangle whose tip stands 0.0012 off a corner of
+the plate is 0.0012 away and does not collide with it, and a circle 0.0005 off is 0.0005 away and does.
+`GetShortestLineTo` keeps the segments' end slack of the rule above and the old reading of a touch, so for both it
+may hand back a line of no length.
 Two faces collide where their materials meet; a face lying in the other's hole does not:
 
 ```csharp

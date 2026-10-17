@@ -171,7 +171,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this ray is nought from it where the two
-        /// collide. The ray from (-50, 150) along X passes 50 above the square 100 by 100 with a corner at the origin and
+        /// meet. The ray from (-50, 150) along X passes 50 above the square 100 by 100 with a corner at the origin and
         /// a hole 40 by 40 in its middle; the one from (-50, 50) along X runs into the material and is nought away.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>

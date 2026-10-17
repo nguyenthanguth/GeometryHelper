@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The distance from the material of a face is the exact gap from its nearest rim, and nought only where a
+shape truly meets the material. It read nought from the old crossing tests, which keep a band of the point
+tolerance, and measured otherwise the length of the shortest line, which lets a segment run on up to the tolerance
+past its ends: a segment, chain, polygon, triangle, rectangle, face or ray whose tip stood up to 1.7 times the
+tolerance off a corner of the face was nought away, and so was a circle, an arc or a curved loop or chain half the
+tolerance off. A segment shorter than the tolerance crossing a rim is nought away whichever way it runs, and a
+rectangle of no height is measured where the old reading through a polygon refused it. Of 6 000 such shapes of each
+kind placed 0.5 to 5 times the tolerance off a face with a hole, outside it or inside the hole, 855 to 987 of each
+straight kind and about 1 000 of each curved one read wrong; none do now, and every one collides exactly where its
+distance is within the tolerance.
+
 **FIXED.** An arc lies in a plane when no point of it stands further off it than the planar tolerance. A curved
 chain's plane, a curved loop and the `PlanarMap` layouts of an edge and an arc compared the arc's own normal with the
 plane's within the angle tolerance, a whole degree: a half circle 1 000 across turned 0.99 degrees out of a loop,

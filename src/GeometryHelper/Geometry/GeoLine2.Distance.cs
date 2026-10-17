@@ -104,7 +104,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this segment is nought from it where the
-        /// two collide, and as far as the nearest rim where it lies wholly in a hole. The segment from (40, 50) to (60,
+        /// two meet, and as far as the nearest rim where it lies wholly in a hole. The segment from (40, 50) to (60,
         /// 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle
         /// and is 10 from its rim; the one from (10, 50) to (20, 50) lies on the material and is nought away.
         /// </remarks>
@@ -117,7 +117,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this segment is nought from it where the
-        /// two collide, and as far as the nearest rim where it lies wholly in a hole. The segment from (40, 50) to (60,
+        /// two meet, and as far as the nearest rim where it lies wholly in a hole. The segment from (40, 50) to (60,
         /// 50) lies in the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle
         /// and is 10 from its rim; the one from (10, 50) to (20, 50) lies on the material and is nought away.
         /// </remarks>

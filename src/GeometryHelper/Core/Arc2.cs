@@ -513,6 +513,96 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the exact distance between an arc and a segment: nought only where they truly meet.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="DistanceTo(GeoArc2, GeoLine2, Tolerance)"/> reads nought wherever they come within the point
+        /// tolerance, as its crossing test does; this one reads the gap however small, and a crossing however short
+        /// the segment. A segment ending 0.0005 off an arc is 0.0005 from it.
+        /// </remarks>
+        internal static double Gap(GeoArc2 arc, GeoLine2 line)
+        {
+            // Half the sweep's sine squared, twice, is the sag from the chord without cancelling.
+            double quarter = Math.Sin(arc.SweptAngle * 0.25);
+            double sag = 2.0 * arc.Radius * quarter * quarter;
+
+            if (Math.Abs(arc.SweptAngle) <= Math.PI && IsFlat(sag, arc.Center, arc.Radius))
+            {
+                return Distance2.DistanceTo(new GeoLine2(arc.StartPoint, arc.EndPoint), line, default(Tolerance));
+            }
+
+            return Meets(arc, line) ? 0.0 : NearestPair(arc, line, default(Tolerance)).Length;
+        }
+
+        /// <summary>
+        /// Determines whether an arc bows less off its chord than its own points are known to: its sag below a few parts
+        /// in 1E15 of how far its centre lies from the origin.
+        /// </summary>
+        /// <remarks>
+        /// An arc kept as its centre and radius places its points within about that much of where they are, and the
+        /// circle test squares numbers that large: an arc 1 000 long bowing a trillionth, of radius 2.5E14, met a
+        /// segment 0.002 off it. Its chord is then as true a reading of it as its circle, and an exact one.
+        /// </remarks>
+        internal static bool IsFlat(double sag, GeoPoint2 center, double radius)
+            => sag <= (Math.Abs(center.X) + Math.Abs(center.Y) + radius) * 4E-15;
+
+        /// <summary>
+        /// Determines whether a segment truly meets an arc, with no tolerance: where the segment crosses or touches
+        /// the circle at a point the arc sweeps through.
+        /// </summary>
+        /// <remarks>
+        /// The two places the segment's line meets the circle are solved for directly, and each is kept where it lies on
+        /// the segment and the arc sweeps through its angle. A touch lost to rounding leaves a gap of a few parts in
+        /// 1E16 of the radius, which the nearest pair then measures.
+        /// </remarks>
+        private static bool Meets(GeoArc2 arc, GeoLine2 line)
+        {
+            GeoVector2 along = line.Direction;
+            GeoVector2 fromCentre = arc.Center.GetVectorTo(line.StartPoint);
+
+            double a = along.DotProduct(along);
+            double c = fromCentre.DotProduct(fromCentre) - arc.Radius * arc.Radius;
+
+            if (!(a > 0.0))
+            {
+                return c == 0.0 && Sweeps(arc, line.StartPoint);
+            }
+
+            double b = 2.0 * fromCentre.DotProduct(along);
+            double discriminant = b * b - 4.0 * a * c;
+
+            if (discriminant < 0.0)
+            {
+                return false;
+            }
+
+            double root = Math.Sqrt(discriminant);
+
+            foreach (double t in new[] { (-b - root) / (2.0 * a), (-b + root) / (2.0 * a) })
+            {
+                if (t >= 0.0 && t <= 1.0 && Sweeps(arc, line.GetPointAtParameter(t)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether an arc sweeps through the angle of a point about its centre, with no tolerance.
+        /// </summary>
+        private static bool Sweeps(GeoArc2 arc, GeoPoint2 point)
+        {
+            double angle = Math.Atan2(point.Y - arc.Center.Y, point.X - arc.Center.X);
+            double into = (angle - arc.StartAngle) * (arc.SweptAngle < 0.0 ? -1.0 : 1.0);
+
+            into -= 2.0 * Math.PI * Math.Floor(into / (2.0 * Math.PI));
+
+            return into <= Math.Abs(arc.SweptAngle);
+        }
+
+        /// <summary>
         /// Gets the nearest pair of an arc and a segment that do not cross, from the arc to the segment: an end of
         /// one against the other, or the place where the segment runs straight at the centre.
         /// </summary>
