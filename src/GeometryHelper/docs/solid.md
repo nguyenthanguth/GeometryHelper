@@ -1259,6 +1259,15 @@ bulged.GetChord();  // the segment across it
 bulged.GetPlane();  // the plane it bulges in
 ```
 
+Any bulge but nought is an arc, however little it bows: an edge 0.01 long with a bulge of a thousandth stands
+0.000005 off its chord, well inside the point tolerance, and is measured, cut, moved and asked about as the arc
+it is. Its `GeoArc3` is built from its circle, and a move is the arc through where its two ends and its middle
+land, that middle worked out across the chord; neither is refused for three points lying within a tolerance of
+one line. A move that stretches the arc's plane unevenly makes part of an ellipse of it, and the arc through
+those three points stands for it, as it always has. An arc is kept as its centre and radius, so it places its
+points within a few times its radius times 1E-16 of where they are: 0.00001 for an edge 100 long with a bulge of
+a billionth, of radius 2.5E10.
+
 ### A bar is a chain with a bend at every corner
 
 This is what the types are for. A reinforcing bar is set out the way a schedule sets it out — the points it

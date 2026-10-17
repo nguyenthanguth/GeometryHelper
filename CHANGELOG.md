@@ -6,6 +6,18 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** An arc in space that bows little is an arc. A curved edge, bar or loop, the lift of an arc of the plane
+into space, moving an arc and laying it out in its own plane all built the arc through its start, middle and end,
+and refused three points within the global point tolerance of one line: an edge 0.01 long with a bulge of a
+thousandth threw on its length, its middle, every collision and crossing, and every move. Of 22 860 calls across
+`GeoEdge3`, `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoArc3` and `PlanarMap.ToArc3` on arcs from a half circle down
+to a bulge of a trillionth, 6 984 threw so; none do now. An arc is built from its circle, which also lifts a whole
+circle into space and moves one, where three of its points had nothing to stand on. A move is still the arc through
+where the ends and the middle land, the middle now worked out across the chord, so a stretch that turns the arc into
+part of an ellipse is answered as before. Ordinary arcs come out as before within the last digits: of 20 000, none
+moved by more than 0.000000001, and an edge's arc now has the radius and sweep of its bulge exactly, where they
+were off by up to two parts in 1E10.
+
 **CHANGED.** Asking whether a body is closed, welding it, closing the slivers a cut leaves, taking a convex hull and
 cutting a face by a plane no longer slow with the square of the edges where the points are numbered in order round a
 mesh. On a sphere of 319 200 triangles `IsClosed` takes 0.53 s where it took 55 s, and closing its slivers takes

@@ -175,6 +175,28 @@ namespace GeometryHelper.Geometry
                 true);
         }
 
+        /// <summary>
+        /// Creates the arc of a circle already known, running counter-clockwise round its normal from a point on it.
+        /// </summary>
+        /// <param name="center">The centre.</param>
+        /// <param name="unitNormal">A unit normal; the arc runs counter-clockwise round it when the sweep is positive.</param>
+        /// <param name="radius">The radius.</param>
+        /// <param name="start">The point the arc starts at, on the circle.</param>
+        /// <param name="sweptAngle">The signed sweep, never nought.</param>
+        /// <returns>The arc, its normal turned over where the sweep is negative so that it runs counter-clockwise.</returns>
+        /// <remarks>
+        /// Nothing is solved: an arc a hundredth long that bows a thousandth of its chord off it is built as exactly as
+        /// a half circle, where the three points of <see cref="FromThreePoints(GeoPoint3, GeoPoint3, GeoPoint3, Tolerance)"/>
+        /// would lie within a point tolerance of one line. The arc comes out as the three-point build gives it.
+        /// </remarks>
+        internal static GeoArc3 FromCircle(GeoPoint3 center, GeoVector3 unitNormal, double radius, GeoPoint3 start, double sweptAngle)
+        {
+            GeoVector3 normal = sweptAngle < 0.0 ? unitNormal.Multiply(-1.0) : unitNormal;
+            double sweep = Math.Abs(sweptAngle);
+
+            return new GeoArc3(center, normal, radius, AngleOf(center, normal, start), sweep, false, true);
+        }
+
         #endregion
 
         #region Measurements
@@ -432,11 +454,29 @@ namespace GeometryHelper.Geometry
             // A circle survives only under an even stretch, and the circle test carries the arc with it.
             GeoCircle3 moved = transform.Transform(GetCircle());
 
+            GetPlane().GetAxes(out GeoVector3 uAxis, out GeoVector3 vAxis);
             GeoPoint3 start = transform.Transform(StartPoint);
-            GeoPoint3 middle = transform.Transform(MidPoint);
-            GeoPoint3 end = transform.Transform(EndPoint);
 
-            return FromThreePoints(start, middle, end);
+            // A whole turn has no chord: it is the moved circle, run the way its carried axes say, which a mirror turns
+            // over.
+            if (Math.Abs(SweptAngle) >= FullTurn)
+            {
+                GeoVector3 across = transform.Transform(uAxis).CrossProduct(transform.Transform(vAxis));
+
+                return FromCircle(moved.Center, across.Multiply(1.0 / across.Length), moved.Radius, start, SweptAngle);
+            }
+
+            // Any other is the arc through where its ends and its middle land. They are reached from the start across the
+            // arc, not from the centre, so an arc bowing a thousandth of its chord off it is not three points on a line.
+            GeoVector3 toEnd = Across(uAxis, vAxis, StartAngle, SweptAngle);
+            GeoVector3 toMiddle = Across(uAxis, vAxis, StartAngle, SweptAngle * 0.5);
+
+            if (!Arc3.TryBulgeThrough(transform.Transform(toEnd), transform.Transform(toMiddle), out double bulge, out GeoVector3 normal))
+            {
+                throw new InvalidOperationException("Three points on one line have no arc through them.");
+            }
+
+            return new GeoEdge3(start, start.Add(transform.Transform(toEnd)), bulge, normal).ToArc();
         }
 
         /// <summary>
@@ -467,7 +507,25 @@ namespace GeometryHelper.Geometry
                 return new GeoArc2(ToLocal(frame, Center), Radius, 0.0, 0.0, IsClockwise);
             }
 
-            return GeoArc2.FromThreePoints(ToLocal(frame, StartPoint), ToLocal(frame, MidPoint), ToLocal(frame, EndPoint));
+            GeoPoint2 start = ToLocal(frame, StartPoint);
+            GeoPoint2 middle = ToLocal(frame, MidPoint);
+            GeoPoint2 end = ToLocal(frame, EndPoint);
+
+            // The three points refuse an arc when they lie within the point tolerance of one line, the test
+            // GeoArc2.FromThreePoints makes. Standing square to the plane, the arc flattens into a segment and is
+            // refused; lying in it, it only bows less than the tolerance, an arc 0.01 long bowing a thousandth of its
+            // chord, and is laid out from its two ends and its sweep, which nothing about its bow can upset.
+            double twiceArea = start.GetVectorTo(middle).CrossProduct(start.GetVectorTo(end));
+            double point = Tolerance.Global.EqualPoint;
+
+            if (Math.Abs(twiceArea) > point * point || !Normal.IsParallelTo(frame.ZAxis))
+            {
+                return GeoArc2.FromThreePoints(start, middle, end);
+            }
+
+            double sweepInFrame = Normal.DotProduct(frame.ZAxis) > 0.0 ? SweptAngle : -SweptAngle;
+
+            return GeoArc2.FromBulge(start, end, Math.Tan(sweepInFrame * 0.25));
         }
 
         #endregion
@@ -683,6 +741,19 @@ namespace GeometryHelper.Geometry
             GeoPoint2 flat = ToLocal(new GeoCoordinateSystem3(new GeoPlane3(center, unitNormal)), pointOnCircle);
 
             return Math.Atan2(flat.Y, flat.X);
+        }
+
+        /// <summary>
+        /// The vector from the point of the circle at one angle to the point a turn further round, worked out as the
+        /// chord between them rather than as the difference of two points a radius from the centre.
+        /// </summary>
+        private GeoVector3 Across(GeoVector3 uAxis, GeoVector3 vAxis, double from, double turn)
+        {
+            double half = turn * 0.5;
+            double toward = from + half;
+            double chord = 2.0 * Radius * Math.Sin(half);
+
+            return uAxis.Multiply(-chord * Math.Sin(toward)).Add(vAxis.Multiply(chord * Math.Cos(toward)));
         }
 
         private static GeoPoint2 ToLocal(GeoCoordinateSystem3 frame, GeoPoint3 point)

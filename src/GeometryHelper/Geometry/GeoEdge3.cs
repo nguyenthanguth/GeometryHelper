@@ -1,4 +1,5 @@
 using System;
+using GeometryHelper.Core;
 using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
@@ -181,9 +182,11 @@ namespace GeometryHelper.Geometry
         /// <exception cref="InvalidOperationException">Thrown when the edge is straight, so there is no arc to give.</exception>
         /// <remarks>
         /// The bulge is read in the plane the normal names: the chord is laid along the X axis of a frame
-        /// standing on the start point, the arc is built there exactly as it would be in the plane, and the
-        /// three points that describe it are lifted back. So a curve in space and the same curve laid flat
-        /// come out with the same radius and the same swept angle.
+        /// standing on the start point, the arc is built there exactly as it would be in the plane, and its
+        /// circle is lifted back. So a curve in space and the same curve laid flat come out with the same
+        /// radius and the same swept angle, and an edge 0.01 long bowing a thousandth of its chord off it is
+        /// as much an arc as a half circle. The arc runs counter-clockwise round its own normal, which points
+        /// against the edge's where the bulge is negative.
         /// </remarks>
         public GeoArc3 ToArc()
         {
@@ -192,13 +195,9 @@ namespace GeometryHelper.Geometry
                 throw new InvalidOperationException("This edge is a straight segment, so there is no arc to give.");
             }
 
-            GeoCoordinateSystem3 frame = Frame();
             GeoArc2 flat = GeoArc2.FromBulge(new GeoPoint2(0.0, 0.0), new GeoPoint2(GetChord().Length, 0.0), Bulge);
 
-            return GeoArc3.FromThreePoints(
-                frame.ToGlobal(Lift(flat.StartPoint)),
-                frame.ToGlobal(Lift(flat.MidPoint)),
-                frame.ToGlobal(Lift(flat.EndPoint)));
+            return PlanarMap.ToArc3(Frame(), flat);
         }
 
         /// <summary>
@@ -321,7 +320,10 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The normal is carried by the transformation as well, so an edge turned about any axis keeps
         /// bulging the way it did. A transformation that mirrors turns the plane over, which is why the
-        /// normal is taken from where the ends and the middle of the arc land rather than rotated on its own.
+        /// normal is taken from where the ends and the middle of the arc land rather than rotated on its own. One
+        /// that stretches the arc's plane unevenly, which makes part of an ellipse of it, gives the arc through
+        /// where its two ends and its middle land. The middle is worked out across the chord, so an edge 0.01 long
+        /// bowing a thousandth of its chord off it moves as surely as a half circle.
         /// </remarks>
         public GeoEdge3 TransformBy(GeoTransform3 transform)
         {
@@ -338,9 +340,18 @@ namespace GeometryHelper.Geometry
                 return new GeoEdge3(start, end);
             }
 
-            GeoPoint3 middle = transform.Transform(GetPointAtParameter(0.5));
+            // The middle stands half the chord times the bulge off the chord's middle, to the right of the run round the
+            // normal for a positive bulge: worked out from the chord, so however little the edge bows.
+            GeoVector3 chord = StartPoint.GetVectorTo(EndPoint);
+            GeoVector3 bow = chord.CrossProduct(Normal).Normalize().Multiply(Bulge > 0.0 ? 1.0 : -1.0);
+            GeoVector3 toMiddle = chord.Multiply(0.5).Add(bow.Multiply(Math.Abs(Bulge) * chord.Length * 0.5));
 
-            return new GeoEdge3(GeoArc3.FromThreePoints(start, middle, end));
+            if (!Arc3.TryBulgeThrough(start.GetVectorTo(end), transform.Transform(toMiddle), out double bulge, out GeoVector3 normal))
+            {
+                throw new InvalidOperationException("Three points on one line have no arc through them.");
+            }
+
+            return new GeoEdge3(start, end, bulge, normal);
         }
 
         /// <summary>
@@ -479,11 +490,6 @@ namespace GeometryHelper.Geometry
 
             return new GeoCoordinateSystem3(StartPoint, along, Normal.CrossProduct(along));
         }
-
-        /// <summary>
-        /// Lifts a point of the flat arc into the frame the bulge was read in.
-        /// </summary>
-        private static GeoPoint3 Lift(GeoPoint2 point) => new GeoPoint3(point.X, point.Y, 0.0);
         #region Extending and trimming
 
         /// <summary>

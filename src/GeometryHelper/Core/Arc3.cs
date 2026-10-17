@@ -53,6 +53,56 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the bulge and the normal of the arc from a start through a point to an end, read from its chord.
+        /// </summary>
+        /// <param name="toEnd">From the start to the end.</param>
+        /// <param name="toMiddle">From the start to a point of the arc between its ends.</param>
+        /// <param name="bulge">The bulge, positive: the arc runs counter-clockwise round the normal.</param>
+        /// <param name="unitNormal">The unit normal of its plane.</param>
+        /// <returns>false when the three points lie on one line to the last digit, so no arc runs through them.</returns>
+        /// <remarks>
+        /// Nothing is measured from the centre: the sag is worked out across the chord, so an arc 100 long bowing a
+        /// trillionth, of radius 2.5E13, comes out as exactly as a half circle. The point need not be the arc's middle:
+        /// an arc stretched unevenly is answered with the arc through where its ends and its middle land.
+        /// </remarks>
+        internal static bool TryBulgeThrough(GeoVector3 toEnd, GeoVector3 toMiddle, out double bulge, out GeoVector3 unitNormal)
+        {
+            bulge = 0.0;
+            unitNormal = default(GeoVector3);
+
+            double chord = toEnd.Length;
+
+            if (!(chord > 0.0))
+            {
+                return false;
+            }
+
+            GeoVector3 along = toEnd.Multiply(1.0 / chord);
+            GeoVector3 offMiddle = toMiddle.Subtract(toEnd.Multiply(0.5));
+            double ahead = offMiddle.DotProduct(along);
+            GeoVector3 aside = offMiddle.Subtract(along.Multiply(ahead));
+            double off = aside.Length;
+
+            if (!(off > 0.0))
+            {
+                return false;
+            }
+
+            // The centre stands back from the chord's middle, away from the point, by `back`; past a half turn it stands
+            // on the point's side and `back` is negative. The sag on the point's side is the radius less `back`, worked
+            // out without the difference of two near-equal large numbers.
+            double halfSquared = chord * chord * 0.25;
+            double back = (halfSquared - ahead * ahead - off * off) / (2.0 * off);
+            double radius = Math.Sqrt(halfSquared + back * back);
+            double sag = back >= 0.0 ? halfSquared / (radius + back) : radius - back;
+
+            GeoVector3 bow = aside.Multiply(1.0 / off);
+            bulge = 2.0 * sag / chord;
+            unitNormal = bow.CrossProduct(along);
+            return true;
+        }
+
+        /// <summary>
         /// Gets the points of the arc that lie on an endless line, which is at most two.
         /// </summary>
         /// <param name="arc">The arc.</param>

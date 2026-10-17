@@ -31,12 +31,19 @@ namespace GeometryHelper.Core
         /// <param name="frame">The frame the arc is laid out in.</param>
         /// <param name="arc">The arc in the plane.</param>
         /// <returns>The same arc, standing in the plane of the frame.</returns>
+        /// <remarks>
+        /// The arc is built on its circle lifted into the frame, so a whole turn lifts as well as a part of one, and an
+        /// arc a hundredth long bowing a thousandth of its chord off it as exactly as a half circle. It runs
+        /// counter-clockwise round its normal, which is the frame's Z axis or its reverse.
+        /// </remarks>
         public static GeoArc3 ToArc3(GeoCoordinateSystem3 frame, GeoArc2 arc)
         {
-            return GeoArc3.FromThreePoints(
+            return GeoArc3.FromCircle(
+                ToPoint3(frame, arc.Center),
+                frame.ZAxis,
+                arc.Radius,
                 ToPoint3(frame, arc.StartPoint),
-                ToPoint3(frame, arc.MidPoint),
-                ToPoint3(frame, arc.EndPoint));
+                arc.SweptAngle);
         }
 
         /// <summary>
