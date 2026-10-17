@@ -262,7 +262,7 @@ MIT.
 
 ## Looking at the geometry
 
-When an answer surprises, look at the shapes. `GeometryHelper.Export` writes them in three formats, numbers
+When an answer surprises, look at the shapes. `GeometryHelper.Export` writes them in four formats, numbers
 always with a point for the decimal whatever the culture:
 
 ```csharp
@@ -279,9 +279,37 @@ new SvgWriter()                      // the plane: any browser opens SVG
     .Save("cut.svg");
 
 string text = Wkt.Write(face);       // POLYGON ((...), (...)): GIS tools, databases, online viewers
+
+new DxfWriter()                      // both: AutoCAD, Tekla and every CAD viewer open DXF
+    .Add(outline, "plate")           // in the plane as the entities CAD has, arcs as arcs
+    .Add(plate, "plate3d")           // a body as 3DFACEs
+    .Add(bar, 0.1, "bar")            // a bent bar as a 3D polyline, bends cut into chords
+    .Save("part.dxf");
 ```
 
 Each shape added to an OBJ file is an object of its own under the name given, so a viewer lists them
 separately, and coordinates are written exactly. An SVG picture is fitted round everything drawn, and every
 line keeps its width however far it is zoomed. WKT rings are written closed, the boundary counter-clockwise and
 the holes clockwise, as the format asks.
+
+`DxfWriter` writes a DXF file of version R2000 in millimetres, which AutoCAD, Tekla Structures and every CAD viewer
+open. Each shape goes on a layer named as given (layer 0 when none is), made on first use in white with the
+continuous line, since CAD colours by layer. Names are cut at 255 characters, the characters DXF refuses and the comma
+become `_`, and letters beyond ASCII are written as escapes such as `\U+00E9`; two names that differ only in case,
+accented letters included, are one layer, named as first seen. In the plane a shape is written as the entity CAD has for it, not as
+chords: a polygon, rectangle, triangle or ring of a face as a closed lightweight polyline, a chain or loop with arcs
+as one with the bulge of each arc edge (the same number `GeoEdge2.Bulge` gives, 1 for a semicircle), a circle, an
+arc, an ellipse and a ray as a CIRCLE, ARC, ELLIPSE and RAY. DXF arcs run counter-clockwise only, so a clockwise
+`GeoArc2` is written from its end to its start; a face is its rings, not a filled area, which `SvgWriter` draws. In
+space a point, segment, ray and ellipse are written as they are, a chain and a polygon as a 3D polyline, and
+anything with a surface as 3DFACEs: one per triangle of a face or a body (a box 100 by 100 by 20 with a hole 20 by 20
+through it is 64), one per face of a mesh that has three or four corners and turns one way, and six for a `GeoAabb3`
+or `GeoObb3`, written from its corners, so a box 100 by 100 by 0.002, or by nothing, is written too, and an empty `GeoAabb3` is refused with an `InvalidOperationException`, as `ToObb` refuses it. Where a face, a
+side of a body or a face of a mesh is cut into triangles, the edges between its own triangles are marked invisible, so
+a wireframe shows its outline; triangles given as they are keep every edge. A curve in space (`GeoArc3`,
+`GeoCircle3`, and chains and loops with arcs) is cut into chords no further from it than a chord tolerance you state,
+which has no default: a circle of radius 100 at 0.1 is 71 chords, one of radius 50 000 at 0.001 is 15 708. A curve
+that would need more than 1 048 576 chords, a chain or loop counted whole, is refused with an
+`ArgumentOutOfRangeException`. A shape holding a number that is not finite is refused with an `ArgumentException` and
+leaves nothing in the file. Exact arcs in space wait for a later round. The file is plain ASCII, with the extents of
+what was drawn in its header and the view opened on them.

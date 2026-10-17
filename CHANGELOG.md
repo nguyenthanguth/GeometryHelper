@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfWriter` writes shapes as a DXF file of version R2000 in millimetres, for AutoCAD, Tekla Structures and
+every CAD viewer: `new DxfWriter().Add(plate, "plate").Add(bar, 0.1, "bar").Save("part.dxf")`. Each shape goes on a
+layer, made on first use. In the plane it is written exactly, as the entity CAD has for it: points, segments, circles,
+ellipses and rays as themselves, polygons, rectangles, triangles and the rings of a face as closed lightweight
+polylines, chains and loops with arcs as polylines with the bulge of each arc, and a clockwise arc from its end to its
+start. In space points, segments, rays and ellipses are exact, chains and polygons are 3D polylines, and faces,
+bodies, triangles and meshes are 3DFACEs (a plate 100 by 100 by 20 with a 20 by 20 hole is 64) whose inner diagonals
+are marked invisible; a box is six 3DFACEs written from its corners, flat ones included. An arc, circle or curved
+chain in space is cut into chords no further from it than a chord tolerance the caller states (a circle of radius
+50 000 at 0.001 keeps its sag within it, in 15 708 chords), and one needing more than 1 048 576 is refused. A shape
+with a number that is not finite is refused before anything of it is written. The tests read the files back group by
+group and measure them: the bulge of a quarter arc and its sign, the end points of a clockwise arc, the axes of an
+ellipse, the volume under the faces of a body. ezdxf's audit of a file of every shape finds 0 errors and makes 0
+fixes, and loading it only adds the eight default dictionaries (ACAD_COLOR, ACAD_MATERIAL, ACAD_MLEADERSTYLE,
+ACAD_MLINESTYLE, ACAD_PLOTSETTINGS, ACAD_SCALELIST, ACAD_TABLESTYLE, ACAD_VISUALSTYLE) that ezdxf adds to any file
+without them; netDxf loads it with all 15 of its layers kept. An empty `GeoAabb3` is refused with an
+`InvalidOperationException`, as `ToObb` refuses it.
+
 **FIXED.** The distance from the material of a face is the exact gap from its nearest rim, and nought only where a
 shape truly meets the material. It read nought from the old crossing tests, which keep a band of the point
 tolerance, and measured otherwise the length of the shortest line, which lets a segment run on up to the tolerance
