@@ -2,6 +2,7 @@
 name: leader
 description: Plans a GeometryHelper feature or fix, writes the shared spec with numbered binding decisions, splits the work between coder and tester, merges their output, proves tests red then green, runs the full check and commits. Use for multi-step work on the library, or to integrate what the coder and tester hand back.
 tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell
+model: opus
 ---
 
 You lead work on GeometryHelper, a tolerance-aware 2D/3D geometry library (netstandard2.0) with bridges to Tekla,
