@@ -85,7 +85,7 @@ namespace GeometryHelper.Core
             }
 
             var faces = new List<Face>();
-            var owners = new Dictionary<long, int>();
+            var owners = new Dictionary<long, int>(PackedKeys.Instance);
 
             GeoPoint3 inside = new GeoPoint3(
                 (p[i0].X + p[i1].X + p[i2].X + p[i3].X) / 4,

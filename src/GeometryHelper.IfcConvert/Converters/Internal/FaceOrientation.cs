@@ -28,7 +28,7 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             PointIndex index = new PointIndex(tolerance.EqualPoint);
 
             // Undirected edge -> (face, traversed from the lower to the higher vertex index)
-            Dictionary<long, List<(int Face, bool Forward)>> edges = new Dictionary<long, List<(int, bool)>>();
+            Dictionary<long, List<(int Face, bool Forward)>> edges = new Dictionary<long, List<(int, bool)>>(EdgeKeys.Instance);
             List<long>[] faceEdges = new List<long>[count];
 
             for (int f = 0; f < count; f++)
@@ -197,6 +197,21 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 cell.Add(created);
                 return created;
             }
+        }
+
+        /// <summary>
+        /// Hashes the key of an edge, (lower &lt;&lt; 32) | higher, so that edges between neighbouring points spread: the
+        /// key's own hash folds its halves together with an exclusive or, and the edges of a mesh whose points are
+        /// numbered in order fold to a few buckets.
+        /// </summary>
+        private sealed class EdgeKeys : IEqualityComparer<long>
+        {
+            /// <summary>Gets the one instance.</summary>
+            public static EdgeKeys Instance { get; } = new EdgeKeys();
+
+            public bool Equals(long x, long y) => x == y;
+
+            public int GetHashCode(long key) => unchecked((int)(((ulong)key * 0x9E3779B97F4A7C15UL) >> 32));
         }
     }
 }

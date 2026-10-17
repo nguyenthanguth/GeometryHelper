@@ -4,6 +4,13 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**CHANGED.** Asking whether a body is closed, welding it, closing the slivers a cut leaves, taking a convex hull and
+cutting a face by a plane no longer slow with the square of the edges where the points are numbered in order round a
+mesh. On a sphere of 319 200 triangles `IsClosed` takes 0.53 s where it took 55 s, and closing its slivers takes
+0.66 s where it ran for more than 20 minutes. Results are unchanged.
+
 ## 12.2.0
 
 **FIXED.** A curved loop grown until it closes a gap kept the space it closed round only when the hole's pieces met in

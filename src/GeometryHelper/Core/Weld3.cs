@@ -465,7 +465,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool[] Loose(List<List<int>>[] rings)
         {
-            var counts = new Dictionary<long, int>();
+            var counts = new Dictionary<long, int>(PackedKeys.Instance);
             int highest = -1;
 
             foreach (List<List<int>> faceRings in rings)
@@ -510,7 +510,7 @@ namespace GeometryHelper.Core
             // A corner put on an edge splits it, and a piece of it can then meet another corner: a few rounds settle it.
             for (int round = 0; round < 4; round++)
             {
-                var counts = new Dictionary<long, int>();
+                var counts = new Dictionary<long, int>(PackedKeys.Instance);
 
                 foreach (List<List<int>> faceRings in rings)
                 {

@@ -167,7 +167,7 @@ namespace GeometryHelper.Core
 
             var welder = new VertexWelder(tolerance);
             var points = new Dictionary<int, GeoPoint3>();
-            var runs = new Dictionary<long, int>();
+            var runs = new Dictionary<long, int>(PackedKeys.Instance);
 
             int Index(GeoPoint3 point)
             {

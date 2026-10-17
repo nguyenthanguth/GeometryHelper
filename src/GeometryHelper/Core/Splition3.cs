@@ -669,7 +669,7 @@ namespace GeometryHelper.Core
             }
 
             List<long> crossings = new List<long>();
-            Dictionary<long, double> positions = new Dictionary<long, double>();
+            Dictionary<long, double> positions = new Dictionary<long, double>(PackedKeys.Instance);
 
             for (int ring = 0; ring < ringPoints.Count; ring++)
             {
@@ -708,15 +708,15 @@ namespace GeometryHelper.Core
 
             crossings.Sort((x, y) => positions[x].CompareTo(positions[y]));
 
-            Dictionary<long, long> partner = new Dictionary<long, long>();
+            Dictionary<long, long> partner = new Dictionary<long, long>(PackedKeys.Instance);
             for (int i = 0; i + 1 < crossings.Count; i += 2)
             {
                 partner[crossings[i]] = crossings[i + 1];
                 partner[crossings[i + 1]] = crossings[i];
             }
 
-            Dictionary<long, List<GeoPoint3>> runs = new Dictionary<long, List<GeoPoint3>>();
-            Dictionary<long, long> runEnds = new Dictionary<long, long>();
+            Dictionary<long, List<GeoPoint3>> runs = new Dictionary<long, List<GeoPoint3>>(PackedKeys.Instance);
+            Dictionary<long, long> runEnds = new Dictionary<long, long>(PackedKeys.Instance);
 
             foreach (long start in crossings)
             {
@@ -751,7 +751,7 @@ namespace GeometryHelper.Core
                 runEnds[start] = MakeKey(ring, cursor);
             }
 
-            HashSet<long> consumed = new HashSet<long>();
+            HashSet<long> consumed = new HashSet<long>(PackedKeys.Instance);
 
             // The crossings are already in order along the cut line, and walking the runs in that order
             // rather than in whatever order the dictionary hands them back keeps the pieces reproducible.

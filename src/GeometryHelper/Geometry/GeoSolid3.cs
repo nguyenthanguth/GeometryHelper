@@ -596,7 +596,7 @@ namespace GeometryHelper.Geometry
         public bool IsClosed(Tolerance tolerance)
         {
             VertexWelder welder = new VertexWelder(tolerance);
-            Dictionary<long, int> edgeCounts = new Dictionary<long, int>();
+            Dictionary<long, int> edgeCounts = new Dictionary<long, int>(PackedKeys.Instance);
 
             foreach (GeoFace3 face in _faces)
             {
