@@ -156,7 +156,7 @@ namespace GeometryHelper.Geometry
             {
                 GeoEdge3 edge = new GeoEdge3(_vertices[i], _vertices[(i + 1) % _vertices.Length], _bulges[i], _normals[i], tolerance);
 
-                if (edge.IsArc && !edge.Normal.IsParallelTo(_planeNormal, tolerance))
+                if (edge.IsArc && !Arc3.LiesIn(plane, edge.StartPoint, edge.EndPoint, edge.Bulge, edge.Normal, tolerance))
                 {
                     throw new ArgumentException("An arc of a closed loop has to bulge in the plane of the loop.", nameof(normals));
                 }

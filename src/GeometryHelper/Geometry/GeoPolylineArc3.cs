@@ -400,8 +400,10 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// <para>
         /// The vertices alone are not enough to settle it: two straight runs and the bends between them can
-        /// all share a plane while an arc bulges out of it, so every arc is asked whether its own plane is
-        /// the same one.
+        /// all share a plane while an arc bulges out of it, so every arc is asked how far it stands off the
+        /// plane, and the planar tolerance decides. The angle of its own plane decides nothing: a half circle
+        /// 1 000 across turned 0.99 degrees out stands 8.64 off, and a bend that barely bows lies in the plane
+        /// however it is turned.
         /// </para>
         /// <para>
         /// The plane is the one the vertices lie in (see <see cref="GeoPolyline3.TryGetPlane(out GeoPlane3, Tolerance)"/>).
@@ -423,7 +425,7 @@ namespace GeometryHelper.Geometry
                     continue;
                 }
 
-                if (!_normals[i].IsParallelTo(plane.Normal, tolerance))
+                if (!Arc3.LiesIn(plane, _vertices[i], _vertices[i + 1], _bulges[i], _normals[i], tolerance))
                 {
                     plane = default(GeoPlane3);
                     return false;

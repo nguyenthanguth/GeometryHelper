@@ -6,6 +6,18 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** An arc lies in a plane when no point of it stands further off it than the planar tolerance. A curved
+chain's plane, a curved loop and the `PlanarMap` layouts of an edge and an arc compared the arc's own normal with the
+plane's within the angle tolerance, a whole degree: a half circle 1 000 across turned 0.99 degrees out of a loop,
+8.64 off it, was taken as lying in it and flattened, and a bend 100 long bowing a ten-millionth turned 2 degrees,
+0.00000017 off, was refused. `TryToArc2` also asked for the arc's centre on the plane, which an arc 100 long bowing a
+ten-thousandth, of radius 250 000, has 436 off it when turned a tenth of a degree. Of 20 000 arcs with their ends in
+the plane, the chain and the loop called 1 124 flat that stood off it, up to 30.2, and refused 2 462 that lay in it;
+they now get every one right. The layouts take none that stands off and refuse about 210 that do not, each standing
+at least 0.00065 off against the tolerance of 0.001. A whole circle turned out of the frame within the tolerance is
+laid out as one, and an arc past a half turn comes down round its centre as it is: an arc of 359.5 degrees in the
+frame came down from `TryToArc2` as a whole circle.
+
 **FIXED.** An arc in space that bows little is an arc. A curved edge, bar or loop, the lift of an arc of the plane
 into space, moving an arc and laying it out in its own plane all built the arc through its start, middle and end,
 and refused three points within the global point tolerance of one line: an edge 0.01 long with a bulge of a

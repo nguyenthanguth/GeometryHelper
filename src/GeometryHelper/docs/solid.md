@@ -1302,6 +1302,15 @@ which need not be the plane of the corner, so there is no one plane to do the ar
 enforces it at construction exactly as `GeoPolygon3` does: a loop that is not flat encloses nothing and has no
 inside. A bar bent out of one plane whose ends happen to meet is a `GeoPolylineArc3`, not a loop.
 
+An arc lies in the plane when no point of it stands further off the plane than `EqualPlanar`, the test its
+corners pass. The angle between its own plane and the loop's decides nothing on its own: a half circle 1 000
+across turned 0.99 degrees out of the loop stands 8.64 off it and is refused, and a side 100 long bowing a
+ten-millionth of its chord lies in the loop however its own plane is turned. `IsPlanar`, `TryGetPlane` and
+the `PlanarMap` layouts read an arc the same way. The stand-off is read from the chord, as the corner of the
+box round the arc that stands furthest off, so an arc of a huge radius is judged as surely as a half circle;
+the box can stand off a little further than the arc, up to two thirds more, which errs on refusing an arc right
+at the tolerance. An arc past a half turn is read round its circle, exactly.
+
 That one rule is what makes everything else exact. Area, centroid, what is inside, offsetting and rounding
 are all answered by laying the loop out in its own plane as a `GeoPolygonArc2`, working there, and lifting
 the answer back:

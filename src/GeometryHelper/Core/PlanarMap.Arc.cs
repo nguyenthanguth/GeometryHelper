@@ -17,8 +17,9 @@ namespace GeometryHelper.Core
     /// A bulge in the plane is read counter-clockwise about the Z axis, so lifting one keeps the bulge as it
     /// is and hands the frame's Z axis to the edge as the plane it bulges in. Bringing one back is the same
     /// step in reverse, with one thing to watch: an arc whose normal runs <b>against</b> the frame is the same
-    /// arc seen from behind, so its bulge changes sign on the way down. An arc whose normal is not along the
-    /// frame at all does not lie in that plane, and the <c>Try</c> forms say so rather than flattening it.
+    /// arc seen from behind, so its bulge changes sign on the way down. An arc lies in the plane when no point of
+    /// it stands further off it than the planar tolerance, however its own plane is turned; one that stands off
+    /// it does not, and the <c>Try</c> forms say so rather than flattening it.
     /// </para>
     /// </remarks>
     public static partial class PlanarMap
@@ -74,20 +75,49 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the arc lies in the plane of the frame; otherwise, false.</returns>
         /// <remarks>
-        /// Both tests have to pass: the plane of the arc has to be the plane of the frame, and its centre has
-        /// to lie on that plane. A circle of the right tilt sitting above the frame would pass the first test
-        /// alone.
+        /// The arc lies in the plane when no point of it stands further off it than the planar tolerance, which
+        /// a circle of the right tilt sitting above the frame does not. Its centre may lie far off the plane: an
+        /// arc 100 long bowing a ten-thousandth has its centre 250 000 away, and turned a tenth of a degree out it
+        /// still lies within a ten-thousandth of the frame.
         /// </remarks>
         public static bool TryToArc2(GeoCoordinateSystem3 frame, GeoArc3 arc, out GeoArc2 result, Tolerance tolerance)
         {
-            if (!arc.Normal.IsParallelTo(frame.ZAxis, tolerance) ||
-                Math.Abs(frame.ToLocal(arc.Center).Z) > tolerance.EqualPlanar)
+            if (Arc3.StandOff(frame.GetPlane(), arc) > tolerance.EqualPlanar)
             {
                 result = default(GeoArc2);
                 return false;
             }
 
-            result = arc.ProjectToArc2(frame);
+            double sweep = arc.Normal.DotProduct(frame.ZAxis) < 0.0 ? -arc.SweptAngle : arc.SweptAngle;
+            GeoPoint2 start = ProjectToPoint2(frame, arc.StartPoint);
+
+            if (Math.Abs(sweep) <= Math.PI)
+            {
+                GeoPoint2 end = ProjectToPoint2(frame, arc.EndPoint);
+
+                // An arc too short for its two ends to be two points has no arc of the plane to come down as.
+                if (!(start.DistanceTo(end) > 0.0))
+                {
+                    result = default(GeoArc2);
+                    return false;
+                }
+
+                // Up to a half turn, an arc along the frame comes down through its three points; one turned well out of
+                // it lies in it only when it barely bows, and comes down between its two ends, bowing as it did.
+                result = arc.Normal.IsParallelTo(frame.ZAxis, tolerance)
+                    ? arc.ProjectToArc2(frame)
+                    : GeoArc2.FromBulge(start, end, Math.Tan(sweep * 0.25));
+                return true;
+            }
+
+            // A longer arc, a whole circle among them, comes down round its centre, however it is turned: its two ends
+            // may be one point to the last digit.
+            GeoPoint2 centre = ProjectToPoint2(frame, arc.Center);
+            double from = Math.Atan2(start.Y - centre.Y, start.X - centre.X);
+
+            result = Math.Abs(sweep) >= 2.0 * Math.PI
+                ? new GeoArc2(centre, arc.Radius, 0.0, 0.0, sweep < 0.0)
+                : new GeoArc2(centre, arc.Radius, from, from + sweep, sweep < 0.0);
             return true;
         }
 
@@ -124,10 +154,12 @@ namespace GeometryHelper.Core
         /// <param name="edge">The edge in space.</param>
         /// <param name="result">The edge in the plane, when it lies in one.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true if both ends lie on the plane and any bulge is read about its Z axis; otherwise, false.</returns>
+        /// <returns>true if no point of the edge stands further off the plane than the planar tolerance; otherwise, false.</returns>
         /// <remarks>
         /// An arc bulging about the Z axis the other way round is the same arc seen from behind, so its bulge
-        /// changes sign coming down. That keeps the round trip exact whichever way the frame was built.
+        /// changes sign coming down. That keeps the round trip exact whichever way the frame was built. An arc
+        /// that barely bows lies in the plane however its own is turned, and comes down with its bulge as it is,
+        /// within its stand-off of its shadow.
         /// </remarks>
         public static bool TryToEdge2(GeoCoordinateSystem3 frame, GeoEdge3 edge, out GeoEdge2 result, Tolerance tolerance)
         {
@@ -145,7 +177,7 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            if (!edge.Normal.IsParallelTo(frame.ZAxis, tolerance))
+            if (!Arc3.LiesIn(frame.GetPlane(), edge.StartPoint, edge.EndPoint, edge.Bulge, edge.Normal, tolerance))
             {
                 return false;
             }

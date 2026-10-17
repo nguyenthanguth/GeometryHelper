@@ -103,6 +103,128 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Determines whether an arc between two points lies in a plane: whether no point of it stands further off the
+        /// plane than the planar tolerance.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <param name="start">Where the arc starts.</param>
+        /// <param name="end">Where it ends.</param>
+        /// <param name="bulge">Its bulge; nought for a straight piece.</param>
+        /// <param name="unitNormal">The unit normal of the plane it bulges in.</param>
+        /// <param name="tolerance">The tolerance; its planar threshold decides.</param>
+        /// <remarks>
+        /// Its normal against the plane's says nothing on its own: a half circle 1 000 across turned 0.99 degrees out of
+        /// the plane stands 8.64 off it, and an arc 100 long bowing a ten-millionth turned 30 degrees stands 0.0000025
+        /// off. See <see cref="StandOff(GeoPlane3, GeoPoint3, GeoPoint3, double, GeoVector3)"/>.
+        /// </remarks>
+        internal static bool LiesIn(GeoPlane3 plane, GeoPoint3 start, GeoPoint3 end, double bulge, GeoVector3 unitNormal, Tolerance tolerance)
+            => !(StandOff(plane, start, end, bulge, unitNormal) > tolerance.EqualPlanar);
+
+        /// <summary>
+        /// Gets how far an arc between two points may stand off a plane: no less than any point of it does.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <param name="start">Where the arc starts.</param>
+        /// <param name="end">Where it ends.</param>
+        /// <param name="bulge">Its bulge; nought for a straight piece.</param>
+        /// <param name="unitNormal">The unit normal of the plane it bulges in.</param>
+        /// <returns>The greatest distance from the plane of a corner of the box the arc lies in, never below the arc's own.</returns>
+        /// <remarks>
+        /// It is read from the chord rather than the centre, so an arc 100 long bowing a trillionth, of radius 2.5E13,
+        /// is read as exactly as a half circle, where its centre is known only to about 0.005. An arc of up to a half
+        /// turn lies in the box between its chord and the line beside it through its middle, its sag of half the chord
+        /// times the bulge away on the side it bows to; a longer one runs on past the ends of its chord, by up to its
+        /// radius from the chord's middle either way. The distance from a plane changes evenly across the box, so its
+        /// greatest is at a corner: an arc whose ends stand 0.0004 above the plane and which bows down across it to
+        /// 0.0004 below stands 0.0004 off, not the 0.0008 of its ends and its dip added up.
+        /// </remarks>
+        internal static double StandOff(GeoPlane3 plane, GeoPoint3 start, GeoPoint3 end, double bulge, GeoVector3 unitNormal)
+        {
+            double fromStart = plane.SignedDistanceTo(start);
+            double fromEnd = plane.SignedDistanceTo(end);
+
+            GeoVector3 chord = start.GetVectorTo(end);
+            double length = chord.Length;
+
+            if (bulge == 0.0 || !(length > 0.0))
+            {
+                return Math.Max(Math.Abs(fromStart), Math.Abs(fromEnd));
+            }
+
+            GeoVector3 along = chord.Multiply(1.0 / length);
+            GeoVector3 bow = (bulge > 0.0 ? along.CrossProduct(unitNormal) : unitNormal.CrossProduct(along));
+            double bowLength = bow.Length;
+            double magnitude = Math.Abs(bulge);
+            double sag = magnitude * length * 0.5;
+
+            // How far the far side of the box, the sag away on the bowing side, rises from the chord's own side.
+            double rise = bowLength > 0.0 ? sag * bow.DotProduct(plane.Normal) / bowLength : sag;
+
+            if (magnitude <= 1.0)
+            {
+                return Math.Max(
+                    Math.Max(Math.Abs(fromStart), Math.Abs(fromEnd)),
+                    Math.Max(Math.Abs(fromStart + rise), Math.Abs(fromEnd + rise)));
+            }
+
+            double radius = length * (1.0 + magnitude * magnitude) / (4.0 * magnitude);
+            double middle = (fromStart + fromEnd) * 0.5;
+            double reach = radius * along.DotProduct(plane.Normal);
+
+            return Math.Max(
+                Math.Max(Math.Abs(middle - reach), Math.Abs(middle + reach)),
+                Math.Max(Math.Abs(middle - reach + rise), Math.Abs(middle + reach + rise)));
+        }
+
+        /// <summary>
+        /// Gets how far an arc in space may stand off a plane: no less than any point of it does.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <param name="arc">The arc.</param>
+        /// <returns>The distance.</returns>
+        /// <remarks>
+        /// Up to a half turn it is read from the chord, as <see cref="StandOff(GeoPlane3, GeoPoint3, GeoPoint3, double, GeoVector3)"/>.
+        /// Past a half turn the chord may be lost to rounding, its two ends one point to the last digit an arc a hair
+        /// short of a whole turn, while the centre is well known: the distance is read round the circle, at the arc's
+        /// ends and wherever between them the rim stands furthest up or down.
+        /// </remarks>
+        internal static double StandOff(GeoPlane3 plane, GeoArc3 arc)
+        {
+            if (Math.Abs(arc.SweptAngle) <= Math.PI)
+            {
+                return StandOff(plane, arc.StartPoint, arc.EndPoint, Math.Tan(arc.SweptAngle * 0.25), arc.Normal);
+            }
+
+            arc.GetPlane().GetAxes(out GeoVector3 uAxis, out GeoVector3 vAxis);
+
+            double centre = plane.SignedDistanceTo(arc.Center);
+            double alongU = arc.Radius * uAxis.DotProduct(plane.Normal);
+            double alongV = arc.Radius * vAxis.DotProduct(plane.Normal);
+
+            double At(double angle) => Math.Abs(centre + alongU * Math.Cos(angle) + alongV * Math.Sin(angle));
+
+            double from = arc.StartAngle;
+            double sweep = arc.SweptAngle;
+            double most = Math.Max(At(from), At(from + sweep));
+
+            // The rim stands furthest from the plane at the angle of (alongU, alongV) and half a turn on.
+            double crest = Math.Atan2(alongV, alongU);
+
+            foreach (double angle in new[] { crest, crest + Math.PI })
+            {
+                double into = (angle - from) * Math.Sign(sweep);
+                into -= 2.0 * Math.PI * Math.Floor(into / (2.0 * Math.PI));
+
+                if (into <= Math.Abs(sweep))
+                {
+                    most = Math.Max(most, At(angle));
+                }
+            }
+
+            return most;
+        }
+
+        /// <summary>
         /// Gets the points of the arc that lie on an endless line, which is at most two.
         /// </summary>
         /// <param name="arc">The arc.</param>
