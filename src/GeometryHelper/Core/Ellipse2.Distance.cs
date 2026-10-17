@@ -15,8 +15,12 @@ namespace GeometryHelper.Core
     /// one holding the ellipse is nought away as well; a segment, a polyline, an arc and a curved chain are curves.
     /// </para>
     /// <para>
-    /// Whether the two reach each other is decided exactly, in the ellipse's own frame, and the distance between two that do
-    /// not is worked out to rounding: from a segment, where its ends or the rim point whose tangent runs along it are
+    /// Whether the two reach each other is decided exactly, in the ellipse's own frame, with no slack: a distance is nought
+    /// only where they truly meet, a point of one lying inside the other or on its rim, or the rims crossing, and otherwise
+    /// the gap, measured exactly. A polyline, a chain or a polygon 0.0005 outside the ellipse 300 by 100 is 0.0005 from it
+    /// whatever the tolerance, and so is the material of a face. Two ellipses, or a thin ellipse and an arc of radius 0.5
+    /// to 2.5, placed less than about 1E-6 from touching can be misread, as the guide says. The distance between two that
+    /// do not meet is worked out to rounding: from a segment, where its ends or the rim point whose tangent runs along it are
     /// nearest; from a circle or an arc, along the normals of the rim through its centre; from another ellipse, by Brent's
     /// method on the distance from the rim of the one to the other, started from 36 points round it: 32 spread evenly half
     /// a step off the axes and the four ends of the axes.
@@ -108,15 +112,17 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="polyline">The polyline, a curve.</param>
-        /// <param name="tolerance">The tolerance: a polyline that comes within its point tolerance touches, and is nought away, as it is from a circle.</param>
-        /// <returns>The distance from the nearest of its edges.</returns>
+        /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
+        /// <returns>
+        /// Nought only where an edge truly meets the region, crossing the rim or lying inside, otherwise the gap from the
+        /// nearest of its edges, measured exactly. A polyline 0.0005 outside the ellipse 300 by 100 is 0.0005 from it.
+        /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoPolyline2 polyline, Tolerance tolerance)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            double best = ToEdges(ellipse, polyline.GetEdges(), tolerance);
-            return best <= tolerance.EqualPoint ? 0.0 : best;
+            return ToEdges(ellipse, polyline.GetEdges(), tolerance);
         }
 
         /// <summary>
@@ -130,14 +136,17 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="polygon">The polygon, a region.</param>
-        /// <param name="tolerance">The tolerance the polygon is asked whether it holds the centre with.</param>
-        /// <returns>Nought when the two overlap, either holding the other; otherwise the distance from the nearest edge.</returns>
+        /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
+        /// <returns>
+        /// Nought only where the two truly meet, an edge reaching the region or the polygon holding the centre with no slack,
+        /// a centre on an edge included; otherwise the distance from the nearest edge, measured exactly.
+        /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoPolygon2 polygon, Tolerance tolerance)
         {
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
 
-            return Containment2.Contains(polygon, ellipse.Center, tolerance) ? 0.0 : ToEdges(ellipse, polygon.GetEdges(), tolerance);
+            return Containment2.Contains(polygon, ellipse.Center, Exactly) ? 0.0 : ToEdges(ellipse, polygon.GetEdges(), tolerance);
         }
 
         /// <summary>
@@ -150,11 +159,11 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="rect">The rectangle, a region.</param>
-        /// <param name="tolerance">The tolerance the rectangle is asked whether it holds the centre with.</param>
-        /// <returns>Nought when the two overlap; otherwise the distance from the nearest side.</returns>
+        /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
+        /// <returns>Nought only where the two truly meet, a side reaching the region or the rectangle holding the centre with no slack; otherwise the distance from the nearest side, measured exactly.</returns>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoRectangle2 rect, Tolerance tolerance)
         {
-            return Containment2.Contains(rect, ellipse.Center, tolerance) ? 0.0 : ToEdges(ellipse, rect.GetEdges(), tolerance);
+            return Containment2.Contains(rect, ellipse.Center, Exactly) ? 0.0 : ToEdges(ellipse, rect.GetEdges(), tolerance);
         }
 
         /// <summary>
@@ -166,12 +175,12 @@ namespace GeometryHelper.Core
         /// Gets the distance from an ellipse to a triangle, within a tolerance.
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
-        /// <param name="triangle">The triangle, a region; one with corners on each other is read as its longest edge.</param>
-        /// <param name="tolerance">The tolerance.</param>
-        /// <returns>Nought when the two overlap; otherwise the distance from the nearest edge.</returns>
+        /// <param name="triangle">The triangle, a region; one whose corners coincide exactly is read as its longest edge, a short side being the side it is.</param>
+        /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged, and a side shorter than it is measured as the side it is.</param>
+        /// <returns>Nought only where the two truly meet; otherwise the distance from the nearest edge, measured exactly.</returns>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoTriangle2 triangle, Tolerance tolerance)
         {
-            return Triangle2.TryAsPolygon(triangle, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull)
+            return Triangle2.TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out GeoLine2 hull)
                 ? DistanceTo(ellipse, polygon, tolerance)
                 : DistanceTo(ellipse, hull, tolerance);
         }
@@ -184,11 +193,19 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the distance from an ellipse to an edge, within a tolerance: as a segment or as an arc, whichever the edge is.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. An arc bowing less than its own rounding is
+        /// read as its chord: the edge from (60.0005, -500) to (60.0005, 500) with a bulge of 1E-12 is 0.0005 from the ellipse
+        /// 60 by 25 about the origin. The edge's own end points are weighed beside the arc's, so an edge ending on the rim is
+        /// nought away.
+        /// </returns>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoEdge2 edge, Tolerance tolerance)
         {
-            return edge.IsArc
-                ? DistanceTo(ellipse, edge.ToArc(), tolerance)
-                : DistanceTo(ellipse, edge.ToLine(), tolerance);
+            return ArcChain2.Edge(
+                edge,
+                line => DistanceTo(ellipse, line, tolerance),
+                arc => DistanceTo(ellipse, arc, tolerance),
+                point => DistanceTo(ellipse, point, tolerance));
         }
 
         #endregion
@@ -227,8 +244,12 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="arc">The arc, a curve.</param>
-        /// <param name="tolerance">The tolerance the nearest points of the arc are found with.</param>
-        /// <returns>Nought when the arc crosses the rim or lies inside; otherwise the shortest gap.</returns>
+        /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
+        /// <returns>
+        /// Nought only where the arc truly meets the region, crossing the rim or lying inside; otherwise the shortest gap,
+        /// measured exactly. The left half of the circle of radius 0.0008 about (60.0013, 0) is 0.0005 from the ellipse 60 by
+        /// 25 about the origin at a tolerance of 0.001, where its ends alone were weighed and 0.0013 was read.
+        /// </returns>
         /// <remarks>
         /// The nearest pair is at an end of the arc, or on a normal of the rim that runs through the arc's centre, since there
         /// the gap runs square to both. Whether any of the arc lies inside is read exactly, from the turning points of the
@@ -236,7 +257,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoArc2 arc, Tolerance tolerance)
         {
-            return Reaches(ellipse, arc) ? 0.0 : NearestToArc(ellipse, arc, tolerance, out _, out _);
+            return Reaches(ellipse, arc) ? 0.0 : NearestToArc(ellipse, arc, out _, out _);
         }
 
         /// <summary>
@@ -278,15 +299,17 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="chain">The chain, a curve.</param>
-        /// <param name="tolerance">The tolerance: a chain that comes within its point tolerance touches, and is nought away.</param>
-        /// <returns>The distance from the nearest of its edges, measured on the arcs themselves.</returns>
+        /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
+        /// <returns>
+        /// Nought only where an edge truly meets the region, otherwise the gap from the nearest of its edges, measured exactly
+        /// on the arcs themselves. A chain 0.0005 outside the ellipse 300 by 100 is 0.0005 from it.
+        /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoPolylineArc2 chain, Tolerance tolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            double best = ToEdges(ellipse, chain.GetEdges(), tolerance);
-            return best <= tolerance.EqualPoint ? 0.0 : best;
+            return ToEdges(ellipse, chain.GetEdges(), tolerance);
         }
 
         /// <summary>
@@ -300,20 +323,17 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="loop">The loop, a region.</param>
-        /// <param name="tolerance">The tolerance: a loop that comes within its point tolerance touches, and is nought away.</param>
-        /// <returns>Nought when the two overlap, either holding the other; otherwise the distance from the nearest edge.</returns>
+        /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
+        /// <returns>
+        /// Nought only where the two truly meet, an edge reaching the region or the loop holding the centre with no slack;
+        /// otherwise the distance from the nearest edge, measured exactly on the arcs themselves.
+        /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoPolygonArc2 loop, Tolerance tolerance)
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            if (Containment2.Contains(loop, ellipse.Center, tolerance))
-            {
-                return 0.0;
-            }
-
-            double best = ToEdges(ellipse, loop.GetEdges(), tolerance);
-            return best <= tolerance.EqualPoint ? 0.0 : best;
+            return Containment2.Contains(loop, ellipse.Center, Exactly) ? 0.0 : ToEdges(ellipse, loop.GetEdges(), tolerance);
         }
 
         /// <summary>
@@ -327,22 +347,27 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="face">The face: its outline, less its holes.</param>
-        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
         /// <returns>
-        /// Nought where <see cref="CollidesWith(GeoEllipse2, GeoFace2, Tolerance)"/> says the ellipse reaches the material;
-        /// otherwise the length of <see cref="GetShortestLineTo(GeoEllipse2, GeoFace2, Tolerance)"/>, the gap between the
-        /// rim and the boundary. The ellipse 15 by 5 about (50, 50), its major axis along X, lies in the hole of the square
-        /// 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, and is 5 from its rim.
+        /// Nought only where the ellipse truly meets the material, a rim crossing it or the ellipse lying on it; otherwise the
+        /// gap from the nearest rim, measured exactly. The ellipse 15 by 5 about (50, 50), its major axis along X, lies in
+        /// the hole of the square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle, and is 5 from its
+        /// rim; one 0.0005 off a corner of the square is 0.0005 from it.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoFace2 face, Tolerance tolerance)
         {
-            return CollidesWith(ellipse, face, tolerance) ? 0.0 : GetShortestLineTo(ellipse, face, tolerance).Length;
+            return Face2.Apart(face, rim => DistanceTo(ellipse, rim, tolerance), GetPointAtAngle(ellipse, 0.0));
         }
 
         #endregion
 
         #region Distance helpers
+
+        /// <summary>
+        /// A tolerance of nought, for asking whether a polygon, a rectangle or a loop holds the centre with no slack.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
 
         /// <summary>
         /// Says whether a point given in the ellipse's own frame lies inside it or on its rim, exactly.
@@ -663,10 +688,11 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The pair is at an end of the arc, or on a normal of the rim through the arc's centre, on either side of the centre;
-        /// each candidate is clamped onto the arc and joined to the rim point nearest it, so every pair weighed is one the
-        /// two shapes really hold.
+        /// each candidate is clamped onto the arc, with no tolerance, and joined to the rim point nearest it, so every pair
+        /// weighed is one the two shapes really hold. A tolerance would snap a candidate within it of the arc's centre to the
+        /// arc's start: an arc of radius 0.0008 would be weighed at its two ends only.
         /// </remarks>
-        private static double NearestToArc(GeoEllipse2 ellipse, GeoArc2 arc, Tolerance tolerance, out GeoPoint2 onRim, out GeoPoint2 onArc)
+        private static double NearestToArc(GeoEllipse2 ellipse, GeoArc2 arc, out GeoPoint2 onRim, out GeoPoint2 onArc)
         {
             onArc = arc.StartPoint;
             onRim = GetClosestPointOnBoundary(ellipse, onArc);
@@ -684,8 +710,8 @@ namespace GeometryHelper.Core
                 GeoPoint2 out1 = Outward(center, arc.Radius, rim);
                 GeoPoint2 out2 = new GeoPoint2(2.0 * center.X - out1.X, 2.0 * center.Y - out1.Y);
 
-                Weigh(ellipse, Arc2.ProjectToArc(arc, out1, tolerance), ref best, ref onRim, ref onArc);
-                Weigh(ellipse, Arc2.ProjectToArc(arc, out2, tolerance), ref best, ref onRim, ref onArc);
+                Weigh(ellipse, Arc2.ProjectToArc(arc, out1, Exactly), ref best, ref onRim, ref onArc);
+                Weigh(ellipse, Arc2.ProjectToArc(arc, out2, Exactly), ref best, ref onRim, ref onArc);
             }
 
             return best;

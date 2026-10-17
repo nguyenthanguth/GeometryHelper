@@ -139,12 +139,12 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining the rim of an ellipse to a triangle, within a tolerance.
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
-        /// <param name="triangle">The triangle; one with corners on each other is read as its longest edge.</param>
+        /// <param name="triangle">The triangle; one whose corners coincide exactly is read as its longest edge, a short side being the side it is.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>A segment starting on the rim and ending on an edge of the triangle.</returns>
         public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoTriangle2 triangle, Tolerance tolerance)
         {
-            return Triangle2.TryAsPolygon(triangle, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull)
+            return Triangle2.TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out GeoLine2 hull)
                 ? GetShortestLineTo(ellipse, polygon, tolerance)
                 : GetShortestLineTo(ellipse, hull, tolerance);
         }
@@ -252,7 +252,7 @@ namespace GeometryHelper.Core
                 return new GeoLine2(crossings[0], crossings[0]);
             }
 
-            NearestToArc(ellipse, arc, tolerance, out GeoPoint2 onRim, out GeoPoint2 onArc);
+            NearestToArc(ellipse, arc, out GeoPoint2 onRim, out GeoPoint2 onArc);
             return new GeoLine2(onRim, onArc);
         }
 
@@ -405,12 +405,12 @@ namespace GeometryHelper.Core
         /// Gets the edge of a triangle nearest an ellipse, within a tolerance.
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
-        /// <param name="triangle">The triangle; one with corners on each other is asked edge by edge.</param>
+        /// <param name="triangle">The triangle; one whose corners coincide exactly is asked edge by edge.</param>
         /// <param name="tolerance">The tolerance the triangle is read with.</param>
         /// <returns>The edge least far from the region, the earlier one winning a tie.</returns>
         public static GeoLine2 GetClosestEdge(GeoEllipse2 ellipse, GeoTriangle2 triangle, Tolerance tolerance)
         {
-            if (Triangle2.TryAsPolygon(triangle, tolerance, out GeoPolygon2 polygon, out _))
+            if (Triangle2.TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out _))
             {
                 return GetClosestEdge(ellipse, polygon, tolerance);
             }

@@ -1,5 +1,4 @@
 using System;
-using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Core
@@ -51,7 +50,7 @@ namespace GeometryHelper.Core
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            return ToEdges(ellipse, polyline.GetEdges(), tolerance) <= tolerance.EqualPoint;
+            return DistanceTo(ellipse, polyline, tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -72,7 +71,7 @@ namespace GeometryHelper.Core
         {
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
 
-            return Containment2.Contains(polygon, ellipse.Center, tolerance) || ToEdges(ellipse, polygon.GetEdges(), tolerance) <= tolerance.EqualPoint;
+            return DistanceTo(ellipse, polygon, tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -89,7 +88,7 @@ namespace GeometryHelper.Core
         /// <returns>true if the rectangle holds the centre, or a side comes within the point tolerance of the region; otherwise, false.</returns>
         public static bool CollidesWith(GeoEllipse2 ellipse, GeoRectangle2 rect, Tolerance tolerance)
         {
-            return Containment2.Contains(rect, ellipse.Center, tolerance) || ToEdges(ellipse, rect.GetEdges(), tolerance) <= tolerance.EqualPoint;
+            return DistanceTo(ellipse, rect, tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -101,12 +100,12 @@ namespace GeometryHelper.Core
         /// Determines whether an ellipse touches or overlaps a triangle, within a tolerance.
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
-        /// <param name="triangle">The triangle; one with corners on each other is read as its longest edge.</param>
+        /// <param name="triangle">The triangle; one whose corners coincide exactly is read as its longest edge, a short side being the side it is.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the two come within the point tolerance of each other; otherwise, false.</returns>
         public static bool CollidesWith(GeoEllipse2 ellipse, GeoTriangle2 triangle, Tolerance tolerance)
         {
-            return Triangle2.TryAsPolygon(triangle, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull)
+            return Triangle2.TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out GeoLine2 hull)
                 ? CollidesWith(ellipse, polygon, tolerance)
                 : CollidesWith(ellipse, hull, tolerance);
         }
@@ -123,32 +122,36 @@ namespace GeometryHelper.Core
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="face">The face: its outline, less its holes.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true if the ellipse touches the outline and no hole holds it whole; otherwise, false.</returns>
+        /// <returns>true if the ellipse comes within the point tolerance of the material, as <see cref="DistanceTo(GeoEllipse2, GeoFace2, Tolerance)"/> says; otherwise, false.</returns>
         /// <remarks>
-        /// As a circle is asked: an ellipse that crosses no rim of a hole lies wholly inside it, wholly outside it, or holds it
-        /// within itself, and those are told apart by where its centre falls and whether it holds a corner of the hole.
+        /// An ellipse wholly inside a hole, or holding it within itself, is told apart from one reaching the material by the
+        /// exact distance to the rims, so a collision and a distance never disagree. A rim edge whose box lies outside the
+        /// ellipse's own axis-aligned box, widened by the point tolerance, cannot be within it and is not measured, and the
+        /// search stops at the first edge within the point tolerance: the answer is the same as the distance's, found sooner.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static bool CollidesWith(GeoEllipse2 ellipse, GeoFace2 face, Tolerance tolerance)
         {
             if (face == null) throw new ArgumentNullException(nameof(face));
 
-            if (!CollidesWith(ellipse, face.Boundary, tolerance))
-            {
-                return false;
-            }
+            double reach = tolerance.EqualPoint;
+            GeoVector2 u = ellipse.MajorAxis;
+            double a = ellipse.MajorRadius;
+            double b = ellipse.MinorRadius;
+            double cx = ellipse.Center.X;
+            double cy = ellipse.Center.Y;
+            double slack = reach + 1E-14 * (Math.Abs(cx) + Math.Abs(cy) + a);
+            double hx = Math.Sqrt(a * u.X * a * u.X + b * u.Y * b * u.Y) + slack;
+            double hy = Math.Sqrt(a * u.Y * a * u.Y + b * u.X * b * u.X) + slack;
 
-            foreach (GeoPolygon2 hole in face.Holes)
-            {
-                if (GetIntersections(ellipse, hole, tolerance).Length == 0
-                    && Containment2.Locate(hole, ellipse.Center, tolerance) == PointLocation.Inside
-                    && !Contains(ellipse, hole.Vertices[0], tolerance))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return Face2.Apart(
+                face,
+                rim => Math.Min(rim.StartPoint.X, rim.EndPoint.X) > cx + hx || Math.Max(rim.StartPoint.X, rim.EndPoint.X) < cx - hx
+                    || Math.Min(rim.StartPoint.Y, rim.EndPoint.Y) > cy + hy || Math.Max(rim.StartPoint.Y, rim.EndPoint.Y) < cy - hy
+                    ? double.PositiveInfinity
+                    : DistanceTo(ellipse, rim, tolerance),
+                GetPointAtAngle(ellipse, 0.0),
+                reach) <= reach;
         }
 
         /// <summary>
@@ -239,7 +242,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return ToEdges(ellipse, chain.GetEdges(), tolerance) <= tolerance.EqualPoint;
+            return DistanceTo(ellipse, chain, tolerance) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -260,7 +263,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return Containment2.Contains(loop, ellipse.Center, tolerance) || ToEdges(ellipse, loop.GetEdges(), tolerance) <= tolerance.EqualPoint;
+            return DistanceTo(ellipse, loop, tolerance) <= tolerance.EqualPoint;
         }
 
         #endregion

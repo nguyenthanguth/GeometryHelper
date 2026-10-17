@@ -818,6 +818,8 @@ namespace GeometryHelper.Core
         /// <param name="fromRimEdge">The exact distance from an edge of a rim to the shape, to its region where it is closed:
         /// nought only where the two truly meet.</param>
         /// <param name="onShape">A point of the shape, asked about only where no rim meets it.</param>
+        /// <param name="enough">A distance at which to stop looking: once a rim edge is no further, the answer is a distance no
+        /// greater than it, not the least. Nought, the default, stops only at a meeting.</param>
         /// <remarks>
         /// A point of the shape is asked first, with no tolerance: in the material, the shape meets it. Otherwise every
         /// edge of the outline and of the holes is measured, so a shape in a hole is measured to the hole's rim and one
@@ -825,7 +827,7 @@ namespace GeometryHelper.Core
         /// corner of the face at a tolerance of 0.001 is 0.0015 away, where the shortest line, which lets a segment run on
         /// up to the tolerance past its ends, and the collision band read nought.
         /// </remarks>
-        private static double Apart(GeoFace2 face, Func<GeoLine2, double> fromRimEdge, GeoPoint2 onShape)
+        internal static double Apart(GeoFace2 face, Func<GeoLine2, double> fromRimEdge, GeoPoint2 onShape, double enough = 0.0)
         {
             Required(face, nameof(face));
 
@@ -849,16 +851,16 @@ namespace GeometryHelper.Core
                 }
             }
 
-            double gap = Least(face.Boundary, fromRimEdge);
+            double gap = Least(face.Boundary, fromRimEdge, enough);
 
             foreach (GeoPolygon2 hole in face.Holes)
             {
-                if (!(gap > 0.0))
+                if (!(gap > enough))
                 {
                     break;
                 }
 
-                gap = Math.Min(gap, Least(hole, fromRimEdge));
+                gap = Math.Min(gap, Least(hole, fromRimEdge, enough));
             }
 
             return gap > 0.0 ? gap : 0.0;
@@ -867,7 +869,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the least of a distance over the edges of a rim.
         /// </summary>
-        private static double Least(GeoPolygon2 rim, Func<GeoLine2, double> fromEdge)
+        private static double Least(GeoPolygon2 rim, Func<GeoLine2, double> fromEdge, double enough)
         {
             double least = double.PositiveInfinity;
 
@@ -875,7 +877,7 @@ namespace GeometryHelper.Core
             {
                 least = Math.Min(least, fromEdge(rim.GetEdgeAt(i)));
 
-                if (!(least > 0.0))
+                if (!(least > enough))
                 {
                     break;
                 }

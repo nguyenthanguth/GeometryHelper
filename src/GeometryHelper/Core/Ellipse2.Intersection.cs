@@ -142,12 +142,12 @@ namespace GeometryHelper.Core
         /// Gets the points where the rim of an ellipse meets the edges of a triangle, within a tolerance.
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
-        /// <param name="triangle">The triangle; one with corners on each other is read as its longest edge.</param>
+        /// <param name="triangle">The triangle; one whose corners coincide exactly is read as its longest edge, a short side being the side it is.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The crossings edge by edge, in the triangle's order.</returns>
         public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoTriangle2 triangle, Tolerance tolerance)
         {
-            return Triangle2.TryAsPolygon(triangle, tolerance, out GeoPolygon2 polygon, out GeoLine2 hull)
+            return Triangle2.TryAsPolygonByItsSides(triangle, out GeoPolygon2 polygon, out GeoLine2 hull)
                 ? GetIntersections(ellipse, polygon, tolerance)
                 : GetIntersections(ellipse, hull, tolerance);
         }

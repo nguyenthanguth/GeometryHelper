@@ -145,8 +145,31 @@ Of 154 548 placements of shapes asked both ways, 31 036 answers that read nought
 collisions answered past the tolerance now answer within it; no answer for shapes longer than the point tolerance went
 wrong. A circle of radius 0.0001 about (100.00085, 100.00085) collided with the square 100 by 100 from the origin, 0.0011
 away, by the centre's band per axis; it no longer does, nor does it read nought. A segment shorter than the point
-tolerance is still read as its start, except that one crossing an arc is nought from it. Ellipses keep their readings for
-now.
+tolerance is still read as its start, except that one crossing an arc is nought from it.
+
+**FIXED.** The distance from an ellipse to a polyline, a curved chain, a curved loop or the material of a face is
+nought only where they truly meet, and otherwise the exact gap. It read nought wherever the nearest edge came within the
+point tolerance, or a loop or polygon held the centre within it, so a polyline starting 0.0005 off the end of the ellipse
+60 by 25 was nought away at a tolerance of 0.001, and so was a loop 0.0005 off its rim and a face whose side stood 0.0005
+off it; an ellipse in the hole of a face, half a tolerance from the hole's rim, was nought from the face. They now read
+0.0005. Of 154 548 placements of shapes asked both ways, 1 021 answers that read nought for shapes apart are now right (320
+polylines, 290 chains, 230 loops and 181 faces) and none went wrong; the collision with an ellipse is now the same test
+as its distance, nought within the point tolerance, so the two never disagree. The ellipse against a segment, a ray, a
+circle or another ellipse was exact already. A triangle is read by its sides, as every shape reads it, however short one is. Against a polygon, a rectangle, a
+triangle or a loop it read nought when the shape held the centre within the point tolerance, so a speck of an ellipse 0.0002 by 0.0001 whose centre stood
+0.0004 off a side was nought away, and is 0.0002 from it. Against an arc it weighed the arc at its two ends alone when
+the arc was no larger than the point tolerance, since the projection onto an arc snaps a point within the tolerance of
+its centre to its start: the left half of the circle of radius 0.0008 whose nearest point stood 0.0005 off the end of
+the ellipse 60 by 25 read 0.0013 at a tolerance of 0.001 and did not collide, and now reads 0.0005 and does. That fix
+also moves `GetShortestLineTo` of an ellipse and an arc: it joins the true nearest points of a tiny arc, 0.003 long
+for an arc of radius 0.0008 standing 0.003 off, where it joined an end of the arc and was 0.0038 long. It is a fix to
+which point is found; the rule for when two shapes touch is as it was. A curved edge bowing less than its own rounding
+is read as its chord, as it is against a segment or an arc: the edge from (60.0005, -500) to (60.0005, 500) with a
+bulge of 1E-12, on a radius of 2.5E14, read nought from the ellipse 60 by 25 and now reads 0.0005. An edge touching
+the rim is nought away, where the one from (60, -50) to (60, 50) with a bulge of 1E-8 read 4.8E-7, and so is one
+starting on it. A collision with the material of a face skips every rim edge whose box lies further from the ellipse's
+own box than the point tolerance and stops at the first within it, and answers as the distance does. The distance
+between two ellipses placed less than about 1E-6 apart can still be misread, see the guide.
 
 **FIXED.** Collisions with arcs in chains and loops no longer keep a band at the ends of their arcs. A chain, a curved
 loop or an arc whose circles cross within a tolerance of both their ends collided 1.2 tolerances apart: the chain from
@@ -180,17 +203,21 @@ curved chain or loop with a side that short read as far off in the same way, so 
 collide at a tolerance of 0.138. A segment or ray the caller gives is still read as its start when it is shorter than
 the tolerance.
 
-**FIXED.** A triangle is read as the triangle it is by every member, against every shape but an ellipse, which is read
-so in the fix of the ellipses below. One whose corners stood within the caller's tolerance of each other was read as its
-longest side alone by its collisions with lines, polygons, rectangles, polylines, rays, triangles, edges and faces, by
-its distance to a ray or a face, by every other distance reading the global tolerance, and by its signed distance,
-shortest line, closest point and edge, containment and intersections: the triangle (0, 0), (0, 1), (0.08, 1) is 0.07
-from the segment along y = 0.5 that ends at x = -0.07, and collides with it at a tolerance of 0.1, where it was 0.11
-away and did not; the sliver (0, 0), (10, 0), (0, 0.0005) had the point (1, 0.0001) inside it, at distance nought, and
-0.00035 off by its signed distance. Only corners that coincide exactly make a triangle a segment now, and no member of a
-triangle reads the global tolerance for it: a triangle with corners 0.004 apart is as far from a polygon whether the
-global tolerance is 1E-5 or 1E-2. The shortest line from a sliver 100 long and 0.5 high to the point 1 past its tip
-starts on its short side at a tolerance of 1, as it does at a thousandth.
+**FIXED.** A triangle is read as the triangle it is by every member, against every shape, an ellipse included. One whose
+corners stood within the caller's tolerance of each other was read as its longest side alone by its collisions with
+lines, polygons, rectangles, polylines, rays, triangles, edges and faces, by its distance to a ray or a face, by every
+other distance reading the global tolerance, and by its signed distance, shortest line, closest point and edge,
+containment and intersections: the triangle (0, 0), (0, 1), (0.08, 1) is 0.07 from the segment along y = 0.5 that ends
+at x = -0.07, and collides with it at a tolerance of 0.1, where it was 0.11 away and did not; the sliver (0, 0), (10,
+0), (0, 0.0005) had the point (1, 0.0001) inside it, at distance nought, and 0.00035 off by its signed distance. Only
+corners that coincide exactly make a triangle a segment now, and no member of a triangle reads the global tolerance for
+it: a triangle with corners 0.004 apart is as far from a polygon whether the global tolerance is 1E-5 or 1E-2. The
+shortest line from a sliver 100 long and 0.5 high to the point 1 past its tip starts on its short side at a tolerance of
+1, as it does at a thousandth. An ellipse reads a triangle so too, by its distance, collision, crossings, shortest line
+and closest edge: the ellipse 30 by 10 whose right end stands 0.15 off the left side of the triangle (0, 0), (0, 100),
+(0.08, 100) is 0.15 from it and collides with it at a tolerance of 0.17, where it was read 0.19 away, from the longest
+side alone, and did not; moved 1.15 nearer, to about (-29, 50), it crosses the left side at (0, 47.44) and (0, 52.56),
+where the crossings were read 0.04 to the right of it.
 
 **FIXED.** The distance from an arc, a curved edge, chain or loop to a point is the exact one for a point near the centre
 of the arc too. A point within the point tolerance of the arc's centre was carried to the arc's start first, which is up to

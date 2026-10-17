@@ -937,7 +937,13 @@ within twice the point tolerance of each other are one point, as they are for a 
 that come within the point tolerance without crossing touch there, at one point midway between them,
 whichever of the two ellipses asks.
 
-Everything is exact or exact to rounding. A segment is crossed by a quadratic. A circle, an arc or
+A distance from an ellipse is nought only where the two truly meet: a point of one inside the other or on its
+rim, or the rims crossing. Otherwise it is the gap, measured exactly, whatever the tolerance, and `CollidesWith`
+is true exactly when that gap is within the point tolerance. A polyline, a chain, a loop or the material of a face
+0.0005 off the end of the ellipse 60 by 25 is 0.0005 from it, and so is an arc of radius 0.0008 whose nearest
+point is that far off.
+
+Everything is exact or exact to rounding, but for the cases below. A segment is crossed by a quadratic. A circle, an arc or
 another ellipse is crossed by the quartic the two equations make, its roots polished on both curves. The
 nearest point of the rim is found by Eberly's bisection, which holds at the centre, on both axes and for an
 ellipse a thousand times longer than it is wide. The distance between two ellipses is the one answer with
@@ -947,6 +953,17 @@ thin as a thousand to one. It is also the slow one, some tens of microseconds a 
 to a point takes about a third of one. `Contains` for another ellipse searches the same way when the
 quick reading leaves it in doubt, and so does the touch between two ellipses, which is looked for in the
 gap itself only where the rims come near enough to touch.
+
+**Exact only to about 1E-6 near tangency.** Whether two shapes overlap is decided from the sign of an equation that is
+rounding where they only just touch, so a gap or a crossing smaller than about 1E-6 can be misread. Two ellipses are the
+main case: of 400 000 readings of pairs placed up to 1 apart, 240 were off and every one was at 1E-6 or less, and two
+ellipses 1000 by 1 placed 1E-9 apart sometimes read 0. A small arc against a very thin ellipse is the other: an arc of
+radius 0.5075 crossing the end of the ellipse 1E5 by 10 by 1E-7 read a gap of 1E-7, and an arc of radius 0.0000025 at
+the end of the ellipse 60 by 0.01 read a gap of 2E-8 where it crossed and 0 where it stood 1E-9 clear. An arc far
+smaller still than the ellipse can be misread by more: an arc of radius 0.000999 at the end of the major axis of the
+ellipse 1E5 by 10, 0.00045 clear of it, reads 0 and collides at a point tolerance of 1E-4. Between shapes of sizes not
+so far apart the answers past 1E-6 are exact to rounding, and a collision at a point tolerance above 1E-6 is not
+affected.
 
 Ask from the ellipse. The other shapes have no overloads taking one, so it is `ellipse.DistanceTo(polygon)`,
 not `polygon.DistanceTo(ellipse)`. An ellipse has no `TryOffset`, since the curve a fixed distance from an
