@@ -14,8 +14,12 @@ namespace GeometryHelper.Export
     /// <remarks>
     /// <para>
     /// Every shape added becomes an object of its own, named as given, so a viewer lists them separately: a
-    /// body as the mesh of where its material ends, a face as its triangles, a chain as a line. Coordinates are
-    /// written exactly, so what is looked at is what was computed, however far from the origin.
+    /// body as the mesh of where its material ends, a face as its triangles, a chain as a line, a point as a dot. A
+    /// polygon that turns the same way at every corner is one face, any other its triangles; a circle, an arc or an
+    /// ellipse is a line of chords no further from the curve than the chord tolerance asked for, a chord shorter than the
+    /// point tolerance written all the same. Coordinates are written exactly, as a text that reads back to the very double on .NET Framework
+    /// and on .NET 10 alike (the digits may differ between the two, a negative nought is -0 on both), so what is looked at is
+    /// what was computed, however far from the origin.
     /// </para>
     /// <code>
     /// new ObjWriter().Add(plate, "plate").Add(bolt, "bolt").Save("clash.obj");
@@ -34,28 +38,170 @@ namespace GeometryHelper.Export
         /// <param name="name">What the viewer calls it; a number when none is given.</param>
         /// <returns>This writer, for adding the next shape.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
-        public ObjWriter Add(GeoSolid3 solid, string name = null)
+        public ObjWriter Add(GeoSolid3 solid, string name = null) => Add(solid, Tolerance.Global, name);
+
+        /// <summary>
+        /// Adds a body: the mesh of where its material ends, openings cut in, triangulated within a tolerance.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="tolerance">The tolerance the faces are triangulated within, in place of the global one.</param>
+        /// <param name="name">What the viewer calls it; a number when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <remarks>
+        /// A slab 100 by 100 and 0.0008 thick, built within 1E-5, is meshed in its 12 triangles within 1E-5; at the global
+        /// tolerance its four sides, 0.0008 high, count as too thin and are dropped, and the 4 triangles of its two big faces
+        /// are what is left.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
+        public ObjWriter Add(GeoSolid3 solid, Tolerance tolerance, string name = null)
         {
             if (solid == null)
             {
                 throw new ArgumentNullException(nameof(solid));
             }
 
-            return Add(solid.TriangulateSurface(), name);
+            return Add(solid.TriangulateSurface(tolerance), name);
         }
 
         /// <summary>
         /// Adds a face, holes left open.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public ObjWriter Add(GeoFace3 face, string name = null)
+        public ObjWriter Add(GeoFace3 face, string name = null) => Add(face, Tolerance.Global, name);
+
+        /// <summary>
+        /// Adds a face, holes left open, triangulated within a tolerance.
+        /// </summary>
+        /// <param name="face">The face.</param>
+        /// <param name="tolerance">The tolerance the face is triangulated within, in place of the global one.</param>
+        /// <param name="name">What the viewer calls it; a number when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        public ObjWriter Add(GeoFace3 face, Tolerance tolerance, string name = null)
         {
             if (face == null)
             {
                 throw new ArgumentNullException(nameof(face));
             }
 
-            return Add(face.TriangulateSurface(), name);
+            return Add(face.TriangulateSurface(tolerance), name);
+        }
+
+        /// <summary>
+        /// Adds a polygon: one face of its own corners when it turns the same way at every one, as a hexagon does, and
+        /// its triangles when it does not, as an L does.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public ObjWriter Add(GeoPolygon3 polygon, string name = null) => Add(polygon, Tolerance.Global, name);
+
+        /// <summary>
+        /// Adds a polygon as <see cref="Add(GeoPolygon3, string)"/> does, its triangles, where it has them, cut within a
+        /// tolerance.
+        /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <param name="tolerance">The tolerance the triangles are cut within, in place of the global one.</param>
+        /// <param name="name">What the viewer calls it; a number when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <remarks>
+        /// An L-shaped polygon 100 by 100 with a square of 50 taken from a corner is 4 triangles covering 7 500, wound as the
+        /// polygon is. Written as one face, a viewer would fan it from its first corner over the notch. A polygon that turns
+        /// the same way at every corner but goes twice round, as a pentagram does, is not one face either.
+        /// <para>
+        /// The triangles are cut within the tolerance, so a polygon that is not one face and is thinner than the tolerance
+        /// comes out as an object with no face at all, by design: an L-shaped polygon with arms 0.0004 wide, built within
+        /// 1E-5, is empty at the global tolerance and 4 triangles within 1E-5, where an equally thin strip, which is one face,
+        /// is written at either.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        public ObjWriter Add(GeoPolygon3 polygon, Tolerance tolerance, string name = null)
+        {
+            if (polygon == null)
+            {
+                throw new ArgumentNullException(nameof(polygon));
+            }
+
+            if (!TurnsOneWay(polygon))
+            {
+                return Add(new GeoFace3(polygon, null, tolerance).TriangulateSurface(tolerance), name);
+            }
+
+            Begin(name);
+
+            int first = _vertices + 1;
+
+            foreach (GeoPoint3 corner in polygon.Vertices)
+            {
+                Vertex(corner);
+            }
+
+            _text.Append('f');
+
+            for (int i = first; i <= _vertices; i++)
+            {
+                _text.Append(' ').Append(i);
+            }
+
+            _text.Append('\n');
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a point, which a viewer shows as a dot.
+        /// </summary>
+        public ObjWriter Add(GeoPoint3 point, string name = null)
+        {
+            Begin(name);
+            Vertex(point);
+            _text.Append("p ").Append(_vertices).Append('\n');
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a triangle as a face of its own.
+        /// </summary>
+        public ObjWriter Add(GeoTriangle3 triangle, string name = null) => Add(new[] { triangle }, name);
+
+        /// <summary>
+        /// Adds a box as its twelve triangles.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the box is empty, or flat on some axis.</exception>
+        public ObjWriter Add(GeoAabb3 box, string name = null) => Add(box.ToObb(), name);
+
+        /// <summary>
+        /// Adds an oriented box as its twelve triangles.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the box is flat on some axis.</exception>
+        public ObjWriter Add(GeoObb3 box, string name = null)
+        {
+            if (box == null)
+            {
+                throw new ArgumentNullException(nameof(box));
+            }
+
+            return Add(box.ToSolid(), name);
+        }
+
+        /// <summary>
+        /// Adds one cell of a body cut into a grid, the mesh of its material.
+        /// </summary>
+        /// <param name="cell">The cell.</param>
+        /// <param name="name">What the object's name starts with; "cell" when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <remarks>
+        /// Named as <see cref="Add(GeoCellGrid3, string)"/> names it, <c>name_i_j_k</c>, and meshed at the global tolerance:
+        /// a cell cut within a tighter one is better added through its grid.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the cell is null.</exception>
+        public ObjWriter Add(GeoCell3 cell, string name = null)
+        {
+            if (cell == null)
+            {
+                throw new ArgumentNullException(nameof(cell));
+            }
+
+            return Add(cell.Solid.Triangulate(), CellLabel(string.IsNullOrWhiteSpace(name) ? "cell" : name, cell));
         }
 
         /// <summary>
@@ -155,15 +301,8 @@ namespace GeometryHelper.Export
 
             foreach (GeoCell3 cell in grid.Cells)
             {
-                string label = string.Format(CultureInfo.InvariantCulture, "{0}_{1}_{2}_{3}", prefix, cell.I, cell.J, cell.K);
-
-                if (cell.Piece > 0)
-                {
-                    label += "_" + cell.Piece.ToString(CultureInfo.InvariantCulture);
-                }
-
                 // At the tolerance the cells were cut within, which a face thinner than the global one is not too thin for.
-                Add(cell.Solid.Triangulate(grid.Tolerance), label);
+                Add(cell.Solid.Triangulate(grid.Tolerance), CellLabel(prefix, cell));
             }
 
             return this;
@@ -186,7 +325,28 @@ namespace GeometryHelper.Export
         /// <summary>
         /// Adds a chain with bends as a line, each bend cut into chords no further than a tolerance from it.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The tolerance is any number above nought, <b>infinity included</b>, which cuts each bend into one chord; the
+        /// <see cref="Wkt"/> writers and the other chord overloads here refuse infinity.
+        /// </para>
+        /// <para>
+        /// On ordinary input the points are those of <see cref="GeoPolylineArc3.ToPolyline3(double)"/>: the same bends cut
+        /// into the same number of chords at the same places. Four things differ from it. The end of each arc is the edge's own
+        /// end point, where the library's last chord, worked out from the circle's angle, may miss it by a rounding; and an arc so
+        /// shallow that its circle cannot be placed, a bulge of 1E-200 having a centre that is not a number, is read as its chord.
+        /// An edge or a chord shorter than the
+        /// point tolerance is kept, where <c>ToPolyline3</c> drops a point within that tolerance of the one before. Where the
+        /// library's cut stops at 4 096 chords a turn, which is short on a large radius, the count is worked out here: a bend
+        /// of radius 50 000 within 0.001 is 3 927 chords to a quarter turn, none more than 0.001 inside the bend, where the
+        /// library's cut strays 0.0147. And at a knife-edge count the exact one may be a chord more than the library's, never
+        /// one fewer. No bend is cut into more than 1 048 576 chords, the chords of all of them together likewise.
+        /// </para>
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is nought, negative or not a number, or would need more than 1 048 576 chords.
+        /// </exception>
         public ObjWriter Add(GeoPolylineArc3 chain, double chordTolerance, string name = null)
         {
             if (chain == null)
@@ -194,7 +354,105 @@ namespace GeometryHelper.Export
                 throw new ArgumentNullException(nameof(chain));
             }
 
-            return Line(chain.ToPolyline3(chordTolerance).Vertices, name);
+            // As the member has always checked it: infinity is a tolerance, and gives one chord to a bend.
+            if (double.IsNaN(chordTolerance) || chordTolerance <= 0.0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(chordTolerance), "A chord tolerance has to be a positive number.");
+            }
+
+            return Line(Chords.Of(chain, chordTolerance), name);
+        }
+
+        /// <summary>
+        /// Adds a loop with bends as a closed line, each bend cut into chords no further than a tolerance from it.
+        /// </summary>
+        /// <remarks>
+        /// The line comes back to where it started, as OBJ has no closed line: its last vertex is its first. Each bend is cut
+        /// on its own radius, so a long bend of a large radius is within the tolerance too: a loop with corners of radius
+        /// 50 000, within 0.001, has 3 927 chords to a quarter turn of each. The chords of all its bends together are no more
+        /// than 1 048 576.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is not a finite number above nought, or would need more than 1 048 576 chords.
+        /// </exception>
+        public ObjWriter Add(GeoPolygonArc3 loop, double chordTolerance, string name = null)
+        {
+            if (loop == null)
+            {
+                throw new ArgumentNullException(nameof(loop));
+            }
+
+            Chords.Require(chordTolerance);
+            return Line(Chords.Of(loop, chordTolerance), name);
+        }
+
+        /// <summary>
+        /// Adds an arc as a line, cut into chords no further than a tolerance from it.
+        /// </summary>
+        /// <remarks>
+        /// The line runs from the start of the arc to its end, whichever way the arc turns. A quarter of a circle of radius
+        /// 100 cut within 0.1 is 18 chords of about 8.7. The library's own cut stops at 4 096 chords a turn, which is short of
+        /// the tolerance on a large radius, so the count is worked out here: a quarter of radius 50 000 within 0.001 is
+        /// 3 927 chords, none more than 0.001 inside the arc. No curve is cut into more than 1 048 576 chords.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is not a finite number above nought, or would need more than 1 048 576 chords.
+        /// </exception>
+        public ObjWriter Add(GeoArc3 arc, double chordTolerance, string name = null)
+        {
+            Chords.Require(chordTolerance);
+            return Line(Chords.Of(arc, chordTolerance), name);
+        }
+
+        /// <summary>
+        /// Adds a circle as a closed line, cut into chords no further than a tolerance from it.
+        /// </summary>
+        /// <remarks>
+        /// A circle of radius 100 cut within 0.1 is a line of 71 chords whose last vertex is its first. OBJ has no circle,
+        /// and a viewer shows the line, not a disc. Past the library's 4 096 chords a turn the count is worked out here: a
+        /// circle of radius 50 000 within 0.001 is 15 708 chords, none more than 0.001 inside it. No curve is cut into more
+        /// than 1 048 576 chords.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is not a finite number above nought, or would need more than 1 048 576 chords.
+        /// </exception>
+        public ObjWriter Add(GeoCircle3 circle, double chordTolerance, string name = null)
+        {
+            Chords.Require(chordTolerance);
+            return Line(Chords.Of(circle, chordTolerance), name);
+        }
+
+        /// <summary>
+        /// Adds an ellipse as a closed line, cut into chords no further than a tolerance from it.
+        /// </summary>
+        /// <remarks>
+        /// The chords are spaced by the bend of the rim where the library's cut meets the tolerance, and evenly in the angle
+        /// past its 4 096 a turn: an ellipse of radii 50 000 and 25 000 within 0.001 is 15 708 chords. No curve is cut into
+        /// more than 1 048 576 chords.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is not a finite number above nought, or would need more than 1 048 576 chords.
+        /// </exception>
+        public ObjWriter Add(GeoEllipse3 ellipse, double chordTolerance, string name = null)
+        {
+            Chords.Require(chordTolerance);
+            return Line(Chords.Of(ellipse, chordTolerance), name);
+        }
+
+        /// <summary>
+        /// Adds a ray as a line from its origin, for as far as a length: a ray has no end of its own.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="length">How far along the ray the line runs.</param>
+        /// <param name="name">What the viewer calls it; a number when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <exception cref="ArgumentException">Thrown when the ray has no direction, as a <c>default</c> one has.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the length is negative, NaN or infinite.</exception>
+        public ObjWriter Add(GeoRay3 ray, double length, string name = null)
+        {
+            Chords.Require(ray);
+            return Add(ray.ToLine(length), name);
         }
 
         /// <summary>
@@ -225,6 +483,60 @@ namespace GeometryHelper.Export
         /// Writes the file to a path, replacing whatever is there.
         /// </summary>
         public void Save(string path) => File.WriteAllText(path, ToString(), new UTF8Encoding(false));
+
+        private static string CellLabel(string prefix, GeoCell3 cell)
+        {
+            string label = string.Format(CultureInfo.InvariantCulture, "{0}_{1}_{2}_{3}", prefix, cell.I, cell.J, cell.K);
+
+            if (cell.Piece > 0)
+            {
+                label += "_" + cell.Piece.ToString(CultureInfo.InvariantCulture);
+            }
+
+            return label;
+        }
+
+        /// <summary>
+        /// Whether a polygon turns the same way at every corner, by more than rounding, and turns once round in all, so that a
+        /// viewer fanning it from its first corner covers it exactly; corners in a row are allowed. A pentagram turns the same
+        /// way at each of its five corners and twice round, and is not one; nor is a polygon with a needle in it, whose tip
+        /// goes out and comes back on itself.
+        /// </summary>
+        private static bool TurnsOneWay(GeoPolygon3 polygon)
+        {
+            IReadOnlyList<GeoPoint3> corners = polygon.Vertices;
+            double size = 0.0;
+            double turning = 0.0;
+
+            for (int i = 1; i < corners.Count; i++)
+            {
+                size = Math.Max(size, corners[i].DistanceTo(corners[0]));
+            }
+
+            for (int i = 0; i < corners.Count; i++)
+            {
+                GeoPoint3 previous = corners[(i + corners.Count - 1) % corners.Count];
+                GeoPoint3 corner = corners[i];
+                GeoPoint3 next = corners[(i + 1) % corners.Count];
+                GeoVector3 arriving = previous.GetVectorTo(corner);
+                GeoVector3 leaving = corner.GetVectorTo(next);
+                double turn = arriving.CrossProduct(leaving).DotProduct(polygon.Normal);
+
+                double threshold = 1E-12 * size * (previous.DistanceTo(corner) + corner.DistanceTo(next));
+                double along = arriving.DotProduct(leaving);
+
+                // A turn to the right, or a reversal that is not a turn either way: the tip of a needle goes out and comes back
+                // on itself, and a viewer fanning the polygon would cover what lies beside it.
+                if (turn < -threshold || (along < 0.0 && Math.Abs(turn) <= threshold))
+                {
+                    return false;
+                }
+
+                turning += Math.Atan2(turn, along);
+            }
+
+            return Math.Abs(Math.Abs(turning) - Math.PI * 2.0) <= 1E-9 * Math.PI * 2.0;
+        }
 
         private ObjWriter Line(IReadOnlyList<GeoPoint3> points, string name)
         {
@@ -258,9 +570,9 @@ namespace GeometryHelper.Export
         {
             _vertices++;
             _text.Append("v ")
-                .Append(point.X.ToString("R", CultureInfo.InvariantCulture)).Append(' ')
-                .Append(point.Y.ToString("R", CultureInfo.InvariantCulture)).Append(' ')
-                .Append(point.Z.ToString("R", CultureInfo.InvariantCulture)).Append('\n');
+                .Append(Numbers.Exact(point.X)).Append(' ')
+                .Append(Numbers.Exact(point.Y)).Append(' ')
+                .Append(Numbers.Exact(point.Z)).Append('\n');
         }
     }
 }

@@ -24,6 +24,74 @@ ACAD_MLINESTYLE, ACAD_PLOTSETTINGS, ACAD_SCALELIST, ACAD_TABLESTYLE, ACAD_VISUAL
 without them; netDxf loads it with all 15 of its layers kept. An empty `GeoAabb3` is refused with an
 `InvalidOperationException`, as `ToObb` refuses it.
 
+**NEW.** `ObjWriter` takes the shapes it left out. `Add(GeoPoint3)` writes a dot, `Add(GeoTriangle3)` a face, and
+`Add(GeoAabb3)`, `Add(GeoObb3)` and `Add(GeoCell3)` a box or a cell as its mesh: a box 30 by 20 by 10 is 12 triangles
+enclosing 6 000, wound outwards, and a cell is named `cell_i_j_k` as the cells of a grid are. `Add(GeoPolygon3)` writes
+a polygon that turns the same way at every corner and goes once round as one face, so a regular hexagon is one `f` of 6,
+and any other as its triangles, so an L-shaped polygon 100 by 100 with 50 taken from a corner is 4 triangles covering 7
+500 where a viewer fanning one face would cover the notch, and a pentagram is not one face. The triangles are cut within
+the tolerance, so a polygon that is not one face and is thinner than it is written as an object with no face: an L with
+arms 0.0004 wide, built within 1E-5, is empty at the global tolerance and 4 triangles within 1E-5.
+`Add(GeoPolygonArc3)`, `Add(GeoArc3)`, `Add(GeoCircle3)` and `Add(GeoEllipse3)` write a line of chords no further from
+the curve than the chord tolerance given, which has to be a finite number above nought: a circle of radius 100 at 0.1 is
+71 chords, and its last vertex is its first. A chord shorter than the point tolerance is written all the same: a circle
+of radius 1 within 1E-8 is 22 215 chords of 2.8E-4, closed on its own first point. The library's own cut stops at 4 096
+chords a turn and strays 0.0147 from a circle of radius 50 000 cut within 0.01, so the writers work the count out
+themselves where the library's does not meet the tolerance, and give the library's where it does: that circle within
+0.001 is 15 708 chords, and a curve that would need more than 1 048 576 is refused with an
+`ArgumentOutOfRangeException`. The `Add` of a `GeoPolylineArc3` that was there before is cut the same way. On ordinary
+input it gives the points of `ToPolyline3` but for the end of each arc, which is the edge's own end point; it keeps an edge or a chord shorter than the point tolerance, which
+`ToPolyline3` dropped; where the library's cut stops at 4 096 a turn it gives the exact count, a bend of radius 50 000
+within 0.001 being 3 927 chords to a quarter turn where it strayed 0.0147; and at a knife-edge count it may add one
+chord, never one fewer. It still takes any tolerance above nought, infinity included, which the chord overloads and the
+`Wkt` writers refuse. In the chains and loops of both writers an arc so shallow that its circle cannot be placed, as one of a bulge
+of 1E-200 whose centre is not a number, is read as its chord, so that the corner stays where it is: on the chain (0, 0, 0),
+(100, 0, 0), (100, 100, 0) the corner was written at x 130.4 for a bulge of 1E-16, as NaN for 1E-200 and refused for 1E-310. `Add(GeoRay3, length)` writes the ray for the length given, and refuses a `default` ray with an
+`ArgumentException`. `Add(GeoSolid3)`, `Add(GeoFace3)` and `Add(GeoPolygon3)` each gain an overload taking the
+`Tolerance` to triangulate within, in place of `Tolerance.Global`: a slab 100 by 100 and 0.0008 thick, built within
+1E-5, is its 12 triangles written within 1E-5, and at the global tolerance its four sides, 0.0008 high, are dropped and
+the 4 triangles of the two big faces are left. The calls that existed give the same text.
+
+**NEW.** `SvgWriter` draws the rest of the plane. `Add(GeoEllipse2)` draws an ellipse as an `<ellipse>` turned by its
+major axis, and fits the picture to its bounding box: an ellipse of radii 30 and 10 turned 30 degrees reads back as
+`rx="30"`, `ry="10"` and `rotate(30 ...)`, and the ellipse's box is 52.9 wide and 34.6 high, the picture 58.2 by 39.9
+with its margin. `Add(GeoTriangle2)`, `Add(IEnumerable<GeoTriangle2>)` and `Add(GeoMesh2)` draw a closed path to each
+triangle or face, so a mesh of a grid of 4 cells is 4 paths. `Add(GeoRay2)` draws a ray from its origin to the edge of
+the picture, which the origin helps to fit: a ray along +X from (0, 0) in a picture of a square 0 to 100 ends at x =
+105; a `default` ray is refused with an `ArgumentException`. `Text(at, text, colour)` writes a label that reads upright
+however the picture is zoomed, its letters 3 per cent of the larger side of what is drawn high, the margin not counted,
+with the text escaped and every character XML 1.0 forbids, such as a control character, shown as U+FFFD so that the
+picture still parses. A number that rounds to minus nought is now written 0 where .NET 10 wrote -0 (.NET Framework wrote
+0): a point a billionth to the left of the axis is drawn at `cx="0"`. That is the one change to an old output, and only
+where it printed -0.
+
+**NEW.** `Wkt.Write` takes the rest of the shapes. `GeoRectangle2`, `GeoTriangle2` and `GeoTriangle3` are polygons;
+`GeoFace3` is `POLYGON Z` with its boundary counter-clockwise about its normal and its holes clockwise; lists of points
+are `MULTIPOINT`, lists of segments and of chains `MULTILINESTRING`, and lists of `GeoFace3`, a `GeoMesh2` and a
+`GeoMesh3` are `MULTIPOLYGON` with a polygon to each face. A `MULTIPOLYGON` of faces that share an edge, such as the
+cells of a mesh, parses everywhere but is not valid in the OGC sense (`ST_IsValid` says false), and the same holds for
+the existing one of a list of `GeoFace2`. A `GeoSolid3` is a `POLYHEDRALSURFACE Z` of the triangles of where its
+material ends, which PostGIS reads: a box 30 by 20 by 10 is 12 triangles whose signed volumes add up to 6 000. Circles,
+arcs, ellipses and chains and loops with arcs, in the plane and in space, take a chord tolerance, which has to be a
+finite number above nought, and are written through chords no further from the curve than it, with the count worked out
+past the library's 4 096 a turn as for OBJ: a chain or a loop is cut arc by arc on each arc's radius, so a bend of
+radius 50 000 in a bar is within 0.001, and a curve that would need more than 1 048 576 chords is refused. `GeoRay2` and
+`GeoRay3` take a length, and refuse a `default` ray with an `ArgumentException`.
+
+**FIXED.** `ObjWriter`, `Wkt` and `DxfWriter` wrote some coordinates on .NET Framework as another double: its `"R"` prints
+15 or 16 digits where 16 or 17 are needed, and the number read back is a step away. Counted on .NET Framework, that is 13
+of 400 000 coordinates computed as a mesh gives them (positions up to 10 000 with up to 0.37 added, a third of them
+rounded to thousandths) and 257 of 400 000 doubles of random bits. 4.8721540113315704 was written as 4.87215401133157,
+3.3824149791069402 as 3.38241497910694 and -2.1661333540296802E-08 as -2.16613335402968E-08. A coordinate is now written
+as the shortest of its 15, 16 and 17 digit texts that reads back to exactly that double, judged without the Framework's
+parser, which is not correctly rounded either: by one correctly rounded multiplication or division where the digits and
+the power of ten are doubles exactly, in integer arithmetic where they are not. Over 1 420 775 doubles, powers of two and
+subnormals included, the quick way and the integer way agree on every text, on each runtime. The text is exact on either
+runtime, and not always the same on both: the Framework's digits can differ from .NET 10's, and be one longer, where
+both read back to the same double. A negative nought is now written `-0` by `ObjWriter` and `Wkt` on both (the Framework
+wrote 0); `DxfWriter` and `SvgWriter` have their own rule and still write 0. Writing a surface of 113 600 triangles to
+OBJ takes 0.86 s on .NET Framework where it took 0.61 s.
+
 **FIXED.** The distance from the material of a face is the exact gap from its nearest rim, and nought only where a
 shape truly meets the material. It read nought from the old crossing tests, which keep a band of the point
 tolerance, and measured otherwise the length of the shortest line, which lets a segment run on up to the tolerance

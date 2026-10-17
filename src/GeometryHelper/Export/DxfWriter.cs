@@ -17,9 +17,9 @@ namespace GeometryHelper.Export
     /// <para>
     /// Every shape added is drawn on a layer, named as given and made on first use in the colour AutoCAD calls white, with
     /// the continuous line; none given means layer 0. CAD colours by layer, so there is no colour to pass. The drawing is
-    /// in millimetres. Numbers are written in the digits of .NET's round-trip format, with no rounding of ours. A shape with a
-    /// number in it that is not finite (NaN or infinity) is refused with an <see cref="ArgumentException"/> before anything of it is
-    /// written.
+    /// in millimetres. Numbers are written exactly, as a text that reads back to the same double on .NET Framework and on .NET 10
+    /// alike (the digits may differ between the two). A shape with a number in it that is not finite (NaN or infinity) is refused with an
+    /// <see cref="ArgumentException"/> before anything of it is written.
     /// </para>
     /// <para>
     /// In the plane a shape is written as the entity AutoCAD has for it, not as chords: a polygon, a rectangle, a triangle
@@ -634,20 +634,19 @@ namespace GeometryHelper.Export
         /// <param name="chordTolerance">The largest gap allowed between a chord and the arc, in millimetres.</param>
         /// <param name="layer">The layer; layer 0 when none is given.</param>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the chord tolerance is not a positive number, or the arc would take more than 1 048 576 chords at it.
+        /// Thrown when the chord tolerance is not a finite number above nought, or the arc would take more than 1 048 576 chords at it.
         /// </exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate or the radius is not a finite number.</exception>
         public DxfWriter Add(GeoArc3 arc, double chordTolerance, string layer = null)
         {
-            RequireChordTolerance(chordTolerance);
+            Chords.Require(chordTolerance);
             Check(arc.Center, nameof(arc));
             Check(arc.Normal, nameof(arc));
             Check(arc.Radius, nameof(arc));
             Check(arc.StartAngle, nameof(arc));
             Check(arc.SweptAngle, nameof(arc));
 
-            int chords = Chords.Of(arc.Radius, arc.SweptAngle, chordTolerance, 1);
-            IReadOnlyList<GeoPoint3> points = arc.ToPolyline(chords).Vertices;
+            List<GeoPoint3> points = Chords.Of(arc, chordTolerance);
             return Polyline3(Layer(layer), points, false);
         }
 
@@ -655,18 +654,19 @@ namespace GeometryHelper.Export
         /// Adds a circle in space as a closed 3D polyline of chords no further from the circle than a tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the chord tolerance is not a positive number, or the circle would take more than 1 048 576 chords at it.
+        /// Thrown when the chord tolerance is not a finite number above nought, or the circle would take more than 1 048 576 chords at it.
         /// </exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate or the radius is not a finite number.</exception>
         public DxfWriter Add(GeoCircle3 circle, double chordTolerance, string layer = null)
         {
-            RequireChordTolerance(chordTolerance);
+            Chords.Require(chordTolerance);
             Check(circle.Center, nameof(circle));
             Check(circle.Normal, nameof(circle));
             Check(circle.Radius, nameof(circle));
 
-            int chords = Chords.Of(circle.Radius, Math.PI * 2.0, chordTolerance, 3);
-            IReadOnlyList<GeoPoint3> points = circle.ToPolygon(chords).Vertices;
+            // The chords come round to the first point again, which a closed polyline does not repeat.
+            List<GeoPoint3> points = Chords.Of(circle, chordTolerance);
+            points.RemoveAt(points.Count - 1);
             return Polyline3(Layer(layer), points, true);
         }
 
@@ -676,7 +676,7 @@ namespace GeometryHelper.Export
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the chord tolerance is not a positive number, or the chain would take more than 1 048 576 chords at it
+        /// Thrown when the chord tolerance is not a finite number above nought, or the chain would take more than 1 048 576 chords at it
         /// in all.
         /// </exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate, a bulge or a direction is not a finite number.</exception>
@@ -687,7 +687,7 @@ namespace GeometryHelper.Export
                 throw new ArgumentNullException(nameof(chain));
             }
 
-            RequireChordTolerance(chordTolerance);
+            Chords.Require(chordTolerance);
             Check(chain.Vertices, nameof(chain));
             Check(chain.Bulges, nameof(chain));
             Check(chain.Normals, nameof(chain));
@@ -702,7 +702,7 @@ namespace GeometryHelper.Export
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown when the chord tolerance is not a positive number, or the loop would take more than 1 048 576 chords at it
+        /// Thrown when the chord tolerance is not a finite number above nought, or the loop would take more than 1 048 576 chords at it
         /// in all.
         /// </exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate, a bulge or a direction is not a finite number.</exception>
@@ -713,7 +713,7 @@ namespace GeometryHelper.Export
                 throw new ArgumentNullException(nameof(loop));
             }
 
-            RequireChordTolerance(chordTolerance);
+            Chords.Require(chordTolerance);
             Check(loop.Vertices, nameof(loop));
             Check(loop.Bulges, nameof(loop));
             Check(loop.Normals, nameof(loop));
@@ -1356,47 +1356,28 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// The points of a chain of edges with each arc cut into chords, the straight edges kept as they are. A loop's last
-        /// point is its first, so it is left off. What the arcs need is counted over the whole chain before a point is made.
+        /// point is its first, so it is left off. The chords of each arc are made, and counted into the chain's total, before
+        /// the next arc's; a total past the limit is refused when it is reached, and nothing has been written by then.
         /// </summary>
         private static List<GeoPoint3> Chorded(IEnumerable<GeoEdge3> edges, double chordTolerance, bool closed)
         {
             var list = new List<GeoEdge3>(edges);
-            var arcs = new GeoArc3?[list.Count];
-            var chords = new int[list.Count];
+            var points = new List<GeoPoint3> { list[0].StartPoint };
             long total = 0;
 
             for (int i = 0; i < list.Count; i++)
             {
-                if (!list[i].IsArc)
-                {
-                    continue;
-                }
+                GeoArc3 arc = list[i].IsArc ? list[i].ToArc() : default(GeoArc3);
 
                 // An arc too shallow to place a circle for is read by its chord, as a straight edge is.
-                GeoArc3 arc = list[i].ToArc();
-
-                if (!Guard.IsFinite(arc.Radius) || !Guard.IsFinite(arc.Center.X) || !Guard.IsFinite(arc.Center.Y) || !Guard.IsFinite(arc.Center.Z))
-                {
-                    continue;
-                }
-
-                arcs[i] = arc;
-                chords[i] = Chords.Of(arc.Radius, arc.SweptAngle, chordTolerance, 1);
-                total += chords[i];
-                Chords.Within(total, chordTolerance);
-            }
-
-            var points = new List<GeoPoint3> { list[0].StartPoint };
-
-            for (int i = 0; i < list.Count; i++)
-            {
-                if (arcs[i] == null)
+                if (!list[i].IsArc || !Guard.IsFinite(arc.Radius) || !Guard.IsFinite(arc.Center.X) || !Guard.IsFinite(arc.Center.Y) || !Guard.IsFinite(arc.Center.Z))
                 {
                     points.Add(list[i].EndPoint);
                     continue;
                 }
 
-                IReadOnlyList<GeoPoint3> along = arcs[i].Value.ToPolyline(chords[i]).Vertices;
+                List<GeoPoint3> along = Chords.Of(arc, chordTolerance);
+                Chords.Add(ref total, along.Count - 1, chordTolerance);
 
                 for (int j = 1; j < along.Count - 1; j++)
                 {
@@ -1414,21 +1395,11 @@ namespace GeometryHelper.Export
             return points;
         }
 
-        private static void RequireChordTolerance(double chordTolerance)
-            => Guard.Positive(chordTolerance, nameof(chordTolerance), "A chord tolerance has to be a positive number.");
-
         /// <summary>
         /// Prints a double: the one place every number of the file is made, so that how numbers are printed changes here
-        /// alone. It is the text "R" gives, and 17 digits where that text parsed back is not the same double.
+        /// alone. It is a text that reads back to exactly that double on either runtime, the shortest of 15, 16 and 17 digits that does.
         /// </summary>
-        private static string Exact(double value)
-        {
-            string text = value.ToString("R", Invariant);
-
-            return BitConverter.DoubleToInt64Bits(double.Parse(text, Invariant)) == BitConverter.DoubleToInt64Bits(value)
-                ? text
-                : value.ToString("G17", Invariant);
-        }
+        private static string Exact(double value) => Numbers.Exact(value);
 
         private static double Degrees(double radians) => radians * 180.0 / Math.PI;
 
@@ -1585,46 +1556,6 @@ namespace GeometryHelper.Export
         }
 
         #endregion
-
-        /// <summary>
-        /// How many chords a round curve is cut into, and when it is too many.
-        /// </summary>
-        private static class Chords
-        {
-            /// <summary>The most chords one curve may take, a chain or loop counted whole.</summary>
-            public const int Limit = 1048576;
-
-            /// <summary>
-            /// Gets the chords that keep every one within a chord tolerance of the curve: the sag of a chord spanning an angle
-            /// a is r(1 - cos(a/2)), so it spans at most 4 asin(sqrt(t / 2r)), which keeps its digits where 2 acos(1 - t/r)
-            /// loses them. Never fewer than the library cuts a curve into, which stops at 4 096 a turn.
-            /// </summary>
-            public static int Of(double radius, double sweptAngle, double chordTolerance, int minimum)
-            {
-                double sweep = Math.Abs(sweptAngle);
-                double ratio = chordTolerance / (2.0 * radius);
-                double step = ratio >= 1.0 ? Math.PI * 2.0 : 4.0 * Math.Asin(Math.Sqrt(ratio));
-                double exact = Math.Ceiling(sweep / step);
-
-                Within(exact, chordTolerance);
-
-                return Math.Max(minimum, Math.Max(Tessellation.SegmentsForChordTolerance(radius, sweep, chordTolerance), (int)exact));
-            }
-
-            /// <summary>
-            /// Refuses a total of chords past the limit.
-            /// </summary>
-            public static void Within(double total, double chordTolerance)
-            {
-                if (!(total <= Limit))
-                {
-                    throw new ArgumentOutOfRangeException(
-                        nameof(chordTolerance),
-                        chordTolerance,
-                        "At this chord tolerance the curve needs more than " + Limit.ToString(Invariant) + " chords; ask for a coarser one.");
-                }
-            }
-        }
 
         /// <summary>
         /// A point that is the same as another only when every coordinate is the same to the bit, nought and minus nought alike.

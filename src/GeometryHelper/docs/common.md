@@ -287,29 +287,77 @@ new DxfWriter()                      // both: AutoCAD, Tekla and every CAD viewe
     .Save("part.dxf");
 ```
 
-Each shape added to an OBJ file is an object of its own under the name given, so a viewer lists them
-separately, and coordinates are written exactly. An SVG picture is fitted round everything drawn, and every
-line keeps its width however far it is zoomed. WKT rings are written closed, the boundary counter-clockwise and
-the holes clockwise, as the format asks.
+Each shape added to an OBJ file is an object of its own under the name given, so a viewer lists them separately, and
+coordinates are written exactly, as a text that reads back to the very number on .NET Framework and on .NET 10 alike. The
+digits can differ between the two, a digit longer on the Framework now and then, and a negative nought is written -0 on both. An SVG picture is fitted
+round everything drawn, and every line keeps its width however far it is zoomed. WKT rings are written closed, the
+boundary counter-clockwise and the holes clockwise, as the format asks.
+
+What each writer takes:
+
+| Writer | Shapes |
+|---|---|
+| `ObjWriter` | `GeoSolid3`, `GeoFace3`, `GeoPolygon3` (each with a `Tolerance` overload), `GeoTriangle3`, triangles, `GeoMesh3`, `GeoCellGrid3` and `GeoCell3`, `GeoAabb3` and `GeoObb3` (as their 12 triangles), `GeoPoint3` (a dot), `GeoLine3`, `GeoPolyline3`; with a chord tolerance `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoArc3`, `GeoCircle3`, `GeoEllipse3`; `GeoRay3` with a length |
+| `SvgWriter` | `GeoPoint2`, `GeoLine2`, `GeoArc2`, `GeoEdge2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2` and lists of `GeoTriangle2`, `GeoMesh2`, `GeoFace2`, `GeoRay2`, and `Text` for a label |
+| `Wkt` | `GeoPoint2` and `GeoPoint3`, segments, chains, polygons, `GeoRectangle2`, `GeoTriangle2` and `GeoTriangle3`, `GeoFace2` and `GeoFace3`; lists of points as `MULTIPOINT`, of segments and chains as `MULTILINESTRING`, of `GeoFace2` and `GeoFace3` as `MULTIPOLYGON`; `GeoMesh2` and `GeoMesh3` as `MULTIPOLYGON`; `GeoSolid3` as a `POLYHEDRALSURFACE Z`; with a chord tolerance the circles, arcs, ellipses and chains and loops with arcs, in the plane and in space; `GeoRay2` and `GeoRay3` with a length |
+| `DxfWriter` | in the plane `GeoPoint2`, `GeoLine2`, `GeoRay2`, `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2`, `GeoFace2`; in space `GeoPoint3`, `GeoLine3`, `GeoRay3`, `GeoEllipse3`, `GeoPolyline3`, `GeoPolygon3`, `GeoTriangle3`, triangles, `GeoFace3` and `GeoSolid3` (each with a `Tolerance` overload), `GeoMesh3`, `GeoAabb3` and `GeoObb3` (as six faces); with a chord tolerance `GeoArc3`, `GeoCircle3`, `GeoPolylineArc3`, `GeoPolygonArc3`; each on a layer |
+
+OBJ and WKT have no curves, so a curve is written through chords and the caller says how far from the curve they may
+stray: a circle of radius 100 at a chord tolerance of 0.1 is 71 chords, none more than 0.1 inside it. The tolerance has
+to be a finite number above nought; there is no automatic one, and a chord shorter than the point tolerance is written
+all the same. The library's own cut of a curve stops at 4 096 chords a turn, which is short of a tolerance on a large
+radius (a circle of radius 50 000 cut within 0.01 strays 0.0147), so the writers work the count out themselves where it
+does not meet the tolerance, and give the library's wherever it does: a circle of radius 50 000 within 0.001 is 15 708
+chords, a quarter arc of that radius 3 927, an ellipse of radii 50 000 and 25 000 15 708, and a bend of that radius in a
+bar or a loop is cut the same way on its own radius. No curve is cut into more than 1 048 576 chords: a tolerance that
+needs more is refused with an `ArgumentOutOfRangeException`. The `ObjWriter.Add` of a `GeoPolylineArc3` that was there
+before takes any tolerance above nought, infinity included, which gives each bend one chord, where the `Wkt` writers and
+the other chord overloads refuse infinity. A ray has no end, so OBJ and WKT take the length to draw it for, and SVG
+draws it on to the edge of the picture, which its origin helps to fit. A `default` ray, which has no direction, is
+refused by all three with an `ArgumentException`. SVG draws an ellipse as an ellipse, turned by its major axis, and fits
+the picture to its bounding box: an ellipse of radii 30 and 10 (60 across by 20) turned 30 degrees is 52.9 wide and 34.6
+high.
+
+An OBJ polygon that turns the same way at every corner and goes once round is one face, so a hexagon is one `f` of 6 and
+a viewer shows it as it is; any other, an L or a pentagram, is cut into triangles, so an L-shaped polygon 100 by 100
+with 50 taken from a corner is 4 triangles covering 7 500, where a viewer fanning it from its first corner would cover
+the notch. `GeoSolid3`, `GeoFace3` and `GeoPolygon3` triangulate at `Tolerance.Global` unless given one, and the
+triangles are cut within it. A slab 100 by 100 and 0.0008 thick, built within 1E-5, is its 12 triangles when written
+within 1E-5; at the global tolerance its four sides, 0.0008 high, are dropped and the 4 triangles of its two big faces
+are what is left. By the same rule a polygon that is not one face and is thinner than the tolerance is written as an
+object with no face at all: an L-shaped polygon with arms 0.0004 wide, built within 1E-5, is empty at the global
+tolerance and 4 triangles within 1E-5, where an equally thin strip, which is one face, is written at either. Give the
+tolerance it was built within. A WKT face in space has no clockwise of its own, so its boundary is written
+counter-clockwise about its normal and its holes clockwise about it.
+
+A `MULTIPOLYGON` of the cells of a mesh, or of any faces that share an edge, parses everywhere but is not valid in the
+OGC sense, whose polygons touch at points only: PostGIS's `ST_IsValid` says false of it. This holds for `Wkt.Write` of a
+`GeoMesh2` or a `GeoMesh3` and of a list of `GeoFace2` or `GeoFace3` alike.
+
+`SvgWriter.Text(at, "label", "green")` writes a label that reads upright however the picture is zoomed, its letters 3
+per cent of the larger side of what is drawn high, the margin not counted. The text is escaped, so `a < b` is shown as
+written, and a character XML 1.0 forbids, such as a control character, is shown as U+FFFD so that the picture still
+parses. SVG numbers are written to six places, and one that rounds to minus nought is written 0.
 
 `DxfWriter` writes a DXF file of version R2000 in millimetres, which AutoCAD, Tekla Structures and every CAD viewer
-open. Each shape goes on a layer named as given (layer 0 when none is), made on first use in white with the
-continuous line, since CAD colours by layer. Names are cut at 255 characters, the characters DXF refuses and the comma
-become `_`, and letters beyond ASCII are written as escapes such as `\U+00E9`; two names that differ only in case,
-accented letters included, are one layer, named as first seen. In the plane a shape is written as the entity CAD has for it, not as
-chords: a polygon, rectangle, triangle or ring of a face as a closed lightweight polyline, a chain or loop with arcs
-as one with the bulge of each arc edge (the same number `GeoEdge2.Bulge` gives, 1 for a semicircle), a circle, an
-arc, an ellipse and a ray as a CIRCLE, ARC, ELLIPSE and RAY. DXF arcs run counter-clockwise only, so a clockwise
-`GeoArc2` is written from its end to its start; a face is its rings, not a filled area, which `SvgWriter` draws. In
-space a point, segment, ray and ellipse are written as they are, a chain and a polygon as a 3D polyline, and
-anything with a surface as 3DFACEs: one per triangle of a face or a body (a box 100 by 100 by 20 with a hole 20 by 20
-through it is 64), one per face of a mesh that has three or four corners and turns one way, and six for a `GeoAabb3`
-or `GeoObb3`, written from its corners, so a box 100 by 100 by 0.002, or by nothing, is written too, and an empty `GeoAabb3` is refused with an `InvalidOperationException`, as `ToObb` refuses it. Where a face, a
-side of a body or a face of a mesh is cut into triangles, the edges between its own triangles are marked invisible, so
-a wireframe shows its outline; triangles given as they are keep every edge. A curve in space (`GeoArc3`,
-`GeoCircle3`, and chains and loops with arcs) is cut into chords no further from it than a chord tolerance you state,
-which has no default: a circle of radius 100 at 0.1 is 71 chords, one of radius 50 000 at 0.001 is 15 708. A curve
-that would need more than 1 048 576 chords, a chain or loop counted whole, is refused with an
-`ArgumentOutOfRangeException`. A shape holding a number that is not finite is refused with an `ArgumentException` and
-leaves nothing in the file. Exact arcs in space wait for a later round. The file is plain ASCII, with the extents of
-what was drawn in its header and the view opened on them.
+open. Each shape goes on a layer named as given (layer 0 when none is), made on first use in white with the continuous
+line, since CAD colours by layer. Names are cut at 255 characters, the characters DXF refuses and the comma become `_`,
+and letters beyond ASCII are written as escapes such as `\U+00E9`; two names that differ only in case, accented letters
+included, are one layer, named as first seen. In the plane a shape is written as the entity CAD has for it, not as
+chords: a polygon, rectangle, triangle or ring of a face as a closed lightweight polyline, a chain or loop with arcs as
+one with the bulge of each arc edge (the same number `GeoEdge2.Bulge` gives, 1 for a semicircle), a circle, an arc, an
+ellipse and a ray as a CIRCLE, ARC, ELLIPSE and RAY. DXF arcs run counter-clockwise only, so a clockwise `GeoArc2` is
+written from its end to its start; a face is its rings, not a filled area, which `SvgWriter` draws. In space a point,
+segment, ray and ellipse are written as they are, a chain and a polygon as a 3D polyline, and anything with a surface as
+3DFACEs: one per triangle of a face or a body (a box 100 by 100 by 20 with a hole 20 by 20 through it is 64), one per
+face of a mesh that has three or four corners and turns one way, and six for a `GeoAabb3` or `GeoObb3`, written from its
+corners, so a box 100 by 100 by 0.002, or by nothing, is written too, and an empty `GeoAabb3` is refused with an
+`InvalidOperationException`, as `ToObb` refuses it. Where a face, a side of a body or a face of a mesh is cut into
+triangles, the edges between its own triangles are marked invisible, so a wireframe shows its outline; triangles given
+as they are keep every edge. A curve in space (`GeoArc3`, `GeoCircle3`, and chains and loops with arcs) is cut into
+chords no further from it than a chord tolerance you state, which has no default: a circle of radius 100 at 0.1 is 71
+chords, one of radius 50 000 at 0.001 is 15 708. DXF has arcs and circles of its own, but not yet in space: they are
+written as chords until a later round writes them as such. A curve that would need more than 1 048 576 chords, a chain or loop
+counted whole, is refused with an `ArgumentOutOfRangeException`. A shape holding a number that is not finite is refused
+with an `ArgumentException` and leaves nothing in the file. The file is plain ASCII, with the extents of what was drawn
+in its header and the view opened on them.

@@ -44,10 +44,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             public string Text(int code) => Pairs.First(p => p.Code == code).Value;
 
-            public double Number(int code) => double.Parse(Text(code), CultureInfo.InvariantCulture);
+            // Read as a correctly rounding parser reads it, which .NET Framework's is not.
+            public double Number(int code) => ExportTests.ParseExactly(Text(code));
 
             public List<double> Numbers(int code)
-                => Pairs.Where(p => p.Code == code).Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture)).ToList();
+                => Pairs.Where(p => p.Code == code).Select(p => ExportTests.ParseExactly(p.Value)).ToList();
 
             public string Layer => Text(8);
 
@@ -1284,11 +1285,12 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(new string('w', 254), LayerNames(dxf)[1]);
         }
 
-        [Fact(Skip = "awaits Numbers.Exact at merge")]
+        [Fact]
         [Trait("Step", "R")]
-        public void NumbersNetFrameworkGetsOneUlpWrongAreWrittenAsNetTenWritesThem()
+        public void NumbersTheFrameworkFormatterGetsOneStepWrongAreWrittenWithTheDigitsThatReadBackToThem()
         {
-            // The text .NET 10's "R" writes for these three, which .NET Framework's formatter and parser both get wrong.
+            // Texts that read back to these three, which .NET Framework's "R" prints as 4.87215401133157, 3.38241497910694 and
+            // -2.16613335402968E-08, other numbers; they are what .NET 10's "R" prints, but that is not what is asked here.
             Dxf dxf = Dxf.Of(new DxfWriter().Add(new GeoPoint3(4.8721540113315704, 3.3824149791069402, -2.1661333540296802E-08)));
 
             Assert.Equal("4.8721540113315704", dxf.Entities[0].Text(10));
@@ -1599,6 +1601,29 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(path.Count - 1, onShallow + onTight);
             Assert.True(onShallow >= ChordsFor(shallow.Radius, shallow.SweptAngle, tolerance));
             Assert.True(onTight >= ChordsFor(tight.Radius, tight.SweptAngle, tolerance));
+        }
+
+        [Fact]
+        [Trait("Step", "R")]
+        public void ChordsShorterThanThePointToleranceAreKeptSoACircleOfRadiusOneStaysWithinAHundredMillionth()
+        {
+            const double radius = 1.0;
+            const double tolerance = 1E-8;
+            GeoVector3 up = new GeoVector3(0, 0, 1);
+            var circle = new GeoCircle3(new GeoPoint3(5, 6, 7), up, radius);
+            var arc = new GeoArc3(new GeoPoint3(5, 6, 7), up, 10.0, 0.25, 1.5);
+
+            Dxf ring = Dxf.Of(new DxfWriter().Add(circle, tolerance));
+            List<GeoPoint3> vertices = VerticesOf(ring);
+
+            Assert.Equal(ChordsFor(radius, 2.0 * Math.PI, tolerance), vertices.Count);
+            vertices.Add(vertices[0]);
+            Assert.True(Sag(ring.Entities[0], vertices, m => radius - m.DistanceTo(circle.Center)) <= tolerance + 1E-12);
+
+            List<GeoPoint3> path = VerticesOf(Dxf.Of(new DxfWriter().Add(arc, tolerance)));
+            Assert.Equal(ChordsFor(10.0, arc.SweptAngle, tolerance) + 1, path.Count);
+            Assert.Equal(arc.StartPoint, path[0]);
+            Assert.Equal(arc.EndPoint, path[path.Count - 1]);
         }
 
         [Fact]

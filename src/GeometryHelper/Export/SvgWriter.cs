@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using GeometryHelper.Geometry;
+using GeometryHelper.Meshing;
 
 namespace GeometryHelper.Export
 {
@@ -13,9 +14,10 @@ namespace GeometryHelper.Export
     /// <remarks>
     /// <para>
     /// The picture is fitted round everything added, with Y pointing up as in the drawing, and every line is
-    /// drawn the same width however far the picture is zoomed. Arcs are drawn as arcs, not as chords. Each shape
-    /// takes a stroke colour and, where it encloses something, a fill — any colour SVG knows, such as
-    /// <c>"red"</c> or <c>"#3070c0"</c>.
+    /// drawn the same width however far the picture is zoomed. Arcs and ellipses are drawn as arcs and ellipses,
+    /// not as chords. Each shape takes a stroke colour and, where it encloses something, a fill — any colour SVG
+    /// knows, such as <c>"red"</c> or <c>"#3070c0"</c>. A ray is drawn on to the edge of the picture, and
+    /// <see cref="Text"/> names a shape in it.
     /// </para>
     /// <code>
     /// new SvgWriter().Add(plate, "black", "#eeeeee").Add(cut, "red").Save("cut.svg");
@@ -25,6 +27,8 @@ namespace GeometryHelper.Export
     {
         private readonly List<string> _elements = new List<string>();
         private readonly List<(GeoPoint2 Point, string Colour)> _points = new List<(GeoPoint2, string)>();
+        private readonly List<(GeoRay2 Ray, string Colour)> _rays = new List<(GeoRay2, string)>();
+        private readonly List<(GeoPoint2 At, string Text, string Colour)> _labels = new List<(GeoPoint2, string, string)>();
         private double _minX = double.PositiveInfinity;
         private double _minY = double.PositiveInfinity;
         private double _maxX = double.NegativeInfinity;
@@ -63,6 +67,123 @@ namespace GeometryHelper.Export
             GrowRound(circle.Center, circle.Radius);
             _elements.Add(string.Format(CultureInfo.InvariantCulture,
                 "<circle cx=\"{0}\" cy=\"{1}\" r=\"{2}\" {3}/>", N(circle.Center.X), N(circle.Center.Y), N(circle.Radius), Style(colour, fill)));
+            return this;
+        }
+
+        /// <summary>
+        /// Adds an ellipse, drawn as an ellipse, turned by the direction of its major axis.
+        /// </summary>
+        /// <remarks>
+        /// The picture grows by the ellipse's bounding box, not by a square of its major radius: an ellipse of radii 30 and 10
+        /// (60 across by 20) turned 30 degrees is 52.915 wide and 34.641 high, and the picture is fitted to that.
+        /// </remarks>
+        public SvgWriter Add(GeoEllipse2 ellipse, string colour = "black", string fill = "none")
+        {
+            double a = ellipse.MajorRadius;
+            double b = ellipse.MinorRadius;
+            double halfWidth = Math.Sqrt(a * a * ellipse.MajorAxis.X * ellipse.MajorAxis.X + b * b * ellipse.MajorAxis.Y * ellipse.MajorAxis.Y);
+            double halfHeight = Math.Sqrt(a * a * ellipse.MajorAxis.Y * ellipse.MajorAxis.Y + b * b * ellipse.MajorAxis.X * ellipse.MajorAxis.X);
+
+            Grow(ellipse.Center.X - halfWidth, ellipse.Center.Y - halfHeight);
+            Grow(ellipse.Center.X + halfWidth, ellipse.Center.Y + halfHeight);
+
+            // Under the group's scale(1,-1) a positive turn is the drawing's, counter-clockwise; adding nought drops the sign of -0.
+            double degrees = Math.Atan2(ellipse.MajorAxis.Y, ellipse.MajorAxis.X) * 180.0 / Math.PI + 0.0;
+
+            _elements.Add(string.Format(CultureInfo.InvariantCulture,
+                "<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" transform=\"rotate({4} {0} {1})\" {5}/>",
+                N(ellipse.Center.X), N(ellipse.Center.Y), N(a), N(b), N(degrees), Style(colour, fill)));
+            return this;
+        }
+
+        /// <summary>Adds a triangle.</summary>
+        public SvgWriter Add(GeoTriangle2 triangle, string colour = "black", string fill = "none")
+            => Path(Through(new[] { triangle.A, triangle.B, triangle.C }, true), colour, fill);
+
+        /// <summary>Adds triangles, each a closed path of its own, such as what a triangulation gives.</summary>
+        /// <exception cref="ArgumentNullException">Thrown when the triangles are null.</exception>
+        public SvgWriter Add(IEnumerable<GeoTriangle2> triangles, string colour = "black", string fill = "none")
+        {
+            if (triangles == null)
+            {
+                throw new ArgumentNullException(nameof(triangles));
+            }
+
+            foreach (GeoTriangle2 triangle in triangles)
+            {
+                Add(triangle, colour, fill);
+            }
+
+            return this;
+        }
+
+        /// <summary>Adds a mesh, each face a closed path of its own through the corners it has.</summary>
+        /// <remarks>A mesh of a grid of 4 cells is 4 paths, so that the joints between the cells show.</remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the mesh is null.</exception>
+        public SvgWriter Add(GeoMesh2 mesh, string colour = "black", string fill = "none")
+        {
+            if (mesh == null)
+            {
+                throw new ArgumentNullException(nameof(mesh));
+            }
+
+            for (int f = 0; f < mesh.FaceCount; f++)
+            {
+                int[] indexes = mesh.GetFaceIndices(f);
+                var corners = new GeoPoint2[indexes.Length];
+
+                for (int i = 0; i < indexes.Length; i++)
+                {
+                    corners[i] = mesh.Vertices[indexes[i]];
+                }
+
+                Path(Through(corners, true), colour, fill);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a ray, drawn from its origin to where it leaves the picture.
+        /// </summary>
+        /// <remarks>
+        /// A ray has no end, so how far it runs is settled when the picture is read: to the edge of the picture fitted round
+        /// everything else. Its origin counts towards the fit and its length does not. A ray along +X from (0, 0) in a picture
+        /// of a square 0 to 100 is drawn to x = 105, the edge with its margin; a ray added to nothing else has no picture to
+        /// leave and is drawn a hair long.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the ray has no direction, as a <c>default</c> one has.</exception>
+        public SvgWriter Add(GeoRay2 ray, string colour = "black")
+        {
+            Chords.Require(ray);
+            Grow(ray.Origin.X, ray.Origin.Y);
+            _rays.Add((ray, colour));
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a label, the text starting at a point and reading upright however the picture is zoomed.
+        /// </summary>
+        /// <param name="at">Where the text starts, at its baseline.</param>
+        /// <param name="text">
+        /// The text; it is escaped, so that <c>a &lt; b</c> is shown as it is written, and every character XML 1.0 forbids, such
+        /// as a control character or an unpaired surrogate, is shown as U+FFFD, so that the picture still parses.
+        /// </param>
+        /// <param name="colour">The colour of the letters.</param>
+        /// <remarks>
+        /// The letters are 3 % of the larger side of what is drawn high, margin not counted, as a dot is 0.6 % of it: a
+        /// picture of content 100 wide has letters 3 high. The point grows the picture, and the length of the text does not.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the text is null.</exception>
+        public SvgWriter Text(GeoPoint2 at, string text, string colour = "black")
+        {
+            if (text == null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            Grow(at.X, at.Y);
+            _labels.Add((at, Printable(text), colour));
             return this;
         }
 
@@ -163,12 +284,50 @@ namespace GeometryHelper.Export
                 text.Append(element).Append('\n');
             }
 
+            // A ray runs on to the edge of the picture, margin and all: the first of the four edges it meets.
+            double right = left + viewWidth;
+            double bottom = top - viewHeight;
+
+            foreach ((GeoRay2 ray, string colour) in _rays)
+            {
+                double reach = double.PositiveInfinity;
+
+                if (ray.Direction.X > 0.0)
+                {
+                    reach = Math.Min(reach, (right - ray.Origin.X) / ray.Direction.X);
+                }
+                else if (ray.Direction.X < 0.0)
+                {
+                    reach = Math.Min(reach, (left - ray.Origin.X) / ray.Direction.X);
+                }
+
+                if (ray.Direction.Y > 0.0)
+                {
+                    reach = Math.Min(reach, (top - ray.Origin.Y) / ray.Direction.Y);
+                }
+                else if (ray.Direction.Y < 0.0)
+                {
+                    reach = Math.Min(reach, (bottom - ray.Origin.Y) / ray.Direction.Y);
+                }
+
+                GeoPoint2 end = ray.Origin.Add(new GeoVector2(ray.Direction.X * reach, ray.Direction.Y * reach));
+                text.Append("<path d=\"M ").Append(Xy(ray.Origin)).Append(" L ").Append(Xy(end)).Append("\" ").Append(Style(colour, "none")).Append("/>\n");
+            }
+
             double dot = size * 0.006;
 
             foreach ((GeoPoint2 point, string colour) in _points)
             {
                 text.Append(string.Format(CultureInfo.InvariantCulture,
                     "<circle cx=\"{0}\" cy=\"{1}\" r=\"{2}\" fill=\"{3}\"/>\n", N(point.X), N(point.Y), N(dot), Escape(colour)));
+            }
+
+            // The letters are turned back over, the group having flipped Y for the drawing's sake.
+            foreach ((GeoPoint2 at, string label, string colour) in _labels)
+            {
+                text.Append(string.Format(CultureInfo.InvariantCulture,
+                    "<text transform=\"translate({0} {1}) scale(1,-1)\" font-size=\"{2}\" font-family=\"sans-serif\" fill=\"{3}\">{4}</text>\n",
+                    N(at.X), N(at.Y), N(size * 0.03), Escape(colour), Escape(label)));
             }
 
             text.Append("</g>\n</svg>\n");
@@ -284,7 +443,45 @@ namespace GeometryHelper.Export
 
         private static string Xy(GeoPoint2 p) => N(p.X) + " " + N(p.Y);
 
-        private static string N(double value) => value.ToString("0.######", CultureInfo.InvariantCulture);
+        /// <summary>
+        /// A number to six places. A negative one that rounds to nought is printed as 0, not -0, as .NET Framework prints it:
+        /// .NET 10 prints -0.
+        /// </summary>
+        private static string N(double value)
+        {
+            string text = value.ToString("0.######", CultureInfo.InvariantCulture);
+            return text == "-0" ? "0" : text;
+        }
+
+        /// <summary>
+        /// The text with every character XML 1.0 forbids replaced by U+FFFD: the control characters but tab, line feed and
+        /// carriage return, a surrogate that is not half of a pair, and U+FFFE and U+FFFF.
+        /// </summary>
+        private static string Printable(string text)
+        {
+            var clean = new StringBuilder(text.Length);
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+
+                if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+                {
+                    clean.Append(c).Append(text[i + 1]);
+                    i++;
+                }
+                else if (c == '\t' || c == '\n' || c == '\r' || (c >= 0x20 && c <= 0xD7FF) || (c >= 0xE000 && c <= 0xFFFD))
+                {
+                    clean.Append(c);
+                }
+                else
+                {
+                    clean.Append('�');
+                }
+            }
+
+            return clean.ToString();
+        }
 
         private static string Escape(string value)
             => (value ?? "none").Replace("&", "&amp;").Replace("\"", "&quot;").Replace("<", "&lt;").Replace(">", "&gt;");
