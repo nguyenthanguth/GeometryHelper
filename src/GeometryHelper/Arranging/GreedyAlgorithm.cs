@@ -88,7 +88,17 @@ namespace GeometryHelper.Arranging
                 // own leader is often among what it keeps clear of, and then each place in the first row of a side is
                 // that side's gap clear of it: counted as measured, the side with the wider gap, the one the label is to
                 // keep further off, always won. Where both sides have the same gap, nothing is taken off.
-                double clearance = PlacementHeuristics.MeasureClearance(nearby, moved) - candidate.Surplus;
+                double measured = PlacementHeuristics.MeasureClearance(nearby, moved);
+
+                // Clearances up to the global point tolerance count as equal, as they did when the distances to the obstacles
+                // read nought within it, so the last digits of an exact clearance do not pick the place. The measure reads the
+                // global tolerance, and so does this.
+                if (measured <= Tolerance.Global.EqualPoint)
+                {
+                    measured = 0.0;
+                }
+
+                double clearance = measured - candidate.Surplus;
 
                 if (clearance > bestClearance)
                 {

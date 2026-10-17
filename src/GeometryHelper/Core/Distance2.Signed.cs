@@ -121,7 +121,10 @@ namespace GeometryHelper.Core
         /// <param name="face">The face.</param>
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>Nought for a point on the material, otherwise the distance to the nearest edge of the face.</returns>
+        /// <returns>
+        /// Nought for a point on the material or on a rim, otherwise the distance to the nearest edge of the face, measured
+        /// exactly: a point 0.0005 off the outline, or 0.0005 inside a hole, is 0.0005 away.
+        /// </returns>
         /// <remarks>
         /// A face is a filled region with holes in it, so this reads it the way the rest of the class reads a
         /// polygon: a point on the material is nought away. A point in a hole is off the material, and is
@@ -131,12 +134,12 @@ namespace GeometryHelper.Core
         {
             if (face == null) throw new ArgumentNullException(nameof(face));
 
-            if (Containment2.Contains(face, point, tolerance))
+            if (Containment2.Contains(face, point, Exactly))
             {
                 return 0.0;
             }
 
-            return Math.Abs(SignedDistanceTo(face, point, tolerance));
+            return Reach(face, point, tolerance);
         }
 
         /// <summary>
@@ -156,6 +159,14 @@ namespace GeometryHelper.Core
         {
             if (face == null) throw new ArgumentNullException(nameof(face));
 
+            return Signed(Reach(face, point, tolerance), Containment2.Locate(face, point, tolerance));
+        }
+
+        /// <summary>
+        /// Gets the distance from a point to the nearest edge of a face, its outline or the rim of a hole.
+        /// </summary>
+        private static double Reach(GeoFace2 face, GeoPoint2 point, Tolerance tolerance)
+        {
             double reach = point.DistanceTo(Projection2.ProjectToPolygon(face.Boundary, point, tolerance));
 
             foreach (GeoPolygon2 hole in face.Holes)
@@ -163,7 +174,7 @@ namespace GeometryHelper.Core
                 reach = Math.Min(reach, point.DistanceTo(Projection2.ProjectToPolygon(hole, point, tolerance)));
             }
 
-            return Signed(reach, Containment2.Locate(face, point, tolerance));
+            return reach;
         }
 
         /// <summary>

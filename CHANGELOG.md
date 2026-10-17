@@ -92,6 +92,36 @@ both read back to the same double. A negative nought is now written `-0` by `Obj
 wrote 0); `DxfWriter` and `SvgWriter` have their own rule and still write 0. Writing a surface of 113 600 triangles to
 OBJ takes 0.86 s on .NET Framework where it took 0.61 s.
 
+**FIXED.** The distance from a point or a straight shape to a polygon, a rectangle, a triangle, a face, a polyline, a
+ray or a straight loop is nought only where they truly meet, and otherwise the exact gap. It read nought wherever one
+started within the point tolerance of the other, so the answer followed the direction the segment ran: a segment, ray,
+polyline, polygon or triangle starting 0.0005 off the square 100 by 100 was nought away at a tolerance of 0.001, and the
+same segment reversed 0.0005; a point 0.0005 off a polygon, a triangle, a straight loop or a face was nought away. A
+rectangle kept its band per axis, a factor of the square root of two too wide at a corner, so a segment starting 0.00085
+off its corner in x and in y, 0.0012 away, was nought away and collided with it; so did two rectangles and a rectangle
+and a face. They now read the gap, and collide exactly when it is within the tolerance. Of 154 548 placements of shapes
+asked both ways, 13 482 answers that read nought for shapes apart and 250 collisions past the tolerance are now right,
+and a further 144 that read nought for a segment shorter than the point tolerance now read the convention below. No
+right answer went wrong; 188 true touches now read a rounding residue of at most 2.3E-13 in place of 0. A segment
+shorter than the point tolerance that does not meet a shape is still read as its start, by every distance to a segment,
+polyline, polygon, rectangle, triangle, ray, loop or chain; a face measures it as it is. Such a stub that crosses a side
+of a polygon, a rectangle or a polyline now reads 0; against a segment or a ray it is still read from its start. Curved shapes keep their own readings for now.
+
+**FIXED.** A rectangle of no width or height, or of next to none, is parted from another by all its axes. The axes of
+each rectangle were taken from its sides and one with a side shorter than the vector tolerance lost an axis: a rectangle
+10 by 0 at (5, 0) against a square turned 45 degrees with its bottom corner at (5, 1) read nought and collided, and so
+did two such rectangles 5 apart; so did one 10 by 0.000001. The axes now come from the angle, and the sides of two
+rectangles, or of a rectangle and a polygon, are measured as the sides they are even when shorter than the point
+tolerance. A rectangle in an L-shaped hole of a face, 0.0012 from its reflex corner, no longer collides with the face by
+the band of its corner per axis.
+
+**CHANGED.** The Arranger counts clearances up to the global point tolerance as equal, as it did when a distance within
+it read nought, so the exact distances above do not let the last digits of a clearance pick the place: a label among
+obstacles 0.0002 off its places goes to the same place wherever the scene lies along X. Where the old reading depended
+on the way an obstacle's line ran, a place can change: with one line starting 0.0005 above the place above a label and
+another ending 0.0008 below the place below, at a tolerance of 0.0001, the label went below, and now goes above, the
+first found of two places both clear by more than that tolerance.
+
 **FIXED.** The distance from the material of a face is the exact gap from its nearest rim, and nought only where a
 shape truly meets the material. It read nought from the old crossing tests, which keep a band of the point
 tolerance, and measured otherwise the length of the shortest line, which lets a segment run on up to the tolerance

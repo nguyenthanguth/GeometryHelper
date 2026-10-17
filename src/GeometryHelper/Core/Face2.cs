@@ -202,7 +202,7 @@ namespace GeometryHelper.Core
         /// The rectangle collides where it crosses a rim, where its material and the face's overlap, or where it comes
         /// within the point tolerance of a rim, the outline from outside or a hole's from within the hole.
         /// </remarks>
-        public static bool CollidesWith(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(rect, tolerance), rim => Collision2.Crosses(ToArray(rim.GetEdges()), rect.GetEdges(), tolerance), () => rect.Center, at => Containment2.Contains(rect, at, tolerance), tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), rect.GetEdges(), tolerance));
+        public static bool CollidesWith(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(rect, tolerance), rim => Collision2.Crosses(ToArray(rim.GetEdges()), rect.GetEdges(), tolerance), () => rect.Center, at => Containment2.Contains(rect, at, Exactly), tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), rect.GetEdges(), tolerance));
 
         /// <summary>
         /// Determines whether a polyline reaches the material of a face.

@@ -319,6 +319,13 @@ namespace GeometryHelper.Core
         /// both, with no slack past their ends, and a pair with an arc in it where its crossings say so.
         /// </summary>
         internal static bool Cross(List<GeoEdge2> first, List<GeoEdge2> second, Tolerance tolerance)
+            => Cross(first, second, tolerance, tolerance);
+
+        /// <summary>
+        /// Determines whether two runs of edges cross anywhere, a pair with an arc in it read at one tolerance and two
+        /// straight edges at another: at a tolerance of nought a segment shorter than the point tolerance can cross.
+        /// </summary>
+        internal static bool Cross(List<GeoEdge2> first, List<GeoEdge2> second, Tolerance tolerance, Tolerance straight)
         {
             foreach (GeoEdge2 one in first)
             {
@@ -326,7 +333,7 @@ namespace GeometryHelper.Core
                 {
                     bool crossing = one.IsArc || other.IsArc
                         ? one.GetIntersections(other, tolerance).Length > 0
-                        : Collision2.Crosses(one.ToLine(), other.ToLine(), tolerance);
+                        : Collision2.Crosses(one.ToLine(), other.ToLine(), straight);
 
                     if (crossing)
                     {
@@ -343,12 +350,19 @@ namespace GeometryHelper.Core
         /// cross, with no slack past their ends, and an arc where its crossings say so.
         /// </summary>
         internal static bool Cross(List<GeoEdge2> edges, GeoLine2 line, Tolerance tolerance)
+            => Cross(edges, line, tolerance, tolerance);
+
+        /// <summary>
+        /// Determines whether a run of edges crosses a straight segment anywhere, an arc read at one tolerance and a
+        /// straight edge at another: at a tolerance of nought a segment shorter than the point tolerance can cross.
+        /// </summary>
+        internal static bool Cross(List<GeoEdge2> edges, GeoLine2 line, Tolerance tolerance, Tolerance straight)
         {
             foreach (GeoEdge2 edge in edges)
             {
                 bool crossing = edge.IsArc
                     ? edge.GetIntersections(line, tolerance).Length > 0
-                    : Collision2.Crosses(edge.ToLine(), line, tolerance);
+                    : Collision2.Crosses(edge.ToLine(), line, straight);
 
                 if (crossing)
                 {

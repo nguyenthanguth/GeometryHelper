@@ -239,7 +239,9 @@ namespace GeometryHelper.Core
         #region Distance
 
         /// <summary>
-        /// Gets the distance from a triangle to a point: nought for a point within it.
+        /// Gets the distance from a triangle to a point: nought only for a point within it or on its edge, otherwise the
+        /// gap, measured exactly. A point 0.0005 under the side of the triangle (0, 0), (100, 0), (0, 100) along X is
+        /// 0.0005 from it.
         /// </summary>
         public static double DistanceTo(GeoTriangle2 triangle, GeoPoint2 point)
             => TryAsPolygon(triangle, Tolerance.Global, out GeoPolygon2 shape, out GeoLine2 hull)

@@ -9,6 +9,12 @@ namespace GeometryHelper.Core
     /// </summary>
     public static partial class Distance2
     {
+        /// <summary>
+        /// A tolerance of nought, for asking whether a point lies in a region with no slack: a point on the rim counts as
+        /// in, and one a hair outside does not.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
+
         #region Point - Point
 
         /// <summary>
@@ -219,10 +225,14 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="rect">The rectangle.</param>
         /// <param name="line">The line segment.</param>
-        /// <returns>The shortest boundary distance.</returns>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. The segment from (100.00085, 100.00085) to
+        /// (150, 150) is 0.0012 from the square from the origin to (100, 100), and the same segment run the other way is
+        /// the same.
+        /// </returns>
         public static double DistanceTo(GeoRectangle2 rect, GeoLine2 line)
         {
-            if (Collision2.CrossesOrStartsIn(rect, line, Tolerance.Global))
+            if (Collision2.Meets(rect, line))
             {
                 return 0.0;
             }
@@ -245,10 +255,13 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="rect1">The first rectangle.</param>
         /// <param name="rect2">The second rectangle.</param>
-        /// <returns>The shortest boundary distance.</returns>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Two squares 100 by 100 with their corners
+        /// 0.00085 apart in x and in y are 0.0012 apart.
+        /// </returns>
         public static double DistanceTo(GeoRectangle2 rect1, GeoRectangle2 rect2)
         {
-            if (Collision2.CollidesWith(rect1, rect2))
+            if (Collision2.Meets(rect1, rect2))
             {
                 return 0.0;
             }
@@ -261,7 +274,8 @@ namespace GeometryHelper.Core
             {
                 foreach (var r2e in r2Edges)
                 {
-                    double d = DistanceTo(r1e, r2e);
+                    // Sides of two rectangles, not a caller's segment: a side shorter than the tolerance is the side it is.
+                    double d = DistanceTo(r1e, r2e, Exactly);
                     if (d < minDistance) minDistance = d;
                 }
             }
@@ -275,12 +289,12 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="rect">The rectangle.</param>
         /// <param name="poly">The polygon.</param>
-        /// <returns>The shortest boundary distance.</returns>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoRectangle2 rect, GeoPolygon2 poly)
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
-            if (Collision2.CrossesOrStartsIn(rect, poly, Tolerance.Global))
+            if (Collision2.Meets(rect, poly))
             {
                 return 0.0;
             }
@@ -293,7 +307,8 @@ namespace GeometryHelper.Core
                 GeoLine2 pe = poly.GetEdgeAt(i);
                 foreach (var re in rectEdges)
                 {
-                    double d = DistanceTo(pe, re);
+                    // Sides of two shapes, not a caller's segment: a side shorter than the tolerance is the side it is.
+                    double d = DistanceTo(pe, re, Exactly);
                     if (d < minDistance) minDistance = d;
                 }
             }
@@ -317,8 +332,8 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Calculates the shortest distance from a polygon boundary to a point, a point within the tolerance of the
-        /// polygon read as inside it.
+        /// Calculates the shortest distance from a polygon to a point: nought only where the point lies in the polygon or on
+        /// its rim, otherwise the gap, measured exactly. A point 0.0005 off the square 100 by 100 is 0.0005 from it.
         /// </summary>
         internal static double DistanceTo(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance)
         {
@@ -327,7 +342,7 @@ namespace GeometryHelper.Core
             // A polygon is a filled region here, exactly like a rectangle or a circle, so a point inside
             // it is at distance zero. Projection2 reports the boundary point instead, so the two
             // deliberately disagree for interior points.
-            if (Containment2.Contains(poly, point, tolerance))
+            if (Containment2.Contains(poly, point, Exactly))
             {
                 return 0.0;
             }
@@ -338,12 +353,17 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest boundary distance from a polygon to a line segment.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. The segment from (100.0005, 50) to
+        /// (150, 50) is 0.0005 from the square 100 by 100 with a corner at the origin, and so is the same segment run
+        /// the other way.
+        /// </returns>
         public static double DistanceTo(GeoPolygon2 poly, GeoLine2 line)
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
             // Zero when the segment crosses the polygon or lies inside it, matching DistanceTo(rect, line).
-            if (Collision2.CrossesOrStartsIn(poly, line, Tolerance.Global))
+            if (Collision2.Meets(poly, line))
             {
                 return 0.0;
             }
@@ -361,11 +381,12 @@ namespace GeometryHelper.Core
         /// Calculates the shortest boundary distance between two polygons.
         /// Returns 0 if they intersect or overlap.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolygon2 poly1, GeoPolygon2 poly2)
         {
             if (poly1 == null) throw new ArgumentNullException(nameof(poly1));
             if (poly2 == null) throw new ArgumentNullException(nameof(poly2));
-            if (Collision2.CrossesOrStartsIn(poly1, poly2, Tolerance.Global)) return 0.0;
+            if (Collision2.Meets(poly1, poly2)) return 0.0;
 
             double minDistance = double.MaxValue;
             for (int i = 0; i < poly1.EdgeCount; i++)
@@ -405,12 +426,12 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="polyline">The polyline.</param>
         /// <param name="line">The line segment.</param>
-        /// <returns>The shortest distance.</returns>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolyline2 polyline, GeoLine2 line)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            if (CrossesOrStartsOn(polyline, line, Tolerance.Global))
+            if (CrossesOrStartsOn(polyline, line))
             {
                 return 0.0;
             }
@@ -429,29 +450,31 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Whether a segment crosses an edge of a polyline or starts on it: where the distance between them is taken
         /// as nought without measuring. A segment that only comes within the tolerance is measured, so its distance is
-        /// the gap, not nought; so is one whose line crosses an edge's only past their ends.
+        /// the gap, not nought; so is one whose line crosses an edge's only past their ends, and one that starts a hair
+        /// off the polyline.
         /// </summary>
-        private static bool CrossesOrStartsOn(GeoPolyline2 polyline, GeoLine2 line, Tolerance tolerance)
+        private static bool CrossesOrStartsOn(GeoPolyline2 polyline, GeoLine2 line)
         {
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
-                if (Collision2.Crosses(polyline.GetEdgeAt(i), line, tolerance))
+                if (Collision2.Crosses(polyline.GetEdgeAt(i), line, Exactly))
                 {
                     return true;
                 }
             }
 
-            return Containment2.IsPointOn(polyline, line.StartPoint, tolerance);
+            return Containment2.IsPointOn(polyline, line.StartPoint, Exactly);
         }
 
         /// <summary>
         /// Calculates the shortest distance between a polyline and a rectangle.
         /// Returns 0 if they intersect.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolyline2 polyline, GeoRectangle2 rect)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            if (Collision2.CrossesOrStartsIn(polyline, rect, Tolerance.Global)) return 0.0;
+            if (Collision2.Meets(polyline, rect)) return 0.0;
 
             double minDistance = double.MaxValue;
             GeoLine2[] rectEdges = rect.GetEdges();
@@ -471,11 +494,12 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between a polyline and a polygon.
         /// Returns 0 if they intersect.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolyline2 polyline, GeoPolygon2 poly)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
             if (poly == null) throw new ArgumentNullException(nameof(poly));
-            if (Collision2.CrossesOrStartsIn(polyline, poly, Tolerance.Global)) return 0.0;
+            if (Collision2.Meets(polyline, poly)) return 0.0;
 
             double minDistance = double.MaxValue;
             for (int i = 0; i < polyline.EdgeCount; i++)
@@ -512,11 +536,12 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between two polylines.
         /// Returns 0 if they intersect.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolyline2 pl1, GeoPolyline2 pl2)
         {
             if (pl1 == null) throw new ArgumentNullException(nameof(pl1));
             if (pl2 == null) throw new ArgumentNullException(nameof(pl2));
-            if (Collision2.CrossesOrStartsOn(pl1, pl2, Tolerance.Global)) return 0.0;
+            if (Collision2.Meets(pl1, pl2)) return 0.0;
 
             double minDistance = double.MaxValue;
             for (int i = 0; i < pl1.EdgeCount; i++)
@@ -624,7 +649,7 @@ namespace GeometryHelper.Core
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
             
-            if (Collision2.CrossesOrStartsIn(chain, polygon, tolerance)) return 0.0;
+            if (Collision2.Meets(chain, polygon, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon), tolerance);
         }
@@ -664,7 +689,7 @@ namespace GeometryHelper.Core
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             
-            if (Collision2.CrossesOrStartsIn(chain, loop, tolerance)) return 0.0;
+            if (Collision2.Meets(chain, loop, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop), tolerance);
         }
@@ -680,13 +705,14 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// Measured to the arcs themselves rather than to the chords that stand in for them elsewhere, so
-        /// a point beyond a round end is as far away as it looks.
+        /// a point beyond a round end is as far away as it looks. Nought only where the point lies in the loop or on its
+        /// rim: a point 0.0005 off the square 100 by 100 with straight edges is 0.0005 from it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (Containment2.Contains(loop, point, tolerance)) return 0.0;
+            if (Containment2.Contains(loop, point, Exactly)) return 0.0;
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), point, tolerance);
         }
 
@@ -704,7 +730,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             
-            if (Collision2.CrossesOrStartsIn(loop, line, tolerance)) return 0.0;
+            if (Collision2.Meets(loop, line, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), line, tolerance);
         }
@@ -744,7 +770,7 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
             
-            if (Collision2.CrossesOrStartsIn(loop, polyline, tolerance)) return 0.0;
+            if (Collision2.Meets(loop, polyline, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline), tolerance);
         }
@@ -765,7 +791,7 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
             
-            if (Collision2.CrossesOrStartsIn(loop, polygon, tolerance)) return 0.0;
+            if (Collision2.Meets(loop, polygon, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon), tolerance);
         }
@@ -786,7 +812,7 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (chain == null) throw new ArgumentNullException(nameof(chain));
             
-            if (Collision2.CrossesOrStartsIn(loop, chain, tolerance)) return 0.0;
+            if (Collision2.Meets(loop, chain, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain), tolerance);
         }
@@ -807,7 +833,7 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (other == null) throw new ArgumentNullException(nameof(other));
             
-            if (Collision2.CrossesOrStartsIn(loop, other, tolerance)) return 0.0;
+            if (Collision2.Meets(loop, other, tolerance)) return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other), tolerance);
         }

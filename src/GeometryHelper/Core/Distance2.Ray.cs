@@ -108,7 +108,10 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a polygon and a ray, within a tolerance.
         /// </summary>
-        /// <returns>Zero where the ray starts inside the polygon or runs into it; otherwise the gap between them.</returns>
+        /// <returns>
+        /// Nought only where the ray starts in the polygon, on its rim included, or runs into it; otherwise the gap, measured
+        /// exactly. The ray from (100.0005, 50) along X is 0.0005 from the square 100 by 100 with a corner at the origin.
+        /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static double DistanceTo(GeoPolygon2 poly, GeoRay2 ray, Tolerance tolerance)
         {
@@ -117,7 +120,7 @@ namespace GeometryHelper.Core
             // DistanceTo(poly, line) read with the tolerance passed down, which it takes from the global one.
             GeoLine2 cut = Ray2.CutPast(ray, poly, tolerance);
 
-            if (Collision2.CrossesOrStartsIn(poly, cut, tolerance))
+            if (Collision2.Meets(poly, cut))
             {
                 return 0.0;
             }
@@ -140,7 +143,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a curved loop and a ray, within a tolerance.
         /// </summary>
-        /// <returns>Zero where the ray starts inside the loop or runs into it; otherwise the gap between them.</returns>
+        /// <returns>
+        /// Nought where the ray starts in the loop, on its rim included, or runs into it; otherwise the gap. Exact for the
+        /// straight edges of the loop: a ray crossing or passing an arc still reads the tolerance, as it did, and follows in
+        /// a later fix.
+        /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoRay2 ray, Tolerance tolerance)
         {
@@ -158,6 +165,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a polyline and a ray, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static double DistanceTo(GeoPolyline2 polyline, GeoRay2 ray, Tolerance tolerance)
         {
@@ -166,7 +174,7 @@ namespace GeometryHelper.Core
             // DistanceTo(polyline, line) read with the tolerance passed down, which it takes from the global one.
             GeoLine2 cut = Ray2.CutPast(ray, polyline, tolerance);
 
-            if (CrossesOrStartsOn(polyline, cut, tolerance))
+            if (CrossesOrStartsOn(polyline, cut))
             {
                 return 0.0;
             }
@@ -205,13 +213,17 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a rectangle and a ray, within a tolerance.
         /// </summary>
-        /// <returns>Zero where the ray starts inside the rectangle or runs into it; otherwise the gap between them.</returns>
+        /// <returns>
+        /// Nought only where the ray starts in the rectangle, on its side included, or runs into it; otherwise the gap,
+        /// measured exactly. The ray from (100.00085, 100.00085) along (1, 2) is 0.0012 from the square from the origin to
+        /// (100, 100).
+        /// </returns>
         public static double DistanceTo(GeoRectangle2 rect, GeoRay2 ray, Tolerance tolerance)
         {
             // DistanceTo(rect, line) read with the tolerance passed down, which it takes from the global one.
             GeoLine2 cut = Ray2.CutPast(ray, rect, tolerance);
 
-            if (Collision2.CrossesOrStartsIn(rect, cut, tolerance))
+            if (Collision2.Meets(rect, cut))
             {
                 return 0.0;
             }

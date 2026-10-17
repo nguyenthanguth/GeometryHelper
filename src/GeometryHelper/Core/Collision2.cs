@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using GeometryHelper;
 using GeometryHelper.Geometry;
 
@@ -10,6 +11,12 @@ namespace GeometryHelper.Core
     /// </summary>
     public static partial class Collision2
     {
+        /// <summary>
+        /// A tolerance of nought, for asking whether a point lies in a region with no slack: a point on the rim counts as in,
+        /// and one a hair outside does not.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
+
         #region Line - Line
 
         /// <summary>
@@ -155,30 +162,37 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two rotated rectangles (GeoRectangle2 OBB) collide using the Separating Axis Theorem (SAT).
         /// </summary>
+        /// <remarks>
+        /// They collide exactly where their distance is at most the point tolerance. The separating axes read the tolerance
+        /// along each axis, which is up to the square root of two too wide where two corners face each other, so what they
+        /// let through is measured: two squares 100 by 100 with their corners 0.00085 apart in x and in y, 0.0012 apart,
+        /// do not collide at a tolerance of a thousandth.
+        /// </remarks>
         public static bool CollidesWith(GeoRectangle2 rect1, GeoRectangle2 rect2, Tolerance tolerance)
         {
             GeoPoint2[] r1 = rect1.GetVertices();
             GeoPoint2[] r2 = rect2.GetVertices();
 
-            GeoVector2[] edgeDirections =
-            {
-                r1[0].GetVectorTo(r1[1]),
-                r1[0].GetVectorTo(r1[3]),
-                r2[0].GetVectorTo(r2[1]),
-                r2[0].GetVectorTo(r2[3])
-            };
+            // A pair a side's normal parts by no more than the tolerance, though by something, is within the band the
+            // sides read, which is wider at a corner than the tolerance is: it is measured below.
+            bool inTheBand = false;
 
-            foreach (var edgeDirection in edgeDirections)
+            double cos1 = Math.Cos(rect1.AngleRad), sin1 = Math.Sin(rect1.AngleRad);
+            double cos2 = Math.Cos(rect2.AngleRad), sin2 = Math.Sin(rect2.AngleRad);
+
+            // The two axes of each rectangle come from its angle, (cos, sin) and (-sin, cos), not from its sides: a side of
+            // a rectangle of no width or height has no direction, and an axis dropped for it is the one that parts a flat
+            // rectangle from one beside it.
+            for (int side = 0; side < 4; side++)
             {
-                // A rectangle with zero width or height has a degenerate edge. TryGetNormal skips that
-                // axis instead of throwing; the remaining axes still separate the two boxes correctly.
-                if (!edgeDirection.TryGetNormal(out GeoVector2 axis, tolerance)) continue;
+                double axisX = side == 0 ? cos1 : side == 1 ? -sin1 : side == 2 ? cos2 : -sin2;
+                double axisY = side == 0 ? sin1 : side == 1 ? cos1 : side == 2 ? sin2 : cos2;
 
                 double min1 = double.MaxValue;
                 double max1 = double.MinValue;
                 foreach (var p in r1)
                 {
-                    double proj = p.X * axis.X + p.Y * axis.Y;
+                    double proj = p.X * axisX + p.Y * axisY;
                     if (proj < min1) min1 = proj;
                     if (proj > max1) max1 = proj;
                 }
@@ -187,7 +201,7 @@ namespace GeometryHelper.Core
                 double max2 = double.MinValue;
                 foreach (var p in r2)
                 {
-                    double proj = p.X * axis.X + p.Y * axis.Y;
+                    double proj = p.X * axisX + p.Y * axisY;
                     if (proj < min2) min2 = proj;
                     if (proj > max2) max2 = proj;
                 }
@@ -196,10 +210,30 @@ namespace GeometryHelper.Core
                 {
                     return false;
                 }
+
+                if (min2 - max1 > 0.0 || min1 - max2 > 0.0)
+                {
+                    inTheBand = true;
+                }
             }
 
-            return true;
+            return !inTheBand || ComeWithinBand(rect1, rect2, tolerance);
         }
+
+        /// <summary>
+        /// Whether two rectangles, which no side's normal parts by more than the point tolerance, stand within it of each
+        /// other, measured side against side.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ComeWithinBand(GeoRectangle2 rect1, GeoRectangle2 rect2, Tolerance tolerance)
+            => ComeWithin(rect1.GetEdges(), rect2.GetEdges(), tolerance);
+
+        /// <summary>
+        /// Whether two rectangles truly meet: overlap, or touch along a side or at a corner, with no slack. The distance
+        /// between them is nought exactly there.
+        /// </summary>
+        internal static bool Meets(GeoRectangle2 rect1, GeoRectangle2 rect2)
+            => CollidesWith(rect1, rect2, Exactly);
 
         /// <summary>
         /// Checks whether a rectangle collides with a line segment using default tolerance.
@@ -222,7 +256,32 @@ namespace GeometryHelper.Core
         {
             GeoLine2[] edges = rect.GetEdges();
 
-            return CrossesOrStartsIn(rect, edges, line, tolerance) || ComeWithin(edges, line, tolerance);
+            return Meets(rect, edges, line) || ComeWithin(edges, line, tolerance);
+        }
+
+        /// <summary>
+        /// Whether a segment truly meets a rectangle: crosses a side, or starts in it, a start on a side counting as in.
+        /// The distance between them is nought exactly there, and a start a hair outside, on either axis or both, is not
+        /// in: the segment from (100.00085, 100.00085) to (150, 150) is 0.0012 from the square from the origin to
+        /// (100, 100), whatever the tolerance.
+        /// </summary>
+        internal static bool Meets(GeoRectangle2 rect, GeoLine2 line)
+            => Meets(rect, rect.GetEdges(), line);
+
+        /// <summary>
+        /// Whether a segment truly meets a rectangle, given as it is and as its edges.
+        /// </summary>
+        private static bool Meets(GeoRectangle2 rect, GeoLine2[] edges, GeoLine2 line)
+        {
+            foreach (var edge in edges)
+            {
+                if (Crosses(line, edge, Exactly))
+                {
+                    return true;
+                }
+            }
+
+            return Containment2.Contains(rect, line.StartPoint, Exactly);
         }
 
         /// <summary>
@@ -277,7 +336,34 @@ namespace GeometryHelper.Core
             GeoLine2[] rectEdges = rect.GetEdges();
             GeoLine2[] polyEdges = EdgesOf(poly);
 
-            return CrossesOrStartsIn(rect, rectEdges, poly, polyEdges, tolerance) || ComeWithin(rectEdges, polyEdges, tolerance);
+            return Meets(rect, rectEdges, poly, polyEdges) || ComeWithin(rectEdges, polyEdges, tolerance);
+        }
+
+        /// <summary>
+        /// Whether a rectangle and a polygon truly meet: a side crosses an edge, or one holds a corner of the other, a
+        /// corner on the rim counting as held. The distance between them is nought exactly there.
+        /// </summary>
+        internal static bool Meets(GeoRectangle2 rect, GeoPolygon2 poly)
+            => Meets(rect, rect.GetEdges(), poly, EdgesOf(poly));
+
+        /// <summary>
+        /// Whether a rectangle and a polygon, each given with its edges, truly meet.
+        /// </summary>
+        private static bool Meets(GeoRectangle2 rect, GeoLine2[] rectEdges, GeoPolygon2 poly, GeoLine2[] polyEdges)
+        {
+            foreach (var polyEdge in polyEdges)
+            {
+                foreach (var rectEdge in rectEdges)
+                {
+                    if (Crosses(polyEdge, rectEdge, Exactly))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return Containment2.Contains(rect, poly.Vertices[0], Exactly)
+                || Containment2.Contains(poly, rect.Center, Exactly);
         }
 
         /// <summary>
@@ -352,6 +438,24 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolygon2 poly, GeoLine2 line, Tolerance tolerance)
             => CrossesOrStartsIn(poly, EdgesOf(poly), line, tolerance, false);
+
+        /// <summary>
+        /// Whether a segment truly meets a polygon: crosses an edge, or starts in it, a start on the rim counting as in.
+        /// The distance between them is nought exactly there, and a start a hair outside is not in: the segment from
+        /// (100.0005, 50) to (150, 50) is 0.0005 from the square from the origin to (100, 100), whatever the tolerance.
+        /// </summary>
+        internal static bool Meets(GeoPolygon2 poly, GeoLine2 line)
+        {
+            foreach (var polyEdge in EdgesOf(poly))
+            {
+                if (Crosses(line, polyEdge, Exactly))
+                {
+                    return true;
+                }
+            }
+
+            return Containment2.Contains(poly, line.StartPoint, Exactly);
+        }
 
         /// <summary>
         /// Whether a segment crosses a polygon or starts inside it, a crossing up to the point tolerance past the ends
@@ -460,6 +564,29 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool CrossesOrStartsIn(GeoPolygon2 poly1, GeoPolygon2 poly2, Tolerance tolerance)
             => CrossesOrStartsIn(poly1, EdgesOf(poly1), poly2, EdgesOf(poly2), tolerance, false);
+
+        /// <summary>
+        /// Whether two polygons truly meet: an edge of one crosses an edge of the other, or one holds a corner of the
+        /// other, a corner on the rim counting as held. The distance between them is nought exactly there.
+        /// </summary>
+        internal static bool Meets(GeoPolygon2 poly1, GeoPolygon2 poly2)
+        {
+            GeoLine2[] edges2 = EdgesOf(poly2);
+
+            foreach (var edge1 in EdgesOf(poly1))
+            {
+                foreach (var edge2 in edges2)
+                {
+                    if (Crosses(edge1, edge2, Exactly))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return Containment2.Contains(poly1, poly2.Vertices[0], Exactly) ||
+                   Containment2.Contains(poly2, poly1.Vertices[0], Exactly);
+        }
 
         /// <summary>
         /// Whether two polygons cross or one starts inside the other, a crossing up to the point tolerance past the ends
@@ -708,6 +835,23 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Whether a polyline truly meets a rectangle: an edge crosses a side or starts in it, or its path runs through the
+        /// rectangle's centre. The distance between them is nought exactly there.
+        /// </summary>
+        internal static bool Meets(GeoPolyline2 polyline, GeoRectangle2 rect)
+        {
+            for (int i = 0; i < polyline.EdgeCount; i++)
+            {
+                if (Meets(rect, polyline.GetEdgeAt(i)))
+                {
+                    return true;
+                }
+            }
+
+            return Containment2.IsPointOn(polyline, rect.Center, Exactly);
+        }
+
+        /// <summary>
         /// Whether a polyline crosses a rectangle or starts an edge inside it: where the distance between them is
         /// taken as nought without measuring.
         /// </summary>
@@ -754,6 +898,23 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Whether a polyline truly meets a polygon: an edge crosses an edge or starts in it, or the polyline runs through a
+        /// corner of the polygon. The distance between them is nought exactly there.
+        /// </summary>
+        internal static bool Meets(GeoPolyline2 polyline, GeoPolygon2 poly)
+        {
+            for (int i = 0; i < polyline.EdgeCount; i++)
+            {
+                if (Meets(poly, polyline.GetEdgeAt(i)))
+                {
+                    return true;
+                }
+            }
+
+            return Containment2.IsPointOn(polyline, poly.Vertices[0], Exactly);
+        }
+
+        /// <summary>
         /// Whether a polyline crosses a polygon or starts an edge inside it: where the distance between them is taken
         /// as nought without measuring.
         /// </summary>
@@ -793,6 +954,28 @@ namespace GeometryHelper.Core
             if (pl2 == null) throw new ArgumentNullException(nameof(pl2));
 
             return CrossesOrStartsOn(pl1, pl2, tolerance) || ComeWithin(EdgesOf(pl1), EdgesOf(pl2), tolerance);
+        }
+
+        /// <summary>
+        /// Whether two polylines truly meet: an edge of one crosses an edge of the other, or an end of one lies on the
+        /// other. The distance between them is nought exactly there.
+        /// </summary>
+        internal static bool Meets(GeoPolyline2 pl1, GeoPolyline2 pl2)
+        {
+            for (int i = 0; i < pl1.EdgeCount; i++)
+            {
+                GeoLine2 edge1 = pl1.GetEdgeAt(i);
+                for (int j = 0; j < pl2.EdgeCount; j++)
+                {
+                    if (Crosses(edge1, pl2.GetEdgeAt(j), Exactly))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return Containment2.IsPointOn(pl1, pl2[0], Exactly) ||
+                   Containment2.IsPointOn(pl2, pl1[0], Exactly);
         }
 
         /// <summary>
@@ -965,6 +1148,17 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Whether a chain that may curve truly meets a straight loop: they cross, or the loop holds the chain's start, a
+        /// start on the rim counting as held. The distance between them is nought exactly there, as far as
+        /// straight edges go: an arc is crossed at the tolerance given.
+        /// </summary>
+        internal static bool Meets(GeoPolylineArc2 chain, GeoPolygon2 polygon, Tolerance tolerance)
+        {
+            return ArcChain2.Cross(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon), tolerance, Exactly)
+                || Containment2.Contains(polygon, chain[0], Exactly);
+        }
+
+        /// <summary>
         /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
         /// nought without measuring.
         /// </summary>
@@ -1022,6 +1216,17 @@ namespace GeometryHelper.Core
 
             return CrossesOrStartsIn(chain, loop, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop), tolerance);
+        }
+
+        /// <summary>
+        /// Whether a chain that may curve truly meets a loop that may curve: they cross, or the loop holds the chain's
+        /// start, a start on the rim counting as held. The distance between them is nought exactly there, as far as
+        /// straight edges go: an arc is crossed at the tolerance given.
+        /// </summary>
+        internal static bool Meets(GeoPolylineArc2 chain, GeoPolygonArc2 loop, Tolerance tolerance)
+        {
+            return ArcChain2.Cross(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop), tolerance, Exactly)
+                || Containment2.Contains(loop, chain[0], Exactly);
         }
 
         /// <summary>
@@ -1088,6 +1293,17 @@ namespace GeometryHelper.Core
             double reach = 0.5 * Distance2.DistanceTo(edge.StartPoint, edge.EndPoint) * (1.0 + Math.Abs(edge.Bulge));
 
             return Clear(line, midX - reach, midY - reach, midX + reach, midY + reach, tolerance);
+        }
+
+        /// <summary>
+        /// Whether a segment truly meets a loop that may curve: crosses its boundary, or starts in it, a start on the rim
+        /// counting as in. The distance between them is nought exactly there, as far as
+        /// straight edges go: an arc is crossed at the tolerance given.
+        /// </summary>
+        internal static bool Meets(GeoPolygonArc2 loop, GeoLine2 line, Tolerance tolerance)
+        {
+            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), line, tolerance, Exactly)
+                || Containment2.Contains(loop, line.StartPoint, Exactly);
         }
 
         /// <summary>
@@ -1197,6 +1413,17 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Whether a loop that may curve truly meets a straight chain: they cross, or the loop holds the chain's start, a
+        /// start on the rim counting as held. The distance between them is nought exactly there, as far as
+        /// straight edges go: an arc is crossed at the tolerance given.
+        /// </summary>
+        internal static bool Meets(GeoPolygonArc2 loop, GeoPolyline2 polyline, Tolerance tolerance)
+        {
+            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline), tolerance, Exactly)
+                || Containment2.Contains(loop, polyline[0], Exactly);
+        }
+
+        /// <summary>
         /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
         /// nought without measuring.
         /// </summary>
@@ -1228,6 +1455,18 @@ namespace GeometryHelper.Core
 
             return CrossesOrStartsIn(loop, polygon, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon), tolerance);
+        }
+
+        /// <summary>
+        /// Whether a loop that may curve truly meets a straight loop: they cross, or one holds a start of the other, a
+        /// start on the rim counting as held. The distance between them is nought exactly there, as far as
+        /// straight edges go: an arc is crossed at the tolerance given.
+        /// </summary>
+        internal static bool Meets(GeoPolygonArc2 loop, GeoPolygon2 polygon, Tolerance tolerance)
+        {
+            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon), tolerance, Exactly)
+                || Containment2.Contains(loop, polygon[0], Exactly)
+                || Containment2.Contains(polygon, loop[0], Exactly);
         }
 
         /// <summary>
@@ -1266,6 +1505,17 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Whether a loop that may curve truly meets a chain that may curve: they cross, or the loop holds the chain's
+        /// start, a start on the rim counting as held. The distance between them is nought exactly there, as far as
+        /// straight edges go: an arc is crossed at the tolerance given.
+        /// </summary>
+        internal static bool Meets(GeoPolygonArc2 loop, GeoPolylineArc2 chain, Tolerance tolerance)
+        {
+            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain), tolerance, Exactly)
+                || Containment2.Contains(loop, chain[0], Exactly);
+        }
+
+        /// <summary>
         /// Whether two shapes cross or one starts inside the other: where the distance between them is taken as
         /// nought without measuring.
         /// </summary>
@@ -1297,6 +1547,18 @@ namespace GeometryHelper.Core
 
             return CrossesOrStartsIn(loop, other, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other), tolerance);
+        }
+
+        /// <summary>
+        /// Whether two loops that may curve truly meet: they cross, or one holds a start of the other, a start on the rim
+        /// counting as held. The distance between them is nought exactly there, as far as
+        /// straight edges go: an arc is crossed at the tolerance given.
+        /// </summary>
+        internal static bool Meets(GeoPolygonArc2 loop, GeoPolygonArc2 other, Tolerance tolerance)
+        {
+            return ArcChain2.Cross(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other), tolerance, Exactly)
+                || Containment2.Contains(loop, other[0], Exactly)
+                || Containment2.Contains(other, loop[0], Exactly);
         }
 
         /// <summary>
