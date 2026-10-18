@@ -13,11 +13,16 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest boundary distance from this circle to a point.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPoint2 point) => Distance2.DistanceTo(this, point);
 
         /// <summary>
         /// Calculates the distance from this circle to a point, negative for a point within it.
         /// </summary>
+        /// <returns>
+        /// The distance out to the circumference, measured exactly, negative when the point lies inside the circle
+        /// and nought when the global point tolerance calls it on the circumference.
+        /// </returns>
         /// <remarks>
         /// The magnitude is the distance to the outline, whichever side of it the point is on, and the sign
         /// says which side: negative inside, nought on it, positive outside. <see cref="DistanceTo(GeoPoint2)"/>
@@ -29,72 +34,98 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the distance from this circle to a point, negative for a point within it, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// The distance out to the circumference, measured exactly, negative when the point lies inside the circle
+        /// and nought when the tolerance given calls it on the circumference.
+        /// </returns>
         public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) => Distance2.SignedDistanceTo(this, point, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this circle to an arc.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoArc2 arc) => Arc2.DistanceTo(arc, this);
 
         /// <summary>
         /// Calculates the shortest distance from this circle to an arc, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoArc2 arc, Tolerance tolerance) => Arc2.DistanceTo(arc, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this circle to a curved loop.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolygonArc2 loop) => Distance2.DistanceTo(loop, this);
 
         /// <summary>
         /// Calculates the shortest distance from this circle to a curved loop, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(loop, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this circle to a curved chain.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolylineArc2 chain) => Distance2.DistanceTo(chain, this);
 
         /// <summary>
         /// Calculates the shortest distance from this circle to a curved chain, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Distance2.DistanceTo(chain, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest boundary distance from this circle to a line segment.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point.
+        /// </returns>
         public double DistanceTo(GeoLine2 line) => Distance2.DistanceTo(this, line);
 
         /// <summary>
         /// Calculates the shortest boundary distance from this circle to another circle.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoCircle2 other) => Distance2.DistanceTo(this, other);
 
         /// <summary>
         /// Calculates the shortest boundary distance from this circle to a rectangle.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoRectangle2 rect) => Distance2.DistanceTo(this, rect);
 
         /// <summary>
         /// Calculates the shortest boundary distance from this circle to a polygon.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolygon2 poly) => Distance2.DistanceTo(this, poly);
 
         /// <summary>
         /// Calculates the shortest boundary distance from this circle to a polyline.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolyline2 polyline) => Distance2.DistanceTo(polyline, this);
 
         /// <summary>
         /// Gets the distance from this circle to an edge.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point.
+        /// </returns>
         public double DistanceTo(GeoEdge2 edge) => edge.DistanceTo(this);
 
         /// <summary>
         /// Gets the distance from this circle to an edge, within a tolerance: the same answer as
         /// <see cref="GeoEdge2.DistanceTo(GeoCircle2, Tolerance)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the tolerance given is read as its start point.
+        /// </returns>
         public double DistanceTo(GeoEdge2 edge, Tolerance tolerance) => edge.DistanceTo(this, tolerance);
 
         #region Triangles
@@ -102,6 +133,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from this circle to a triangle.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoTriangle2 triangle) => Triangle2.DistanceTo(triangle, this);
 
         #endregion
@@ -110,6 +142,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this circle to the material of a face: the same answer as
         /// <see cref="GeoFace2.DistanceTo(GeoCircle2)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this circle is nought from it where the two
         /// meet, and as far as the nearest rim where it lies wholly in a hole. The circle of radius 10 about (50,
@@ -124,6 +157,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this circle to the material of a face, within a tolerance: the same
         /// answer as <see cref="GeoFace2.DistanceTo(GeoCircle2, Tolerance)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this circle is nought from it where the two
         /// meet, and as far as the nearest rim where it lies wholly in a hole. The circle of radius 10 about (50,
@@ -139,11 +173,13 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this circle to a ray, using the default tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoRay2 ray) => Distance2.DistanceTo(this, ray);
 
         /// <summary>
         /// Calculates the shortest distance from this circle to a ray, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoRay2 ray, Tolerance tolerance) => Distance2.DistanceTo(this, ray, tolerance);
 
         #endregion

@@ -75,22 +75,56 @@ GeoPoint2[] points = poly.GetIntersections(line);
 Two shapes collide exactly where they come within the point tolerance of each other: where they cross, where
 one holds the other, or where their boundaries pass within `EqualPoint`, measured along the arcs. Closed shapes
 count as filled and open curves as curves, so the answer is the same whichever way round they are asked and
-whatever kind holds the edges. At a tolerance of a thousandth, the segment from (40, 100.01) to (60, 100.0005)
-collides with the square 100 by 100, though it ends 0.0005 above it; one ending 0.002 above does not. `DistanceTo`
-still gives the gap, 0.0005: it reads nought only where the shapes truly cross, overlap or one holds the other.
-Two segments whose corners stand 0.00156 apart therefore neither collide nor measure nought at a thousandth.
-Arcs, circles and curved chains and loops read the same way. The upper half of the circle of radius 50 about the
-origin and a segment 0.0005 above its top are 0.0005 apart at a tolerance of a thousandth, and so are two arcs whose
-tops stand 0.0005 apart; two arcs whose ends stand 0.0015 apart are 0.0015 apart and do not collide, and two arcs of
-one radius that cross 0.000005 of a radian inside both their ends are nought apart. A segment you give that is
-shorter than the tolerance is read as its start, unless it crosses an arc or an edge of a chain, which makes it nought
-from it; the sides of a polygon, rectangle, triangle, chain or loop are never read so, however short. An edge that bows so little that its chord is
-no further from it than the rounding of the centre route by which an arc places its points, a bulge under about
-1.6E-8 on an edge near the origin, is read as its chord; the edge from (0, 0) to (100, 0) of bulge 1E-7 is measured to
-its arc, and reads nought from an edge or a segment that shares its end. `GetShortestLineTo` keeps its reading of a
-touch within the tolerance, so for both it may hand back a line of no length.
-`TryIntersectWith` and `GetIntersections` still accept a crossing up to the tolerance past a segment's end,
-because they place points for cutting and extending rather than test for contact.
+whatever kind holds the edges.
+
+**`DistanceTo` reads nought only where two shapes truly meet.** That is where they cross, touch or overlap, or one holds
+the other, a point on a rim counting as held. Everywhere else it is the gap, measured exactly however small, and the
+same whichever way round it is asked. A collision is therefore a distance of at most `EqualPoint`, and a gap smaller
+than that collides without being nought. Measured, at a tolerance of a thousandth:
+
+* **Straight shapes.** The segment from (40, 100.01) to (60, 100.0005) collides with the square 100 by 100, though it
+  ends 0.0005 above it, and is 0.0005 from it; one ending 0.002 above does not collide and is 0.002 from it. Two segments
+  whose corners stand 0.00156 apart neither collide nor measure nought.
+* **Arcs and circles.** The upper half of the circle of radius 50 about the origin and a segment 0.0005 above its top
+  are 0.0005 apart, and so are two arcs whose tops stand 0.0005 apart; two arcs whose ends stand 0.0015 apart are 0.0015
+  apart and do not collide, and two arcs of one radius that cross 0.000005 of a radian inside both their ends are nought
+  apart. An edge that bows so little that its chord is no further from it than the rounding of the centre route by which
+  an arc places its points, a bulge under about 1.6E-8 on an edge near the origin, is read as its chord; the edge from
+  (0, 0) to (100, 0) of bulge 1E-7 is measured to its arc, and reads nought from an edge or a segment that shares its end.
+* **Chains and loops** are measured on their arcs. The chain from (-60, 0) to (-50, 0) and then by a bulge of 1 to
+  (50, 0) is 49.9991 from the point (0, -0.0009), which lies 0.0009 from the centre of its arc.
+* **Triangles** are read by their own sides, however thin. The triangle (0, 0), (0, 1), (0.08, 1) is 0.07 from the
+  segment along y = 0.5 that ends at x = -0.07, and collides with it at a tolerance of 0.1, though its top is narrower
+  than that; the sliver (0, 0), (10, 0), (0, 0.0005) holds the point (1, 0.0001), at distance nought.
+* **Ellipses** read the same way, see [Ellipses](#ellipses), whose near-tangency paragraph says where the answer is only
+  exact to about 1E-6. The ellipse 60 by 25 is 0.0005 from a polyline starting 0.0005 off its end.
+
+**Where two shapes truly touch, the distance can read a rounding residue in place of 0**, at most about 1E-13 times the
+largest coordinate or radius in the scene (the audit's worst was 4.7E-11, an arc against a flat arc in a scene 150 000
+across, 3.2E-16 of its size). Compare a distance with a tolerance, with
+`d <= tolerance.EqualPoint` or with `CollidesWith`, and never with `== 0`.
+
+**A segment you give, shorter than the point tolerance, is read as its start.** `DistanceTo` and the collisions that rest on
+it read a `GeoLine2`, or a straight `GeoEdge2`, no longer than `EqualPoint` as the point at its start when it does not meet
+the other shape: against a segment, a ray, a polyline, a polygon, a rectangle, a triangle, a loop, a chain, an arc and a
+circle. A stub that crosses a side of a polygon, a rectangle or a polyline, an edge of a chain or a loop, or an arc, is
+nought from it, as any crossing is; against a segment, a ray, a circle or a straight `GeoEdge2` it stays its start; a face
+measures it as it is. The sides of a shape, those of a polygon, rectangle, triangle, chain, loop or face, are never read
+so, however short, whatever the tolerance: the polygon (0, 0), (0, -50), (0.004, -50), (0.004, 0) is 0.006 from the
+segment that runs up from (0.002, 0.006), at a global tolerance of 0.01 as at 0.00001, and not the 0.00632 it is from
+the corner at (0, 0). A rectangle 0.0005 wide, thinner than the default tolerance, is measured by its four sides against
+an arc, a chain and a loop as it is against a segment.
+
+#### What the projections keep
+
+`GetClosestPointOnBoundary` and `GetShortestLineTo` are projections, and keep two older readings, so their segment is as
+long as `DistanceTo` except in these cases. Where two shapes come within the tolerance without meeting, the segment may
+be one of no length, a touch. And a point within the tolerance of the centre of an arc, which has no direction, is carried to
+the arc's start, so the segment can be longer than the distance, by at most twice the point's offset from the centre:
+from (0, -0.0009) to the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50), it runs from
+(-50, 0) and is 50.00000001 long, where the distance is 49.9991. `TryIntersectWith` and `GetIntersections` still accept a
+crossing up to the tolerance past a segment's end, because they place points for cutting and extending rather than test
+for contact.
 
 The straight shapes and the curved ones are pairs like any other, in either order and for measuring as
 well as meeting:
@@ -136,8 +170,7 @@ The distance reads the face the same way, by its material. It is nought where th
 gap between their boundaries, so a shape in a hole is measured to the hole's rim and one outside to the outline.
 The gap is measured exactly: at a tolerance of a thousandth, a triangle whose tip stands 0.0012 off a corner of
 the plate is 0.0012 away and does not collide with it, and a circle 0.0005 off is 0.0005 away and does.
-`GetShortestLineTo` keeps the segments' end slack of the rule above and the old reading of a touch, so for both it
-may hand back a line of no length.
+`GetShortestLineTo` keeps the older reading of a touch, see [what the projections keep](#what-the-projections-keep).
 Two faces collide where their materials meet; a face lying in the other's hole does not:
 
 ```csharp
@@ -195,7 +228,7 @@ GeoEdge2 curved = slot.GetClosestEdge(circle);          // a GeoEdge2: the neare
 `GetShortestLineTo` measures **boundary to boundary**, so a shape lying wholly inside a closed one still
 reports the gap out to the outline. `DistanceTo` reads a closed shape as a filled region and answers
 nothing at all for that same pair. The two disagree there on purpose; everywhere else the segment is
-exactly as long as the distance.
+as long as the distance, but for the two cases in [what the projections keep](#what-the-projections-keep).
 
 ```csharp
 var plate = new GeoRectangle2(0, 0, 100, 100);
@@ -488,8 +521,8 @@ Region operations, the booleans and the offsets alike, are resolved by [Clipper2
 `GeoTriangle2` is the triangle of the plane, as `GeoTriangle3` is the triangle of space. It has its signed area and
 winding, perimeter, centroid and angles, its circumcircle and incircle, barycentric coordinates, and where a point is.
 It stands in the matrix of the plane as `GeoRectangle2` does, every shape asking it the questions it asks any other, and
-answers them as the polygon of its corners does. A triangle whose corners stand on each other answers as the segment it
-is.
+answers them as the polygon of its corners does, by its own sides however short or thin: only a triangle whose corners
+coincide exactly answers as the segment it is.
 
 ```csharp
 var t = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(0, 3));

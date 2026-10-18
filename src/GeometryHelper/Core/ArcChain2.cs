@@ -547,6 +547,27 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the exact distance from an edge of a shape to a segment a caller gave: the edge is the edge it is however
+        /// short, and the segment, if no longer than the tolerance, is read as its start point where it does not cross.
+        /// </summary>
+        internal static double GapOfSide(GeoEdge2 edge, GeoLine2 line, Tolerance tolerance)
+        {
+            if (!edge.IsArc)
+            {
+                return Distance2.DistanceToSide(edge.ToLine(), line, tolerance);
+            }
+
+            GeoArc2 arc = edge.ToArc();
+
+            if (Chord(edge, arc, out GeoLine2 chord))
+            {
+                return Distance2.DistanceToSide(chord, line, tolerance);
+            }
+
+            return Gap(edge, arc, line, tolerance);
+        }
+
+        /// <summary>
         /// Gets the exact distance from an edge to an arc: nought only where they truly meet.
         /// </summary>
         internal static double Gap(GeoEdge2 edge, GeoArc2 arc, Tolerance tolerance)
@@ -666,7 +687,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoEdge2 edge in edges)
             {
-                double distance = edge.DistanceTo(line, tolerance);
+                double distance = GapOfSide(edge, line, tolerance);
 
                 if (distance < best)
                 {

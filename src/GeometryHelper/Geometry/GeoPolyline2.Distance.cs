@@ -15,66 +15,85 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest Euclidean distance from this polyline to a point.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPoint2 point) => Distance2.DistanceTo(this, point);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to a line segment.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         public double DistanceTo(GeoLine2 line) => Distance2.DistanceTo(this, line);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to a rectangle.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoRectangle2 rect) => Distance2.DistanceTo(this, rect);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to a circle.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoCircle2 circle) => Distance2.DistanceTo(this, circle);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to a polygon.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolygon2 poly) => Distance2.DistanceTo(this, poly);
 
         /// <summary>
         /// Calculates the shortest distance between two polylines.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolyline2 other) => Distance2.DistanceTo(this, other);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to an arc.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoArc2 arc) => Distance2.DistanceTo(this, arc);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to an arc, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoArc2 arc, Tolerance tolerance) => Distance2.DistanceTo(this, arc, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to a curved loop.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolygonArc2 loop) => Distance2.DistanceTo(loop, this);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to a curved loop, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(loop, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to a curved chain.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolylineArc2 chain) => Distance2.DistanceTo(chain, this);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to a curved chain, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Distance2.DistanceTo(chain, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this polyline to an edge.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         public double DistanceTo(GeoEdge2 edge) => ArcChain2.Edge(edge, DistanceTo, DistanceTo, DistanceTo);
 
         #region Triangles
@@ -82,6 +101,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from this polyline to a triangle.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoTriangle2 triangle) => Triangle2.DistanceTo(triangle, this);
 
         #endregion
@@ -90,6 +110,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this polyline to the material of a face: the same answer as
         /// <see cref="GeoFace2.DistanceTo(GeoPolyline2)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this polyline is nought from it where the
         /// two meet, and as far as the nearest rim where it lies wholly in a hole. The chain (40, 40), (60, 40),
@@ -103,6 +124,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this polyline to the material of a face, within a tolerance: the same
         /// answer as <see cref="GeoFace2.DistanceTo(GeoPolyline2, Tolerance)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this polyline is nought from it where the
         /// two meet, and as far as the nearest rim where it lies wholly in a hole. The chain (40, 40), (60, 40),
@@ -117,11 +139,13 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this polyline to a ray, using the default tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoRay2 ray) => Distance2.DistanceTo(this, ray);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to a ray, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoRay2 ray, Tolerance tolerance) => Distance2.DistanceTo(this, ray, tolerance);
 
         #endregion

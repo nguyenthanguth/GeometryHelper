@@ -14,6 +14,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this face to a point.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read as filled, so a point on the material is nought away and a point in one of
         /// its holes is measured to the rim it sits in.
@@ -23,11 +24,16 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this face to a point, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPoint2 point, Tolerance tolerance) => Distance2.DistanceTo(this, point, tolerance);
 
         /// <summary>
         /// Calculates the distance from this face to a point, negative for a point on the material.
         /// </summary>
+        /// <returns>
+        /// The distance out to the nearest edge, its outline or the rim of a hole, measured exactly, negative when the
+        /// point lies on the material and nought when the global point tolerance calls it on an edge.
+        /// </returns>
         /// <remarks>
         /// The magnitude is the distance to the boundary, whichever side of it the point is on, and the sign
         /// says which side: negative on the material, nought on an edge, positive off it.
@@ -40,11 +46,16 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the distance from this face to a point, negative for a point on the material, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// The distance out to the nearest edge, its outline or the rim of a hole, measured exactly, negative when the
+        /// point lies on the material and nought when the tolerance given calls it on an edge.
+        /// </returns>
         public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) => Distance2.SignedDistanceTo(this, point, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from the material of this face to an arc.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The upper half of the
@@ -56,6 +67,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to an arc, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The upper
@@ -67,6 +79,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a circle.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The circle of radius
@@ -79,6 +92,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a circle, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The circle
@@ -91,6 +105,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to an edge.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The straight edge from
@@ -102,6 +117,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to an edge, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The straight
@@ -113,6 +129,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a segment.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The segment from (40,
@@ -125,6 +142,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a segment, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The segment
@@ -137,6 +155,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a polygon.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The square 20 by 20
@@ -149,6 +168,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a polygon, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The
@@ -162,6 +182,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a curved loop.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The loop with
@@ -174,6 +195,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a curved loop, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The
@@ -186,6 +208,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a polyline.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The chain (40, 40),
@@ -198,6 +221,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a polyline, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The
@@ -211,6 +235,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a curved chain.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The straight
@@ -223,6 +248,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a curved chain, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The
@@ -236,6 +262,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a rectangle.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The rectangle 20
@@ -247,6 +274,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a rectangle, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The
@@ -258,6 +286,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a triangle.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The triangle (40,
@@ -269,6 +298,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a triangle, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. The
@@ -281,6 +311,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance between the materials of this face and another.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. A square 20 by 20 about
@@ -293,6 +324,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance between the materials of this face and another, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes: nought where the two meet, otherwise the
         /// gap between the boundaries, measured exactly. A square 20
@@ -307,11 +339,13 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from the material of this face to a ray, using the default tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoRay2 ray) => Face2.DistanceTo(this, ray);
 
         /// <summary>
         /// Gets the distance from the material of this face to a ray, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoRay2 ray, Tolerance tolerance) => Face2.DistanceTo(this, ray, tolerance);
 
         #endregion

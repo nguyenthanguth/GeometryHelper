@@ -80,7 +80,7 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoRectangle2 rect, GeoArc2 arc, Tolerance tolerance)
         {
-            return GetIntersections(rect.ToPolygon(), arc, tolerance);
+            return GetIntersections(rect.ToPolygonBySides(), arc, tolerance);
         }
 
         /// <summary>
@@ -95,7 +95,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return GetIntersections(loop, rect.ToPolygon(), tolerance);
+            return GetIntersections(loop, rect.ToPolygonBySides(), tolerance);
         }
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return GetIntersections(chain, rect.ToPolygon(), tolerance);
+            return GetIntersections(chain, rect.ToPolygonBySides(), tolerance);
         }
     }
 }

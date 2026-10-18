@@ -128,7 +128,7 @@ namespace GeometryHelper.Core
             double minDistance = double.MaxValue;
             for (int i = 0; i < poly.EdgeCount; i++)
             {
-                double d = DistanceTo(poly.GetEdgeAt(i), cut, tolerance);
+                double d = DistanceToSide(poly.GetEdgeAt(i), cut, tolerance);
                 if (d < minDistance) minDistance = d;
             }
             return minDistance;
@@ -182,7 +182,7 @@ namespace GeometryHelper.Core
             double minDistance = double.MaxValue;
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
-                double d = DistanceTo(polyline.GetEdgeAt(i), cut, tolerance);
+                double d = DistanceToSide(polyline.GetEdgeAt(i), cut, tolerance);
                 if (d < minDistance) minDistance = d;
             }
             return minDistance;
@@ -231,7 +231,7 @@ namespace GeometryHelper.Core
             double minDistance = double.MaxValue;
             foreach (GeoLine2 edge in rect.GetEdges())
             {
-                double d = DistanceTo(edge, cut, tolerance);
+                double d = DistanceToSide(edge, cut, tolerance);
                 if (d < minDistance) minDistance = d;
             }
             return minDistance;

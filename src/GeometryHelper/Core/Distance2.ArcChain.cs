@@ -64,7 +64,7 @@ namespace GeometryHelper.Core
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoRectangle2 rect, GeoArc2 arc, Tolerance tolerance)
         {
-            return DistanceTo(rect.ToPolygon(), arc, tolerance);
+            return DistanceTo(rect.ToPolygonBySides(), arc, tolerance);
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace GeometryHelper.Core
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoRectangle2 rect, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            return DistanceTo(loop, rect.ToPolygon(), tolerance);
+            return DistanceTo(loop, rect.ToPolygonBySides(), tolerance);
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace GeometryHelper.Core
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoRectangle2 rect, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            return DistanceTo(chain, rect.ToPolygon(), tolerance);
+            return DistanceTo(chain, rect.ToPolygonBySides(), tolerance);
         }
     }
 }

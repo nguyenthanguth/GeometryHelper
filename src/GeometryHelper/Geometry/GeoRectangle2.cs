@@ -201,6 +201,16 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Converts this rectangle into the polygon of its four corners as they stand, for measuring and colliding it
+        /// against a curve: the corners are not merged against the global tolerance as <see cref="ToPolygon"/> merges
+        /// them, so a rectangle 0.0005 wide, thinner than the default tolerance, keeps its four corners and its sides.
+        /// </summary>
+        internal GeoPolygon2 ToPolygonBySides()
+        {
+            return new GeoPolygon2(GetVertices(), 4);
+        }
+
+        /// <summary>
         /// Converts this rectangle's boundary into a closed 2D GeoPolyline2.
         /// The boundary is closed by repeating the first vertex at the end of the chain.
         /// </summary>
@@ -669,8 +679,11 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public bool IsEqualTo(GeoRectangle2 other, Tolerance tolerance)
         {
-            return ToPolygon().IsEqualTo(other.ToPolygon(), tolerance)
-                || ToPolygon().IsEqualTo(new GeoPolygon2(other.ToPolygon().Vertices.Reverse().ToArray()), tolerance);
+            GeoPolygon2 mine = ToPolygonBySides();
+            GeoPolygon2 theirs = other.ToPolygonBySides();
+
+            return mine.IsEqualTo(theirs, tolerance)
+                || mine.IsEqualTo(new GeoPolygon2(theirs.Vertices.Reverse().ToArray(), 4), tolerance);
         }
     }
 }

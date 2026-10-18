@@ -103,6 +103,33 @@ namespace GeometryHelper.Core
             return Math.Min(Math.Min(d1, d2), Math.Min(d3, d4));
         }
 
+        /// <summary>
+        /// Calculates the shortest distance between one side of a shape and a segment a caller gave: the side is the side
+        /// it is however short, and the segment, if no longer than the tolerance, is read as its start point where it
+        /// does not cross.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="DistanceTo(GeoLine2, GeoLine2, Tolerance)"/> reads both of its segments so, which is right for two
+        /// segments a caller gave and wrong for a side of a polygon, a rectangle or a chain: the side from (0, 0) to
+        /// (0.004, 0) of a polygon, at a tolerance of 0.01, would measure as its start point, and a segment leaving
+        /// (0.002, 0.006) would read 0.00632 from it, not 0.006. Crossing is read with no slack, and a segment that
+        /// crosses a side is nought from it however short, as it is from the shape.
+        /// </remarks>
+        internal static double DistanceToSide(GeoLine2 side, GeoLine2 line, Tolerance tolerance)
+        {
+            if (Projection2.TryGetCrossingPoint(side, line, Exactly, false, out _))
+            {
+                return 0.0;
+            }
+
+            double d1 = DistanceTo(side, line.StartPoint, Exactly);
+            double d2 = DistanceTo(side, line.EndPoint, Exactly);
+            double d3 = DistanceTo(line, side.StartPoint, tolerance);
+            double d4 = DistanceTo(line, side.EndPoint, tolerance);
+
+            return Math.Min(Math.Min(d1, d2), Math.Min(d3, d4));
+        }
+
         #endregion
 
         #region Circle - Shapes
@@ -244,7 +271,7 @@ namespace GeometryHelper.Core
 
             foreach (var re in rectEdges)
             {
-                double d = DistanceTo(re, line);
+                double d = DistanceToSide(re, line, Tolerance.Global);
                 if (d < minDistance) minDistance = d;
             }
 
@@ -366,7 +393,7 @@ namespace GeometryHelper.Core
             double minDistance = double.MaxValue;
             for (int i = 0; i < poly.EdgeCount; i++)
             {
-                double d = DistanceTo(poly.GetEdgeAt(i), line);
+                double d = DistanceToSide(poly.GetEdgeAt(i), line, Tolerance.Global);
                 if (d < minDistance) minDistance = d;
             }
             return minDistance;
@@ -389,7 +416,8 @@ namespace GeometryHelper.Core
                 GeoLine2 e1 = poly1.GetEdgeAt(i);
                 for (int j = 0; j < poly2.EdgeCount; j++)
                 {
-                    double d = DistanceTo(e1, poly2.GetEdgeAt(j));
+                    // Sides of two shapes, not a caller's segment: a side shorter than the tolerance is the side it is.
+                    double d = DistanceTo(e1, poly2.GetEdgeAt(j), Exactly);
                     if (d < minDistance) minDistance = d;
                 }
             }
@@ -412,7 +440,7 @@ namespace GeometryHelper.Core
 
             // A polyline is a curve, not a region, so only its path counts: a point sitting in the mouth
             // of a horseshoe is at its distance from the path, never at zero.
-            return DistanceTo(point, Projection2.ProjectToPolyline(polyline, point));
+            return DistanceTo(point, Projection2.ProjectToPolyline(polyline, point, Exactly));
         }
 
         /// <summary>
@@ -435,7 +463,7 @@ namespace GeometryHelper.Core
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
                 GeoLine2 edge = polyline.GetEdgeAt(i);
-                double d = DistanceTo(edge, line);
+                double d = DistanceToSide(edge, line, Tolerance.Global);
                 if (d < minDistance) minDistance = d;
             }
 
@@ -478,7 +506,7 @@ namespace GeometryHelper.Core
                 GeoLine2 pe = polyline.GetEdgeAt(i);
                 foreach (var re in rectEdges)
                 {
-                    double d = DistanceTo(pe, re);
+                    double d = DistanceTo(pe, re, Exactly);
                     if (d < minDistance) minDistance = d;
                 }
             }
@@ -502,7 +530,7 @@ namespace GeometryHelper.Core
                 GeoLine2 ple = polyline.GetEdgeAt(i);
                 for (int j = 0; j < poly.EdgeCount; j++)
                 {
-                    double d = DistanceTo(ple, poly.GetEdgeAt(j));
+                    double d = DistanceTo(ple, poly.GetEdgeAt(j), Exactly);
                     if (d < minDistance) minDistance = d;
                 }
             }
@@ -524,7 +552,7 @@ namespace GeometryHelper.Core
             double minDistance = double.MaxValue;
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
-                double d = DistanceTo(circle, polyline.GetEdgeAt(i));
+                double d = DistanceTo(circle, polyline.GetEdgeAt(i), Exactly);
                 if (d < minDistance) minDistance = d;
             }
             return minDistance;
@@ -547,7 +575,7 @@ namespace GeometryHelper.Core
                 GeoLine2 e1 = pl1.GetEdgeAt(i);
                 for (int j = 0; j < pl2.EdgeCount; j++)
                 {
-                    double d = DistanceTo(e1, pl2.GetEdgeAt(j));
+                    double d = DistanceTo(e1, pl2.GetEdgeAt(j), Exactly);
                     if (d < minDistance) minDistance = d;
                 }
             }

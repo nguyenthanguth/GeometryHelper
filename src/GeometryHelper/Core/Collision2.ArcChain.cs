@@ -145,7 +145,7 @@ namespace GeometryHelper.Core
         /// </summary>
         public static bool CollidesWith(GeoRectangle2 rect, GeoArc2 arc, Tolerance tolerance)
         {
-            return CollidesWith(rect.ToPolygon(), arc, tolerance);
+            return CollidesWith(rect.ToPolygonBySides(), arc, tolerance);
         }
 
         /// <summary>
@@ -160,7 +160,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return CollidesWith(loop, rect.ToPolygon(), tolerance);
+            return CollidesWith(loop, rect.ToPolygonBySides(), tolerance);
         }
 
         /// <summary>
@@ -175,7 +175,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return CollidesWith(chain, rect.ToPolygon(), tolerance);
+            return CollidesWith(chain, rect.ToPolygonBySides(), tolerance);
         }
     }
 }

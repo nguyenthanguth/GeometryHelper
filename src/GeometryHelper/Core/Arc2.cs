@@ -501,7 +501,8 @@ namespace GeometryHelper.Core
         {
             if (TryChord(arc, out GeoLine2 chord))
             {
-                return Distance2.DistanceTo(chord, line, tolerance);
+                // The chord is the arc's own side, however short; only the segment is read as its start point.
+                return Distance2.DistanceToSide(chord, line, tolerance);
             }
 
             return Bowed(arc, line, tolerance);

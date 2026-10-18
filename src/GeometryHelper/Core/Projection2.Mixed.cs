@@ -146,7 +146,7 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="rect"/> and landing on <paramref name="arc"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoRectangle2 rect, GeoArc2 arc, Tolerance tolerance)
         {
-            return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(rect.ToPolygon()), arc, tolerance);
+            return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(rect.ToPolygonBySides()), arc, tolerance);
         }
 
         /// <summary>
@@ -165,7 +165,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return GetShortestLineTo(loop, rect.ToPolygon(), tolerance).Reverse();
+            return GetShortestLineTo(loop, rect.ToPolygonBySides(), tolerance).Reverse();
         }
 
         /// <summary>
@@ -184,7 +184,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return GetShortestLineTo(chain, rect.ToPolygon(), tolerance).Reverse();
+            return GetShortestLineTo(chain, rect.ToPolygonBySides(), tolerance).Reverse();
         }
 
         #endregion

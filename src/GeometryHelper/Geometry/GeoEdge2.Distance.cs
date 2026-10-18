@@ -11,34 +11,56 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from the edge to a point.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point.
+        /// </returns>
         public double DistanceTo(GeoPoint2 point) => DistanceTo(point, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from the edge to a point, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the tolerance given is read as its start point.
+        /// </returns>
         public double DistanceTo(GeoPoint2 point, Tolerance tolerance)
             => IsArc ? Core.Arc2.DistanceTo(ToArc(), point, tolerance) : point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
 
         /// <summary>
         /// Gets the distance from the edge to a straight segment.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point, except where it crosses an edge that is an arc.
+        /// </returns>
         public double DistanceTo(GeoLine2 line) => DistanceTo(line, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from the edge to a straight segment, within a tolerance.
         /// </summary>
-        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the tolerance given is read as its start point, except where it crosses an edge that is an arc.
+        /// </returns>
         public double DistanceTo(GeoLine2 line, Tolerance tolerance) => Core.ArcChain2.Gap(this, line, tolerance);
 
         /// <summary>
         /// Gets the distance from the edge to another edge.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point.
+        /// </returns>
         public double DistanceTo(GeoEdge2 other) => DistanceTo(other, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from the edge to another edge, within a tolerance.
         /// </summary>
-        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the tolerance given is read as its start point.
+        /// </returns>
         /// <remarks>
         /// Four cases, and each is answered exactly rather than by cutting the arcs up: segment to segment,
         /// segment to arc either way round, and arc to arc.
@@ -48,11 +70,19 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from the edge to a circle.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point.
+        /// </returns>
         public double DistanceTo(GeoCircle2 circle) => DistanceTo(circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from the edge to a circle, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the tolerance given is read as its start point.
+        /// </returns>
         public double DistanceTo(GeoCircle2 circle, Tolerance tolerance)
         {
             // The circle is the disc it bounds, whichever the edge is: a straight edge goes the way a segment
@@ -65,11 +95,19 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from the edge to an arc.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         public double DistanceTo(GeoArc2 arc) => DistanceTo(arc, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from the edge to an arc, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the tolerance given is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         /// <remarks>
         /// The arc is taken as it is rather than as an edge, so one sweeping a whole turn is measured
         /// against too.
@@ -79,36 +117,64 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from this edge to a polygon.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         public double DistanceTo(GeoPolygon2 poly) => (poly ?? throw new ArgumentNullException(nameof(poly))).DistanceTo(this);
 
         /// <summary>
         /// Gets the distance from this edge to a curved loop.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         public double DistanceTo(GeoPolygonArc2 loop) => DistanceTo(loop, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from this edge to a curved loop, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the tolerance given is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => (loop ?? throw new ArgumentNullException(nameof(loop))).DistanceTo(this, tolerance);
 
         /// <summary>
         /// Gets the distance from this edge to a polyline.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         public double DistanceTo(GeoPolyline2 polyline) => (polyline ?? throw new ArgumentNullException(nameof(polyline))).DistanceTo(this);
 
         /// <summary>
         /// Gets the distance from this edge to a curved chain.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         public double DistanceTo(GeoPolylineArc2 chain) => DistanceTo(chain, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from this edge to a curved chain, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the tolerance given is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => (chain ?? throw new ArgumentNullException(nameof(chain))).DistanceTo(this, tolerance);
 
         /// <summary>
         /// Gets the distance from this edge to a rectangle.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         public double DistanceTo(GeoRectangle2 rect) => rect.DistanceTo(this);
 
         #region Triangles
@@ -116,6 +182,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from this edge to a triangle.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point, except where it crosses a side or an arc.
+        /// </returns>
         public double DistanceTo(GeoTriangle2 triangle) => Triangle2.DistanceTo(triangle, this);
 
         #endregion
@@ -124,6 +194,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this edge to the material of a face: the same answer as
         /// <see cref="GeoFace2.DistanceTo(GeoEdge2)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this edge is nought from it where the two
         /// meet, and as far as the nearest rim where it lies wholly in a hole. The straight edge from (40, 50) to
@@ -137,6 +208,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this edge to the material of a face, within a tolerance: the same
         /// answer as <see cref="GeoFace2.DistanceTo(GeoEdge2, Tolerance)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material, its outline less its holes, so this edge is nought from it where the two
         /// meet, and as far as the nearest rim where it lies wholly in a hole. The straight edge from (40, 50) to
@@ -151,11 +223,19 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from the edge to a ray.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the global point tolerance is read as its start point.
+        /// </returns>
         public double DistanceTo(GeoRay2 ray) => DistanceTo(ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from the edge to a ray, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
+        /// than the tolerance given is read as its start point.
+        /// </returns>
         public double DistanceTo(GeoRay2 ray, Tolerance tolerance)
         {
             return Core.ArcChain2.Straight(this, out GeoLine2 straight)
