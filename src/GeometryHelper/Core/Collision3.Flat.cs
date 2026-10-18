@@ -137,7 +137,7 @@ namespace GeometryHelper.Core
         /// apart, which the gap itself takes, and the planar tolerance more, for a polygon or a face is read flat in its plane and
         /// its corners may stand that far off it, outside the box they make.
         /// </summary>
-        private static double Reach(Tolerance tolerance) => tolerance.EqualPoint * (1.0 + 1E-6) + tolerance.EqualPlanar;
+        internal static double Reach(Tolerance tolerance) => tolerance.EqualPoint * (1.0 + 1E-6) + tolerance.EqualPlanar;
 
         #endregion
 

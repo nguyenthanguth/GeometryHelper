@@ -25,7 +25,7 @@ namespace GeometryHelper.Core
     /// shape off the plane by less than the planar tolerance is as far in space as it is.
     /// </para>
     /// </remarks>
-    internal static class Gap3
+    internal static partial class Gap3
     {
         /// <summary>
         /// A tolerance of nought: a point on a rim counts as inside, and one a hair outside does not.
@@ -610,6 +610,88 @@ namespace GeometryHelper.Core
                 _hz = box.ExtentZ;
             }
 
+            /// <summary>Reads an axis-aligned box.</summary>
+            internal Block(GeoAabb3 box)
+            {
+                _centre = box.Center;
+                _x = GeoVector3.XAxis;
+                _y = GeoVector3.YAxis;
+                _z = GeoVector3.ZAxis;
+                _hx = 0.5 * (box.Max.X - box.Min.X);
+                _hy = 0.5 * (box.Max.Y - box.Min.Y);
+                _hz = 0.5 * (box.Max.Z - box.Min.Z);
+            }
+
+            /// <summary>
+            /// Determines whether the box holds a point, its surface included, with no slack.
+            /// </summary>
+            internal bool Holds(GeoPoint3 point) => Outside(Local(point)) <= 0.0;
+
+            /// <summary>
+            /// Gets how far a point is from the box: nought in it or on it.
+            /// </summary>
+            internal double Distance(GeoPoint3 point) => Outside(Local(point));
+
+            /// <summary>
+            /// Gets the faces of the box as regions made straight from its corners, each as two triangles: a face of no area is
+            /// the segment or the point it has become, and a box that thin is still read.
+            /// </summary>
+            /// <remarks>
+            /// The body of the box (<see cref="GeoObb3.ToSolid"/>) refuses a face too small to be a polygon, which a box thinner
+            /// than the tolerance has.
+            /// </remarks>
+            internal Region[] Faces()
+            {
+                var faces = new Region[12];
+                int n = 0;
+
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    for (int side = -1; side <= 1; side += 2)
+                    {
+                        GeoPoint3 a = Corner(axis, side, -1, -1);
+                        GeoPoint3 b = Corner(axis, side, 1, -1);
+                        GeoPoint3 c = Corner(axis, side, 1, 1);
+                        GeoPoint3 d = Corner(axis, side, -1, 1);
+
+                        faces[n++] = Region.Of(new GeoTriangle3(a, b, c));
+                        faces[n++] = Region.Of(new GeoTriangle3(a, c, d));
+                    }
+                }
+
+                return faces;
+            }
+
+            /// <summary>
+            /// Gets a corner of the face of the box standing at a side of an axis: the other two coordinates at either end of
+            /// their extents, in the order of the axes.
+            /// </summary>
+            private GeoPoint3 Corner(int axis, int side, int first, int second)
+            {
+                double x, y, z;
+
+                if (axis == 0)
+                {
+                    x = side * _hx;
+                    y = first * _hy;
+                    z = second * _hz;
+                }
+                else if (axis == 1)
+                {
+                    x = first * _hx;
+                    y = side * _hy;
+                    z = second * _hz;
+                }
+                else
+                {
+                    x = first * _hx;
+                    y = second * _hy;
+                    z = side * _hz;
+                }
+
+                return _centre.Add(_x.Multiply(x)).Add(_y.Multiply(y)).Add(_z.Multiply(z));
+            }
+
             /// <summary>
             /// Gets the gap between a segment and the box.
             /// </summary>
@@ -850,6 +932,20 @@ namespace GeometryHelper.Core
             /// <summary>Gets where a side of the rim ends.</summary>
             internal GeoPoint3 EdgeTo(int index)
                 => _isTriangle ? (index == 0 ? _b : index == 1 ? _c : _a) : Rim[index].EndPoint;
+
+            /// <summary>
+            /// Gets the unit normal of the plane the region is read in; a triangle with no area has none.
+            /// </summary>
+            internal GeoVector3 UnitNormal => _isTriangle ? _normal.Multiply(1.0 / _normal.Length) : _frame.ZAxis;
+
+            /// <summary>
+            /// Gets how far the corners of the region stand off the plane it is read in: nought for a triangle, which is flat, and
+            /// for the corners a polygon or face is read flat past.
+            /// </summary>
+            internal double PlaneSlack => _isTriangle ? 0.0 : Offset();
+
+            /// <summary>Gets a point of the plane the region is read in.</summary>
+            internal GeoPoint3 PlaneOrigin => _isTriangle ? _a : _frame.Origin;
 
             /// <summary>
             /// The sides of a polygon or a face, made when first asked: a region plainly clear of what it is weighed against is

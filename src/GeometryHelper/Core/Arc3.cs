@@ -449,10 +449,20 @@ namespace GeometryHelper.Core
         /// Determines whether an arc touches a segment, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// Neither has an inside, so they touch only where they cross.
+        /// Neither has an inside, so they touch where the exact gap between them is no more than the point tolerance, in
+        /// space and in whatever plane they lie: the arc of radius 50 about the origin from (50, 0, 0) a quarter turn
+        /// counter-clockwise touches the segment from (50.0005, 0, 0) to (80, 0, 0), 0.0005 off its start, and not the one
+        /// from (50.0015, 0, 0), and the one from (20, 40, 0.0003) to (40, 40, 0.0003), hovering 0.0003 over the arc where
+        /// it crosses (30, 40), touches it. A segment no longer than the tolerance is read as its start unless it truly
+        /// meets the arc.
         /// </remarks>
         public static bool CollidesWith(GeoArc3 arc, GeoLine3 line, Tolerance tolerance)
-            => GetIntersections(arc, line, tolerance).Length > 0;
+        {
+            Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+            return Gap3.BoxGap(line.StartPoint, line.EndPoint, curve.Box) <= Collision3.Reach(tolerance)
+                && curve.GapToCallersSegment(line.StartPoint, line.EndPoint, tolerance) <= tolerance.EqualPoint;
+        }
 
         /// <summary>
         /// Tries to find where an arc crosses a segment.
@@ -506,8 +516,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether an arc touches a ray, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// They touch where the exact gap between them is no more than the point tolerance, as for a segment.
+        /// </remarks>
         public static bool CollidesWith(GeoArc3 arc, GeoRay3 ray, Tolerance tolerance)
-            => GetIntersections(arc, ray, tolerance).Length > 0;
+            => Gap3.Curve.Of(arc).GapToRay(ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Tries to find where an arc crosses a ray.

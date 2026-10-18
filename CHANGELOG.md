@@ -45,6 +45,35 @@ a plane still reads its corners within the point tolerance as on it, so a plane 
 A point within a billionth of a millimetre outside a body reads as in it, so that rounding in a turned body cannot lose a
 crossing: a point 5E-10 outside a box is nought away. `CollidesWith` between two triangles, which the clash reads, is
 unchanged and decides a pair standing exactly the tolerance apart by its own margin.
+
+**FIXED.** Arcs, circles, curved chains and curved loops in space collide with another shape exactly where the gap between
+them in space is within the point tolerance, in whatever plane they lie, lifted or tilted out of it; one case is searched
+and not proved, below. A straight side facing the middle of an arc, its edge parallel to the arc's tangent, was missed at
+half a tolerance though a segment coming at it end first collided (across the top of an arc of radius 50, at
+y = 50.0005), and an arc whose end stood 0.0012 off a square's corner collided with it. The audit of 265 968 near-contact
+records against a 50-digit oracle found 7 950 wrong collisions among curved shapes at a69069e and finds none now, and
+130 000 pairs of arcs and 60 000 arcs against a segment, ray, triangle, polygon, face or box, judged by a bounded search
+in doubles, find none wrong. A segment along an arc's tangent, lifted over its plane by 0.0009 half a turn round a circle
+of radius 10 000 whose centre is 10 000 from the origin, read 1.2 away and lost its collision, and one touching a circle
+of radius 2000 read 6E-6 off: the roots of the distance along the arc coincide there, and a step toward one carried the
+candidate away; every candidate is kept as it came and the distance is minimised round the doubled ones. The angle is
+measured from the middle of the arc's sweep, where z = tan(t / 2) is not infinite inside it, and an arc over a half turn is
+solved a second time from a quarter turn on: a segment a hair off half a turn round, tilted a few millionths, on a circle of
+radius 40 000 or more, read up to 7E-6 too far and lost up to 11 collisions in 40 000 cases, and reads true now. The one case
+searched, not proved, is two partial arcs lying nearly on one axis whose distance stays almost constant just beyond the
+tolerance, where the proof by halving outruns its budget and the arcs are walked at a thirtieth of a radian with every low
+point polished; the exactly coaxial copy of one arc, which is never further from it than the tilt times its radius and the
+offset of its centre, settles most of them first. The gap is worked out inside and not offered: no member measures the
+distance from a curve in space to anything but a point. An arc against a box no longer
+throws for a box thinner than the point tolerance, or a few thousandths across such as 0.018 by 0.0021 by 0.0023: the box is
+read by its corners, where its body refused a face too small to be a polygon (29 of 60 000 scenes threw). A circle is its rim
+and a loop its outline, as `DistanceTo` has always read them, so a circle or a loop round a shape touches nothing. A triangle
+with no area collides with nothing, and a segment no longer than the tolerance is read as its start unless it truly meets
+the curve, as for straight shapes. A single arc costs a few microseconds more to ask about, measured on net48: an arc
+against a triangle took 1.2 microseconds and takes 6.8 where the two stand near each other, 0.6 and 1.2 where they stand
+far; an arc of radius 20 lying 0.0005 beside a triangle's side takes 3.4 microseconds, and one dipping to 0.0005 over its
+face 1.2; a chain takes the same as before.
+
 **NEW.** `DxfWriter` writes shapes as a DXF file of version R2000 in millimetres, for AutoCAD, Tekla Structures and
 every CAD viewer: `new DxfWriter().Add(plate, "plate").Add(bar, 0.1, "bar").Save("part.dxf")`. Each shape goes on a
 layer, made on first use. In the plane it is written exactly, as the entity CAD has for it: points, segments, circles,

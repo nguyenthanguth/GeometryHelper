@@ -438,7 +438,8 @@ nought apart, and so is an axis-aligned box 0.0004 from an oriented box or a sol
 (`GetShortestLineTo`) is 0.0004 long. Only `GeoAabb3.DistanceTo(GeoAabb3)` is exact. And a plane reads the corners of a shape within the point tolerance as
 on it: the plane z = 0 is nought from a square 0.0004 above it. A point within a billionth of a millimetre outside a body
 reads as in it, so that rounding in a body turned about in space cannot lose a crossing.
-`csharp
+
+```csharp
 var flat = new GeoTriangle3(
     new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
 var piercing = new GeoLine3(new GeoPoint3(20, 10, -50), new GeoPoint3(20, 10, 50));
@@ -446,6 +447,18 @@ var piercing = new GeoLine3(new GeoPoint3(20, 10, -50), new GeoPoint3(20, 10, 50
 piercing.CollidesWith(flat);   // true
 flat.CollidesWith(piercing);   // true
 ```
+
+An arc, a circle, a chain of arcs and a loop of arcs follow the same rule. They collide with another shape exactly where
+the gap between them in space is no more than the point tolerance, in whatever plane they lie, lifted or tilted out of it.
+A circle is its rim and a loop its outline, as `DistanceTo` has always read them, so a circle or a loop round a shape touches
+nothing: the circle of radius 40 about the origin does not touch the square 20 by 20 in its middle, and touches the segment
+from (40.0005, 0, 0) to (80, 0, 0). A straight side facing the top of an arc touches it as an end does: across the dome of
+radius 50, a side at y = 50.0005 touches it and one at y = 50.0012 does not. A box is read by its corners, so one thinner
+than the tolerance, or a few thousandths across, is asked about as surely as any other. No member measures the distance from
+a curve in space to anything but a point; the gap is worked out inside. A triangle with no area, and a segment no longer than
+the tolerance, are read as they are for straight shapes. One case is searched and not proved: two partial arcs lying nearly
+on one axis whose distance stays almost constant just beyond the tolerance, which are walked finely with every low point
+polished. A single arc costs a few microseconds more to ask about than it did before, and a chain the same.
 
 A `GeoFace3` is material with holes in it, so a run down the middle of a hole touches nothing at all:
 

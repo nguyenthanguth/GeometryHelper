@@ -108,18 +108,21 @@ namespace GeometryHelper.Core
         /// <param name="triangle">The triangle.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <remarks>
-        /// An arc lying in the triangle's plane and wholly within it cuts no edge and still touches, so where
-        /// the two are coplanar the arc's own start is asked about as well.
+        /// The triangle is read filled, and they touch where the exact gap between them is no more than the point tolerance:
+        /// an arc lying in the triangle's plane and wholly within it touches, one 0.0005 off its side in the plane
+        /// touches, and one hovering 0.0003 over it touches. A triangle with no area touches nothing.
         /// </remarks>
         public static bool CollidesWith(GeoArc3 arc, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            if (GetIntersections(arc, triangle, tolerance).Length > 0)
+            if (triangle.IsDegenerate(tolerance))
             {
-                return true;
+                return false;
             }
 
-            return IsCoplanar(arc, triangle.GetPlane(), tolerance)
-                && Containment3.Contains(triangle, arc.StartPoint, tolerance);
+            Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+            return curve.Box.DistanceTo(triangle.GetAabb()) <= Collision3.Reach(tolerance)
+                && curve.GapToRegion(Gap3.Region.Of(triangle), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -194,16 +197,22 @@ namespace GeometryHelper.Core
         /// <param name="arc">The arc.</param>
         /// <param name="polygon">The polygon.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The polygon is read filled, and they touch where the exact gap between them is no more than the point tolerance,
+        /// as for a triangle.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool CollidesWith(GeoArc3 arc, GeoPolygon3 polygon, Tolerance tolerance)
         {
-            if (GetIntersections(arc, polygon, tolerance).Length > 0)
+            if (polygon == null)
             {
-                return true;
+                throw new ArgumentNullException(nameof(polygon));
             }
 
-            return IsCoplanar(arc, polygon.GetPlane(), tolerance)
-                && Containment3.Contains(polygon, arc.StartPoint, tolerance);
+            Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+            return curve.Box.DistanceTo(polygon.GetAabb()) <= Collision3.Reach(tolerance)
+                && curve.GapToRegion(Gap3.Region.Of(polygon), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -285,18 +294,21 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <remarks>
         /// The material is what counts. An arc running down the middle of a hole pierces the plane of the face
-        /// where there is no face, and touches nothing.
+        /// where there is no face, and touches nothing. They touch where the exact gap between them is no more than the
+        /// point tolerance, as for a triangle.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static bool CollidesWith(GeoArc3 arc, GeoFace3 face, Tolerance tolerance)
         {
-            if (GetIntersections(arc, face, tolerance).Length > 0)
+            if (face == null)
             {
-                return true;
+                throw new ArgumentNullException(nameof(face));
             }
 
-            return IsCoplanar(arc, face.GetPlane(), tolerance)
-                && Containment3.Contains(face, arc.StartPoint, tolerance);
+            Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+            return curve.Box.DistanceTo(face.GetAabb()) <= Collision3.Reach(tolerance)
+                && curve.GapToRegion(Gap3.Region.Of(face), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
         /// <summary>

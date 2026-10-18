@@ -95,9 +95,10 @@ namespace GeometryHelper.Core
         /// <param name="solid">The solid.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <remarks>
-        /// Where the arc starts is asked before any face is tried, because an arc inside the body crosses its
-        /// surface nowhere and is in it all the same. The same question keeps an arc inside an opening out: an
-        /// opening is not material.
+        /// They touch where the exact gap between the arc and the surface of the body is no more than the point tolerance,
+        /// or where the body holds an end of the arc: an arc inside the body crosses its surface nowhere and is in it all
+        /// the same. The same question keeps an arc inside an opening out: an opening is not material. A body is held to
+        /// within a billionth of a millimetre, so that rounding in a turned body cannot lose an arc lying on a face.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
         public static bool CollidesWith(GeoArc3 arc, GeoSolid3 solid, Tolerance tolerance)
@@ -107,8 +108,18 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
-            return Containment3.Contains(solid, arc.StartPoint, tolerance)
-                || GetIntersections(arc, solid, tolerance).Length > 0;
+            Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+            if (!solid.GetAabb().CollidesWith(curve.Box, tolerance))
+            {
+                return false;
+            }
+
+            // The faces run straight across every opening; read the material the arc can reach instead.
+            solid = Material3.Near(solid, curve.Box, tolerance);
+
+            return curve.GapToSurface(solid, Collision3.Reach(tolerance), tolerance.EqualPoint) <= tolerance.EqualPoint
+                || curve.HeldBy(solid);
         }
 
         /// <summary>
@@ -174,13 +185,25 @@ namespace GeometryHelper.Core
         /// <param name="box">The box.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <remarks>
-        /// An arc wholly inside the box crosses no face and is in it all the same, so where it starts is asked
-        /// before any face is tried.
+        /// An arc wholly inside the box crosses no face and is in it all the same. The box is read as its body, and they
+        /// touch where the exact gap is no more than the point tolerance or the box holds an end of the arc, as for a solid.
         /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static bool CollidesWith(GeoArc3 arc, GeoObb3 box, Tolerance tolerance)
         {
-            return Containment3.Contains(box, arc.StartPoint, tolerance)
-                || GetIntersections(arc, box, tolerance).Length > 0;
+            if (box == null)
+            {
+                throw new ArgumentNullException(nameof(box));
+            }
+
+            Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+            if (curve.Box.DistanceTo(box.GetAabb()) > Collision3.Reach(tolerance))
+            {
+                return false;
+            }
+
+            return curve.GapToBlock(new Gap3.Block(box), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -246,7 +269,10 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            return CollidesWith(arc, box.ToObb(), tolerance);
+            Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+            return curve.Box.DistanceTo(box) <= Collision3.Reach(tolerance)
+                && curve.GapToBlock(new Gap3.Block(box), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
         /// <summary>

@@ -31,16 +31,6 @@ namespace GeometryHelper.Core
     public static partial class Arc3
     {
         /// <summary>
-        /// Determines whether two arcs run on the very same circle.
-        /// </summary>
-        private static bool OnOneCircle(GeoArc3 first, GeoArc3 second, Tolerance tolerance)
-        {
-            return IsCoplanar(first, second.GetPlane(), tolerance)
-                && first.Center.IsEqualTo(second.Center, tolerance)
-                && Math.Abs(first.Radius - second.Radius) <= tolerance.EqualPoint;
-        }
-
-        /// <summary>
         /// Gets the points two coplanar arcs share, which lie on the radical line of their circles.
         /// </summary>
         private static List<GeoPoint3> OnRadicalLine(GeoArc3 first, GeoArc3 second, Tolerance tolerance)
@@ -187,20 +177,18 @@ namespace GeometryHelper.Core
         /// <param name="second">The second arc.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <remarks>
-        /// Two arcs of one circle cross nowhere and still touch wherever their sweeps overlap, so those are
-        /// settled by asking whether either holds an end of the other.
+        /// They touch where the exact gap between them is no more than the point tolerance, in space and in whatever planes
+        /// they lie: two arcs of one circle touch wherever their sweeps overlap or end within the tolerance of one another,
+        /// the arc of radius 50 about the origin from (50, 0, 0) a quarter turn counter-clockwise touches the arc of radius
+        /// 50.0005 about the same centre, and not the arc of radius 50.0015.
         /// </remarks>
         public static bool CollidesWith(GeoArc3 first, GeoArc3 second, Tolerance tolerance)
         {
-            if (OnOneCircle(first, second, tolerance))
-            {
-                return first.IsPointOn(second.StartPoint, tolerance)
-                    || first.IsPointOn(second.EndPoint, tolerance)
-                    || second.IsPointOn(first.StartPoint, tolerance)
-                    || second.IsPointOn(first.EndPoint, tolerance);
-            }
+            Gap3.Curve one = Gap3.Curve.Of(first);
+            Gap3.Curve other = Gap3.Curve.Of(second);
 
-            return GetIntersections(first, second, tolerance).Length > 0;
+            return one.Box.DistanceTo(other.Box) <= Collision3.Reach(tolerance)
+                && one.GapToCurve(other, tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
         /// <summary>

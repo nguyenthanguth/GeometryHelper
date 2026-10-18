@@ -6,6 +6,11 @@ namespace GeometryHelper.Core
     /// <summary>
     /// Where a curved chain or loop in space crosses another shape, and whether it touches one.
     /// </summary>
+    /// <remarks>
+    /// A chain or loop touches another shape where any one of its edges does, so it touches where the exact gap between
+    /// them in space is no more than the point tolerance. A loop is its outline and a circle its rim, so a loop round a
+    /// square 20 by 20 in its plane, 5 off its sides, touches nothing.
+    /// </remarks>
     internal static partial class ArcChain3
     {
         /// <summary>
