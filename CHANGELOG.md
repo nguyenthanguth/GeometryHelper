@@ -74,6 +74,22 @@ against a triangle took 1.2 microseconds and takes 6.8 where the two stand near 
 far; an arc of radius 20 lying 0.0005 beside a triangle's side takes 3.4 microseconds, and one dipping to 0.0005 over its
 face 1.2; a chain takes the same as before.
 
+**FIXED.** Distances between segments, rays and chains are exact and the same whichever is asked first. Two segments meeting
+end to end, one tilted by 8E-6 radian, read 2.7E-11 one way and 9.5E-16 the other; two crossing at a slope of 1E-9 read 3E-8
+where they cross; a ray whose origin stood within the tolerance of a segment read the origin's distance and ignored where it
+went, so a ray through the segment's end from 0.00035 below it read 0.00035, and one running 0.0009 over a segment read 0.00103
+while it collided. They are now nought where they meet, otherwise the gap, from either side, and a collision is whether that gap
+is within the point tolerance. Over 28 000 pairs of segments, up to 10 000 from the origin and as little as 1E-10 radian
+apart, the worst error is 3E-16 of the coordinates where it was 9E-9, and none reads differently the other way round. The
+shortest line (`GetShortestLineTo`) between segments keeps its answer.
+
+**CHANGED.** The collision of two triangles, which the clash reads, is now the same whichever is asked first at exactly the
+tolerance. A pair 90 000 from the origin standing 0.00099999999999998 apart collided asked of the first triangle and not asked
+of the second, because the closest-point search that decided it rounded one way round and the other the other; it now collides
+both ways, and a billionth short of the tolerance it collides neither. Clash results move only for pairs that stand at the
+tolerance to the last digits: in 135 715 pairs of triangles, boxes and bodies it was the one pair, and every benchmark
+signature of the clash is unchanged.
+
 **NEW.** `DxfWriter` writes shapes as a DXF file of version R2000 in millimetres, for AutoCAD, Tekla Structures and
 every CAD viewer: `new DxfWriter().Add(plate, "plate").Add(bar, 0.1, "bar").Save("part.dxf")`. Each shape goes on a
 layer, made on first use. In the plane it is written exactly, as the entity CAD has for it: points, segments, circles,

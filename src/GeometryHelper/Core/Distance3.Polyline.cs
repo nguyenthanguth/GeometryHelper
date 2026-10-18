@@ -27,12 +27,16 @@ namespace GeometryHelper.Core
         public static double DistanceTo(GeoPolyline3 polyline, GeoLine3 line) => DistanceTo(polyline, line, Tolerance.Global);
 
         /// <summary>
-        /// Calculates the shortest distance between a chain and a line segment, within a tolerance: the length of
-        /// <see cref="Projection3.GetShortestLineTo(GeoPolyline3, GeoLine3, Tolerance)"/>.
+        /// Calculates the shortest distance between a chain and a line segment, within a tolerance: nought only where they
+        /// truly meet, otherwise the gap, measured exactly, each side of the chain the side it is. A segment no longer than
+        /// the tolerance is read as its start where it does not truly meet the chain.
         /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static double DistanceTo(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
         {
-            return Projection3.GetShortestLineTo(polyline, line, tolerance).Length;
+            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+
+            return Gap3.ChainToSegment(polyline, line.StartPoint, line.EndPoint, true, tolerance, 0.0);
         }
 
         /// <summary>
@@ -41,12 +45,16 @@ namespace GeometryHelper.Core
         public static double DistanceTo(GeoPolyline3 polyline, GeoPolyline3 other) => DistanceTo(polyline, other, Tolerance.Global);
 
         /// <summary>
-        /// Calculates the shortest distance between two chains, within a tolerance: the length of
-        /// <see cref="Projection3.GetShortestLineTo(GeoPolyline3, GeoPolyline3, Tolerance)"/>.
+        /// Calculates the shortest distance between two chains, within a tolerance: nought only where they truly meet,
+        /// otherwise the gap, measured exactly and the same whichever is asked first, each side the side it is.
         /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when either chain is null.</exception>
         public static double DistanceTo(GeoPolyline3 polyline, GeoPolyline3 other, Tolerance tolerance)
         {
-            return Projection3.GetShortestLineTo(polyline, other, tolerance).Length;
+            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (other == null) throw new ArgumentNullException(nameof(other));
+
+            return Gap3.ChainToChain(polyline, other, 0.0);
         }
 
         /// <summary>

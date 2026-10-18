@@ -483,7 +483,16 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static double DistanceTo(GeoPolyline3 polyline, GeoRay3 ray, Tolerance tolerance)
         {
-            return Projection3.GetShortestLineTo(polyline, ray, tolerance).Length;
+            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+
+            double reach = 0.0;
+
+            for (int i = 0; i < polyline.Vertices.Count; i++)
+            {
+                reach = Math.Max(reach, ray.Origin.DistanceTo(polyline.Vertices[i]));
+            }
+
+            return Gap3.ChainToSegment(polyline, ray.Origin, Gap3.RayEnd(ray, reach), false, tolerance, 0.0);
         }
 
         #endregion

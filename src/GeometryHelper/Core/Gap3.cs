@@ -87,25 +87,55 @@ namespace GeometryHelper.Core
 
         private static double TriangleSide(GeoPoint3 from, GeoPoint3 to, GeoVector3 normal, GeoPoint3 point)
             => normal.DotProduct(from.GetVectorTo(to).CrossProduct(from.GetVectorTo(point)));
-
         /// <summary>
-        /// Gets the distance between two segments, each the segment it is however short.
+        /// Gets the distance between two segments, each the segment it is however short, the same whichever is asked first
+        /// and whichever way round either is given.
         /// </summary>
         /// <remarks>
-        /// The nearest pair of two segments that are not parallel is found from the two lines and kept inside the
-        /// segments, as <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoLine3, Tolerance)"/> does, but a segment is
-        /// a point only if it has no length at all: a side of a shape a ten-thousandth long is that long. Two that are
-        /// parallel to within rounding have no single nearest pair, and the nearest ends are asked instead.
+        /// <para>
+        /// The segments are put in a fixed order before anything is worked out, each with its smaller end first and the pair
+        /// by the coordinates of those ends, so the answer is the same to the last bit whichever way it is asked, and two
+        /// ways of rounding the same pair cannot differ.
+        /// </para>
+        /// <para>
+        /// Two segments that cross, or whose lines come nearest inside both, are as far apart as the lines are, worked out from
+        /// the point where they come nearest and corrected twice by the residual, which keeps a pair tilted a few millionths
+        /// of a radian exact where the plain formula loses ten digits. Otherwise the nearest pair has an end of one segment in
+        /// it, and the answer is the least of the four ends against the other segments.
+        /// </para>
         /// </remarks>
         internal static double SegmentToSegment(GeoPoint3 from1, GeoPoint3 to1, GeoPoint3 from2, GeoPoint3 to2)
         {
+            if (Before(to1, from1))
+            {
+                GeoPoint3 swap = from1;
+                from1 = to1;
+                to1 = swap;
+            }
+
+            if (Before(to2, from2))
+            {
+                GeoPoint3 swap = from2;
+                from2 = to2;
+                to2 = swap;
+            }
+
+            if (Before(from2, from1) || (!Before(from1, from2) && Before(to2, to1)))
+            {
+                GeoPoint3 swap = from1;
+                from1 = from2;
+                from2 = swap;
+                swap = to1;
+                to1 = to2;
+                to2 = swap;
+            }
+
             double d1x = to1.X - from1.X, d1y = to1.Y - from1.Y, d1z = to1.Z - from1.Z;
             double d2x = to2.X - from2.X, d2y = to2.Y - from2.Y, d2z = to2.Z - from2.Z;
             double rx = from1.X - from2.X, ry = from1.Y - from2.Y, rz = from1.Z - from2.Z;
 
             double a = d1x * d1x + d1y * d1y + d1z * d1z;
             double e = d2x * d2x + d2y * d2y + d2z * d2z;
-            double f = d2x * rx + d2y * ry + d2z * rz;
 
             if (a == 0.0)
             {
@@ -117,38 +147,173 @@ namespace GeometryHelper.Core
                 return PointToSegment(from2, from1, to1);
             }
 
-            double c = d1x * rx + d1y * ry + d1z * rz;
-            double b = d1x * d2x + d1y * d2y + d1z * d2z;
-            double denominator = a * e - b * b;
-            bool parallel = !(denominator > 1E-12 * a * e);
+            // The square of the cross product of the directions, |d1|^2 |d2|^2 - (d1.d2)^2 worked out without that subtraction,
+            // which loses every digit of two segments a billionth of a radian apart.
+            double nx = d1y * d2z - d1z * d2y;
+            double ny = d1z * d2x - d1x * d2z;
+            double nz = d1x * d2y - d1y * d2x;
+            double denominator = nx * nx + ny * ny + nz * nz;
 
-            double s = parallel ? 0.0 : Clamp((b * f - c * e) / denominator);
-            double t = (b * s + f) / e;
-
-            if (t < 0.0)
+            // Where the lines come nearest, and if that is inside both segments it is the answer, the minimum of a convex
+            // function being where it is wherever it lies.
+            if (denominator > 1E-24 * a * e)
             {
-                t = 0.0;
-                s = Clamp(-c / a);
+                double s = 0.0;
+                double t = 0.0;
+                double gx = rx;
+                double gy = ry;
+                double gz = rz;
+
+                // From the pair found the lines' nearest points are reached by the cross products of the gap with the
+                // directions, none of which cancels as the plain formula does; the pair is moved by them and the gap worked
+                // out again, three times.
+                for (int pass = 0; pass < 3; pass++)
+                {
+                    double ds = -((gy * d2z - gz * d2y) * nx + (gz * d2x - gx * d2z) * ny + (gx * d2y - gy * d2x) * nz) / denominator;
+                    double dt = -((gy * d1z - gz * d1y) * nx + (gz * d1x - gx * d1z) * ny + (gx * d1y - gy * d1x) * nz) / denominator;
+
+                    s += ds;
+                    t += dt;
+                    gx = rx + d1x * s - d2x * t;
+                    gy = ry + d1y * s - d2y * t;
+                    gz = rz + d1z * s - d2z * t;
+                }
+
+                if (s >= 0.0 && s <= 1.0 && t >= 0.0 && t <= 1.0)
+                {
+                    return Math.Sqrt(gx * gx + gy * gy + gz * gz);
+                }
             }
-            else if (t > 1.0)
+
+            double best = Math.Min(PointToSegment(from1, from2, to2), PointToSegment(to1, from2, to2));
+
+            return Math.Min(best, Math.Min(PointToSegment(from2, from1, to1), PointToSegment(to2, from1, to1)));
+        }
+
+        /// <summary>
+        /// Determines whether a point comes before another by its coordinates, X then Y then Z.
+        /// </summary>
+        private static bool Before(GeoPoint3 first, GeoPoint3 second)
+            => first.X < second.X || (first.X == second.X && (first.Y < second.Y || (first.Y == second.Y && first.Z < second.Z)));
+
+        /// <summary>
+        /// Gets the distance between two segments a caller gave, one no longer than the point tolerance read as its start
+        /// unless it truly meets the other, as a segment is read against a flat region.
+        /// </summary>
+        /// <param name="from1">The start of the first segment.</param>
+        /// <param name="to1">The end of the first segment.</param>
+        /// <param name="readShort1">true when the first segment is one a caller gave; false for a side of a shape, or a ray.</param>
+        /// <param name="from2">The start of the second segment.</param>
+        /// <param name="to2">The end of the second segment.</param>
+        /// <param name="readShort2">true when the second segment is one a caller gave.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        internal static double Segments(
+            GeoPoint3 from1, GeoPoint3 to1, bool readShort1, GeoPoint3 from2, GeoPoint3 to2, bool readShort2, Tolerance tolerance)
+        {
+            double gap = SegmentToSegment(from1, to1, from2, to2);
+            double near = tolerance.EqualPoint * tolerance.EqualPoint;
+            bool short1 = readShort1 && from1.GetDistanceSquaredTo(to1) <= near;
+            bool short2 = readShort2 && from2.GetDistanceSquaredTo(to2) <= near;
+
+            if (!short1 && !short2)
             {
-                t = 1.0;
-                s = Clamp((b - c) / a);
+                return gap;
             }
 
-            double gx = rx + d1x * s - d2x * t;
-            double gy = ry + d1y * s - d2y * t;
-            double gz = rz + d1z * s - d2z * t;
-            double best = Math.Sqrt(gx * gx + gy * gy + gz * gz);
+            double rounding = 1E-12 * Math.Max(1.0, MostFar(from1, to1, from2, to2));
 
-            if (parallel)
+            if (gap <= rounding)
             {
-                best = Math.Min(best, Math.Min(PointToSegment(from1, from2, to2), PointToSegment(to1, from2, to2)));
-                best = Math.Min(best, Math.Min(PointToSegment(from2, from1, to1), PointToSegment(to2, from1, to1)));
+                return 0.0;
+            }
+
+            if (short1 && short2)
+            {
+                return from1.DistanceTo(from2);
+            }
+
+            return short1 ? PointToSegment(from1, from2, to2) : PointToSegment(from2, from1, to1);
+        }
+
+        private static double MostFar(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoPoint3 d)
+            => Math.Max(
+                Math.Max(Math.Max(Math.Abs(a.X), Math.Abs(a.Y)), Math.Max(Math.Abs(a.Z), Math.Abs(b.X))),
+                Math.Max(Math.Max(Math.Abs(b.Y), Math.Abs(b.Z)), Math.Max(Math.Max(Math.Abs(c.X), Math.Abs(c.Y)), Math.Max(Math.Abs(c.Z), Math.Max(Math.Abs(d.X), Math.Max(Math.Abs(d.Y), Math.Abs(d.Z)))))));
+
+        /// <summary>
+        /// Gets the distance between a chain and a segment a caller gave, each side of the chain the side it is.
+        /// </summary>
+        internal static double ChainToSegment(GeoPolyline3 chain, GeoPoint3 from, GeoPoint3 to, bool readShort, Tolerance tolerance, double stopAt)
+        {
+            double best = double.MaxValue;
+
+            for (int i = 0; i < chain.EdgeCount; i++)
+            {
+                GeoLine3 side = chain.GetEdgeAt(i);
+
+                if (stopAt > 0.0 && ApartBy(side.StartPoint, side.EndPoint, from, to, stopAt * (1.0 + 1E-6) + 1E-9))
+                {
+                    continue;
+                }
+
+                if (Beyond(SegmentsGap(side.StartPoint, side.EndPoint, from, to), best))
+                {
+                    continue;
+                }
+
+                best = Math.Min(best, Segments(side.StartPoint, side.EndPoint, false, from, to, readShort, tolerance));
+
+                if (best <= stopAt)
+                {
+                    return best;
+                }
             }
 
             return best;
         }
+
+        /// <summary>
+        /// Gets the distance between two chains, each side the side it is.
+        /// </summary>
+        internal static double ChainToChain(GeoPolyline3 chain, GeoPolyline3 other, double stopAt)
+        {
+            double best = double.MaxValue;
+
+            IReadOnlyList<GeoPoint3> mine = chain.Vertices;
+            IReadOnlyList<GeoPoint3> theirs = other.Vertices;
+
+            for (int i = 0; i + 1 < mine.Count; i++)
+            {
+                for (int j = 0; j + 1 < theirs.Count; j++)
+                {
+                    // Asked whether they come within stopAt, a pair whose boxes stand further apart than that cannot.
+                    if (stopAt > 0.0 && ApartBy(mine[i], mine[i + 1], theirs[j], theirs[j + 1], stopAt * (1.0 + 1E-6) + 1E-9))
+                    {
+                        continue;
+                    }
+
+                    if (Beyond(SegmentsGap(mine[i], mine[i + 1], theirs[j], theirs[j + 1]), best))
+                    {
+                        continue;
+                    }
+
+                    best = Math.Min(best, SegmentToSegment(mine[i], mine[i + 1], theirs[j], theirs[j + 1]));
+
+                    if (best <= stopAt)
+                    {
+                        return best;
+                    }
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Gets the segment that stands for a ray against shapes whose farthest point from its origin is a given distance: past
+        /// that the ray only draws away from every one of them.
+        /// </summary>
+        internal static GeoPoint3 RayEnd(GeoRay3 ray, double reach) => Parametrization3.GetPointAtDistance(ray, reach);
 
         private static double Clamp(double value) => Math.Max(0.0, Math.Min(1.0, value));
 
@@ -236,9 +401,9 @@ namespace GeometryHelper.Core
         {
             double best = double.MaxValue;
 
-            if (!Walk(first, second, stopAt, ref best))
+            if (!Walk(first, second, stopAt, ref best, false))
             {
-                Walk(second, first, stopAt, ref best);
+                Walk(second, first, stopAt, ref best, true);
             }
 
             return best;
@@ -266,7 +431,7 @@ namespace GeometryHelper.Core
         /// Weighs every edge of one region against another, false while no gap within <paramref name="stopAt"/> has been
         /// found.
         /// </summary>
-        private static bool Walk(Region edges, Region against, double stopAt, ref double best)
+        private static bool Walk(Region edges, Region against, double stopAt, ref double best, bool pairsWeighed)
         {
             GeoAabb3 box = against.Box;
 
@@ -293,7 +458,9 @@ namespace GeometryHelper.Core
                     best = Math.Min(best, against.PointGap(from));
                 }
 
-                for (int side = 0; side < against.EdgeCount && best > stopAt; side++)
+                // A side against a side is the same distance whichever is asked first, so the pairs the walk of the other region
+                // weighed are not weighed again.
+                for (int side = 0; side < against.EdgeCount && best > stopAt && !pairsWeighed; side++)
                 {
                     GeoPoint3 start = against.EdgeFrom(side);
                     GeoPoint3 end = against.EdgeTo(side);
@@ -521,6 +688,15 @@ namespace GeometryHelper.Core
 
             return order;
         }
+        /// <summary>
+        /// Determines whether the boxes of two segments stand further apart than a limit along some axis, so that the segments
+        /// cannot come within it.
+        /// </summary>
+        private static bool ApartBy(GeoPoint3 from1, GeoPoint3 to1, GeoPoint3 from2, GeoPoint3 to2, double limit)
+            => Math.Min(from2.X, to2.X) - Math.Max(from1.X, to1.X) > limit || Math.Min(from1.X, to1.X) - Math.Max(from2.X, to2.X) > limit
+            || Math.Min(from2.Y, to2.Y) - Math.Max(from1.Y, to1.Y) > limit || Math.Min(from1.Y, to1.Y) - Math.Max(from2.Y, to2.Y) > limit
+            || Math.Min(from2.Z, to2.Z) - Math.Max(from1.Z, to1.Z) > limit || Math.Min(from1.Z, to1.Z) - Math.Max(from2.Z, to2.Z) > limit;
+
         /// <summary>
         /// Gets how near, at the least, two segments can come: the gap between their boxes.
         /// </summary>

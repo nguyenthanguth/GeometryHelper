@@ -64,6 +64,8 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 for (int j = 0; j < 3; j++)
                 {
+                    // The edges as Distance3 measures them: the clash reads the same exact gap, the same either way round, so a pair
+                    // standing at the tolerance is decided alike from both sides (it used to be decided by the order of the search).
                     if (Distance3.DistanceTo(first.GetEdgeAt(i), second.GetEdgeAt(j), Tol) <= Tol.EqualPoint)
                     {
                         return true;
@@ -73,10 +75,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 3; i++)
             {
-                // The corner's distance as the closest-point search finds it, which the clash reads and keeps as it was:
-                // Distance3.DistanceTo(triangle, point) now measures a sliver where it is.
-                if (Distance3.DistanceTo(Projection3.ProjectToTriangle(second, first[i]), first[i]) <= Tol.EqualPoint ||
-                    Distance3.DistanceTo(Projection3.ProjectToTriangle(first, second[i]), second[i]) <= Tol.EqualPoint)
+                // The corner's distance as Distance3 measures it, a sliver where it is.
+                if (Distance3.DistanceTo(second, first[i]) <= Tol.EqualPoint || Distance3.DistanceTo(first, second[i]) <= Tol.EqualPoint)
                 {
                     return true;
                 }

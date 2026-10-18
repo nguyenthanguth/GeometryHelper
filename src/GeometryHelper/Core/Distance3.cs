@@ -107,10 +107,25 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between two line segments, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Nought only where the two truly meet, otherwise the gap, measured exactly and the same whichever is asked first:
+        /// two segments meeting end to end, one tilted by 8E-6 radian, are as far apart one way as the other. A segment no
+        /// longer than the tolerance is read as its start where it does not truly meet the other. The segment from the origin
+        /// to (60, 0, 0) and the one from (60.0004, 0, 0) to (100, 0, 0) are 0.0004 apart.
+        /// </remarks>
         public static double DistanceTo(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
-        {
-            return Projection3.GetShortestLineTo(line1, line2, tolerance).Length;
-        }
+            => Gap3.Segments(line1.StartPoint, line1.EndPoint, true, line2.StartPoint, line2.EndPoint, true, tolerance);
+
+        /// <summary>
+        /// Calculates the shortest distance between two line segments as the closest-point search of
+        /// <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoLine3, Tolerance)"/> finds it.
+        /// </summary>
+        /// <remarks>
+        /// This is what the search for the nearest triangles of two bodies and the collision of two triangles ask, which the
+        /// clash reads and keeps as it was.
+        /// </remarks>
+        internal static double DistanceToByProjection(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
+            => Projection3.GetShortestLineTo(line1, line2, tolerance).Length;
 
         /// <summary>
         /// Calculates the shortest distance between a ray and a line segment.
@@ -121,19 +136,18 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between a ray and a line segment, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The ray is sampled as a segment long enough to reach past the far end of the other segment,
-        /// which is enough because the closest approach between a ray and a bounded segment can never lie
-        /// beyond that point: past it, the ray is only moving away.
+        /// The ray is taken as a segment as far as the segment's farther end stands from its origin, which is enough because
+        /// the closest approach between a ray and a bounded segment can never lie beyond that point: past it, the ray is only
+        /// moving away. Nought only where they truly meet, otherwise the gap, measured exactly: a ray that passes through
+        /// the end of the segment is nought from it, however the pass is rounded. The ray from (59.9996, -0.0004, 0)
+        /// along (1, 1, 0) passes through the end (60, 0, 0) of the segment from the origin, and is nought from it, and 0.0003 from it lifted by 0.0003.
         /// </remarks>
         public static double DistanceTo(GeoRay3 ray, GeoLine3 line, Tolerance tolerance)
         {
-            double reach = Math.Max(
-                Parametrization3.GetDistanceAtPoint(ray, line.StartPoint),
-                Parametrization3.GetDistanceAtPoint(ray, line.EndPoint));
+            double reach = Math.Max(ray.Origin.DistanceTo(line.StartPoint), ray.Origin.DistanceTo(line.EndPoint));
 
-            GeoLine3 sample = ray.ToLine(Math.Max(0.0, reach));
-
-            return DistanceTo(sample, line, tolerance);
+            return Gap3.Segments(
+                ray.Origin, Gap3.RayEnd(ray, reach), false, line.StartPoint, line.EndPoint, true, tolerance);
         }
 
         #endregion
@@ -375,7 +389,7 @@ namespace GeometryHelper.Core
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    best = Math.Min(best, DistanceTo(triangle1.GetEdgeAt(i), triangle2.GetEdgeAt(j), tolerance));
+                    best = Math.Min(best, DistanceToByProjection(triangle1.GetEdgeAt(i), triangle2.GetEdgeAt(j), tolerance));
                 }
             }
 

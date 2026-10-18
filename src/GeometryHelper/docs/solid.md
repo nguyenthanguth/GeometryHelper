@@ -448,6 +448,10 @@ piercing.CollidesWith(flat);   // true
 flat.CollidesWith(piercing);   // true
 ```
 
+Distances between segments, rays and chains are exact and the same whichever is asked first: two segments meeting end to end,
+one tilted by 8E-6 radian, are as far apart one way as the other, and a ray passing through the end of a segment is nought
+from it. `GetShortestLineTo` between them keeps its answer, which can still differ by the order of the arguments.
+
 An arc, a circle, a chain of arcs and a loop of arcs follow the same rule. They collide with another shape exactly where
 the gap between them in space is no more than the point tolerance, in whatever plane they lie, lifted or tilted out of it.
 A circle is its rim and a loop its outline, as `DistanceTo` has always read them, so a circle or a loop round a shape touches

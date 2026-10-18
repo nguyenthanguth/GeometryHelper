@@ -52,7 +52,7 @@ namespace GeometryHelper.Core
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
-            => TouchedBySegment(polyline, segment => segment.CollidesWith(line, tolerance));
+            => Gap3.ChainToSegment(polyline ?? throw new ArgumentNullException(nameof(polyline)), line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether a straight chain touches a ray.
@@ -68,7 +68,7 @@ namespace GeometryHelper.Core
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolyline3 polyline, GeoRay3 ray, Tolerance tolerance)
-            => TouchedBySegment(polyline, segment => segment.CollidesWith(ray, tolerance));
+            => Distance3.DistanceTo(polyline, ray, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether a straight chain touches an arc.
@@ -232,23 +232,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(other));
             }
 
-            for (int s = 0; s < polyline.EdgeCount; s++)
-            {
-                GeoLine3 segment = polyline.GetEdgeAt(s);
-                GeoAabb3 box = segment.GetAabb();
-
-                for (int i = 0; i < other.EdgeCount; i++)
-                {
-                    GeoLine3 against = other.GetEdgeAt(i);
-
-                    if (box.CollidesWith(against.GetAabb(), tolerance) && segment.CollidesWith(against, tolerance))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
+            return Gap3.ChainToChain(polyline, other, tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
     }
 }

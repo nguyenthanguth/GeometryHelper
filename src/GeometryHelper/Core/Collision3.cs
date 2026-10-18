@@ -292,8 +292,8 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < 3; i++)
             {
-                if (Distance3.DistanceToByProjection(triangle2, triangle1[i]) <= near ||
-                    Distance3.DistanceToByProjection(triangle1, triangle2[i]) <= near)
+                if (Distance3.DistanceTo(triangle2, triangle1[i]) <= near ||
+                    Distance3.DistanceTo(triangle1, triangle2[i]) <= near)
                 {
                     return true;
                 }
