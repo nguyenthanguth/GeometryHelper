@@ -8,9 +8,9 @@ namespace GeometryHelper.Export
     /// <summary>
     /// How the writers that have no curves cut a curve into chords, and what they refuse.
     /// <para>
-    /// The library's own cuts stop at 4 096 pieces a turn, which is short of a tolerance on a large radius: a circle of
-    /// radius 50 000 cut within 0.01 strays 0.0147. The counts worked out here are the library's wherever it meets the
-    /// tolerance, and more where it does not, up to <see cref="Most"/> for one curve.
+    /// The library's cuts keep the tolerance on a large radius as they do on a small one (a circle of radius 50 000 cut
+    /// within 0.01 is 4 968 corners). The counts worked out here are the library's, and a chord more where its arc cosine
+    /// rounds, up to <see cref="Most"/> for one curve.
     /// </para>
     /// <para>
     /// The points are placed by the same arithmetic as the library's <c>ToPolyline(int)</c>, but are not handed to a
@@ -21,7 +21,7 @@ namespace GeometryHelper.Export
     internal static class Chords
     {
         /// <summary>The most chords one curve is cut into; a tolerance that needs more is refused.</summary>
-        internal const int Most = 1048576;
+        internal const int Most = Tessellation.MostSegments;
 
         /// <summary>Refuses a chord tolerance that is not a finite number above nought.</summary>
         internal static void Require(double chordTolerance)
@@ -89,7 +89,9 @@ namespace GeometryHelper.Export
         /// <summary>
         /// The chords of an ellipse all the way round, the first point repeated at the end: the library's, spaced by the bend
         /// of the rim, while it has room for them and its chords are not shorter than the point tolerance can tell apart, and
-        /// an even spread in the angle past that.
+        /// an even spread in the angle past that. The library's own cut now goes on by the bend of the rim past 4 096 corners
+        /// with fewer of them (12 920 for radii 50 000 and 25 000 within 0.001, where the even spread is 15 708), but the
+        /// writers keep the even spread so that what they write does not change.
         /// </summary>
         internal static List<GeoPoint3> Of(GeoEllipse3 ellipse, double chordTolerance)
         {
@@ -288,13 +290,11 @@ namespace GeometryHelper.Export
         /// </summary>
         private static int ForArc(double radius, double sweep, double chordTolerance, int fewest)
         {
-            double share = chordTolerance / (2.0 * radius);
-            double perChord = share >= 1.0 ? Math.PI * 2.0 : 4.0 * Math.Asin(Math.Sqrt(share));
-            double exact = Math.Ceiling(sweep / perChord);
+            double exact = Tessellation.ExactSegments(radius, sweep, chordTolerance);
 
             if (exact > Most)
             {
-                throw TooMany(chordTolerance);
+                throw Tessellation.TooMany(chordTolerance);
             }
 
             int library = Tessellation.SegmentsForChordTolerance(radius, sweep, chordTolerance);
@@ -311,7 +311,7 @@ namespace GeometryHelper.Export
 
             if (count > Most)
             {
-                throw TooMany(chordTolerance);
+                throw Tessellation.TooMany(chordTolerance);
             }
 
             return Math.Max((int)count, 3);
@@ -324,15 +324,8 @@ namespace GeometryHelper.Export
 
             if (total > Most)
             {
-                throw TooMany(chordTolerance);
+                throw Tessellation.TooMany(chordTolerance);
             }
         }
-
-        private static ArgumentOutOfRangeException TooMany(double chordTolerance)
-            => new ArgumentOutOfRangeException(
-                nameof(chordTolerance),
-                chordTolerance,
-                "A chord tolerance of " + chordTolerance.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
-                + " would cut the curve into more than " + Most + " chords; ask for a larger one.");
     }
 }

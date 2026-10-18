@@ -369,7 +369,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chordTolerance">The largest gap allowed between an edge and the rim, in drawing units. Zero picks the automatic share of the minor radius.</param>
         /// <returns>A polygon inscribed in the ellipse.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
         public GeoPolygon3 ToPolygonByChordTolerance(double chordTolerance) => Ellipse3.ToPolygonByChordTolerance(this, chordTolerance);
 
         /// <summary>
@@ -404,7 +404,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chordTolerance">The largest gap allowed between a piece and the rim, in drawing units. Zero picks the automatic share of the minor radius.</param>
         /// <returns>A chain with its first point repeated at the end.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
         public GeoPolyline3 ToPolylineByChordTolerance(double chordTolerance) => Ellipse3.ToPolylineByChordTolerance(this, chordTolerance);
 
         /// <summary>

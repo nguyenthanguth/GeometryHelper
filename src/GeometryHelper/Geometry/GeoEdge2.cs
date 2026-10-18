@@ -316,6 +316,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="into">The list to append to; the start of the edge is appended only when the list is empty.</param>
         /// <param name="chordTolerance">The largest gap allowed between a piece and the arc, in drawing units. Zero picks the automatic share of the radius. A straight edge ignores it.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 pieces for the arc.</exception>
         internal void AppendFlattened(System.Collections.Generic.List<GeoPoint2> into, double chordTolerance)
         {
             if (into.Count == 0)
@@ -330,7 +331,7 @@ namespace GeometryHelper.Geometry
             }
 
             GeoArc2 arc = ToArc();
-            int pieces = Internal.Tessellation.SegmentsForChordTolerance(arc.Radius, Math.Abs(arc.SweptAngle), chordTolerance);
+            int pieces = Internal.Tessellation.SegmentsForArc(arc.Radius, Math.Abs(arc.SweptAngle), chordTolerance);
 
             for (int i = 1; i < pieces; i++)
             {

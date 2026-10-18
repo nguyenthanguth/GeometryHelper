@@ -216,7 +216,7 @@ namespace GeometryHelper.Core
         {
             Guard.Positive(radius, nameof(radius), "A radius has to be a positive number.");
 
-            int segments = Math.Max(3, Tessellation.SegmentsForChordTolerance(radius, 2.0 * Math.PI, chordTolerance));
+            int segments = Math.Max(3, Tessellation.SegmentsForArc(radius, 2.0 * Math.PI, chordTolerance));
             var corners = new GeoPoint2[segments];
 
             for (int i = 0; i < segments; i++)
@@ -310,7 +310,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentException("The profile lies along the axis, so it would sweep out no volume.", nameof(profile));
             }
 
-            int steps = Math.Max(whole ? 3 : 1, Tessellation.SegmentsForChordTolerance(reach, angle, chordTolerance));
+            int steps = Math.Max(whole ? 3 : 1, Tessellation.SegmentsForArc(reach, angle, chordTolerance));
 
             // Turned positively about the Y axis, a profile drawn in the XY plane moves towards -Z; wound
             // clockwise in its plane it is counter-clockwise about the way it moves.

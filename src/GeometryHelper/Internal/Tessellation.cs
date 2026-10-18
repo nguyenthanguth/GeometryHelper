@@ -22,14 +22,22 @@ namespace GeometryHelper.Internal
         public const double AutomaticChordRatio = OffsetOptions.AutomaticArcToleranceRatio;
 
         /// <summary>
-        /// The most pieces a full turn is ever cut into, so that a tolerance of nearly nothing asks for a
-        /// long loop rather than an endless one.
+        /// The most pieces a full turn is cut into by <see cref="SegmentsForChordTolerance"/>, which is not what keeps a
+        /// chord tolerance: <see cref="SegmentsForArc"/> lifts it and refuses past <see cref="MostSegments"/> instead. It is
+        /// also the size at which the writers stop taking the ellipse's corners from the library.
         /// </summary>
         public const int MaxSegmentsPerTurn = 4096;
 
         /// <summary>
+        /// The most pieces one curve is ever cut into when its chord tolerance is kept, an ellipse's corners all round
+        /// included; a tolerance that needs more is refused.
+        /// </summary>
+        public const int MostSegments = 1048576;
+
+        /// <summary>
         /// Gets how many pieces a round curve is cut into so that no piece strays further than a chord
-        /// tolerance from the true curve.
+        /// tolerance from the true curve, up to <see cref="MaxSegmentsPerTurn"/> a turn: a finer tolerance is not kept.
+        /// <see cref="SegmentsForArc"/> keeps it.
         /// </summary>
         /// <param name="radius">The radius of the curve.</param>
         /// <param name="sweptAngle">How far the curve turns, in radians; a full circle is two pi.</param>
@@ -46,14 +54,87 @@ namespace GeometryHelper.Internal
                 throw new ArgumentOutOfRangeException(nameof(chordTolerance), "The chord tolerance must be zero (automatic) or a positive distance.");
             }
 
+            return Clamp(sweptAngle, PerSegmentAngle(radius, chordTolerance));
+        }
+
+        /// <summary>
+        /// Gets how many pieces an arc is cut into so that no piece strays further than a chord tolerance from the arc,
+        /// however fine the tolerance: the count of <see cref="SegmentsForChordTolerance"/> where its cap of
+        /// <see cref="MaxSegmentsPerTurn"/> a turn does not bind, and the count the tolerance needs where it does.
+        /// </summary>
+        /// <param name="radius">The radius of the arc.</param>
+        /// <param name="sweptAngle">How far the arc turns, in radians.</param>
+        /// <param name="chordTolerance">The largest gap allowed between a piece and the arc, in drawing units. Zero picks <see cref="AutomaticChordRatio"/> of the radius.</param>
+        /// <returns>The number of pieces, at least one.</returns>
+        /// <remarks>
+        /// An arc of radius 83 333 sweeping 0.0012 radians cut within 1E-4 needs 13 pieces; the cap allows one, the chord,
+        /// which passes 0.015 from the middle of the arc. Where the cap binds the count is worked out from the arc sine,
+        /// which keeps its digits at a tolerance far below the radius.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius or the swept angle is not a positive number, when the tolerance is negative or not a number, or when the tolerance needs more than <see cref="MostSegments"/> pieces.</exception>
+        public static int SegmentsForArc(double radius, double sweptAngle, double chordTolerance)
+        {
+            int library = SegmentsForChordTolerance(radius, sweptAngle, chordTolerance);
+
+            // The automatic share is about fifty pieces a turn, which the cap never reaches.
+            if (chordTolerance == 0.0)
+            {
+                return library;
+            }
+
+            double perSegment = PerSegmentAngle(radius, chordTolerance);
+            double wanted = perSegment > 0.0 ? Math.Ceiling(sweptAngle / perSegment) : double.PositiveInfinity;
+            double cap = Math.Max(Math.Ceiling(MaxSegmentsPerTurn * sweptAngle / (Math.PI * 2.0)), 1.0);
+
+            if (wanted <= cap)
+            {
+                return library;
+            }
+
+            double exact = ExactSegments(radius, sweptAngle, chordTolerance);
+
+            if (exact > MostSegments)
+            {
+                throw TooMany(chordTolerance);
+            }
+
+            return Math.Max(library, (int)exact);
+        }
+
+        /// <summary>
+        /// Gets how many pieces an arc needs so that none strays further than a chord tolerance, worked out from the arc
+        /// sine, with no cap: the sweep over the angle a piece may span, rounded up.
+        /// </summary>
+        /// <param name="radius">The radius of the arc.</param>
+        /// <param name="sweptAngle">How far the arc turns, in radians.</param>
+        /// <param name="chordTolerance">The largest gap allowed between a piece and the arc; above nought.</param>
+        /// <returns>The count as a double, which is infinite where the tolerance is nought or the angle is too small to tell from it.</returns>
+        public static double ExactSegments(double radius, double sweptAngle, double chordTolerance)
+        {
+            double share = chordTolerance / (2.0 * radius);
+            double perChord = share >= 1.0 ? Math.PI * 2.0 : 4.0 * Math.Asin(Math.Sqrt(share));
+
+            return Math.Ceiling(sweptAngle / perChord);
+        }
+
+        /// <summary>
+        /// Gets the refusal of a chord tolerance that needs more than <see cref="MostSegments"/> pieces for one curve.
+        /// </summary>
+        public static ArgumentOutOfRangeException TooMany(double chordTolerance)
+            => new ArgumentOutOfRangeException(
+                nameof(chordTolerance),
+                chordTolerance,
+                "A chord tolerance of " + chordTolerance.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                + " would cut the curve into more than " + MostSegments + " chords; ask for a larger one.");
+
+        private static double PerSegmentAngle(double radius, double chordTolerance)
+        {
             double error = chordTolerance > 0.0 ? chordTolerance : radius * AutomaticChordRatio;
 
             // A piece spanning an angle a strays r(1 - cos(a/2)) from the curve at its middle, so the angle
             // a tolerance allows is twice the arc cosine of what is left of the radius.
             double cosine = 1.0 - error / radius;
-            double perSegment = cosine <= -1.0 ? Math.PI * 2.0 : 2.0 * Math.Acos(cosine);
-
-            return Clamp(sweptAngle, perSegment);
+            return cosine <= -1.0 ? Math.PI * 2.0 : 2.0 * Math.Acos(cosine);
         }
 
         /// <summary>

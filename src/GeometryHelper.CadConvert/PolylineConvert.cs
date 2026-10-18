@@ -186,6 +186,7 @@ namespace GeometryHelper.CadConvert
         /// <returns>The converted <see cref="GeoPolyline2"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polyline"/> is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoPolyline2 ToGeoPolyline2(this Polyline polyline, double chordTolerance)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
@@ -235,6 +236,7 @@ namespace GeometryHelper.CadConvert
         /// <returns>The converted <see cref="GeoPolygon2"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polyline"/> is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoPolygon2 ToGeoPolygon2(this Polyline polyline, double chordTolerance)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));

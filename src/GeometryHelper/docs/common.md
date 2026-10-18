@@ -316,9 +316,8 @@ What each writer takes:
 OBJ and WKT have no curves, so a curve is written through chords and the caller says how far from the curve they may
 stray: a circle of radius 100 at a chord tolerance of 0.1 is 71 chords, none more than 0.1 inside it. The tolerance has
 to be a finite number above nought; there is no automatic one, and a chord shorter than the point tolerance is written
-all the same. The library's own cut of a curve stops at 4 096 chords a turn, which is short of a tolerance on a large
-radius (a circle of radius 50 000 cut within 0.01 strays 0.0147), so the writers work the count out themselves where it
-does not meet the tolerance, and give the library's wherever it does: a circle of radius 50 000 within 0.001 is 15 708
+all the same. The writers work the count out from the arc sine, and give the library's wherever that is
+more: a circle of radius 50 000 within 0.001 is 15 708
 chords, a quarter arc of that radius 3 927, an ellipse of radii 50 000 and 25 000 15 708, and a bend of that radius in a
 bar or a loop is cut the same way on its own radius. No curve is cut into more than 1 048 576 chords: a tolerance that
 needs more is refused with an `ArgumentOutOfRangeException`. The `ObjWriter.Add` of a `GeoPolylineArc3` that was there

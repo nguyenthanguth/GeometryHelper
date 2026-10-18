@@ -492,7 +492,7 @@ namespace GeometryHelper.Core
         /// The polygon <see cref="Ellipse2.ToPolygonByChordTolerance(GeoEllipse2, double)"/> gives, put into the ellipse's
         /// plane: counter-clockwise about the normal from the end of the major axis, symmetric about both axes.
         /// </returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
         public static GeoPolygon3 ToPolygonByChordTolerance(GeoEllipse3 ellipse, double chordTolerance)
         {
             return new GeoPolygon3(Lift(ellipse, Ellipse2.ToPolygonByChordTolerance(Flat(ellipse), chordTolerance).Vertices));
@@ -531,7 +531,7 @@ namespace GeometryHelper.Core
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="chordTolerance">The largest gap allowed between a piece and the rim, in drawing units. Zero picks the automatic share of the minor radius.</param>
         /// <returns>The corners of <see cref="ToPolygonByChordTolerance(GeoEllipse3, double)"/>, the first repeated at the end.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
         public static GeoPolyline3 ToPolylineByChordTolerance(GeoEllipse3 ellipse, double chordTolerance)
         {
             return new GeoPolyline3(Lift(ellipse, Ellipse2.ToPolylineByChordTolerance(Flat(ellipse), chordTolerance).Vertices));

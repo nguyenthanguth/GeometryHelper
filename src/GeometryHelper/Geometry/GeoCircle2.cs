@@ -363,10 +363,16 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chordTolerance">The largest gap allowed between an edge and the circle, in drawing units. Zero picks the automatic share of the radius.</param>
         /// <returns>A polygon inscribed in the circle.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <remarks>
+        /// The promise holds however fine the tolerance and however large the radius: a circle of radius 50 000 cut within 0.01
+        /// is 4 968 corners, which 4 096 a turn would have strayed 0.0147 from. A tolerance that needs more than 1 048 576
+        /// corners is refused. Corners closer together than the point tolerance are merged by the polygon, so chords shorter than
+        /// that are not kept, as for <see cref="GeoPolylineArc2.Flatten(double)"/>.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
         public GeoPolygon2 ToPolygonByChordTolerance(double chordTolerance)
         {
-            return ToPolygon(Math.Max(3, Internal.Tessellation.SegmentsForChordTolerance(Radius, Math.PI * 2.0, chordTolerance)));
+            return ToPolygon(Math.Max(3, Internal.Tessellation.SegmentsForArc(Radius, Math.PI * 2.0, chordTolerance)));
         }
 
         /// <summary>
@@ -420,10 +426,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chordTolerance">The largest gap allowed between a piece and the circle, in drawing units. Zero picks the automatic share of the radius.</param>
         /// <returns>A chain with its first point repeated at the end.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
         public GeoPolyline2 ToPolylineByChordTolerance(double chordTolerance)
         {
-            return ToPolyline(Math.Max(3, Internal.Tessellation.SegmentsForChordTolerance(Radius, Math.PI * 2.0, chordTolerance)));
+            return ToPolyline(Math.Max(3, Internal.Tessellation.SegmentsForArc(Radius, Math.PI * 2.0, chordTolerance)));
         }
 
         /// <summary>

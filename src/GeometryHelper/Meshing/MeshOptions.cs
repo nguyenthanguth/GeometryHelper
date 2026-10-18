@@ -197,7 +197,8 @@ namespace GeometryHelper.Meshing
 
         /// <summary>
         /// Gets the largest gap allowed between a chord and the arc it stands for; nought for the automatic share of each
-        /// radius.
+        /// radius. A tolerance that would cut one curve into more than 1 048 576 pieces is refused by the meshing with an
+        /// <see cref="ArgumentOutOfRangeException"/>.
         /// </summary>
         public double ChordTolerance { get; }
 

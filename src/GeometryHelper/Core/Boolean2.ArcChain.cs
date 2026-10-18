@@ -48,6 +48,7 @@ namespace GeometryHelper.Core
         /// <param name="chordTolerance">The largest gap allowed between a piece and the arc it replaces, in drawing units. Zero picks the automatic share of each radius.</param>
         /// <returns>The faces of the result, straight throughout.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Union(GeoPolygonArc2 loop1, GeoPolygonArc2 loop2, double chordTolerance) => Union(loop1, loop2, chordTolerance, Tolerance.Global);
 
         /// <summary>
@@ -55,6 +56,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Union(GeoPolygonArc2 loop1, GeoPolygonArc2 loop2, double chordTolerance, Tolerance tolerance)
         {
             if (loop1 == null) throw new ArgumentNullException(nameof(loop1));
@@ -74,6 +76,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Union(GeoPolygonArc2 loop1, GeoPolygon2 loop2, double chordTolerance, Tolerance tolerance)
         {
             if (loop1 == null) throw new ArgumentNullException(nameof(loop1));
@@ -93,6 +96,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Union(GeoPolygon2 loop1, GeoPolygonArc2 loop2, double chordTolerance, Tolerance tolerance)
         {
             if (loop1 == null) throw new ArgumentNullException(nameof(loop1));
@@ -129,6 +133,7 @@ namespace GeometryHelper.Core
         /// <param name="chordTolerance">The largest gap allowed between a piece and the arc it replaces, in drawing units. Zero picks the automatic share of each radius.</param>
         /// <returns>The faces of the result, straight throughout.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Intersect(GeoPolygonArc2 loop1, GeoPolygonArc2 loop2, double chordTolerance) => Intersect(loop1, loop2, chordTolerance, Tolerance.Global);
 
         /// <summary>
@@ -136,6 +141,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Intersect(GeoPolygonArc2 loop1, GeoPolygonArc2 loop2, double chordTolerance, Tolerance tolerance)
         {
             if (loop1 == null) throw new ArgumentNullException(nameof(loop1));
@@ -155,6 +161,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Intersect(GeoPolygonArc2 loop1, GeoPolygon2 loop2, double chordTolerance, Tolerance tolerance)
         {
             if (loop1 == null) throw new ArgumentNullException(nameof(loop1));
@@ -174,6 +181,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Intersect(GeoPolygon2 loop1, GeoPolygonArc2 loop2, double chordTolerance, Tolerance tolerance)
         {
             if (loop1 == null) throw new ArgumentNullException(nameof(loop1));
@@ -210,6 +218,7 @@ namespace GeometryHelper.Core
         /// <param name="chordTolerance">The largest gap allowed between a piece and the arc it replaces, in drawing units. Zero picks the automatic share of each radius.</param>
         /// <returns>The faces of the result, straight throughout.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Subtract(GeoPolygonArc2 subject, GeoPolygonArc2 tool, double chordTolerance) => Subtract(subject, tool, chordTolerance, Tolerance.Global);
 
         /// <summary>
@@ -217,6 +226,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Subtract(GeoPolygonArc2 subject, GeoPolygonArc2 tool, double chordTolerance, Tolerance tolerance)
         {
             if (subject == null) throw new ArgumentNullException(nameof(subject));
@@ -236,6 +246,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Subtract(GeoPolygonArc2 subject, GeoPolygon2 tool, double chordTolerance, Tolerance tolerance)
         {
             if (subject == null) throw new ArgumentNullException(nameof(subject));
@@ -255,6 +266,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Subtract(GeoPolygon2 subject, GeoPolygonArc2 tool, double chordTolerance, Tolerance tolerance)
         {
             if (subject == null) throw new ArgumentNullException(nameof(subject));
@@ -291,6 +303,7 @@ namespace GeometryHelper.Core
         /// <param name="chordTolerance">The largest gap allowed between a piece and the arc it replaces, in drawing units. Zero picks the automatic share of each radius.</param>
         /// <returns>The faces of the result, straight throughout.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Xor(GeoPolygonArc2 loop1, GeoPolygonArc2 loop2, double chordTolerance) => Xor(loop1, loop2, chordTolerance, Tolerance.Global);
 
         /// <summary>
@@ -298,6 +311,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Xor(GeoPolygonArc2 loop1, GeoPolygonArc2 loop2, double chordTolerance, Tolerance tolerance)
         {
             if (loop1 == null) throw new ArgumentNullException(nameof(loop1));
@@ -317,6 +331,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Xor(GeoPolygonArc2 loop1, GeoPolygon2 loop2, double chordTolerance, Tolerance tolerance)
         {
             if (loop1 == null) throw new ArgumentNullException(nameof(loop1));
@@ -336,6 +351,7 @@ namespace GeometryHelper.Core
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Xor(GeoPolygon2 loop1, GeoPolygonArc2 loop2, double chordTolerance, Tolerance tolerance)
         {
             if (loop1 == null) throw new ArgumentNullException(nameof(loop1));
@@ -354,6 +370,7 @@ namespace GeometryHelper.Core
         /// tolerance from the curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Union(GeoPolygonArc2 loop1, GeoPolygon2 loop2, double chordTolerance) => Union(loop1, loop2, chordTolerance, Tolerance.Global);
 
         /// <summary>
@@ -367,6 +384,7 @@ namespace GeometryHelper.Core
         /// tolerance from the curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Union(GeoPolygon2 loop1, GeoPolygonArc2 loop2, double chordTolerance) => Union(loop1, loop2, chordTolerance, Tolerance.Global);
 
         /// <summary>
@@ -380,6 +398,7 @@ namespace GeometryHelper.Core
         /// tolerance from the curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Intersect(GeoPolygonArc2 loop1, GeoPolygon2 loop2, double chordTolerance) => Intersect(loop1, loop2, chordTolerance, Tolerance.Global);
 
         /// <summary>
@@ -393,6 +412,7 @@ namespace GeometryHelper.Core
         /// tolerance from the curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Intersect(GeoPolygon2 loop1, GeoPolygonArc2 loop2, double chordTolerance) => Intersect(loop1, loop2, chordTolerance, Tolerance.Global);
 
         /// <summary>
@@ -406,6 +426,7 @@ namespace GeometryHelper.Core
         /// tolerance from the curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Subtract(GeoPolygonArc2 subject, GeoPolygon2 tool, double chordTolerance) => Subtract(subject, tool, chordTolerance, Tolerance.Global);
 
         /// <summary>
@@ -419,6 +440,7 @@ namespace GeometryHelper.Core
         /// tolerance from the curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Subtract(GeoPolygon2 subject, GeoPolygonArc2 tool, double chordTolerance) => Subtract(subject, tool, chordTolerance, Tolerance.Global);
 
         /// <summary>
@@ -432,6 +454,7 @@ namespace GeometryHelper.Core
         /// tolerance from the curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Xor(GeoPolygonArc2 loop1, GeoPolygon2 loop2, double chordTolerance) => Xor(loop1, loop2, chordTolerance, Tolerance.Global);
 
         /// <summary>
@@ -445,6 +468,7 @@ namespace GeometryHelper.Core
         /// tolerance from the curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either loop is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoFace2[] Xor(GeoPolygon2 loop1, GeoPolygonArc2 loop2, double chordTolerance) => Xor(loop1, loop2, chordTolerance, Tolerance.Global);
 
         #endregion

@@ -122,12 +122,19 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void AVeryFineToleranceAsksForALongLoopRatherThanAnEndlessOne()
+        public void AToleranceFinerThanTheLimitIsRefusedAndOneThatFitsIsKept()
         {
-            // A tolerance far below what double precision can hold: capped rather than run away.
-            GeoPolygon2 polygon = Flat().ToPolygonByChordTolerance(1E-15);
+            // The cut used to stop at 4 096 corners whatever the tolerance. The tolerance is kept now, up to 1 048 576 corners:
+            // 1E-8 on a circle of 1 000 is ceil(2 pi / (4 asin root (1E-8 / 2 000))) = 702 482 corners, and a tolerance far
+            // below what double precision can hold is refused rather than run away.
+            Assert.Equal(702482, Flat().ToPolygonByChordTolerance(1E-8).VertexCount);
+            Assert.Equal(702482, Tilted().ToPolygonByChordTolerance(1E-8).VertexCount);
 
-            Assert.InRange(polygon.VertexCount, 3, 4096);
+            var thrown = Assert.Throws<ArgumentOutOfRangeException>(() => Flat().ToPolygonByChordTolerance(1E-15));
+            Assert.Equal("chordTolerance", thrown.ParamName);
+            Assert.Throws<ArgumentOutOfRangeException>(() => Flat().ToPolylineByChordTolerance(1E-15));
+            Assert.Throws<ArgumentOutOfRangeException>(() => Tilted().ToPolygonByChordTolerance(1E-15));
+            Assert.Throws<ArgumentOutOfRangeException>(() => Tilted().ToPolylineByChordTolerance(1E-15));
         }
 
         [Fact]

@@ -116,27 +116,42 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void ATinyToleranceIsCappedAtFourThousandAndNinetySixVertices()
+        public void AToleranceFinerThanTheLimitIsRefusedAndOneThatFitsIsKeptPastFourThousandVertices()
         {
-            // 1E-12 asks for millions of edges. A circle of 1 000 is capped at 4 096, as GeoCircle2 is; the 1 000 by 1
-            // at no more, a multiple of four, still with its vertex at the end of the minor axis.
+            // The cut used to stop at 4 096 vertices whatever the tolerance, so a finer one was not kept. The tolerance is kept
+            // now, up to 1 048 576 vertices, and a finer one is refused. 1E-12 asks for millions of edges: refused for the
+            // circle, the 1 000 by 1 and the 1 000 000 by 100 000 alike.
             var circle = new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.XAxis, 1000, 1000);
             var thin = new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.XAxis, 1000, 1);
-
-            Assert.Equal(4096, CircleCount(1000, 1E-12));
-            Assert.Equal(4096, circle.ToPolygonByChordTolerance(1E-12).VertexCount);
-
-            GeoPolygon2 polygon = thin.ToPolygonByChordTolerance(1E-12);
-            Assert.InRange(polygon.VertexCount, 4, 4096);
-            Assert.Equal(0, polygon.VertexCount % 4);
-            Assert.True(polygon[polygon.VertexCount / 4].IsEqualTo(new GeoPoint2(0, 1), Tight));
-
-            // On 1 000 000 by 100 000 the coordinates round at about 1E-10, so no sag ever measures under 1E-12: the
-            // cutting has to stop at the cap rather than shrink its step for ever.
             var large = new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.XAxis, 1E6, 1E5);
-            GeoPolygon2 capped = large.ToPolygonByChordTolerance(1E-12);
-            Assert.InRange(capped.VertexCount, 4, 4096);
-            Assert.Equal(0, capped.VertexCount % 4);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => CircleCount(1000, 1E-12));
+            Assert.Throws<ArgumentOutOfRangeException>(() => circle.ToPolygonByChordTolerance(1E-12));
+            Assert.Throws<ArgumentOutOfRangeException>(() => thin.ToPolygonByChordTolerance(1E-12));
+            Assert.Throws<ArgumentOutOfRangeException>(() => large.ToPolygonByChordTolerance(1E-12));
+
+            // The 1 000 by 1 within 1E-9 is walked by the bend of the rim in 101 049 corners, where an even spread in the angle
+            // by the major radius would need more than 1 048 576 and was refused; the polygon merges those closer than the point
+            // tolerance.
+            Assert.True(thin.ToPolygonByChordTolerance(1E-9).VertexCount >= 4);
+
+            // 1E-8 on the circle of 1 000 is ceil(2 pi / (4 asin root (1E-8 / 2 000))) = 702 482 corners, the ellipse's the next
+            // multiple of four.
+            int exact = (int)Math.Ceiling(2.0 * Math.PI / (4.0 * Math.Asin(Math.Sqrt(1E-8 / 2000.0))));
+            Assert.Equal(702482, exact);
+            Assert.Equal(exact, CircleCount(1000, 1E-8));
+            Assert.Contains(circle.ToPolygonByChordTolerance(1E-8).VertexCount, new[] { exact, (exact + 3) / 4 * 4 });
+
+            // The 1 000 by 500 within 1E-5 is walked by the bend of the rim past its old 4 096 corners, 18 272 of them: a multiple of four
+            // with its vertex at the end of the minor axis, and no chord strays further than 1E-5. (A thinner ellipse would have
+            // chords shorter than the point tolerance near the ends of its major axis, which the polygon merges.)
+            var fat = new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.XAxis, 1000, 500);
+            GeoPolygon2 polygon = fat.ToPolygonByChordTolerance(1E-5);
+            Assert.InRange(polygon.VertexCount, 18250, 18290);
+            Assert.Equal(0, polygon.VertexCount % 4);
+            Assert.True(polygon[polygon.VertexCount / 4].IsEqualTo(new GeoPoint2(0, 500), Tight));
+            // The corners are placed to the rounding of coordinates of this size, about 1E-11, which the measured sag shows as 1E-8 of the tolerance.
+            Assert.InRange(Ellipse2Oracle.LargestSag(fat, polygon), 0.0, 1E-5 * (1 + 1E-6));
         }
 
         [Fact]

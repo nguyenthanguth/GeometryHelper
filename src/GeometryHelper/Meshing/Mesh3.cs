@@ -125,17 +125,20 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Breaks a loop with arcs into faces as the options say, its grid level, using the default tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoPolygonArc3 loop, MeshOptions options) => ToMesh(loop, options, MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks a loop with arcs into faces as the options say, its grid level, within a tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoPolygonArc3 loop, MeshOptions options, Tolerance tolerance) => ToMesh(loop, options, MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks a loop with arcs into faces as the options say, its grid standing as the placement says, using the default
         /// tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoPolygonArc3 loop, MeshOptions options, MeshPlacement3 placement) => ToMesh(loop, options, placement, Tolerance.Global);
 
         /// <summary>
@@ -155,6 +158,7 @@ namespace GeometryHelper.Meshing
         /// Thrown when the options give an origin of the plane, a grid's cell is no larger than the point tolerance, the grid
         /// would lay more cells over the shape than a mesh may have, or the placement's direction stands square to the plane.
         /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoPolygonArc3 loop, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
         {
             if (loop == null)
@@ -221,16 +225,19 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Breaks a disc into faces as the options say, its grid level, using the default tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoCircle3 circle, MeshOptions options) => ToMesh(circle, options, MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks a disc into faces as the options say, its grid level, within a tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoCircle3 circle, MeshOptions options, Tolerance tolerance) => ToMesh(circle, options, MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks a disc into faces as the options say, its grid standing as the placement says, using the default tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoCircle3 circle, MeshOptions options, MeshPlacement3 placement) => ToMesh(circle, options, placement, Tolerance.Global);
 
         /// <summary>
@@ -250,6 +257,7 @@ namespace GeometryHelper.Meshing
         /// Thrown when the options give an origin of the plane, a grid's cell is no larger than the point tolerance, the grid
         /// would lay more cells over the shape than a mesh may have, or the placement's direction stands square to the plane.
         /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoCircle3 circle, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
         {
             Check(options, placement);
@@ -271,17 +279,20 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Breaks an elliptical disc into faces as the options say, its grid level, using the default tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options) => ToMesh(ellipse, options, MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks an elliptical disc into faces as the options say, its grid level, within a tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, Tolerance tolerance) => ToMesh(ellipse, options, MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks an elliptical disc into faces as the options say, its grid standing as the placement says, using the
         /// default tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, MeshPlacement3 placement) => ToMesh(ellipse, options, placement, Tolerance.Global);
 
         /// <summary>
@@ -307,6 +318,7 @@ namespace GeometryHelper.Meshing
         /// 200 by 200 in 20 faces either way. An ellipse that is a circle within the tolerance has no axis of its own, and
         /// its grid runs level, as a circle's does.
         /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
         {
             Check(options, placement);

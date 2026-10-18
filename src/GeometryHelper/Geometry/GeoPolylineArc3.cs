@@ -484,10 +484,14 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chordTolerance">How far the straight pieces may fall inside an arc.</param>
         /// <returns>A straight chain no point of which stands further than the chord tolerance from this one.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is not a positive number, or needs more than 1 048 576 pieces for one arc.</exception>
         /// <remarks>
         /// This is how to measure a curved chain against anything but a point: the distance from an arc in
         /// space to a segment, to another arc or to a body has no closed form, so the library does not
-        /// pretend to one. Sampling here puts the accuracy in the call, where it can be seen.
+        /// pretend to one. Sampling here puts the accuracy in the call, where it can be seen. The promise holds however fine
+        /// the tolerance and however large the radius: a bend of radius 50 000 turning a quarter within 1E-4 is 12 419
+        /// pieces. The chain merges points closer together than the point tolerance, so chords shorter than that are not kept,
+        /// as for <see cref="GeoPolylineArc2.Flatten(double)"/>; the writers keep every chord.
         /// </remarks>
         public GeoPolyline3 ToPolyline3(double chordTolerance)
         {

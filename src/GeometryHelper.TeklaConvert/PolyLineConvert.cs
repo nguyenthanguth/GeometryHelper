@@ -88,6 +88,7 @@ namespace GeometryHelper.TeklaConvert
         /// in the call rather than being chosen here, which is the same bargain
         /// <see cref="GeoPolylineArc3.ToPolyline3(double)"/> offers.
         /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static TSG.PolyLine ToTeklaPolyLine(this GeoPolylineArc3 chain, double chordTolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));

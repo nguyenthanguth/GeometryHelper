@@ -293,8 +293,8 @@ namespace GeometryHelper.Export
         /// </summary>
         /// <remarks>
         /// Well-known text has no curves that online viewers and most tools read, so a curve is written through its chords.
-        /// A circle of radius 100 cut within 0.1 is a ring of 71 chords, counter-clockwise. The library's own cut stops at
-        /// 4 096 chords a turn, which is short of a tolerance on a large radius, so the count is worked out here: a circle of
+        /// A circle of radius 100 cut within 0.1 is a ring of 71 chords, counter-clockwise. The count is
+        /// worked out from the arc sine: a circle of
         /// radius 50 000 within 0.001 is 15 708 chords, none more than 0.001 inside it. No curve is cut into more than
         /// 1 048 576 chords.
         /// </remarks>
@@ -325,8 +325,7 @@ namespace GeometryHelper.Export
         /// counter-clockwise.
         /// </summary>
         /// <remarks>
-        /// Spaced by the bend of the rim where the library's cut meets the tolerance, and evenly in the angle past its 4 096
-        /// a turn: an ellipse of radii 50 000 and 25 000 within 0.001 is 15 708 chords. No curve is cut into more than
+        /// Spaced by the bend of the rim for up to 4 096 chords a turn, and evenly in the angle past that: an ellipse of radii 50 000 and 25 000 within 0.001 is 15 708 chords. No curve is cut into more than
         /// 1 048 576 chords.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">

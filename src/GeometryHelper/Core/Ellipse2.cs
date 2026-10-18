@@ -490,13 +490,14 @@ namespace GeometryHelper.Core
         /// A polygon inscribed in the ellipse, counter-clockwise from the end of the major axis, its first point not
         /// repeated; symmetric about both axes, with a corner at each end of each.
         /// </returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
         /// <remarks>
         /// The corners are spaced by the bend of the rim, close where it turns sharply at the ends of the major axis and
         /// far apart along the flat sides: an ellipse 1 000 by 1 at the automatic tolerance of 0.002 takes 84 edges, where
         /// an even step in the angle would need about 1 571. A circle takes as many as
         /// <see cref="GeoCircle2.ToPolygonByChordTolerance(double)"/> gives, or up to three more to make a multiple of four;
-        /// no more than <see cref="Internal.Tessellation.MaxSegmentsPerTurn"/> in all, then spread evenly in the angle.
+        /// the same bend decides the count however fine the tolerance, up to 1 048 576 corners in all, and a tolerance that
+        /// needs more is refused.
         /// </remarks>
         public static GeoPolygon2 ToPolygonByChordTolerance(GeoEllipse2 ellipse, double chordTolerance)
         {
@@ -536,7 +537,7 @@ namespace GeometryHelper.Core
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="chordTolerance">The largest gap allowed between a piece and the rim, in drawing units. Zero picks the automatic share of the minor radius.</param>
         /// <returns>The corners of <see cref="ToPolygonByChordTolerance(GeoEllipse2, double)"/>, the first repeated at the end.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
         public static GeoPolyline2 ToPolylineByChordTolerance(GeoEllipse2 ellipse, double chordTolerance)
         {
             return new GeoPolyline2(ByChord(ellipse, chordTolerance, true));
@@ -779,7 +780,9 @@ namespace GeometryHelper.Core
             double a = ellipse.MajorRadius;
             double b = ellipse.MinorRadius;
             double error = chordTolerance > 0.0 ? chordTolerance : b * Internal.Tessellation.AutomaticChordRatio;
-            int most = Internal.Tessellation.MaxSegmentsPerTurn / 4;
+
+            // A quarter may take as many corners as a fourth of what one curve is allowed.
+            int most = Internal.Tessellation.MostSegments / 4;
             var angles = new List<double> { 0.0 };
             double angle = 0.0;
             double last = 0.0;
@@ -808,8 +811,7 @@ namespace GeometryHelper.Core
 
                 if (angles.Count >= most)
                 {
-                    angles = null;
-                    break;
+                    throw Internal.Tessellation.TooMany(error);
                 }
 
                 angle += step;
@@ -817,16 +819,7 @@ namespace GeometryHelper.Core
                 angles.Add(angle);
             }
 
-            if (angles == null)
-            {
-                angles = new List<double>(most + 1);
-
-                for (int i = 0; i < most; i++)
-                {
-                    angles.Add(HalfPi * i / most);
-                }
-            }
-            else if (angles.Count > 1 && HalfPi - angles[angles.Count - 1] < 0.5 * last)
+            if (angles.Count > 1 && HalfPi - angles[angles.Count - 1] < 0.5 * last)
             {
                 // A sliver of a last step is shared with the one before, so that no corner stands a hair from the end of
                 // the minor axis; both halves are shorter than the step before, and so as safe.

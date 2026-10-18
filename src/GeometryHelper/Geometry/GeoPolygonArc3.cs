@@ -546,6 +546,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the loop as a straight one following its arcs to a given accuracy.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is not a positive number, or needs more than 1 048 576 pieces for one arc, as <see cref="GeoPolylineArc3.ToPolyline3(double)"/>.</exception>
         public GeoPolygon3 ToPolygon3(double chordTolerance) => ToPolylineArc3().ToPolyline3(chordTolerance).ToPolygon();
 
         /// <summary>

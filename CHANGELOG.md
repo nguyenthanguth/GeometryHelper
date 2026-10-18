@@ -6,6 +6,30 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Flattening a curve kept the chord tolerance only down to 4 096 pieces a turn. An arc sweeping less than 2 pi /
+4 096, or a circle or an arc on a large radius, was cut into no more pieces than that allowed whatever tolerance was
+asked, so it came back as one chord or short of the tolerance, against what `Flatten`, `ToPolylineByChordTolerance` and
+`ToPolyline3` promise (no piece further from the curve than the tolerance). A rectangle 100 by 50 whose bottom bows 0.015 (bulge 0.0003, radius
+83 333) flattened within 1E-4 to its four corners and an area of 5 000, where the arc adds a segment of 1.00000002; it is
+16 corners and 5 000.994 now, and 126 corners and 5 000.99993 within 1E-6. A quarter turn of radius 50 000 within 1E-4
+was 1 024 pieces straying 0.0147, and is 12 419; a circle of radius 50 000 within 0.01 was 4 096 corners straying 0.0147
+and is 4 968; an ellipse of radii 50 000 and 25 000 within 0.001 was 4 096 corners straying 0.0147 and is 12 920; the bar of
+a pipe of radius 50 000 within 0.01 has 4 968 sides, not 4 096. The count is that of before wherever the cap did not bind (the results
+are bit for bit the same), and otherwise the one the tolerance needs, worked out from the arc sine as the writers do. An
+arc that a tolerance would cut into more than 1 048 576 pieces is refused with an `ArgumentOutOfRangeException`, as the
+writers refuse it: a half turn of radius 50 000 within 1E-10 would take about 25 million. This applies to
+`GeoArc2` and `GeoArc3` `ToPolylineByChordTolerance`, `GeoCircle2` and `GeoCircle3` `ToPolygonByChordTolerance` and
+`ToPolylineByChordTolerance`, the same of `GeoEllipse2` and `GeoEllipse3` (spaced by the bend of the rim, with as
+many corners as the tolerance needs: a thin ellipse 1 000 by 1 within 1E-9 takes 101 049, which an even step in the angle
+could not keep within the limit), `GeoPolygonArc2.Flatten`,
+`GeoPolylineArc2.Flatten` and `ToPolyline3`, `GeoPolylineArc3.ToPolyline3`, `GeoPolygonArc3.ToPolygon3`, the cylinder
+sides of `GeoSolid3.Pipe` and `Revolve`, and so to the arc booleans, `ClashBar` and the meshing that call them. The
+results are bit for bit those of before wherever the cap did not bind. The tolerance still cannot keep a chord shorter than
+the point tolerance, which the polygons and chains merge: an arc of radius 1 sweeping 1 radian within 1E-7 asks for
+1 119 pieces and keeps 559, straying 3.99E-7, where the old cut (652 pieces) strayed 2.94E-7, so where the chords fall under the
+point tolerance the merged result can stray further than a coarser cut, up to (2E-3)² / 8 r from an arc of radius r; the writers
+keep every chord.
+
 **FIXED.** In space, `DistanceTo` and `CollidesWith` between points and straight shapes (segments, rays, chains,
 triangles, polygons, faces, boxes and solids) were not the exact gap. A distance was nought for anything within the
 point tolerance, a corner was reached a tolerance past a segment's end, and a shape hovering off a plane by less than
@@ -127,13 +151,13 @@ arms 0.0004 wide, built within 1E-5, is empty at the global tolerance and 4 tria
 `Add(GeoPolygonArc3)`, `Add(GeoArc3)`, `Add(GeoCircle3)` and `Add(GeoEllipse3)` write a line of chords no further from
 the curve than the chord tolerance given, which has to be a finite number above nought: a circle of radius 100 at 0.1 is
 71 chords, and its last vertex is its first. A chord shorter than the point tolerance is written all the same: a circle
-of radius 1 within 1E-8 is 22 215 chords of 2.8E-4, closed on its own first point. The library's own cut stops at 4 096
-chords a turn and strays 0.0147 from a circle of radius 50 000 cut within 0.01, so the writers work the count out
-themselves where the library's does not meet the tolerance, and give the library's where it does: that circle within
+of radius 1 within 1E-8 is 22 215 chords of 2.8E-4, closed on its own first point. The library's own cut used to stop at 4 096
+chords a turn and stray 0.0147 from a circle of radius 50 000 cut within 0.01; the writers work the count out from the
+arc sine, as the library does now, and give the library's where that is more: that circle within
 0.001 is 15 708 chords, and a curve that would need more than 1 048 576 is refused with an
 `ArgumentOutOfRangeException`. The `Add` of a `GeoPolylineArc3` that was there before is cut the same way. On ordinary
 input it gives the points of `ToPolyline3` but for the end of each arc, which is the edge's own end point; it keeps an edge or a chord shorter than the point tolerance, which
-`ToPolyline3` dropped; where the library's cut stops at 4 096 a turn it gives the exact count, a bend of radius 50 000
+`ToPolyline3` dropped; it gives the exact count, which the library's cut did not while it stopped at 4 096 a turn, a bend of radius 50 000
 within 0.001 being 3 927 chords to a quarter turn where it strayed 0.0147; and at a knife-edge count it may add one
 chord, never one fewer. It still takes any tolerance above nought, infinity included, which the chord overloads and the
 `Wkt` writers refuse. In the chains and loops of both writers an arc so shallow that its circle cannot be placed, as one of a bulge
@@ -166,7 +190,7 @@ the existing one of a list of `GeoFace2`. A `GeoSolid3` is a `POLYHEDRALSURFACE 
 material ends, which PostGIS reads: a box 30 by 20 by 10 is 12 triangles whose signed volumes add up to 6 000. Circles,
 arcs, ellipses and chains and loops with arcs, in the plane and in space, take a chord tolerance, which has to be a
 finite number above nought, and are written through chords no further from the curve than it, with the count worked out
-past the library's 4 096 a turn as for OBJ: a chain or a loop is cut arc by arc on each arc's radius, so a bend of
+from the arc sine as for OBJ: a chain or a loop is cut arc by arc on each arc's radius, so a bend of
 radius 50 000 in a bar is within 0.001, and a curve that would need more than 1 048 576 chords is refused. `GeoRay2` and
 `GeoRay3` take a length, and refuse a `default` ray with an `ArgumentException`.
 

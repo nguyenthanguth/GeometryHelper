@@ -101,6 +101,7 @@ namespace GeometryHelper.Geometry
         /// Makes the body a curved loop drawn in a plane sweeps out moving straight out of it, using the default
         /// tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Extrude(GeoPolygonArc2 profile, GeoCoordinateSystem3 placement, double length, double chordTolerance)
             => Extrude(profile, placement, length, chordTolerance, Tolerance.Global);
 
@@ -116,6 +117,7 @@ namespace GeometryHelper.Geometry
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the profile is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the length is too short to sweep out any volume.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Extrude(GeoPolygonArc2 profile, GeoCoordinateSystem3 placement, double length, double chordTolerance, Tolerance tolerance)
         {
             if (profile == null)
@@ -197,6 +199,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Makes the body a profile sweeps out carried along a chain with bends, using the default tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Sweep(GeoPolygon2 profile, GeoPolylineArc3 path, double chordTolerance)
             => Sweep(profile, path, chordTolerance, Tolerance.Global);
 
@@ -211,6 +214,7 @@ namespace GeometryHelper.Geometry
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the profile or the path is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Sweep(GeoPolygon2 profile, GeoPolylineArc3 path, double chordTolerance, Tolerance tolerance)
             => Sweep3.Sweep(profile, Vertices(path, chordTolerance), null, tolerance);
 
@@ -218,6 +222,7 @@ namespace GeometryHelper.Geometry
         /// Makes the body a profile sweeps out carried along a chain with bends, standing a given way up, using
         /// the default tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Sweep(GeoPolygon2 profile, GeoPolylineArc3 path, double chordTolerance, GeoVector3 up)
             => Sweep(profile, path, chordTolerance, up, Tolerance.Global);
 
@@ -233,12 +238,14 @@ namespace GeometryHelper.Geometry
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the profile or the path is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself, or the up direction runs along it.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Sweep(GeoPolygon2 profile, GeoPolylineArc3 path, double chordTolerance, GeoVector3 up, Tolerance tolerance)
             => Sweep3.Sweep(profile, Vertices(path, chordTolerance), up, tolerance);
 
         /// <summary>
         /// Makes a round bar along a chain, using the default tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Pipe(GeoPolyline3 path, double radius, double chordTolerance)
             => Pipe(path, radius, chordTolerance, Tolerance.Global);
 
@@ -253,12 +260,14 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not positive.</exception>
         /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Pipe(GeoPolyline3 path, double radius, double chordTolerance, Tolerance tolerance)
             => Sweep3.Sweep(Sweep3.Circle(radius, chordTolerance), Vertices(path), null, tolerance);
 
         /// <summary>
         /// Makes a bent round bar along a chain with bends, using the default tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Pipe(GeoPolylineArc3 path, double radius, double chordTolerance)
             => Pipe(path, radius, chordTolerance, Tolerance.Global);
 
@@ -274,12 +283,14 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not positive.</exception>
         /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Pipe(GeoPolylineArc3 path, double radius, double chordTolerance, Tolerance tolerance)
             => Sweep3.Sweep(Sweep3.Circle(radius, chordTolerance), Vertices(path, chordTolerance), null, tolerance);
 
         /// <summary>
         /// Makes the body a profile sweeps out turned round an axis, using the default tolerance.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Revolve(GeoPolygon2 profile, GeoCoordinateSystem3 placement, double angleRad, double chordTolerance)
             => Revolve(profile, placement, angleRad, chordTolerance, Tolerance.Global);
 
@@ -298,6 +309,7 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the profile is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle is not above nought or is more than a whole turn.</exception>
         /// <exception cref="ArgumentException">Thrown when the profile reaches across the axis or lies along it.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Revolve(GeoPolygon2 profile, GeoCoordinateSystem3 placement, double angleRad, double chordTolerance, Tolerance tolerance)
             => Sweep3.Revolve(profile, placement, angleRad, chordTolerance, tolerance);
 

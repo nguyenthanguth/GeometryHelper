@@ -541,10 +541,16 @@ namespace GeometryHelper.Geometry
         /// Approximates the arc as a chain that strays no further from it than a chord tolerance.
         /// </summary>
         /// <param name="chordTolerance">The largest gap allowed between a piece and the arc, in drawing units. Zero picks the automatic share of the radius.</param>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <remarks>
+        /// The promise holds however fine the tolerance and however large the radius: a quarter turn of radius 50 000 cut
+        /// within 1E-4 is 12 419 pieces, not the 1 024 that 4 096 pieces a turn would allow. An arc that the tolerance would
+        /// cut into more than 1 048 576 pieces is refused. Points closer together than the point tolerance are merged by the
+        /// chain, so chords shorter than that are not kept, as for <see cref="GeoPolylineArc2.Flatten(double)"/>.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 pieces.</exception>
         public GeoPolyline3 ToPolylineByChordTolerance(double chordTolerance)
         {
-            return ToPolyline(Internal.Tessellation.SegmentsForChordTolerance(Radius, Math.Abs(SweptAngle), chordTolerance));
+            return ToPolyline(Internal.Tessellation.SegmentsForArc(Radius, Math.Abs(SweptAngle), chordTolerance));
         }
 
         /// <summary>

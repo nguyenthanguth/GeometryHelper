@@ -1075,7 +1075,7 @@ namespace GeometryHelper.UnitTest.Solid
             List<GeoPoint3> wkt = Chain(Wkt.Write(circle, Thousandth));
             List<GeoPoint3> wkt2 = Chain(Wkt.Write(flat, Thousandth));
 
-            // 15 708 chords of about 20: the library's own cut stops at 4 096 a turn and strays 0.0147 at 0.01 here.
+            // 15 708 chords of about 20: the library's own cut used to stop at 4 096 a turn and stray 0.0147 at 0.01 here.
             Assert.Equal(15709, obj.Count);
             Assert.Equal(15709, wkt.Count);
             Assert.Equal(15709, wkt2.Count);
@@ -1115,7 +1115,7 @@ namespace GeometryHelper.UnitTest.Solid
             List<GeoPoint3> wkt = Chain(Wkt.Write(ellipse, Thousandth));
             List<GeoPoint3> wkt2 = Chain(Wkt.Write(flat, Thousandth));
 
-            // Past the library's 4 096 an even spread in the angle: 2 pi over the root of 8 t / a, 15 708 chords.
+            // Past the 4 096 at which the library's cut used to stop, an even spread in the angle: 2 pi over the root of 8 t / a, 15 708 chords.
             Assert.Equal(15709, obj.Count);
             Assert.Equal(15709, wkt.Count);
             Assert.Equal(15709, wkt2.Count);
@@ -1221,7 +1221,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             List<GeoPoint3> points = Along(new ObjWriter().Add(bar, Thousandth, "bar").ToString());
 
-            // The library's own cut, 4 096 chords a turn, gives 1 025 points on the bend and strays 0.0147.
+            // The library's own cut used to stop at 4 096 chords a turn, which gave 1 025 points on the bend and strayed 0.0147.
             Assert.Equal(3928, points.Count(p => Math.Abs(p.DistanceTo(bend) - 50000) < 1E-6));
             Assert.True(WorstSag(points, 50000, bend) <= Thousandth + 1E-9);
             Assert.True(points[0].DistanceTo(new GeoPoint3(0, 0, 0)) < 1E-9);

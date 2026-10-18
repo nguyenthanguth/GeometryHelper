@@ -44,7 +44,7 @@ namespace GeometryHelper.Clash
         /// <param name="radius">The radius of the bar itself.</param>
         /// <param name="chordTolerance">How far the straight pieces a bend is followed by may stray from it.</param>
         /// <exception cref="ArgumentNullException">Thrown when the centre line is null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius or the chord tolerance is not a positive number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius or the chord tolerance is not a positive number, or the tolerance would cut one bend into more than 1 048 576 pieces.</exception>
         public ClashBar(GeoPolylineArc3 centreLine, double radius, double chordTolerance)
         {
             CentreLine = centreLine ?? throw new ArgumentNullException(nameof(centreLine));

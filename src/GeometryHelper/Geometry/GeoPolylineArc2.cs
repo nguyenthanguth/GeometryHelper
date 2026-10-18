@@ -312,7 +312,17 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chordTolerance">The largest gap allowed between a piece and the arc it replaces, in drawing units. Zero picks the automatic share of each radius.</param>
         /// <returns>The straight chain.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number.</exception>
+        /// <remarks>
+        /// The promise holds however fine the tolerance and however shallow the arc: an arc of bulge 0.0003 on a chord of
+        /// 100 (radius 83 333, 0.015 deep) cut within 1E-4 is 13 pieces, not the one chord. An arc that the tolerance would
+        /// cut into more than 1 048 576 pieces is refused. The result is a chain, which merges corners closer together than the point tolerance (1E-3 by default),
+        /// so a tolerance whose chords would be shorter than that is not kept: an arc of radius 1 sweeping 1 radian within 1E-7
+        /// asks for 1 119 pieces and keeps 559, straying 3.99E-7 from the arc, where the old cut stopped at 4 096 a turn, 652 pieces,
+        /// strayed 2.94E-7. Merged chords of up to twice the point tolerance can stray up to (2E-3)² / 8 r from an arc of radius r,
+        /// 5E-7 on a radius of 1, further than a coarser cut that kept its corners. The writers (<c>ObjWriter</c>, <c>Wkt</c>,
+        /// <c>DxfWriter</c>) keep every chord.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 pieces for one arc.</exception>
         public GeoPolyline2 Flatten(double chordTolerance)
         {
             var points = new List<GeoPoint2>(VertexCount * 2);
@@ -784,6 +794,7 @@ namespace GeometryHelper.Geometry
         /// <param name="frame">The frame of the plane to lay it in.</param>
         /// <param name="chordTolerance">The largest gap allowed between a piece and the arc it replaces, in drawing units. Zero picks the automatic share of each radius.</param>
         /// <returns>The chain in space, straight throughout.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 pieces for one arc, as <see cref="Flatten(double)"/>.</exception>
         public GeoPolyline3 ToPolyline3(GeoCoordinateSystem3 frame, double chordTolerance) => Flatten(chordTolerance).ToPolyline3(frame);
 
         /// <summary>

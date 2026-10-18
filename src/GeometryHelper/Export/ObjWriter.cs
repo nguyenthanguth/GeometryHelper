@@ -336,10 +336,9 @@ namespace GeometryHelper.Export
         /// end point, where the library's last chord, worked out from the circle's angle, may miss it by a rounding; and an arc so
         /// shallow that its circle cannot be placed, a bulge of 1E-200 having a centre that is not a number, is read as its chord.
         /// An edge or a chord shorter than the
-        /// point tolerance is kept, where <c>ToPolyline3</c> drops a point within that tolerance of the one before. Where the
-        /// library's cut stops at 4 096 chords a turn, which is short on a large radius, the count is worked out here: a bend
-        /// of radius 50 000 within 0.001 is 3 927 chords to a quarter turn, none more than 0.001 inside the bend, where the
-        /// library's cut strays 0.0147. And at a knife-edge count the exact one may be a chord more than the library's, never
+        /// point tolerance is kept, where <c>ToPolyline3</c> drops a point within that tolerance of the one before. The count
+        /// is worked out here from the arc sine, as the library works it out: a bend of radius 50 000 within 0.001 is
+        /// 3 927 chords to a quarter turn, none more than 0.001 inside the bend. And at a knife-edge count the exact one may be a chord more than the library's, never
         /// one fewer. No bend is cut into more than 1 048 576 chords, the chords of all of them together likewise.
         /// </para>
         /// </remarks>
@@ -392,8 +391,8 @@ namespace GeometryHelper.Export
         /// </summary>
         /// <remarks>
         /// The line runs from the start of the arc to its end, whichever way the arc turns. A quarter of a circle of radius
-        /// 100 cut within 0.1 is 18 chords of about 8.7. The library's own cut stops at 4 096 chords a turn, which is short of
-        /// the tolerance on a large radius, so the count is worked out here: a quarter of radius 50 000 within 0.001 is
+        /// 100 cut within 0.1 is 18 chords of about 8.7. The count is
+        /// worked out from the arc sine: a quarter of radius 50 000 within 0.001 is
         /// 3 927 chords, none more than 0.001 inside the arc. No curve is cut into more than 1 048 576 chords.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">
@@ -410,7 +409,7 @@ namespace GeometryHelper.Export
         /// </summary>
         /// <remarks>
         /// A circle of radius 100 cut within 0.1 is a line of 71 chords whose last vertex is its first. OBJ has no circle,
-        /// and a viewer shows the line, not a disc. Past the library's 4 096 chords a turn the count is worked out here: a
+        /// and a viewer shows the line, not a disc. The count is worked out from the arc sine: a
         /// circle of radius 50 000 within 0.001 is 15 708 chords, none more than 0.001 inside it. No curve is cut into more
         /// than 1 048 576 chords.
         /// </remarks>
@@ -427,8 +426,8 @@ namespace GeometryHelper.Export
         /// Adds an ellipse as a closed line, cut into chords no further than a tolerance from it.
         /// </summary>
         /// <remarks>
-        /// The chords are spaced by the bend of the rim where the library's cut meets the tolerance, and evenly in the angle
-        /// past its 4 096 a turn: an ellipse of radii 50 000 and 25 000 within 0.001 is 15 708 chords. No curve is cut into
+        /// The chords are spaced by the bend of the rim for up to 4 096 of them a turn, and evenly in the angle
+        /// past that: an ellipse of radii 50 000 and 25 000 within 0.001 is 15 708 chords. No curve is cut into
         /// more than 1 048 576 chords.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">

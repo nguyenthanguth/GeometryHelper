@@ -784,6 +784,21 @@ Boolean2.Subtract(flat, opening);         // now the whole 2D half of the librar
 The chords of an arc lie inside it, so a shape bulging outward encloses a little less once flattened, and
 one bulging inward a little more. `Flatten` on a chain with no arcs gives back exactly what went in.
 
+The tolerance is kept however fine it is and however shallow or large the arc: the bottom of a rectangle 100 by 50
+bowed 0.015 (a bulge of 0.0003, on a radius of 83 333) flattened within 1E-4 is 13 pieces on the arc and an area of
+5 000.994, where one chord would give 5 000, and a quarter turn of radius 50 000 within 1E-4 is 12 419 pieces. A circle
+of radius 50 000 within 0.01 is 4 968 corners, and an ellipse of radii 50 000 and 25 000 within 0.001 is 12 920. Every
+member that takes a chord tolerance (the arcs, the loops and chains with arcs, the circle and the ellipse, the meshing of
+them, the pipes and revolved bodies) refuses a curve that the tolerance would cut into more than 1 048 576 pieces, with an
+`ArgumentOutOfRangeException`.
+
+What the tolerance cannot keep is a chord shorter than the point tolerance. The result is a polygon or a chain, and those
+merge points closer together than the point tolerance (1E-3 by default): an arc of radius 1 sweeping 1 radian within 1E-7
+asks for 1 119 pieces and keeps 559, straying 3.99E-7 from the arc, where the old cut, which stopped at 4 096 a turn, gave 652
+pieces straying 2.94E-7. So where the chords fall under the point tolerance the merged result can stray further than a
+coarser cut that kept its corners: merged chords of up to twice the point tolerance stray up to (2E-3)² / 8 r from an arc of
+radius r, 5E-7 on a radius of 1. The writers (`ObjWriter`, `Wkt`, `DxfWriter`) keep every chord.
+
 ## A polygon that crosses itself
 
 A `GeoPolygon2` is taken as it is drawn, and one that crosses itself is still a polygon: `IsSimple()`
@@ -1007,8 +1022,8 @@ symmetric about both axes and has a corner at each end of both. The automatic to
 share of the minor radius. An ellipse 1 000 by 1 then takes 84 edges, where corners an even step apart
 would need about 1 571; the ellipse 300 by 100 takes 64 and encloses 0.175 % less than the ellipse does.
 The count is rounded up to a multiple of four, so an ellipse with equal radii takes 52 where the circle
-takes 50. Past 4 096 corners the steps become even rather than adaptive, which keeps a tolerance too fine to
-meet from asking for an endless loop. `TriangulateSurface` fans from the centre, and `ToMesh` meshes the
+takes 50. The steps stay adaptive however fine the tolerance, up to 1 048 576 corners in all; a tolerance that
+needs more is refused with an `ArgumentOutOfRangeException`. `TriangulateSurface` fans from the centre, and `ToMesh` meshes the
 flattened rim as it does a circle's.
 
 ## Rays
