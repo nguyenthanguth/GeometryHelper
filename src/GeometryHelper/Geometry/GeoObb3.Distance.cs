@@ -14,36 +14,43 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this box to a point. A point inside the box is at
         /// distance zero.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPoint3 point) => Distance3.DistanceTo(this, point);
 
         /// <summary>
         /// Gets the distance from this box to a polyline, using the default tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolyline3 polyline) => Distance3.DistanceTo(polyline, this);
 
         /// <summary>
         /// Gets the distance from this box to a polyline, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this box to a solid, using the default tolerance.
         /// </summary>
+        /// <returns>Nought where the two lie within the global point tolerance of each other, otherwise the gap.</returns>
         public double DistanceTo(GeoSolid3 solid) => Distance3.DistanceTo(solid, this);
 
         /// <summary>
         /// Gets the distance from this box to a solid, within a tolerance.
         /// </summary>
+        /// <returns>Nought where the two lie within the tolerance given of each other, otherwise the gap.</returns>
         public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.DistanceTo(solid, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this box to a box, using the default tolerance.
         /// </summary>
+        /// <returns>Nought where the two lie within the global point tolerance of each other, otherwise the gap.</returns>
         public double DistanceTo(GeoObb3 other) => Distance3.DistanceTo(this, other);
 
         /// <summary>
         /// Gets the distance from this box to a box, within a tolerance.
         /// </summary>
+        /// <returns>Nought where the two lie within the tolerance given of each other, otherwise the gap.</returns>
         public double DistanceTo(GeoObb3 other, Tolerance tolerance) => Distance3.DistanceTo(this, other, tolerance);
 
         /// <summary>
@@ -66,6 +73,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a segment: the answer of
         /// <see cref="Distance3.DistanceTo(GeoLine3, GeoObb3)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment no longer than the global
+        /// point tolerance is read as its start point, except where it truly meets the other shape.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 50 from the segment from (150, 50, 50) to (150, 50, 150), and nought from one reaching into it.
@@ -76,6 +87,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a segment, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoLine3, GeoObb3, Tolerance)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment no longer than the
+        /// tolerance given is read as its start point, except where it truly meets the other shape.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 50 from the segment from (150, 50, 50) to (150, 50, 150), and nought from one reaching into it.
@@ -86,6 +101,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a ray: the answer of
         /// <see cref="Distance3.DistanceTo(GeoRay3, GeoObb3)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 50 from the ray from (150, 50, 50) along X, and nought from the same ray turned round.
@@ -96,6 +112,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a ray, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoRay3, GeoObb3, Tolerance)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 50 from the ray from (150, 50, 50) along X, and nought from the same ray turned round.
@@ -106,6 +123,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a plane: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPlane3, GeoObb3)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought where the plane crosses the shape or comes within the global point tolerance of it, otherwise the
+        /// gap.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 30 from the plane z = 130, and nought from the plane z = 50.
@@ -116,6 +137,9 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a plane, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPlane3, GeoObb3, Tolerance)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought where the plane crosses the shape or comes within the tolerance given of it, otherwise the gap.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 30 from the plane z = 130, and nought from the plane z = 50.
@@ -126,6 +150,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a triangle: the answer of
         /// <see cref="Distance3.DistanceTo(GeoTriangle3, GeoObb3)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A triangle, polygon or face within a
+        /// billionth of a millimetre of the outside of a box reads nought, for the same reason.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 30 from the triangle with corners (0, 0, 130), (100, 0, 130) and (0, 100, 130), and nought from one wholly
@@ -137,6 +165,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a triangle, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoTriangle3, GeoObb3, Tolerance)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A triangle, polygon or face within a
+        /// billionth of a millimetre of the outside of a box reads nought, for the same reason.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 30 from the triangle with corners (0, 0, 130), (100, 0, 130) and (0, 100, 130), and nought from one wholly
@@ -148,6 +180,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a polygon: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPolygon3, GeoObb3)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A triangle, polygon or face within a
+        /// billionth of a millimetre of the outside of a box reads nought, for the same reason.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 30 from the square 100 by 100 lying flat at a height of 130 over it, and nought from the square 200 by 200 lying
@@ -160,6 +196,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a polygon, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPolygon3, GeoObb3, Tolerance)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A triangle, polygon or face within a
+        /// billionth of a millimetre of the outside of a box reads nought, for the same reason.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 30 from the square 100 by 100 lying flat at a height of 130 over it, and nought from the square 200 by 200 lying
@@ -172,6 +212,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a face: the answer of
         /// <see cref="Distance3.DistanceTo(GeoFace3, GeoObb3)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A triangle, polygon or face within a
+        /// billionth of a millimetre of the outside of a box reads nought, for the same reason.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The face is read by its material. The box 100 by
         /// 100 by 100 about (50, 50, 50) passes through the hole of the square 200 by 200 from (-50, -50, 50) to (150, 150,
@@ -184,6 +228,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and a face, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoFace3, GeoObb3, Tolerance)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A triangle, polygon or face within a
+        /// billionth of a millimetre of the outside of a box reads nought, for the same reason.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The face is read by its material. The box 100 by
         /// 100 by 100 about (50, 50, 50) passes through the hole of the square 200 by 200 from (-50, -50, 50) to (150, 150,
@@ -196,6 +244,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and an axis-aligned box: the answer of
         /// <see cref="Distance3.DistanceTo(GeoObb3, GeoAabb3)"/>.
         /// </summary>
+        /// <returns>Nought where the two lie within the global point tolerance of each other, otherwise the gap.</returns>
         /// <remarks>
         /// The answer of <see cref="Distance3.DistanceTo(GeoObb3, GeoObb3, Tolerance)"/> with the axis-aligned box as
         /// <c>ToObb()</c>: two oriented boxes are measured as their bodies once the separating axis test has found them
@@ -209,6 +258,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this oriented box and an axis-aligned box, within a tolerance: the
         /// answer of <see cref="Distance3.DistanceTo(GeoObb3, GeoAabb3, Tolerance)"/>.
         /// </summary>
+        /// <returns>Nought where the two lie within the tolerance given of each other, otherwise the gap.</returns>
         /// <remarks>
         /// The answer of <see cref="Distance3.DistanceTo(GeoObb3, GeoObb3, Tolerance)"/> with the axis-aligned box as
         /// <c>ToObb()</c>: two oriented boxes are measured as their bodies once the separating axis test has found them

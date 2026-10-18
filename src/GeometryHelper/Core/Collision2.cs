@@ -364,7 +364,7 @@ namespace GeometryHelper.Core
 
             GeoLine2[] edges = EdgesOf(poly);
 
-            return CrossesOrStartsIn(poly, edges, line, tolerance, false) || ComeWithin(edges, line, tolerance);
+            return CrossesOrStartsIn(poly, edges, line, tolerance) || ComeWithin(edges, line, tolerance);
         }
 
         /// <summary>
@@ -386,20 +386,13 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Whether a segment crosses a polygon or starts inside it, a crossing up to the point tolerance past the ends
-        /// counted when asked: the reading the shapes of space keep when they lay a polygon out in its plane.
-        /// </summary>
-        internal static bool CrossesOrStartsIn(GeoPolygon2 poly, GeoLine2 line, Tolerance tolerance, bool pastEnds)
-            => CrossesOrStartsIn(poly, EdgesOf(poly), line, tolerance, pastEnds);
-
-        /// <summary>
         /// Whether a segment crosses a polygon, given as it is and as its edges, or starts inside it.
         /// </summary>
-        private static bool CrossesOrStartsIn(GeoPolygon2 poly, GeoLine2[] edges, GeoLine2 line, Tolerance tolerance, bool pastEnds)
+        private static bool CrossesOrStartsIn(GeoPolygon2 poly, GeoLine2[] edges, GeoLine2 line, Tolerance tolerance)
         {
             foreach (var polyEdge in edges)
             {
-                if (Cross(line, polyEdge, tolerance, pastEnds))
+                if (Crosses(line, polyEdge, tolerance))
                 {
                     return true;
                 }
@@ -407,16 +400,6 @@ namespace GeometryHelper.Core
 
             return Containment2.Contains(poly, line.StartPoint, tolerance);
         }
-
-        /// <summary>
-        /// Whether two segments cross: truly, at a point on both, or, with <paramref name="pastEnds"/>, where
-        /// <see cref="Intersection2.TryIntersectWith(GeoLine2, GeoLine2, out GeoPoint2, Tolerance)"/> places a crossing,
-        /// up to the point tolerance past the end of either.
-        /// </summary>
-        private static bool Cross(GeoLine2 first, GeoLine2 second, Tolerance tolerance, bool pastEnds)
-            => pastEnds
-                ? Intersection2.TryIntersectWith(first, second, out _, tolerance)
-                : Crosses(first, second, tolerance);
 
         /// <summary>
         /// Whether two segments truly cross, at a point on both, with no slack past their ends: where the distance between
@@ -483,7 +466,7 @@ namespace GeometryHelper.Core
             GeoLine2[] edges1 = EdgesOf(poly1);
             GeoLine2[] edges2 = EdgesOf(poly2);
 
-            return CrossesOrStartsIn(poly1, edges1, poly2, edges2, tolerance, false) || ComeWithin(edges1, edges2, tolerance);
+            return CrossesOrStartsIn(poly1, edges1, poly2, edges2, tolerance) || ComeWithin(edges1, edges2, tolerance);
         }
 
         /// <summary>
@@ -510,22 +493,15 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Whether two polygons cross or one starts inside the other, a crossing up to the point tolerance past the ends
-        /// of two edges counted when asked: the reading the shapes of space keep when they lay polygons out in a plane.
-        /// </summary>
-        internal static bool CrossesOrStartsIn(GeoPolygon2 poly1, GeoPolygon2 poly2, Tolerance tolerance, bool pastEnds)
-            => CrossesOrStartsIn(poly1, EdgesOf(poly1), poly2, EdgesOf(poly2), tolerance, pastEnds);
-
-        /// <summary>
         /// Whether two polygons, each given with its edges, cross or one starts inside the other.
         /// </summary>
-        private static bool CrossesOrStartsIn(GeoPolygon2 poly1, GeoLine2[] edges1, GeoPolygon2 poly2, GeoLine2[] edges2, Tolerance tolerance, bool pastEnds)
+        private static bool CrossesOrStartsIn(GeoPolygon2 poly1, GeoLine2[] edges1, GeoPolygon2 poly2, GeoLine2[] edges2, Tolerance tolerance)
         {
             foreach (var edge1 in edges1)
             {
                 foreach (var edge2 in edges2)
                 {
-                    if (Cross(edge1, edge2, tolerance, pastEnds))
+                    if (Crosses(edge1, edge2, tolerance))
                     {
                         return true;
                     }
@@ -853,7 +829,7 @@ namespace GeometryHelper.Core
                 // An edge of the polyline is the edge it is however short, not a segment read as its start point.
                 GeoLine2 edge = polyline.GetEdgeAt(i);
 
-                if (CrossesOrStartsIn(poly, sides, edge, tolerance, false) || ComeWithinSides(sides, edge, tolerance))
+                if (CrossesOrStartsIn(poly, sides, edge, tolerance) || ComeWithinSides(sides, edge, tolerance))
                 {
                     return true;
                 }

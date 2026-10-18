@@ -13,6 +13,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this disc to a point.
         /// </summary>
+        /// <returns>Nought only where the point lies in the disc, otherwise the gap to it, measured exactly.</returns>
         /// <remarks>
         /// The disc counts as a filled surface, so a point directly above the centre is measured straight
         /// down to the surface rather than out to the circumference.

@@ -6,82 +6,83 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
-**FIXED.** 3D distances between points and straight shapes (segments, rays, chains, triangles, polygons, faces, boxes and
-solids) were nought for anything within the point tolerance, a corner reached a tolerance past a segment's end, and a
-shape hovering off a plane by less than the planar tolerance was read as lying in it. A segment starting 0.0005 off the
-square 100 by 100 in its plane was nought from it, from one end and not from the other; one hovering 0.0003 over it was
-nought away; a point 0.0004 under the plane and 0.0005 beside it was 0.0004 away; one 0.0009 up and 0.0009 out
-(0.00127 away) collided. They are now the exact gap in space, nought only where the shapes cross, touch or hold one
-another (a rim counting), and `CollidesWith` is exactly whether that gap is no more than `EqualPoint`, from either side.
-The audit of 265 968 near-contact records against a 50-digit oracle had 35 336 wrong noughts and 14 102 wrong
-collisions at c586568; the wrong noughts are gone and 4 556 wrong collisions are fixed. What is left of the audit's
-straight shapes is the segment against a ray (54 readings of a gap where they meet and 38 wrong values at a ray through
-a segment's end) and, at tilted end-to-end crossings, Line against Line, Polyline against Polyline and Line against
-Polyline (4 gaps each, and 8 pairs whose two ways round differ by rounding), which a later round takes; the rest is curved
-shapes. A fuzz of 135 715 pairs of points, segments, rays, triangles, polygons and faces, thin ones and ones 90 000 from
-the origin among them, judged against a 40-digit oracle, finds 17 readings off the exact gap by more than rounding, all
-the worst 1.4E-9 off it. What is left of that is the plane through so thin a triangle: a sliver 0.0001 wide and 100 long
-can read about 1.5E-9 off. Rays against rays, chains against rays, and points against
-polygons, faces and solids follow. A polygon or a face is read flat in its plane about its first corner, so a face
-80 000 from the origin is not tilted by the cancelling of its coordinates, and a point on the rim of a polygon a few
-ten-thousandths out of flat is on it. A triangle is measured to a point along its own normal, so that a sliver is
-measured where it is: a point on the triangle (0, 0, 0), (100, 0, 0), (50, 0.0001, 0) read 0.00056 away, as the
-closest-point search of `Projection3` finds it, and is now nought away. A segment no longer than the point tolerance is still read as its start where it does not meet the
-other shape. `Projection3` is unchanged, so within the tolerance a shortest line can be of no length where the distance
-is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9) over the square is joined at (5, 5, 0.0004), and is 0.0004 from
-it.
-
-**CHANGED.** Results near contact move, from nought to the gap, in `Distance3.DistanceTo` and the `DistanceTo` members of
-the shapes for: a point against a triangle (a sliver), polygon, face or solid; a triangle against a triangle, polygon or face; a polygon or
-face against a polygon or face; a segment, ray or chain against a triangle, polygon, face, box or solid; a solid against
-a line, ray, chain, triangle, polygon or face; a ray against a ray; a chain against a ray. `Collision3.CollidesWith` for
-the same pairs now answers whether the exact gap is within `EqualPoint`; it moves only where the old answer used the old
-band (a corner reaching a tolerance past a segment's end, a shape laid flat). Three things are not read so, and are
-stated: a triangle with no area touches nothing, whatever its distance (it keeps its gap), so that for it
-`CollidesWith` is not `DistanceTo <= EqualPoint`; `DistanceTo` between two solids or oriented boxes, which searches through their
-triangles, still reads nought within the point tolerance, so two oriented boxes 0.0004 apart are nought apart, and so is an axis-aligned box against an oriented box or a solid (only
-`GeoAabb3.DistanceTo(GeoAabb3)` is exact); and a shape against
-a plane still reads its corners within the point tolerance as on it, so a plane is nought from a square 0.0004 above it.
-A point within a billionth of a millimetre outside a body reads as in it, so that rounding in a turned body cannot lose a
-crossing: a point 5E-10 outside a box is nought away. `CollidesWith` between two triangles, which the clash reads, is
-unchanged and decides a pair standing exactly the tolerance apart by its own margin.
-
-**FIXED.** Arcs, circles, curved chains and curved loops in space collide with another shape exactly where the gap between
-them in space is within the point tolerance, in whatever plane they lie, lifted or tilted out of it; one case is searched
-and not proved, below. A straight side facing the middle of an arc, its edge parallel to the arc's tangent, was missed at
-half a tolerance though a segment coming at it end first collided (across the top of an arc of radius 50, at
-y = 50.0005), and an arc whose end stood 0.0012 off a square's corner collided with it. The audit of 265 968 near-contact
-records against a 50-digit oracle found 7 950 wrong collisions among curved shapes at a69069e and finds none now, and
-130 000 pairs of arcs and 60 000 arcs against a segment, ray, triangle, polygon, face or box, judged by a bounded search
-in doubles, find none wrong. A segment along an arc's tangent, lifted over its plane by 0.0009 half a turn round a circle
-of radius 10 000 whose centre is 10 000 from the origin, read 1.2 away and lost its collision, and one touching a circle
-of radius 2000 read 6E-6 off: the roots of the distance along the arc coincide there, and a step toward one carried the
-candidate away; every candidate is kept as it came and the distance is minimised round the doubled ones. The angle is
-measured from the middle of the arc's sweep, where z = tan(t / 2) is not infinite inside it, and an arc over a half turn is
-solved a second time from a quarter turn on: a segment a hair off half a turn round, tilted a few millionths, on a circle of
-radius 40 000 or more, read up to 7E-6 too far and lost up to 11 collisions in 40 000 cases, and reads true now. The one case
-searched, not proved, is two partial arcs lying nearly on one axis whose distance stays almost constant just beyond the
-tolerance, where the proof by halving outruns its budget and the arcs are walked at a thirtieth of a radian with every low
-point polished; the exactly coaxial copy of one arc, which is never further from it than the tilt times its radius and the
-offset of its centre, settles most of them first. The gap is worked out inside and not offered: no member measures the
-distance from a curve in space to anything but a point. An arc against a box no longer
-throws for a box thinner than the point tolerance, or a few thousandths across such as 0.018 by 0.0021 by 0.0023: the box is
-read by its corners, where its body refused a face too small to be a polygon (29 of 60 000 scenes threw). A circle is its rim
-and a loop its outline, as `DistanceTo` has always read them, so a circle or a loop round a shape touches nothing. A triangle
-with no area collides with nothing, and a segment no longer than the tolerance is read as its start unless it truly meets
-the curve, as for straight shapes. A single arc costs a few microseconds more to ask about, measured on net48: an arc
-against a triangle took 1.2 microseconds and takes 6.8 where the two stand near each other, 0.6 and 1.2 where they stand
-far; an arc of radius 20 lying 0.0005 beside a triangle's side takes 3.4 microseconds, and one dipping to 0.0005 over its
-face 1.2; a chain takes the same as before.
+**FIXED.** In space, `DistanceTo` and `CollidesWith` between points and straight shapes (segments, rays, chains,
+triangles, polygons, faces, boxes and solids) were not the exact gap. A distance was nought for anything within the
+point tolerance, a corner was reached a tolerance past a segment's end, and a shape hovering off a plane by less than
+the planar tolerance was read as lying in it. A segment starting 0.0005 off the square 100 by 100 in its plane was
+nought from it, from one end and not from the other; one hovering 0.0003 over it was nought away; a point 0.0004 under
+the plane and 0.0005 beside it was 0.0004 away; one 0.0009 up and 0.0009 out (0.00127 away) collided. `DistanceTo` is
+now nought only where the shapes cross, touch or hold one another (a rim counting), otherwise the exact gap in space,
+and `CollidesWith` is exactly whether that gap is no more than `EqualPoint`, from either side, as in the plane. The
+audit of 265 968 near-contact records against a 50-digit oracle had, at c586568, 35 336 wrong noughts, 322 gaps read
+where the shapes meet, 886 wrong values, 12 506 wrong collisions, 1 084 collisions that disagreed with their own
+distance, and 16 pairs whose two ways round differed. It has no wrong nought, no wrong collision and no asymmetry now;
+the 12 gaps and 798 values left are all segments half a tolerance long, which are read as their start (below). A fuzz of
+135 715 pairs of points, segments, rays, triangles, polygons and faces, thin ones and ones 90 000 from the origin among
+them, judged against a 40-digit oracle, finds 20 readings off the exact gap by more than rounding, the worst 2.5E-9 off
+it: the plane through so thin a triangle (a point 6E-14 from a sliver 0.0001 wide and 100 long reads 2.5E-9). A polygon
+or a face is read flat in its plane about its first corner, so a face 80 000 from the origin is not tilted by the
+cancelling of its coordinates, and a point on the rim of a polygon a few ten-thousandths out of flat is on it. A
+triangle is measured to a point along its own normal, so that a sliver is measured where it is: a point on the triangle
+(0, 0, 0), (100, 0, 0), (50, 0.0001, 0) read 0.00056 away, as the closest-point search of `Projection3` finds it, and is
+now nought away.
 
 **FIXED.** Distances between segments, rays and chains are exact and the same whichever is asked first. Two segments meeting
 end to end, one tilted by 8E-6 radian, read 2.7E-11 one way and 9.5E-16 the other; two crossing at a slope of 1E-9 read 3E-8
 where they cross; a ray whose origin stood within the tolerance of a segment read the origin's distance and ignored where it
 went, so a ray through the segment's end from 0.00035 below it read 0.00035, and one running 0.0009 over a segment read 0.00103
-while it collided. They are now nought where they meet, otherwise the gap, from either side, and a collision is whether that gap
-is within the point tolerance. Over 28 000 pairs of segments, up to 10 000 from the origin and as little as 1E-10 radian
-apart, the worst error is 3E-16 of the coordinates where it was 9E-9, and none reads differently the other way round. The
-shortest line (`GetShortestLineTo`) between segments keeps its answer.
+while it collided. They are now nought where they meet, otherwise the gap, from either side, and a collision is whether that
+gap is within the point tolerance. Over 28 000 pairs of segments, up to 10 000 from the origin and as little as 1E-10 radian
+apart, the worst error is 3E-16 of the coordinates where it was 9E-9, and none reads differently the other way round. A
+segment you give, no longer than the point tolerance, is still read as its start where it does not truly meet the other shape,
+as in the plane. `Projection3` is unchanged, so within the tolerance a shortest line can be of no length where the distance
+is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9) over the square is joined at (5, 5, 0.0004), and is 0.0004 from
+it; between segments, `GetShortestLineTo` keeps its answer, which can still differ by the order of the arguments.
+
+**FIXED.** Arcs, circles, curved chains and curved loops in space collide with another shape exactly where the gap between
+them in space is within the point tolerance, in whatever plane they lie, lifted or tilted out of it; one case is searched and
+not proved, below. A straight side facing the middle of an arc, its edge parallel to the arc's tangent, was missed at half a
+tolerance though a segment coming at it end first collided (across the top of an arc of radius 50, at y = 50.0005), and an
+arc whose end stood 0.0012 off a square's corner collided with it. Of the 12 506 wrong collisions of the audit above, 9 008
+were among curved shapes, and none is left; 130 000 pairs of arcs and 60 000 arcs against a segment, ray, triangle, polygon,
+face or box, judged by a bounded search in doubles, find none wrong. A segment along an arc's tangent, lifted over its plane
+by 0.0009 half a turn round a circle of radius 10 000 whose centre is 10 000 from the origin, read 1.2 away and lost its
+collision, and one touching a circle of radius 2000 read 6E-6 off: the roots of the distance along the arc coincide there,
+and a step toward one carried the candidate away; every candidate is kept as it came and the distance is minimised round the
+doubled ones. The angle is measured from the middle of the arc's sweep, where z = tan(t / 2) is not infinite inside it, and an
+arc over a half turn is solved a second time from a quarter turn on: a segment a hair off half a turn round, tilted a few
+millionths, on a circle of radius 40 000 or more, read up to 7E-6 too far and lost up to 11 collisions in 40 000 cases, and
+reads true now. The one case searched, not proved, is two partial arcs lying nearly on one axis whose distance stays almost
+constant just beyond the tolerance, where the proof by halving outruns its budget and the arcs are walked at a thirtieth of a
+radian with every low point polished; the exactly coaxial copy of one arc, which is never further from it than the tilt times
+its radius and the offset of its centre, settles most of them first. The gap is worked out inside and not offered: no member
+measures the distance from a curve in space to anything but a point. An arc against a box no longer throws for a box thinner
+than the point tolerance, or a few thousandths across such as 0.018 by 0.0021 by 0.0023: the box is read by its corners, where
+its body refused a face too small to be a polygon (29 of 60 000 scenes threw). A circle collides as its rim and a loop as its
+outline, so a circle or a loop round a shape touches nothing, while the distance from a point to a circle is to the filled
+disc, as it always was. A triangle with no area collides with nothing, and a segment no longer than the tolerance is read as
+its start unless it truly meets the curve, as for straight shapes. A single arc costs a few microseconds more to ask about,
+measured on net48: an arc against a triangle took 1.2 microseconds and takes 6.8 where the two stand near each other, 0.6 and
+1.2 where they stand far; an arc of radius 20 lying 0.0005 beside a triangle's side takes 3.4 microseconds, and one dipping
+to 0.0005 over its face 1.2; a chain takes the same as before.
+
+**CHANGED.** Results near contact move, from nought to the gap, in `Distance3.DistanceTo` and the `DistanceTo` members of
+the shapes for: a point against a triangle (a sliver), polygon, face or solid; a triangle against a triangle, polygon or face;
+a polygon or face against a polygon or face; a segment, ray or chain against a triangle, polygon, face, box or solid; a solid
+against a line, ray, chain, triangle, polygon or face; a ray against a ray; a chain against a ray. `Collision3.CollidesWith`
+for the same pairs, and for arcs, circles and curved chains and loops, answers whether the exact gap is within `EqualPoint`;
+it moves only where the old answer used the old band (a corner reaching a tolerance past a segment's end, a shape laid flat)
+or missed a gap inside the tolerance. Eight things are read otherwise, on purpose, and the guide
+(the chapter on space) gives each with its numbers: a triangle with no area
+touches nothing, whatever its distance, so that for it `CollidesWith` is not `DistanceTo <= EqualPoint`; `DistanceTo` between
+two solids or oriented boxes, which searches through their triangles, still reads nought within the point tolerance, so two
+oriented boxes 0.0004 apart are nought apart, and so is an axis-aligned box against an oriented box or a solid (only
+`GeoAabb3.DistanceTo(GeoAabb3)` is exact); a plane reads a ray, a chain, a region, a box or a body within the point tolerance
+of it as on it, so that a plane is nought from a square 0.0004 above it; a point, segment or region within a billionth of a
+millimetre outside a body reads as in it, so that rounding in a turned body cannot lose a crossing (a point 5E-10 above a solid
+box is nought away); a segment you give, no longer than the tolerance, is read as its start; a circle collides as its rim and a
+loop as its outline; `GetShortestLineTo` and `GetIntersections` keep their readings; and the one case of arcs is searched, not
+proved.
 
 **CHANGED.** The collision of two triangles, which the clash reads, is now the same whichever is asked first at exactly the
 tolerance. A pair 90 000 from the origin standing 0.00099999999999998 apart collided asked of the first triangle and not asked

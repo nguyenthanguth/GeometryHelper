@@ -418,26 +418,60 @@ var by = new GeoVector3(11, -23, 37);
 slab.Translate(by);   beside.Translate(by);   GeoPlane3.XY.Translate(by);
 ```
 
+#### How near is touching, in space
+
+**In space, as in the [plane](plane.md), `DistanceTo` reads nought only where two shapes truly meet.** That is where they
+cross, touch or overlap, or one holds the other, a point on a rim counting as held. Everywhere else it is the gap in space,
+measured exactly however small and the same whichever way round it is asked, and `CollidesWith` is whether that gap is no
+more than the point tolerance. Nothing is widened by the tolerance and nothing is laid flat. It holds for points, segments,
+rays, polylines, triangles, polygons, faces, boxes and bodies against one another, and, for collisions, for arcs, circles
+and chains and loops of arcs against all of them. Measured at a thousandth:
+
+* **Straight shapes.** A segment starting 0.0005 off the square 100 by 100, in its plane, is 0.0005 from it, from either
+  end, and collides; one hovering 0.0003 over it is 0.0003 from it; a point 0.0004 under the plane of the square and 0.0005
+  beside it is 0.00064 away; one ending 0.0012 off its corner is 0.0012 away and does not collide; and one 0.0009 up and
+  0.0009 out is 0.00127 away and does not collide, though neither offset is as much as a tolerance.
+* **Segments, rays and chains** are as far apart one way as the other. Two segments meeting end to end, one tilted by
+  8E-6 radian, are nought apart whichever is asked first; a ray passing through the end of a segment, from 0.00035 below it,
+  is nought from it, and one running 0.0009 over a segment is 0.0009 from it and collides.
+* **Arcs, circles, chains and loops of arcs** collide exactly where the gap between them in space is no more than the point
+  tolerance, in whatever plane they lie, lifted or tilted out of it. A straight side facing the top of an arc touches it as an
+  end does: across the dome of radius 50, a side at y = 50.0005 touches it and one at y = 50.0012 does not. A box is read by
+  its corners, so one thinner than the tolerance, or a few thousandths across, is asked about as surely as any other. No member
+  measures the distance from a curve in space to anything but a point; the gap is worked out inside. On .NET Framework 4.8
+  an arc against a triangle takes 1.2 microseconds to ask about where they stand far apart and 6.8 where they stand near.
+
+Eight things are read otherwise, on purpose:
+
+* **A triangle with no area**, such as (0, 0, 0), (100, 0, 0), (50, 1E-8, 0), touches nothing whatever its distance, which
+  is still its gap, so for it `CollidesWith` is not `DistanceTo <= EqualPoint`.
+* **A body against a body**, or an oriented box against an oriented or an axis-aligned box, is searched through the
+  triangles of the two and reads nought when they are within the point tolerance of each other: two solid boxes 0.0004 apart
+  are nought apart, and so is an axis-aligned box 0.0004 from an oriented box or a solid, though the line between them
+  (`GetShortestLineTo`) is 0.0004 long. Only `GeoAabb3.DistanceTo(GeoAabb3)` is exact.
+* **A plane** reads a ray, a chain, a triangle, a polygon, a face, a box or a body within the point tolerance of it as on
+  it: the plane z = 0 is nought from a square 0.0004 above it. A point, a segment and another plane are measured to it exactly.
+* **A billionth of a millimetre outside a body** reads as in it, so that rounding in a body turned about in space cannot lose
+  a crossing: a point, a segment, a ray or a region 5E-10 above the top of a solid box is nought away, and so is a triangle,
+  a polygon or a face that close to an oriented or axis-aligned box, though a point or a segment 5E-10 from the box itself is
+  5E-10 away.
+* **A segment you give, no longer than the point tolerance, is read as its start** where it does not truly meet the other
+  shape, as it is in the plane.
+* **A circle collides as its rim and a loop of arcs as its outline**, so a circle or a loop round a shape touches nothing:
+  the circle of radius 40 about the origin does not touch the square 20 by 20 in its middle, and touches the segment from
+  (40.0005, 0, 0) to (80, 0, 0). The distance from a point to a circle is to the filled disc, as it always was: nought at the
+  centre, and 5 for a point 5 above it. A loop's is to its outline.
+* **Projections and intersections keep their readings.** `GetShortestLineTo` and `GetIntersections` ask where the shapes
+  are, not whether they are near, so within the tolerance a shortest line can be of no length where the distance is the gap:
+  the segment from (5, 5, 0.0004) to (5, 5, 9) over the square is joined at (5, 5, 0.0004) and is 0.0004 from it. Between
+  segments, the line can still differ by the order of the arguments.
+* **One case is searched and not proved**: two partial arcs lying nearly on one axis whose distance stays almost constant
+  just beyond the tolerance, which are walked finely with every low point polished.
+
 #### A segment or a ray against a flat shape
 
 A segment, a ray and a flat region have no thickness between them, so there is nothing to overlap in: they
 touch exactly where the gap between them is no more than the point tolerance, and cross where that gap is nought.
-
-In space, a point or a straight shape is as far from a segment, a region or a body as it truly is: nought only where they
-cross, touch or hold one another, a rim counting, otherwise the exact gap in space. Nothing is widened by the tolerance and
-nothing is laid flat: a segment 0.0005 off the square 100 by 100 in its plane is 0.0005 from it, from either end; one
-hovering 0.0003 over it is 0.0003 from it; a point 0.0004 under the plane and 0.0005 beside it is 0.00064 away.
-`CollidesWith` is exactly whether that gap is no more than the point tolerance. A shape coming end-on at a region and
-stopping within the tolerance of it is still joined by a line of no length (see the shortest lines above), while its
-distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9) over that square is joined at (5, 5, 0.0004), and is
-0.0004 from it. Three things are read otherwise, on purpose. A triangle with no area, such as (0, 0, 0), (100, 0, 0),
-(50, 1E-8, 0), touches nothing whatever its distance, which is still its gap, so for it `CollidesWith` is not
-`DistanceTo <= EqualPoint`. A body against a body, or an oriented box against an oriented or an axis-aligned box, is searched through the triangles of
-the two and still reads nought when they are within the point tolerance of each other: two solid boxes 0.0004 apart are
-nought apart, and so is an axis-aligned box 0.0004 from an oriented box or a solid, though the line between them
-(`GetShortestLineTo`) is 0.0004 long. Only `GeoAabb3.DistanceTo(GeoAabb3)` is exact. And a plane reads the corners of a shape within the point tolerance as
-on it: the plane z = 0 is nought from a square 0.0004 above it. A point within a billionth of a millimetre outside a body
-reads as in it, so that rounding in a body turned about in space cannot lose a crossing.
 
 ```csharp
 var flat = new GeoTriangle3(
@@ -447,22 +481,6 @@ var piercing = new GeoLine3(new GeoPoint3(20, 10, -50), new GeoPoint3(20, 10, 50
 piercing.CollidesWith(flat);   // true
 flat.CollidesWith(piercing);   // true
 ```
-
-Distances between segments, rays and chains are exact and the same whichever is asked first: two segments meeting end to end,
-one tilted by 8E-6 radian, are as far apart one way as the other, and a ray passing through the end of a segment is nought
-from it. `GetShortestLineTo` between them keeps its answer, which can still differ by the order of the arguments.
-
-An arc, a circle, a chain of arcs and a loop of arcs follow the same rule. They collide with another shape exactly where
-the gap between them in space is no more than the point tolerance, in whatever plane they lie, lifted or tilted out of it.
-A circle is its rim and a loop its outline, as `DistanceTo` has always read them, so a circle or a loop round a shape touches
-nothing: the circle of radius 40 about the origin does not touch the square 20 by 20 in its middle, and touches the segment
-from (40.0005, 0, 0) to (80, 0, 0). A straight side facing the top of an arc touches it as an end does: across the dome of
-radius 50, a side at y = 50.0005 touches it and one at y = 50.0012 does not. A box is read by its corners, so one thinner
-than the tolerance, or a few thousandths across, is asked about as surely as any other. No member measures the distance from
-a curve in space to anything but a point; the gap is worked out inside. A triangle with no area, and a segment no longer than
-the tolerance, are read as they are for straight shapes. One case is searched and not proved: two partial arcs lying nearly
-on one axis whose distance stays almost constant just beyond the tolerance, which are walked finely with every low point
-polished. A single arc costs a few microseconds more to ask about than it did before, and a chain the same.
 
 A `GeoFace3` is material with holes in it, so a run down the middle of a hole touches nothing at all:
 

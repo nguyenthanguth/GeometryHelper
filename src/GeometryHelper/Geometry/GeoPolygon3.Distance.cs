@@ -14,6 +14,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this polygon to a point.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The polygon counts as a filled surface, so a point above its interior is measured straight down
         /// to the surface rather than out to the nearest edge.
@@ -23,37 +24,56 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from this polygon to a segment, using the default tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment no longer than the global
+        /// point tolerance is read as its start point, except where it truly meets the other shape.
+        /// </returns>
         public double DistanceTo(GeoLine3 line) => Distance3.DistanceTo(line, this);
 
         /// <summary>
         /// Gets the distance from this polygon to a segment, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment no longer than the
+        /// tolerance given is read as its start point, except where it truly meets the other shape.
+        /// </returns>
         public double DistanceTo(GeoLine3 line, Tolerance tolerance) => Distance3.DistanceTo(line, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this polygon to a polyline, using the default tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolyline3 polyline) => Distance3.DistanceTo(polyline, this);
 
         /// <summary>
         /// Gets the distance from this polygon to a polyline, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this polygon to a solid, using the default tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         public double DistanceTo(GeoSolid3 solid) => Distance3.DistanceTo(solid, this);
 
         /// <summary>
         /// Gets the distance from this polygon to a solid, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.DistanceTo(solid, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this polygon and a face: the answer of
         /// <see cref="Distance3.DistanceTo(GeoFace3, GeoPolygon3)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material and the polygon as a filled surface. A square 20 by 20 standing upright in the
         /// middle of the hole of the square 100 by 100 in the floor with a corner at the origin and a hole 40 by 40 in its
@@ -66,6 +86,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and a face, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoFace3, GeoPolygon3, Tolerance)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The face is read by its material and the polygon as a filled surface. A square 20 by 20 standing upright in the
         /// middle of the hole of the square 100 by 100 in the floor with a corner at the origin and a hole 40 by 40 in its
@@ -78,6 +99,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and another one: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPolygon3, GeoPolygon3)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// Both are read as filled surfaces. A square 100 by 100 in the floor with a corner at the origin and one standing
         /// upright along y = 50 from z = 10 to 110 are 10 apart; one lying 0.0004 above it is 0.0004 away and touches it.
@@ -89,6 +111,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and another one, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPolygon3, GeoPolygon3, Tolerance)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// Both are read as filled surfaces. A square 100 by 100 in the floor with a corner at the origin and one standing
         /// upright along y = 50 from z = 10 to 110 are 10 apart; one lying 0.0004 above it is 0.0004 away and touches it.
@@ -100,6 +123,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and a ray: the answer of
         /// <see cref="Distance3.DistanceTo(GeoRay3, GeoPolygon3)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The polygon is read as a filled surface. Beside the square 100 by 100 in the floor with a corner at the origin,
         /// the ray from (130, 50, 40) along X is 50 from its edge; the ray from (20, 20, 10) pointing straight down runs
@@ -111,6 +135,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and a ray, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoRay3, GeoPolygon3, Tolerance)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The polygon is read as a filled surface. Beside the square 100 by 100 in the floor with a corner at the origin,
         /// the ray from (130, 50, 40) along X is 50 from its edge; the ray from (20, 20, 10) pointing straight down runs
@@ -122,6 +147,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and a triangle: the answer of
         /// <see cref="Distance3.DistanceTo(GeoTriangle3, GeoPolygon3)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// Both are read as filled surfaces. The triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0) and the
         /// square 100 by 100 standing upright along y = 50 from z = 10 to 110 are 10 apart; standing from z = -50, the
@@ -133,6 +159,7 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and a triangle, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoTriangle3, GeoPolygon3, Tolerance)"/>.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// Both are read as filled surfaces. The triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0) and the
         /// square 100 by 100 standing upright along y = 50 from z = 10 to 110 are 10 apart; standing from z = -50, the
@@ -144,6 +171,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and a plane: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPlane3, GeoPolygon3)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought where the plane crosses the shape or comes within the global point tolerance of it, otherwise the
+        /// gap.
+        /// </returns>
         /// <remarks>
         /// The heights of the corners decide, as for a chain. A square 100 by 100 standing upright along y = 50 from z = 10
         /// to 110 is 10 above the floor plane; one standing from z = -50 crosses it and is nought away.
@@ -154,6 +185,9 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and a plane, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPlane3, GeoPolygon3, Tolerance)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought where the plane crosses the shape or comes within the tolerance given of it, otherwise the gap.
+        /// </returns>
         /// <remarks>
         /// The heights of the corners decide, as for a chain. A square 100 by 100 standing upright along y = 50 from z = 10
         /// to 110 is 10 above the floor plane; one standing from z = -50 crosses it and is nought away.
@@ -164,6 +198,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and an oriented box: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPolygon3, GeoObb3)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A triangle, polygon or face within a
+        /// billionth of a millimetre of the outside of a box reads nought, for the same reason.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 30 from the square 100 by 100 lying flat at a height of 130 over it, and nought from the square 200 by 200 lying
@@ -176,6 +214,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and an oriented box, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPolygon3, GeoObb3, Tolerance)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A triangle, polygon or face within a
+        /// billionth of a millimetre of the outside of a box reads nought, for the same reason.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <see cref="GeoObb3.ToSolid"/>. The box 100 by 100 by 100 about (50, 50, 50) is
         /// 30 from the square 100 by 100 lying flat at a height of 130 over it, and nought from the square 200 by 200 lying
@@ -188,6 +230,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and an axis-aligned box: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPolygon3, GeoAabb3)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A triangle, polygon or face within a
+        /// billionth of a millimetre of the outside of a box reads nought, for the same reason.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <c>ToObb().ToSolid()</c>. The box from the origin to (100, 100, 100) is 30 from
         /// the square 100 by 100 lying flat at a height of 130 over it, and nought from the square 200 by 200 lying across
@@ -200,6 +246,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this polygon and an axis-aligned box, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoPolygon3, GeoAabb3, Tolerance)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. A triangle, polygon or face within a
+        /// billionth of a millimetre of the outside of a box reads nought, for the same reason.
+        /// </returns>
         /// <remarks>
         /// The answer about the box's body, <c>ToObb().ToSolid()</c>. The box from the origin to (100, 100, 100) is 30 from
         /// the square 100 by 100 lying flat at a height of 130 over it, and nought from the square 200 by 200 lying across

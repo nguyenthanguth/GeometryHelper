@@ -13,6 +13,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from the outline of the loop to a point.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// Measured to the outline, so a point inside the loop is not nought away. That is what
         /// <see cref="Contains(GeoPoint3)"/> is for.
@@ -22,6 +23,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from the outline of the loop to a point, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
         /// <summary>
         /// Gets how far a point is from the boundary of the loop, negative inside it.

@@ -14,6 +14,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a point. A point inside is at distance zero.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
@@ -40,6 +44,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a point, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// A point inside the body is at distance zero.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
@@ -51,6 +59,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a line segment.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing. A
+        /// segment no longer than the global point tolerance is read as its start point, except where it truly meets
+        /// the other shape.
+        /// </returns>
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
@@ -61,6 +75,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a line segment, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing. A
+        /// segment no longer than the tolerance given is read as its start point, except where it truly meets the other
+        /// shape.
+        /// </returns>
         /// <remarks>
         /// A segment reaching into the body is at distance zero.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
@@ -72,11 +92,13 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to another solid.
         /// </summary>
+        /// <returns>Nought where the two lie within the global point tolerance of each other, otherwise the gap.</returns>
         public double DistanceTo(GeoSolid3 other) => Distance3.DistanceTo(this, other);
 
         /// <summary>
         /// Calculates the shortest distance from this solid to another solid, within a tolerance.
         /// </summary>
+        /// <returns>Nought where the two lie within the tolerance given of each other, otherwise the gap.</returns>
         /// <remarks>
         /// Bodies that touch or overlap are at distance zero, which includes one sitting wholly inside the
         /// other without their surfaces meeting.
@@ -86,6 +108,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a triangle.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
@@ -96,6 +122,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a triangle, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
@@ -106,6 +136,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a polygon.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
@@ -116,6 +150,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a polygon, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
@@ -126,6 +164,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a polyline.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
@@ -136,6 +178,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a polyline, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
@@ -146,6 +192,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a plane.
         /// </summary>
+        /// <returns>
+        /// Nought where the plane crosses the shape or comes within the global point tolerance of it, otherwise the
+        /// gap.
+        /// </returns>
         /// <remarks>
         /// A body reaching the plane or crossing it is at distance zero.
         /// </remarks>
@@ -154,31 +204,42 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a plane, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought where the plane crosses the shape or comes within the tolerance given of it, otherwise the gap.
+        /// </returns>
         public double DistanceTo(GeoPlane3 plane, Tolerance tolerance) => Distance3.DistanceTo(this, plane, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this solid to an oriented box.
         /// </summary>
+        /// <returns>Nought where the two lie within the global point tolerance of each other, otherwise the gap.</returns>
         public double DistanceTo(GeoObb3 box) => Distance3.DistanceTo(this, box);
 
         /// <summary>
         /// Calculates the shortest distance from this solid to an oriented box, within a tolerance.
         /// </summary>
+        /// <returns>Nought where the two lie within the tolerance given of each other, otherwise the gap.</returns>
         public double DistanceTo(GeoObb3 box, Tolerance tolerance) => Distance3.DistanceTo(this, box, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this solid to an axis-aligned box.
         /// </summary>
+        /// <returns>Nought where the two lie within the global point tolerance of each other, otherwise the gap.</returns>
         public double DistanceTo(GeoAabb3 box) => Distance3.DistanceTo(this, box);
 
         /// <summary>
         /// Calculates the shortest distance from this solid to an axis-aligned box, within a tolerance.
         /// </summary>
+        /// <returns>Nought where the two lie within the tolerance given of each other, otherwise the gap.</returns>
         public double DistanceTo(GeoAabb3 box, Tolerance tolerance) => Distance3.DistanceTo(this, box, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this solid to a ray.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// A ray starting inside the body, or running into it, is at distance zero.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
@@ -190,6 +251,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the shortest distance from this solid to a ray, within a tolerance.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
@@ -201,6 +266,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this solid and a face: the answer of
         /// <see cref="Distance3.DistanceTo(GeoSolid3, GeoFace3)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// The face is read by its material and the body solid through. The box 100 by 100 by 100 with a corner at the
         /// origin passes through the hole of the square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by
@@ -216,6 +285,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance between this solid and a face, within a tolerance: the answer of
         /// <see cref="Distance3.DistanceTo(GeoSolid3, GeoFace3, Tolerance)"/>.
         /// </summary>
+        /// <returns>
+        /// Nought only where they truly meet, otherwise the gap, measured exactly. Within a billionth of a millimetre
+        /// of the outside of a solid it reads nought, so that rounding in a turned body cannot lose a crossing.
+        /// </returns>
         /// <remarks>
         /// The face is read by its material and the body solid through. The box 100 by 100 by 100 with a corner at the
         /// origin passes through the hole of the square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by

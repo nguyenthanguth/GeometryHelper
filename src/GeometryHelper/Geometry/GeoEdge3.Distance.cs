@@ -11,11 +11,13 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance from the edge to a point.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPoint3 point) => DistanceTo(point, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from the edge to a point, within a tolerance.
         /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
     }
 }

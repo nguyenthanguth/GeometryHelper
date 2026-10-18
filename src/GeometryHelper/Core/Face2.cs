@@ -440,13 +440,6 @@ namespace GeometryHelper.Core
             => Apart(face, rim => Distance2.DistanceTo(rim, line, Exactly), line.StartPoint);
 
         /// <summary>
-        /// Whether a segment crosses a rim of a face or lies on its material, a crossing up to the point tolerance past the
-        /// ends counted when asked: the reading the shapes of space keep when they lay a face out in its plane.
-        /// </summary>
-        internal static bool CrossesOrLiesOn(GeoFace2 face, GeoLine2 line, Tolerance tolerance, bool pastEnds)
-            => Touches(face, rim => Collision2.CrossesOrStartsIn(rim, line, tolerance, pastEnds), rim => pastEnds ? rim.GetIntersections(line, tolerance).Length > 0 : Collision2.Crosses(ToArray(rim.GetEdges()), line, tolerance), () => line.StartPoint, null, tolerance);
-
-        /// <summary>
         /// Gets the distance from the material of a face to an arc.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
@@ -569,13 +562,6 @@ namespace GeometryHelper.Core
 
             return Apart(face, rim => Containment2.Contains(polygon, rim.StartPoint, Exactly) ? 0.0 : Least(rim, edges), polygon[0]);
         }
-
-        /// <summary>
-        /// Whether a polygon crosses a rim of a face or overlaps its material, a crossing up to the point tolerance past the
-        /// ends of two edges counted when asked: the reading the shapes of space keep when they lay a face out in its plane.
-        /// </summary>
-        internal static bool CrossesOrLiesOn(GeoFace2 face, GeoPolygon2 polygon, Tolerance tolerance, bool pastEnds)
-            => Touches(face, rim => Collision2.CrossesOrStartsIn(rim, polygon, tolerance, pastEnds), rim => pastEnds ? rim.GetIntersections(polygon, tolerance).Length > 0 : Collision2.Crosses(ToArray(rim.GetEdges()), ToArray(polygon.GetEdges()), tolerance), () => polygon.Vertices[0], at => polygon.Contains(at, tolerance), tolerance);
 
         /// <summary>
         /// Gets the distance from the material of a face to a curved loop.
@@ -705,13 +691,6 @@ namespace GeometryHelper.Core
 
             return Apart(face, rim => DistanceTo(other, rim, tolerance), other.Boundary[0]);
         }
-
-        /// <summary>
-        /// Whether the materials of two faces cross or overlap, a crossing up to the point tolerance past the ends of two
-        /// edges counted when asked: the reading the shapes of space keep when they lay faces out in a plane.
-        /// </summary>
-        internal static bool CrossesOrLiesOn(GeoFace2 face, GeoFace2 other, Tolerance tolerance, bool pastEnds)
-            => Touches(face, rim => CrossesOrLiesOn(other, rim, tolerance, pastEnds), rim => pastEnds ? GetIntersections(other, rim, tolerance).Length > 0 : Crosses(other, rim, tolerance), () => other.Boundary.Vertices[0], at => Containment2.Contains(other, at, tolerance), tolerance);
 
         /// <summary>
         /// Whether a polygon truly crosses the outline or the rim of a hole of a face, at a point on both.
@@ -979,7 +958,7 @@ namespace GeometryHelper.Core
         /// <param name="somewhereOnProbe">One point of the probe, asked for only once the probe is known to be there.</param>
         /// <param name="probeHolds">Whether the probe holds a point, or null for a probe with no inside.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <param name="nearRim">Whether the probe comes within the point tolerance of a hole's rim, which keeps the hole from holding it; null not to ask.</param>
+        /// <param name="nearRim">Whether the probe comes within the point tolerance of a hole's rim, which keeps the hole from holding it.</param>
         private static bool Touches(
             GeoFace2 face,
             Func<GeoPolygon2, bool> collides,
@@ -987,7 +966,7 @@ namespace GeometryHelper.Core
             Func<GeoPoint2> somewhereOnProbe,
             Func<GeoPoint2, bool> probeHolds,
             Tolerance tolerance,
-            Func<GeoPolygon2, bool> nearRim = null)
+            Func<GeoPolygon2, bool> nearRim)
         {
             if (face == null)
             {
@@ -1003,7 +982,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoPolygon2 hole in face.Holes)
             {
-                if (Swallowed(hole, crosses(hole), on, probeHolds, tolerance) && (nearRim == null || !nearRim(hole)))
+                if (Swallowed(hole, crosses(hole), on, probeHolds, tolerance) && !nearRim(hole))
                 {
                     return false;
                 }
