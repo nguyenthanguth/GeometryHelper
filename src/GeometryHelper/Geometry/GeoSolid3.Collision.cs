@@ -14,41 +14,81 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this solid touches or overlaps a line segment.
         /// </summary>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public bool CollidesWith(GeoLine3 line) => Collision3.CollidesWith(line, this);
 
         /// <summary>
         /// Determines whether this solid touches or overlaps a line segment, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Collision3.CollidesWith(line, this, tolerance);
 
         /// <summary>
         /// Determines whether this solid touches or overlaps a polyline.
         /// </summary>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public bool CollidesWith(GeoPolyline3 polyline) => Collision3.CollidesWith(polyline, this);
 
         /// <summary>
         /// Determines whether this solid touches or overlaps a polyline, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance) => Collision3.CollidesWith(polyline, this, tolerance);
 
         /// <summary>
         /// Determines whether this solid touches or overlaps a polygon.
         /// </summary>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public bool CollidesWith(GeoPolygon3 polygon) => Collision3.CollidesWith(polygon, this);
 
         /// <summary>
         /// Determines whether this solid touches or overlaps a polygon, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Collision3.CollidesWith(polygon, this, tolerance);
 
         /// <summary>
         /// Determines whether this solid touches or overlaps a face.
         /// </summary>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public bool CollidesWith(GeoFace3 face) => Collision3.CollidesWith(face, this);
 
         /// <summary>
         /// Determines whether this solid touches or overlaps a face, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public bool CollidesWith(GeoFace3 face, Tolerance tolerance) => Collision3.CollidesWith(face, this, tolerance);
 
         /// <summary>
@@ -77,11 +117,21 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this solid is reached by a ray.
         /// </summary>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public bool CollidesWith(GeoRay3 ray) => Collision3.CollidesWith(ray, this);
 
         /// <summary>
         /// Determines whether this solid is reached by a ray, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Collision3.CollidesWith(ray, this, tolerance);
 
         /// <summary>
@@ -186,6 +236,9 @@ namespace GeometryHelper.Geometry
         /// A box 100 by 100 by 100 with a corner at the origin and the triangle with corners (-50, -50, 50), (300, -50, 50)
         /// and (-50, 300, 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0,
         /// 100, 50); a triangle wholly inside the box crosses nothing and touches it.
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
         /// </remarks>
         public bool CollidesWith(GeoTriangle3 triangle) => Collision3.CollidesWith(triangle, this);
 
@@ -199,6 +252,9 @@ namespace GeometryHelper.Geometry
         /// A box 100 by 100 by 100 with a corner at the origin and the triangle with corners (-50, -50, 50), (300, -50, 50)
         /// and (-50, 300, 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0,
         /// 100, 50); a triangle wholly inside the box crosses nothing and touches it.
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
         /// </remarks>
         public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) => Collision3.CollidesWith(triangle, this, tolerance);
     }

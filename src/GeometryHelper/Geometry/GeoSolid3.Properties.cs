@@ -287,6 +287,36 @@ namespace GeometryHelper.Geometry
             internal bool Whole { get; }
         }
 
+        /// <summary>
+        /// Gets the region the gap to a face is measured with, made when first asked and kept for every query after it.
+        /// </summary>
+        /// <param name="index">The index of the face.</param>
+        /// <remarks>
+        /// Cutting a face into a frame and a layout costs more than most questions of a body, and a body cannot change, so the
+        /// regions are kept as the cut of the material is: each slot is written whole or not at all, and two threads that make
+        /// the same one make the same region, either of which is complete. A region lays itself out when it is first asked,
+        /// the same way.
+        /// </remarks>
+        internal Core.Gap3.Region RegionOf(int index)
+        {
+            Core.Gap3.Region[] slots = _regions;
+
+            if (slots == null)
+            {
+                System.Threading.Interlocked.CompareExchange(ref _regions, new Core.Gap3.Region[_faces.Length], null);
+                slots = _regions;
+            }
+
+            Core.Gap3.Region region = System.Threading.Volatile.Read(ref slots[index]);
+
+            if (region == null)
+            {
+                region = Core.Gap3.Region.Of(_faces[index]);
+                System.Threading.Volatile.Write(ref slots[index], region);
+            }
+
+            return region;
+        }
         #endregion
     }
 }

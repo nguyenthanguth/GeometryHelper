@@ -26,29 +26,18 @@ namespace GeometryHelper.Core
         /// <param name="triangle">The triangle.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// Zero where <see cref="Collision3.CollidesWith(GeoRay3, GeoTriangle3, Tolerance)"/> says the two touch, as where
-        /// the ray pierces the face or lies in its plane towards it, otherwise the gap between them.
+        /// Zero only where the two truly meet, as where the ray pierces the face, starts on it or lies in its plane
+        /// towards it, otherwise the gap between them, measured exactly.
         /// </returns>
         /// <remarks>
         /// A ray that pierces the face touches none of its edges, so the crossing is looked for first.
         /// After that the nearest pair lies either between the ray and an edge, or under the origin of the
-        /// ray where it hangs over the face without ever reaching it.
+        /// ray where it hangs over the face without ever reaching it. The ray is taken as far as the corner farthest from
+        /// its origin, past which it only draws away.
         /// </remarks>
         public static double DistanceTo(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            if (Collision3.CollidesWith(ray, triangle, tolerance))
-            {
-                return 0.0;
-            }
-
-            double best = ray.Origin.DistanceTo(Projection3.ProjectToTriangle(triangle, ray.Origin));
-
-            for (int i = 0; i < 3; i++)
-            {
-                best = Math.Min(best, DistanceTo(ray, triangle.GetEdgeAt(i), tolerance));
-            }
-
-            return best;
+            return Gap3.Ray(Gap3.Region.Of(triangle), ray, 0.0);
         }
 
         /// <summary>
@@ -60,6 +49,11 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between a ray and a solid, within a tolerance.
         /// </summary>
         /// <returns>Zero where the ray starts inside the body or runs into it, otherwise the gap.</returns>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public static double DistanceTo(GeoRay3 ray, GeoSolid3 solid, Tolerance tolerance)
         {
             if (solid == null)
@@ -70,24 +64,9 @@ namespace GeometryHelper.Core
             // The faces run straight across every opening; the nearest material can sit on any opening's rim.
             solid = Material3.Whole(solid, tolerance);
 
-            if (Containment3.Contains(solid, ray.Origin, tolerance))
-            {
-                return 0.0;
-            }
+            double best = Gap3.SurfaceRay(solid, ray, 0.0);
 
-            double best = double.MaxValue;
-
-            foreach (GeoTriangle3 face in solid.Triangulate(tolerance))
-            {
-                best = Math.Min(best, DistanceTo(ray, face, tolerance));
-
-                if (best <= 0.0)
-                {
-                    return 0.0;
-                }
-            }
-
-            return best;
+            return best <= 0.0 || Gap3.Holds(solid, ray.Origin) ? 0.0 : best;
         }
     }
 }

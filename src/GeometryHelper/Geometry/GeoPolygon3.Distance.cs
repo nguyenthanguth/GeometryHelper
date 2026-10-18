@@ -80,7 +80,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// Both are read as filled surfaces. A square 100 by 100 in the floor with a corner at the origin and one standing
-        /// upright along y = 50 from z = 10 to 110 are 10 apart; one lying 0.0004 above it touches it and is nought away.
+        /// upright along y = 50 from z = 10 to 110 are 10 apart; one lying 0.0004 above it is 0.0004 away and touches it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public double DistanceTo(GeoPolygon3 other) => Distance3.DistanceTo(this, other);
@@ -91,7 +91,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// Both are read as filled surfaces. A square 100 by 100 in the floor with a corner at the origin and one standing
-        /// upright along y = 50 from z = 10 to 110 are 10 apart; one lying 0.0004 above it touches it and is nought away.
+        /// upright along y = 50 from z = 10 to 110 are 10 apart; one lying 0.0004 above it is 0.0004 away and touches it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public double DistanceTo(GeoPolygon3 other, Tolerance tolerance) => Distance3.DistanceTo(this, other, tolerance);

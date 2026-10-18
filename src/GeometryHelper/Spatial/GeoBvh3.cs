@@ -712,7 +712,7 @@ namespace GeometryHelper.Spatial
                             }
                             else
                             {
-                                double distance = Distance3.DistanceTo(_triangles[a], other._triangles[b], tolerance);
+                                double distance = Distance3.DistanceToWithinBand(_triangles[a], other._triangles[b], tolerance);
 
                                 if (distance < nearest)
                                 {

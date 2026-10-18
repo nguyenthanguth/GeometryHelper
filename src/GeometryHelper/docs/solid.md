@@ -421,9 +421,24 @@ slab.Translate(by);   beside.Translate(by);   GeoPlane3.XY.Translate(by);
 #### A segment or a ray against a flat shape
 
 A segment, a ray and a flat region have no thickness between them, so there is nothing to overlap in: they
-touch exactly where they cross.
+touch exactly where the gap between them is no more than the point tolerance, and cross where that gap is nought.
 
-```csharp
+In space, a point or a straight shape is as far from a segment, a region or a body as it truly is: nought only where they
+cross, touch or hold one another, a rim counting, otherwise the exact gap in space. Nothing is widened by the tolerance and
+nothing is laid flat: a segment 0.0005 off the square 100 by 100 in its plane is 0.0005 from it, from either end; one
+hovering 0.0003 over it is 0.0003 from it; a point 0.0004 under the plane and 0.0005 beside it is 0.00064 away.
+`CollidesWith` is exactly whether that gap is no more than the point tolerance. A shape coming end-on at a region and
+stopping within the tolerance of it is still joined by a line of no length (see the shortest lines above), while its
+distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9) over that square is joined at (5, 5, 0.0004), and is
+0.0004 from it. Three things are read otherwise, on purpose. A triangle with no area, such as (0, 0, 0), (100, 0, 0),
+(50, 1E-8, 0), touches nothing whatever its distance, which is still its gap, so for it `CollidesWith` is not
+`DistanceTo <= EqualPoint`. A body against a body, or an oriented box against an oriented or an axis-aligned box, is searched through the triangles of
+the two and still reads nought when they are within the point tolerance of each other: two solid boxes 0.0004 apart are
+nought apart, and so is an axis-aligned box 0.0004 from an oriented box or a solid, though the line between them
+(`GetShortestLineTo`) is 0.0004 long. Only `GeoAabb3.DistanceTo(GeoAabb3)` is exact. And a plane reads the corners of a shape within the point tolerance as
+on it: the plane z = 0 is nought from a square 0.0004 above it. A point within a billionth of a millimetre outside a body
+reads as in it, so that rounding in a body turned about in space cannot lose a crossing.
+`csharp
 var flat = new GeoTriangle3(
     new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
 var piercing = new GeoLine3(new GeoPoint3(20, 10, -50), new GeoPoint3(20, 10, 50));
@@ -467,7 +482,7 @@ Triangles, polygons and faces in space say whether and where they meet each othe
 far apart they are, from either side. They are read filled, a face by its material. Two in planes that are not one meet
 where an edge of either reaches the other, because the ends of every stretch they share lie on an edge of one of them,
 so the crossings named are those ends, however finely a side is cut into pieces; two within the point tolerance of
-each other touch, as their distance reads nought; two in one plane are laid out with `PlanarMap` and the plane half
+each other touch, and their distance is the gap, 0.0004 for a square lying level 0.0004 over another; two in one plane are laid out with `PlanarMap` and the plane half
 answers:
 
 ```csharp

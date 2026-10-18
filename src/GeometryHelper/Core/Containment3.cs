@@ -437,7 +437,9 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                if (Distance3.DistanceTo(face, point, tolerance) <= tolerance.EqualPoint)
+                // The foot of the point on the face is held up to the tolerance past its rim: this is where a point is on
+                // the surface, and it is read so, not as the exact gap Distance3.DistanceTo(GeoFace3, GeoPoint3) gives.
+                if (Distance3.DistanceTo(Projection3.ProjectToFace(face, point, tolerance), point) <= tolerance.EqualPoint)
                 {
                     return PointLocation.OnSide;
                 }

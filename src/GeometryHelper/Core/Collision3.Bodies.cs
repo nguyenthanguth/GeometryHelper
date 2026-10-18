@@ -39,13 +39,16 @@ namespace GeometryHelper.Core
         /// <param name="solid">The solid, read by its material.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// true when an edge of the triangle crosses the surface, an edge of the body crosses the triangle, or the
-        /// triangle lies in the material; otherwise, false.
+        /// true when the triangle comes within the point tolerance of the surface, crossing it included, or lies in the
+        /// material; otherwise, false.
         /// </returns>
         /// <remarks>
         /// A triangle wholly inside the body crosses no face and touches it all the same, so where its first corner is
         /// is asked once nothing crosses. A box 100 by 100 by 100 with a corner at the origin is touched by a triangle
-        /// lying across it at half its height and by one wholly inside it, and not by one standing 10 clear of its top.
+        /// lying across it at half its height and by one wholly inside it, and not by one standing 10 clear of its top. A
+        /// triangle with no area touches nothing, and keeps its distance. Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
         public static bool CollidesWith(GeoTriangle3 triangle, GeoSolid3 solid, Tolerance tolerance)
@@ -55,32 +58,14 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            if (triangle.IsDegenerate(tolerance))
+            {
+                return false;
+            }
+
             GeoSolid3 material = Material3.Whole(solid, tolerance);
 
-            for (int i = 0; i < 3; i++)
-            {
-                if (Intersection3.SurfaceCrossings(triangle.GetEdgeAt(i), material, tolerance).Length > 0)
-                {
-                    return true;
-                }
-            }
-
-            foreach (GeoFace3 face in material.Faces)
-            {
-                foreach (GeoLine3 edge in Intersection3.EdgesOf(face))
-                {
-                    if (Intersection3.TryCrossEdge(edge, triangle, out _, tolerance))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            // Every corner, as the distance asks them (Distance3.DistanceTo(GeoSolid3, GeoTriangle3, Tolerance)): one
-            // standing within the tolerance outside the surface, the others clear of it, is nought from the body.
-            return Containment3.Contains(material, triangle.A, tolerance)
-                || Containment3.Contains(material, triangle.B, tolerance)
-                || Containment3.Contains(material, triangle.C, tolerance);
+            return ReachesMaterial(Gap3.Region.Of(triangle), new[] { triangle.A, triangle.B, triangle.C }, material, tolerance);
         }
 
         #endregion

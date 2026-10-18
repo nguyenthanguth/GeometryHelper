@@ -130,22 +130,23 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         [Fact]
-        public void APlateTiltedWithinTheToleranceTouchesAsItDoesLyingLevel()
+        public void APlateTiltedWithinTheToleranceTouchesAsItDoesLyingLevelAndIsAsFarAsItIs()
         {
+            // Rule R (item 5): within the point tolerance the shapes collide, and their distance is the gap, not nought.
             GeoPolygon3 floor = Square(0, 0, 100, 100, 0);
             var tilted = new GeoPolygon3(Pt(25, 25, 0.0002), Pt(75, 25, 0.0002), Pt(75, 75, 0.0011), Pt(25, 75, 0.0011));
             GeoPolygon3 level = Square(25, 25, 75, 75, 0.0009);
 
             Assert.True(floor.CollidesWith(level, Tol));
-            Assert.Equal(0.0, floor.DistanceTo(level, Tol));
+            Assert.Equal(0.0009, floor.DistanceTo(level, Tol), 12);
             Assert.True(floor.CollidesWith(tilted, Tol));
             Assert.True(tilted.CollidesWith(floor, Tol));
-            Assert.Equal(0.0, floor.DistanceTo(tilted, Tol));
+            Assert.Equal(0.0002, floor.DistanceTo(tilted, Tol), 12);
             Assert.Equal(0.0002, floor.GetShortestLineTo(tilted, Tol).Length, 12);
         }
 
         [Fact]
-        public void ARegionWhoseDistanceReadsNoughtTouchesWhicheverKindItIs()
+        public void ARegionWithinTheToleranceTouchesWhicheverKindItIsAndIsAsFarAsItIs()
         {
             // Tilted about a diagonal, so that no side runs level: the corner at (25, 25) stands 0.0005 up and every side
             // climbs 0.005 from it, which the segment test reads end-on only within the tolerance along the side.
@@ -163,21 +164,23 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(plateTriangle.CollidesWith(floorFace, Tol));
             Assert.True(floorTriangle.CollidesWith(plate, Tol));
 
-            Assert.Equal(0.0, floor.DistanceTo(plate, Tol));
-            Assert.Equal(0.0, plateTriangle.DistanceTo(floorFace, Tol));
+            // Rule R (item 5): the distance is the gap, 0.0005, where it used to read nought within the tolerance.
+            Assert.Equal(0.0005, floor.DistanceTo(plate, Tol), 12);
+            Assert.Equal(0.0005, plateTriangle.DistanceTo(floorFace, Tol), 12);
             Assert.Equal(0.0005, floor.GetShortestLineTo(plate, Tol).Length, 12);
         }
 
         [Fact]
-        public void ATriangleWithACornerWithinTheToleranceOfABodyTouchesItWhicheverCornerThatIs()
+        public void ATriangleWithACornerWithinTheToleranceOfABodyTouchesItWhicheverCornerThatIsAndIsAsFarAsItIs()
         {
             GeoSolid3 box = new GeoAabb3(Pt(0, 0, 0), Pt(100, 100, 100)).ToObb().ToSolid();
 
             // The second corner stands 0.0005 over the top, the others well clear, and every side comes at the top too
-            // steeply to be read end-on within the tolerance along it: the distance reads nought, so the two touch.
+            // steeply to be read end-on within the tolerance along it: the gap is 0.0005, within the tolerance, so the two
+            // touch (rule R, item 5; the distance used to read nought here).
             var triangle = new GeoTriangle3(Pt(150, 50, 150), Pt(50, 50, 100.0005), Pt(150, 60, 150));
 
-            Assert.Equal(0.0, box.DistanceTo(triangle, Tol));
+            Assert.Equal(0.0005, box.DistanceTo(triangle, Tol), 9);
             Assert.True(triangle.CollidesWith(box, Tol));
             Assert.True(box.CollidesWith(triangle, Tol));
             Assert.False(new GeoTriangle3(Pt(150, 50, 150), Pt(50, 50, 100.004), Pt(150, 60, 150)).CollidesWith(box, Tol));

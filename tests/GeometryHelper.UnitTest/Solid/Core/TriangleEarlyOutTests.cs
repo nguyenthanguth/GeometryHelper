@@ -73,7 +73,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 3; i++)
             {
-                if (Distance3.DistanceTo(second, first[i]) <= Tol.EqualPoint || Distance3.DistanceTo(first, second[i]) <= Tol.EqualPoint)
+                // The corner's distance as the closest-point search finds it, which the clash reads and keeps as it was:
+                // Distance3.DistanceTo(triangle, point) now measures a sliver where it is.
+                if (Distance3.DistanceTo(Projection3.ProjectToTriangle(second, first[i]), first[i]) <= Tol.EqualPoint ||
+                    Distance3.DistanceTo(Projection3.ProjectToTriangle(first, second[i]), second[i]) <= Tol.EqualPoint)
                 {
                     return true;
                 }
@@ -233,28 +236,52 @@ namespace GeometryHelper.UnitTest.Solid
         {
             foreach ((GeoTriangle3 a, GeoTriangle3 b) in Pairs(3, 30000))
             {
-                double before = 0.0;
+                // Rule R (item 5): the distance is the exact gap, nought only where the two cross, and the pair collides
+                // exactly where it is within the point tolerance. It used to read nought for every pair that collided. The
+                // gap is the least of the edges against the edges and the corners against the other triangle, as the closest-point
+                // search of the projections finds them, to a billionth: a sliver is measured by the library along its own normal.
+                double gap = double.MaxValue;
 
-                if (!CollidesAsBefore(a, b))
+                for (int i = 0; i < 3; i++)
                 {
-                    before = double.MaxValue;
-
-                    for (int i = 0; i < 3; i++)
+                    for (int j = 0; j < 3; j++)
                     {
-                        for (int j = 0; j < 3; j++)
-                        {
-                            before = Math.Min(before, Distance3.DistanceTo(a.GetEdgeAt(i), b.GetEdgeAt(j), Tol));
-                        }
-                    }
-
-                    for (int i = 0; i < 3; i++)
-                    {
-                        before = Math.Min(before, Distance3.DistanceTo(b, a[i]));
-                        before = Math.Min(before, Distance3.DistanceTo(a, b[i]));
+                        gap = Math.Min(gap, Distance3.DistanceTo(a.GetEdgeAt(i), b.GetEdgeAt(j), Tol));
                     }
                 }
 
-                Assert.Equal(before, Distance3.DistanceTo(a, b, Tol));
+                for (int i = 0; i < 3; i++)
+                {
+                    gap = Math.Min(gap, Distance3.DistanceTo(b, a[i]));
+                    gap = Math.Min(gap, Distance3.DistanceTo(a, b[i]));
+                }
+
+                // A triangle with no area touches nothing by convention, whatever its distance; the pair is not held here.
+                if (a.IsDegenerate(Tol) || b.IsDegenerate(Tol))
+                {
+                    continue;
+                }
+
+                double distance = Distance3.DistanceTo(a, b, Tol);
+                bool collides = CollidesAsBefore(a, b);
+
+                if (distance == 0.0 && gap != 0.0)
+                {
+                    // Two triangles that pass through each other have no pair of edges or corners at nought.
+                    Assert.True(collides, $"{a} / {b}: crossing but not colliding");
+                }
+                else
+                {
+                    Assert.InRange(distance, gap - 1E-9 * Math.Max(1.0, gap), gap + 1E-9 * Math.Max(1.0, gap));
+                }
+
+                // A pair set off by exactly the tolerance, 1E-3 at coordinates of 1E5, is a few ten-billionths either side of it by
+                // rounding, and the collision of two triangles, which the clash reads and keeps as it was, decides it by its own margin:
+                // the pair is not held within 1E-8 of the tolerance.
+                if (Math.Abs(distance - Tol.EqualPoint) > 1E-8)
+                {
+                    Assert.Equal(collides, distance <= Tol.EqualPoint);
+                }
             }
         }
     }

@@ -34,11 +34,12 @@ namespace GeometryHelper.UnitTest.Solid
     /// any, the row names no point and only the length and the ends are held.
     /// </para>
     /// <para>
-    /// The tolerance band (amendments D1 and D5). A line is never snapped: a shape lying level within the point tolerance
-    /// keeps its true gap, 0.0004, though the distance reads nought where the two collide. A shape coming end-on at a
-    /// region or a body and stopping within the tolerance is read as crossing it, as the segment to a triangle always has
-    /// been (<c>Intersection3.cs:202-240</c>, <c>Projection3.Solid.cs:42-60</c>): the line of no length then sits at that
-    /// end, up to the tolerance off the other. A plane is read exactly, as the plane against a chain is
+    /// The tolerance band (amendments D1 and D5, and rule R of item 5). A line is never snapped: a shape lying level within
+    /// the point tolerance keeps its true gap, 0.0004, and so does the distance, which used to read nought where the two
+    /// collide: they collide because the gap is within the tolerance, and the distance says what it is. A shape coming
+    /// end-on at a region or a body and stopping within the tolerance is read as crossing it by the line, as the segment to a
+    /// triangle always has been (<c>Intersection3.cs:202-240</c>, <c>Projection3.Solid.cs:42-60</c>): the line of no
+    /// length then sits at that end, up to the tolerance off the other, while the distance is the gap. A plane is read exactly, as the plane against a chain is
     /// (<c>Projection3.Chains.cs:385-407</c>; <c>ShortestLinesInSpaceTests.cs:258-261</c>), so a shape 0.0004 from it,
     /// end-on or level, is joined by its true gap. Each band row has a twin at 0.004, clear of the band.
     /// </para>
@@ -106,7 +107,7 @@ namespace GeometryHelper.UnitTest.Solid
             Row row = Find(name);
 
             // The fixture first, through the collision the library already gives: shapes that touch, cross or lie one in
-            // the other collide and the rest do not, but in the band, where the reading of the collision decides.
+            // the other collide and the rest do not, but in the band, where the gap is within the tolerance and they collide.
             bool collides = row.Collides(Within);
 
             if (!row.Band && row.CollisionHolds)
@@ -114,7 +115,22 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Equal(row.Contact || row.Inside, collides);
             }
 
-            double expected = row.Contact || row.Inside || (row.Band && collides) ? 0.0 : row.Expected;
+            if (row.Band && row.CollisionHolds)
+            {
+                Assert.True(collides);
+            }
+
+            // Rule R (item 5): nought only where the shapes meet, otherwise the gap, in the band too. The band reading, that
+            // a collision within the tolerance reads nought, was replaced, except against a plane, which still reads the
+            // corners within the point tolerance as on it.
+            bool readsTheBand = ReadsTheBand(name);
+
+            // A tip coming end-on within the tolerance is a contact here, joined by a line of no length, and is the gap,
+            // 0.0004, for the distance.
+            bool endOn = row.On == OnBand;
+            double expected = (row.Contact && !endOn) || row.Inside || (row.Band && readsTheBand && collides) ? 0.0
+                : endOn ? 0.0004
+                : row.Expected;
             double distance = row.Distance(Within);
 
             Assert.Equal(expected, distance, Bound);
@@ -137,10 +153,16 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(body, row.Distance(Within), Bound);
             Assert.Equal(body, row.DistanceBack(Within), Bound);
 
-            if (row.Band)
+            if (row.Band && ReadsTheBand(name))
             {
-                // Within the point tolerance the body reads nought or the true gap, whichever it reads; the box is the same.
+                // A plane still reads its corners within the point tolerance as on it, and a body against a body is measured
+                // through its triangles' search, which reads nought within the point tolerance: nought or the true gap.
                 Assert.InRange(body, 0.0, row.Expected + Bound);
+            }
+            else if (row.Band)
+            {
+                // Within the point tolerance the body is the true gap (rule R, item 5); the box is the same.
+                Assert.Equal(row.Expected, body, Bound);
             }
         }
 
@@ -154,6 +176,17 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.InRange(row.OffAsked(line.StartPoint), 0.0, row.On);
             Assert.InRange(row.OffArgument(line.EndPoint), 0.0, row.On);
+
+            if ((row.Band || row.On == OnBand) && name.Contains(": end-on"))
+            {
+                // A shape coming end-on and stopping within the tolerance is read as crossing by the line (item 5, D5: the
+                // projections keep their behaviour), so it can be of no length where the distance is the gap, 0.0004. The
+                // length is held to be nought or the gap, and the ends, which then sit at the end, are not held.
+                Assert.Equal(0.0004, distance, Bound);
+                Assert.True(line.Length < Bound || Math.Abs(line.Length - 0.0004) < Bound);
+                MirrorTable.Same(row.Line(Tolerance.Global), row.PlainLine());
+                return;
+            }
 
             // As long as the distance; inside a body, as the depth out to the nearest face; within the point tolerance of
             // touching, as long as the true gap, since a line is never snapped.
@@ -731,6 +764,18 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>
+        /// Whether a row still reads the band, the distance nought where the two are within the point tolerance (rule R, item 5,
+        /// left these two): a plane, which reads the corners of a shape within the tolerance as on it, and a body against a
+        /// body, which reads through the search for the nearest triangles of the two.
+        /// </summary>
+        private static bool ReadsTheBand(string name)
+        {
+            string[] sides = name.Substring(0, name.IndexOf(':')).Split('-');
+            Func<string, bool> body = side => side == "GeoAabb3" || side == "GeoObb3" || side == "GeoSolid3";
+
+            return sides.Contains("GeoPlane3") || (body(sides[0]) && body(sides[1]));
+        }
+        /// <summary>
         /// A case within the point tolerance of touching: the distance reads nought where the two collide, and the line
         /// keeps its true length (amendments D1 and D5).
         /// </summary>
@@ -777,7 +822,7 @@ namespace GeometryHelper.UnitTest.Solid
         /// opening (amendments E4 and E7; Collision3.cs:519 through :569).
         /// </summary>
         private static bool Reaches(GeoFace3 face, GeoSolid3 solid, Tolerance tolerance)
-            => face.TriangulateSurface(tolerance).Any(piece => Distance3.DistanceTo(solid, piece, tolerance) == 0.0);
+            => face.TriangulateSurface(tolerance).Any(piece => Distance3.DistanceTo(solid, piece, tolerance) <= tolerance.EqualPoint);
 
         private static void AddPair<TA, TB>(
             List<Row> rows,

@@ -10,7 +10,10 @@ namespace GeometryHelper.Core
     /// Provides static methods for deciding whether two 3D shapes overlap.
     /// <para>
     /// <c>CollidesWith</c> answers yes or no and says nothing about where. Shapes that merely touch count
-    /// as colliding, so the answer agrees with <c>Distance3</c> reporting zero for the same pair. Where
+    /// as colliding, and so do shapes within the point tolerance of each other: for points and straight shapes in space
+    /// the answer is exactly whether <c>Distance3</c> reports no more than the point tolerance for the same pair, with one
+    /// stated exception: a triangle with no area touches nothing, whatever its distance, which still reads the gap to the
+    /// segment it is. Two bodies and a plane are not read so (see <c>Distance3</c>). Where
     /// the shapes meet is <c>Intersection3</c>, and how far apart they are when they do not is
     /// <c>Distance3</c>.
     /// </para>
@@ -161,6 +164,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a line segment reaches into an oriented box, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// The box is read as its body, as <see cref="Distance3.DistanceTo(GeoLine3, GeoObb3, Tolerance)"/> reads it, and
+        /// they touch where that distance is no longer than the point tolerance: the box 100 by 100 by 50 with its top in
+        /// the floor is touched by a segment in the floor starting 0.0005 off its side, and not by one starting 0.0012 off
+        /// its corner, 0.00085 off in each direction.
+        /// </remarks>
         public static bool CollidesWith(GeoLine3 line, GeoObb3 box, Tolerance tolerance)
         {
             if (box == null)
@@ -168,13 +177,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(box));
             }
 
-            if (Containment3.Contains(box, line.StartPoint, tolerance) ||
-                Containment3.Contains(box, line.EndPoint, tolerance))
-            {
-                return true;
-            }
-
-            return Intersection3.GetIntersections(line, box, tolerance).Length > 0;
+            return new Gap3.Block(box).Within(line.StartPoint, line.EndPoint, tolerance, Reach(tolerance));
         }
 
         #endregion
@@ -196,7 +199,7 @@ namespace GeometryHelper.Core
         /// or for a pair of edges crossing. They count as coplanar when their normals are parallel and either
         /// lies wholly within the planar tolerance of the other's plane, as two flat regions do, so the answer is
         /// the same whichever is asked first. Two that do neither touch where they come within the point
-        /// tolerance of each other, as their distance reads nought there.
+        /// tolerance of each other, the gap their distance measures.
         /// </remarks>
         public static bool CollidesWith(GeoTriangle3 triangle1, GeoTriangle3 triangle2, Tolerance tolerance)
         {
@@ -247,10 +250,10 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Determines whether two triangles that neither cross nor overlap in one plane still come within the point
-        /// tolerance of each other, which is where their distance reads nought.
+        /// tolerance of each other, the gap their distance measures.
         /// </summary>
         /// <remarks>
-        /// Two flat regions touch wherever their distance reads nought
+        /// Two flat regions touch wherever their gap is no longer than the point tolerance
         /// (<see cref="CollidesWith(GeoPolygon3, GeoPolygon3, Tolerance)"/>), and a triangle is answered the same way: a
         /// pair 0.0006 apart, turned a hundred-thousandth of a radian against each other so that neither lies in the
         /// other's plane, touches, as two boxes 0.0009 apart do. Apart, the nearest pair lies on two edges or on a corner
@@ -289,8 +292,8 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < 3; i++)
             {
-                if (Distance3.DistanceTo(triangle2, triangle1[i]) <= near ||
-                    Distance3.DistanceTo(triangle1, triangle2[i]) <= near)
+                if (Distance3.DistanceToByProjection(triangle2, triangle1[i]) <= near ||
+                    Distance3.DistanceToByProjection(triangle1, triangle2[i]) <= near)
                 {
                     return true;
                 }
@@ -517,8 +520,14 @@ namespace GeometryHelper.Core
         /// Checks whether a line segment reaches into a solid, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A segment lying wholly inside the body touches it without crossing its surface, so containment
-        /// is checked as well as crossing.
+        /// A segment lying wholly inside the body touches it without crossing its surface, so where its ends lie is
+        /// asked as well as where it crosses. They touch where <see cref="Distance3.DistanceTo(GeoLine3, GeoSolid3, Tolerance)"/>
+        /// is no longer than the point tolerance, the openings the segment can reach cut in: a segment in the plane of the
+        /// top of the box 100 by 100 by 50, starting 0.0005 off its side, touches it, and one starting 0.0012 off its
+        /// corner, 0.00085 off in each direction, does not.
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
         /// </remarks>
         public static bool CollidesWith(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -527,13 +536,18 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
-            if (Containment3.Contains(solid, line.StartPoint, tolerance) ||
-                Containment3.Contains(solid, line.EndPoint, tolerance))
+            GeoAabb3 reach = line.GetAabb();
+
+            if (!solid.GetAabb().CollidesWith(reach, tolerance))
             {
-                return true;
+                return false;
             }
 
-            return Intersection3.GetIntersections(line, solid, tolerance).Length > 0;
+            // The faces run straight across every opening; read the material the segment can reach instead.
+            solid = Material3.Near(solid, reach, tolerance);
+
+            return Gap3.SurfaceSegment(solid, line.StartPoint, line.EndPoint, true, tolerance, Reach(tolerance), tolerance.EqualPoint) <= tolerance.EqualPoint
+                || Gap3.Holds(solid, line.StartPoint) || Gap3.Holds(solid, line.EndPoint);
         }
 
         /// <summary>
@@ -544,6 +558,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a polyline reaches into a solid, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// </remarks>
         public static bool CollidesWith(GeoPolyline3 polyline, GeoSolid3 solid, Tolerance tolerance)
         {
             if (polyline == null)
@@ -580,6 +599,9 @@ namespace GeometryHelper.Core
         /// where a corner of the polygon lies in the material. Through the box 40 by 40 by 20 from the origin with an opening 10 by 10
         /// from x, y = 15 to 25 right through it, the square standing upright in y = 20 from x = 17 to 23, 2 clear
         /// of the opening's walls, touches nothing.
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
         /// </remarks>
         public static bool CollidesWith(GeoPolygon3 polygon, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -601,8 +623,7 @@ namespace GeometryHelper.Core
             // The faces run straight across every opening; read the material the region can reach instead.
             GeoSolid3 material = Material3.Near(solid, polygon.GetAabb(), tolerance);
 
-            return ReachesMaterial(Intersection3.EdgesOf(polygon), polygon.Vertices, material, tolerance,
-                edge => Intersection3.TryCrossEdge(edge, polygon, out _, tolerance));
+            return ReachesMaterial(Gap3.Region.Of(polygon), polygon.Vertices, material, tolerance);
         }
 
         /// <summary>
@@ -638,6 +659,9 @@ namespace GeometryHelper.Core
         /// material that is not there, so a body reaching only into a hole touches nothing, while the rim of the hole
         /// is material and counts. A diamond standing on its corner on the top of the box 40 by 40 by 20 from the
         /// origin touches it whatever holes it has above.
+        /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
         /// </remarks>
         public static bool CollidesWith(GeoFace3 face, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -665,41 +689,25 @@ namespace GeometryHelper.Core
                 corners.AddRange(hole.Vertices);
             }
 
-            return ReachesMaterial(Intersection3.EdgesOf(face), corners, material, tolerance,
-                edge => Intersection3.TryCrossEdge(edge, face, out _, tolerance));
+            return ReachesMaterial(Gap3.Region.Of(face), corners, material, tolerance);
         }
 
         /// <summary>
-        /// Determines whether a flat region reaches a body's material: an edge of the region crosses the surface, an
-        /// edge of the body crosses the region, or a corner of the region lies in the material, as group C's triangle
-        /// against a body walks it.
+        /// Determines whether a flat region reaches a body's material: it comes within the point tolerance of a face of
+        /// the surface, or a corner of it lies in the material, which is where its distance to the body is no more than
+        /// the point tolerance.
         /// </summary>
-        private static bool ReachesMaterial(
-            IEnumerable<GeoLine3> edges, IEnumerable<GeoPoint3> corners, GeoSolid3 material, Tolerance tolerance,
-            Func<GeoLine3, bool> crossesRegion)
+        internal static bool ReachesMaterial(
+            Gap3.Region region, IEnumerable<GeoPoint3> corners, GeoSolid3 material, Tolerance tolerance)
         {
-            foreach (GeoLine3 edge in edges)
+            if (Gap3.SurfaceRegion(material, region, Reach(tolerance), tolerance.EqualPoint) <= tolerance.EqualPoint)
             {
-                if (Intersection3.SurfaceCrossings(edge, material, tolerance).Length > 0)
-                {
-                    return true;
-                }
-            }
-
-            foreach (GeoFace3 side in material.Faces)
-            {
-                foreach (GeoLine3 edge in Intersection3.EdgesOf(side))
-                {
-                    if (crossesRegion(edge))
-                    {
-                        return true;
-                    }
-                }
+                return true;
             }
 
             foreach (GeoPoint3 corner in corners)
             {
-                if (Containment3.Contains(material, corner, tolerance))
+                if (Gap3.Holds(material, corner))
                 {
                     return true;
                 }
@@ -707,7 +715,6 @@ namespace GeometryHelper.Core
 
             return false;
         }
-
         #endregion
     }
 }

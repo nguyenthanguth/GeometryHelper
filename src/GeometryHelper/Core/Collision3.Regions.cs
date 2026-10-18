@@ -10,19 +10,18 @@ namespace GeometryHelper.Core
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Two regions.</b> A triangle, a polygon and a face are read filled, a face by its material. In planes that are
-    /// not one, two of them touch exactly where an edge of either reaches the other region, which is the segment
-    /// against a region asked once for each edge. In one plane, the test of
-    /// <see cref="Intersection3.GetIntersections(GeoPolygon3, GeoPolygon3, Tolerance)"/>, they are laid out in it and
-    /// the plane half answers, so one lying inside the other touches it. A square 20 by 20 standing upright in the
-    /// middle of a hole 40 by 40 in a plate 100 by 100 touches nothing.
+    /// <b>Two regions.</b> A triangle, a polygon and a face are read filled, a face by its material. Two of them touch
+    /// exactly where an edge of either reaches the other region, which is the segment against a region asked once for
+    /// each edge, a region lying inside the other included. A square 20 by 20 standing upright in the middle of a hole
+    /// 40 by 40 in a plate 100 by 100 touches nothing.
     /// </para>
     /// <para>
-    /// <b>Within the tolerance.</b> Two regions touch wherever the shortest segment between them is no longer than the
-    /// point tolerance, so that they touch exactly where their distance reads nought, tilted or level: a plate one side
-    /// 0.0002 and the other 0.0011 over a square in the floor touches it, as it does lying level 0.0009 over it. An edge
-    /// the segment test refuses as level is read by the signs of its ends, so a side cut into many short pieces meets
-    /// the other region where the uncut side does.
+    /// <b>Within the tolerance.</b> Two regions touch wherever the gap between them is no longer than the point
+    /// tolerance, the gap <see cref="Distance3"/> measures, exact and in space, whether they lie level, tilted or in
+    /// planes that are not one: a plate one side 0.0002 and the other 0.0011 over a square in the floor is 0.0002 from
+    /// it and touches it, as it does lying level 0.0009 over it, and a square lying beside it 0.0012 off its side does
+    /// not touch it. Nothing is laid out flat for the purpose: a region off another's plane by less than the planar
+    /// tolerance is as far from it in space as it is.
     /// </para>
     /// <para>
     /// <b>A plane.</b> A bounded shape touches a plane when the heights of its corners above it change sign or reach
@@ -64,46 +63,9 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            if (triangle.IsDegenerate(tolerance))
-            {
-                return false;
-            }
-
-            Intersection3.Flat first = Intersection3.Flat.Of(triangle);
-            Intersection3.Flat second = Intersection3.Flat.Of(polygon);
-
-            if (Intersection3.Flat.AreClear(first, second, tolerance))
-            {
-                return false;
-            }
-
-            if (Intersection3.Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
-                && PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flatPolygon))
-            {
-                return Triangle2.CrossesOrStartsIn(
-                    PlanarMap.ProjectToTriangle2(frame, triangle),
-                    flatPolygon,
-                    tolerance)
-                    || ComeWithin(Projection3.Join(triangle, polygon, tolerance.EqualPoint, tolerance), tolerance);
-            }
-
-            for (int i = 0; i < 3; i++)
-            {
-                if (Intersection3.TryCrossEdge(triangle.GetEdgeAt(i), polygon, out _, tolerance))
-                {
-                    return true;
-                }
-            }
-
-            for (int i = 0; i < polygon.EdgeCount; i++)
-            {
-                if (Intersection3.TryCrossEdge(polygon.GetEdgeAt(i), triangle, out _, tolerance))
-                {
-                    return true;
-                }
-            }
-
-            return ComeWithin(Projection3.Join(triangle, polygon, tolerance.EqualPoint, tolerance), tolerance);
+            return !triangle.IsDegenerate(tolerance)
+                && triangle.GetAabb().DistanceTo(polygon.GetAabb()) <= Reach(tolerance)
+                && Gap3.Regions(Gap3.Region.Of(triangle), Gap3.Region.Of(polygon), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -137,46 +99,9 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
-            if (triangle.IsDegenerate(tolerance))
-            {
-                return false;
-            }
-
-            Intersection3.Flat first = Intersection3.Flat.Of(triangle);
-            Intersection3.Flat second = Intersection3.Flat.Of(face);
-
-            if (Intersection3.Flat.AreClear(first, second, tolerance))
-            {
-                return false;
-            }
-
-            if (Intersection3.Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
-                && PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 flatFace))
-            {
-                return Triangle2.CrossesOrLiesOn(
-                    PlanarMap.ProjectToTriangle2(frame, triangle),
-                    flatFace,
-                    tolerance)
-                    || ComeWithin(Projection3.Join(triangle, face, tolerance.EqualPoint, tolerance), tolerance);
-            }
-
-            for (int i = 0; i < 3; i++)
-            {
-                if (Intersection3.TryCrossEdge(triangle.GetEdgeAt(i), face, out _, tolerance))
-                {
-                    return true;
-                }
-            }
-
-            foreach (GeoLine3 edge in Intersection3.EdgesOf(face))
-            {
-                if (Intersection3.TryCrossEdge(edge, triangle, out _, tolerance))
-                {
-                    return true;
-                }
-            }
-
-            return ComeWithin(Projection3.Join(triangle, face, tolerance.EqualPoint, tolerance), tolerance);
+            return !triangle.IsDegenerate(tolerance)
+                && triangle.GetAabb().DistanceTo(face.GetAabb()) <= Reach(tolerance)
+                && Gap3.Regions(Gap3.Region.Of(triangle), Gap3.Region.Of(face), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -198,7 +123,10 @@ namespace GeometryHelper.Core
         /// <returns>true when they overlap or touch anywhere; otherwise, false.</returns>
         /// <remarks>
         /// A square 100 by 100 lying in the floor with a corner at the origin touches one standing upright across it
-        /// along y = 50, and one lying beside it from x = 100 to 200; one lying 10 above it touches nothing.
+        /// along y = 50, and one lying beside it from x = 100 to 200; one lying 10 above it touches nothing. They touch
+        /// exactly where <see cref="Distance3.DistanceTo(GeoPolygon3, GeoPolygon3, Tolerance)"/> is no longer than the point
+        /// tolerance: the square from x = 100.0005 to 200 touches it at a tolerance of a thousandth, and the one from
+        /// x = 100.0012 does not.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when either polygon is null.</exception>
         public static bool CollidesWith(GeoPolygon3 polygon1, GeoPolygon3 polygon2, Tolerance tolerance)
@@ -213,43 +141,8 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon2));
             }
 
-            Intersection3.Flat first = Intersection3.Flat.Of(polygon1);
-            Intersection3.Flat second = Intersection3.Flat.Of(polygon2);
-
-            if (Intersection3.Flat.AreClear(first, second, tolerance))
-            {
-                return false;
-            }
-
-            if (Intersection3.Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
-                && PlanarMap.TryProjectToPolygon2(frame, polygon1, tolerance, out GeoPolygon2 flatPolygon1)
-                && PlanarMap.TryProjectToPolygon2(frame, polygon2, tolerance, out GeoPolygon2 flatPolygon2))
-            {
-                return Collision2.CrossesOrStartsIn(
-                    flatPolygon1,
-                    flatPolygon2,
-                    tolerance,
-                    true)
-                    || ComeWithin(Projection3.Join(polygon1, polygon2, tolerance.EqualPoint, tolerance), tolerance);
-            }
-
-            for (int i = 0; i < polygon1.EdgeCount; i++)
-            {
-                if (Intersection3.TryCrossEdge(polygon1.GetEdgeAt(i), polygon2, out _, tolerance))
-                {
-                    return true;
-                }
-            }
-
-            for (int i = 0; i < polygon2.EdgeCount; i++)
-            {
-                if (Intersection3.TryCrossEdge(polygon2.GetEdgeAt(i), polygon1, out _, tolerance))
-                {
-                    return true;
-                }
-            }
-
-            return ComeWithin(Projection3.Join(polygon1, polygon2, tolerance.EqualPoint, tolerance), tolerance);
+            return polygon1.GetAabb().DistanceTo(polygon2.GetAabb()) <= Reach(tolerance)
+                && Gap3.Regions(Gap3.Region.Of(polygon1), Gap3.Region.Of(polygon2), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -286,43 +179,8 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            Intersection3.Flat first = Intersection3.Flat.Of(face);
-            Intersection3.Flat second = Intersection3.Flat.Of(polygon);
-
-            if (Intersection3.Flat.AreClear(first, second, tolerance))
-            {
-                return false;
-            }
-
-            if (Intersection3.Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
-                && PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 flatFace)
-                && PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flatPolygon))
-            {
-                return Face2.CrossesOrLiesOn(
-                    flatFace,
-                    flatPolygon,
-                    tolerance,
-                    true)
-                    || ComeWithin(Projection3.Join(face, polygon, tolerance.EqualPoint, tolerance), tolerance);
-            }
-
-            foreach (GeoLine3 edge in Intersection3.EdgesOf(face))
-            {
-                if (Intersection3.TryCrossEdge(edge, polygon, out _, tolerance))
-                {
-                    return true;
-                }
-            }
-
-            for (int i = 0; i < polygon.EdgeCount; i++)
-            {
-                if (Intersection3.TryCrossEdge(polygon.GetEdgeAt(i), face, out _, tolerance))
-                {
-                    return true;
-                }
-            }
-
-            return ComeWithin(Projection3.Join(face, polygon, tolerance.EqualPoint, tolerance), tolerance);
+            return face.GetAabb().DistanceTo(polygon.GetAabb()) <= Reach(tolerance)
+                && Gap3.Regions(Gap3.Region.Of(face), Gap3.Region.Of(polygon), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -360,56 +218,9 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face2));
             }
 
-            Intersection3.Flat first = Intersection3.Flat.Of(face1);
-            Intersection3.Flat second = Intersection3.Flat.Of(face2);
-
-            if (Intersection3.Flat.AreClear(first, second, tolerance))
-            {
-                return false;
-            }
-
-            if (Intersection3.Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
-                && PlanarMap.TryProjectToFace2(frame, face1, tolerance, out GeoFace2 flatFace1)
-                && PlanarMap.TryProjectToFace2(frame, face2, tolerance, out GeoFace2 flatFace2))
-            {
-                return Face2.CrossesOrLiesOn(
-                    flatFace1,
-                    flatFace2,
-                    tolerance,
-                    true)
-                    || ComeWithin(Projection3.Join(face1, face2, tolerance.EqualPoint, tolerance), tolerance);
-            }
-
-            foreach (GeoLine3 edge in Intersection3.EdgesOf(face1))
-            {
-                if (Intersection3.TryCrossEdge(edge, face2, out _, tolerance))
-                {
-                    return true;
-                }
-            }
-
-            foreach (GeoLine3 edge in Intersection3.EdgesOf(face2))
-            {
-                if (Intersection3.TryCrossEdge(edge, face1, out _, tolerance))
-                {
-                    return true;
-                }
-            }
-
-            return ComeWithin(Projection3.Join(face1, face2, tolerance.EqualPoint, tolerance), tolerance);
+            return face1.GetAabb().DistanceTo(face2.GetAabb()) <= Reach(tolerance)
+                && Gap3.Regions(Gap3.Region.Of(face1), Gap3.Region.Of(face2), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
-
-        /// <summary>
-        /// Determines whether the shortest segment the edge walk has found between two regions is no longer than the
-        /// point tolerance, which is where their distance reads nought.
-        /// </summary>
-        /// <remarks>
-        /// Two regions lying level within the tolerance already touched; this makes the same true of two that a tilt
-        /// within the tolerance keeps from crossing. A plate from 25 to 75 over a square in the floor, one side 0.0002
-        /// up and the other 0.0011, touched nothing, while the same plate lying level 0.0009 up touched it.
-        /// </remarks>
-        private static bool ComeWithin(GeoLine3 shortest, Tolerance tolerance)
-            => shortest.Length <= tolerance.EqualPoint;
 
         #endregion
 
@@ -648,14 +459,7 @@ namespace GeometryHelper.Core
         /// (50, 10, 0) along Y misses it, and so does one along the X axis from -100 facing away.
         /// </remarks>
         public static bool CollidesWith(GeoRay3 ray1, GeoRay3 ray2, Tolerance tolerance)
-        {
-            if (Intersection3.TryGetBridge(ray1, ray2, out GeoLine3 bridge))
-            {
-                return bridge.Length <= tolerance.EqualPoint;
-            }
-
-            return Containment3.IsPointOn(ray1, ray2.Origin, tolerance) || Containment3.IsPointOn(ray2, ray1.Origin, tolerance);
-        }
+            => Projection3.GetShortestLineTo(ray1, ray2, tolerance).Length <= tolerance.EqualPoint;
 
         #endregion
     }

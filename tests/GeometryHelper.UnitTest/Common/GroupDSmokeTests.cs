@@ -88,11 +88,12 @@ namespace GeometryHelper.UnitTest.Common
         [Fact]
         public void ASquareLyingLevelWithinTheToleranceTouchesAndKeepsItsTrueGap()
         {
+            // Rule R (item 5): the distance is the true gap too, where it used to read nought within the tolerance.
             GeoPolygon3 floor = Square(0, 0, 100, 100, 0);
             GeoPolygon3 above = Square(50, 50, 150, 150, 0.0004);
 
             Assert.True(floor.CollidesWith(above, Tol));
-            Assert.Equal(0.0, floor.DistanceTo(above, Tol));
+            Assert.Equal(0.0004, floor.DistanceTo(above, Tol), 12);
             Assert.Equal(0.0004, floor.GetShortestLineTo(above, Tol).Length, 12);
         }
 

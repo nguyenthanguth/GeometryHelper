@@ -9,11 +9,13 @@ namespace GeometryHelper.Core
     /// <remarks>
     /// <para>
     /// A segment, a ray and a flat region have no thickness between them, so there is nothing for them to
-    /// overlap in: they touch exactly where they cross. Each of these is therefore the crossing test with
-    /// the point thrown away, which is worth having under its own name because a caller who only wants to
-    /// know whether they meet should not have to declare somewhere to put an answer it will not read. A
-    /// segment or a ray lying in the plane of a triangle, a polygon or a face is the exception: it crosses
-    /// the shape nowhere, so it is laid out in the plane and touches where it reaches the shape there.
+    /// overlap in: they touch where the gap between them is no longer than the point tolerance, as
+    /// <see cref="Distance3"/> measures it. The gap is exact, nothing widening either shape: a segment in the plane of
+    /// the square 100 by 100 starting 0.0005 off its side is 0.0005 from it, from either end, and touches it at a
+    /// tolerance of a thousandth; one starting 0.0012 off its corner, 0.00085 off in each direction, is 0.0012 from it
+    /// and touches nothing; one hovering 0.0003 over it is 0.0003 from it, and one 0.0009 up and 0.0009 out from its
+    /// side, 0.00127 away, touches nothing. A segment lying in the plane of a region and crossing it is nought from it
+    /// and touches it, and so does one lying wholly inside it.
     /// </para>
     /// <para>
     /// A ray against a box is the one that needs a second question. A box is bounded, so a ray that starts
@@ -61,15 +63,18 @@ namespace GeometryHelper.Core
         /// Determines whether a segment touches a triangle, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A segment lying in the plane of the triangle, both ends within the planar tolerance of it, crosses it
-        /// nowhere, so it is laid out in that plane and touches where it reaches the triangle there: the segment
-        /// from (-10, 10, 0) to (110, 10, 0) touches the triangle with corners (0, 0, 0), (100, 0, 0) and
-        /// (0, 100, 0), and the one from (60, 60, 0) to (90, 60, 0), beyond its long side, touches nothing. A
-        /// triangle with no area touches nothing.
+        /// They touch where <see cref="Distance3.DistanceTo(GeoLine3, GeoTriangle3, Tolerance)"/> is no longer than the
+        /// point tolerance: the segment from (-10, 10, 0) to (110, 10, 0), lying in the plane of the triangle with corners
+        /// (0, 0, 0), (100, 0, 0) and (0, 100, 0) and across it, touches it; the one from (60, 60, 0) to (90, 60, 0),
+        /// beyond its long side, touches nothing; and the one from (50, -0.0005, 0) to (50, -50, 0), starting 0.0005 off its
+        /// side y = 0, touches it, from either end. A triangle with no area touches nothing, as <see cref="CollidesWith(GeoTriangle3, GeoTriangle3, Tolerance)"/>
+        /// reads it, and keeps its distance: the one with corners (0, 0, 0), (100, 0, 0) and (50, 1E-8, 0) is nought from a segment
+        /// through its middle and collides with nothing.
         /// </remarks>
         public static bool CollidesWith(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance)
-            => Intersection3.TryIntersectWith(line, triangle, out _, tolerance)
-                || ReachesInPlane(line.StartPoint, line.EndPoint, triangle, tolerance);
+            => !triangle.IsDegenerate(tolerance)
+                && Gap3.BoxGap(line.StartPoint, line.EndPoint, triangle.GetAabb()) <= Reach(tolerance)
+                && Gap3.Segment(Gap3.Region.Of(triangle), line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether a segment touches a polygon.
@@ -80,16 +85,23 @@ namespace GeometryHelper.Core
         /// Determines whether a segment touches a polygon, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A segment lying in the plane of the polygon, both ends within the planar tolerance of it, crosses it
-        /// nowhere, so it is laid out in that plane and touches where it reaches the polygon there, read filled:
-        /// the segment from (-10, 10, 0) to (110, 10, 0) touches the square 100 by 100 in the floor with a corner
-        /// at the origin, and so does one lying wholly inside it. A polygon too thin to have an area under the
-        /// tolerance has nothing to lay out, and a segment lying in its plane touches it nowhere.
+        /// They touch where <see cref="Distance3.DistanceTo(GeoLine3, GeoPolygon3, Tolerance)"/> is no longer than the
+        /// point tolerance, the polygon read filled: the segment from (-10, 10, 0) to (110, 10, 0) touches the square 100
+        /// by 100 in the floor with a corner at the origin, and so does one lying wholly inside it, and one starting
+        /// 0.0005 off its side in its plane; one hovering 0.0003 over it touches it, and one 0.0009 up and 0.0009 out from
+        /// its side does not.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool CollidesWith(GeoLine3 line, GeoPolygon3 polygon, Tolerance tolerance)
-            => Intersection3.TryIntersectWith(line, polygon, out _, tolerance)
-                || ReachesInPlane(line.StartPoint, line.EndPoint, polygon, tolerance);
+        {
+            if (polygon == null)
+            {
+                throw new System.ArgumentNullException(nameof(polygon));
+            }
+
+            return Gap3.BoxGap(line.StartPoint, line.EndPoint, polygon.GetAabb()) <= Reach(tolerance)
+                && Gap3.Segment(Gap3.Region.Of(polygon), line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint;
+        }
 
         /// <summary>
         /// Determines whether a segment touches a face.
@@ -100,18 +112,32 @@ namespace GeometryHelper.Core
         /// Determines whether a segment touches a face, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A segment passing over a hole of the face touches nothing, because the crossing test reads the
-        /// holes as the absences they are. A segment lying in the plane of the face, both ends within the
-        /// planar tolerance of it, crosses it nowhere, so it is laid out in that plane and touches where it
-        /// reaches the material there: over the square 100 by 100 in the floor with a hole 40 by 40 in its
-        /// middle, the segment from (-10, 10, 0) to (110, 10, 0) touches it, and the one from (40, 50, 0) to
-        /// (60, 50, 0), lying in the hole, touches nothing. A face too thin to have an area under the
-        /// tolerance has nothing to lay out, and a segment lying in its plane touches it nowhere.
+        /// They touch where <see cref="Distance3.DistanceTo(GeoLine3, GeoFace3, Tolerance)"/> is no longer than the point
+        /// tolerance, the face read by its material: a segment passing over a hole of the face touches nothing, because the
+        /// holes are the absences they are. Over the square 100 by 100 in the floor with a hole 40 by 40 in its middle, the
+        /// segment from (-10, 10, 0) to (110, 10, 0) touches it, and the one from (40, 50, 0) to (60, 50, 0), lying in the
+        /// hole and reaching its rim, touches it there; the one from (41, 50, 0) to (59, 50, 0), a thousandth short of the
+        /// rim either side, touches nothing.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
         public static bool CollidesWith(GeoLine3 line, GeoFace3 face, Tolerance tolerance)
-            => Intersection3.TryIntersectWith(line, face, out _, tolerance)
-                || ReachesInPlane(line.StartPoint, line.EndPoint, face, tolerance);
+        {
+            if (face == null)
+            {
+                throw new System.ArgumentNullException(nameof(face));
+            }
+
+            return Gap3.BoxGap(line.StartPoint, line.EndPoint, face.GetAabb()) <= Reach(tolerance)
+                && Gap3.Segment(Gap3.Region.Of(face), line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint;
+        }
+
+        /// <summary>
+        /// Gets how far apart two boxes may stand and their shapes still come within the point tolerance: the tolerance
+        /// and a millionth over, so that the rounding of a box's gap never refuses a pair standing exactly the tolerance
+        /// apart, which the gap itself takes, and the planar tolerance more, for a polygon or a face is read flat in its plane and
+        /// its corners may stand that far off it, outside the box they make.
+        /// </summary>
+        private static double Reach(Tolerance tolerance) => tolerance.EqualPoint * (1.0 + 1E-6) + tolerance.EqualPlanar;
 
         #endregion
 
@@ -126,15 +152,15 @@ namespace GeometryHelper.Core
         /// Determines whether a ray runs into a triangle, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A ray lying in the plane of the triangle crosses it nowhere. It is read as a segment lying in the plane
-        /// as far as the corner farthest from its origin, since past that it only draws away: the ray from
+        /// They touch where <see cref="Distance3.DistanceTo(GeoRay3, GeoTriangle3, Tolerance)"/> is no longer than the point
+        /// tolerance. A ray lying in the plane of the triangle crosses it nowhere, and is read as a segment lying in the
+        /// plane as far as the corner farthest from its origin, since past that it only draws away: the ray from
         /// (-10, 10, 0) along X runs into the triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0), and the
-        /// one pointing along -X from there misses it.
+        /// one pointing along -X from there misses it. A triangle with no area touches nothing, and keeps its distance.
         /// </remarks>
         public static bool CollidesWith(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
-            => Intersection3.TryIntersectWith(ray, triangle, out _, tolerance)
-                || (!triangle.IsDegenerate(tolerance) && StartsIn(triangle.GetPlane(), ray, tolerance)
-                    && ReachesInPlane(ray.Origin, FarEnough(ray, new[] { triangle.A, triangle.B, triangle.C }), triangle, tolerance));
+            => !triangle.IsDegenerate(tolerance)
+                && Gap3.Ray(Gap3.Region.Of(triangle), ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether a ray runs into a polygon.
@@ -145,16 +171,23 @@ namespace GeometryHelper.Core
         /// Determines whether a ray runs into a polygon, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A ray lying in the plane of the polygon crosses it nowhere. It is read as a segment lying in the plane
+        /// They touch where <see cref="Distance3.DistanceTo(GeoRay3, GeoPolygon3, Tolerance)"/> is no longer than the point
+        /// tolerance. A ray lying in the plane of the polygon crosses it nowhere, and is read as a segment lying in the plane
         /// as far as the corner farthest from its origin, since past that it only draws away: the ray from
-        /// (-10, 10, 0) along X runs into the square 100 by 100 in the floor with a corner at the origin, and one
-        /// starting inside the square touches it whichever way along the floor it points.
+        /// (-10, 10, 0) along X runs into the square 100 by 100 in the floor with a corner at the origin, one starting
+        /// inside the square touches it whichever way along the floor it points, and one starting 0.0005 off its side and
+        /// pointing away touches it.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool CollidesWith(GeoRay3 ray, GeoPolygon3 polygon, Tolerance tolerance)
-            => Intersection3.TryIntersectWith(ray, polygon, out _, tolerance)
-                || (StartsIn(polygon.GetPlane(), ray, tolerance)
-                    && ReachesInPlane(ray.Origin, FarEnough(ray, polygon.Vertices), polygon, tolerance));
+        {
+            if (polygon == null)
+            {
+                throw new System.ArgumentNullException(nameof(polygon));
+            }
+
+            return Gap3.Ray(Gap3.Region.Of(polygon), ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
+        }
 
         /// <summary>
         /// Determines whether a ray runs into a face.
@@ -165,106 +198,22 @@ namespace GeometryHelper.Core
         /// Determines whether a ray runs into a face, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A ray lying in the plane of the face crosses it nowhere. It is read as a segment lying in the plane as
-        /// far as the corner of the outline farthest from its origin, since past that it only draws away: the ray
+        /// They touch where <see cref="Distance3.DistanceTo(GeoRay3, GeoFace3, Tolerance)"/> is no longer than the point
+        /// tolerance. A ray lying in the plane of the face crosses it nowhere, and is read as a segment lying in the plane
+        /// as far as the corner of the outline farthest from its origin, since past that it only draws away: the ray
         /// from (-10, 10, 0) along X runs into the square 100 by 100 in the floor, and the one from (50, 50, 0), in
-        /// the middle of a hole 40 by 40 cut out of it, runs into the rim of the hole whichever way along the
+        /// the middle of a hole 20 by 20 cut out of it, runs into the rim of the hole whichever way along the
         /// floor it points.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
         public static bool CollidesWith(GeoRay3 ray, GeoFace3 face, Tolerance tolerance)
-            => Intersection3.TryIntersectWith(ray, face, out _, tolerance)
-                || (StartsIn(face.GetPlane(), ray, tolerance)
-                    && ReachesInPlane(ray.Origin, FarEnough(ray, face.Boundary.Vertices), face, tolerance));
-
-        #endregion
-
-        #region Lying in the plane of a flat shape
-
-        /// <summary>
-        /// Gets the point of a ray as far from its origin as the farthest of some corners, past which it only
-        /// draws away from every point among them.
-        /// </summary>
-        private static GeoPoint3 FarEnough(GeoRay3 ray, System.Collections.Generic.IReadOnlyList<GeoPoint3> corners)
         {
-            double reach = 0.0;
-
-            foreach (GeoPoint3 corner in corners)
+            if (face == null)
             {
-                reach = System.Math.Max(reach, ray.Origin.DistanceTo(corner));
+                throw new System.ArgumentNullException(nameof(face));
             }
 
-            return Parametrization3.GetPointAtDistance(ray, reach);
-        }
-
-        /// <summary>
-        /// Determines whether a ray starts within the planar tolerance of a plane, which it must to lie in it; asked
-        /// first, so that a ray starting off the plane is not walked out to the corners.
-        /// </summary>
-        private static bool StartsIn(GeoPlane3 plane, GeoRay3 ray, Tolerance tolerance)
-            => System.Math.Abs(plane.SignedDistanceTo(ray.Origin)) <= tolerance.EqualPlanar;
-
-        /// <summary>
-        /// Determines whether both ends of a segment lie within the planar tolerance of a plane.
-        /// </summary>
-        private static bool LiesIn(GeoPlane3 plane, GeoPoint3 from, GeoPoint3 to, Tolerance tolerance)
-            => System.Math.Abs(plane.SignedDistanceTo(from)) <= tolerance.EqualPlanar
-                && System.Math.Abs(plane.SignedDistanceTo(to)) <= tolerance.EqualPlanar;
-
-        /// <summary>
-        /// Lays a segment out in a frame, dropping each end's height over its plane.
-        /// </summary>
-        private static GeoLine2 LayOut(GeoCoordinateSystem3 frame, GeoPoint3 from, GeoPoint3 to)
-            => new GeoLine2(PlanarMap.ProjectToPoint2(frame, from), PlanarMap.ProjectToPoint2(frame, to));
-
-        /// <summary>
-        /// Determines whether a segment lying in the plane of a triangle reaches it when the two are laid out in
-        /// that plane, as two regions in one plane are.
-        /// </summary>
-        private static bool ReachesInPlane(GeoPoint3 from, GeoPoint3 to, GeoTriangle3 triangle, Tolerance tolerance)
-        {
-            if (triangle.IsDegenerate(tolerance) || !LiesIn(triangle.GetPlane(), from, to, tolerance))
-            {
-                return false;
-            }
-
-            GeoCoordinateSystem3 frame = Intersection3.Flat.Of(triangle).Frame;
-
-            return Triangle2.CrossesOrStartsIn(PlanarMap.ProjectToTriangle2(frame, triangle), LayOut(frame, from, to), tolerance);
-        }
-
-        /// <summary>
-        /// Determines whether a segment lying in the plane of a polygon reaches it when the two are laid out in
-        /// that plane.
-        /// </summary>
-        private static bool ReachesInPlane(GeoPoint3 from, GeoPoint3 to, GeoPolygon3 polygon, Tolerance tolerance)
-        {
-            if (!LiesIn(polygon.GetPlane(), from, to, tolerance))
-            {
-                return false;
-            }
-
-            GeoCoordinateSystem3 frame = PlanarMap.FrameOf(polygon);
-
-            return PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flat)
-                && Collision2.CrossesOrStartsIn(flat, LayOut(frame, from, to), tolerance, true);
-        }
-
-        /// <summary>
-        /// Determines whether a segment lying in the plane of a face reaches the material when the two are laid
-        /// out in that plane.
-        /// </summary>
-        private static bool ReachesInPlane(GeoPoint3 from, GeoPoint3 to, GeoFace3 face, Tolerance tolerance)
-        {
-            if (!LiesIn(face.GetPlane(), from, to, tolerance))
-            {
-                return false;
-            }
-
-            GeoCoordinateSystem3 frame = PlanarMap.FrameOf(face);
-
-            return PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 flat)
-                && Face2.CrossesOrLiesOn(flat, LayOut(frame, from, to), tolerance, true);
+            return Gap3.Ray(Gap3.Region.Of(face), ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
         #endregion
@@ -280,7 +229,7 @@ namespace GeometryHelper.Core
         /// Determines whether a ray starts inside an axis-aligned box or runs into it, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoRay3 ray, GeoAabb3 box, Tolerance tolerance)
-            => box.Contains(ray.Origin, tolerance) || Intersection3.GetIntersections(ray, box, tolerance).Length > 0;
+            => !box.IsEmpty && CollidesWith(ray, box.ToObb(), tolerance);
 
         /// <summary>
         /// Determines whether a ray starts inside an oriented box or runs into it.
@@ -291,7 +240,7 @@ namespace GeometryHelper.Core
         /// Determines whether a ray starts inside an oriented box or runs into it, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoRay3 ray, GeoObb3 box, Tolerance tolerance)
-            => box.Contains(ray.Origin, tolerance) || Intersection3.GetIntersections(ray, box, tolerance).Length > 0;
+            => new Gap3.Block(box ?? throw new System.ArgumentNullException(nameof(box))).Ray(ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
         #endregion
 

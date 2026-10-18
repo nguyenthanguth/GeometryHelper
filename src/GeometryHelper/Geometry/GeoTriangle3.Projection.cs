@@ -22,6 +22,10 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The segment leaves this triangle and lands on the other triangle, so its length is the clearance
         /// between them and nought where they touch.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoTriangle3 other) => Projection3.GetShortestLineTo(this, other);
 
@@ -31,6 +35,10 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The segment leaves this triangle and lands on the other triangle, so its length is the clearance
         /// between them and nought where they touch.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoTriangle3 other, Tolerance tolerance) => Projection3.GetShortestLineTo(this, other, tolerance);
 
@@ -40,6 +48,10 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The segment leaves this triangle and lands on the segment, so its length is the clearance
         /// between them and nought where they touch.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoLine3 line) => Projection3.GetShortestLineTo(line, this).Reverse();
 
@@ -49,6 +61,10 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The segment leaves this triangle and lands on the segment, so its length is the clearance
         /// between them and nought where they touch.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoLine3 line, Tolerance tolerance) => Projection3.GetShortestLineTo(line, this, tolerance).Reverse();
 
@@ -58,6 +74,10 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The segment leaves this triangle and lands on the ray, so its length is the clearance
         /// between them and nought where they touch.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoRay3 ray) => Projection3.GetShortestLineTo(ray, this).Reverse();
 
@@ -67,6 +87,10 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The segment leaves this triangle and lands on the ray, so its length is the clearance
         /// between them and nought where they touch.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoRay3 ray, Tolerance tolerance) => Projection3.GetShortestLineTo(ray, this, tolerance).Reverse();
 
@@ -76,6 +100,10 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The segment leaves this triangle and lands on the solid, so its length is the clearance
         /// between them and nought where they touch.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoSolid3 solid) => Projection3.GetShortestLineTo(solid, this).Reverse();
 
@@ -85,6 +113,10 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The segment leaves this triangle and lands on the solid, so its length is the clearance
         /// between them and nought where they touch.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoSolid3 solid, Tolerance tolerance) => Projection3.GetShortestLineTo(solid, this, tolerance).Reverse();
 
@@ -119,6 +151,10 @@ namespace GeometryHelper.Geometry
         /// The segment leaves this triangle, read as a filled surface, and lands on the chain, of no length where the
         /// chain passes through. The triangle (0, 0, 0), (100, 0, 0), (0, 100, 0) is joined to the chain (20, 20, 30),
         /// (20, 20, 80) from (20, 20, 0) straight up, 30 long, as <see cref="DistanceTo(GeoPolyline3)"/> measures it.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline)
@@ -133,6 +169,10 @@ namespace GeometryHelper.Geometry
         /// The segment leaves this triangle, read as a filled surface, and lands on the chain, of no length where the
         /// chain passes through. The triangle (0, 0, 0), (100, 0, 0), (0, 100, 0) is joined to the chain (20, 20, 30),
         /// (20, 20, 80) from (20, 20, 0) straight up, 30 long, as <see cref="DistanceTo(GeoPolyline3)"/> measures it.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, Tolerance tolerance)
@@ -146,6 +186,10 @@ namespace GeometryHelper.Geometry
         /// triangle with corners (110, 50, 0), (200, 50, 0) and (110, 50, 100), standing beside the square 100 by 100 in
         /// the floor with a corner at the origin and a hole 40 by 40 in its middle, is joined from its corner (110, 50, 0)
         /// to (100, 50, 0) on the outline, 10 long, as <see cref="DistanceTo(GeoFace3)"/> measures it.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoFace3 face) => Projection3.GetShortestLineTo(this, face);
@@ -158,6 +202,10 @@ namespace GeometryHelper.Geometry
         /// triangle with corners (110, 50, 0), (200, 50, 0) and (110, 50, 100), standing beside the square 100 by 100 in
         /// the floor with a corner at the origin and a hole 40 by 40 in its middle, is joined from its corner (110, 50, 0)
         /// to (100, 50, 0) on the outline, 10 long, as <see cref="DistanceTo(GeoFace3)"/> measures it.
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoFace3 face, Tolerance tolerance) => Projection3.GetShortestLineTo(this, face, tolerance);
@@ -171,6 +219,10 @@ namespace GeometryHelper.Geometry
         /// = 50 from z = 10 to 110 are joined from (50, 50, 0) straight up, 10 long, as
         /// <see cref="DistanceTo(GeoPolygon3)"/> measures it; standing from z = -50, the square crosses the triangle and
         /// the segment has no length at (50, 50, 0).
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon) => Projection3.GetShortestLineTo(this, polygon);
@@ -184,6 +236,10 @@ namespace GeometryHelper.Geometry
         /// = 50 from z = 10 to 110 are joined from (50, 50, 0) straight up, 10 long, as
         /// <see cref="DistanceTo(GeoPolygon3)"/> measures it; standing from z = -50, the square crosses the triangle and
         /// the segment has no length at (50, 50, 0).
+        /// A shape coming end-on at the other and stopping within the point tolerance of it is read as crossing it, so
+        /// the line can be of no length where the distance is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9),
+        /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
+        /// 0.0004 from it by its distance.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, Tolerance tolerance) => Projection3.GetShortestLineTo(this, polygon, tolerance);

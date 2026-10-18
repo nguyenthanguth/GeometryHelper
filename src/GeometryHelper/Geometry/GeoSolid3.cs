@@ -31,6 +31,9 @@ namespace GeometryHelper.Geometry
         // GetMaterial. Written whole or not at all, so a reader sees one cut or none.
         private volatile MaterialCut _material;
 
+        // The regions the gap to a face is measured with, one slot to a face, each made when first asked; see RegionOf.
+        private Core.Gap3.Region[] _regions;
+
         // Whether TurnOutwards found this body, its openings and all, wound outwards already, or made it so: every
         // boolean asks, and a prepared body is asked once for each pair it is in. The body cannot change, so neither
         // can the answer.

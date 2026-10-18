@@ -18,8 +18,10 @@ namespace GeometryHelper.Core
     /// A polygon is read as a filled surface, as its distance reads it, so a chain passing through one meets it in a
     /// segment of no length at the crossing, and a chain ending above it is joined straight down. A chain that comes at
     /// a polygon or a triangle end-on and stops within the point tolerance of it is read as crossing it, as the segment
-    /// to a triangle always has: the segment of no length then sits at that end, up to the tolerance off the surface.
-    /// One lying level within the tolerance is joined by its true gap.
+    /// to a triangle always has: the segment of no length then sits at that end, up to the tolerance off the surface, while
+    /// <see cref="Distance3"/> reads the gap, which is exact: the segment from (5, 5, 0.0004) to (5, 5, 9) over the square 100 by
+    /// 100 in the floor is joined by a segment of no length at (5, 5, 0.0004), and is 0.0004 from it by its distance. One lying
+    /// level within the tolerance is joined by its true gap, which is its distance too.
     /// </para>
     /// <para>
     /// <b>A plane</b> is endless, so a shape that crosses or touches it is joined by a segment of no length at the

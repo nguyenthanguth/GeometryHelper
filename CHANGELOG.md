@@ -6,6 +6,45 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** 3D distances between points and straight shapes (segments, rays, chains, triangles, polygons, faces, boxes and
+solids) were nought for anything within the point tolerance, a corner reached a tolerance past a segment's end, and a
+shape hovering off a plane by less than the planar tolerance was read as lying in it. A segment starting 0.0005 off the
+square 100 by 100 in its plane was nought from it, from one end and not from the other; one hovering 0.0003 over it was
+nought away; a point 0.0004 under the plane and 0.0005 beside it was 0.0004 away; one 0.0009 up and 0.0009 out
+(0.00127 away) collided. They are now the exact gap in space, nought only where the shapes cross, touch or hold one
+another (a rim counting), and `CollidesWith` is exactly whether that gap is no more than `EqualPoint`, from either side.
+The audit of 265 968 near-contact records against a 50-digit oracle had 35 336 wrong noughts and 14 102 wrong
+collisions at c586568; the wrong noughts are gone and 4 556 wrong collisions are fixed. What is left of the audit's
+straight shapes is the segment against a ray (54 readings of a gap where they meet and 38 wrong values at a ray through
+a segment's end) and, at tilted end-to-end crossings, Line against Line, Polyline against Polyline and Line against
+Polyline (4 gaps each, and 8 pairs whose two ways round differ by rounding), which a later round takes; the rest is curved
+shapes. A fuzz of 135 715 pairs of points, segments, rays, triangles, polygons and faces, thin ones and ones 90 000 from
+the origin among them, judged against a 40-digit oracle, finds 17 readings off the exact gap by more than rounding, all
+the worst 1.4E-9 off it. What is left of that is the plane through so thin a triangle: a sliver 0.0001 wide and 100 long
+can read about 1.5E-9 off. Rays against rays, chains against rays, and points against
+polygons, faces and solids follow. A polygon or a face is read flat in its plane about its first corner, so a face
+80 000 from the origin is not tilted by the cancelling of its coordinates, and a point on the rim of a polygon a few
+ten-thousandths out of flat is on it. A triangle is measured to a point along its own normal, so that a sliver is
+measured where it is: a point on the triangle (0, 0, 0), (100, 0, 0), (50, 0.0001, 0) read 0.00056 away, as the
+closest-point search of `Projection3` finds it, and is now nought away. A segment no longer than the point tolerance is still read as its start where it does not meet the
+other shape. `Projection3` is unchanged, so within the tolerance a shortest line can be of no length where the distance
+is the gap: the segment from (5, 5, 0.0004) to (5, 5, 9) over the square is joined at (5, 5, 0.0004), and is 0.0004 from
+it.
+
+**CHANGED.** Results near contact move, from nought to the gap, in `Distance3.DistanceTo` and the `DistanceTo` members of
+the shapes for: a point against a triangle (a sliver), polygon, face or solid; a triangle against a triangle, polygon or face; a polygon or
+face against a polygon or face; a segment, ray or chain against a triangle, polygon, face, box or solid; a solid against
+a line, ray, chain, triangle, polygon or face; a ray against a ray; a chain against a ray. `Collision3.CollidesWith` for
+the same pairs now answers whether the exact gap is within `EqualPoint`; it moves only where the old answer used the old
+band (a corner reaching a tolerance past a segment's end, a shape laid flat). Three things are not read so, and are
+stated: a triangle with no area touches nothing, whatever its distance (it keeps its gap), so that for it
+`CollidesWith` is not `DistanceTo <= EqualPoint`; `DistanceTo` between two solids or oriented boxes, which searches through their
+triangles, still reads nought within the point tolerance, so two oriented boxes 0.0004 apart are nought apart, and so is an axis-aligned box against an oriented box or a solid (only
+`GeoAabb3.DistanceTo(GeoAabb3)` is exact); and a shape against
+a plane still reads its corners within the point tolerance as on it, so a plane is nought from a square 0.0004 above it.
+A point within a billionth of a millimetre outside a body reads as in it, so that rounding in a turned body cannot lose a
+crossing: a point 5E-10 outside a box is nought away. `CollidesWith` between two triangles, which the clash reads, is
+unchanged and decides a pair standing exactly the tolerance apart by its own margin.
 **NEW.** `DxfWriter` writes shapes as a DXF file of version R2000 in millimetres, for AutoCAD, Tekla Structures and
 every CAD viewer: `new DxfWriter().Add(plate, "plate").Add(bar, 0.1, "bar").Save("part.dxf")`. Each shape goes on a
 layer, made on first use. In the plane it is written exactly, as the entity CAD has for it: points, segments, circles,

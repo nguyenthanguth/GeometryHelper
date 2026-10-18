@@ -26,8 +26,10 @@ namespace GeometryHelper.Core
     /// that order: for two regions in planes that are not one, the first of the crossings
     /// <see cref="Intersection3.GetIntersections(GeoPolygon3, GeoPolygon3, Tolerance)"/> names. As for the segment and
     /// the chain against a polygon, an edge coming at a region end-on and stopping within the point tolerance of it is
-    /// read as crossing it, so the segment of no length sits at that end; a region lying level within the tolerance is
-    /// joined by its true gap, though the distance, read within the tolerance, is nought.
+    /// read as crossing it, so the segment of no length sits at that end, though the distance there is the true gap; a
+    /// region lying level within the tolerance is joined by its true gap, which is its distance too. The segment from (5, 5, 0.0004)
+    /// to (5, 5, 9) over the square 100 by 100 in the floor is joined by a segment of no length at (5, 5, 0.0004), and is 0.0004
+    /// from it by its distance.
     /// </para>
     /// <para>
     /// <b>A plane</b> is read by the heights of the corners, as a chain is: a shape that crosses or touches it is joined
@@ -788,7 +790,7 @@ namespace GeometryHelper.Core
         /// <param name="ray2">The ray the answer lands on.</param>
         /// <param name="tolerance">
         /// The tolerance; not read, since the segment is the true one: rays passing a hair apart are joined by a segment
-        /// that short, where <see cref="Distance3.DistanceTo(GeoRay3, GeoRay3, Tolerance)"/> reads nought.
+        /// that short, which is their distance <see cref="Distance3.DistanceTo(GeoRay3, GeoRay3, Tolerance)"/> too.
         /// </param>
         /// <returns>
         /// Where the two run past each other, the common perpendicular of their lines when both rays reach it, and

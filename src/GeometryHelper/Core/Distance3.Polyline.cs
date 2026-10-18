@@ -55,27 +55,14 @@ namespace GeometryHelper.Core
         public static double DistanceTo(GeoPolyline3 polyline, GeoTriangle3 triangle) => DistanceTo(polyline, triangle, Tolerance.Global);
 
         /// <summary>
-        /// Calculates the shortest distance between a chain and a triangle, within a tolerance: nought where
-        /// <see cref="Collision3.CollidesWith(GeoPolyline3, GeoTriangle3, Tolerance)"/> says the two touch, since that is
-        /// where one of its segments does, and each segment is nought away where it touches.
+        /// Calculates the shortest distance between a chain and a triangle, within a tolerance: nought only where one of
+        /// its segments truly meets the triangle, otherwise the gap, measured exactly.
         /// </summary>
         public static double DistanceTo(GeoPolyline3 polyline, GeoTriangle3 triangle, Tolerance tolerance)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            double best = double.MaxValue;
-
-            foreach (GeoLine3 edge in polyline.GetEdges())
-            {
-                best = Math.Min(best, DistanceTo(edge, triangle, tolerance));
-
-                if (best <= 0.0)
-                {
-                    return 0.0;
-                }
-            }
-
-            return best;
+            return Gap3.Chain(Gap3.Region.Of(triangle), polyline, 0.0);
         }
 
         /// <summary>
@@ -84,34 +71,15 @@ namespace GeometryHelper.Core
         public static double DistanceTo(GeoPolyline3 polyline, GeoPolygon3 polygon) => DistanceTo(polyline, polygon, Tolerance.Global);
 
         /// <summary>
-        /// Calculates the shortest distance between a chain and a polygon, within a tolerance: nought where
-        /// <see cref="Collision3.CollidesWith(GeoPolyline3, GeoPolygon3, Tolerance)"/> says the two touch.
+        /// Calculates the shortest distance between a chain and a polygon, within a tolerance: nought only where an edge
+        /// truly meets the polygon, otherwise the gap, measured exactly.
         /// </summary>
         public static double DistanceTo(GeoPolyline3 polyline, GeoPolygon3 polygon, Tolerance tolerance)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
 
-            if (Collision3.CollidesWith(polyline, polygon, tolerance))
-            {
-                return 0.0;
-            }
-
-            double best = double.MaxValue;
-
-            // Triangles that each lie inside the polygon: the default fan reaches across the notch of a
-            // concave one and would measure a chain passing through the notch as touching it.
-            foreach (GeoTriangle3 piece in new GeoFace3(polygon).TriangulateSurface(tolerance))
-            {
-                best = Math.Min(best, DistanceTo(polyline, piece, tolerance));
-
-                if (best <= 0.0)
-                {
-                    return 0.0;
-                }
-            }
-
-            return best;
+            return Gap3.Chain(Gap3.Region.Of(polygon), polyline, 0.0);
         }
 
         /// <summary>
@@ -162,8 +130,9 @@ namespace GeometryHelper.Core
         public static double DistanceTo(GeoPolyline3 polyline, GeoObb3 box, Tolerance tolerance)
         {
             if (box == null) throw new ArgumentNullException(nameof(box));
+            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            return DistanceTo(box.ToSolid(), polyline, tolerance);
+            return new Gap3.Block(box).Chain(polyline, 0.0);
         }
 
         /// <summary>
@@ -176,7 +145,7 @@ namespace GeometryHelper.Core
         /// </summary>
         public static double DistanceTo(GeoPolyline3 polyline, GeoAabb3 box, Tolerance tolerance)
         {
-            return DistanceTo(box.ToObb().ToSolid(), polyline, tolerance);
+            return DistanceTo(polyline, box.ToObb(), tolerance);
         }
     }
 }

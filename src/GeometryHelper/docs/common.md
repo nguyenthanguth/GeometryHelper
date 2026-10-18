@@ -46,6 +46,13 @@ first's within it onto them, and the tolerance stays as exact as it is everywher
 [space](solid.md#combining-bodies)). Within a thousandth alone, parts drawn a few thousandths into each other leave
 skins as thin as that on what is cut.
 
+In space, as in the plane, `DistanceTo` between points and straight shapes is nought only where the two truly meet, a rim
+counting, and otherwise the exact gap, however small, and `CollidesWith` is whether that gap is no more than `EqualPoint`: a
+segment 0.0005 off a square in its plane is 0.0005 from it and collides at a thousandth, and one 0.0012 off its corner does
+not. A shape off a plane by less than `EqualPlanar` is not laid flat for its distance; it is as far in space as it is
+(see [space](solid.md)). Three things are read otherwise, on purpose: `DistanceTo` between two bodies, or an oriented box and an oriented or axis-aligned box, still reads
+nought within `EqualPoint` (only `GeoAabb3` against `GeoAabb3` is exact); a plane reads the corners of a shape within it as on the plane, so the plane z = 0 is nought from a
+square 0.0004 above it; and a triangle with no area touches nothing, though its distance is its gap.
 Pass a coarser tolerance only to the call that needs it. Within one, what touches within it is taken for touching:
 net volumes to match the ones Tekla Structures reports come from booleans within 0.05. Geometry in metres wants
 the point and planar thresholds a thousand times smaller, set once for the program:
