@@ -263,5 +263,28 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(rounded.Area, other.Area, 9);
             Assert.Equal(-rounded.SignedArea, other.SignedArea, 9);
         }
+
+        [Fact]
+        public void ALoopThatIsTwoThousandthsAcrossWithAnArcOfNearlyNoBulge_HoldsOnlyThePointsInsideIt()
+        {
+            // The loop is the miter of a corner: four vertices round (-2.4538, 9.2057), one edge an arc of bulge 6.6E-9 on a
+            // radius of 76 000. The arc's middle was worked out from its centre, 76 000 away, and came out on the wrong side of
+            // its chord, 7E-12 off: the piece the arc cuts off was then the whole disc, and every point within 76 000 of the
+            // loop was inside it, the origin among them.
+            var loop = new GeoPolygonArc2(
+                new[]
+                {
+                    new GeoPoint2(-2.4534087220455554, 9.2043106813003845),
+                    new GeoPoint2(-2.4524037514347583, 9.206039852797403),
+                    new GeoPoint2(-2.4543497107442818, 9.207170817462611),
+                    new GeoPoint2(-2.4552440526219348, 9.2051053898590052),
+                },
+                new[] { 0.0, 6.611956648860367E-09, 0.0, 0.0 });
+
+            Assert.Equal(GeometryHelper.Enums.PointLocation.Inside, loop.Locate(new GeoPoint2(-2.45385158, 9.20565669), Tolerance.Default));
+            Assert.Equal(GeometryHelper.Enums.PointLocation.OutSide, loop.Locate(new GeoPoint2(0.0, 0.0), Tolerance.Default));
+            Assert.Equal(GeometryHelper.Enums.PointLocation.OutSide, loop.Locate(new GeoPoint2(-5.2374178400672369, 0.68077323354669728), Tolerance.Default));
+            Assert.Equal(GeometryHelper.Enums.PointLocation.OutSide, loop.Locate(new GeoPoint2(-2.4538, 9.2100), Tolerance.Default));
+        }
     }
 }

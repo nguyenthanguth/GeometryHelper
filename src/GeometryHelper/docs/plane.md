@@ -730,6 +730,28 @@ whichever corner it starts from and whichever way it runs. Where the moved piece
 they were cut in, the loop is put together where they meet, and a lens left between two arcs comes back as a
 loop of three corners.
 
+A loop that crosses itself is read the way the straight offsets read one, even-odd: a point is inside when it lies
+inside an odd number of the simple loops the crossings cut the loop into, and that region is what is offset, with its
+arcs kept. The loop from (-7.818, 3.764) round an arc to the origin, round another to (-8.573, 2.412) and straight
+back crosses itself at (-1.980, 0.198), where its two arcs meet again beside their corner, and runs round a lens there
+the other way; grown by 0.1 with round joins it is one loop of 5.9555, grown by 0.5 one of 14.5114, and shrunk by 0.1
+one of 2.6454, as the straight path gives them on the loop cut within 1E-5 (5.9555, 14.5114, 2.6454). A gear of 642
+teeth is such a loop, its two arcs at each inner vertex crossing again 0.0079 away and making a slit between them
+that is 4E-7 wide; grown by 0.5 it is one loop of 31 667.81, the slits lost in the valleys, and shrunk by 0.5 one of
+28 106.67 (the straight path's 28 106.72), every slit holding a disc of 0.5 out of the roots. The five-pointed star drawn
+in one stroke, its middle a hole, grown by 0.3 is its outline and a smaller hole, and shrunk by 0.2 five tips. The loops
+come back wound as the signed area of the loop says it runs, the outer ones that way and the holes the other. A loop
+that does not cross itself is offset as it always was. A vertex that lies on another edge is a crossing when the edge
+before it comes from one side of that edge and the edge after it leaves to the other: the loop from the origin to
+(10, 0), up to (10, 10) by an arc of bulge 0.2, back to (5, 0) and on to (3, -6) by an arc of bulge -0.2 crosses itself
+at (5, 0), and grown by 0.5 with round joins is one loop of 74.484 (the straight path 74.483), shrunk by 0.5 two of 21.342
+and 10.017, the same when the vertex is 0.0005 above or below the edge. A vertex that touches an edge with both its own
+edges on one side of it does not cross it.
+A region shrunk with miter corners can lose a small island that a miter wedge covers: the offset arcs run on round their own
+circles and are cut square at the miter limit times the distance, and what lies inside that wedge is not left. A loop of five
+vertices shrunk by 1 with the default limit of 10 has two loops where round corners give three, the third of 0.203 lying
+wholly in a wedge; with a limit of 2 it stays.
+
 **What still needs flattening.** The four boolean operations do, because a boolean cannot be done piece by
 piece. They take an optional chord tolerance and hand back the straight types, which say plainly that the
 arcs are gone:

@@ -55,17 +55,21 @@ namespace GeometryHelper.Core
             private readonly List<int> _near = new List<int>();
             private readonly Tolerance _inside;
             private readonly bool _closed;
+            private readonly Spans _spans;
+            private readonly Region _region;
             private readonly double _sideways;
             private readonly double _distance;
             private readonly double _slack;
             private readonly Tolerance _tolerance;
 
-            internal Shape(List<GeoEdge2> edges, bool closed, double sideways, double slack, List<Piece> offset, List<Mitre> mitres, Tolerance tolerance)
+            internal Shape(List<GeoEdge2> edges, bool closed, Spans spans, Region region, double sideways, double slack, List<Piece> offset, List<Mitre> mitres, Tolerance tolerance)
             {
                 double distance = Math.Abs(sideways);
 
                 _edges = edges;
                 _closed = closed;
+                _spans = spans;
+                _region = region;
                 _sideways = sideways;
                 _distance = distance;
                 _slack = slack;
@@ -279,11 +283,36 @@ namespace GeometryHelper.Core
 
                 if (!grown.TrySplitAtParameter(parameter, out GeoEdge2 before, out GeoEdge2 after, tolerance))
                 {
-                    return atEnd ? new GeoEdge2(old, grown.EndPoint) : new GeoEdge2(grown.StartPoint, old);
+                    if (!grown.IsArc || double.IsNaN(parameter))
+                    {
+                        return atEnd ? new GeoEdge2(old, grown.EndPoint) : new GeoEdge2(grown.StartPoint, old);
+                    }
+
+                    // A piece cut off no longer than the tolerance is not cut off, but the rest of an arc is still an arc: it
+                    // keeps its share of the sweep, which a chord would not.
+                    double share = Math.Max(0.0, Math.Min(1.0, parameter));
+                    double swept = grown.ToArc().SweptAngle;
+
+                    return atEnd
+                        ? new GeoEdge2(old, grown.EndPoint, Math.Tan(swept * (1.0 - share) * 0.25))
+                        : new GeoEdge2(grown.StartPoint, old, Math.Tan(swept * share * 0.25));
                 }
 
                 return atEnd ? after : before;
             }
+
+            /// <summary>
+            /// Gets a value indicating whether the side of one piece a crossing piece lies on is read from the angle between
+            /// them however small, as it is for loops offset together, whose pieces meet at the narrow corners of a region that
+            /// crosses itself, rather than within the angle tolerance.
+            /// </summary>
+            internal bool ExactSides => _region != null;
+
+            /// <summary>
+            /// Determines whether a point lies on the side of the region the offset goes to, which is always so for a shape
+            /// that is one loop, whose pieces are moved to that side.
+            /// </summary>
+            internal bool OnTheOffsetSide(GeoPoint2 point) => _region == null || _region.Holds(point) == _region.WantInside;
 
             /// <summary>
             /// Determines whether a point lies inside the point of a miter, by more than the slack.
@@ -454,7 +483,7 @@ namespace GeometryHelper.Core
             private bool InCone(int corner, GeoPoint2 point)
             {
                 GeoVector2 towards = _vertices[corner].GetVectorTo(point);
-                int incoming = _closed ? (corner + _edges.Count - 1) % _edges.Count : corner - 1;
+                int incoming = _closed ? (corner == _spans.First[corner] ? _spans.Last[corner] : corner - 1) : corner - 1;
                 int outgoing = _closed || corner < _edges.Count ? corner : -1;
 
                 if (incoming >= 0)
@@ -576,7 +605,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            private int Next(int edge) => _closed ? (edge + 1) % _edges.Count : edge + 1;
+            private int Next(int edge) => _closed ? (edge == _spans.Last[edge] ? _spans.First[edge] : edge + 1) : edge + 1;
 
             private static void AddCrossings(List<GeoPoint2> cuts, GeoEdge2 edge, Carrier carrier, Carrier curve, Tolerance tolerance)
             {
@@ -603,6 +632,8 @@ namespace GeometryHelper.Core
             }
 
             internal GeoEdge2 Edge => _edge;
+
+            internal GeoArc2 Arc => _arc;
 
             /// <summary>
             /// Gets the point of the edge nearest a point, as <see cref="GeoEdge2.GetClosestPointOnBoundary(GeoPoint2, Tolerance)"/> does.

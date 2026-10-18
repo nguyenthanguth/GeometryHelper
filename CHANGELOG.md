@@ -6,6 +6,53 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `Offset2.Offset` of a curved loop that crosses itself returned nothing, a loop too many, or the wrong loops,
+and now reads the loop as the straight offsets read it, even-odd, and keeps its arcs. The offset of a loop is built
+piece by piece and joined at its vertices, so it knew nothing of two edges that cross away from one: the run round the loop
+missed closing by twice the distance, and was dropped. The loop from (-7.818, 3.764) round an arc to the origin, round
+another to (-8.573, 2.412) and back, whose arcs meet again at (-1.980, 0.198), grown by 0.1 was nothing and is one loop of
+5.9555 (the straight path 5.9555), by 0.5 nothing and is 14.5114 (14.5114). A gear of 642 teeth, whose arcs at each inner
+vertex cross 0.0079 beside it, grown by 0.5 with round corners was two loops, one a hole of 28 106.67 that is not there, and
+is one of 31 667.81; shrunk by 0.5 it was nothing and is one of 28 106.67 (28 106.72); grown with mitred corners it was
+nothing. A bowtie of two bowed lobes grown by 1 is one loop and shrunk by 0.5 two, and the five-pointed star drawn in one
+stroke, its middle a hole, grown by 0.3 is its outline and a smaller hole and shrunk by 0.2 five tips, as the straight path
+gives them. Six of the offset audit's loops were empty and are not: the cases 914 and 7994 are right, and 2686 (14
+vertices with bulges from -0.6 to 0.6, offset by 0.0005 within (1E-4, 1E-6) with a mitre limit of 2), 10110, 15710 and 17330
+come back as the one loop their region gives, with the findings of their joins that a simple loop has. The loop is cut at
+its crossings into the pieces between them, each piece turned so that the region lies on its left, joined again at the
+crossings as the corners of the region are, and moved together, pruned against the whole shape and against the region. A
+vertex that lies on another edge is a crossing when the edge before it comes from one side of that edge and the edge after
+it leaves to the other, though the meeting is at the vertex: the loop from the origin to (10, 0), up to (10, 10) by an arc
+of bulge 0.2, back to (5, 0) and on to (3, -6) by an arc of bulge -0.2, grown by 0.5 with round joins, was one loop of
+10.02 wound the wrong way and is 74.484 (74.483), and a figure eight through one vertex twice, grown by 0.5, was 10.29 and
+is 82.726 (82.726). A vertex that touches an edge with both its edges on one side of it is not a crossing, and a loop that
+does not cross itself is offset as it always was. Two arcs that leave a corner a hair apart and cross again within the
+tolerance of it make a cusp, whichever way their headings say they turn: a loop of five vertices, two of its arcs of
+bulges -0.2943 and 0.4856 leaving (-6.435, -3.631) 2E-5 apart, grown by 0.3 was nothing and is one loop of 78.857 (78.857).
+Where three pieces of the offset cross within a few hundredths of a millimetre the loop no longer falls open there: a run
+that comes back to where it began, or to where it ends, before it is done is split into the loop it makes and the rest; a
+run that ends along the edge of another is joined to it; and a stretch thrown away that stands the distance from the shape is
+used to close a run with. With miter or chamfer corners, loops the straight path gives (a hole of 4.31 beside two arcs
+crossing within 0.0002 of a corner, one of 0.564, one of 2.357, one of 16.26 at a tolerance of 1E-4, a hole of 10.65 that
+Round also keeps) were left out. A loop that crosses itself at a tolerance of 0.1 no longer throws "Two points in the same
+place have no chord to bulge": a piece that leaves a crossing and comes back to it has no length and is left out, and the
+two loops of the fuzz that threw give the loops the straight path gives (183.58 and -0.54 grown by 0.3, 249.89 grown by 1;
+four loops grown by 0.3, eight shrunk). Runs of one edge are no loop, and ends of runs meet within three times the point
+tolerance: a chamfer of a loop shrunk by 0.002 at a tolerance of 0.001 lost a loop of 15.80 that Round kept. A region shrunk with miter
+corners can lose a small island that a miter wedge covers, as it can lose any part a spike reaches: a loop of five vertices shrunk by 1 with the default limit of 10 has two loops where Round
+has three, the third of 0.203 lying wholly in the wedges of the corners beside it; with a limit of 2 it stays.
+The arc beyond a miter's tip, cut so near its end that the cut was refused, was taken for a chord and covered the offset
+beside it: a rectangle with a notch 0.001 deep below its base, as deep as the tolerance, grown by 1 with miter corners
+was nothing and is 118.72, the answer a tolerance ten times finer gives.
+
+**FIXED.** The point tests of a loop of arcs, `Locate` and `Contains` of `GeoPolygonArc2` among them, answered wrongly for an
+arc of nearly no bulge. The piece an arc cuts off its chord was told from the arc's middle, worked out from its centre, and an
+arc of bulge 6.6E-9 across 0.002 has its centre 76 000 away: the middle came out 7E-12 off, on the wrong side of the chord, and
+the piece became the whole disc. A loop of four vertices 0.002 across with such an arc held the origin, and did not hold its own
+middle. The middle is now told by the sign of the bulge. The loops the fault touched are those with an arc of a bulge below
+about 1E-8, which a miter makes of a corner of two edges a hair off straight: a loop offset by 0.002 with miter corners was
+nothing, and is the 3 loops (122.29, 31.47, 1.59) that round corners give.
+
 **FIXED.** Flattening a curve kept the chord tolerance only down to 4 096 pieces a turn. An arc sweeping less than 2 pi /
 4 096, or a circle or an arc on a large radius, was cut into no more pieces than that allowed whatever tolerance was
 asked, so it came back as one chord or short of the tolerance, against what `Flatten`, `ToPolylineByChordTolerance` and

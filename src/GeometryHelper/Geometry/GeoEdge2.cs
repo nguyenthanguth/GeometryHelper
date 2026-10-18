@@ -242,8 +242,19 @@ namespace GeometryHelper.Geometry
             }
 
             // Inside the circle, the chord cuts the disc in two and the piece wanted is the one the middle
-            // of the arc lies in. That holds whichever way the arc leans and however far it sweeps.
-            return Core.ArcChain2.BeforeChord(EndPoint, StartPoint, point) == Core.ArcChain2.BeforeChord(EndPoint, StartPoint, arc.MidPoint);
+            // of the arc lies in. That holds whichever way the arc leans and however far it sweeps. The middle is
+            // told by the bulge, which puts it to the right of the way the chord runs when positive, and not
+            // worked out from the centre: on an arc of nearly no bulge the centre lies thousands away, and the
+            // middle worked out from it can land on the wrong side of the chord, and the piece wanted become the
+            // whole disc. A point a chord's length out from the chord's middle on that side stands clear of the
+            // line, and tells the same side.
+            GeoVector2 along = StartPoint.GetVectorTo(EndPoint);
+            double side = Bulge > 0.0 ? 1.0 : -1.0;
+            var onTheArcsSide = new GeoPoint2(
+                (StartPoint.X + EndPoint.X) * 0.5 + side * along.Y,
+                (StartPoint.Y + EndPoint.Y) * 0.5 - side * along.X);
+
+            return Core.ArcChain2.BeforeChord(EndPoint, StartPoint, point) == Core.ArcChain2.BeforeChord(EndPoint, StartPoint, onTheArcsSide);
         }
 
         /// <summary>

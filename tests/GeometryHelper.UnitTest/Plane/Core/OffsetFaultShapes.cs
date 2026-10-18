@@ -286,5 +286,73 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         #endregion
+
+        #region Item 6: loops that cross themselves, near-cusp gears and a nearly flat arc
+
+        /// <summary>
+        /// The rectangle 100 by 50 from the origin whose bottom bows 0.015 down: bulge 0.0003, a sweep of 4 atan 0.0003 =
+        /// 0.0012 radians (under the 2 pi / 4 096 = 0.00153 a piece that Tessellation allows), radius 83 333.34, 100.000006
+        /// long, adding a segment of 1.00000002 to the 5 000 of the rectangle.
+        /// </summary>
+        internal static GeoPolygonArc2 RectangleWithANearlyFlatBottom()
+            => Loop(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50) }, 0.0003);
+
+        /// <summary>
+        /// A loop of two arcs from the origin and a straight edge back: in along the circle of radius 10 about (0, 10) from
+        /// the point a sweep of <paramref name="first"/> radians clockwise round it from the origin, out along the circle of
+        /// radius sqrt 401 = 20.025 about (1, 20) to the point <paramref name="second"/> radians clockwise round it, and
+        /// straight back. The two circles meet again at X = (-200/101, 20/101) = (-1.980, 0.198), 0.199337 radians round the
+        /// first from the origin and 0.099421 round the second: sweeps past those take both arcs through X, and the loop
+        /// crosses itself there.
+        /// </summary>
+        internal static GeoPolygonArc2 TwoArcsFromTheOrigin(double first, double second)
+        {
+            double around = Math.Atan2(-20.0, -1.0) - second;
+            GeoPoint2 p = P(-10.0 * Math.Sin(first), 10.0 - 10.0 * Math.Cos(first));
+            GeoPoint2 r = P(1.0 + Math.Sqrt(401.0) * Math.Cos(around), 20.0 + Math.Sqrt(401.0) * Math.Sin(around));
+
+            return Loop(new[] { p, P(0, 0), r }, Math.Tan(first / 4.0), -Math.Tan(second / 4.0));
+        }
+
+        /// <summary>How far round each circle of <see cref="TwoArcsFromTheOrigin"/> its second meeting X lies: 2 asin(|X| / 2r).</summary>
+        internal static double SweepToX(double radius) => 2.0 * Math.Asin(Math.Sqrt(40400.0) / 101.0 / (2.0 * radius));
+
+        /// <summary>
+        /// The loop of <see cref="TwoArcsFromTheOrigin"/> run 40 degrees past X round the first circle and 20 past it round
+        /// the second, to p = (-7.818, 3.764) and r = (-8.573, 2.412): it crosses itself at X, 1.990 from the origin, where a
+        /// lens about 0.025 wide is left between the arcs, wound against the rest. The straight edge r p meets neither circle.
+        /// </summary>
+        internal static GeoPolygonArc2 ArcsCrossingBesideTheirCorner()
+            => TwoArcsFromTheOrigin(SweepToX(10.0) + Math.PI * 40.0 / 180.0, SweepToX(Math.Sqrt(401.0)) + Math.PI * 20.0 / 180.0);
+
+        /// <summary>
+        /// The loop of <see cref="TwoArcsFromTheOrigin"/> run 70 % of the way to X round each circle: the same corner, simple.
+        /// </summary>
+        internal static GeoPolygonArc2 ArcsStoppingShortOfTheirCrossing()
+            => TwoArcsFromTheOrigin(0.7 * SweepToX(10.0), 0.7 * SweepToX(Math.Sqrt(401.0)));
+
+        /// <summary>
+        /// A gear of <paramref name="teeth"/> teeth: 2 teeth vertices, pi / teeth apart, by turns on the circles of radius 100
+        /// and 95 about the origin, the edge leaving an outer vertex bulged 0.2 and the one leaving an inner vertex -0.1. At
+        /// each inner vertex the arc arriving and the arc leaving set off from it 1.1E-5 radians apart for 641 teeth, and
+        /// cross for 642: from 642 teeth on they meet again beside it (7.85E-3 away for 642, 1.037 for 800), and the gear is
+        /// no longer simple.
+        /// </summary>
+        internal static GeoPolygonArc2 Gear(int teeth)
+        {
+            var points = new GeoPoint2[teeth * 2];
+            var bulges = new double[teeth * 2];
+
+            for (int i = 0; i < points.Length; i++)
+            {
+                double angle = Math.PI * i / teeth, radius = i % 2 == 0 ? 100.0 : 95.0;
+                points[i] = P(radius * Math.Cos(angle), radius * Math.Sin(angle));
+                bulges[i] = i % 2 == 0 ? 0.2 : -0.1;
+            }
+
+            return new GeoPolygonArc2(points, bulges);
+        }
+
+        #endregion
     }
 }
