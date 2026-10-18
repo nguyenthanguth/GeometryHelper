@@ -91,6 +91,13 @@ both ways, and a billionth short of the tolerance it collides neither. Clash res
 tolerance to the last digits: in 135 715 pairs of triangles, boxes and bodies it was the one pair, and every benchmark
 signature of the clash is unchanged.
 
+**CHANGED.** Two triangles collide, and so the clash and the contact of bodies made of triangles, where a side of one no
+longer than the point tolerance comes within the tolerance of the other: a triangle with the side (0, -0.0005, 0) to (0,
+0.0005, 0) and an edge along z at x = 0.0009 collided neither way round though they are 0.0009 apart, its short side
+read as its start. In 180 000 random triangle pairs 8 moved from missing to colliding, all from 0.00097 to 0.0009996
+apart, and none the other way; in 39 000 pairs of bodies, the clash benchmark scenes among them, none moved, since the
+faces of a body have no side that short. Every clash benchmark signature is unchanged.
+
 **NEW.** `DxfWriter` writes shapes as a DXF file of version R2000 in millimetres, for AutoCAD, Tekla Structures and
 every CAD viewer: `new DxfWriter().Add(plate, "plate").Add(bar, 0.1, "bar").Save("part.dxf")`. Each shape goes on a
 layer, made on first use. In the plane it is written exactly, as the entity CAD has for it: points, segments, circles,

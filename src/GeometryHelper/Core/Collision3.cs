@@ -283,7 +283,12 @@ namespace GeometryHelper.Core
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    if (Distance3.DistanceTo(triangle1.GetEdgeAt(i), triangle2.GetEdgeAt(j), tolerance) <= near)
+                    // A side of a triangle is the side it is, however short: it is not a segment a caller gave, which is read as its
+                    // start when it is no longer than the tolerance.
+                    GeoLine3 side = triangle1.GetEdgeAt(i);
+                    GeoLine3 against = triangle2.GetEdgeAt(j);
+
+                    if (Gap3.SegmentToSegment(side.StartPoint, side.EndPoint, against.StartPoint, against.EndPoint) <= near)
                     {
                         return true;
                     }
