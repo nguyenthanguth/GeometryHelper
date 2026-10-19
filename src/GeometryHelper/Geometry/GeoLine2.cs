@@ -77,6 +77,16 @@ namespace GeometryHelper.Geometry
         public GeoLine2 Reverse() => new GeoLine2(EndPoint, StartPoint);
 
         /// <summary>
+        /// Gets the infinite line this segment lies on: the line through its start point along the way it runs.
+        /// </summary>
+        /// <remarks>
+        /// The segment from (0, 0) to (100, 0) gives the line through the origin along X; the segment from (100, 0) back
+        /// to (0, 0) gives the same line running the other way.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the segment is too short to have a direction.</exception>
+        public GeoXLine2 ToXLine() => new GeoXLine2(StartPoint, EndPoint);
+
+        /// <summary>
         /// Checks whether the segment is shorter than the default tolerance, so it has no usable direction.
         /// </summary>
         public bool IsDegenerate() => IsDegenerate(Tolerance.Global);

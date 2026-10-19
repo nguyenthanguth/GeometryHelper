@@ -267,5 +267,29 @@ namespace GeometryHelper.Geometry
         }
 
         #endregion
+
+        #region XLines
+
+        /// <summary>
+        /// Gets the points where this edge crosses an infinite line, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoXLine2 xline) => GetIntersections(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the points where this edge crosses an infinite line, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoXLine2 xline, Tolerance tolerance)
+        {
+            if (IsArc)
+            {
+                return Core.Arc2.GetIntersections(ToArc(), xline, tolerance);
+            }
+
+            return Core.Intersection2.TryIntersectWith(ToLine(), xline, out GeoPoint2 meeting, tolerance)
+                ? new[] { meeting }
+                : new GeoPoint2[0];
+        }
+
+        #endregion
     }
 }

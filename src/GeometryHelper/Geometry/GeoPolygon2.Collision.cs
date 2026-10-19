@@ -142,5 +142,19 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoRay2 ray, Tolerance tolerance) => Collision2.CollidesWith(this, ray, tolerance);
 
         #endregion
+
+        #region XLines
+
+        /// <summary>
+        /// Determines whether this polygon touches an infinite line, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoXLine2 xline) => CollidesWith(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Determines whether this polygon touches an infinite line, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoXLine2 xline, Tolerance tolerance) => Collision2.CollidesWith(this, xline, tolerance);
+
+        #endregion
     }
 }

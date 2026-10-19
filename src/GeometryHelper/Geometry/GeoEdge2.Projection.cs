@@ -257,5 +257,19 @@ namespace GeometryHelper.Geometry
         }
 
         #endregion
+
+        #region XLines
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on an infinite line, using the default tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoXLine2 xline) => GetShortestLineTo(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment leaving this edge and landing on an infinite line, within a tolerance.
+        /// </summary>
+        public GeoLine2 GetShortestLineTo(GeoXLine2 xline, Tolerance tolerance) => IsArc ? Arc2.GetShortestLineTo(ToArc(), xline, tolerance) : Projection2.GetShortestLineTo(xline, ToLine(), tolerance).Reverse();
+
+        #endregion
     }
 }

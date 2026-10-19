@@ -436,6 +436,28 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Transforms an infinite line: the origin as a point and the direction as a vector, normalized again.
+        /// </summary>
+        /// <remarks>
+        /// An uneven scaling turns the line as well as moving it: the line through the origin at 45 degrees, scaled by 2 along
+        /// X only, runs along (2, 1).
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the transformation flattens the line direction to nothing.
+        /// </exception>
+        public GeoXLine2 Transform(GeoXLine2 xline)
+        {
+            GeoVector2 direction = Transform(xline.Direction);
+
+            if (direction.IsZeroLength())
+            {
+                throw new InvalidOperationException("This transformation collapses the line direction.");
+            }
+
+            return new GeoXLine2(Transform(xline.Origin), direction);
+        }
+
+        /// <summary>
         /// Transforms a chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>

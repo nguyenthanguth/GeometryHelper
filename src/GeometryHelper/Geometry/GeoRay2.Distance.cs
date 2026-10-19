@@ -211,5 +211,21 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public double DistanceTo(GeoFace2 face, Tolerance tolerance) => Face2.DistanceTo(face, this, tolerance);
+
+        #region XLines
+
+        /// <summary>
+        /// Calculates the shortest distance from this ray to an infinite line, using the default tolerance.
+        /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
+        public double DistanceTo(GeoXLine2 xline) => DistanceTo(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Calculates the shortest distance from this ray to an infinite line, within a tolerance.
+        /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
+        public double DistanceTo(GeoXLine2 xline, Tolerance tolerance) => Distance2.DistanceTo(xline, this, tolerance);
+
+        #endregion
     }
 }

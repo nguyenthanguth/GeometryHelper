@@ -153,5 +153,19 @@ namespace GeometryHelper.Geometry
             => IsArc ? ToArc().CollidesWith(ray, tolerance) : ToLine().CollidesWith(ray, tolerance);
 
         #endregion
+
+        #region XLines
+
+        /// <summary>
+        /// Determines whether this edge touches an infinite line, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoXLine2 xline) => CollidesWith(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Determines whether this edge touches an infinite line, within a tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoXLine2 xline, Tolerance tolerance) => IsArc ? ToArc().CollidesWith(xline, tolerance) : ToLine().CollidesWith(xline, tolerance);
+
+        #endregion
     }
 }

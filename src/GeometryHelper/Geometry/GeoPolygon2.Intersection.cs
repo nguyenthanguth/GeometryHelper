@@ -216,5 +216,19 @@ namespace GeometryHelper.Geometry
         public GeoPoint2[] GetIntersections(GeoRay2 ray, Tolerance tolerance) => Intersection2.GetIntersections(this, ray, tolerance);
 
         #endregion
+
+        #region XLines
+
+        /// <summary>
+        /// Gets the points where this polygon crosses an infinite line, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoXLine2 xline) => GetIntersections(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the points where this polygon crosses an infinite line, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoXLine2 xline, Tolerance tolerance) => Intersection2.GetIntersections(this, xline, tolerance);
+
+        #endregion
     }
 }

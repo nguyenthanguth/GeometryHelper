@@ -244,5 +244,26 @@ namespace GeometryHelper.Geometry
         }
 
         #endregion
+
+        #region XLines
+
+        /// <summary>
+        /// Calculates the shortest distance from this edge to an infinite line, using the default tolerance.
+        /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
+        public double DistanceTo(GeoXLine2 xline) => DistanceTo(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Calculates the shortest distance from this edge to an infinite line, within a tolerance.
+        /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
+        public double DistanceTo(GeoXLine2 xline, Tolerance tolerance)
+        {
+            return Core.ArcChain2.Straight(this, out GeoLine2 straight)
+                ? Core.Distance2.DistanceTo(xline, straight, tolerance)
+                : Core.Arc2.DistanceTo(ToArc(), xline, tolerance);
+        }
+
+        #endregion
     }
 }

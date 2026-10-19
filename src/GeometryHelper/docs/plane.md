@@ -13,7 +13,7 @@ measured with the same [shared types](common.md).
 
 | Namespace | Holds |
 |---|---|
-| `GeometryHelper.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2`, `GeoPolyline2`, `GeoPolygon2`, `GeoFace2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2`, `GeoTriangle2`, `GeoTransform2` |
+| `GeometryHelper.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoPolyline2`, `GeoPolygon2`, `GeoFace2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2`, `GeoTriangle2`, `GeoTransform2` |
 | `GeometryHelper.Core` | `Boolean2`, `Collision2`, `Containment2`, `Corner2`, `Distance2`, `Ellipse2`, `Intersection2`, `Lengthen2`, `Merge2`, `Offset2`, `Parallel2`, `Parametrization2`, `Projection2`, `Splition2`, `Triangle2`, `PlanarMap` |
 | `GeometryHelper.Meshing` | `GeoMesh2`, `Mesh2`, `MeshKind`, `MeshOptions`, `GridAlignment`: see [meshing the plane](mesh.md) |
 | `GeometryHelper.Extension` | `EnumerableExtension` |
@@ -25,7 +25,7 @@ imports one namespace and nothing collides.
 
 ## Geometric Types
 
-`GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2` (a half-line), `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2` (rotated rectangle — OBB), `GeoTriangle2`, `GeoPolygon2`, `GeoFace2` (a polygon with holes), `GeoPolyline2`, and the chains that may curve: `GeoEdge2`, `GeoPolylineArc2`, `GeoPolygonArc2`.
+`GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2` (a half-line), `GeoXLine2` (an infinite line), `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2` (rotated rectangle — OBB), `GeoTriangle2`, `GeoPolygon2`, `GeoFace2` (a polygon with holes), `GeoPolyline2`, and the chains that may curve: `GeoEdge2`, `GeoPolylineArc2`, `GeoPolygonArc2`.
 
 ### Regions and curves
 
@@ -34,7 +34,7 @@ The shapes split into two families, and the distinction decides what you can ask
 | Family | Types | Encloses an area |
 |---|---|---|
 | Region | `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2`, `GeoPolygon2`, `GeoFace2` | yes |
-| Curve | `GeoLine2`, `GeoRay2`, `GeoArc2`, `GeoPolyline2`, `GeoPolylineArc2` | no |
+| Curve | `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoArc2`, `GeoPolyline2`, `GeoPolylineArc2` | no |
 | Curved loop | `GeoPolygonArc2` | yes, but see below |
 
 A `GeoPolyline2` is always an open chain — it has no `IsClosed` flag and never joins its last vertex back to its first. Geometry meant to enclose something is a `GeoPolygon2`, and `polyline.ToPolygon()` converts between them.
@@ -1098,6 +1098,62 @@ lines.
 `PlanarMap.ProjectToRay2` lays a ray in space out in a frame and `ToRay3` puts it back; a ray along the
 frame's normal has no direction in the plane and is refused. `GeoBvh2.GetIntersections` takes a ray as it
 takes a segment.
+
+## Infinite lines
+
+`GeoXLine2` is a line that runs both ways for ever: a point on it and a direction of unit length, the
+counterpart of the XLINE of AutoCAD and of `GeoRay2` with no start. A direction of no length is refused.
+
+```csharp
+var square = new GeoPolygon2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) });
+var line = new GeoXLine2(new GeoPoint2(-50, 50), GeoVector2.XAxis);
+
+line.GetIntersections(square);                // (100, 50), (0, 50): edge by edge, as for a segment
+line.CollidesWith(square);                    // true
+line.Offset(100).DistanceTo(square);          // 50: the parallel line through (-50, 150), 100 to the left
+line.GetPointAtDistance(-30);                 // (-80, 50): a line has points behind its origin
+line.ClipTo(new GeoRectangle2(new GeoPoint2(50, 50), 100, 100));   // (0, 50) -> (100, 50), for drawing
+line.IsPointOn(new GeoPoint2(-5000, 50.0005)); // true: nothing stops short at the origin
+```
+
+**It is asked what a ray is asked**, and every answer reads as the segment's does: a closed shape is filled
+for the distance and the collision, so a line through the square is nought from it, while the shortest line
+runs to the outline. Every shape that takes a `GeoRay2` takes a `GeoXLine2` too, from either side, so
+`square.DistanceTo(line)` gives the same number to the bit. Unlike the ray and the segment, the line is
+asked of an ellipse from both sides, `line.DistanceTo(ellipse)` as well as `ellipse.DistanceTo(line)`. A
+point, a segment, a ray and another line are asked too.
+
+Against any shape that has an end to it, the line is answered as the segment that runs from a millimetre
+(or a hundred point tolerances, whichever is more) before the nearest the shape reaches along it to the
+same past the farthest; the origin is not part of it, so a shape a million along is asked as the stretch
+round it. An arc counts for its two ends and for the point of its circle furthest ahead or behind along the
+line where the arc holds it, not for its whole circle, so an edge with a bulge of 1E-10 does not stretch the
+segment to 1E11. Nothing of the shape lies outside, so the line answers as that segment does: the line above is
+asked as the segment from (-1, 50) to (101, 50). One thing shows the cut: two members are parallel when they
+draw apart by less than the point tolerance along the longer one drawn.
+
+Parallel lines are as far apart as they are, whichever way they run: the line through the origin along X and
+the one through (0, 30) along -X are 30 apart, and nought apart once they cross. Two lines whose directions differ by a sine above 1E-9 always cross, whatever the tolerance and however far
+out. At a sine of 1E-9 or less they cross unless they are parallel by rounding: a sine below 1E-15, or a crossing
+further along than a double can place within the point tolerance, that is (the larger of the two distances along the
+lines from the crossing, plus the largest coordinate of the two origins) times 2.2E-16 above the tolerance, which is
+4.5E12 along for a thousandth at coordinates near nought. Two lines 5 apart at an angle of 1E-9 cross 5 billion along
+and are nought apart; at 1E-13 they would cross 5E13 along, which is rounding, and they are 5 apart, as a line offset by
+10 and rebuilt from two of its own points, a sine of 1E-14 off at coordinates up to a million, is 10 from it and not
+nought. At coordinates of ten million such a line is a sine of 1E-11 off and crosses 1E12 along, which can be placed,
+so it reads nought. `TryIntersectWith` is as strict as it is for two rays: two
+lines within the angle tolerance of parallel give no point, even where they are the same line.
+A line and a ray are nought apart where the ray reaches the line, and otherwise as far as the origin of
+the ray is from it.
+
+`Equals` reads the fields, so the line from (500, 50) along -X is not equal to the line from (-50, 50) along
+X; `IsSameLineAs` reads the line and says they are the same, within the point tolerance for the origins and the
+vector tolerance for the directions. `Reverse` runs the same line the other way, `Offset(distance)` moves it to
+its left, `GetPerpendicular(point)` stands one square to it, and `GetSide(point)` says on which side of it a
+point lies. `ToRay()` is the half ahead of the origin, `ToLine(from, to)` the segment between two signed distances
+along it, and `GeoRay2.ToXLine()` and `GeoLine2.ToXLine()` give the line a ray or a segment lies on. `ClipTo(rectangle)` clips a line that crosses the
+rectangle exactly; one that misses it by no more than the point tolerance is clipped to the rectangle grown by it, so
+its ends are no more than the tolerance outside, and one that misses by more gives null.
 
 ## Moving geometry
 

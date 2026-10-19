@@ -6,6 +6,39 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `GeoXLine2`, an infinite line in the plane: a point on it and a direction of unit length, running both ways
+for ever, as the XLINE of AutoCAD does and as `GeoRay2` does with no start. It is made from a point and a direction or
+through two points, moved with `Translate` and `TransformBy`, and measured along with signed distances
+(`GetPointAtDistance(-30)` on the line from (-50, 50) along X is (-80, 50), `GetDistanceAtPoint` gives the foot of a point).
+`ToLine(from, to)` and `ClipTo(rectangle)` turn it into a segment for drawing (the line from (-50, 50) along X clipped to the
+square 100 by 100 with a corner at the origin is the segment from (0, 50) to (100, 50); a line that misses the rectangle by no
+more than the point tolerance is clipped to the rectangle grown by it, and one that misses by more gives null), `ToRay()` into
+its half ahead of the origin, and `GeoRay2.ToXLine()` and `GeoLine2.ToXLine()` go the other way. `Offset(distance)` is the
+parallel line to its left, `GetPerpendicular(point)` the one through a point square to it, `GetSide(point)` says which side a
+point is on, `IsPointOn`, `Locate`, `IsParallelTo` and `IsSameLineAs` (the same infinite line whatever its origin and direction)
+ask the usual, and equality reads the fields. It answers the five queries (`DistanceTo`, `CollidesWith`, `GetIntersections` and
+`TryIntersectWith`, `GetShortestLineTo`) about every shape in the plane, as a ray does and from either side, so
+`square.DistanceTo(line)` is `line.DistanceTo(square)` to the bit, and so are the crossings and the crossing of a line with a
+segment or a ray: a point, a segment, a ray, another line, an arc, a circle, an ellipse (the ray and the segment leave the
+ellipse to the ellipse; the line is asked of it from both sides), an edge, a polyline, a polygon, a curved chain, a curved loop,
+a rectangle, a triangle and a face. A line through the square is nought from it and crosses it at (100, 50) and (0, 50), in that
+order; the parallel line 100 to its left is 50 from it; two lines side by side are as far apart as they are whichever way they
+run, and nought apart where they cross: always at a sine of the angle above 1E-9, whatever the tolerance, and at a sine of 1E-9
+or less unless the crossing, further out than a double can place it within the point tolerance, is rounding (4.5E12 along
+for a thousandth, measured by the larger of the two distances along, so that both ways round agree); a line offset by 10 and
+rebuilt from two of its own points, a sine of 1E-14 off at coordinates up to a million, is 10 from it, not nought, in 100 000
+of 100 000 pairs, and at coordinates of ten million, a sine of 1E-11 and a crossing 1E12 along that can be placed, 62 % of
+them still read nought. Against a shape with an end to it the line is answered as
+the segment that reaches max(1, 100 point tolerances) past it each way, a millimetre at the default tolerance, which is how the ray
+is answered with one end to cut instead of two; an arc counts for its two ends and for the point of its circle furthest along
+the line each way where the arc holds it, so an edge with a bulge of 1E-10, on a circle of a radius of 1E11, does not stretch the
+segment to 1E11. The suite draws 4 000 random shapes and lines of each of the 16 kinds on every run, 64 000 pairs, against a
+closed form that shares no code with the library, from both sides and against the line taken as two rays, with one in three of
+the loops and chains carrying an edge of a bulge of 1E-10 to 1E-3, and a fuzz of 4 000 rectangles for `ClipTo`; a separate run
+of 100 000 of each kind, 1.6 million pairs, and 100 000 rectangles passed as well. The suite gains 185 tests for the line, and
+nothing that was there changes: every earlier test and the benchmark signatures are as they were. The space
+counterpart `GeoXLine3` comes in the next step.
+
 **NEW.** `DxfWriter` writes the curves of space as the curves they are. `Add(GeoArc3)` is an ARC and `Add(GeoCircle3)` a
 CIRCLE, each in the coordinate system of its own plane, so AutoCAD draws them as one entity that can be edited, dimensioned and
 snapped to, not as a polyline of chords: a circle of radius 25 about (10, 20, 30) standing on the normal (1, 1, 0) is a

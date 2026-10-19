@@ -274,5 +274,34 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoRay2 ray, out GeoPoint2[] intersections, Tolerance tolerance) => Ellipse2.TryIntersectWith(this, ray, out intersections, tolerance);
 
         #endregion
+
+        #region XLines
+
+        /// <summary>
+        /// Gets the points where this ellipse crosses an infinite line, using the default tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoXLine2 xline) => GetIntersections(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the points where this ellipse crosses an infinite line, within a tolerance.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoXLine2 xline, Tolerance tolerance) => Ellipse2.GetIntersections(this, xline, tolerance);
+
+        /// <summary>
+        /// Tries to find where this ellipse crosses an infinite line, using the default tolerance.
+        /// </summary>
+        /// <param name="xline">The infinite line.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoXLine2 xline, out GeoPoint2[] intersections) => TryIntersectWith(xline, out intersections, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this ellipse crosses an infinite line, within a tolerance.
+        /// </summary>
+        /// <param name="xline">The infinite line.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoXLine2 xline, out GeoPoint2[] intersections, Tolerance tolerance) => Ellipse2.TryIntersectWith(this, xline, out intersections, tolerance);
+
+        #endregion
     }
 }

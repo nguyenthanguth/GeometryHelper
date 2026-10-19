@@ -183,5 +183,21 @@ namespace GeometryHelper.Geometry
         public double DistanceTo(GeoRay2 ray, Tolerance tolerance) => Distance2.DistanceTo(this, ray, tolerance);
 
         #endregion
+
+        #region XLines
+
+        /// <summary>
+        /// Calculates the shortest distance from this circle to an infinite line, using the default tolerance.
+        /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
+        public double DistanceTo(GeoXLine2 xline) => DistanceTo(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Calculates the shortest distance from this circle to an infinite line, within a tolerance.
+        /// </summary>
+        /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
+        public double DistanceTo(GeoXLine2 xline, Tolerance tolerance) => Distance2.DistanceTo(this, xline, tolerance);
+
+        #endregion
     }
 }

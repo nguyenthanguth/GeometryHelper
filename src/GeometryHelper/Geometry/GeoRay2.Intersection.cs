@@ -312,5 +312,24 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections, Tolerance tolerance)
             => triangle.TryIntersectWith(this, out intersections, tolerance);
+
+        #region XLines
+
+        /// <summary>
+        /// Tries to find where this ray crosses an infinite line, using the default tolerance.
+        /// </summary>
+        /// <param name="xline">The infinite line.</param>
+        /// <param name="intersection">The crossing point if successful.</param>
+        public bool TryIntersectWith(GeoXLine2 xline, out GeoPoint2 intersection) => TryIntersectWith(xline, out intersection, Tolerance.Global);
+
+        /// <summary>
+        /// Tries to find where this ray crosses an infinite line, within a tolerance.
+        /// </summary>
+        /// <param name="xline">The infinite line.</param>
+        /// <param name="intersection">The crossing point if successful.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoXLine2 xline, out GeoPoint2 intersection, Tolerance tolerance) => Intersection2.TryIntersectWith(this, xline, out intersection, tolerance);
+
+        #endregion
     }
 }
