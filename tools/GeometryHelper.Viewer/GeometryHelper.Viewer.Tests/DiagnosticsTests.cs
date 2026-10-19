@@ -601,8 +601,8 @@ namespace GeometryHelper.Viewer.Tests
             SceneItem[] items = MixedScene().Items.ToArray();
             var reversed = items.AsEnumerable().Reverse().Select(i => Diag.Raw(i.Kind, i.Data.GetRawText(), i.Name)).ToArray();
 
-            var forward = Diag.Run(Diag.SceneOf(items.Select(i => Diag.Raw(i.Kind, i.Data.GetRawText(), i.Name)).ToArray()), DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Pieces);
-            var backward = Diag.Run(Diag.SceneOf(reversed), DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Pieces);
+            var forward = Diag.Run(Diag.SceneOf(items.Select(i => Diag.Raw(i.Kind, i.Data.GetRawText(), i.Name)).ToArray()), DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Pieces & ~DiagnosticChecks.Clash);
+            var backward = Diag.Run(Diag.SceneOf(reversed), DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Pieces & ~DiagnosticChecks.Clash);
 
             Assert.Equal(PerItem(forward), PerItem(backward));
         }
@@ -689,7 +689,7 @@ namespace GeometryHelper.Viewer.Tests
             Scene scene = new SceneWriter().Text(new GeoPoint3(1, 2, 3), "here").Scene;
             scene.Items.Add(Diag.Raw("GeoUnknown9", "{}", "mystery"));
 
-            DiagnosticReport report = Diag.Run(scene, DiagnosticChecks.All & ~DiagnosticChecks.Gap);
+            DiagnosticReport report = Diag.Run(scene, DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Clash);
 
             Assert.Empty(report.Findings);
         }

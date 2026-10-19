@@ -77,9 +77,14 @@ namespace GeometryHelper.Viewer
         Pieces = 2048,
 
         /// <summary>
+        /// Pairs of bodies that run into each other, touch or cannot be checked, as the library's clash check finds them.
+        /// </summary>
+        Clash = 4096,
+
+        /// <summary>
         /// Every check.
         /// </summary>
-        All = 4095,
+        All = 8191,
     }
 
     /// <summary>
@@ -167,6 +172,21 @@ namespace GeometryHelper.Viewer
         /// Something to know about the run: a check that could not be made, a cap that was reached.
         /// </summary>
         Note,
+
+        /// <summary>
+        /// Two bodies that share volume.
+        /// </summary>
+        HardClash,
+
+        /// <summary>
+        /// Two bodies that touch without sharing volume.
+        /// </summary>
+        TouchingBodies,
+
+        /// <summary>
+        /// Two bodies the library could not check.
+        /// </summary>
+        UnresolvedClash,
     }
 
     /// <summary>
@@ -217,6 +237,11 @@ namespace GeometryHelper.Viewer
         /// Gets the index in <see cref="Scene.Items"/> of the item it is on; for a gap, the first of the two.
         /// </summary>
         public int ItemIndex { get; }
+
+        /// <summary>
+        /// Gets the index in <see cref="Scene.Items"/> of the second item of a finding about a pair, such as a clash; -1 for a finding about one item.
+        /// </summary>
+        public int OtherItemIndex { get; internal set; } = -1;
 
         /// <summary>
         /// Gets the name of that item.
@@ -460,6 +485,16 @@ namespace GeometryHelper.Viewer
         public const string Gap = "#D0021B";
 
         /// <summary>
+        /// The outline of the volume two bodies share.
+        /// </summary>
+        public const string Clash = "#CC0044";
+
+        /// <summary>
+        /// The outline of where two bodies touch.
+        /// </summary>
+        public const string Touch = "#E07000";
+
+        /// <summary>
         /// The marker on the finding that was clicked.
         /// </summary>
         public const string Marker = "#00A86B";
@@ -471,7 +506,7 @@ namespace GeometryHelper.Viewer
     public sealed class DiagnosticOptions
     {
         /// <summary>
-        /// Gets or sets the checks to run; by default every check but the normals, the winding, the gap, the spheres and the pieces, which
+        /// Gets or sets the checks to run; by default every check but the normals, the winding, the gap, the spheres, the pieces and the clash, which
         /// draw a great deal or need a particular selection.
         /// </summary>
         public DiagnosticChecks Checks { get; set; } = DiagnosticChecks.Edges | DiagnosticChecks.Report | DiagnosticChecks.Flatness | DiagnosticChecks.Crossings
@@ -492,6 +527,19 @@ namespace GeometryHelper.Viewer
         /// Gets or sets the most tolerance spheres drawn; 200 by default.
         /// </summary>
         public int MaxSpheres { get; set; } = 200;
+
+        /// <summary>
+        /// Gets or sets the most pairs of bodies the clash check looks at, taken in the order of the scene; 20 000 by default. The rest are left
+        /// unchecked and a note says how many.
+        /// </summary>
+        public int MaxClashPairs { get; set; } = 20000;
+
+        /// <summary>
+        /// Gets or sets the most findings about a pair of bodies kept in a run of the clash check; 200 by default. It is one cap for the whole run and not
+        /// one for each item, so that a slab with three hundred bolts through it is not hidden by being the first item, and the findings kept are the first
+        /// in order of kind (clashes before touches) and place, whatever order the scene is in. The rest are counted in a note.
+        /// </summary>
+        public int MaxClashFindings { get; set; } = 200;
     }
 
     /// <summary>
@@ -615,6 +663,7 @@ namespace GeometryHelper.Viewer
             new KeyValuePair<string, DiagnosticChecks>("gap", DiagnosticChecks.Gap),
             new KeyValuePair<string, DiagnosticChecks>("spheres", DiagnosticChecks.Spheres),
             new KeyValuePair<string, DiagnosticChecks>("pieces", DiagnosticChecks.Pieces),
+            new KeyValuePair<string, DiagnosticChecks>("clash", DiagnosticChecks.Clash),
         };
 
         /// <summary>

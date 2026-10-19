@@ -35,6 +35,7 @@ namespace GeometryHelper.Viewer
             new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Gap, "Gap between two items, magnified"),
             new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Spheres, "Tolerance spheres at the vertices"),
             new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Pieces, "Pieces of a layer, coloured one by one"),
+            new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Clash, "Clash between bodies: volume shared, touching"),
         };
 
         private readonly ObservableCollection<FindingRow> _findings = new ObservableCollection<FindingRow>();
@@ -89,6 +90,7 @@ namespace GeometryHelper.Viewer
                 case DiagnosticChecks.Report: return "What GeoSolid3.Validate(), IsClosed() and the volume say of each body";
                 case DiagnosticChecks.Gap: return "Select exactly two items: the library's DistanceTo and GetShortestLineTo, and the gap drawn larger so it is about 40 pixels";
                 case DiagnosticChecks.Pieces: return "The items of each layer, in the order of the scene, coloured one by one with their number and area";
+                case DiagnosticChecks.Clash: return "The library's clash check (Clash3.Find) between the selected bodies, or between one selected body and the rest; a finding selects both bodies";
                 default: return null;
             }
         }
@@ -338,7 +340,9 @@ namespace GeometryHelper.Viewer
 
             if (finding.ItemIndex >= 0 && finding.ItemIndex < _model.Scene.Items.Count)
             {
-                _model.Select(new[] { finding.ItemIndex });
+                // A finding about a pair, such as a clash, selects both its items.
+                bool pair = finding.OtherItemIndex >= 0 && finding.OtherItemIndex < _model.Scene.Items.Count;
+                _model.Select(pair ? new[] { finding.ItemIndex, finding.OtherItemIndex } : new[] { finding.ItemIndex });
                 AfterSelectionChanged(true);
             }
 

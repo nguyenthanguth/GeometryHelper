@@ -25,7 +25,7 @@ namespace GeometryHelper.Viewer
     }
 
     /// <summary>
-    /// Opens the two kinds of file the viewer shows: a C# script, which is run, and a scene file, which is read.
+    /// Opens the files the viewer shows: a C# script, which is run, a scene file, which is read, and an OBJ, DXF, WKT or SVG file, which is imported.
     /// </summary>
     internal static class SceneLoader
     {
@@ -63,7 +63,13 @@ namespace GeometryHelper.Viewer
                     return new LoadResult { Succeeded = true, Scene = scene };
                 }
 
-                return new LoadResult { Errors = new[] { path + ": a script ends in .csx and a scene in .ghscene.json." } };
+                if (SceneImport.IsImportable(path))
+                {
+                    Scene scene = await Task.Run(() => SceneImport.ReadFile(path, cancel), cancel).ConfigureAwait(false);
+                    return new LoadResult { Succeeded = true, Scene = scene };
+                }
+
+                return new LoadResult { Errors = new[] { path + ": a script ends in .csx, a scene in .ghscene.json, and the files of the library in .obj, .dxf, .wkt or .svg." } };
             }
             catch (Exception e) when (!(e is OutOfMemoryException))
             {

@@ -124,6 +124,12 @@ namespace GeometryHelper.Viewer
                     PiecesCheck(targets);
                     Flush();
                 }
+
+                if (On(DiagnosticChecks.Clash))
+                {
+                    ClashCheck(targets);
+                    FlushClash();
+                }
             }
 
             var overlay = new DiagnosticOverlay();

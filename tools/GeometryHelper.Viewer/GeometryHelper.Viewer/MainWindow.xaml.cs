@@ -159,7 +159,7 @@ namespace GeometryHelper.Viewer
                 }
                 else
                 {
-                    Log("Open a script (.csx) or a scene (.ghscene.json) with File > Open, or drop one on the window. Keys: Help > Keys.");
+                    Log("Open a script (.csx), a scene (.ghscene.json) or an .obj, .dxf, .wkt or .svg file with File > Open, or drop one on the window. Keys: Help > Keys.");
                 }
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
@@ -227,8 +227,8 @@ namespace GeometryHelper.Viewer
         {
             var dialog = new OpenFileDialog
             {
-                Title = "Open a script or a scene",
-                Filter = "Scripts and scenes (*.csx;*.ghscene.json;*.json)|*.csx;*.ghscene.json;*.json|All files (*.*)|*.*",
+                Title = "Open a script, a scene or a file of the library",
+                Filter = "Scripts, scenes and files (*.csx;*.ghscene.json;*.json;*.obj;*.dxf;*.wkt;*.svg)|*.csx;*.ghscene.json;*.json;*.obj;*.dxf;*.wkt;*.svg|Scripts and scenes (*.csx;*.ghscene.json;*.json)|*.csx;*.ghscene.json;*.json|OBJ, DXF, WKT, SVG (*.obj;*.dxf;*.wkt;*.svg)|*.obj;*.dxf;*.wkt;*.svg|All files (*.*)|*.*",
                 InitialDirectory = _settings.LastFolder != null && Directory.Exists(_settings.LastFolder) ? _settings.LastFolder : null,
             };
 
