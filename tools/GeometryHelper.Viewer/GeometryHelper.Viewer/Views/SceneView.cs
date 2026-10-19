@@ -11,9 +11,7 @@ using HelixToolkit.Wpf.SharpDX;
 using SharpDX;
 using Color = System.Windows.Media.Color;
 using Colors = System.Windows.Media.Colors;
-using HitTestResult = HelixToolkit.SharpDX.Core.HitTestResult;
 using MeshGeometry3D = HelixToolkit.SharpDX.Core.MeshGeometry3D;
-using Point = System.Windows.Point;
 
 namespace GeometryHelper.Viewer.Views
 {
@@ -51,12 +49,14 @@ namespace GeometryHelper.Viewer.Views
     public sealed class SceneView
     {
         private const double LineThickness = 1.4;
+        internal const double LabelFontPixels = 24.0;
         private const double SelectedLineThickness = 3.2;
+        private const double HoverLineThickness = 2.6;
         private static readonly Color SelectionColor = Color.FromRgb(0xFF, 0x7A, 0x00);
+        private static readonly Color HoverColor = Color.FromRgb(0xFF, 0xC4, 0x40);
 
         private readonly Viewport3DX _viewport;
         private readonly List<ItemVisual> _visuals = new List<ItemVisual>();
-        private readonly Dictionary<Element3D, int> _itemOf = new Dictionary<Element3D, int>();
         private readonly HashSet<int> _selected = new HashSet<int>();
         private readonly HashSet<int> _hidden = new HashSet<int>();
         private readonly HashSet<string> _hiddenLayers = new HashSet<string>(StringComparer.Ordinal);
@@ -68,6 +68,8 @@ namespace GeometryHelper.Viewer.Views
         private int _generation;
         private bool _rebasing;
         private bool _grid;
+        private int _hover = -1;
+        private ScreenMap _labelMap;
 
         /// <summary>
         /// Initializes the view over a viewport, which should hold the lights already.
@@ -147,6 +149,8 @@ namespace GeometryHelper.Viewer.Views
             _hidden.Clear();
             _hiddenLayers.Clear();
             _selected.Clear();
+            _hover = -1;
+            _labelMap = null;
 
             foreach (Layer layer in scene.Layers.Where(l => !l.Visible))
             {
@@ -163,7 +167,6 @@ namespace GeometryHelper.Viewer.Views
                 foreach (Element3D element in visual.Elements)
                 {
                     _viewport.Items.Add(element);
-                    _itemOf[element] = i;
                 }
             }
 
@@ -193,7 +196,6 @@ namespace GeometryHelper.Viewer.Views
 
             _extras.Clear();
             _visuals.Clear();
-            _itemOf.Clear();
             _scene = null;
             _primitives = null;
         }
@@ -273,6 +275,95 @@ namespace GeometryHelper.Viewer.Views
         }
 
         /// <summary>
+        /// Gets the item the cursor is over, or -1; it is drawn lighter than the rest, as a pre-highlight of what a click would select.
+        /// </summary>
+        public int Hover => _hover;
+
+        /// <summary>
+        /// Sets the item the cursor is over; -1 for none.
+        /// </summary>
+        public void SetHover(int index)
+        {
+            if (_scene == null || index == _hover)
+            {
+                return;
+            }
+
+            int before = _hover;
+            _hover = index >= 0 && index < _visuals.Count ? index : -1;
+
+            if (before >= 0 && before < _visuals.Count)
+            {
+                Apply(_visuals[before]);
+            }
+
+            if (_hover >= 0)
+            {
+                Apply(_visuals[_hover]);
+            }
+        }
+
+        /// <summary>
+        /// Gives every label the height it is drawn at for a view, so that it can be read at any zoom: a label with no height of its own
+        /// is drawn at a size that suits the screen, and one with a height keeps it while that shows as a readable number of pixels.
+        /// </summary>
+        /// <param name="map">The view.</param>
+        public void UpdateLabels(ScreenMap map)
+        {
+            _labelMap = map;
+
+            foreach (ItemVisual visual in _visuals)
+            {
+                if (visual.Labels != null && visual.Labels.Geometry is BillboardText3D text)
+                {
+                    ScaleLabels(_primitives.Items[visual.Index], text, map);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the height in pixels of the first drawn character of each item's labels, as the graphics card has them laid out, for a check
+        /// that a change of scale reached what is drawn; an item the card has not drawn yet gives nothing.
+        /// </summary>
+        internal IReadOnlyList<double> LabelHeights()
+        {
+            var heights = new List<double>();
+
+            foreach (ItemVisual visual in _visuals)
+            {
+                if (visual.Labels != null && visual.Labels.Geometry is BillboardText3D text && text.BillboardVertices != null && text.BillboardVertices.Count > 0)
+                {
+                    heights.Add(text.BillboardVertices.Max(v => v.OffTL.Y - v.OffBR.Y));
+                }
+            }
+
+            return heights;
+        }
+
+        private static void ScaleLabels(ItemPrimitives p, BillboardText3D text, ScreenMap map)
+        {
+            bool changed = false;
+
+            for (int k = 0; k < p.Labels.Count && k < text.TextInfo.Count; k++)
+            {
+                DrawLabel label = p.Labels[k];
+                float scale = (float)(LabelSize.Pixels(label.Height, map == null ? 0.0 : map.PixelSizeAt(label.At)) / LabelFontPixels);
+
+                if (text.TextInfo[k].Scale != scale)
+                {
+                    text.TextInfo[k].Scale = scale;
+                    changed = true;
+                }
+            }
+
+            // Scale is a plain property of the label; the card lays the text out again only when the geometry is told it is stale.
+            if (changed)
+            {
+                text.Invalidate();
+            }
+        }
+
+        /// <summary>
         /// Gets the box round the selected items, or round the visible ones where none is selected.
         /// </summary>
         public Bounds3 BoundsOf(IEnumerable<int> items)
@@ -292,26 +383,6 @@ namespace GeometryHelper.Viewer.Views
         /// </summary>
         public Bounds3 VisibleBounds()
             => _primitives == null ? default(Bounds3) : BoundsOf(Enumerable.Range(0, _primitives.Items.Count).Where(IsVisible));
-
-        /// <summary>
-        /// Finds the item under a place on the screen.
-        /// </summary>
-        /// <param name="position">The place, in device independent pixels of the viewport.</param>
-        /// <returns>The index of the item nearest the camera there, or -1.</returns>
-        public int Pick(Point position)
-        {
-            IList<HitTestResult> hits = _viewport.FindHits(position);
-
-            foreach (HitTestResult hit in hits)
-            {
-                if (hit.ModelHit is Element3D element && _itemOf.TryGetValue(element, out int index) && IsVisible(index))
-                {
-                    return index;
-                }
-            }
-
-            return -1;
-        }
 
         /// <summary>
         /// What the graphics card is given for an item, relative to a render origin. It holds no screen type, so it can be made
@@ -409,7 +480,7 @@ namespace GeometryHelper.Viewer.Views
                 {
                     Foreground = new Color4(color.R / 255f, color.G / 255f, color.B / 255f, 1f),
                     Background = new Color4(1f, 1f, 1f, 0.6f),
-                    Scale = label.Height > 0.0 ? (float)label.Height / 12f : 0.55f,
+                    Scale = (float)(LabelSize.Pixels(label.Height, _labelMap == null ? 0.0 : _labelMap.PixelSizeAt(label.At)) / LabelFontPixels),
                 });
             }
 
@@ -463,7 +534,7 @@ namespace GeometryHelper.Viewer.Views
 
             if (p.Labels.Count > 0)
             {
-                visual.Labels = new BillboardTextModel3D { Geometry = MakeLabels(p, Origin, visual.BaseColor), FixedSize = p.Labels.All(l => l.Height <= 0.0) };
+                visual.Labels = new BillboardTextModel3D { Geometry = MakeLabels(p, Origin, visual.BaseColor), FixedSize = true };
                 visual.Elements.Add(visual.Labels);
             }
 
@@ -584,49 +655,60 @@ namespace GeometryHelper.Viewer.Views
 
             foreach (ItemVisual visual in _visuals)
             {
-                bool shown = IsVisible(visual.Index);
-                bool selected = _selected.Contains(visual.Index);
-                Color color = selected ? SelectionColor : visual.BaseColor;
-                bool hasSurface = visual.Mesh != null;
-
-                if (visual.Mesh != null)
-                {
-                    bool see = _mode != RenderMode.Wireframe;
-                    visual.Mesh.Visibility = shown && see ? Visibility.Visible : Visibility.Collapsed;
-                    visual.Mesh.IsHitTestVisible = shown && see;
-
-                    if (visual.Mesh.SceneNode is MaterialGeometryNode node)
-                    {
-                        // A see-through surface writes no depth, so the edges behind it are still drawn.
-                        node.IsTransparent = _mode == RenderMode.Transparent;
-                    }
-
-                    var material = (PhongMaterial)visual.Mesh.Material;
-                    material.DiffuseColor = C4(_mode == RenderMode.Transparent
-                        ? Color.FromArgb(90, color.R, color.G, color.B)
-                        : color);
-                }
-
-                if (visual.Lines != null)
-                {
-                    bool see = _mode != RenderMode.Shaded || !hasSurface;
-                    visual.Lines.Visibility = shown && (see || selected) ? Visibility.Visible : Visibility.Collapsed;
-                    visual.Lines.Color = _mode == RenderMode.Wireframe || !hasSurface ? color : Darker(color, selected);
-                    visual.Lines.Thickness = selected ? SelectedLineThickness : LineThickness;
-                }
-
-                if (visual.Points != null)
-                {
-                    visual.Points.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-                    visual.Points.Color = color;
-                }
-
-                if (visual.Labels != null)
-                {
-                    visual.Labels.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-                }
+                Apply(visual);
             }
         }
+
+        private void Apply(ItemVisual visual)
+        {
+            bool shown = IsVisible(visual.Index);
+            bool selected = _selected.Contains(visual.Index);
+            bool hovered = !selected && visual.Index == _hover;
+            Color color = selected ? SelectionColor : hovered ? Mix(visual.BaseColor, HoverColor, 0.55) : visual.BaseColor;
+            bool hasSurface = visual.Mesh != null;
+
+            if (visual.Mesh != null)
+            {
+                bool see = _mode != RenderMode.Wireframe;
+                visual.Mesh.Visibility = shown && see ? Visibility.Visible : Visibility.Collapsed;
+                visual.Mesh.IsHitTestVisible = shown && see;
+
+                if (visual.Mesh.SceneNode is MaterialGeometryNode node)
+                {
+                    // A see-through surface writes no depth, so the edges behind it are still drawn.
+                    node.IsTransparent = _mode == RenderMode.Transparent;
+                }
+
+                var material = (PhongMaterial)visual.Mesh.Material;
+                material.DiffuseColor = C4(_mode == RenderMode.Transparent
+                    ? Color.FromArgb(90, color.R, color.G, color.B)
+                    : color);
+            }
+
+            if (visual.Lines != null)
+            {
+                bool see = _mode != RenderMode.Shaded || !hasSurface;
+                visual.Lines.Visibility = shown && (see || selected || hovered) ? Visibility.Visible : Visibility.Collapsed;
+                visual.Lines.Color = _mode == RenderMode.Wireframe || !hasSurface ? color : Darker(color, selected || hovered);
+                visual.Lines.Thickness = selected ? SelectedLineThickness : hovered ? HoverLineThickness : LineThickness;
+            }
+
+            if (visual.Points != null)
+            {
+                visual.Points.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+                visual.Points.Color = color;
+            }
+
+            if (visual.Labels != null)
+            {
+                visual.Labels.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+        /// <summary>
+        /// Gets a colour part of the way from one to another: a hovered item is its own colour warmed, so it can still be told apart.
+        /// </summary>
+        private static Color Mix(Color from, Color to, double share)
+            => Color.FromRgb((byte)(from.R + (to.R - from.R) * share), (byte)(from.G + (to.G - from.G) * share), (byte)(from.B + (to.B - from.B) * share));
 
         private static Color Darker(Color color, bool selected)
             => selected ? color : Color.FromRgb((byte)(color.R * 0.55), (byte)(color.G * 0.55), (byte)(color.B * 0.55));

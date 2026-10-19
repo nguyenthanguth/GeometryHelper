@@ -201,6 +201,12 @@ namespace GeometryHelper.Viewer
                         break;
 
                     case "Cancel":
+                        // A tool in use, or the dimensions it drew, end first; a script that is running is stopped before either.
+                        if (_running == null && EndTools())
+                        {
+                            break;
+                        }
+
                         if (_running != null && _running.IsCancellationRequested)
                         {
                             AbandonRun();
@@ -222,10 +228,10 @@ namespace GeometryHelper.Viewer
                     case "PanRight": _camera.PanBy(0.1, 0.0, Aspect); UpdateCamera(); break;
                     case "PanUp": _camera.PanBy(0.0, 0.1, Aspect); UpdateCamera(); break;
                     case "PanDown": _camera.PanBy(0.0, -0.1, Aspect); UpdateCamera(); break;
-                    case "RotateLeft": _camera.Rotate(RotateStep, 0.0); UpdateCamera(); break;
-                    case "RotateRight": _camera.Rotate(-RotateStep, 0.0); UpdateCamera(); break;
-                    case "RotateUp": _camera.Rotate(0.0, -RotateStep); UpdateCamera(); break;
-                    case "RotateDown": _camera.Rotate(0.0, RotateStep); UpdateCamera(); break;
+                    case "RotateLeft": TurnCamera(RotateStep, 0.0); break;
+                    case "RotateRight": TurnCamera(-RotateStep, 0.0); break;
+                    case "RotateUp": TurnCamera(0.0, -RotateStep); break;
+                    case "RotateDown": TurnCamera(0.0, RotateStep); break;
                     case "TogglePlan": TogglePlan(); break;
                     case "FitAll": FitAll(); break;
                     case "FitSelection": FitSelection(); break;
@@ -256,6 +262,20 @@ namespace GeometryHelper.Viewer
                     case "Select":
                     case "SelectAdd":
                     case "SelectToggle":
+                    case "BoxSelect":
+                        break;
+
+                    case "SetRotationCentre":
+                    case "ClearRotationCentre":
+                    case "MeasureDistance":
+                    case "MeasureAngle":
+                    case "MeasureRadius":
+                    case "SnapEnd":
+                    case "SnapMid":
+                    case "SnapIntersection":
+                    case "SnapCentre":
+                    case "SnapNearest":
+                        ExecuteTool(action);
                         break;
 
                     default:
@@ -384,6 +404,14 @@ namespace GeometryHelper.Viewer
 
             UpdateModeText();
             ScheduleRebase();
+
+            // Labels keep a readable size at any zoom, and the snap under a mouse that is still follows the scene moving beneath it.
+            _sceneView.UpdateLabels(MakeMap());
+
+            if (_lastMouse.HasValue && _dragButton == null)
+            {
+                ProbeLater(_lastMouse.Value);
+            }
         }
 
         private DispatcherTimer _rebaseTimer;
@@ -450,7 +478,8 @@ namespace GeometryHelper.Viewer
             Point p = e.GetPosition(Viewport);
             ModifierKeys modifiers = Keyboard.Modifiers;
 
-            if (e.ClickCount == 2)
+            // A second click in quick succession is a second point while a tool waits for one, not a double click.
+            if (e.ClickCount == 2 && _pickMode == PickMode.None)
             {
                 string action = _keymap.ActionFor(Gesture.Parse(ModifierText(modifiers) + ButtonPrefix(e.ChangedButton) + "DoubleClick"));
 
@@ -479,6 +508,8 @@ namespace GeometryHelper.Viewer
 
             if (_dragButton == null)
             {
+                _lastMouse = p;
+                ProbeLater(p);
                 return;
             }
 
@@ -487,7 +518,24 @@ namespace GeometryHelper.Viewer
                 _dragging = true;
                 _dragAction = _keymap.ActionFor(Gesture.Parse(ModifierText(_dragModifiers) + ButtonPrefix(_dragButton.Value) + "Drag"));
 
-                if (_dragAction != "Pan" && _dragAction != "Rotate")
+                // Shift and Ctrl held with the box drag add to the selection and toggle it, and so are not gestures of their own.
+                if (_dragAction == null && _dragButton == MouseButton.Left && _dragModifiers != ModifierKeys.None && (_dragModifiers & ~(ModifierKeys.Shift | ModifierKeys.Control)) == 0
+                    && _keymap.ActionFor(Gesture.Parse("Drag")) == "BoxSelect")
+                {
+                    _dragAction = "BoxSelect";
+                }
+
+                // A tool waiting for a click has no use for a drag.
+                if (_dragAction == "BoxSelect" && _pickMode != PickMode.None)
+                {
+                    _dragAction = null;
+                }
+                else if (_dragAction == "BoxSelect")
+                {
+                    _bandStart = _dragStart;
+                    _sceneView.SetHover(-1);
+                }
+                else if (_dragAction != "Pan" && _dragAction != "Rotate")
                 {
                     SetMessage(_dragAction == null ? "no action for this drag" : _dragAction + " is not in this version yet");
                 }
@@ -505,9 +553,21 @@ namespace GeometryHelper.Viewer
                 }
                 else if (_dragAction == "Rotate")
                 {
-                    _camera.Orbit(dx, dy);
+                    if (_rotationCentre.HasValue)
+                    {
+                        _camera.OrbitAbout(_rotationCentre.Value, dx, dy);
+                    }
+                    else
+                    {
+                        _camera.Orbit(dx, dy);
+                    }
+
                     _saved3D = null;
                     UpdateCamera();
+                }
+                else if (_dragAction == "BoxSelect")
+                {
+                    UpdateBand(_bandStart, p);
                 }
             }
 
@@ -535,11 +595,24 @@ namespace GeometryHelper.Viewer
             {
                 Click(p, button, modifiers);
             }
+            else if (_dragAction == "BoxSelect")
+            {
+                ApplyBox(_bandStart, p, modifiers);
+            }
+
+            _dragAction = null;
+            _lastMouse = p;
+            ProbeLater(p);
         }
 
         private void OnViewMouseLeave(object sender, MouseEventArgs e)
         {
             CursorText.Text = "x -   y -   z -";
+
+            if (_dragButton == null)
+            {
+                ClearProbe();
+            }
         }
 
         private void OnViewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -563,6 +636,17 @@ namespace GeometryHelper.Viewer
 
         private void Click(Point p, MouseButton button, ModifierKeys modifiers)
         {
+            // While a tool waits for a point, the left button gives it one and nothing else it does selects.
+            if (_pickMode != PickMode.None)
+            {
+                if (button == MouseButton.Left && HasScene)
+                {
+                    _ = AcquireAsync(p);
+                }
+
+                return;
+            }
+
             string action = _keymap.ActionFor(Gesture.Parse(ModifierText(modifiers) + ButtonPrefix(button) + "Click"));
 
             if (action != "Select" && action != "SelectAdd" && action != "SelectToggle")
@@ -570,7 +654,8 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            int index = _sceneView.Pick(p);
+            PickHit hit = HasScene ? PickEngine.Pick(_sceneView.Primitives, _geometry, MakeMap(), p.X, p.Y, _sceneView.IsVisible, Surfaces) : null;
+            int index = hit == null ? -1 : hit.ItemIndex;
             var selection = new HashSet<int>(_sceneView.Selected);
 
             switch (action)
@@ -676,6 +761,13 @@ namespace GeometryHelper.Viewer
             ViewHost.UpdateLayout();
             FitAll();
             await RebaseNowAsync();
+
+            if (_command.Commands != null)
+            {
+                await RunCommandsAsync(_command.Commands);
+                Console.WriteLine(Output.Text);
+                Console.WriteLine("status: " + SnapText.Text + " | " + SnapsText.Text + " | " + SelectionText.Text + " | " + MessageText.Text);
+            }
 
             // The graphics card draws the scene on its own schedule; a few frames are given to it before the picture is taken.
             for (int frame = 0; frame < 12; frame++)

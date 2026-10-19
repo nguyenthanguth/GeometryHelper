@@ -42,6 +42,20 @@
                 <MenuItem x:Name="GridMenu" Header="Gri_d on z = 0" IsCheckable="True" Click="OnGridToggled" />
                 <MenuItem x:Name="PropertiesMenu" Header="_Properties pane" IsCheckable="True" IsChecked="True" Tag="Properties" Click="OnPropertiesToggled" />
             </MenuItem>
+            <MenuItem Header="_Tools">
+                <MenuItem Header="Set _rotation centre" Tag="SetRotationCentre" Click="OnMenuAction" />
+                <MenuItem Header="_Clear rotation centre" Tag="ClearRotationCentre" Click="OnMenuAction" />
+                <Separator />
+                <MenuItem Header="Measure _distance" Tag="MeasureDistance" Click="OnMenuAction" />
+                <MenuItem Header="Measure _angle" Tag="MeasureAngle" Click="OnMenuAction" />
+                <MenuItem Header="Measure _radius" Tag="MeasureRadius" Click="OnMenuAction" />
+                <Separator />
+                <MenuItem x:Name="SnapEndMenu" Header="Snap to _end" Tag="SnapEnd" IsCheckable="True" Click="OnSnapMenu" />
+                <MenuItem x:Name="SnapMidMenu" Header="Snap to _middle" Tag="SnapMid" IsCheckable="True" Click="OnSnapMenu" />
+                <MenuItem x:Name="SnapIntersectionMenu" Header="Snap to _intersection" Tag="SnapIntersection" IsCheckable="True" Click="OnSnapMenu" />
+                <MenuItem x:Name="SnapCentreMenu" Header="Snap to _centre" Tag="SnapCentre" IsCheckable="True" Click="OnSnapMenu" />
+                <MenuItem x:Name="SnapNearestMenu" Header="Snap to _nearest" Tag="SnapNearest" IsCheckable="True" Click="OnSnapMenu" />
+            </MenuItem>
             <MenuItem Header="_Script">
                 <MenuItem Header="_Run" Tag="RunScript" Click="OnMenuAction" />
                 <MenuItem Header="Run _again" Tag="RerunScript" Click="OnMenuAction" />
@@ -72,7 +86,9 @@
         <StatusBar DockPanel.Dock="Bottom">
             <StatusBarItem><TextBlock x:Name="CursorText" MinWidth="330" Text="x -   y -   z -" /></StatusBarItem>
             <Separator />
-            <StatusBarItem><TextBlock x:Name="SnapText" Text="snap: none" /></StatusBarItem>
+            <StatusBarItem><TextBlock x:Name="SnapText" MinWidth="240" Text="snap: none" /></StatusBarItem>
+            <StatusBarItem><TextBlock x:Name="SnapsText" Text="snaps -----" /></StatusBarItem>
+            <Separator />
             <Separator />
             <StatusBarItem><TextBlock x:Name="SelectionText" Text="0 selected" /></StatusBarItem>
             <Separator />
@@ -129,6 +145,9 @@
                         <hx:AmbientLight3D Color="#FF707070" />
                         <hx:DirectionalLight3D x:Name="Headlight" Color="#FFE0E0E0" Direction="0,0,-1" />
                     </hx:Viewport3DX>
+                    <Canvas IsHitTestVisible="False" ClipToBounds="True">
+                        <Rectangle x:Name="Band" Visibility="Collapsed" StrokeThickness="1.2" />
+                    </Canvas>
                     <TextBlock x:Name="BusyText" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0"
                                Padding="12,5" Background="#E0FFFFFF" FontSize="14" Text="Running the script... Esc to stop" />
                 </Grid>

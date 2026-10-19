@@ -3,7 +3,7 @@ using System;
 namespace GeometryHelper.Viewer
 {
     /// <summary>
-    /// What the viewer was started with: <c>GeometryHelper.Viewer.exe [file] [--check] [--screenshot png] [--view v] [--mode m]</c>.
+    /// What the viewer was started with: <c>GeometryHelper.Viewer.exe [file] [--check] [--screenshot png] [--view v] [--mode m] [--do commands]</c>.
     /// </summary>
     internal sealed class CommandLine
     {
@@ -33,6 +33,12 @@ namespace GeometryHelper.Viewer
         internal string Mode { get; private set; }
 
         /// <summary>
+        /// Gets the commands to do after the view is fitted and before the picture is taken, or null: a box select, a hover, a measurement
+        /// done through the code a click goes through. They are for pictures, so that the overlays can be looked at without a hand on the mouse.
+        /// </summary>
+        internal string Commands { get; private set; }
+
+        /// <summary>
         /// Gets what is wrong with the arguments, or null.
         /// </summary>
         internal string Problem { get; private set; }
@@ -59,6 +65,7 @@ namespace GeometryHelper.Viewer
                     case "--screenshot":
                     case "--view":
                     case "--mode":
+                    case "--do":
                         if (i + 1 >= args.Length)
                         {
                             line.Problem = arg + " needs a value after it.";
@@ -74,6 +81,10 @@ namespace GeometryHelper.Viewer
                         else if (arg.Equals("--view", StringComparison.OrdinalIgnoreCase))
                         {
                             line.View = value;
+                        }
+                        else if (arg.Equals("--do", StringComparison.OrdinalIgnoreCase))
+                        {
+                            line.Commands = value;
                         }
                         else
                         {

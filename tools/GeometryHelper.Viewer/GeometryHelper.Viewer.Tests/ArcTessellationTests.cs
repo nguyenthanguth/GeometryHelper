@@ -67,9 +67,9 @@ namespace GeometryHelper.Viewer.Tests
         {
             var rule = new ChordRule(Tenth);
 
-            // The piece turning through 2 acos(1 - 1E-4 / r): 4 968 a turn at 500, 54 415 at 60 000.
-            Assert.InRange(rule.Pieces(2.0 * Math.PI, 500.0), 4967, 4969);
-            Assert.InRange(rule.Pieces(2.0 * Math.PI, 60000.0), 54414, 54416);
+            // The piece turning through 2 acos(1 - 1E-4 / r): 4 968 a turn at 500, 54 414 at 60 000.
+            Assert.Equal(4968, rule.Pieces(2.0 * Math.PI, 500.0));
+            Assert.Equal(54414, rule.Pieces(2.0 * Math.PI, 60000.0));
             Assert.Equal(180, new ChordRule(Tenth).Pieces(2.0 * Math.PI, 0.001));
         }
 

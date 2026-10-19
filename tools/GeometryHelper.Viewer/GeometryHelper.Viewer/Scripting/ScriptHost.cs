@@ -32,7 +32,7 @@ namespace GeometryHelper.Viewer.Scripting
             _note = note;
             Cancel = cancel;
             scene.Cancellation = cancel;
-            Apply(Tolerance.Global);
+            Apply(StartTolerance());
         }
 
         /// <summary>
@@ -49,7 +49,8 @@ namespace GeometryHelper.Viewer.Scripting
 
         /// <summary>
         /// Gets or sets the tolerance the script works at, which the library reads for the rest of the script on its thread
-        /// and the scene is opened at, all four thresholds of it. It starts as the tolerance in force when the script starts.
+        /// and the scene is opened at, all four thresholds of it. It starts as <see cref="Tolerance.Default"/>, whatever the process has
+        /// set <see cref="Tolerance.Global"/> to.
         /// </summary>
         public Tolerance Tol
         {
@@ -60,6 +61,12 @@ namespace GeometryHelper.Viewer.Scripting
                 Apply(value);
             }
         }
+
+        /// <summary>
+        /// Gets the tolerance a script starts with: <see cref="Tolerance.Default"/>, and never what the process has set <see cref="Tolerance.Global"/> to, so that
+        /// a script gives the same scene whatever ran before it.
+        /// </summary>
+        internal static Tolerance StartTolerance() => Tolerance.Default;
 
         private void Apply(Tolerance value)
         {

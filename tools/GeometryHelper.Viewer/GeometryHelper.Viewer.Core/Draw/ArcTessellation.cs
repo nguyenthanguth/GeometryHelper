@@ -11,7 +11,7 @@ namespace GeometryHelper.Viewer
     /// <remarks>
     /// A piece is cut so that its chord lies no further than <see cref="ChordTolerance"/> from the curve and so that it turns at
     /// most 2 degrees; a full turn is cut in at least 16 pieces and at most 65 536. At a chord tolerance of 1E-4 (a tenth of
-    /// the default point tolerance) a circle of radius 500 takes 4 968 pieces a turn, and one of radius 60 000 takes 54 415.
+    /// the default point tolerance) a circle of radius 500 takes 4 968 pieces a turn, and one of radius 60 000 takes 54 414.
     /// </remarks>
     public sealed class ChordRule
     {
@@ -46,6 +46,21 @@ namespace GeometryHelper.Viewer
         }
 
         /// <summary>
+        /// Initializes a rule that may leave the chord tolerance aside and cut by the angle alone, which is how a scene too big to draw
+        /// at its chord tolerance has its biggest curves cut: 2 degrees a piece, 180 pieces a turn.
+        /// </summary>
+        internal ChordRule(double chordTolerance, bool angleOnly)
+            : this(chordTolerance)
+        {
+            AngleOnly = angleOnly;
+        }
+
+        /// <summary>
+        /// Gets whether the rule cuts by the angle alone: at most 2 degrees a piece and at least 16 a turn, whatever the chord tolerance.
+        /// </summary>
+        public bool AngleOnly { get; }
+
+        /// <summary>
         /// Gets the furthest a chord may lie from its curve.
         /// </summary>
         public double ChordTolerance { get; }
@@ -78,7 +93,7 @@ namespace GeometryHelper.Viewer
 
             double wanted = Math.Max(Math.Ceiling(turn / MaxPieceAngle), Math.Ceiling(MinPiecesPerTurn * turn / (2.0 * Math.PI)));
 
-            if (radius > 0.0 && !double.IsInfinity(radius))
+            if (!AngleOnly && radius > 0.0 && !double.IsInfinity(radius))
             {
                 // The sagitta of a piece turning through a is 2 r sin^2(a / 4), so a piece may turn through 4 asin(sqrt(s / 2 r)).
                 double ratio = ChordTolerance / (2.0 * radius);

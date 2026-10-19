@@ -26,7 +26,7 @@ HelixToolkit.SharpDX (`HelixToolkit.SharpDX.Core.Wpf` 2.27.3). Scripts run with 
 ### Command line
 
 ```
-GeometryHelper.Viewer.exe [file] [--check] [--screenshot out.png] [--view iso|top|front|right] [--mode wireframe|shaded|edges|transparent]
+GeometryHelper.Viewer.exe [file] [--check] [--screenshot out.png] [--view iso|top|front|right] [--mode wireframe|shaded|edges|transparent] [--do commands]
 ```
 
 | Switch | Does |
@@ -35,6 +35,11 @@ GeometryHelper.Viewer.exe [file] [--check] [--screenshot out.png] [--view iso|to
 | `--check` | loads the file with no window, prints what it holds, and exits 0, or 1 with the errors, a script's with the file and line number |
 | `--screenshot out.png` | opens the file, fits the view, writes the picture of the 3D view, and exits 0; 1 when the file did not open |
 | `--view`, `--mode` | the standard view and the render mode a picture is taken in |
+| `--do commands` | with `--screenshot`: does the commands, separated by semicolons, in the process through the code a click and a drag go through, after the view is fitted and before the picture, and prints the output pane and the status bar |
+
+The commands are `select 0 2`, `hover P`, `box P P [add|toggle]`, `band P P` (the rubber band as if mid-drag), `mode distance|angle|radius|centre`
+followed by `click P`, `keys ZoomIn F8` (the action names of the keymap), and `wait 500` (milliseconds, for the library to answer). A place P is two numbers, pixels of the 3D view, or one word `@x,y,z`, a point
+of the scene taken to where it shows: `--do "mode distance; click @60,60,0; click @150,60,0"` measures between two points of a scene with no hand on the mouse.
 
 `--check` and `--screenshot` do not read or write the settings of the user.
 
@@ -46,8 +51,9 @@ GeometryHelper.Viewer.exe [file] [--check] [--screenshot out.png] [--view iso|to
   and what the viewer could not draw.
 - Right, the **properties** of the selection: kind, name, layer, the properties the script gave it, and the numbers the library
   gives for the shape rebuilt from the scene (vertices, lengths, areas, the volume of a body and whether it is closed) and its bounds.
-- The **status bar**: where the cursor is on the plane z = 0, the snap in force (none in this version), how many items are
-  selected, the point tolerance of the scene (`EqualPoint`), and the render mode.
+- The **status bar**: where the cursor is on the plane z = 0, the snap under the cursor with its coordinates, which snaps are on
+  (`snaps EMIC-`: end, middle, intersection, centre, nearest), how many items are selected, the point tolerance of the scene
+  (`EqualPoint`), and the render mode.
 
 Everything is kept in double precision. The graphics card works in floats, so what it is given is each point less a render origin,
 and the origin follows the camera: when the target of the camera has strayed from it by more than a float can hold to a thousandth
@@ -60,8 +66,12 @@ rebased a fifth of a second after the camera comes to rest.
 Arcs, circles and ellipses are cut into chords by the viewer's own rule, never by the library's `Flatten`, so that a fault in the
 library's flattening shows as the fault it is. A chord lies no further than a tenth of the point tolerance of the scene from its
 curve (1E-4 at the default 1E-3), a piece turns at most 2 degrees, a full turn has at least 16 pieces and at most 65 536; a circle
-of radius 500 takes 4 968 pieces and one of radius 60 000 takes 54 415. A curve that would take more than the cap is cut in the cap
-and the output says so. The bounds of a curve are those of the exact curve, not of its chords.
+of radius 500 takes 4 968 pieces and one of radius 60 000 takes 54 414. A curve that would take more than the cap is cut in the cap
+and the output says so. The bounds of a curve are those of the exact curve, not of its chords. A scene whose lines would take more than
+4 million points (96 MB of coordinates in double precision, 48 MB of floats for the graphics card) is warned of once, and all its arcs, circles and ellipses are
+cut at one coarser chord tolerance, the finest at which the lines fit the cap, found by counting the pieces before any curve is cut; the warning names it. Where
+even 2 degrees a piece, 180 to a turn, does not fit, they are cut at that and the warning says it is still over. The polygons, faces and bodies are drawn as
+they are. A circle of radius 60 000 costs 54 414 points at the chord tolerance of 1E-4 and 180 at 2 degrees.
 
 The scene keeps the tolerance it was written under: all four thresholds, the point, vector, angle and planar ones. A `SceneWriter`
 takes the tolerance in force on its thread when it is made, and `Tol` in a script sets all four. A shape is rebuilt, drawn and measured
@@ -72,9 +82,13 @@ count and the bounds of what is drawn. Where the library keeps fewer vertices th
 The surfaces are pushed back from their edges by a few steps of the depth buffer so that the edges show. The orthographic eye stands
 just outside the depth of the scene (a twentieth of it beyond the nearest point), so a plan of a site 60 000 across is a view a few
 millimetres deep; a perspective view clips at a hundredth of its distance to the target, so the target is never cut however far the
-rest of the scene reaches. The push is the fewest steps that come to 2E-4 mm, at least 2 and at most 400: 6E-6 mm a step in an
-orthographic view 100 mm deep, 2E-3 mm in a perspective view of a 100 mm part, and no depth buffer can go below about 4E-3 mm in a view
-60 000 deep, whatever the push.
+rest of the scene reaches, and at the farthest corner of the scene's box in front of the eye, though never further than a million times
+the near plane: a camera 2 mm from its target sees 20 m. A step of the depth buffer at a distance z from the eye is about z squared over the near plane
+over 2^24 in perspective, so at the far plane it is about 600 times the distance to the target, and the bound is what keeps it from growing without limit as the
+scene is made longer. What an item is pushed back by is the fewest steps that come to 2E-4 mm at the target, at least 2 and at most 400: 6E-6 mm a step in an
+orthographic view 100 mm deep, which is the depth divided by 2^24, and in a perspective view the step at the target, d squared over the near plane
+over 2^24 for a distance d, 6E-6 times d: 2E-3 mm for a part 300 mm off. No depth buffer can go below about 4E-3 mm in an orthographic view 60 000 deep,
+whatever the push.
 
 A face or a body is drawn by the triangles the library cuts it into, with the openings of a body cut in; the lines are the edges of its
 faces and its openings. A shape the library refuses, a polygon of two points or a face off its plane, is still drawn by its outline,
@@ -99,16 +113,69 @@ keep theirs. A gesture is written `Ctrl+Shift+H`, `Wheel`, `Ctrl+MiddleDrag`, `D
 | Standard views | Ctrl+0 iso, Ctrl+5 top (plan), Ctrl+6 front, Ctrl+7 right |
 | Render modes | Ctrl+1 wireframe, Ctrl+2 shaded, Ctrl+3 shaded and edges, Ctrl+4 transparent |
 | Select / add / toggle | Click / Shift+Click / Ctrl+Click |
-| Cancel | Esc: clears the selection and stops a script that is running |
+| Box select | Left drag: from left to right a window, from right to left a crossing; Shift adds, Ctrl toggles |
+| Rotation centre | V, then a click: turn about that point (snapped); Shift+V: turn about the middle of the view again |
+| Measure distance / angle / radius | F2 / F3 / F4 |
+| Snaps: end / middle / intersection / centre / nearest | F8 / F9 / F10 / F11 / F12 |
+| Cancel | Esc: stops a script that is running; else ends the measuring and clears its dimensions; else clears the selection |
 | Hide selected / show all | Ctrl+H / Ctrl+Shift+H |
 | Properties | Double-click, or Alt+Enter |
 | Run the script / run it again | F5 / Ctrl+R (File > Reload does the same) |
 | Open / save the scene as | Ctrl+O / Ctrl+S |
-| Rotation centre, box select, measure, snaps, screenshot | V, Shift+V, left drag, F2 to F4, F8 to F12, Ctrl+Shift+S: bound, and not in this version |
+| Screenshot | Ctrl+Shift+S: bound, and not in this version |
 
 The mouse follows the scene: dragging the middle button right moves the scene right, and Ctrl and the middle button turns the near
 side of the scene right. Ctrl+Left turns the scene by 15 degrees counter-clockwise seen from above, Ctrl+Up tilts the camera down
 towards the scene. The view looks along -Z with +Y up in the plan, and +Z is up in every other view.
+
+## Selecting, snapping and measuring
+
+All of it is done in double precision from the exact numbers of the scene, never from the floats the graphics card was given, so a
+needle 0.0005 wide is picked and measured as 0.0005 wide, and an arc is the arc and not the chords it is drawn with.
+
+**Selecting.** A click selects the item under the cursor; the line within 5 pixels of the cursor is on it, a point within 7, and an edge on
+a face is taken before the face. What the cursor is over is lit as it moves, to show what a click would take. Dragging with the left button
+draws a box. From left to right it is a *window*, in solid blue, and takes what lies wholly inside it; from right to left it is a *crossing*,
+in dashed green, and takes what lies inside it or touches it, a face included where the box is inside the face and touches none of its edges.
+Shift adds the result to the selection, Ctrl toggles it, neither replaces it. The box is judged on what is drawn, the chords of a curve and
+the triangles of a surface, through everything in the way; where a perspective view has part of an item behind the camera, a window leaves
+that item out and a crossing judges the part in front.
+
+**Snaps.** F8 to F12 switch the five kinds on and off; the first four start on, nearest off. A snap is the point nearest the cursor on the screen,
+within 12 pixels, of these: the *ends* of segments and arcs, the vertices of chains, loops and faces, and points; the *middles* of segments and arcs
+(for the arc of a bulge, the sagitta, half the bulge times the chord, out from the middle of the chord); the *centres* of arcs, circles and
+ellipses, wherever the arc itself is; the *intersections* of two drawn segments, arcs or circles, in the plane or in space (two curves meet where
+they come within the point tolerance of the scene), and of a segment with an ellipse; an ellipse against a circle, an arc or another ellipse
+is not looked for; and the *nearest* point of a curve, taken only where none of the others is in reach. Of the twenty-four curves nearest the cursor
+the crossings are found; a crossing at an end is offered as that end while ends are snapped to, and as a crossing when they are not. Nothing beyond the far plane of a
+perspective view is snapped to, picked or selected. Equal snaps are told apart by kind, then item, then place, so the choice never
+rests on the order the curves are held in. A snap shows as a marker at the point, a square for an end or a point, a cross for a middle or a
+crossing and a circle for a centre or the nearest point, and its name and coordinates are in the status bar. Ends, middles, centres and crossings
+are computed from the numbers of the curves to a few units in the last place of the coordinates, 1E-12 on a scene a hundred across; an arc is measured from
+its start and not its centre, so an arc of a bulge of 1E-8 on a chord of 60 000, whose centre is 1.5E12 away, crosses a line where it should to 1E-9. Two arcs or circles are crossed from their centres, though, so where both radii are beyond
+about 1E10 the crossing loses digits (3E-4 off for bulges of 1E-7 and 1E-8 on that chord). Two shapes are in one plane
+where the tolerance of the scene says so: a segment lies in the plane of a circle when both its ends are within the tolerance of it, and two circles share a plane
+when the angle between their planes, over the larger radius, moves a point by no more than the tolerance. A segment that comes within the tolerance of a circle touches it,
+as two circles do. A tolerance of nought is taken as 16 units in the last place of the coordinates.
+
+**Rotation centre.** V, then a click: the point is the snap under the cursor, else the point of the surface or line under it, else the point of the
+plane through the target of the view square to it. The view then turns about it, with the mouse and with Ctrl and the arrow keys, and it stays where it is on the screen. A blue
+cross shows it. Shift+V goes back to turning about the middle of the view, as it did before.
+
+**Measuring.** F2, F3 and F4 start a measurement and it stays on until Esc, which also takes the dimensions off the view. Each click gives a point
+the way the rotation centre does. The dimension is drawn over the scene, in front of any body it runs through, with its number beside it at a size
+that can be read at any zoom, and the numbers go to the output pane to ten significant digits.
+
+| Key | Picks | Gives |
+|---|---|---|
+| F2, distance | two points | the straight distance, the offsets along X, Y and Z, and the length in plan |
+| F3, angle | a point on the first leg, the vertex, a point on the second | the angle at the vertex from 0 to 180 degrees, from the arc tangent of the cross and dot products, so a hair off straight is not lost |
+| F4, radius | an arc or a circle | the radius and diameter, the centre and normal, the sweep and length of an arc; an ellipse gives both semi-axes, and a segment has no radius |
+
+Where the two points of a distance are on two different items, the library is asked as well, at the tolerance of the scene: `DistanceTo` between
+the two shapes rebuilt from the scene, and `GetShortestLineTo`, whose segment is drawn in teal apart from the dimension. Both numbers are shown, since
+the distance between two points on two shapes is not the distance between the shapes. With exactly two items selected, F2 asks the library alone about
+them. Where the library has no call between the two kinds, the output says so; where a call exists on only one of the two, the other is turned round.
 
 ## Scripts
 
@@ -120,7 +187,7 @@ imported, so a script names no namespace.
 | `Scene` | the `SceneWriter` being built: `Scene.Layer("name", "#RRGGBB")`, `Scene.Add(geo, ...)`, `Scene.Text(point, "text")` |
 | `Show(geo, layer, name, color, props)` | `Scene.Add`; `geo` is any shape the viewer draws, or an array or list of them |
 | `Note(text)` | a line in the output pane |
-| `Tol` | the `Tolerance` the script works at, the one in force when it starts. Setting it sets the tolerance of the library on the script's thread and all four thresholds the scene is read at |
+| `Tol` | the `Tolerance` the script works at, which starts as `Tolerance.Default` whatever the process has set `Tolerance.Global` to. Setting it sets the tolerance of the library on the script's thread and all four thresholds the scene is read at |
 | `Cancel` | the `CancellationToken` that Esc cancels; a long loop that shows and notes nothing should test it |
 
 `#r` and `#load` work, with paths from the folder of the script. A compile error is reported as `file.csx(3,14): error CS0029: ...`,
@@ -142,13 +209,14 @@ space), arcs, circles, ellipses, rectangles, triangles, faces, bodies with their
 
 ### Samples
 
-`samples/` holds three small scripts, each built in code:
+`samples/` holds four small scripts, each built in code:
 
 | Sample | Shows |
 |---|---|
 | `box-with-opening.csx` | a box 100 by 60 by 40 with a round hole and a pocket as openings, and its volume |
 | `curved-offset-joins.csx` | a loop with two arcs offset outward and inward with the round, miter and chamfer joins, each on its own layer |
 | `mesh.csx` | an L-shaped plate as triangles, convex pieces and a grid, and tilted in space |
+| `snaps-and-measuring.csx` | a plate 200 by 120 with a rounded corner, a hole, two crossing lines and an arc, with things to try the snaps, the measuring and the box select on |
 
 ## Scene files
 

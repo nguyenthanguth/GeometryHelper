@@ -19,7 +19,7 @@ namespace GeometryHelper.Viewer
         /// </summary>
         private const double EmptySceneExtent = 1000.0;
 
-        internal static Primitives Build(Scene scene)
+        internal static Primitives Build(Scene scene, int maxPoints)
         {
             if (scene == null)
             {
@@ -31,10 +31,31 @@ namespace GeometryHelper.Viewer
             using (Tolerance.Use(scene.Tolerance))
             {
                 Bounds3 bounds = default(Bounds3);
+                var items = new ItemPrimitives[scene.Items.Count];
+                var curved = new List<int>();
 
+                // What is not a curve is drawn as it is; the curves wait to be cut, since how finely depends on how many points the rest takes.
                 for (int i = 0; i < scene.Items.Count; i++)
                 {
-                    ItemPrimitives item = BuildItem(scene, scene.Items[i], i, 0.0);
+                    if (IsCurved(scene.Items[i].Kind))
+                    {
+                        curved.Add(i);
+                    }
+                    else
+                    {
+                        items[i] = BuildItem(scene, scene.Items[i], i, 0.0, null);
+                    }
+                }
+
+                ChordRule curveRule = ChooseRule(scene, items, curved, maxPoints, result.Warnings);
+
+                foreach (int i in curved)
+                {
+                    items[i] = BuildItem(scene, scene.Items[i], i, 0.0, new ChordRule(curveRule.ChordTolerance, curveRule.AngleOnly));
+                }
+
+                foreach (ItemPrimitives item in items)
+                {
                     result.Items.Add(item);
                     bounds = bounds.Include(item.Bounds);
                 }
@@ -46,7 +67,7 @@ namespace GeometryHelper.Viewer
                 {
                     if (IsUnbounded(scene.Items[i].Kind))
                     {
-                        result.Items[i] = BuildItem(scene, scene.Items[i], i, extent);
+                        result.Items[i] = BuildItem(scene, scene.Items[i], i, extent, null);
                     }
                 }
 
@@ -71,6 +92,200 @@ namespace GeometryHelper.Viewer
             return result;
         }
 
+        private static int PointsOf(ItemPrimitives p)
+        {
+            int points = p.Points.Count;
+
+            foreach (DrawPolyline line in p.Polylines)
+            {
+                points += line.Points.Length;
+            }
+
+            return points;
+        }
+
+        private static bool IsCurved(string kind)
+        {
+            switch (kind)
+            {
+                case "GeoArc2":
+                case "GeoArc3":
+                case "GeoCircle2":
+                case "GeoCircle3":
+                case "GeoEllipse2":
+                case "GeoEllipse3":
+                case "GeoPolylineArc2":
+                case "GeoPolygonArc2":
+                case "GeoPolylineArc3":
+                case "GeoPolygonArc3":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// What the curves of a scene take in points, apart from the pieces they are cut in: a number of points that do not change, and each turn
+        /// of a curve with the radius it is cut at.
+        /// </summary>
+        private sealed class CurveCount
+        {
+            internal long Fixed;
+            internal readonly List<KeyValuePair<double, double>> Turns = new List<KeyValuePair<double, double>>();
+
+            internal long At(ChordRule rule)
+            {
+                long points = Fixed;
+
+                foreach (KeyValuePair<double, double> turn in Turns)
+                {
+                    points += rule.Pieces(turn.Key, turn.Value);
+                }
+
+                return points;
+            }
+        }
+
+        /// <summary>
+        /// Reads what an item that is a curve will take in points, without cutting it: an arc takes its pieces and one more, a circle or an
+        /// ellipse its pieces, a chain its vertices and the pieces of each arc less one.
+        /// </summary>
+        private static void Count(SceneItem item, CurveCount count)
+        {
+            try
+            {
+                JsonElement d = item.Data;
+
+                switch (item.Kind)
+                {
+                    case "GeoArc2":
+                    case "GeoArc3":
+                        count.Fixed += 1;
+                        count.Turns.Add(new KeyValuePair<double, double>(DataJson.Number(d, "sweep"), DataJson.Number(d, "radius")));
+                        break;
+
+                    case "GeoCircle2":
+                    case "GeoCircle3":
+                        count.Turns.Add(new KeyValuePair<double, double>(2.0 * Math.PI, DataJson.Number(d, "radius")));
+                        break;
+
+                    case "GeoEllipse2":
+                    case "GeoEllipse3":
+                        count.Turns.Add(new KeyValuePair<double, double>(2.0 * Math.PI, Math.Max(Math.Abs(DataJson.Number(d, "majorRadius")), Math.Abs(DataJson.Number(d, "minorRadius")))));
+                        break;
+
+                    default:
+                    {
+                        bool space = item.Kind.EndsWith("3", StringComparison.Ordinal);
+                        bool closed = item.Kind.StartsWith("GeoPolygon", StringComparison.Ordinal);
+                        Vec3[] points = DataJson.Points(d, "points", space ? 3 : 2);
+                        double[] bulges = DataJson.Bulges(d, points.Length);
+                        IReadOnlyList<Vec3> normals = space ? Normals(d) : null;
+                        count.Fixed += points.Length;
+                        int edges = closed ? points.Length : points.Length - 1;
+
+                        for (int k = 0; k < edges; k++)
+                        {
+                            double bulge = bulges[k];
+                            double chord = (points[(k + 1) % points.Length] - points[k]).Length;
+                            bool normal = !space || (k < normals.Count && normals[k].Length > 0.0);
+
+                            if (bulge != 0.0 && !double.IsNaN(bulge) && !double.IsInfinity(bulge) && chord > 0.0 && !double.IsInfinity(chord) && normal)
+                            {
+                                count.Fixed -= 1;
+                                count.Turns.Add(new KeyValuePair<double, double>(4.0 * Math.Atan(bulge), chord * (1.0 + bulge * bulge) / (4.0 * Math.Abs(bulge))));
+                            }
+                        }
+
+                        break;
+                    }
+                }
+            }
+            catch (Exception e) when (e is FormatException || e is InvalidOperationException || e is KeyNotFoundException)
+            {
+                // The numbers are wrong: the drawing of the item says so, and it takes no points here.
+            }
+        }
+
+        /// <summary>
+        /// Chooses how finely the curves of a scene are cut: at the chord tolerance of the scene where the lines then take no more points than the
+        /// cap, and otherwise at one coarser tolerance for all of them, the finest at which they do, found by counting the pieces and not by cutting
+        /// the curves; failing any, by the angle alone, 2 degrees a piece. Where it is not the chord tolerance of the scene it says so, once.
+        /// </summary>
+        private static ChordRule ChooseRule(Scene scene, ItemPrimitives[] items, List<int> curved, int maxPoints, List<string> warnings)
+        {
+            double chord = ChordOf(scene);
+            var rule = new ChordRule(chord);
+            long others = 0;
+
+            foreach (ItemPrimitives p in items)
+            {
+                if (p != null)
+                {
+                    others += PointsOf(p);
+                }
+            }
+
+            var count = new CurveCount();
+
+            foreach (int i in curved)
+            {
+                Count(scene.Items[i], count);
+            }
+
+            long before = others + count.At(rule);
+
+            if (before <= maxPoints)
+            {
+                return rule;
+            }
+
+            long budget = maxPoints - others;
+            ChordRule chosen;
+
+            if (count.At(new ChordRule(chord, true)) > budget)
+            {
+                chosen = new ChordRule(chord, true);
+            }
+            else
+            {
+                // The finest chord tolerance that fits lies between the one of the scene, which does not, and the first of its doublings that does.
+                double low = chord;
+                double high = chord * 2.0;
+
+                while (count.At(new ChordRule(high)) > budget)
+                {
+                    low = high;
+                    high *= 2.0;
+                }
+
+                for (int step = 0; step < 40; step++)
+                {
+                    double middle = Math.Sqrt(low * high);
+
+                    if (count.At(new ChordRule(middle)) > budget)
+                    {
+                        low = middle;
+                    }
+                    else
+                    {
+                        high = middle;
+                    }
+                }
+
+                chosen = new ChordRule(high);
+            }
+
+            long after = others + count.At(chosen);
+            var g3 = System.Globalization.CultureInfo.InvariantCulture;
+
+            warnings.Add(
+                "the lines of the scene would take " + before + " points at the chord tolerance of " + chord.ToString("G3", g3) + ", over the cap of " + maxPoints
+                + ": its " + curved.Count + " curve(s) are cut "
+                + (chosen.AngleOnly ? "at 2 degrees a piece, whatever the chord tolerance" : "at a chord tolerance of " + chosen.ChordTolerance.ToString("G3", g3) + " (2 degrees a piece at most)")
+                + " instead, which leaves " + after + " points" + (after > maxPoints ? ", still over the cap, for the rest is not curves" : string.Empty));
+            return chosen;
+        }
         private static bool IsUnbounded(string kind) => kind == "GeoRay2" || kind == "GeoRay3" || kind == "GeoPlane3";
 
         /// <summary>
@@ -80,20 +295,20 @@ namespace GeometryHelper.Viewer
         private static double ChordOf(Scene scene)
             => scene.EqualPoint > 0.0 && !double.IsInfinity(scene.EqualPoint) ? scene.EqualPoint / 10.0 : Scene.DefaultEqualPoint / 10.0;
 
-        private static ItemPrimitives BuildItem(Scene scene, SceneItem item, int index, double extent)
+        private static ItemPrimitives BuildItem(Scene scene, SceneItem item, int index, double extent, ChordRule rule)
         {
             using (LibraryLog log = Viewer.LibraryLog.Begin())
             {
-                ItemPrimitives built = BuildItemCore(scene, item, index, extent);
+                ItemPrimitives built = BuildItemCore(scene, item, index, extent, rule);
                 built.LibraryLog.AddRange(log.Lines.Distinct(StringComparer.Ordinal));
                 return built;
             }
         }
 
-        private static ItemPrimitives BuildItemCore(Scene scene, SceneItem item, int index, double extent)
+        private static ItemPrimitives BuildItemCore(Scene scene, SceneItem item, int index, double extent, ChordRule rule)
         {
             var p = new ItemPrimitives { ItemIndex = index };
-            var rule = new ChordRule(ChordOf(scene));
+            rule = rule ?? new ChordRule(ChordOf(scene));
             Bounds3? fixedBounds = null;
 
             try

@@ -169,12 +169,34 @@ namespace GeometryHelper.Viewer
         public List<string> Warnings { get; } = new List<string>();
 
         /// <summary>
+        /// The most points the lines of a scene are drawn with before the curves are cut coarser: four million, which is 96 MB
+        /// of coordinates in double precision and 48 MB of floats for the graphics card.
+        /// </summary>
+        public const int MaxPoints = 4000000;
+
+        /// <summary>
         /// Builds the primitives of a scene, reading the shapes from the numbers in their data and asking the library only
         /// for the surfaces of faces, bodies and meshes. A shape the library refuses is drawn by its outline and warned of.
+        /// A scene whose lines would take more than <see cref="MaxPoints"/> points is warned of, and its arcs, circles and ellipses are cut at
+        /// one coarser chord tolerance, the finest at which the scene fits.
         /// </summary>
         /// <param name="scene">The scene.</param>
         /// <returns>The primitives.</returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the scene is null.</exception>
-        public static Primitives Build(Scene scene) => PrimitiveBuilder.Build(scene);
+        public static Primitives Build(Scene scene) => PrimitiveBuilder.Build(scene, MaxPoints);
+
+        /// <summary>
+        /// Builds the primitives of a scene as <see cref="Build(Scene)"/> does, with a cap of your own on the points of its lines.
+        /// </summary>
+        /// <param name="scene">The scene.</param>
+        /// <param name="maxPoints">
+        /// The most points the lines may take, counting the points of every chain and every isolated point. Over it the arcs, circles and
+        /// ellipses are all cut at one chord tolerance coarser than the scene's, the finest at which the lines fit, found by counting the pieces
+        /// before any curve is cut, with 2 degrees a piece as the coarsest; the polygons, faces and bodies are drawn as they are, since their lines are the
+        /// shapes themselves. One warning gives the tolerance used.
+        /// </param>
+        /// <returns>The primitives.</returns>
+        /// <exception cref="System.ArgumentNullException">Thrown when the scene is null.</exception>
+        public static Primitives Build(Scene scene, int maxPoints) => PrimitiveBuilder.Build(scene, maxPoints);
     }
 }

@@ -183,9 +183,21 @@ namespace GeometryHelper.Viewer
         }
 
         /// <summary>
+        /// The most the far plane of a perspective view may lie beyond the near plane, as a multiple of it: a million. The
+        /// graphics card tells depths apart in 24 bits, and the step it can tell at a distance z is about z squared over the near
+        /// plane over 2^24, so at the far plane the step is
+        /// about 600 times the distance to the target (z = 10 000 target distances, the near plane a hundredth of one), and with no bound it would grow
+        /// without limit as the scene is made longer.
+        /// </summary>
+        public const double MaxDepthRatio = 1E6;
+
+        /// <summary>
         /// Gets the planes that clip the scene: all of it in front of the camera between them, and no further apart than it takes.
         /// A perspective camera clips at a hundredth of its distance from the target, so that the target and what is near it
-        /// are never cut however far the rest of the scene reaches; an orthographic one clips just outside the depth of the scene.
+        /// are never cut however far the rest of the scene reaches, and at the farthest corner of the scene's box in front of the
+        /// camera, but never further than <see cref="MaxDepthRatio"/> times the near plane: a part of the scene more than ten
+        /// thousand target distances away is cut: the far plane of a camera 2 mm from its target is 20 m away and cuts a box
+        /// 60 m long; an orthographic camera clips just outside the depth of the scene.
         /// </summary>
         /// <param name="scene">The box round the scene.</param>
         /// <param name="near">The distance from the eye to the near plane, above nought.</param>
@@ -200,12 +212,24 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            double radius = scene.IsEmpty ? 0.0 : scene.Radius * 1.05;
-            double centreDepth = Vec3.Dot(scene.Center - Position, Forward);
+            double reach = Distance * 2.0;
 
-            far = Math.Max(centreDepth + radius, Distance * 2.0) * 1.05;
-            near = Math.Max(Distance * 0.01, far * 1E-10);
+            if (!scene.IsEmpty)
+            {
+                Vec3 eye = Position;
+                Vec3 forward = Forward;
+
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = new Vec3((i & 1) == 0 ? scene.Min.X : scene.Max.X, (i & 2) == 0 ? scene.Min.Y : scene.Max.Y, (i & 4) == 0 ? scene.Min.Z : scene.Max.Z);
+                    reach = Math.Max(reach, Vec3.Dot(corner - eye, forward));
+                }
+            }
+
+            near = Distance * 0.01;
+            far = Math.Min(reach * 1.05, near * MaxDepthRatio);
         }
+
         /// <summary>
         /// Gets the point of the plane through the target, square to the view, that appears at a place on the screen.
         /// </summary>
@@ -289,6 +313,38 @@ namespace GeometryHelper.Viewer
         {
             Azimuth += azimuthRadians;
             Elevation += elevationRadians;
+        }
+
+        /// <summary>
+        /// Turns the view about a point of the scene with the mouse, as <see cref="Orbit"/> does about the target, and moves the
+        /// target so that the point stays where it is on the screen.
+        /// </summary>
+        /// <param name="center">The point to turn about.</param>
+        /// <param name="dxPixels">The mouse movement to the right.</param>
+        /// <param name="dyPixels">The mouse movement down.</param>
+        public void OrbitAbout(Vec3 center, double dxPixels, double dyPixels)
+        {
+            const double RadiansPerPixel = 0.4 * Math.PI / 180.0;
+            RotateAbout(center, -dxPixels * RadiansPerPixel, dyPixels * RadiansPerPixel);
+        }
+
+        /// <summary>
+        /// Turns the view by angles about a point of the scene, and moves the target so that the point stays where it is on the
+        /// screen, at the same depth: the point's offset from the target along the right, up and forward axes of the view is
+        /// kept, and the target is put where that offset, along the new axes, ends on the point.
+        /// </summary>
+        /// <param name="center">The point to turn about.</param>
+        /// <param name="azimuthRadians">The turn of the camera round the point, counter-clockwise seen from above.</param>
+        /// <param name="elevationRadians">The rise of the camera.</param>
+        public void RotateAbout(Vec3 center, double azimuthRadians, double elevationRadians)
+        {
+            Vec3 offset = center - Target;
+            double x = Vec3.Dot(offset, Right);
+            double y = Vec3.Dot(offset, Up);
+            double z = Vec3.Dot(offset, Forward);
+
+            Rotate(azimuthRadians, elevationRadians);
+            Target = center - (Right * x + Up * y + Forward * z);
         }
 
         /// <summary>

@@ -162,8 +162,9 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void EveryActionAKeyIsBoundTo_ThatThisVersionDoesNot_IsMarkedSo()
         {
+            // The second phase did the rotation centre, the box select, the measuring and the snaps; the screenshot is the fifth's.
             Assert.Equal(
-                new[] { "SetRotationCentre", "ClearRotationCentre", "BoxSelect", "MeasureDistance", "MeasureAngle", "MeasureRadius", "SnapEnd", "SnapMid", "SnapIntersection", "SnapCentre", "SnapNearest", "Screenshot" }.OrderBy(n => n),
+                new[] { "Screenshot" },
                 KeymapActions.All.Where(a => !a.Implemented).Select(a => a.Name).OrderBy(n => n));
         }
     }

@@ -58,13 +58,19 @@ namespace GeometryHelper.Viewer
             Viewport.EffectsManager = new HelixToolkit.SharpDX.Core.DefaultEffectsManager();
             Viewport.Camera = _perspective;
             _sceneView = new SceneView(Viewport);
-            _sceneView.OriginChanged += (s, e) => UpdateCamera();
+            _overlay = new OverlayView(Viewport, _sceneView);
+            _sceneView.OriginChanged += (s, e) =>
+            {
+                _overlay.Rebuild();
+                UpdateCamera();
+            };
             Tree.ItemsSource = _roots;
             PropertiesList.ItemsSource = _rows;
 
             ApplySettings();
             LabelMenusWithKeys();
             RebuildRecentMenu();
+            UpdateSnapsText();
         }
 
         private void ApplySettings()
@@ -279,9 +285,15 @@ namespace GeometryHelper.Viewer
                     return false;
                 }
 
-                Primitives primitives = await Task.Run(() => Primitives.Build(result.Scene));
+                var built = await Task.Run(() =>
+                {
+                    Primitives drawn = Primitives.Build(result.Scene);
+                    return Tuple.Create(drawn, ExactGeometry.Build(result.Scene, drawn));
+                });
+                Primitives primitives = built.Item1;
+                ExactGeometry geometry = built.Item2;
 
-                foreach (string warning in primitives.Warnings)
+                foreach (string warning in primitives.Warnings.Concat(geometry.Warnings))
                 {
                     Log("warning: " + warning);
                 }
@@ -295,6 +307,7 @@ namespace GeometryHelper.Viewer
                 _currentPath = path;
                 Title = (string.IsNullOrEmpty(result.Scene.Title) ? Path.GetFileName(path) : result.Scene.Title) + " - GeometryHelper Viewer";
                 _sceneView.Show(result.Scene, primitives);
+                ResetTools(geometry, sameFile && result.WasScript);
                 BuildTree();
                 ShowProperties();
                 UpdateSelectionText();
