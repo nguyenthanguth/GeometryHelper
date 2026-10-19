@@ -48,6 +48,11 @@
     { "action": "RerunScript", "gestures": ["Ctrl+R"] },
     { "action": "Screenshot", "gestures": ["Ctrl+Shift+S"] },
     { "action": "OpenFile", "gestures": ["Ctrl+O"] },
-    { "action": "SaveSceneAs", "gestures": ["Ctrl+S"] }
+    { "action": "SaveSceneAs", "gestures": ["Ctrl+S"] },
+    { "action": "Compare", "gestures": ["Ctrl+Shift+C"] },
+    { "action": "CompareLeft", "gestures": ["1"] },
+    { "action": "CompareRight", "gestures": ["2"] },
+    { "action": "CompareBoth", "gestures": ["3"] },
+    { "action": "ExportTest", "gestures": ["Ctrl+T"] }
   ]
 }

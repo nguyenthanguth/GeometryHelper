@@ -20,8 +20,10 @@ HelixToolkit.SharpDX (`HelixToolkit.SharpDX.Core.Wpf` 2.27.3). Scripts run with 
 | Project | What it is |
 |---|---|
 | `GeometryHelper.Viewer.Core` | netstandard2.0: the scene model, `SceneWriter` and `SceneReader`, the drawing primitives, the camera maths, the keymap. A net48 harness can reference it and dump a scene. |
-| `GeometryHelper.Viewer` | the window, the 3D view and the script host |
-| `GeometryHelper.Viewer.Tests` | xUnit, net8.0: tests of Core, and of the script host, whose source it compiles in because the app is a Windows desktop project |
+| `GeometryHelper.Viewer.Scripting` | net8.0, no window in it: the script host, which the app and the runner both use, and what runs a script against another build of the library in a child process (the cache of runners, the build of a commit, the watching of a DLL) |
+| `GeometryHelper.Viewer.Runner` | net8.0 console: runs one script with the GeometryHelper.dll beside it and writes the scene. The app copies its folder once for each build of the library it compares |
+| `GeometryHelper.Viewer` | the window and the 3D view; the runner's folder is copied into `runner` beside it |
+| `GeometryHelper.Viewer.Tests` | xUnit, net8.0: tests of Core, of the script host, and of the comparison, which starts the runner and builds commits of throwaway repositories made under the temporary folder |
 
 ### Command line
 
@@ -44,6 +46,10 @@ of the scene taken to where it shows: `--do "mode distance; click @60,60,0; clic
 The diagnostics have three more: `diag edges crossings` runs the named checks (`all` for every one, none for the ones ticked in the pane) on the selected items, or on every item when
 none is selected, waits for the run, and writes each finding to the output pane; a last word `own` leaves the library out and makes the viewer's own checks alone. `diagshow 3` does what a click on the third finding does (selects its item, zooms to the spot, marks it) and
 `diagclear` takes the findings and their drawing off. `--do "select 10 11; diag gap" --view top` gives the gap of two items drawn larger in the picture.
+
+The comparison has its own (see Comparing two builds): `compare own commit:9ee3f57 [repo=path] [timeout=seconds] [watch]` runs the open script against the two builds and shows
+the comparison, `comparerows` writes the table to the output pane, `compareview left|right|both` is the keys 1, 2 and 3, `compareclick 3` clicks the third row, `comparedialog out.png` draws the window that asks for a
+comparison, and `exporttest file.cs` writes the test skeleton of the selected items to a file (and to no clipboard).
 
 `--check` and `--screenshot` do not read or write the settings of the user.
 
@@ -125,7 +131,10 @@ keep theirs. A gesture is written `Ctrl+Shift+H`, `Wheel`, `Ctrl+MiddleDrag`, `D
 | Hide selected / show all | Ctrl+H / Ctrl+Shift+H |
 | Properties | Double-click, or Alt+Enter |
 | Diagnostics pane | Ctrl+D |
-| Run the script / run it again | F5 / Ctrl+R (File > Reload does the same) |
+| Run the script / run it again | F5 / Ctrl+R (File > Reload does the same; with a comparison open, Ctrl+R runs it again) |
+| Compare two builds | Ctrl+Shift+C |
+| The side of a comparison shown: left / right / both | 1 / 2 / 3 (only while a comparison is open) |
+| Export a test | Ctrl+T |
 | Open / save the scene as | Ctrl+O / Ctrl+S |
 | Screenshot | Ctrl+Shift+S: bound, and not in this version |
 
@@ -268,6 +277,65 @@ space), arcs, circles, ellipses, rectangles, triangles, faces, bodies with their
 | `snaps-and-measuring.csx` | a plate 200 by 120 with a rounded corner, a hole, two crossing lines and an arc, with things to try the snaps, the measuring and the box select on |
 | `diagnostics.csx` | one of each fault the diagnostics look for: an open box, a box with a face turned over, a fin on a box, a mesh with a triangle turned over, a bow tie, a needle, a doubled corner, a sliver, arcs that cross, a face off flat, two squares 0.0034 apart, and three pieces on a layer |
 
+## Comparing two builds
+
+File > Compare... (Ctrl+Shift+C) asks for the script and two builds of the library, runs the script against each in a child process, and shows
+what each built, laid over each other. It is for the question "what did this change do to this shape": a script that shows an offset of a loop, run against
+the library of last week and the library of now.
+
+A **build** is one of three: the viewer's *own library*; a *DLL* at a path; or a *commit* of a Git repository, built into the cache. Each side runs in a process of its own, the
+runner, which is a copy of the runner folder with that build's `GeometryHelper.dll` put in it, in `%LOCALAPPDATA%\GeometryHelper.Viewer\runners\<SHA-256 of the DLL>-<start of the SHA-256 of the runner program>`. The DLL is copied once, first, and the key is the hash of that
+copy, so it names the bytes that run. A DLL seen before costs no copying, and two paths holding the same bytes share a folder; a runner program that has changed gets a folder of its own and the old one is left where it is, since a process
+may have it open. Two runs that want the same copy take turns (a lock named by the folder), and the second finds it made. The runner runs the script with the same globals as the window
+does (`Show`, `Note`, `Tol`), at the tolerance the script sets, and writes the scene; with `--measure`, which the viewer always gives it, it also puts into each item the numbers
+its own build of the library gives for it (`measure.vertices`, `measure.length`, `measure.area`, `measure.volume`, 17 digits each, and `measure.note` where the library refused the shape at the tolerance of the scene and the numbers are those at 1E-12), since a build cannot be asked
+in the viewer's process what another build says. A script that does not compile against a build shows the compiler errors of that side, with the file and line number, and the scene before stays.
+
+**Older builds.** A library of a lower version than the viewer's loads too: the runner puts its own resolution of GeometryHelper in front of the runtime's, which refuses a lower version. A type the older build lacks does not
+stop it either: the runner writes, reads and measures each kind of shape in a method of its own and picks it by the name of the type, so a type is looked for only when an item of it is shown (a build of 12.1.0, which has no
+`GeoRay2`, runs the scripts that do not use one). A script that *uses* a type the older build lacks cannot compile for that side, and that side shows the compiler error; the other side is not affected.
+
+A **commit** is read out of the repository with `git archive` (no work tree is added: the work tree, the branches, the index and the list of work trees of the repository are not touched), unpacked beside the cache, built with
+`dotnet build src/GeometryHelper/GeometryHelper.csproj -c Release`, and only the DLL is kept, in `%LOCALAPPDATA%\GeometryHelper.Viewer\builds\<the full hash>`; a hash, a short hash, a tag or a branch name are the
+same commit once the hash is found. The commit must hold that project. The repository box starts from the one used last, else the one the script is in, else the one the viewer's own folder is in; `--do compare` takes the script's, else the viewer's, unless `repo=` says.
+
+**Timeout and killing.** A script may run 120 seconds against a build (`CompareTimeoutSeconds` in the settings, the box in the dialog), a build of a commit 15 minutes. Esc, the timeout and closing the window kill the
+process the viewer started and everything that process started, and no other: each run has a Windows job object of its own, which holds the process and its descendants, so they end together even when the first has already ended. The
+wait covers the output too: a script that ends and leaves a child holding its output open is given two seconds, and the child is killed. What the runner and the build print goes to the output pane, one line at a time, behind `[left]` or `[right]`.
+
+**The cache** keeps the newest 20 copies of the runner and the newest 20 built commits by when each was last used (`CompareCacheKeep` in the settings; never fewer than 2, since the two sides each need a copy at once). An entry used
+within the longest a run and a build may take, plus an hour, is never trimmed, so a copy another viewer sharing the cache is running from is safe. An entry is renamed before it is deleted, and one that cannot be renamed (it is open) stays; the temporary
+folders an interrupted copy or build left are deleted when a day old. It deletes only folders directly inside the runners and builds folders of the cache root.
+
+**What is shown.** The two scenes are paired item by item. First by layer and name, the first of several of one name on the left with the first on the right, but only for a name the script gave (an item shown with no name is named
+the kind and a number, `GeoPolygon2 3`, which moves when an earlier layer gains or loses a piece, so it is marked in the scene file as made up and never paired by); then what is left, on the same layer and kind, by data, an item whose
+numbers are the same to the bit with its twin ("by data" in the table); then the rest by order ("by order"). A paired item whose numbers are the same to the bit (a number that differs in the last place, or `-0` against `0`, makes it
+changed) and whose measures, as each build gave them, are too, is drawn once, in grey, on the layer `identical`. If its data is the same and the numbers the builds gave differ (a fix to the measuring, a
+note that one measured at 1E-12, an error one had), it is "numbers differ", drawn once in yellow on `numbers differ`, and the difference lists them: `Area -0.5, Volume: left '1', right none, Measure error: left none, right 'MissingMethodException: x'`.
+A changed item is drawn twice: the left's red and dashed on `changed - left`, the right's green on `changed - right`. An item on one side only is orange (left) or blue (right). The dashes are a hundred and fiftieth of the scene
+across and are made from the lines the item is drawn with, so a curve's chords are dashed too. Keys 1, 2 and 3 show the left side, the right side or both, by hiding what belongs to the other side; what is the same on both is always shown, and an item you hid yourself stays hidden whichever side is shown. A paired item
+that stands in another place in the order than on the other side, the fewest that makes the rest climb, is marked "same, moved": order is not a change.
+
+The **Compare** tab beside the output lists every item: status, layer, name, kind, the vertex count of each side, the length, area and volume each build gave (ten digits), whether the data is bit-identical, and the difference in
+words: `Vertices +4, Length -238.6172558, Area -5890.820813, the numbers have a different layout (vertices added or taken away)`, or, where the layout is the same, how many numbers differ and by how much at most. Clicking a row selects its items and zooms to them; clicking the
+selected row zooms again. Ctrl+R (or Run again) runs both sides again; File > Open of another file leaves the comparison and keeps the scene on the screen. The Properties and Output panes measure
+what is selected with the viewer's own library, as for any scene; the numbers each build gave are the `measure.*` properties of the item and the columns of the table.
+
+**Watching.** With "Run a side again when its DLL changes on disk" on (the Compare menu), a side whose build is the viewer's own library or a DLL at a path is run again, alone, a second after the file stops changing and only when its bytes are not the
+bytes last run; the other side keeps its result. Saving the script, with Script > Run again when the file is saved on, runs both again, and a save that comes while a comparison runs is run once it has ended. Whenever a side is run again
+and the script text is not the text the other side ran with (the viewer keeps a hash of it for each side), both sides are run. A commit never changes.
+
+Two things the comparison cannot see: a build older than the viewer's may lack a member the viewer measures with (that item then carries `measure.error` and shows `-`, and a row whose data is the same shows "numbers differ"), and the two scenes
+are drawn at the tolerance of the left one (the Compare output says when they were written at different tolerances).
+
+## Exporting a test
+
+Tools > Export test... (Ctrl+T) writes an xUnit test skeleton for the selected items to the clipboard and to a file picked in a dialog. It never writes into `tests/` by itself. Each item becomes one `[Fact]`, named as a sentence (`Miter1544412_HasTheExpectedNumbers`),
+with the tolerance of the scene passed explicitly (`Tolerance.Use(tolerance)`, never `Tolerance.Global`), the shape built in code from the 17-digit literals of its numbers with the library's own constructors, and one assertion for each number the library gives for it
+(vertices, length, area, volume of a body, ...). The value the viewer measured is in the comment above it and the expected value is `double.NaN` (`-1` for a count) to be filled in, so the test is red until then; a shape with no number to assert gets `Assert.Fail`. A label, and a
+kind the viewer does not know, are left out and named in a comment, and so are the items beyond forty. In a comparison each selected copy is taken from its own side: the item as that side's script made it, at that side's tolerance, with
+the numbers that side's build gave (the comment then says "the build that made the scene measured ..." and carries a `measure.error` or a 1E-12 note), whichever copy you select; select the right copy (green) to take the build under test. What both sides share is taken from the right.
+
 ## Scene files
 
 A scene is `*.ghscene.json`: a header, one line to a layer and one line to an item, every number as the 17 digits that read back
@@ -278,6 +346,8 @@ as the same double, so a scene holds a shape exactly. `SceneItem.ToGeometry()` g
 new SceneWriter("repro").Add(shape, layer: "input").Save(path);
 ```
 
+An item the script showed with no name carries `"auto":true` in its line: its name is the kind and a number, which a comparison never pairs by. A scene file with no such field has only named items.
+
 A kind a newer viewer wrote and this one does not know is kept in the scene, listed in the output, and written again unchanged.
 
 **Never save a scene of a real model in the repository.** Geometry from real projects does not go into this repository, and a
@@ -286,4 +356,4 @@ scene holds it whole. Saving a scene to a folder inside a Git repository asks fi
 ## Settings
 
 `%APPDATA%\GeometryHelper.Viewer\settings.json` keeps the window layout, the width of the panes, the last folder, the render mode,
-the grid, run-on-save, and the last ten files. An error the window could not carry on from is appended to `error.log` beside it.
+the grid, run-on-save, the last ten files, and the last comparison (`CompareLeft`, `CompareRight`, `CompareRepository`, `CompareTimeoutSeconds`, `CompareCacheKeep`, `CompareWatch`). An error the window could not carry on from is appended to `error.log` beside it.

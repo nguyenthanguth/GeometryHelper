@@ -545,7 +545,7 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Does what the commands of <c>--do</c> say, in the process, through the code a click and a drag go through: <c>select 0 2</c>,
         /// <c>hover P</c>, <c>box P P [add|toggle]</c>, <c>band P P</c> (the rubber band as if mid-drag), <c>mode distance|angle|radius|centre</c>
-        /// followed by <c>click P</c>, <c>keys F8 F9</c> (the actions of the keymap), <c>wait ms</c>, <c>labelpx</c> (says how tall the labels are laid out), <c>diag edges crossings [own]</c> (runs the named checks, or <c>all</c>, or the ticked ones, and waits), <c>diagshow n</c> (clicks the n-th finding), <c>diagclear</c> and <c>windowshot file.png</c> (the whole window, panes included). A place P is two numbers, device independent pixels of
+        /// followed by <c>click P</c>, <c>keys F8 F9</c> (the actions of the keymap), <c>wait ms</c>, <c>labelpx</c> (says how tall the labels are laid out), <c>diag edges crossings [own]</c> (runs the named checks, or <c>all</c>, or the ticked ones, and waits), <c>diagshow n</c> (clicks the n-th finding), <c>diagclear</c>, <c>compare own commit:9ee3f57 [watch]</c> (runs the open script against two builds and shows the comparison), <c>comparerows</c>, <c>comparedialog file.png</c>, <c>compareview left|right|both</c>, <c>compareclick n</c>, <c>exporttest file.cs</c> (the test skeleton of the selected items, to a file only) and <c>windowshot file.png</c> (the whole window, panes included). A place P is two numbers, device independent pixels of
         /// the 3D view, or one word <c>@x,y,z</c>, a point of the scene taken to where it shows. Commands are separated by semicolons.
         /// </summary>
         private async Task RunCommandsAsync(string commands)
@@ -682,9 +682,40 @@ namespace GeometryHelper.Viewer
                         ClearDiagnostics();
                         break;
 
+                    case "compare":
+                        await CompareCommandAsync(words);
+                        break;
+
+                    case "comparedialog":
+                        CompareDialogCommand(words.Length > 1 ? words[1] : "comparedialog.png");
+                        break;
+
+                    case "comparerows":
+                        CompareRowsCommand();
+                        break;
+
+                    case "compareview":
+                        CompareViewCommand(words.Length > 1 ? words[1] : "both");
+                        break;
+
+                    case "compareclick":
+                        CompareClickCommand(words.Length > 1 ? words[1] : "0");
+                        break;
+
+                    case "exporttest":
+                        await ExportTestAsync(words.Length > 1 ? words[1] : null);
+                        break;
+
                     case "windowshot":
                     {
-                        // The whole window, panes and all, as the window draws itself; the picture of the view alone cannot show a pane.
+                        // The whole window, panes and all, as the window draws itself; the picture of the view alone cannot show a pane. The graphics card
+                        // draws on its own schedule, so the view is given a few frames to show what the commands before this did.
+                        for (int frame = 0; frame < 8; frame++)
+                        {
+                            await Task.Delay(150);
+                            Viewport.InvalidateRender();
+                        }
+
                         UpdateLayout();
                         var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(ActualWidth), (int)Math.Ceiling(ActualHeight), 96.0, 96.0, PixelFormats.Pbgra32);
                         bitmap.Render(this);

@@ -14,9 +14,22 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GeometryHelper.Viewer.Core\GeometryHelper.Viewer.Core.csproj" />
+    <ProjectReference Include="..\GeometryHelper.Viewer.Scripting\GeometryHelper.Viewer.Scripting.csproj" />
     <PackageReference Include="HelixToolkit.SharpDX.Core.Wpf" Version="2.27.3" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.14.0" />
   </ItemGroup>
+
+  <!-- The runner program is built before the viewer and copied into a folder of its own beside it: the comparison copies that folder for each
+       build of the library it runs a script against. Its files stay out of the viewer's own, since the two use different versions of the library. -->
+  <ItemGroup>
+    <ProjectReference Include="..\GeometryHelper.Viewer.Runner\GeometryHelper.Viewer.Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <Target Name="CopyRunner" AfterTargets="Build">
+    <ItemGroup>
+      <RunnerFile Include="$(MSBuildThisFileDirectory)..\GeometryHelper.Viewer.Runner\bin\$(Configuration)\net8.0\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RunnerFile)" DestinationFiles="@(RunnerFile->'$(OutDir)runner\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
 
   <!-- The shipped keymap sits beside the executable, where the user can see what to copy to change it. -->
   <ItemGroup>

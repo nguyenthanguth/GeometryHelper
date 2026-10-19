@@ -11,17 +11,22 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.14.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\GeometryHelper.Viewer.Core\GeometryHelper.Viewer.Core.csproj" />
+    <ProjectReference Include="..\GeometryHelper.Viewer.Scripting\GeometryHelper.Viewer.Scripting.csproj" />
+    <ProjectReference Include="..\GeometryHelper.Viewer.Runner\GeometryHelper.Viewer.Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
-  <!-- The script host has no screen type in it, but it lives in the app, which is a Windows desktop project this one cannot
-       reference. Its source is compiled in here instead, so the tests run the code the app runs. -->
-  <ItemGroup>
-    <Compile Include="..\GeometryHelper.Viewer\Scripting\*.cs" Link="Scripting\%(Filename)%(Extension)" />
-  </ItemGroup>
+  <!-- The script host has no screen type in it and now lives in its own library, which the tests reference and the app does too, so the tests
+       run the code the app runs. The tests of the comparison start the runner program as a child process, as the viewer does, so its output
+       sits beside the tests in a folder called runner. -->
+  <Target Name="CopyRunner" AfterTargets="Build">
+    <ItemGroup>
+      <RunnerFile Include="$(MSBuildThisFileDirectory)..\GeometryHelper.Viewer.Runner\bin\$(Configuration)\net8.0\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RunnerFile)" DestinationFiles="@(RunnerFile->'$(OutDir)runner\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

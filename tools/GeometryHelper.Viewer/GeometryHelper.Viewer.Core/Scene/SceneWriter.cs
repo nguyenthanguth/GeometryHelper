@@ -215,6 +215,7 @@ namespace GeometryHelper.Viewer
             var item = new SceneItem
             {
                 Name = name ?? kind + " " + Count(kind).ToString(CultureInfo.InvariantCulture),
+                AutoName = name == null,
                 Layer = layerName,
                 Color = normalized,
                 Kind = kind,

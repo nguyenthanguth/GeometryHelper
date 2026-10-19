@@ -98,6 +98,42 @@ namespace GeometryHelper.Viewer
         public bool Grid { get; set; }
 
         /// <summary>
+        /// Gets or sets how many seconds a script may run against one build of the library in a comparison before it is killed.
+        /// </summary>
+        public int CompareTimeoutSeconds { get; set; } = 120;
+
+        /// <summary>
+        /// Gets or sets the left source of the last comparison: <c>own</c>, <c>dll:path</c> or <c>commit:hash</c>.
+        /// </summary>
+        public string CompareLeft { get; set; } = "commit:HEAD";
+
+        /// <summary>
+        /// Gets or sets the right source of the last comparison.
+        /// </summary>
+        public string CompareRight { get; set; } = "own";
+
+        /// <summary>
+        /// Gets or sets the folder of the repository the commits of a comparison are read from.
+        /// </summary>
+        public string CompareRepository { get; set; }
+
+        /// <summary>
+        /// Gets or sets how many copies of the runner, and how many built commits, the comparison keeps in its cache: the newest by when each was last used.
+        /// </summary>
+        public int CompareCacheKeep
+        {
+            get => _compareCacheKeep;
+            set => _compareCacheKeep = Math.Max(2, value);
+        }
+
+        private int _compareCacheKeep = 20;
+
+        /// <summary>
+        /// Gets or sets whether a side of a comparison is run again when its DLL changes on disk.
+        /// </summary>
+        public bool CompareWatch { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets the files opened lately, newest first.
         /// </summary>
         public List<string> Recent { get; set; } = new List<string>();

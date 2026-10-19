@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Viewer
@@ -104,46 +105,164 @@ namespace GeometryHelper.Viewer
         }
 
         /// <summary>
+        /// Measures an item as <see cref="Describe"/> does, with every number written as the 17 digits that read back as the same
+        /// double, and nothing else: no box, no warning. This is what two builds of the library are compared by.
+        /// </summary>
+        /// <param name="item">The item.</param>
+        /// <param name="scene">The scene the item is in; the library works at its tolerance.</param>
+        /// <returns>
+        /// The name and value of each number the library gives, in the order <see cref="Describe"/> shows them, and last a "Library" line where the shape was rebuilt
+        /// and measured at 1E-12; none for a label or a kind the viewer does not know.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the item or the scene is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the library refuses the shape at the tolerance of the scene and at 1E-12.</exception>
+        /// <exception cref="InvalidOperationException">Thrown likewise.</exception>
+        public static IReadOnlyList<KeyValuePair<string, string>> Numbers(SceneItem item, Scene scene)
+        {
+            if (item == null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
+
+            if (scene == null)
+            {
+                throw new ArgumentNullException(nameof(scene));
+            }
+
+            if (item.Kind == SceneKinds.Text || !SceneKinds.IsKnown(item.Kind))
+            {
+                return new KeyValuePair<string, string>[0];
+            }
+
+            bool before = _exact;
+            _exact = true;
+
+            try
+            {
+                List<KeyValuePair<string, string>> measured = scene.Run(
+                    () =>
+                    {
+                        var numbers = new List<KeyValuePair<string, string>>();
+                        Measure(item.ToGeometry(), (name, value) => numbers.Add(new KeyValuePair<string, string>(name, value)));
+                        return numbers;
+                    },
+                    out string note);
+
+                // Where the library refused the shape at the tolerance of the scene and the numbers are those at 1E-12, they come with the reason.
+                if (note != null)
+                {
+                    measured.Add(new KeyValuePair<string, string>("Library", note));
+                }
+
+                return measured;
+            }
+            finally
+            {
+                _exact = before;
+            }
+        }
+
+        /// <summary>
         /// Gets the box the library gives for a shape, where it gives one; for a curve it is the box of the exact curve.
         /// </summary>
         private static GeoAabb3? BoxOf(object shape)
         {
-            switch (shape)
+            switch (shape.GetType().Name)
             {
-                case GeoLine3 s: return s.GetAabb();
-                case GeoPolyline3 s: return s.GetAabb();
-                case GeoPolygon3 s: return s.GetAabb();
-                case GeoTriangle3 s: return s.GetAabb();
-                case GeoFace3 s: return s.GetAabb();
-                case GeoSolid3 s: return s.GetAabb();
-                case GeoArc3 s: return s.GetAabb();
-                case GeoCircle3 s: return s.GetAabb();
-                case GeoEllipse3 s: return s.GetAabb();
-                case GeoObb3 s: return s.GetAabb();
-                case GeoPolygonArc3 s: return s.GetAabb();
-                case GeoPolylineArc3 s: return s.GetAabb();
+                case "GeoLine3": return BoxOf_GeoLine3(shape);
+                case "GeoPolyline3": return BoxOf_GeoPolyline3(shape);
+                case "GeoPolygon3": return BoxOf_GeoPolygon3(shape);
+                case "GeoTriangle3": return BoxOf_GeoTriangle3(shape);
+                case "GeoFace3": return BoxOf_GeoFace3(shape);
+                case "GeoSolid3": return BoxOf_GeoSolid3(shape);
+                case "GeoArc3": return BoxOf_GeoArc3(shape);
+                case "GeoCircle3": return BoxOf_GeoCircle3(shape);
+                case "GeoEllipse3": return BoxOf_GeoEllipse3(shape);
+                case "GeoObb3": return BoxOf_GeoObb3(shape);
+                case "GeoPolygonArc3": return BoxOf_GeoPolygonArc3(shape);
+                case "GeoPolylineArc3": return BoxOf_GeoPolylineArc3(shape);
                 default: return null;
             }
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoLine3(object shape) => ((GeoLine3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoPolyline3(object shape) => ((GeoPolyline3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoPolygon3(object shape) => ((GeoPolygon3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoTriangle3(object shape) => ((GeoTriangle3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoFace3(object shape) => ((GeoFace3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoSolid3(object shape) => ((GeoSolid3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoArc3(object shape) => ((GeoArc3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoCircle3(object shape) => ((GeoCircle3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoEllipse3(object shape) => ((GeoEllipse3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoObb3(object shape) => ((GeoObb3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoPolygonArc3(object shape) => ((GeoPolygonArc3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoPolylineArc3(object shape) => ((GeoPolylineArc3)shape).GetAabb();
 
         /// <summary>
         /// Gets how many vertices the library kept of a shape made of a list of them, or null for another shape.
         /// </summary>
         private static int? RebuiltVertices(object shape)
         {
-            switch (shape)
+            switch (shape.GetType().Name)
             {
-                case GeoPolyline2 s: return s.VertexCount;
-                case GeoPolygon2 s: return s.VertexCount;
-                case GeoPolyline3 s: return s.VertexCount;
-                case GeoPolygon3 s: return s.VertexCount;
-                case GeoPolylineArc2 s: return s.VertexCount;
-                case GeoPolygonArc2 s: return s.VertexCount;
-                case GeoPolylineArc3 s: return s.VertexCount;
-                case GeoPolygonArc3 s: return s.VertexCount;
+                case "GeoPolyline2": return VertexCountOf_GeoPolyline2(shape);
+                case "GeoPolygon2": return VertexCountOf_GeoPolygon2(shape);
+                case "GeoPolyline3": return VertexCountOf_GeoPolyline3(shape);
+                case "GeoPolygon3": return VertexCountOf_GeoPolygon3(shape);
+                case "GeoPolylineArc2": return VertexCountOf_GeoPolylineArc2(shape);
+                case "GeoPolygonArc2": return VertexCountOf_GeoPolygonArc2(shape);
+                case "GeoPolylineArc3": return VertexCountOf_GeoPolylineArc3(shape);
+                case "GeoPolygonArc3": return VertexCountOf_GeoPolygonArc3(shape);
                 default: return null;
             }
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int? VertexCountOf_GeoPolyline2(object shape) => ((GeoPolyline2)shape).VertexCount;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int? VertexCountOf_GeoPolygon2(object shape) => ((GeoPolygon2)shape).VertexCount;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int? VertexCountOf_GeoPolyline3(object shape) => ((GeoPolyline3)shape).VertexCount;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int? VertexCountOf_GeoPolygon3(object shape) => ((GeoPolygon3)shape).VertexCount;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int? VertexCountOf_GeoPolylineArc2(object shape) => ((GeoPolylineArc2)shape).VertexCount;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int? VertexCountOf_GeoPolygonArc2(object shape) => ((GeoPolygonArc2)shape).VertexCount;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int? VertexCountOf_GeoPolylineArc3(object shape) => ((GeoPolylineArc3)shape).VertexCount;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int? VertexCountOf_GeoPolygonArc3(object shape) => ((GeoPolygonArc3)shape).VertexCount;
 
         private static int RawPointCount(SceneItem item)
         {
@@ -195,194 +314,415 @@ namespace GeometryHelper.Viewer
 
             return Count(item.Data);
         }
-        private static string N(double value) => value.ToString("G10", CultureInfo.InvariantCulture);
+        // The pane shows ten digits; the comparison of two builds keeps all seventeen, which read back as the same double.
+        [ThreadStatic]
+        private static bool _exact;
+
+        private static string N(double value) => value.ToString(_exact ? "G17" : "G10", CultureInfo.InvariantCulture);
 
         private static string Deg(double radians) => N(radians * 180.0 / Math.PI) + " deg";
 
         private static void Measure(object shape, Action<string, string> add)
         {
-            switch (shape)
+            switch (shape.GetType().Name)
             {
-                case GeoPoint2 p:
-                    add("X", N(p.X));
-                    add("Y", N(p.Y));
+                case "GeoPoint2":
+                    Measure_GeoPoint2(shape, add);
                     break;
 
-                case GeoPoint3 p:
-                    add("X", N(p.X));
-                    add("Y", N(p.Y));
-                    add("Z", N(p.Z));
+                case "GeoPoint3":
+                    Measure_GeoPoint3(shape, add);
                     break;
 
-                case GeoLine2 l:
-                    add("Length", N(l.Length));
+                case "GeoLine2":
+                    Measure_GeoLine2(shape, add);
                     break;
 
-                case GeoLine3 l:
-                    add("Length", N(l.Length));
+                case "GeoLine3":
+                    Measure_GeoLine3(shape, add);
                     break;
 
-                case GeoRay2 r:
-                    add("Direction", N(r.Direction.X) + ", " + N(r.Direction.Y));
+                case "GeoRay2":
+                    Measure_GeoRay2(shape, add);
                     break;
 
-                case GeoRay3 r:
-                    add("Direction", N(r.Direction.X) + ", " + N(r.Direction.Y) + ", " + N(r.Direction.Z));
+                case "GeoRay3":
+                    Measure_GeoRay3(shape, add);
                     break;
 
-                case GeoPolyline2 p:
-                    add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
-                    add("Length", N(p.Length));
+                case "GeoPolyline2":
+                    Measure_GeoPolyline2(shape, add);
                     break;
 
-                case GeoPolyline3 p:
-                    add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
-                    add("Length", N(p.Length));
+                case "GeoPolyline3":
+                    Measure_GeoPolyline3(shape, add);
                     break;
 
-                case GeoPolygon2 p:
-                    add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
-                    add("Length", N(p.Length));
-                    add("Area", N(p.Area));
+                case "GeoPolygon2":
+                    Measure_GeoPolygon2(shape, add);
                     break;
 
-                case GeoPolygon3 p:
-                    add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
-                    add("Length", N(p.Length));
-                    add("Area", N(p.Area));
-                    add("Normal", N(p.Normal.X) + ", " + N(p.Normal.Y) + ", " + N(p.Normal.Z));
+                case "GeoPolygon3":
+                    Measure_GeoPolygon3(shape, add);
                     break;
 
-                case GeoPolylineArc2 p:
-                    add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
-                    add("Arcs", p.Bulges.Count(b => b != 0.0).ToString(CultureInfo.InvariantCulture));
-                    add("Length", N(p.Length));
+                case "GeoPolylineArc2":
+                    Measure_GeoPolylineArc2(shape, add);
                     break;
 
-                case GeoPolygonArc2 p:
-                    add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
-                    add("Arcs", p.Bulges.Count(b => b != 0.0).ToString(CultureInfo.InvariantCulture));
-                    add("Length", N(p.Length));
-                    add("Area", N(p.Area));
+                case "GeoPolygonArc2":
+                    Measure_GeoPolygonArc2(shape, add);
                     break;
 
-                case GeoPolylineArc3 p:
-                    add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
-                    add("Arcs", p.Bulges.Count(b => b != 0.0).ToString(CultureInfo.InvariantCulture));
-                    add("Length", N(p.Length));
+                case "GeoPolylineArc3":
+                    Measure_GeoPolylineArc3(shape, add);
                     break;
 
-                case GeoPolygonArc3 p:
-                    add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
-                    add("Arcs", p.Bulges.Count(b => b != 0.0).ToString(CultureInfo.InvariantCulture));
-                    add("Length", N(p.Length));
-                    add("Area", N(p.Area));
+                case "GeoPolygonArc3":
+                    Measure_GeoPolygonArc3(shape, add);
                     break;
 
-                case GeoArc2 a:
-                    add("Radius", N(a.Radius));
-                    add("Swept angle", Deg(a.SweptAngle));
-                    add("Length", N(a.Length));
+                case "GeoArc2":
+                    Measure_GeoArc2(shape, add);
                     break;
 
-                case GeoArc3 a:
-                    add("Radius", N(a.Radius));
-                    add("Swept angle", Deg(a.SweptAngle));
-                    add("Length", N(a.Length));
+                case "GeoArc3":
+                    Measure_GeoArc3(shape, add);
                     break;
 
-                case GeoCircle2 c:
-                    add("Radius", N(c.Radius));
-                    add("Length", N(c.Length));
-                    add("Area", N(c.Area));
+                case "GeoCircle2":
+                    Measure_GeoCircle2(shape, add);
                     break;
 
-                case GeoCircle3 c:
-                    add("Radius", N(c.Radius));
-                    add("Length", N(c.Length));
-                    add("Area", N(c.Area));
+                case "GeoCircle3":
+                    Measure_GeoCircle3(shape, add);
                     break;
 
-                case GeoEllipse2 e:
-                    add("Major radius", N(e.MajorRadius));
-                    add("Minor radius", N(e.MinorRadius));
-                    add("Length", N(e.Length));
-                    add("Area", N(e.Area));
+                case "GeoEllipse2":
+                    Measure_GeoEllipse2(shape, add);
                     break;
 
-                case GeoEllipse3 e:
-                    add("Major radius", N(e.MajorRadius));
-                    add("Minor radius", N(e.MinorRadius));
-                    add("Length", N(e.Length));
-                    add("Area", N(e.Area));
+                case "GeoEllipse3":
+                    Measure_GeoEllipse3(shape, add);
                     break;
 
-                case GeoRectangle2 r:
-                    add("Width", N(r.Width));
-                    add("Height", N(r.Height));
-                    add("Angle", Deg(r.AngleRad));
-                    add("Area", N(r.Area));
+                case "GeoRectangle2":
+                    Measure_GeoRectangle2(shape, add);
                     break;
 
-                case GeoTriangle2 t:
-                    add("Length", N(t.Length));
-                    add("Area", N(t.Area));
+                case "GeoTriangle2":
+                    Measure_GeoTriangle2(shape, add);
                     break;
 
-                case GeoTriangle3 t:
-                    add("Length", N(t.Perimeter));
-                    add("Area", N(t.Area));
+                case "GeoTriangle3":
+                    Measure_GeoTriangle3(shape, add);
                     break;
 
-                case GeoFace2 f:
-                    add("Holes", f.Holes.Count.ToString(CultureInfo.InvariantCulture));
-                    add("Vertices", (f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)).ToString(CultureInfo.InvariantCulture));
-                    add("Length", N(f.Length));
-                    add("Area", N(f.Area));
+                case "GeoFace2":
+                    Measure_GeoFace2(shape, add);
                     break;
 
-                case GeoFace3 f:
-                    add("Holes", f.Holes.Count.ToString(CultureInfo.InvariantCulture));
-                    add("Vertices", (f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)).ToString(CultureInfo.InvariantCulture));
-                    add("Area", N(f.Area));
-                    add("Normal", N(f.Normal.X) + ", " + N(f.Normal.Y) + ", " + N(f.Normal.Z));
+                case "GeoFace3":
+                    Measure_GeoFace3(shape, add);
                     break;
 
-                case GeoSolid3 s:
-                    add("Faces", s.Faces.Count.ToString(CultureInfo.InvariantCulture));
-                    add("Openings", s.Openings.Count.ToString(CultureInfo.InvariantCulture));
-                    add("Vertices", s.Faces.Sum(f => f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)).ToString(CultureInfo.InvariantCulture));
-                    add("Closed", s.IsClosed() ? "yes" : "no");
-                    add("Volume", N(s.GetVolume()));
-                    add("Surface area", N(s.GetSurfaceArea()));
-                    GeoPoint3 centroid = s.GetCentroid();
-                    add("Centroid", N(centroid.X) + ", " + N(centroid.Y) + ", " + N(centroid.Z));
+                case "GeoSolid3":
+                    Measure_GeoSolid3(shape, add);
                     break;
 
-                case GeoPolygon2[] faces:
-                    add("Faces", faces.Length.ToString(CultureInfo.InvariantCulture));
-                    add("Area", N(faces.Sum(f => f.Area)));
+                case "GeoPolygon2[]":
+                    Measure_GeoPolygon2Array(shape, add);
                     break;
 
-                case GeoPolygon3[] faces:
-                    add("Faces", faces.Length.ToString(CultureInfo.InvariantCulture));
-                    add("Area", N(faces.Sum(f => f.Area)));
+                case "GeoPolygon3[]":
+                    Measure_GeoPolygon3Array(shape, add);
                     break;
 
-                case GeoAabb3 b:
-                    add("Size", N(b.SizeX) + " x " + N(b.SizeY) + " x " + N(b.SizeZ));
-                    add("Volume", N(b.Volume));
+                case "GeoAabb3":
+                    Measure_GeoAabb3(shape, add);
                     break;
 
-                case GeoObb3 b:
-                    add("Size", N(b.SizeX) + " x " + N(b.SizeY) + " x " + N(b.SizeZ));
-                    add("Volume", N(b.Volume));
+                case "GeoObb3":
+                    Measure_GeoObb3(shape, add);
                     break;
 
-                case GeoPlane3 p:
-                    add("Normal", N(p.Normal.X) + ", " + N(p.Normal.Y) + ", " + N(p.Normal.Z));
+                case "GeoPlane3":
+                    Measure_GeoPlane3(shape, add);
                     break;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPoint2(object shape, Action<string, string> add)
+        {
+            GeoPoint2 p = (GeoPoint2)shape;
+            add("X", N(p.X));
+            add("Y", N(p.Y));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPoint3(object shape, Action<string, string> add)
+        {
+            GeoPoint3 p = (GeoPoint3)shape;
+            add("X", N(p.X));
+            add("Y", N(p.Y));
+            add("Z", N(p.Z));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoLine2(object shape, Action<string, string> add)
+        {
+            GeoLine2 l = (GeoLine2)shape;
+            add("Length", N(l.Length));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoLine3(object shape, Action<string, string> add)
+        {
+            GeoLine3 l = (GeoLine3)shape;
+            add("Length", N(l.Length));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoRay2(object shape, Action<string, string> add)
+        {
+            GeoRay2 r = (GeoRay2)shape;
+            add("Direction", N(r.Direction.X) + ", " + N(r.Direction.Y));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoRay3(object shape, Action<string, string> add)
+        {
+            GeoRay3 r = (GeoRay3)shape;
+            add("Direction", N(r.Direction.X) + ", " + N(r.Direction.Y) + ", " + N(r.Direction.Z));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPolyline2(object shape, Action<string, string> add)
+        {
+            GeoPolyline2 p = (GeoPolyline2)shape;
+            add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
+            add("Length", N(p.Length));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPolyline3(object shape, Action<string, string> add)
+        {
+            GeoPolyline3 p = (GeoPolyline3)shape;
+            add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
+            add("Length", N(p.Length));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPolygon2(object shape, Action<string, string> add)
+        {
+            GeoPolygon2 p = (GeoPolygon2)shape;
+            add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
+            add("Length", N(p.Length));
+            add("Area", N(p.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPolygon3(object shape, Action<string, string> add)
+        {
+            GeoPolygon3 p = (GeoPolygon3)shape;
+            add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
+            add("Length", N(p.Length));
+            add("Area", N(p.Area));
+            add("Normal", N(p.Normal.X) + ", " + N(p.Normal.Y) + ", " + N(p.Normal.Z));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPolylineArc2(object shape, Action<string, string> add)
+        {
+            GeoPolylineArc2 p = (GeoPolylineArc2)shape;
+            add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
+            add("Arcs", p.Bulges.Count(b => b != 0.0).ToString(CultureInfo.InvariantCulture));
+            add("Length", N(p.Length));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPolygonArc2(object shape, Action<string, string> add)
+        {
+            GeoPolygonArc2 p = (GeoPolygonArc2)shape;
+            add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
+            add("Arcs", p.Bulges.Count(b => b != 0.0).ToString(CultureInfo.InvariantCulture));
+            add("Length", N(p.Length));
+            add("Area", N(p.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPolylineArc3(object shape, Action<string, string> add)
+        {
+            GeoPolylineArc3 p = (GeoPolylineArc3)shape;
+            add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
+            add("Arcs", p.Bulges.Count(b => b != 0.0).ToString(CultureInfo.InvariantCulture));
+            add("Length", N(p.Length));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPolygonArc3(object shape, Action<string, string> add)
+        {
+            GeoPolygonArc3 p = (GeoPolygonArc3)shape;
+            add("Vertices", p.VertexCount.ToString(CultureInfo.InvariantCulture));
+            add("Arcs", p.Bulges.Count(b => b != 0.0).ToString(CultureInfo.InvariantCulture));
+            add("Length", N(p.Length));
+            add("Area", N(p.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoArc2(object shape, Action<string, string> add)
+        {
+            GeoArc2 a = (GeoArc2)shape;
+            add("Radius", N(a.Radius));
+            add("Swept angle", Deg(a.SweptAngle));
+            add("Length", N(a.Length));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoArc3(object shape, Action<string, string> add)
+        {
+            GeoArc3 a = (GeoArc3)shape;
+            add("Radius", N(a.Radius));
+            add("Swept angle", Deg(a.SweptAngle));
+            add("Length", N(a.Length));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoCircle2(object shape, Action<string, string> add)
+        {
+            GeoCircle2 c = (GeoCircle2)shape;
+            add("Radius", N(c.Radius));
+            add("Length", N(c.Length));
+            add("Area", N(c.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoCircle3(object shape, Action<string, string> add)
+        {
+            GeoCircle3 c = (GeoCircle3)shape;
+            add("Radius", N(c.Radius));
+            add("Length", N(c.Length));
+            add("Area", N(c.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoEllipse2(object shape, Action<string, string> add)
+        {
+            GeoEllipse2 e = (GeoEllipse2)shape;
+            add("Major radius", N(e.MajorRadius));
+            add("Minor radius", N(e.MinorRadius));
+            add("Length", N(e.Length));
+            add("Area", N(e.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoEllipse3(object shape, Action<string, string> add)
+        {
+            GeoEllipse3 e = (GeoEllipse3)shape;
+            add("Major radius", N(e.MajorRadius));
+            add("Minor radius", N(e.MinorRadius));
+            add("Length", N(e.Length));
+            add("Area", N(e.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoRectangle2(object shape, Action<string, string> add)
+        {
+            GeoRectangle2 r = (GeoRectangle2)shape;
+            add("Width", N(r.Width));
+            add("Height", N(r.Height));
+            add("Angle", Deg(r.AngleRad));
+            add("Area", N(r.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoTriangle2(object shape, Action<string, string> add)
+        {
+            GeoTriangle2 t = (GeoTriangle2)shape;
+            add("Length", N(t.Length));
+            add("Area", N(t.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoTriangle3(object shape, Action<string, string> add)
+        {
+            GeoTriangle3 t = (GeoTriangle3)shape;
+            add("Length", N(t.Perimeter));
+            add("Area", N(t.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoFace2(object shape, Action<string, string> add)
+        {
+            GeoFace2 f = (GeoFace2)shape;
+            add("Holes", f.Holes.Count.ToString(CultureInfo.InvariantCulture));
+            add("Vertices", (f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)).ToString(CultureInfo.InvariantCulture));
+            add("Length", N(f.Length));
+            add("Area", N(f.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoFace3(object shape, Action<string, string> add)
+        {
+            GeoFace3 f = (GeoFace3)shape;
+            add("Holes", f.Holes.Count.ToString(CultureInfo.InvariantCulture));
+            add("Vertices", (f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)).ToString(CultureInfo.InvariantCulture));
+            add("Area", N(f.Area));
+            add("Normal", N(f.Normal.X) + ", " + N(f.Normal.Y) + ", " + N(f.Normal.Z));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoSolid3(object shape, Action<string, string> add)
+        {
+            GeoSolid3 s = (GeoSolid3)shape;
+            add("Faces", s.Faces.Count.ToString(CultureInfo.InvariantCulture));
+            add("Openings", s.Openings.Count.ToString(CultureInfo.InvariantCulture));
+            add("Vertices", s.Faces.Sum(f => f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)).ToString(CultureInfo.InvariantCulture));
+            add("Closed", s.IsClosed() ? "yes" : "no");
+            add("Volume", N(s.GetVolume()));
+            add("Surface area", N(s.GetSurfaceArea()));
+            GeoPoint3 centroid = s.GetCentroid();
+            add("Centroid", N(centroid.X) + ", " + N(centroid.Y) + ", " + N(centroid.Z));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPolygon2Array(object shape, Action<string, string> add)
+        {
+            GeoPolygon2[] faces = (GeoPolygon2[])shape;
+            add("Faces", faces.Length.ToString(CultureInfo.InvariantCulture));
+            add("Area", N(faces.Sum(f => f.Area)));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPolygon3Array(object shape, Action<string, string> add)
+        {
+            GeoPolygon3[] faces = (GeoPolygon3[])shape;
+            add("Faces", faces.Length.ToString(CultureInfo.InvariantCulture));
+            add("Area", N(faces.Sum(f => f.Area)));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoAabb3(object shape, Action<string, string> add)
+        {
+            GeoAabb3 b = (GeoAabb3)shape;
+            add("Size", N(b.SizeX) + " x " + N(b.SizeY) + " x " + N(b.SizeZ));
+            add("Volume", N(b.Volume));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoObb3(object shape, Action<string, string> add)
+        {
+            GeoObb3 b = (GeoObb3)shape;
+            add("Size", N(b.SizeX) + " x " + N(b.SizeY) + " x " + N(b.SizeZ));
+            add("Volume", N(b.Volume));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoPlane3(object shape, Action<string, string> add)
+        {
+            GeoPlane3 p = (GeoPlane3)shape;
+            add("Normal", N(p.Normal.X) + ", " + N(p.Normal.Y) + ", " + N(p.Normal.Z));
         }
     }
 }

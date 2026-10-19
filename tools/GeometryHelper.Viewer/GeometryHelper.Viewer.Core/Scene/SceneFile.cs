@@ -46,6 +46,12 @@ namespace GeometryHelper.Viewer
             {
                 w.WriteStartObject();
                 w.WriteString("name", item.Name);
+
+                if (item.AutoName)
+                {
+                    w.WriteBoolean("auto", true);
+                }
+
                 w.WriteString("layer", item.Layer);
 
                 if (item.Color != null)
@@ -182,6 +188,7 @@ namespace GeometryHelper.Viewer
                     var item = new SceneItem
                     {
                         Name = String(element, "name"),
+                        AutoName = element.TryGetProperty("auto", out JsonElement auto) && auto.ValueKind == JsonValueKind.True,
                         Layer = String(element, "layer") ?? string.Empty,
                         Color = ItemColor(String(element, "color")),
                         Kind = kind,

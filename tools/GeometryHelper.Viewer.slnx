@@ -1,6 +1,8 @@
 <Solution>
   <Folder Name="/tools/">
     <Project Path="GeometryHelper.Viewer/GeometryHelper.Viewer.Core/GeometryHelper.Viewer.Core.csproj" />
+    <Project Path="GeometryHelper.Viewer/GeometryHelper.Viewer.Scripting/GeometryHelper.Viewer.Scripting.csproj" />
+    <Project Path="GeometryHelper.Viewer/GeometryHelper.Viewer.Runner/GeometryHelper.Viewer.Runner.csproj" />
     <Project Path="GeometryHelper.Viewer/GeometryHelper.Viewer/GeometryHelper.Viewer.csproj" />
     <Project Path="GeometryHelper.Viewer/GeometryHelper.Viewer.Tests/GeometryHelper.Viewer.Tests.csproj" />
   </Folder>

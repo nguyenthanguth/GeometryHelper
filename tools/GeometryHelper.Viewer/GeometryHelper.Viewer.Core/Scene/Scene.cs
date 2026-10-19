@@ -191,6 +191,12 @@ namespace GeometryHelper.Viewer
         public string Name { get; set; }
 
         /// <summary>
+        /// Gets or sets whether <see cref="Name"/> was made up by the writer (the kind and a number) because the script gave none. Such a name says only
+        /// how many items of the kind came before, so it is not what two scenes are paired by.
+        /// </summary>
+        public bool AutoName { get; set; }
+
+        /// <summary>
         /// Gets or sets the name of the layer the item is on.
         /// </summary>
         public string Layer { get; set; }

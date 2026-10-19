@@ -93,6 +93,11 @@ namespace GeometryHelper.Viewer
             new KeymapAction("Screenshot", "Save the view as a picture.", false),
             new KeymapAction("OpenFile", "Open a script or a scene file.", true),
             new KeymapAction("SaveSceneAs", "Save the scene as a file.", true),
+            new KeymapAction("Compare", "Compare a script run against two builds of the library.", true),
+            new KeymapAction("CompareLeft", "In a comparison, show the left side and what both sides share.", true),
+            new KeymapAction("CompareRight", "In a comparison, show the right side and what both sides share.", true),
+            new KeymapAction("CompareBoth", "In a comparison, show both sides over each other.", true),
+            new KeymapAction("ExportTest", "Write a test skeleton for the selected items to the clipboard and a file.", true),
         };
 
         /// <summary>

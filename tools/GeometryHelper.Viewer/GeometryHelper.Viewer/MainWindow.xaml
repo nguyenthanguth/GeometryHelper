@@ -18,6 +18,7 @@
                 <MenuItem Header="_Reload" Tag="RerunScript" Click="OnMenuAction" />
                 <MenuItem x:Name="RecentMenu" Header="Recent _files" />
                 <MenuItem Header="_Save scene as..." Tag="SaveSceneAs" Click="OnMenuAction" />
+                <MenuItem Header="_Compare..." Tag="Compare" Click="OnMenuAction" />
                 <Separator />
                 <MenuItem Header="E_xit" Click="OnExit" />
             </MenuItem>
@@ -55,12 +56,23 @@
                 <MenuItem x:Name="SnapIntersectionMenu" Header="Snap to _intersection" Tag="SnapIntersection" IsCheckable="True" Click="OnSnapMenu" />
                 <MenuItem x:Name="SnapCentreMenu" Header="Snap to _centre" Tag="SnapCentre" IsCheckable="True" Click="OnSnapMenu" />
                 <MenuItem x:Name="SnapNearestMenu" Header="Snap to _nearest" Tag="SnapNearest" IsCheckable="True" Click="OnSnapMenu" />
+                <Separator />
+                <MenuItem Header="E_xport test..." Tag="ExportTest" Click="OnMenuAction" />
             </MenuItem>
             <MenuItem Header="_Diagnostics">
                 <MenuItem x:Name="DiagnosticsMenu" Header="_Pane" Tag="ToggleDiagnostics" IsCheckable="True" Click="OnDiagnosticsPaneMenu" />
                 <MenuItem Header="_Run the ticked checks" Click="OnDiagRun" />
                 <MenuItem Header="_Cancel the run" Click="OnDiagCancel" />
                 <MenuItem Header="C_lear the findings and the drawing" Click="OnDiagClear" />
+            </MenuItem>
+            <MenuItem Header="C_ompare">
+                <MenuItem Header="_Left only" Tag="CompareLeft" Click="OnMenuAction" />
+                <MenuItem Header="_Right only" Tag="CompareRight" Click="OnMenuAction" />
+                <MenuItem Header="_Both" Tag="CompareBoth" Click="OnMenuAction" />
+                <Separator />
+                <MenuItem Header="Run _again" Click="OnCompareRerun" />
+                <MenuItem x:Name="CompareWatchMenu" Header="Run a side again when its _DLL changes" IsCheckable="True" IsChecked="True" Click="OnCompareWatchToggled" />
+                <MenuItem Header="_Leave the comparison" Click="OnCompareLeave" />
             </MenuItem>
             <MenuItem Header="_Script">
                 <MenuItem Header="_Run" Tag="RunScript" Click="OnMenuAction" />
@@ -160,11 +172,51 @@
                                Padding="12,5" Background="#E0FFFFFF" FontSize="14" Text="Running the script... Esc to stop" />
                 </Grid>
                 <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" />
-                <DockPanel Grid.Row="2">
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PaneHeader}" Text="Output" />
-                    <TextBox x:Name="Output" IsReadOnly="True" BorderThickness="0" FontFamily="Consolas" FontSize="12" TextWrapping="NoWrap"
-                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
-                </DockPanel>
+                <TabControl x:Name="BottomTabs" Grid.Row="2" Padding="0" BorderThickness="0,1,0,0">
+                    <TabItem x:Name="OutputTab" Header="Output">
+                        <TextBox x:Name="Output" IsReadOnly="True" BorderThickness="0" FontFamily="Consolas" FontSize="12" TextWrapping="NoWrap"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+                    </TabItem>
+                    <TabItem x:Name="CompareTab" Header="Compare" Visibility="Collapsed">
+                        <DockPanel>
+                            <WrapPanel DockPanel.Dock="Top" Margin="4,4,4,2">
+                                <TextBlock x:Name="CompareSummary" VerticalAlignment="Center" Margin="0,0,12,2" Text="" />
+                                <Button Content="Left (1)" Padding="10,2" Margin="0,0,4,2" Click="OnCompareLeft" ToolTip="Show the left side and what both sides share" />
+                                <Button Content="Right (2)" Padding="10,2" Margin="0,0,4,2" Click="OnCompareRight" ToolTip="Show the right side and what both sides share" />
+                                <Button Content="Both (3)" Padding="10,2" Margin="0,0,12,2" Click="OnCompareBoth" ToolTip="Show both sides over each other" />
+                                <Button Content="Run again" Padding="10,2" Margin="0,0,4,2" Click="OnCompareRerun" />
+                                <Button Content="Leave" Padding="10,2" Margin="0,0,4,2" Click="OnCompareLeave" ToolTip="Stop comparing; the scene stays as it is" />
+                            </WrapPanel>
+                            <ListView x:Name="CompareList" BorderThickness="0,1,0,0" SelectionMode="Single" SelectionChanged="OnCompareRowSelected"
+                                      PreviewMouseLeftButtonDown="OnCompareMouseDown" PreviewMouseLeftButtonUp="OnCompareMouseUp">
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="Foreground" Value="{Binding Foreground}" />
+                                        <Setter Property="ToolTip" Value="{Binding Difference}" />
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="#" Width="36" DisplayMemberBinding="{Binding Number}" />
+                                        <GridViewColumn Header="Status" Width="190" DisplayMemberBinding="{Binding Status}" />
+                                        <GridViewColumn Header="Layer" Width="90" DisplayMemberBinding="{Binding Layer}" />
+                                        <GridViewColumn Header="Item" Width="150" DisplayMemberBinding="{Binding Item}" />
+                                        <GridViewColumn Header="Kind" Width="100" DisplayMemberBinding="{Binding Kind}" />
+                                        <GridViewColumn Header="Vertices L / R" Width="90" DisplayMemberBinding="{Binding Vertices}" />
+                                        <GridViewColumn Header="Length L" Width="90" DisplayMemberBinding="{Binding LengthLeft}" />
+                                        <GridViewColumn Header="Length R" Width="90" DisplayMemberBinding="{Binding LengthRight}" />
+                                        <GridViewColumn Header="Area L" Width="90" DisplayMemberBinding="{Binding AreaLeft}" />
+                                        <GridViewColumn Header="Area R" Width="90" DisplayMemberBinding="{Binding AreaRight}" />
+                                        <GridViewColumn Header="Volume L" Width="90" DisplayMemberBinding="{Binding VolumeLeft}" />
+                                        <GridViewColumn Header="Volume R" Width="90" DisplayMemberBinding="{Binding VolumeRight}" />
+                                        <GridViewColumn Header="Bit-identical" Width="80" DisplayMemberBinding="{Binding Identical}" />
+                                        <GridViewColumn Header="Difference" Width="600" DisplayMemberBinding="{Binding Difference}" />
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </DockPanel>
+                    </TabItem>
+                </TabControl>
             </Grid>
 
             <GridSplitter x:Name="PropertiesSplitter" Grid.Column="3" Width="5" HorizontalAlignment="Stretch" />

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The part of the viewer that has no window in it: the script host, which the app and the runner both use, and what runs
+       another build of the library in a child process. net8.0 and not netstandard because it kills a whole tree of processes. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>GeometryHelper.Viewer</RootNamespace>
+    <AssemblyName>GeometryHelper.Viewer.Scripting</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GeometryHelper.Viewer.Core\GeometryHelper.Viewer.Core.csproj" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="GeometryHelper.Viewer.Tests" />
+  </ItemGroup>
+
+</Project>

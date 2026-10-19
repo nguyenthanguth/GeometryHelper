@@ -118,6 +118,12 @@ namespace GeometryHelper.Viewer
             // The arrow keys move through the tree and the properties when one of them has the focus.
             bool navigating = Keyboard.FocusedElement is TreeViewItem || Keyboard.FocusedElement is ListViewItem || Keyboard.FocusedElement is TextBox;
 
+            // 1, 2 and 3 choose the side of a comparison; with none open they are only keys.
+            if (_compare == null && (action == "CompareLeft" || action == "CompareRight" || action == "CompareBoth"))
+            {
+                return;
+            }
+
             if (navigating && modifiers == ModifierKeys.None && (name == "Left" || name == "Right" || name == "Up" || name == "Down" || name == "PageUp" || name == "PageDown" || name == "F" || name == "V"))
             {
                 return;
@@ -195,10 +201,16 @@ namespace GeometryHelper.Viewer
                         }
                         else
                         {
-                            _ = OpenFileAsync(_currentPath);
+                            RerunCurrent();
                         }
 
                         break;
+
+                    case "Compare": ShowCompareDialog(); break;
+                    case "CompareLeft": SetCompareView(CompareView.Left); break;
+                    case "CompareRight": SetCompareView(CompareView.Right); break;
+                    case "CompareBoth": SetCompareView(CompareView.Both); break;
+                    case "ExportTest": _ = ExportTestAsync(null); break;
 
                     case "ToggleDiagnostics": ToggleDiagnosticsPane(); break;
 
@@ -206,6 +218,15 @@ namespace GeometryHelper.Viewer
                         // A diagnostic run is stopped before anything else; then a tool in use, or the dimensions it drew; a script that is running is stopped before those.
                         if (CancelDiagnostics())
                         {
+                            break;
+                        }
+
+                        // A comparison under way is stopped next: its child processes and the ones they started are killed.
+                        if (_compareCts != null)
+                        {
+                            _compareCts.Cancel();
+                            SetMessage("stopping the comparison...");
+                            Log("Stop asked for: the processes the comparison started are being killed.");
                             break;
                         }
 

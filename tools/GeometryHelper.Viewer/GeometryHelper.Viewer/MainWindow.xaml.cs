@@ -66,6 +66,7 @@ namespace GeometryHelper.Viewer
             };
             Tree.ItemsSource = _roots;
             PropertiesList.ItemsSource = _rows;
+            CompareList.ItemsSource = _compareRows;
 
             ApplySettings();
             BuildDiagnosticsPane();
@@ -107,6 +108,7 @@ namespace GeometryHelper.Viewer
             SetPropertiesPane(_settings.ShowProperties);
             GridMenu.IsChecked = _settings.Grid;
             WatchMenu.IsChecked = _settings.RerunOnSave;
+            CompareWatchMenu.IsChecked = _settings.CompareWatch;
 
             if (Enum.TryParse(_settings.RenderMode, out RenderMode mode))
             {
@@ -177,6 +179,8 @@ namespace GeometryHelper.Viewer
         private void OnClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             _running?.Cancel();
+            _compareCts?.Cancel();
+            LeaveCompare(false);
             _watcher?.Dispose();
 
             if (!_command.Headless)
@@ -199,6 +203,7 @@ namespace GeometryHelper.Viewer
                 _settings.RenderMode = _sceneView.Mode.ToString();
                 _settings.Grid = GridMenu.IsChecked == true;
                 _settings.RerunOnSave = WatchMenu.IsChecked == true;
+                _settings.CompareWatch = CompareWatchMenu.IsChecked == true;
                 _settings.Save();
             }
 
@@ -241,6 +246,13 @@ namespace GeometryHelper.Viewer
             if (!File.Exists(path))
             {
                 Log("No such file: " + path);
+                return false;
+            }
+
+            if (_compareCts != null)
+            {
+                SetMessage("a comparison is running (Esc to stop)");
+                Log("A comparison is running; press Esc to stop it before opening another file.");
                 return false;
             }
 
@@ -305,7 +317,8 @@ namespace GeometryHelper.Viewer
                     Log("warning: the kind '" + kind + "' is kept but not drawn.");
                 }
 
-                bool sameFile = string.Equals(_currentPath, path, StringComparison.OrdinalIgnoreCase);
+                bool sameFile = string.Equals(_currentPath, path, StringComparison.OrdinalIgnoreCase) && _compare == null;
+                LeaveCompare(false);
                 _currentPath = path;
                 Title = (string.IsNullOrEmpty(result.Scene.Title) ? Path.GetFileName(path) : result.Scene.Title) + " - GeometryHelper Viewer";
                 _sceneView.Show(result.Scene, primitives);
@@ -363,11 +376,26 @@ namespace GeometryHelper.Viewer
                     if (_currentPath != null && WatchMenu.IsChecked == true)
                     {
                         Log("The file changed while it ran.");
-                        _ = Dispatcher.BeginInvoke(new Action(() => _ = OpenFileAsync(_currentPath)));
+                        _ = Dispatcher.BeginInvoke(new Action(() => RerunCurrent()));
                     }
                 }
             }
         }
+        /// <summary>
+        /// Runs the open script again: the comparison again where one is open, otherwise the script in the window.
+        /// </summary>
+        private void RerunCurrent()
+        {
+            if (_compare != null)
+            {
+                RerunCompare();
+            }
+            else if (_currentPath != null)
+            {
+                _ = OpenFileAsync(_currentPath);
+            }
+        }
+
         private void RebuildRecentMenu()
         {
             RecentMenu.Items.Clear();
@@ -468,14 +496,14 @@ namespace GeometryHelper.Viewer
                         {
                             _watchTimer.Stop();
 
-                            if (_running != null)
+                            if (_running != null || _compareCts != null)
                             {
                                 _rerunQueued = true;
                             }
                             else if (_currentPath != null)
                             {
                                 Log("The file changed.");
-                                _ = OpenFileAsync(_currentPath);
+                                RerunCurrent();
                             }
                         };
                     }

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Runs one script and writes the scene it builds. The viewer copies this folder once for each build of the library it compares,
+       puts that build's GeometryHelper.dll in it, and starts it as a child process. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>GeometryHelper.Viewer.Runner</RootNamespace>
+    <AssemblyName>GeometryHelper.Viewer.Runner</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GeometryHelper.Viewer.Scripting\GeometryHelper.Viewer.Scripting.csproj" />
+  </ItemGroup>
+
+</Project>
