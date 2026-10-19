@@ -59,6 +59,7 @@ namespace GeometryHelper.Viewer.Tests
         [InlineData("Ctrl+Shift+H", "ShowAll")]
         [InlineData("DoubleClick", "Properties")]
         [InlineData("Alt+Enter", "Properties")]
+        [InlineData("Ctrl+D", "ToggleDiagnostics")]
         [InlineData("F2", "MeasureDistance")]
         [InlineData("F12", "SnapNearest")]
         [InlineData("F5", "RunScript")]

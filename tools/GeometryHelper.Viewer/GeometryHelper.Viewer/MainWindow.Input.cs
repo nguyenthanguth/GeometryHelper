@@ -200,8 +200,15 @@ namespace GeometryHelper.Viewer
 
                         break;
 
+                    case "ToggleDiagnostics": ToggleDiagnosticsPane(); break;
+
                     case "Cancel":
-                        // A tool in use, or the dimensions it drew, end first; a script that is running is stopped before either.
+                        // A diagnostic run is stopped before anything else; then a tool in use, or the dimensions it drew; a script that is running is stopped before those.
+                        if (CancelDiagnostics())
+                        {
+                            break;
+                        }
+
                         if (_running == null && EndTools())
                         {
                             break;
@@ -407,6 +414,7 @@ namespace GeometryHelper.Viewer
 
             // Labels keep a readable size at any zoom, and the snap under a mouse that is still follows the scene moving beneath it.
             _sceneView.UpdateLabels(MakeMap());
+            ScheduleLens();
 
             if (_lastMouse.HasValue && _dragButton == null)
             {

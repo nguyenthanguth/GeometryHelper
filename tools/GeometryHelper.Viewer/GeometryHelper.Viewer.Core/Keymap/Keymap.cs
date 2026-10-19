@@ -79,6 +79,7 @@ namespace GeometryHelper.Viewer
             new KeymapAction("HideSelected", "Hide the selected items.", true),
             new KeymapAction("ShowAll", "Show every item again.", true),
             new KeymapAction("Properties", "Show the properties of the selection.", true),
+            new KeymapAction("ToggleDiagnostics", "Show or hide the diagnostics pane.", true),
             new KeymapAction("MeasureDistance", "Measure a distance between two points.", true),
             new KeymapAction("MeasureAngle", "Measure an angle.", true),
             new KeymapAction("MeasureRadius", "Measure a radius.", true),

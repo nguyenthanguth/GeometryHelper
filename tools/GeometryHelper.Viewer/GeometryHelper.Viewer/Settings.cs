@@ -63,6 +63,21 @@ namespace GeometryHelper.Viewer
         public bool ShowProperties { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets whether the diagnostics pane is shown.
+        /// </summary>
+        public bool ShowDiagnostics { get; set; }
+
+        /// <summary>
+        /// Gets or sets the width of the diagnostics pane.
+        /// </summary>
+        public double DiagnosticsWidth { get; set; } = 440.0;
+
+        /// <summary>
+        /// Gets or sets the checks that are ticked in the diagnostics pane, as the number of the flags; the defaults of the options where it is not set.
+        /// </summary>
+        public int? DiagnosticsTicked { get; set; }
+
+        /// <summary>
         /// Gets or sets the folder a file was last opened from.
         /// </summary>
         public string LastFolder { get; set; }

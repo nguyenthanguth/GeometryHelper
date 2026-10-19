@@ -41,6 +41,10 @@ The commands are `select 0 2`, `hover P`, `box P P [add|toggle]`, `band P P` (th
 followed by `click P`, `keys ZoomIn F8` (the action names of the keymap), and `wait 500` (milliseconds, for the library to answer). A place P is two numbers, pixels of the 3D view, or one word `@x,y,z`, a point
 of the scene taken to where it shows: `--do "mode distance; click @60,60,0; click @150,60,0"` measures between two points of a scene with no hand on the mouse.
 
+The diagnostics have three more: `diag edges crossings` runs the named checks (`all` for every one, none for the ones ticked in the pane) on the selected items, or on every item when
+none is selected, waits for the run, and writes each finding to the output pane; a last word `own` leaves the library out and makes the viewer's own checks alone. `diagshow 3` does what a click on the third finding does (selects its item, zooms to the spot, marks it) and
+`diagclear` takes the findings and their drawing off. `--do "select 10 11; diag gap" --view top` gives the gap of two items drawn larger in the picture.
+
 `--check` and `--screenshot` do not read or write the settings of the user.
 
 ## What the window holds
@@ -120,6 +124,7 @@ keep theirs. A gesture is written `Ctrl+Shift+H`, `Wheel`, `Ctrl+MiddleDrag`, `D
 | Cancel | Esc: stops a script that is running; else ends the measuring and clears its dimensions; else clears the selection |
 | Hide selected / show all | Ctrl+H / Ctrl+Shift+H |
 | Properties | Double-click, or Alt+Enter |
+| Diagnostics pane | Ctrl+D |
 | Run the script / run it again | F5 / Ctrl+R (File > Reload does the same) |
 | Open / save the scene as | Ctrl+O / Ctrl+S |
 | Screenshot | Ctrl+Shift+S: bound, and not in this version |
@@ -177,6 +182,50 @@ the two shapes rebuilt from the scene, and `GetShortestLineTo`, whose segment is
 the distance between two points on two shapes is not the distance between the shapes. With exactly two items selected, F2 asks the library alone about
 them. Where the library has no call between the two kinds, the output says so; where a call exists on only one of the two, the other is turned round.
 
+## Diagnostics
+
+Ctrl+D (Diagnostics > Pane) opens the pane on the right. Each check in it is a tick box; **Run** makes the ticked ones on the selected items, or on every item
+when none is selected, on a thread of its own, with the library at the tolerance of the scene (`Tolerance.Use` on that thread). **Cancel**, or Esc, stops it,
+and a new run stops and replaces the one before. Nothing runs again when the selection changes: the pane shows what the last run found. The findings are listed
+with a number, the item, the kind and a line of text in which every number is written to ten significant digits and the member that gave it is named in
+brackets: `GeoSolid3.Validate() OpenEdge` where the library read it, `viewer: ...` where the viewer's own check did. A fault is red and a fact is grey.
+Clicking a finding selects its item, zooms to the spot (the spot is at least 20 times `EqualPoint` across, so a needle 0.0005 wide is in view) and marks
+it with a green cross; clicking the finding already selected zooms to it again. What a check draws is drawn in front of the scene, in its own colour, until
+**Clear** or until another scene is opened.
+
+| Check | Finds | Read by | Drawn |
+|---|---|---|---|
+| Edges | an edge of a body or mesh used by one face (open), by three or more (non-manifold), or run the same way by the two faces on it (inconsistent winding); open edges of a body that lie along one line are counted by stretch, as the library counts: the line is cut at every end of every edge on it and on each piece the edges one way and the other are counted; a piece with as many each way is met (a T-junction where the line was cut, a fact), one with an odd number of faces is open or non-manifold, one with an even and unequal number is run the same way (so a side cut at thirds under a whole top and a second top cut at halves, 1 one way against 2 the other, is 4 stretches of 3 faces, faults, as `Validate()` says) | a body: `GeoSolid3.Validate()` (its stretches of edge, by overlap); a mesh and a body the library refuses: the viewer's count of the faces on each edge, with the T-junction rule for a body. Edges four or more faces meet on as many one way as the other are a fact (the body is valid), the rest of these are faults, and so is an open edge of a body but not the outline of a mesh | red, magenta, orange, olive lines |
+| Body report | `Validate()` valid or not, `IsClosed()`, whether the faces are wound alike, the signed volume (negative: wound inwards), `GetVolume()`, and how many of each kind of issue; the openings of a body are asked as bodies of their own | `GeoSolid3.Validate()`, `IsClosed()`, `TryGetVolume()` | text |
+| Face normals | the normal of each face of a body, a mesh or a flat shape in space, from the right-hand rule round its outline | the viewer | arrows |
+| Faces not flat | a face with a corner further off its plane than `EqualPlanar`, measured as the library measures it: the distance from the plane through the first corner of the outline, with the right-hand normal of the outline, of every corner of the outline and the holes; a triangle with no hole is not measured | a body: `Validate()` (`NotFlatFace`); otherwise the viewer, by the same rule, and so for each face of a body the library refuses at construction (the finding says so and names the face that made it refuse) | the outline of the face |
+| Loops crossing themselves | a loop of a polygon, chain, face or body that crosses or touches itself, with the points, and a hole of a face that crosses or touches its outline or another hole; two edges meet where they come within `EqualPoint`; a meeting is a crossing where one passes from one side of the other, a touch where an end of one lies on the other, and a tangent where they come within `EqualPoint` without changing side (all three are faults: `IsSimple()` says no to each); meetings within `EqualPoint` of one another, joined in any chain, are one place; edges joined by edges no longer than `EqualPoint` do not count as meeting where they join | the viewer's exact curves (`CurveIntersections`, arcs exact), with `IsSimple()` of the polygon asked beside it: the finding says whether it agrees. A loop on its own is asked of the library always; a face of a body, of which there can be thousands, only when the viewer finds it crossing itself | a dot |
+| Winding | which way each loop runs: signed area, clockwise or not; a hole that runs the same way as its outline is a fact, not a fault, since the library stores the holes of a `GeoFace3` that way (its constructor turns a hole that runs against the outline) and reads a hole of a `GeoFace2` either way | `GeoPolygon2` and `GeoPolygonArc2`: `SignedArea`, `IsClockwise`; the rest the viewer | an arrow on each edge, up to 64 to a loop |
+| Duplicate vertices | two vertices of a loop, or two corners of a body's faces, or two vertices of a mesh, closer than `EqualPoint`; in a body corners that are the same point to the bit, or within 64 units in the last place of the largest coordinate (rounding), are one corner and are told of nothing, and before the sweep they are made one, so that a cone's apex 16 000 faces share costs 16 000 points and not 128 million pairs. In a body the library calls valid (`Validate()`, asked whenever Duplicates is ticked for a body) the corners it welds are a fact; otherwise a fault. At a scene tolerance finer than the rounding of the numbers, crossings use the tolerance `CurveIntersections` raises it to, 16 units in the last place | the viewer | a segment and a dot |
+| Needle spikes | a vertex where the loop turns back by more than 179.9 degrees, from the tangents of the exact curves; a tip given twice is one tip. It is a fault where the spike is no wider than `EqualPoint` where its shorter edge ends (that edge times the sine of the angle between the two), and a fact where it is wider though it turns back as far: the 4 000 thin faces of a cone the library calls valid turn back by 179.92 degrees at the apex and are 1.57 wide. The facts of an item are one line with the count and the narrowest; the faults stay listed. A loop that is itself a sliver is told as the sliver and not as a needle at each corner when the Slivers check is on | the viewer | a dot, the two edges |
+| Slivers | a loop or triangle whose area is under `EqualPoint` times its longest edge (not asked of a loop that crosses itself, whose signed area is a difference); a face of a body: the library's `SliverFace`, whose rule is different: the area at most half of `EqualPoint` times the perimeter, that is an average width, twice the area over the perimeter, of no more than `EqualPoint` | the viewer; for a body `Validate()` | the outline |
+| Gap | the library's `DistanceTo` and `GetShortestLineTo` between exactly two selected items, and the magnifier below | `DistanceTo`, `GetShortestLineTo` | the shortest segment, the lens |
+| Tolerance spheres | a sphere of radius `EqualPoint` round each vertex (three great circles), the first 200 in order of place; another vertex inside a sphere is the same point to the library | the viewer | circles |
+| Pieces | the items of each layer, in the order of the scene, coloured one by one by their number in the layer, with the number and the area (the volume of a body, the length of a chain) | `Area`, `TryGetVolume`, `Length` of the shape | the outline in a colour, a label |
+
+The viewer's own count of the faces on an edge welds corners within `EqualPoint` into one and matches two edges by their welded ends, as a mesh does by its
+indexes, and then matches by overlap what is left open in a body, as the library does: the T-junction rule in the table. The edges of a **mesh** are the viewer's alone, since the library has no reading of a
+mesh, and the outline of a mesh is open edges by the count, not faults: only the non-manifold and the inconsistently wound edges of a mesh are.
+Switching the library off (`--do "diag edges own"`) makes the viewer's count of a body and lets the two be compared; they agree on the box with its top left out
+(4 open edges), the box with a face turned over (4 same-way edges) and the box with a fin (1 non-manifold edge and 3 open), and on 400 grid unions and cuts of boxes, where the viewer's count finds no fault in a body the library calls valid.
+
+Every list is in a fixed order and none follows a hash table: the findings of an item by check, kind, place (x, then y, then z), size and text; the items in the order of
+the scene. At most 200 findings of one kind are kept for an item (`DiagnosticOptions.MaxFindingsPerKind`), with a note giving the number left out, and what
+they drew is left out with them. Loops and edges are swept along the axis with the fewest candidate pairs, counted first, so that a loop 100 000 long and 1 wide is not
+searched quadratically.
+
+**The gap magnifier.** A gap of 0.0034 between two squares in a view where a pixel is 0.3 is a hundredth of a pixel. The lens draws the lines of the two items
+within 100 pixels of the middle of the gap, and the gap between them, scaled about that middle by the power of ten, from 10 to 1 000 000, that brings the gap
+nearest to 40 pixels; a gap of 12.7 pixels or more is already seen and is not scaled. The label gives the true number and the scale (`gap 0.0034  drawn x10000`). The
+scale is chosen again a quarter of a second after the view stops moving, when the zoom has changed it. A segment is cut to the window and scaled; an arc or a circle is cut again from its own numbers into chords so fine that none is more than a tenth of a pixel from the curve once scaled (at most 4 096 chords), not scaled from the chords the view draws it with, which are a tenth of EqualPoint from the curve and would show as facets at 10 000 times.
+
+The ticked checks, the width of the pane and whether it is open are kept in the settings.
+
 ## Scripts
 
 A `.csx` file is C# with these globals; the library's namespaces, `System`, `System.Linq` and `System.Collections.Generic` are
@@ -217,6 +266,7 @@ space), arcs, circles, ellipses, rectangles, triangles, faces, bodies with their
 | `curved-offset-joins.csx` | a loop with two arcs offset outward and inward with the round, miter and chamfer joins, each on its own layer |
 | `mesh.csx` | an L-shaped plate as triangles, convex pieces and a grid, and tilted in space |
 | `snaps-and-measuring.csx` | a plate 200 by 120 with a rounded corner, a hole, two crossing lines and an arc, with things to try the snaps, the measuring and the box select on |
+| `diagnostics.csx` | one of each fault the diagnostics look for: an open box, a box with a face turned over, a fin on a box, a mesh with a triangle turned over, a bow tie, a needle, a doubled corner, a sliver, arcs that cross, a face off flat, two squares 0.0034 apart, and three pieces on a layer |
 
 ## Scene files
 

@@ -35,6 +35,7 @@
     { "action": "HideSelected", "gestures": ["Ctrl+H"] },
     { "action": "ShowAll", "gestures": ["Ctrl+Shift+H"] },
     { "action": "Properties", "gestures": ["DoubleClick", "Alt+Enter"] },
+    { "action": "ToggleDiagnostics", "gestures": ["Ctrl+D"] },
     { "action": "MeasureDistance", "gestures": ["F2"] },
     { "action": "MeasureAngle", "gestures": ["F3"] },
     { "action": "MeasureRadius", "gestures": ["F4"] },

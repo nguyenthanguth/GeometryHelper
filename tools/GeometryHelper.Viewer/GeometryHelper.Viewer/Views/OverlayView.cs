@@ -32,6 +32,9 @@ namespace GeometryHelper.Viewer.Views
         private List<DimensionDrawing> _drawings = new List<DimensionDrawing>();
         private Vec3? _centre;
         private Vec3? _snapAt;
+        private DiagnosticOverlay _diagnostics;
+        private DiagnosticOverlay _lens;
+        private Vec3? _marker;
 
         /// <summary>
         /// Initializes the overlay over a viewport.
@@ -62,6 +65,36 @@ namespace GeometryHelper.Viewer.Views
         public void SetDrawings(IEnumerable<DimensionDrawing> drawings)
         {
             _drawings = drawings.ToList();
+            Rebuild();
+        }
+
+        /// <summary>
+        /// Shows what the diagnostics found, in the colours of the checks, or takes it away.
+        /// </summary>
+        /// <param name="overlay">The strokes, dots and labels of a report, or null.</param>
+        public void SetDiagnostics(DiagnosticOverlay overlay)
+        {
+            _diagnostics = overlay;
+            Rebuild();
+        }
+
+        /// <summary>
+        /// Shows the gap magnifier, or takes it away.
+        /// </summary>
+        /// <param name="lens">The magnified gap, or null.</param>
+        public void SetLens(DiagnosticOverlay lens)
+        {
+            _lens = lens;
+            Rebuild();
+        }
+
+        /// <summary>
+        /// Marks the finding that was clicked, or takes the mark away.
+        /// </summary>
+        /// <param name="at">Where the finding is, or null.</param>
+        public void SetMarker(Vec3? at)
+        {
+            _marker = at;
             Rebuild();
         }
 
@@ -123,7 +156,16 @@ namespace GeometryHelper.Viewer.Views
             Lines(_drawings.SelectMany(d => d.LibraryLines), LibraryColor, 2.6, Rel);
             Points(_drawings.SelectMany(d => d.Points), DimensionColor, PointFigure.Ellipse, 9.0, Rel);
 
-            var labels = _drawings.SelectMany(d => d.Labels).ToList();
+            DrawDiagnostics(_diagnostics, Rel);
+            DrawDiagnostics(_lens, Rel);
+
+            if (_marker.HasValue)
+            {
+                // A cross, which hides little of what it marks: the tolerance spheres and the vertices under it stay in sight.
+                Points(new[] { _marker.Value }, ParseColor(DiagnosticColors.Marker, DimensionColor), PointFigure.Cross, 40.0, Rel);
+            }
+
+            var labels = _drawings.SelectMany(d => d.Labels).Concat(_diagnostics?.Labels ?? new List<DrawLabel>()).Concat(_lens?.Labels ?? new List<DrawLabel>()).ToList();
 
             if (labels.Count > 0)
             {
@@ -165,8 +207,36 @@ namespace GeometryHelper.Viewer.Views
             _drawings = new List<DimensionDrawing>();
             _centre = null;
             _snapAt = null;
+            _diagnostics = null;
+            _lens = null;
+            _marker = null;
             _snapMarker.Visibility = Visibility.Collapsed;
             Rebuild();
+        }
+
+        private static Color ParseColor(string text, Color fallback)
+            => SceneColor.TryParse(text, out byte r, out byte g, out byte b) ? Color.FromRgb(r, g, b) : fallback;
+
+        /// <summary>
+        /// Draws the strokes and dots of a diagnostic overlay, one element to each colour and thickness so that the graphics card is given a few
+        /// large lists and not a small one to each finding.
+        /// </summary>
+        private void DrawDiagnostics(DiagnosticOverlay overlay, Func<Vec3, Vector3> rel)
+        {
+            if (overlay == null)
+            {
+                return;
+            }
+
+            foreach (var group in overlay.Strokes.GroupBy(s => new { s.Color, s.Thickness }).OrderBy(g => g.Key.Color, StringComparer.Ordinal).ThenBy(g => g.Key.Thickness))
+            {
+                Lines(group.Select(s => s.Line), ParseColor(group.Key.Color, DimensionColor), group.Key.Thickness, rel);
+            }
+
+            foreach (var group in overlay.Dots.GroupBy(d => new { d.Color, d.Size }).OrderBy(g => g.Key.Color, StringComparer.Ordinal).ThenBy(g => g.Key.Size))
+            {
+                Points(group.Select(d => d.At), ParseColor(group.Key.Color, DimensionColor), PointFigure.Ellipse, group.Key.Size, rel);
+            }
         }
 
         private void Add(Element3D element)

@@ -68,6 +68,7 @@ namespace GeometryHelper.Viewer
             PropertiesList.ItemsSource = _rows;
 
             ApplySettings();
+            BuildDiagnosticsPane();
             LabelMenusWithKeys();
             RebuildRecentMenu();
             UpdateSnapsText();
@@ -194,6 +195,7 @@ namespace GeometryHelper.Viewer
                 _settings.PropertiesWidth = PropertiesPane.Visibility == Visibility.Visible ? PropertiesColumn.ActualWidth : _settings.PropertiesWidth;
                 _settings.OutputHeight = OutputRow.ActualHeight;
                 _settings.ShowProperties = PropertiesPane.Visibility == Visibility.Visible;
+                SaveDiagnosticsSettings();
                 _settings.RenderMode = _sceneView.Mode.ToString();
                 _settings.Grid = GridMenu.IsChecked == true;
                 _settings.RerunOnSave = WatchMenu.IsChecked == true;

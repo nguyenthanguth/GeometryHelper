@@ -56,6 +56,12 @@
                 <MenuItem x:Name="SnapCentreMenu" Header="Snap to _centre" Tag="SnapCentre" IsCheckable="True" Click="OnSnapMenu" />
                 <MenuItem x:Name="SnapNearestMenu" Header="Snap to _nearest" Tag="SnapNearest" IsCheckable="True" Click="OnSnapMenu" />
             </MenuItem>
+            <MenuItem Header="_Diagnostics">
+                <MenuItem x:Name="DiagnosticsMenu" Header="_Pane" Tag="ToggleDiagnostics" IsCheckable="True" Click="OnDiagnosticsPaneMenu" />
+                <MenuItem Header="_Run the ticked checks" Click="OnDiagRun" />
+                <MenuItem Header="_Cancel the run" Click="OnDiagCancel" />
+                <MenuItem Header="C_lear the findings and the drawing" Click="OnDiagClear" />
+            </MenuItem>
             <MenuItem Header="_Script">
                 <MenuItem Header="_Run" Tag="RunScript" Click="OnMenuAction" />
                 <MenuItem Header="Run _again" Tag="RerunScript" Click="OnMenuAction" />
@@ -104,6 +110,8 @@
                 <ColumnDefinition Width="*" MinWidth="200" />
                 <ColumnDefinition x:Name="SplitterColumn" Width="5" />
                 <ColumnDefinition x:Name="PropertiesColumn" Width="300" MinWidth="150" />
+                <ColumnDefinition x:Name="DiagnosticsSplitterColumn" Width="0" />
+                <ColumnDefinition x:Name="DiagnosticsColumn" Width="0" />
             </Grid.ColumnDefinitions>
 
             <DockPanel Grid.Column="0">
@@ -167,6 +175,36 @@
                         <GridView>
                             <GridViewColumn Header="Name" Width="110" DisplayMemberBinding="{Binding Name}" />
                             <GridViewColumn Header="Value" Width="180" DisplayMemberBinding="{Binding Value}" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+
+            <GridSplitter x:Name="DiagnosticsSplitter" Grid.Column="5" Width="5" HorizontalAlignment="Stretch" Visibility="Collapsed" />
+            <DockPanel x:Name="DiagnosticsPane" Grid.Column="6" Visibility="Collapsed">
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource PaneHeader}" Text="Diagnostics" />
+                <WrapPanel DockPanel.Dock="Top" Margin="4,4,4,0">
+                    <Button x:Name="DiagRunButton" Content="Run" Padding="14,2" Margin="0,0,4,4" Click="OnDiagRun"
+                            ToolTip="Run the ticked checks on the selected items, or on every item when none is selected" />
+                    <Button x:Name="DiagCancelButton" Content="Cancel" Padding="10,2" Margin="0,0,4,4" IsEnabled="False" Click="OnDiagCancel" ToolTip="Stop the run (Esc)" />
+                    <Button Content="Clear" Padding="10,2" Margin="0,0,8,4" Click="OnDiagClear" ToolTip="Take the findings and what they draw off the view" />
+                    <TextBlock x:Name="DiagStatus" VerticalAlignment="Center" Margin="0,0,0,4" Text="nothing run yet" />
+                </WrapPanel>
+                <WrapPanel x:Name="DiagTicks" DockPanel.Dock="Top" Margin="4,0,4,4" />
+                <ListView x:Name="DiagList" BorderThickness="0,1,0,0" SelectionMode="Single" SelectionChanged="OnDiagSelected"
+                          PreviewMouseLeftButtonDown="OnDiagMouseDown" PreviewMouseLeftButtonUp="OnDiagMouseUp">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="Foreground" Value="{Binding Foreground}" />
+                            <Setter Property="ToolTip" Value="{Binding Text}" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="#" Width="40" DisplayMemberBinding="{Binding Number}" />
+                            <GridViewColumn Header="Item" Width="100" DisplayMemberBinding="{Binding Item}" />
+                            <GridViewColumn Header="Kind" Width="120" DisplayMemberBinding="{Binding Kind}" />
+                            <GridViewColumn Header="Finding, and what gave it" Width="900" DisplayMemberBinding="{Binding Text}" />
                         </GridView>
                     </ListView.View>
                 </ListView>

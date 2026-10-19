@@ -64,6 +64,7 @@ namespace GeometryHelper.Viewer
         private void ResetTools(ExactGeometry geometry, bool keepRotationCentre)
         {
             _geometry = geometry;
+            ClearDiagnostics("nothing run yet");
             _askGeneration++;
             _asking = false;
             _pickMode = PickMode.None;
@@ -544,7 +545,7 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Does what the commands of <c>--do</c> say, in the process, through the code a click and a drag go through: <c>select 0 2</c>,
         /// <c>hover P</c>, <c>box P P [add|toggle]</c>, <c>band P P</c> (the rubber band as if mid-drag), <c>mode distance|angle|radius|centre</c>
-        /// followed by <c>click P</c>, <c>keys F8 F9</c> (the actions of the keymap), <c>wait ms</c>, and <c>labelpx</c> (says how tall the labels are laid out). A place P is two numbers, device independent pixels of
+        /// followed by <c>click P</c>, <c>keys F8 F9</c> (the actions of the keymap), <c>wait ms</c>, <c>labelpx</c> (says how tall the labels are laid out), <c>diag edges crossings [own]</c> (runs the named checks, or <c>all</c>, or the ticked ones, and waits), <c>diagshow n</c> (clicks the n-th finding), <c>diagclear</c> and <c>windowshot file.png</c> (the whole window, panes included). A place P is two numbers, device independent pixels of
         /// the 3D view, or one word <c>@x,y,z</c>, a point of the scene taken to where it shows. Commands are separated by semicolons.
         /// </summary>
         private async Task RunCommandsAsync(string commands)
@@ -625,6 +626,80 @@ namespace GeometryHelper.Viewer
                     case "wait":
                         await Task.Delay(int.Parse(words[1], CultureInfo.InvariantCulture));
                         break;
+
+                    case "diag":
+                    {
+                        // diag all | diag edges crossings ... [own]: the checks named, on the selection or on everything, waited for; "own" leaves the library out.
+                        DiagnosticChecks named = DiagnosticChecks.None;
+                        bool own = false;
+
+                        foreach (string word in words.Skip(1))
+                        {
+                            if (string.Equals(word, "own", StringComparison.OrdinalIgnoreCase))
+                            {
+                                own = true;
+                            }
+                            else if (DiagnosticNames.TryParse(word, out DiagnosticChecks one))
+                            {
+                                named |= one;
+                            }
+                            else
+                            {
+                                Log("--do: no check called '" + word + "'");
+                            }
+                        }
+
+                        await RunDiagnosticsAsync(named == DiagnosticChecks.None ? (DiagnosticChecks?)null : named, own);
+                        break;
+                    }
+
+                    case "diagshow":
+                        if (_diagReport != null && int.TryParse(words[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) && number >= 1 && number <= _diagReport.Findings.Count)
+                        {
+                            // The row is chosen as a click chooses it, quietly, and the finding is then done as the click does it.
+                            _syncingDiag = true;
+
+                            try
+                            {
+                                DiagList.SelectedIndex = number - 1;
+                                DiagList.ScrollIntoView(DiagList.SelectedItem);
+                            }
+                            finally
+                            {
+                                _syncingDiag = false;
+                            }
+
+                            FocusFinding(_diagReport.Findings[number - 1]);
+                        }
+                        else
+                        {
+                            Log("--do: no finding " + words[1]);
+                        }
+
+                        break;
+
+                    case "diagclear":
+                        ClearDiagnostics();
+                        break;
+
+                    case "windowshot":
+                    {
+                        // The whole window, panes and all, as the window draws itself; the picture of the view alone cannot show a pane.
+                        UpdateLayout();
+                        var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(ActualWidth), (int)Math.Ceiling(ActualHeight), 96.0, 96.0, PixelFormats.Pbgra32);
+                        bitmap.Render(this);
+                        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+                        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(words[1])));
+
+                        using (System.IO.FileStream stream = System.IO.File.Create(words[1]))
+                        {
+                            encoder.Save(stream);
+                        }
+
+                        Log("window written to " + words[1]);
+                        break;
+                    }
 
                     case "keys":
                         foreach (string key in words.Skip(1))
