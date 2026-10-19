@@ -470,6 +470,29 @@ cutting a face by a plane no longer slow with the square of the edges where the 
 mesh. On a sphere of 319 200 triangles `IsClosed` takes 0.53 s where it took 55 s, and closing its slivers takes
 0.66 s where it ran for more than 20 minutes. Results are unchanged.
 
+**CHANGED.** Cutting a face into triangles (`GeoFace3.TriangulateSurface`, `GeoFace2.TriangulateSurface`,
+`GeoPolygon2.TriangulateSurface`, and the cutting the booleans do) no longer slows with the square of the corners of a
+convex ring. Each ear taken off was checked against every corner of what was left, though only a reflex corner can stand
+within an ear, and a convex ring has none; now only the reflex corners are looked at. The base of a cone with 4 000
+corners takes 0.01 s where it took 0.10 s, one of 16 000 takes 0.02 s where it took 1.4 s, and one of 64 000 0.06 s where
+it took 14.5 s (.NET Framework 4.8: 0.05 s where it took 17.7 s). A star of 16 000 corners, half of them reflex, takes
+1.1 s where it took 2.2 s, and a comb of 16 000 corners 0.45 s where it took 1.6 s: those still grow with the corners times
+the reflex corners. The triangles are the same to the last bit: of 212 004 random faces (convex rings, rings a hair off
+convex, stars, combs, faces with holes, at tolerances of 0, 1E-6, 1E-3 and 0.05), cut in the space and in the plane, none
+differs.
+
+**CHANGED.** `GeoSolid3.Validate`, `IsClosed` where it has to match edges by overlap, and `SplitShells` no longer slow
+with the square of the edges where many meet at one point. The edges were matched by a sweep along an axis, and the edges
+of a cone running to its apex overlap each other along every axis though none lies along another; now the edges lying
+along one line are found from the points near each, when the sweep would try more than 64 pairs for each edge, and the
+sweep is kept as it was for every other body. A cone of 16 000 sides validates in 0.11 s where it took 6.4 s (.NET
+Framework 4.8: 0.14 s where it took 42 s), one of 4 000 in 0.06 s where it took 0.37 s; with its base left out,
+`Validate` takes 0.08 s where it took 5.7 s and `IsClosed` 0.08 s where it took 5.9 s. A sphere of 28 800 faces validates
+in 0.16 s where it took 0.6 s, and the faces of a double cone of 2 000 sides come apart in 0.012 s where they took 0.28 s.
+The issues are the same, in the same order: of 202 002 random bodies (cones, drums, meshes, boxes stacked and sharing
+edges, booleans, with faces taken out, turned, doubled, cut by a point, and corners moved by about the tolerance), none
+differs in `Validate`, `IsClosed` or `SplitShells`.
+
 ## 12.2.0
 
 **FIXED.** A curved loop grown until it closes a gap kept the space it closed round only when the hole's pieces met in

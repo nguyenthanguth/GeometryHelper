@@ -88,8 +88,8 @@ namespace GeometryHelper.Core
                 parent[i] = i;
             }
 
-            List<Segment> segments = CollectSegments(faces, tolerance);
-            JoinAcrossEdges(segments, parent, tolerance);
+            List<Segment> segments = CollectSegments(faces, tolerance, out long tried);
+            JoinAcrossEdges(segments, parent, tolerance, tried);
 
             // Gather the faces of each component.
             var components = new Dictionary<int, List<GeoFace3>>();
@@ -120,7 +120,10 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Every edge of every loop of every face, with the direction into its face and the face's normal.
         /// </summary>
-        private static List<Segment> CollectSegments(IReadOnlyList<GeoFace3> faces, Tolerance tolerance)
+        /// <param name="faces">The faces.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="tried">How many pairs a sweep along the axis the segments are sorted by tries.</param>
+        private static List<Segment> CollectSegments(IReadOnlyList<GeoFace3> faces, Tolerance tolerance, out long tried)
         {
             var segments = new List<Segment>();
 
@@ -153,11 +156,11 @@ namespace GeometryHelper.Core
                 }
 
                 Array.Sort(lows);
-                long tried = Tried(lows, highs);
+                long reached = Tried(lows, highs);
 
-                if (tried < fewest)
+                if (reached < fewest)
                 {
-                    fewest = tried;
+                    fewest = reached;
                     axis = candidate;
                 }
             }
@@ -171,6 +174,7 @@ namespace GeometryHelper.Core
 
             segments.Sort((a, b) => a.Low.CompareTo(b.Low));
 
+            tried = fewest;
             return segments;
         }
 
@@ -255,9 +259,251 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// How many pairs the sweep may try for each segment before the segments are matched by the points that lie along
+        /// them instead. A sweep tries a pair in a few tens of nanoseconds, matching by the points costs a couple of
+        /// microseconds for each segment, so beyond this the matching is faster, and below it the sweep is kept as it was.
+        /// </summary>
+        private const int MatchByPointsFrom = 64;
+
+        /// <summary>
+        /// The fewest segments worth matching by their points: fewer are swept in microseconds whatever they are.
+        /// </summary>
+        private const int MatchByPointsMinimum = 256;
+
+        /// <summary>
+        /// Joins into one line the segments that overlap along it, in the order of the sweep: each, taken by where it starts,
+        /// against every later one that starts no further along than it ends.
+        /// </summary>
+        /// <param name="segments">The segments, sorted by where they start along the sweep.</param>
+        /// <param name="line">The line each segment is on, as joined so far.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="otherFacesOnly">Whether two segments of one face are left alone.</param>
+        /// <param name="tried">How many pairs the sweep would try, as <see cref="CollectSegments"/> counted them.</param>
+        /// <remarks>
+        /// <para>
+        /// The sweep tries every pair its axis cannot tell apart, and where the edges of a body meet at a point it cannot
+        /// tell them apart along any axis: a cone of 16 000 sides has 16 000 edges to the apex, each overlapping the others
+        /// in the sweep and none of them lying along another. When the sweep would try more than
+        /// <see cref="MatchByPointsFrom"/> pairs for each segment, the segments are matched through their end points
+        /// instead. Two segments overlap only where the shorter has both its ends within the tolerance of the line of the
+        /// longer, and so for each segment the points within the tolerance of its line, a few, are found in a tree, and
+        /// only the segments with both their ends among them are tried against it, each with the sweep's own test of whether
+        /// they could meet and its own test of overlap. The pairs tried are among those the sweep tries,
+        /// every pair it joins is tried, and the lines come out the same.
+        /// </para>
+        /// </remarks>
+        private static void JoinOverlapping(List<Segment> segments, int[] line, Tolerance tolerance, bool otherFacesOnly, long tried)
+        {
+            if (!ShouldMatchByPoints(segments, tried))
+            {
+                for (int i = 0; i < segments.Count; i++)
+                {
+                    Segment a = segments[i];
+
+                    // Sorted by the low end along the sweep, so a segment starting beyond this one's high end cannot meet
+                    // it and neither can any after it.
+                    for (int j = i + 1; j < segments.Count && segments[j].Low <= a.High; j++)
+                    {
+                        Segment b = segments[j];
+
+                        if ((!otherFacesOnly || a.Face != b.Face) && Overlap(a, b, tolerance))
+                        {
+                            Union(line, i, j);
+                        }
+                    }
+                }
+
+                return;
+            }
+
+            int count = segments.Count;
+            var x = new double[2 * count];
+            var y = new double[2 * count];
+            var z = new double[2 * count];
+            double scale = 0.0;
+
+            for (int i = 0; i < count; i++)
+            {
+                GeoPoint3 start = segments[i].Start, end = segments[i].End;
+                x[2 * i] = start.X;
+                y[2 * i] = start.Y;
+                z[2 * i] = start.Z;
+                x[2 * i + 1] = end.X;
+                y[2 * i + 1] = end.Y;
+                z[2 * i + 1] = end.Z;
+                scale = Math.Max(scale, Math.Max(Math.Max(Math.Abs(start.X), Math.Abs(start.Y)), Math.Max(Math.Abs(start.Z), Math.Max(Math.Abs(end.X), Math.Max(Math.Abs(end.Y), Math.Abs(end.Z))))));
+            }
+
+            // Each end point is one number, however many segments end on it; two that are the same to the last bit are one.
+            var byPlace = new int[2 * count];
+
+            for (int i = 0; i < byPlace.Length; i++)
+            {
+                byPlace[i] = i;
+            }
+
+            Array.Sort(byPlace, (p, q) =>
+            {
+                int byX = x[p].CompareTo(x[q]);
+
+                if (byX != 0)
+                {
+                    return byX;
+                }
+
+                int byY = y[p].CompareTo(y[q]);
+
+                if (byY != 0)
+                {
+                    return byY;
+                }
+
+                int byZ = z[p].CompareTo(z[q]);
+                return byZ != 0 ? byZ : p.CompareTo(q);
+            });
+
+            var number = new int[2 * count];
+            var placeX = new List<double>();
+            var placeY = new List<double>();
+            var placeZ = new List<double>();
+
+            for (int k = 0; k < byPlace.Length; k++)
+            {
+                int p = byPlace[k];
+
+                if (k == 0 || x[p].CompareTo(x[byPlace[k - 1]]) != 0 || y[p].CompareTo(y[byPlace[k - 1]]) != 0 || z[p].CompareTo(z[byPlace[k - 1]]) != 0)
+                {
+                    placeX.Add(x[p]);
+                    placeY.Add(y[p]);
+                    placeZ.Add(z[p]);
+                }
+
+                number[p] = placeX.Count - 1;
+            }
+
+            int places = placeX.Count;
+
+            // The segments on each point, as runs of one array.
+            var first = new int[places + 1];
+
+            for (int e = 0; e < number.Length; e++)
+            {
+                first[number[e] + 1]++;
+            }
+
+            for (int p = 0; p < places; p++)
+            {
+                first[p + 1] += first[p];
+            }
+
+            var on = new int[number.Length];
+            var filled = new int[places];
+
+            for (int e = 0; e < number.Length; e++)
+            {
+                on[first[number[e]] + filled[number[e]]++] = e / 2;
+            }
+
+            var tree = new PointTree3(placeX.ToArray(), placeY.ToArray(), placeZ.ToArray());
+
+            // Rounding in the tree's reckoning and in the test of overlap is far below this, and the points it brings are only
+            // those the test is made of.
+            double reach = tolerance.EqualPoint + 1E-12 * scale;
+            var near = new List<int>();
+            var seen = new int[places];
+
+            for (int i = 0; i < count; i++)
+            {
+                Segment s = segments[i];
+                GeoVector3 along = s.Start.GetVectorTo(s.End);
+                double length = along.Length;
+                double ux = along.X / length, uy = along.Y / length, uz = along.Z / length;
+
+                // The shorter of two that overlap lies within its own length of the longer, either side of it.
+                double margin = 1E-6 * length + reach;
+                tree.Near(s.Start.X, s.Start.Y, s.Start.Z, ux, uy, uz, -length - margin, 2.0 * length + margin, reach, near);
+
+                int most = -1;
+
+                foreach (int p in near)
+                {
+                    seen[p] = i + 1;
+
+                    int degree = first[p + 1] - first[p];
+
+                    if (most < 0 || degree > first[most + 1] - first[most] || (degree == first[most + 1] - first[most] && p > most))
+                    {
+                        most = p;
+                    }
+                }
+
+                // A segment with both its ends among them is found from either end, so the one with the most segments, which
+                // is the one that costs most to go through, is left out.
+                foreach (int p in near)
+                {
+                    if (p == most)
+                    {
+                        continue;
+                    }
+
+                    for (int k = first[p]; k < first[p + 1]; k++)
+                    {
+                        int j = on[k];
+
+                        if (j == i || (seen[number[2 * j]] != i + 1) || (seen[number[2 * j + 1]] != i + 1))
+                        {
+                            continue;
+                        }
+
+                        int low = Math.Min(i, j), high = Math.Max(i, j);
+                        Segment a = segments[low], b = segments[high];
+
+                        if (b.Low <= a.High && (!otherFacesOnly || a.Face != b.Face) && Find(line, low) != Find(line, high) && Overlap(a, b, tolerance))
+                        {
+                            Union(line, low, high);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether the sweep would try so many pairs that matching the segments by their end points is the faster, and
+        /// nothing is the matter with the numbers it would be done with.
+        /// </summary>
+        /// <param name="segments">The segments.</param>
+        /// <param name="tried">How many pairs the sweep tries, as <see cref="CollectSegments"/> counted them.</param>
+        private static bool ShouldMatchByPoints(List<Segment> segments, long tried)
+        {
+            int count = segments.Count;
+
+            if (count < MatchByPointsMinimum || tried <= (long)MatchByPointsFrom * count)
+            {
+                return false;
+            }
+
+            // A segment with a number that is not one is left to the sweep, which has always read it as it does.
+            foreach (Segment segment in segments)
+            {
+                if (!IsFinite(segment.Start) || !IsFinite(segment.End) || double.IsNaN(segment.Low) || double.IsNaN(segment.High))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsFinite(GeoPoint3 point)
+        {
+            double sum = point.X + point.Y + point.Z;
+            return !double.IsNaN(sum) && !double.IsInfinity(sum);
+        }
+
+        /// <summary>
         /// Joins the faces that share a stretch of edge into one piece.
         /// </summary>
-        private static void JoinAcrossEdges(List<Segment> segments, int[] parent, Tolerance tolerance)
+        private static void JoinAcrossEdges(List<Segment> segments, int[] parent, Tolerance tolerance, long tried)
         {
             // First, which segments run along one line and overlap: those are the edges to be settled, and
             // a group of them is settled together because more than two faces may meet along one line.
@@ -268,22 +514,7 @@ namespace GeometryHelper.Core
                 line[i] = i;
             }
 
-            for (int i = 0; i < segments.Count; i++)
-            {
-                Segment a = segments[i];
-
-                // Sorted by the low end along the sweep, so a segment starting beyond this one's high end cannot meet
-                // it and neither can any after it.
-                for (int j = i + 1; j < segments.Count && segments[j].Low <= a.High; j++)
-                {
-                    Segment b = segments[j];
-
-                    if (a.Face != b.Face && Overlap(a, b, tolerance))
-                    {
-                        Union(line, i, j);
-                    }
-                }
-            }
+            JoinOverlapping(segments, line, tolerance, true, tried);
 
             var groups = new Dictionary<int, List<int>>();
 
@@ -319,7 +550,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static bool ClosesUp(IReadOnlyList<GeoFace3> faces, Tolerance tolerance)
         {
-            List<Segment> segments = CollectSegments(faces, tolerance);
+            List<Segment> segments = CollectSegments(faces, tolerance, out long tried);
 
             if (segments.Count == 0)
             {
@@ -333,18 +564,7 @@ namespace GeometryHelper.Core
                 line[i] = i;
             }
 
-            for (int i = 0; i < segments.Count; i++)
-            {
-                Segment a = segments[i];
-
-                for (int j = i + 1; j < segments.Count && segments[j].Low <= a.High; j++)
-                {
-                    if (Overlap(a, segments[j], tolerance))
-                    {
-                        Union(line, i, j);
-                    }
-                }
-            }
+            JoinOverlapping(segments, line, tolerance, false, tried);
 
             var groups = new Dictionary<int, List<int>>();
 
@@ -534,7 +754,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static List<Stretch> UnevenStretches(IReadOnlyList<GeoFace3> faces, Tolerance tolerance)
         {
-            List<Segment> segments = CollectSegments(faces, tolerance);
+            List<Segment> segments = CollectSegments(faces, tolerance, out long tried);
             int[] line = new int[segments.Count];
 
             for (int i = 0; i < line.Length; i++)
@@ -542,18 +762,7 @@ namespace GeometryHelper.Core
                 line[i] = i;
             }
 
-            for (int i = 0; i < segments.Count; i++)
-            {
-                Segment a = segments[i];
-
-                for (int j = i + 1; j < segments.Count && segments[j].Low <= a.High; j++)
-                {
-                    if (Overlap(a, segments[j], tolerance))
-                    {
-                        Union(line, i, j);
-                    }
-                }
-            }
+            JoinOverlapping(segments, line, tolerance, false, tried);
 
             // Taken in the order the sweep met them, so the same faces give the same stretches in the same order.
             var groups = new Dictionary<int, List<int>>();

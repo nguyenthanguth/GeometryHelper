@@ -857,48 +857,93 @@ namespace GeometryHelper.Core
             triangles = null;
 
             List<GeoTriangle3> result = new List<GeoTriangle3>(Math.Max(1, loop.Count - 2));
-            List<Node> working = new List<Node>(loop);
 
             // What is left once no ear can be found is measured as an area: a length tolerance across the width of the
             // face. Deriving it from the face rather than fixing it keeps the test behaving the same on a model in
             // millimetres and one in metres.
-            double areaEpsilon = tolerance.EqualPoint * Extent(working);
+            double areaEpsilon = tolerance.EqualPoint * Extent(loop);
+
+            // The loop is kept as links from each corner to the ones either side, and its reflex corners as a list of their
+            // own. Only a reflex corner can block an ear, so an ear is looked at against the reflex corners alone, not all
+            // of them: a convex loop has none, and each ear costs what it costs to find. Taking a corner out changes how
+            // the two beside it turn and no other, so those two are looked at again and the list is kept right.
+            int size = loop.Count;
+            Node[] nodes = loop.ToArray();
+            int[] before = new int[size];
+            int[] after = new int[size];
+            int[] reflexAt = new int[size];
+            int[] reflex = new int[size];
+            int reflexCount = 0;
+
+            for (int i = 0; i < size; i++)
+            {
+                before[i] = (i - 1 + size) % size;
+                after[i] = (i + 1) % size;
+            }
+
+            for (int i = 0; i < size; i++)
+            {
+                reflexAt[i] = -1;
+
+                if (!(Cross(nodes[before[i]], nodes[i], nodes[after[i]]) > 0.0))
+                {
+                    reflexAt[i] = reflexCount;
+                    reflex[reflexCount++] = i;
+                }
+            }
+
+            int first = 0;
+            int count = size;
 
             // How near an ear's edge a corner blocks it: within near while another ear can be found, within rounding when
             // none can.
             double rounding = tolerance.EqualPoint * 1E-6;
             double blocking = near;
 
-            int guard = working.Count;
+            int guard = count;
 
-            while (working.Count > 3)
+            while (count > 3)
             {
                 bool clipped = false;
 
-                for (int i = 0; i < working.Count; i++)
+                // The corners taken in the order of the loop, from the first still in it.
+                for (int i = first, seen = 0; seen < count; i = after[i], seen++)
                 {
-                    int previousIndex = (i - 1 + working.Count) % working.Count;
-                    int nextIndex = (i + 1) % working.Count;
+                    int previousIndex = before[i];
+                    int nextIndex = after[i];
 
-                    Node previous = working[previousIndex];
-                    Node current = working[i];
-                    Node next = working[nextIndex];
+                    Node previous = nodes[previousIndex];
+                    Node current = nodes[i];
+                    Node next = nodes[nextIndex];
 
                     if (Cross(previous, current, next) <= 0.0)
                     {
                         continue;
                     }
 
-                    if (!IsEar(working, previousIndex, i, nextIndex, blocking, tolerance.EqualPoint))
+                    if (!IsEar(nodes, reflex, reflexCount, previousIndex, i, nextIndex, blocking, tolerance.EqualPoint))
                     {
                         continue;
                     }
 
                     Emit(result, previous, current, next, tolerance);
-                    working.RemoveAt(i);
+
+                    after[previousIndex] = nextIndex;
+                    before[nextIndex] = previousIndex;
+                    count--;
+
+                    if (i == first)
+                    {
+                        first = nextIndex;
+                    }
+
+                    // The corner leaves, and the two beside it are read again.
+                    SetReflex(reflex, reflexAt, ref reflexCount, i, false);
+                    SetReflex(reflex, reflexAt, ref reflexCount, previousIndex, !(Cross(nodes[before[previousIndex]], previous, next) > 0.0));
+                    SetReflex(reflex, reflexAt, ref reflexCount, nextIndex, !(Cross(previous, next, nodes[after[nextIndex]]) > 0.0));
 
                     clipped = true;
-                    guard = working.Count;
+                    guard = count;
                     blocking = near;
                     break;
                 }
@@ -916,7 +961,14 @@ namespace GeometryHelper.Core
                     // from it, and no corner of it turns. Everything the face covers is already in triangles.
                     // A face whose boundary merged with its neighbours carries such rows wherever a neighbour
                     // had a corner, and giving up on one fell back to the fan, which covers the holes over.
-                    if (Math.Abs(SignedArea(working)) * 0.5 <= areaEpsilon)
+                    var left = new List<Node>(count);
+
+                    for (int i = first, seen = 0; seen < count; i = after[i], seen++)
+                    {
+                        left.Add(nodes[i]);
+                    }
+
+                    if (Math.Abs(SignedArea(left)) * 0.5 <= areaEpsilon)
                     {
                         break;
                     }
@@ -932,13 +984,34 @@ namespace GeometryHelper.Core
                 }
             }
 
-            if (working.Count == 3)
+            if (count == 3)
             {
-                Emit(result, working[0], working[1], working[2], tolerance);
+                int second = after[first];
+                Emit(result, nodes[first], nodes[second], nodes[after[second]], tolerance);
             }
 
             triangles = result.ToArray();
             return triangles.Length > 0;
+        }
+
+        /// <summary>
+        /// Puts a corner in the list of the reflex corners or takes it out, as it now is.
+        /// </summary>
+        private static void SetReflex(int[] reflex, int[] reflexAt, ref int reflexCount, int corner, bool isReflex)
+        {
+            if (isReflex && reflexAt[corner] < 0)
+            {
+                reflexAt[corner] = reflexCount;
+                reflex[reflexCount++] = corner;
+            }
+            else if (!isReflex && reflexAt[corner] >= 0)
+            {
+                // The last in the list takes its place.
+                int last = reflex[--reflexCount];
+                reflex[reflexAt[corner]] = last;
+                reflexAt[last] = reflexAt[corner];
+                reflexAt[corner] = -1;
+            }
         }
 
         /// <summary>
@@ -965,27 +1038,27 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a convex corner is an ear, that is whether its triangle is empty, its edges included.
         /// </summary>
-        private static bool IsEar(List<Node> loop, int previousIndex, int index, int nextIndex, double blocking, double pointEpsilon)
+        private static bool IsEar(Node[] nodes, int[] reflex, int reflexCount, int previousIndex, int index, int nextIndex, double blocking, double pointEpsilon)
         {
-            Node a = loop[previousIndex];
-            Node b = loop[index];
-            Node c = loop[nextIndex];
+            Node a = nodes[previousIndex];
+            Node b = nodes[index];
+            Node c = nodes[nextIndex];
 
-            for (int i = 0; i < loop.Count; i++)
+            // How far outside each side of the ear a corner still counts as on it; the same for every corner asked.
+            double outsideAB = -blocking * Length(a, b);
+            double outsideBC = -blocking * Length(b, c);
+            double outsideCA = -blocking * Length(c, a);
+
+            for (int r = 0; r < reflexCount; r++)
             {
+                int i = reflex[r];
+
                 if (i == previousIndex || i == index || i == nextIndex)
                 {
                     continue;
                 }
 
-                Node previous = loop[(i - 1 + loop.Count) % loop.Count];
-                Node current = loop[i];
-                Node next = loop[(i + 1) % loop.Count];
-
-                if (Cross(previous, current, next) > 0.0)
-                {
-                    continue;
-                }
+                Node current = nodes[i];
 
                 // A vertex standing on a corner of the ear, as the doubled ends of a hole's bridge do, leaves it be.
                 if (SamePlace(current, a, pointEpsilon) || SamePlace(current, b, pointEpsilon) || SamePlace(current, c, pointEpsilon))
@@ -993,7 +1066,8 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                if (InOrOnTriangle(a, b, c, current, blocking))
+                // Inside the triangle or within that of its sides.
+                if (Cross(a, b, current) >= outsideAB && Cross(b, c, current) >= outsideBC && Cross(c, a, current) >= outsideCA)
                 {
                     return false;
                 }
@@ -1030,16 +1104,6 @@ namespace GeometryHelper.Core
         private static double Cross(Node a, Node b, Node c)
         {
             return (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
-        }
-
-        /// <summary>
-        /// Checks whether a point lies inside a counter-clockwise triangle or within a distance of its edges.
-        /// </summary>
-        private static bool InOrOnTriangle(Node a, Node b, Node c, Node point, double distance)
-        {
-            return Cross(a, b, point) >= -distance * Length(a, b)
-                && Cross(b, c, point) >= -distance * Length(b, c)
-                && Cross(c, a, point) >= -distance * Length(c, a);
         }
 
         /// <summary>
