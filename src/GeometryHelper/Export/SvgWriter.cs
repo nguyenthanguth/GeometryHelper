@@ -51,8 +51,18 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>Adds an arc.</summary>
+        /// <remarks>
+        /// An arc of a whole turn is drawn as a circle: an SVG arc command that ends where it starts draws nothing, so a path
+        /// from (10, 0) round to (10, 0) would leave the picture empty. So is an arc of more than half a turn whose end prints
+        /// as its start, since the picture has six places: a radius 10 arc turning 1E-9 short of a whole turn is a circle.
+        /// </remarks>
         public SvgWriter Add(GeoArc2 arc, string colour = "black")
         {
+            if (Math.Abs(Math.Abs(arc.SweptAngle) - Math.PI * 2.0) <= 1E-12 || (Math.Abs(arc.SweptAngle) > Math.PI && Xy(arc.StartPoint) == Xy(arc.EndPoint)))
+            {
+                return Add(new GeoCircle2(arc.Center, arc.Radius), colour);
+            }
+
             GrowRound(arc.Center, arc.Radius);
             return Path("M " + Xy(arc.StartPoint) + " " + ArcTo(arc), colour, "none");
         }
@@ -419,6 +429,15 @@ namespace GeometryHelper.Export
         private static string ArcTo(GeoArc2 arc)
         {
             double swept = arc.SweptAngle;
+
+            // An arc of more than half a turn whose end prints as its start would be left out of the picture: two arcs, each a half
+            // of it and so under half a turn, through its middle, are not.
+            if (Math.Abs(swept) > Math.PI && Xy(arc.StartPoint) == Xy(arc.EndPoint))
+            {
+                string half = string.Format(CultureInfo.InvariantCulture, "A {0} {0} 0 0 {1} ", N(arc.Radius), swept > 0 ? 1 : 0);
+
+                return half + Xy(arc.MidPoint) + " " + half + Xy(arc.EndPoint);
+            }
 
             return string.Format(CultureInfo.InvariantCulture, "A {0} {0} 0 {1} {2} {3}",
                 N(arc.Radius), Math.Abs(swept) > Math.PI ? 1 : 0, swept > 0 ? 1 : 0, Xy(arc.EndPoint));

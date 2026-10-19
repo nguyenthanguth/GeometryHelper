@@ -111,6 +111,106 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
+        public void AnArcOfAWholeTurn_IsDrawnAsACircleNotAPathThatEndsWhereItStarts()
+        {
+            // SVG leaves out an arc command whose end is its start, so "M 10 0 A 10 10 0 1 1 10 0" draws nothing at all.
+            GeoArc2[] turns =
+            {
+                new GeoArc2(new GeoPoint2(0, 0), 10, 0, 0, false),
+                new GeoArc2(new GeoPoint2(25, -15), 40, 1.0, 1.0, true),
+                new GeoArc2(new GeoPoint2(25, -15), 40, 2.5, 2.5, false),
+            };
+
+            foreach (GeoArc2 turn in turns)
+            {
+                XDocument picture = XDocument.Parse(new SvgWriter().Add(turn, "red").ToString());
+                XElement drawn = Assert.Single(picture.Descendants(Ns + "circle"));
+
+                Assert.Empty(picture.Descendants(Ns + "path"));
+                Assert.Equal(turn.Center.X, (double)drawn.Attribute("cx"), 6);
+                Assert.Equal(turn.Center.Y, (double)drawn.Attribute("cy"), 6);
+                Assert.Equal(turn.Radius, (double)drawn.Attribute("r"), 6);
+                Assert.Equal("red", (string)drawn.Attribute("stroke"));
+                Assert.Equal("none", (string)drawn.Attribute("fill"));
+
+                // The picture is fitted to the whole circle, as it is for the circle itself.
+                Assert.Equal(ViewBox(XDocument.Parse(new SvgWriter().Add(new GeoCircle2(turn.Center, turn.Radius)).ToString())), ViewBox(picture));
+            }
+        }
+
+        [Fact]
+        public void AnArcSoNearAWholeTurnThatItsEndPrintsAsItsStart_IsDrawnAsACircleToo()
+        {
+            // The picture has six places, so an arc of radius 10 that stops a billionth of a radian short ends 1E-8 from where it began, and the
+            // path "M 10 0 A 10 10 0 1 1 10 0" would again draw nothing.
+            GeoArc2[] nearly =
+            {
+                new GeoArc2(new GeoPoint2(0, 0), 10, 0.0, -1E-9),
+                new GeoArc2(new GeoPoint2(0, 0), 10, 0.0, 1E-9, true),
+                new GeoArc2(new GeoPoint2(5, 5), 10, 1.0, 1.0 - 1E-8),
+            };
+
+            foreach (GeoArc2 arc in nearly)
+            {
+                XDocument picture = XDocument.Parse(new SvgWriter().Add(arc).ToString());
+
+                Assert.Single(picture.Descendants(Ns + "circle"));
+                Assert.Empty(picture.Descendants(Ns + "path"));
+            }
+        }
+
+        [Fact]
+        public void AChainHoldingAnEdgeOfNearlyAWholeTurn_WritesItAsTwoArcsSoItDraws()
+        {
+            // An edge from (10, 0) to (10, 1E-8) of bulge 4E9 turns a billionth short of a whole turn about a radius of 10, and its end prints as
+            // its start; made at a tolerance of 1E-9, since a chain made at the default one would merge the two points. As one arc command it
+            // would draw nothing, so it is two, each half of it and through its middle.
+            var edges = new[]
+            {
+                new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(10, 0)),
+                new GeoEdge2(new GeoPoint2(10, 0), new GeoPoint2(10, 1E-8), 4E9),
+            };
+            GeoPolylineArc2 chain = GeoPolylineArc2.FromEdges(edges, new Tolerance(1E-9, 1E-9, 1E-9, 1E-9));
+
+            XDocument picture = XDocument.Parse(new SvgWriter().Add(chain).ToString());
+            string[] tokens = ((string)Assert.Single(picture.Descendants(Ns + "path")).Attribute("d")).Split(' ');
+
+            Assert.Equal(2, tokens.Count(t => t == "A"));
+            Assert.Equal("10", tokens[tokens.Length - 2]);
+            Assert.Equal("0", tokens[tokens.Length - 1]);
+
+            // The middle it goes through is across the circle from the start, 20 away in X.
+            int firstArc = Array.IndexOf(tokens, "A");
+            Assert.Equal(20.0, Math.Abs(double.Parse(tokens[firstArc + 6], CultureInfo.InvariantCulture) - 10.0), 3);
+        }
+
+        [Fact]
+        public void AnArcOfAThousandthOfARadianLessThanAWholeTurn_StaysAPath_AndATinyArcToo()
+        {
+            // 1E-3 short of a turn at radius 10 ends 0.01 from its start, which six places show; a sweep of 1E-9 is a speck, not a circle.
+            foreach (GeoArc2 arc in new[] { new GeoArc2(new GeoPoint2(0, 0), 10, 0.0, -1E-3), new GeoArc2(new GeoPoint2(0, 0), 10, 0.0, 1E-9) })
+            {
+                XDocument picture = XDocument.Parse(new SvgWriter().Add(arc).ToString());
+
+                Assert.Single(picture.Descendants(Ns + "path"));
+                Assert.Empty(picture.Descendants(Ns + "circle"));
+            }
+        }
+
+        [Fact]
+        public void AnArcOfNineTenthsOfATurn_StaysAPathThatEndsAwayFromItsStart()
+        {
+            var arc = new GeoArc2(new GeoPoint2(0, 0), 10, 0.0, 0.9 * 2.0 * Math.PI, false);
+
+            XDocument picture = XDocument.Parse(new SvgWriter().Add(arc).ToString());
+            XElement path = Assert.Single(picture.Descendants(Ns + "path"));
+
+            Assert.Empty(picture.Descendants(Ns + "circle"));
+            Assert.StartsWith("M 10 0 A 10 10 0 1 1 ", (string)path.Attribute("d"));
+            Assert.DoesNotContain("A 10 10 0 1 1 10 0", (string)path.Attribute("d"));
+        }
+
+        [Fact]
         public void ATriangleIsOneClosedPathThroughItsCorners()
         {
             var triangle = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(0, 10));

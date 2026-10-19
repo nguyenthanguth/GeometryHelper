@@ -105,7 +105,8 @@ namespace GeometryHelper.Clash
 
         /// <summary>
         /// Gets where the two lie against each other, face to face, for a <see cref="ClashKind.Touch"/>; empty
-        /// where they meet only along an edge or at a corner, and for every other kind.
+        /// where they meet only along an edge or at a corner, and for every other kind. Each patch faces out of the
+        /// part listed first (<see cref="First"/>).
         /// </summary>
         public IReadOnlyList<GeoFace3> Contact { get; private set; }
 
@@ -120,7 +121,8 @@ namespace GeometryHelper.Clash
         public double Distance { get; private set; }
 
         /// <summary>
-        /// Gets the shortest segment across the gap for <see cref="ClashKind.Clearance"/>; null otherwise.
+        /// Gets the shortest segment across the gap for <see cref="ClashKind.Clearance"/>, from the part listed first
+        /// (<see cref="First"/>) to the other; null otherwise.
         /// </summary>
         public GeoLine3? Gap { get; private set; }
 
@@ -225,6 +227,30 @@ namespace GeometryHelper.Clash
                 // A region too thin for a hull to stand on is as thin as its square box says.
                 GeoAabb3 square = region.GetAabb();
                 return Math.Min(square.Max.X - square.Min.X, Math.Min(square.Max.Y - square.Min.Y, square.Max.Z - square.Min.Z));
+            }
+        }
+
+        /// <summary>
+        /// Turns what names a side to the other side: the patches of contact come to face out of the other part and the
+        /// gap is written from the other end. What names no side is left as it is.
+        /// </summary>
+        internal void TurnAround()
+        {
+            if (Contact.Count > 0)
+            {
+                var turned = new GeoFace3[Contact.Count];
+
+                for (int k = 0; k < turned.Length; k++)
+                {
+                    turned[k] = Contact[k].Flip();
+                }
+
+                Contact = turned;
+            }
+
+            if (Gap.HasValue)
+            {
+                Gap = Gap.Value.Reverse();
             }
         }
 

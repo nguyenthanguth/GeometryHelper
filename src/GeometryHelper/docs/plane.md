@@ -853,7 +853,9 @@ bowTie.MakeValid();    // two faces of 25
 corner a real turn; `TryOf` says false where the points span no area. `GeoRectangle2.Fit(points)` is the
 rectangle of least area round them, turned whichever way makes it smallest — a rectangle of least area always
 has a side along an edge of the hull, so trying each finds it exactly. Points all in one line give a rectangle
-of no height along that line.
+of no height along that line. No point stands more than the tolerance outside the hull, however the points lie: a
+corner within the tolerance of the segment between its neighbours is left out, but never one past an end of it, so
+points a trillionth apart in X and 15 apart in Y still make their corner.
 
 ```csharp
 GeoPolygon2 hull = ConvexHull2.Of(points);

@@ -28,6 +28,58 @@ arc middles of planar chains and loops in 1 000 planes and of 300 bent bars. net
 reads a file of tilted circles, arcs, slots, filleted loops, a stirrup and a bar bent in three planes, and each curve lies
 on the chords the earlier overloads gave for it to within 2E-5.
 
+**FIXED.** `SvgWriter.Add(GeoArc2)` of an arc that sweeps a whole turn drew nothing. It wrote the arc as a path from the start
+round to the same point, `M 10 0 A 10 10 0 1 1 10 0` for a circle of radius 10 about the origin, and SVG leaves out an arc
+command whose end is its start, so the picture came out empty. An arc of a whole turn, the same test as `GeoEdge2(GeoArc2)`
+refuses it by, is now a `<circle>` of its centre and radius, which the picture is fitted to and which the viewer reads back as
+a `GeoCircle2`; so is an arc of more than half a turn whose end prints as its start, the picture having six places (radius 10 and
+a sweep 1E-9 short of a turn ends 1E-8 from its start); an arc of nine tenths of a turn, or of 1E-3 short of a turn, is still a path. A chain or a loop of arcs holds no whole turn, but an arc edge of more than half a turn whose ends print equal (a
+bulge of 4E9 between (10, 0) and (10, 1E-8)) is written as two arc commands, each half of it, through its middle; `GeoFace2` is
+written with straight sides only.
+
+**FIXED.** `ConvexHull2` left corners out of the hull, and so did `GeoRectangle2.Fit`, `GeoObb3.Fit` and the depth of a clash, which
+are fitted round it. The chain sorts the points along X and dropped a corner whenever it stood within the tolerance of the line
+through its neighbours, so among points whose X differs by a trillionth it dropped the far end of a near-vertical line: the hull
+of (0, 0), (1E-12, -15.8), (2E-12, -6.25) and (20, 0) came back as (0, 0), (0, -6.25), (20, 0), 62.5 square units where the hull
+is a triangle of 158 with (1E-12, -15.8) a corner. A corner is now dropped by the tolerance only when it lies within it of the
+segment between its neighbours, never when it lies past an end of that segment; and the tolerance is spent once over a run of
+corners, so that no point stands more than the tolerance outside the hull, where a run of corners each a little off the line
+wore it away without bound: 1 000 000 points on a circle of radius 1000 came back as a hull of 20 corners that left the circle by
+12.3 or more (3 145 corners now), 100 000 points on a parabola 2.5 across had no hull at all (72 corners now), and 13 874 of 30 000
+sets built to wear a hull had a point beyond the tolerance, the worst 16 211 tolerances out, where none of 9 000 does now (the worst
+0.99999). The hull is built at the tolerance it is given: the polygon it made filtered its corners against the global 1E-3 again, so
+at 1E-6 a square with a corner (9.9995, 10.0004) lost it and left a point 4E-4 outside, and the three points (0, 0), (0.0005, 0)
+and (0, 0.0005) threw. Over 400 sets each of points in a vertical sliver 3E-12 wide (a quarter of them off it), 321 left a
+point outside the hull by up to 31.1, and none does now; in a horizontal one, 1 of 400 stood 0.00245 outside, now none. A sliver
+0.001 wide that had no hull in all 400 sets now has one in 235 of them, where the corners cannot all be spent within the
+tolerance, and 5 000 points on a circle of radius 300 give a hull of about 1 565 corners where they gave 1 278. A hull of 2 000
+random points takes the time it did (46 ms for 200 on .NET Framework 4.8 against 53). The least box round the corners of the regions two parts share, from which `ClashResult.Depth` is read, had left corners
+out in 36 of 1 871 regions over five runs of 359 random pairs and leaves none out now; one pair read 20.126 deep where 24.003 is right.
+
+**FIXED.** `Clash3.Find` gave another answer for a pair when the two parts were listed the other way round. The boolean, the
+contact and the walk of the two indexes each work from one part towards the other, so the last bits of the volume, the location,
+the distance and the gap followed which was first, and so did the depth: it is the smallest side of the least box fitted round
+the corners of the region the two share, and where several boxes tie for the least volume, as a skewed block gives one for each
+pair of its parallel faces, which of them is taken follows the rounding of their volumes, and these differ with the order in which
+the corners are listed. Of 359 random pairs of turned blocks, slabs with a hole and L-shapes, 78 to 94 differed in the volume, depth or
+location checked the other way round in each of five runs, 11 to 23 of them with depths over a millionth apart, up to 4.1 once the
+hull above was right; with a clearance of 15, 85 to 104 of 359 differed, in the distance or the gap as well. A pair is now always
+measured from the part that sorts first, by its box and then its faces, compared as the bits they are, and what names a side is
+turned back to the side it was asked for: each patch of `Contact` faces out of the part listed first and `Gap` runs from it to the
+other. Over five runs of 359 pairs each, with and without a clearance, on .NET Framework 4.8 and .NET 10, the volume, depth,
+location, contact area, distance and the corners of every overlap and patch are bit for bit the same either way round, and the gap is
+the same segment turned the other way. The same holds for one list of two parts in either order, and for a body and its copy
+prepared within 1E-3 and within 1E-2.
+This changes results, and not only their last bits. A pair listed in the other order than the one that sorts first gets what the
+other order gave: its overlap faces, contact patches and gap are measured from the part that sorts first and turned back, so a caller
+that compared the raw face loops of older results may see the same shapes with another vertex order or another start of a loop.
+Where two parts are turned, the depth and volume are those of the other order's, up to 14.7 apart in the depth in the runs above, and
+a depth that grades the clash by `ClashOptions.MinimumDepth` can then make it `Touch` where it was `Hard`, or the other way. A clearance
+between parallel faces has no one shortest segment, and now gives the other order's: of the 3 clearances that moved among the 642 results
+of the 1 500 blocks of `Clash.Neutral`, two moved their `Location` by 57 and 44 along the faces, with another `Gap`. On that case 257
+of the 642 results differ from before, 243 hard in the loops of their overlap faces, 11 touching in their contact patches and 3 near;
+on the 4 900 bars of the axis trap, 44 of the 143 results of one set along X do; the count, the pairs and the kinds of both are the same.
+
 **FIXED.** `Offset2.Offset` of a curved loop came back empty, lost a loop, or grew a spike in four more cases. A slot
 5.12 wide and 15 deep cut into the rectangle 40 by 30, grown by 5 with miters, was nothing and is the rectangle 50 by
 40, 2 000: a stretch of a moved piece lying inside another corner's miter by less than the tolerance was kept, and left

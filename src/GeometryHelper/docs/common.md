@@ -326,7 +326,10 @@ the other chord overloads refuse infinity. A ray has no end, so OBJ and WKT take
 draws it on to the edge of the picture, which its origin helps to fit. A `default` ray, which has no direction, is
 refused by all three with an `ArgumentException`. SVG draws an ellipse as an ellipse, turned by its major axis, and fits
 the picture to its bounding box: an ellipse of radii 30 and 10 (60 across by 20) turned 30 degrees is 52.9 wide and 34.6
-high.
+high. SVG draws an arc of a whole turn as a circle, since an SVG arc command that ends where it starts is left out of the
+picture: the arc of radius 10 about the origin from angle 0 round to angle 0 is a `<circle r="10">`, where its path
+`M 10 0 A 10 10 0 1 1 10 0` drew nothing. So is an arc of more than half a turn whose end prints as its start, since the
+picture has six places.
 
 An OBJ polygon that turns the same way at every corner and goes once round is one face, so a hexagon is one `f` of 6 and
 a viewer shows it as it is; any other, an L or a pentagram, is cut into triangles, so an L-shaped polygon 100 by 100

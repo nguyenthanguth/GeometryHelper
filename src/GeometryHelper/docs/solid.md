@@ -1596,6 +1596,12 @@ a bolt through its hole is no clash. A pair whose check throws is reported `Unre
 costing the report for the rest of the model. Parts already prepared can be passed as they are, so a model
 checked twice is prepared once.
 
+A pair is measured the same whichever part is listed first: `Find(new[] { a }, new[] { b })` and
+`Find(new[] { b }, new[] { a })` give the same volume, depth, location and distance to the last bit, and `a` and `b`
+keep their sides. The patches of `Contact` face out of the part listed first, and `Gap` runs from it to the other.
+To get that, the check always works from the part that sorts first by its box and then its faces, and turns what names
+a side back to the side it was asked for.
+
 Underneath, each pair is asked four questions, from cheapest to dearest, stopping at the first that settles
 it — the recipe to follow for a check of your own:
 

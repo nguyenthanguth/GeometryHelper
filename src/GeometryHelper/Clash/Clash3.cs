@@ -752,7 +752,110 @@ namespace GeometryHelper.Clash
             return extents[a] > extents[b + 1] + reach || extents[b] > extents[a + 1] + reach;
         }
 
+        /// <summary>
+        /// Checks one pair, the same whichever of the two is listed first.
+        /// </summary>
+        /// <remarks>
+        /// The boolean, the contact and the walk of the two indexes each work from one body towards the other, and the
+        /// last digits of what they give follow which body that was, and so do the loops of the faces of the overlaps and
+        /// the patches of contact. So does the depth, which is the smallest side of the least box fitted round the corners
+        /// of the region the two share: cut from one body by the other it lists other corners than cut the other way, and
+        /// where several boxes tie for the least volume, as a skewed block of three pairs of parallel faces gives one for
+        /// each pair, which of them is taken, and so which side is the smallest, follows the rounding of their volumes.
+        /// Of 359 random pairs, 11 to 23 had depths over a millionth apart that way. (A depth 20.126 one way and 24.003 the
+        /// other was a different fault, in the hull the box is fitted to, fixed in <see cref="ConvexHull2"/>.) So the pair
+        /// is always measured with the body that sorts first as the first, and a result that names a side, the patches of
+        /// contact and the gap, is turned back to the side it was asked for.
+        /// </remarks>
         private static ClashResult Check(int i, GeoPreparedSolid3 a, int j, GeoPreparedSolid3 b, ClashOptions options, Tolerance tolerance)
+        {
+            if (Compare(b, a) >= 0)
+            {
+                return Measure(i, a, j, b, options, tolerance);
+            }
+
+            ClashResult result = Measure(i, b, j, a, options, tolerance);
+            result?.TurnAround();
+
+            return result;
+        }
+
+        /// <summary>
+        /// Puts two bodies in an order that depends on what they are and nothing else: their boxes, then their faces.
+        /// </summary>
+        /// <remarks>
+        /// The numbers are compared as the bits they are, not within a tolerance. The order is only there to pick one of
+        /// the two to measure from, and a tolerance would make the pick depend on which of two near-equal bodies was
+        /// listed first, which is what it is there to prevent. Two bodies of one box and one set of faces tie, and either
+        /// is then measured from. What preparing a body within another tolerance can change is whether it is judged
+        /// convex and how its surface is meshed; a body and its copy share all of their volume, so the pair is a hard
+        /// clash settled by the boolean of the two materials; convexity is read by the convex shortcut only when both are
+        /// convex, and by the parting test for each body in turn, so neither depends on which is first. A body notched 0.005
+        /// across its top, prepared within 1E-3 and within 1E-2, is the same either way round.
+        /// </remarks>
+        private static int Compare(GeoPreparedSolid3 x, GeoPreparedSolid3 y)
+        {
+            int c = Compare(x.Box.Min, y.Box.Min);
+
+            if (c == 0)
+            {
+                c = Compare(x.Box.Max, y.Box.Max);
+            }
+
+            if (c != 0 || ReferenceEquals(x, y))
+            {
+                return c;
+            }
+
+            IReadOnlyList<GeoFace3> faces = x.Material.Faces, others = y.Material.Faces;
+
+            c = faces.Count.CompareTo(others.Count);
+
+            for (int f = 0; c == 0 && f < faces.Count; f++)
+            {
+                c = Compare(faces[f].Boundary.Vertices, others[f].Boundary.Vertices);
+
+                if (c == 0)
+                {
+                    c = faces[f].Holes.Count.CompareTo(others[f].Holes.Count);
+                }
+
+                for (int h = 0; c == 0 && h < faces[f].Holes.Count; h++)
+                {
+                    c = Compare(faces[f].Holes[h].Vertices, others[f].Holes[h].Vertices);
+                }
+            }
+
+            return c;
+        }
+
+        private static int Compare(IReadOnlyList<GeoPoint3> x, IReadOnlyList<GeoPoint3> y)
+        {
+            int c = x.Count.CompareTo(y.Count);
+
+            for (int k = 0; c == 0 && k < x.Count; k++)
+            {
+                c = Compare(x[k], y[k]);
+            }
+
+            return c;
+        }
+
+        private static int Compare(GeoPoint3 x, GeoPoint3 y)
+        {
+            int c = Bits(x.X).CompareTo(Bits(y.X));
+
+            if (c == 0)
+            {
+                c = Bits(x.Y).CompareTo(Bits(y.Y));
+            }
+
+            return c != 0 ? c : Bits(x.Z).CompareTo(Bits(y.Z));
+        }
+
+        private static long Bits(double value) => BitConverter.DoubleToInt64Bits(value);
+
+        private static ClashResult Measure(int i, GeoPreparedSolid3 a, int j, GeoPreparedSolid3 b, ClashOptions options, Tolerance tolerance)
         {
             try
             {

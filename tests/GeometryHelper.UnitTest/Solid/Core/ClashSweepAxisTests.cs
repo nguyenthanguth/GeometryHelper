@@ -109,7 +109,7 @@ namespace GeometryHelper.UnitTest.Solid
         private static string Hash(IEnumerable<ClashResult> results) => SweepAxisText.Hash(new StringBuilder(Text(results)));
 
         [Theory]
-        [InlineData('X', "2825ae1072023e3513cba27a68a32dcccac1a5c431cf1ef7f69309975091dcc1")]
+        [InlineData('X', "6e9bb2f7dae40fc4460bc811858d01b4061c67584e58aea907e273dca0be5b96")] // moved 2026-10-20: operand order canonicalised, loops and patches measured from the part that sorts first
         [InlineData('Y', "6e3e81dae9ff8b2aae95e623387c5fc93c9f0f36c5b063f400ed7b591874becc")]
         [InlineData('Z', "4a98d3a5923ec8921354e66b9f54196654547a0ba8fac0ffb54d30d873058aee")]
         public void OneSetOfBarsSideBySide_ClashesAsBeforeTheAxisWasChosen(char axis, string expected)
@@ -120,9 +120,9 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Theory]
-        [InlineData('X', "1b89fbedfd13fb9f6246e3df36ac509bb264f63b5370fc067d4d4293ba425297")]
-        [InlineData('Y', "61b010edffa609c76a768e2dc3783e5bf8f0a512d0f3d00ca5b7cffbfffff50f")]
-        [InlineData('Z', "380a04d72da1a1a67f16fb0769fad1b69ff4cee79542741c7b3b36d3f0b859d0")]
+        [InlineData('X', "f80749a9acde61fce79f84cd6ca6a633bdcdaaf3f2e5af933761947c6c989301")] // moved 2026-10-20: operand order canonicalised, loops and patches measured from the part that sorts first
+        [InlineData('Y', "58b74ee92c6bb02c3d262fc9bf0e817324805150fdba9a1ab36349e4653a9db3")] // moved 2026-10-20: operand order canonicalised, loops and patches measured from the part that sorts first
+        [InlineData('Z', "21705c7c54a7fe6fd9c760647742f51faaf47742bf19a0add21f5eaebe44f243")] // moved 2026-10-20: operand order canonicalised, loops and patches measured from the part that sorts first
         public void TwoSetsOfBarsSideBySide_ClashAsBeforeTheAxisWasChosen(char axis, string expected)
         {
             List<GeoAabb3> boxes = Bundle(axis);

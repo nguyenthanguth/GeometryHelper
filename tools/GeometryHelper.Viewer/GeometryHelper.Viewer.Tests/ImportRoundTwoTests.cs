@@ -100,9 +100,20 @@ namespace GeometryHelper.Viewer.Tests
         }
 
         [Fact]
-        public void AnArcThatEndsWhereItStarts_IsLeftOutAndSaid()
+        public void AnArcOfAWholeTurn_IsWrittenAsACircle_AndReadBackAsOne()
         {
             Scene scene = SceneImport.ReadText(new GeometryHelper.Export.SvgWriter().Add(new GeoArc2(new GeoPoint2(0, 0), 10, 0.0, 2.0 * Math.PI), "black").ToString(), "svg");
+
+            SceneItem item = Assert.Single(scene.Items);
+            Assert.Equal("GeoCircle2", item.Kind);
+            Imp.SameBits(new[] { 0.0, 0.0, 10.0 }, Imp.Of(item));
+            Assert.Empty(scene.LoadWarnings);
+        }
+
+        [Fact]
+        public void APathOfAnArcThatEndsWhereItStarts_IsLeftOutAndSaid()
+        {
+            Scene scene = SceneImport.ReadText("<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M 10 0 A 10 10 0 1 1 10 0\" stroke=\"black\" fill=\"none\"/></svg>", "svg");
 
             Assert.Empty(scene.Items);
             Assert.Contains(scene.LoadWarnings, w => w.Contains("an arc that ends where it starts"));
