@@ -242,6 +242,44 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Lays an infinite line out in a frame: its origin as a point, dropping its distance from the plane, and its direction
+        /// as a vector, dropping the part square to the plane and normalized again.
+        /// </summary>
+        /// <param name="frame">The frame to lay it out in.</param>
+        /// <param name="xline">The line.</param>
+        /// <returns>The line in the plane of the frame.</returns>
+        /// <remarks>
+        /// In the floor frame, the line through (0, 0, 10) along (1, 0, -1), heading down at 45 degrees, is laid out as the line
+        /// through the origin along X.
+        /// </remarks>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the line runs along the normal of the frame, so that its direction has no length in the plane.
+        /// </exception>
+        public static GeoXLine2 ProjectToXLine2(GeoCoordinateSystem3 frame, GeoXLine3 xline)
+        {
+            GeoVector2 direction = ProjectToVector2(frame, xline.Direction);
+
+            if (!direction.TryGetNormal(out _))
+            {
+                throw new ArgumentException("A line along the normal of the frame has no direction in its plane.", nameof(xline));
+            }
+
+            return new GeoXLine2(ProjectToPoint2(frame, xline.Origin), direction);
+        }
+
+        /// <summary>
+        /// Puts an infinite line of the plane back into space.
+        /// </summary>
+        /// <param name="frame">The frame it was laid out in.</param>
+        /// <param name="xline">The line in the plane.</param>
+        /// <returns>The line in space: its origin on the plane of the frame and its direction along it.</returns>
+        /// <exception cref="ArgumentException">Thrown when the line has no direction, as a <c>default</c> one has.</exception>
+        public static GeoXLine3 ToXLine3(GeoCoordinateSystem3 frame, GeoXLine2 xline)
+        {
+            return new GeoXLine3(ToPoint3(frame, xline.Origin), ToVector3(frame, xline.Direction));
+        }
+
+        /// <summary>
         /// Lays a chain out in a frame, dropping each vertex's distance from the plane.
         /// </summary>
         /// <param name="frame">The frame to lay it out in.</param>

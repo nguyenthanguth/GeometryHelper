@@ -586,6 +586,28 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Transforms an infinite line: the origin as a point and the direction as a vector, normalized again.
+        /// </summary>
+        /// <remarks>
+        /// An uneven scaling turns the line as well as moving it: the line through the origin at 45 degrees in the floor, scaled
+        /// by 2 along X only, runs along (2, 1, 0).
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the transformation flattens the line direction to nothing.
+        /// </exception>
+        public GeoXLine3 Transform(GeoXLine3 xline)
+        {
+            GeoVector3 direction = Transform(xline.Direction);
+
+            if (direction.IsZeroLength())
+            {
+                throw new InvalidOperationException("This transformation collapses the line direction.");
+            }
+
+            return new GeoXLine3(Transform(xline.Origin), direction);
+        }
+
+        /// <summary>
         /// Transforms a triangle by transforming its three vertices.
         /// </summary>
         public GeoTriangle3 Transform(GeoTriangle3 triangle)

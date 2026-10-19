@@ -58,7 +58,7 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void EveryBoundedTypeReportsItsBoundingBox()
         {
-            Type[] unbounded = { typeof(GeoPlane3), typeof(GeoRay3), typeof(GeoTransform3), typeof(GeoCoordinateSystem3), typeof(GeoAabb3), typeof(GeoVector3), typeof(GeoPoint3) };
+            Type[] unbounded = { typeof(GeoPlane3), typeof(GeoRay3), typeof(GeoXLine3), typeof(GeoTransform3), typeof(GeoCoordinateSystem3), typeof(GeoAabb3), typeof(GeoVector3), typeof(GeoPoint3) };
 
             foreach (Type type in GeometryTypes())
             {

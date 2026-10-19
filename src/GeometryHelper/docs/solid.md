@@ -11,7 +11,7 @@ instance method on the type it applies to. Both are measured with the same [shar
 
 | Namespace | Contents |
 |---|---|
-| `GeometryHelper.Geometry` | `GeoPoint3`, `GeoVector3`, `GeoLine3`, `GeoRay3`, `GeoPlane3`, `GeoTriangle3`, `GeoPolyline3`, `GeoPolygon3`, `GeoCircle3`, `GeoEllipse3`, `GeoFace3`, `GeoAabb3`, `GeoObb3`, `GeoSolid3`, `GeoEdge3`, `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoCoordinateSystem3`, `GeoTransform3` |
+| `GeometryHelper.Geometry` | `GeoPoint3`, `GeoVector3`, `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoPlane3`, `GeoTriangle3`, `GeoPolyline3`, `GeoPolygon3`, `GeoCircle3`, `GeoEllipse3`, `GeoFace3`, `GeoAabb3`, `GeoObb3`, `GeoSolid3`, `GeoEdge3`, `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoCoordinateSystem3`, `GeoTransform3` |
 | `GeometryHelper.Core` | `Boolean3`, `Collision3`, `Containment3`, `Distance3`, `Intersection3`, `Lengthen3`, `Merge3`, `Offset3`, `Parallel3`, `Parametrization3`, `Projection3`, `Splition3`, `Ellipse3`, `PlanarMap` |
 | `GeometryHelper.Spatial` | `GeoBvh3` |
 | `GeometryHelper.Extension` | `EnumerableExtension` |
@@ -47,7 +47,7 @@ The shapes split into three families, and which family a shape belongs to decide
 
 | Family | Types | Encloses an area | Encloses a volume |
 |---|---|---|---|
-| Curve | `GeoLine3`, `GeoRay3`, `GeoPolyline3` | no | no |
+| Curve | `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoPolyline3` | no | no |
 | Planar region | `GeoTriangle3`, `GeoPolygon3`, `GeoCircle3`, `GeoEllipse3`, `GeoFace3` | yes | no |
 | Volume | `GeoObb3`, `GeoAabb3`, `GeoSolid3` | yes | yes |
 
@@ -563,6 +563,86 @@ where two segments on the same lines would: a ray from (0, -1, 0) half a degree 
 (114.59, 0, 0), and two rays along one line touch and name no point. A box is answered as its `ToSolid()`, and has no
 shortest line of its own. Left out, on purpose: two planes, which meet in a line; and the crossings of a body or a box
 with another, which are the booleans' and the clash's.
+
+### Infinite lines
+
+`GeoXLine3` is a line that runs both ways for ever: a point on it and a direction of unit length, the space
+counterpart of [`GeoXLine2`](plane.md) and of the XLINE of AutoCAD, and `GeoRay3` with no start. A direction of
+no length is refused.
+
+```csharp
+var box = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 20));
+var line = new GeoXLine3(new GeoPoint3(-50, 50, 10), GeoVector3.XAxis);
+
+line.GetIntersections(box);                  // (0, 50, 10), (100, 50, 10): in the order the line runs
+line.CollidesWith(box);                      // true
+line.Translate(new GeoVector3(0, 100, 0)).DistanceTo(box);   // 50: the parallel line through (-50, 150, 10)
+line.GetPointAtDistance(-30);                // (-80, 50, 10): a line has points behind its origin
+line.ClipTo(box);                            // (0, 50, 10) -> (100, 50, 10), for drawing
+line.IsPointOn(new GeoPoint3(-5000, 50, 10.0005));            // true: nothing stops short at the origin
+```
+
+**It is asked what a ray is asked**, and every answer reads as the segment's does: a closed shape is filled for the
+distance and the collision, so a line through the box is nought from it, while the shortest line runs to the surface. Every
+shape that takes a `GeoRay3` takes a `GeoXLine3` too, from either side, so `box.DistanceTo(line)` gives the same number
+to the bit, and so do the crossings, the shortest line turned round and the collision: a point, a segment, a ray,
+another line, a plane, a triangle, a polygon, a face, a polyline, a box of either kind, a body, and, to be asked
+whether they touch and where they cross, an arc, a circle, an ellipse, an edge and the curved chains and loops. Unlike
+the ray and the segment, the line is asked of an ellipse from both sides. The curved shapes have no `DistanceTo` or `GetShortestLineTo` to a line, as they have none to a ray or a segment: the
+distance from a curve in space to anything but a point has no closed form, and `ToPolyline3(chordTolerance)` is the way to ask. A flat shape is crossed at one point or nowhere, and a line lying in
+its plane names no place; `TryIntersectWith` against a plane, a triangle, a polygon or a face gives that point, and
+against every other shape the array of points, empty when there is none.
+
+Against any shape that has an end to it, the line is answered as the segment that runs from a millimetre (or a hundred
+point tolerances, whichever is more) before the nearest the shape reaches along it to the same past the farthest;
+the origin is not part of it, so a shape a million along is asked as the stretch round it. A body counts for the corners of
+its box, a circle or an ellipse for its centre brought onto the line less and plus its radius, and an arc for its
+two ends and the point of its circle furthest ahead or behind along the line where the arc holds it, so a nearly straight arc
+on a circle of a radius of a million does not stretch the segment to a million. Nothing of the shape lies outside, so the
+line answers as that segment does, and shares its faults: an ellipse reads the point tolerance where the line crosses its
+plane, so a line that passes its rim at 0.0009 at a slant, within the tolerance of a thousandth, may not be seen to touch
+it, whatever the length of the segment.
+
+**Two lines in space are skew unless they happen to meet.** They are as far apart as the common perpendicular between
+them is long: the line through the origin along X and the one through (0, 0, 30) along Y are 30 apart, as is the one through
+(0, 0, 30) along -X, whichever way it runs, and nought where they cross. The perpendicular is worked out to a rounding of its
+own, each component of the cross product of the directions as the difference of two products taken exactly, so that two
+lines a hundred millimetres apart, at a sine of 1E-8 and with their origins near each other, at coordinates up to ten
+million, are held to the exact gap to 3E-14, where the plain arithmetic of the same formula is out by 4E-7; origins ten million
+apart along the lines carry the rounding of that distance, 3E-9. Two lines whose directions differ by a sine above 1E-9
+always have one, whatever the tolerance and however far out. At a sine of 1E-9 or less they are parallel by rounding when the
+perpendicular lies further out than a double can place within the point tolerance, that is (the larger of the two
+distances along the lines to its feet, plus the largest coordinate of the two origins) times 2.2E-16 above the tolerance,
+which is 4.5E12 along for a thousandth at coordinates near nought, and are as far apart as the nearer origin is from the other
+line. Two lines 5 apart in one plane at an angle of 1E-9 cross 5 billion along and are nought apart; at 1E-13 they are 5
+apart; and two lines 5 apart with their common perpendicular at the origins are 5 apart at any angle. The segment that joins
+two such lines is as long as their distance to what a double can place its ends to, that rounding of the larger distance
+along the lines, which the rule holds below the point tolerance, and square to the second line. A line and a plane follow the
+same rule: a line starting within the planar tolerance of the plane touches it, as a ray does, nought from it and colliding
+with it (and naming no crossing where it lies in it), and one that starts further off crosses it, nought from it, where a double
+can place the crossing: at any angle above a sine of 1E-9, and at a sine of 1E-9 or less where the crossing lies no further
+than 4.5E12 along for a thousandth (tilted a ten-thousandth of a radian, a line 7 above the floor crosses it 70 000 along).
+Beyond that it is read as running level, and is as far from the plane as its origin: the line through (0, 0, 100) along
+(1, 0, -1E-11) is 100 from the floor, so a line can read further from a shape than its own ray does where the
+crossing cannot be placed, which reads that ray as nought from it. `GetIntersections` and
+`TryIntersectWith` of two lines are as strict as for two rays: lines within the angle tolerance of parallel give no point,
+even where they are the same line, and a crossing is the middle of the common perpendicular where it is no longer than
+the point tolerance, the same point to the bit whichever of the two asks. A line and a ray are nought apart where the ray reaches the
+common perpendicular, and otherwise as far as the origin of the ray is from the line.
+
+`Equals` reads the fields, so the line from (500, 50, 10) along -X is not equal to the line from (-50, 50, 10) along X;
+`IsSameLineAs` reads the line and says they are the same, within the point tolerance for the origins and the vector
+tolerance for the directions. `Reverse` runs the same line the other way, `ToRay()` is the half ahead of the origin,
+`ToLine(from, to)` the segment between two signed distances along it, and `GeoRay3.ToXLine()` and `GeoLine3.ToXLine()` give the
+line a ray or a segment lies on. `ClipTo(box)` clips a line that crosses the box exactly; one that misses it by no
+more than the point tolerance is clipped to the box grown by it, so its ends are no more than the tolerance outside, and
+one that misses by more gives null. The line two planes share is
+`GeoPlane3.TryGetIntersectionLine(other, out GeoXLine3 line)`: the floor and the wall x = 100 meet in the line along Y through
+(100, 0, 0), and parallel planes, apart or one, are refused. It is the line `TryIntersectWith(other, out GeoRay3 ray)`
+names as a ray.
+A line lies in the plane of a frame as a line of the plane, `line.ProjectToXLine2(frame)`, and a line of the plane
+stands in space again with `xline.ToXLine3(frame)`; a line along the normal of the frame has no direction in its plane and is
+refused.
 
 ### How deep inside, not just whether
 

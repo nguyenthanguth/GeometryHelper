@@ -188,6 +188,18 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Puts this line of the plane back into space, on the plane of a frame.
+        /// </summary>
+        /// <param name="frame">The frame it was laid out in.</param>
+        /// <returns>The line in space: its origin on the plane of the frame and its direction along it.</returns>
+        /// <remarks>
+        /// In the floor frame, the line through (10, 20) along Y is the line through (10, 20, 0) along the Y axis;
+        /// <see cref="GeoXLine3.ProjectToXLine2(GeoCoordinateSystem3)"/> lays it out again.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the line has no direction, as a <c>default</c> one has.</exception>
+        public GeoXLine3 ToXLine3(GeoCoordinateSystem3 frame) => PlanarMap.ToXLine3(frame, this);
+
+        /// <summary>
         /// Gets the part of this line inside a rectangle, using the default tolerance.
         /// </summary>
         /// <returns>The segment where the line is inside the rectangle, running along the direction of the line; null when it misses.</returns>

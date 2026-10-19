@@ -36,8 +36,38 @@ segment to 1E11. The suite draws 4 000 random shapes and lines of each of the 16
 closed form that shares no code with the library, from both sides and against the line taken as two rays, with one in three of
 the loops and chains carrying an edge of a bulge of 1E-10 to 1E-3, and a fuzz of 4 000 rectangles for `ClipTo`; a separate run
 of 100 000 of each kind, 1.6 million pairs, and 100 000 rectangles passed as well. The suite gains 185 tests for the line, and
-nothing that was there changes: every earlier test and the benchmark signatures are as they were. The space
-counterpart `GeoXLine3` comes in the next step.
+nothing that was there changes: every earlier test and the benchmark signatures are as they were.
+
+`GeoXLine3` is the same line in space: a point and a direction of unit length, made, moved (`Translate`, `TransformBy`,
+`GeoTransform3.Transform`) and measured along, turned into a segment (`ToLine(from, to)`), a ray (`ToRay()`) or a line of the
+plane (`ProjectToXLine2(frame)`, back with `GeoXLine2.ToXLine3(frame)` and `PlanarMap.ToXLine3`), cut to a box for drawing
+(`ClipTo(box)`: the line from (-50, 50, 10) along X through the box 100 by 100 by 20 with a corner at the origin is the segment
+from (0, 50, 10) to (100, 50, 10), one half a thousandth over its top is clipped to the box grown by the tolerance and one two
+thousandths over gives null), and `GeoRay3.ToXLine()` and `GeoLine3.ToXLine()` make one. It answers the five queries about every
+shape in space a ray is asked about, from either side to the bit, and an ellipse from both sides as the line in the plane does: a
+point, a segment, a ray, another line, a plane, a triangle, a polygon, a face, a polyline, a box of either kind and a body, and,
+to be asked whether they touch and where they cross, an arc, a circle, an ellipse, an edge, a curved chain and a curved loop
+(a curve in space is not measured, for a line as for a ray). That line is nought from the box and crosses it at (0, 50, 10) and
+(100, 50, 10); the parallel line 100 beside it is 50 from it. Two lines in space are skew unless they meet: as far apart as their
+common perpendicular is long (the line along X through the origin and the one along Y through (0, 0, 30) are 30 apart, whichever
+way each runs), nought where they cross, always at a sine of the angle above 1E-9 whatever the tolerance, and at a sine of 1E-9 or
+less unless the perpendicular, further out than a double can place it within the point tolerance, is rounding, which is the rule
+of the line in the plane. The perpendicular is worked out with each component of the cross product of the directions taken as
+the difference of two products to a rounding of its own, so two lines a hundred apart at a sine of 1E-8 are held to the exact gap
+to 3E-14 with their origins near each other, 3E-9 with origins ten million apart along them, worked out on whole numbers from the
+doubles they are made of, where the plain arithmetic is out by 4E-7, and the segment that joins them is as long as their distance
+to what a double can place its ends to; a line starting within the planar tolerance of a plane touches it, as a ray does, and
+one that starts further off is nought from it where a double can place the crossing (a line 7 above the floor tilted a
+ten-thousandth of a radian crosses it 70 000 along) and as far as its origin where it cannot: the line through (0, 0, 100) along
+(1, 0, -1E-11) is 100 from the floor, where its ray, reaching it 1E13 along, is nought. Against a shape with an end to it the line is answered as the segment that reaches max(1, 100 point tolerances) past it
+each way: a body for the corners of its box, a circle or an ellipse for its centre and its radius, an arc for its ends and the
+extreme of its circle along the line where it holds it; an ellipse shares the segment's reading of its rim at the point tolerance,
+so a line that passes it at a slant at 0.0009 may not be seen to touch it. `GeoPlane3.TryGetIntersectionLine(other, out GeoXLine3 line)`
+gives the line two planes share, as the ray form does: the floor and the wall x = 100 meet in the line along Y through
+(100, 0, 0). The suite draws 3 000 random shapes and lines of each of the 18 kinds on every run, 54 000 pairs, against an oracle
+that shares no code with the library, from both sides, as two rays, turned round, moved along itself and moved by a rigid motion,
+with 20 000 boxes for `ClipTo`, and 18 000 pairs of two lines and 12 000 of a line and a plane held to exact arithmetic; a separate
+run of 100 000 of each kind, 1.8 million pairs, and 100 000 boxes passed as well. The suite gains 256 tests for the line in space.
 
 **FIXED.** The surface mesh of a body dropped any triangle whose doubled area was under 1E-5, comparing a length squared with a
 length, so a box 100 by 60 by 40 with a void 0.002 from its corner, which leaves a corner 0.002 thick, was meshed open along 15

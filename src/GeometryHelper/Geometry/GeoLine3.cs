@@ -76,6 +76,16 @@ namespace GeometryHelper.Geometry
         public GeoLine3 Reverse() => new GeoLine3(EndPoint, StartPoint);
 
         /// <summary>
+        /// Gets the infinite line this segment lies on: the line through its start point along the way it runs.
+        /// </summary>
+        /// <remarks>
+        /// The segment from (0, 0, 0) to (100, 0, 0) gives the line through the origin along X; the segment from (100, 0, 0) back
+        /// to (0, 0, 0) gives the same line running the other way.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the segment is too short to have a direction.</exception>
+        public GeoXLine3 ToXLine() => new GeoXLine3(StartPoint, EndPoint);
+
+        /// <summary>
         /// Gets the axis-aligned bounding box enclosing this segment.
         /// </summary>
         public GeoAabb3 GetAabb() => new GeoAabb3(StartPoint, EndPoint);

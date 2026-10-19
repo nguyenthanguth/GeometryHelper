@@ -57,7 +57,7 @@ namespace GeometryHelper.Geometry
         /// Operations that only move a ray around must not pay that, or a copy would come back unequal to
         /// its original and reversing twice would drift. This constructor is how they skip it.
         /// </remarks>
-        private GeoRay3(GeoPoint3 origin, GeoVector3 unitDirection, bool alreadyNormalized)
+        internal GeoRay3(GeoPoint3 origin, GeoVector3 unitDirection, bool alreadyNormalized)
         {
             Origin = origin;
             Direction = unitDirection;
@@ -140,6 +140,21 @@ namespace GeometryHelper.Geometry
         /// Thrown when the ray runs along the normal of the frame, so that its direction has no length in the plane.
         /// </exception>
         public GeoRay2 ProjectToRay2(GeoCoordinateSystem3 frame) => PlanarMap.ProjectToRay2(frame, this);
+
+        /// <summary>
+        /// Gets the infinite line this ray lies on: the same origin and direction, with the half behind the origin added.
+        /// </summary>
+        /// <returns>The line through the origin along the direction of the ray; <see cref="GeoXLine3.ToRay"/> gives the ray back.</returns>
+        /// <exception cref="ArgumentException">Thrown when the ray has no direction, as a <c>default</c> one has.</exception>
+        public GeoXLine3 ToXLine()
+        {
+            if (!Guard.IsUnit(Direction))
+            {
+                throw new ArgumentException("A ray with no direction has no line.");
+            }
+
+            return new GeoXLine3(Origin, Direction, true);
+        }
 
         #region Predicates and intersection
 
