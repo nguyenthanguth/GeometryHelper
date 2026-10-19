@@ -142,6 +142,18 @@ namespace GeometryHelper.Viewer
         public List<SceneItem> Items { get; } = new List<SceneItem>();
 
         /// <summary>
+        /// Gets the saved views, in the order they were made: named looks at the scene. A scene written before there were any has none, and a scene
+        /// that has none is written without the list, so that it is the file it always was. The viewer opens a scene at its first view.
+        /// </summary>
+        public List<SavedView> Views { get; } = new List<SavedView>();
+
+        /// <summary>
+        /// Gets what was left out of the scene when it was read, one line each: a saved view that was not one is dropped with a line saying which and why, and
+        /// the rest of the file is kept. A scene that was made, and not read, has none. They are not written again.
+        /// </summary>
+        public List<string> LoadWarnings { get; } = new List<string>();
+
+        /// <summary>
         /// Gets the library tolerance the scene asks for: its four thresholds.
         /// </summary>
         public Tolerance Tolerance => new Tolerance(EqualPoint, EqualVector, EqualAngleRad, EqualPlanar);

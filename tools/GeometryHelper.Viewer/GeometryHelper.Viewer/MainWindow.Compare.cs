@@ -250,13 +250,22 @@ namespace GeometryHelper.Viewer
                     Log("warning: " + warning);
                 }
 
+                ClipSet cutBy = _clips;
+                ClipResult clipped = await ClipAsync(built.Item1, cutBy);
+
+                if (cts.IsCancellationRequested)
+                {
+                    return false;
+                }
+
                 state.Layout = layout;
                 state.HiddenByView = new HashSet<int>();
                 LeaveCompare(false);
                 _compare = state;
                 _currentPath = setup.Script;
                 Title = layout.Scene.Title + " - GeometryHelper Viewer";
-                _sceneView.Show(layout.Scene, built.Item1);
+                _model.Show(layout.Scene, built.Item1, clipped);
+                CutAfterShow(cutBy);
                 ResetTools(built.Item2, keepView);
                 BuildTree();
                 ShowProperties();
@@ -277,11 +286,17 @@ namespace GeometryHelper.Viewer
 
                 if (!keepView)
                 {
-                    FitAll();
+                    FitAllViews();
+
+                    // The comparison opens at the spot the script saved, as a scene opened by itself does; a --view on the command line wins.
+                    if (_command.View == null)
+                    {
+                        RestoreFirstSavedView();
+                    }
                 }
                 else
                 {
-                    UpdateCamera();
+                    UpdateAllCameras();
                 }
 
                 Log("compare: " + comparison.Summary);
@@ -445,9 +460,9 @@ namespace GeometryHelper.Viewer
             HashSet<int> before = _compare.HiddenByView;
 
             // Only what the last side hid is shown again, and only what the user had not hidden already is hidden now: an item the user hid stays hidden.
-            _sceneView.SetItemsHidden(before.Where(i => !hidden.Contains(i)).OrderBy(i => i).ToList(), false);
-            var hiding = hidden.Where(i => before.Contains(i) || !_sceneView.IsItemHidden(i)).OrderBy(i => i).ToList();
-            _sceneView.SetItemsHidden(hiding, true);
+            _model.SetItemsHidden(before.Where(i => !hidden.Contains(i)).OrderBy(i => i).ToList(), false);
+            var hiding = hidden.Where(i => before.Contains(i) || !_model.IsItemHidden(i)).OrderBy(i => i).ToList();
+            _model.SetItemsHidden(hiding, true);
             _compare.HiddenByView = new HashSet<int>(hiding);
             SyncTreeChecks();
 
@@ -558,7 +573,7 @@ namespace GeometryHelper.Viewer
             }
 
             IReadOnlyList<int> items = _compare.Layout.ItemsOfRow(row.Index);
-            _sceneView.Select(items.Where(i => !_sceneView.IsItemHidden(i)).DefaultIfEmpty(items[0]));
+            _model.Select(items.Where(i => !_model.IsItemHidden(i)).DefaultIfEmpty(items[0]));
             AfterSelectionChanged(true);
             FitSelection();
             SetMessage(row.ToString());
@@ -639,10 +654,10 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            Scene scene = _sceneView.Scene;
+            Scene scene = _model.Scene;
             var items = new List<KeyValuePair<Scene, SceneItem>>();
 
-            foreach (int index in _sceneView.Selected.OrderBy(i => i))
+            foreach (int index in _model.Selected.OrderBy(i => i))
             {
                 if (_compare != null && index < _compare.Layout.Scene.Items.Count)
                 {

@@ -88,6 +88,16 @@ namespace GeometryHelper.Viewer
         public string RenderMode { get; set; } = "ShadedEdges";
 
         /// <summary>
+        /// Gets or sets how many views are shown and the render mode and link of each of the four, or null for a settings file from before there were several.
+        /// </summary>
+        public ViewLayoutState Layout { get; set; }
+
+        /// <summary>
+        /// Gets or sets how a screenshot is taken last: which views, how large and what behind.
+        /// </summary>
+        public ScreenshotOptions Screenshot { get; set; } = new ScreenshotOptions();
+
+        /// <summary>
         /// Gets or sets whether a script runs again when its file is saved.
         /// </summary>
         public bool RerunOnSave { get; set; }

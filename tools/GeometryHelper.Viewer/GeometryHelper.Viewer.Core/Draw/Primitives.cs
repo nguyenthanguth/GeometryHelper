@@ -47,6 +47,17 @@ namespace GeometryHelper.Viewer
         }
 
         /// <summary>
+        /// Initializes a triangle that is a piece of another, with the normal of the whole.
+        /// </summary>
+        internal DrawTriangle(Vec3 a, Vec3 b, Vec3 c, Vec3 normal)
+        {
+            A = a;
+            B = b;
+            C = c;
+            Normal = normal;
+        }
+
+        /// <summary>
         /// Gets the first corner.
         /// </summary>
         public Vec3 A { get; }

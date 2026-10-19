@@ -19,6 +19,11 @@
     <ProjectReference Include="..\GeometryHelper.Viewer.Runner\GeometryHelper.Viewer.Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
+  <!-- The command line of the viewer has no screen type in it, so the tests compile it in and read what it says of a picture. -->
+  <ItemGroup>
+    <Compile Include="..\GeometryHelper.Viewer\CommandLine.cs" Link="CommandLine.cs" />
+  </ItemGroup>
+
   <!-- The script host has no screen type in it and now lives in its own library, which the tests reference and the app does too, so the tests
        run the code the app runs. The tests of the comparison start the runner program as a child process, as the viewer does, so its output
        sits beside the tests in a folder called runner. -->

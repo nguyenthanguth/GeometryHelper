@@ -53,6 +53,21 @@
     { "action": "CompareLeft", "gestures": ["1"] },
     { "action": "CompareRight", "gestures": ["2"] },
     { "action": "CompareBoth", "gestures": ["3"] },
-    { "action": "ExportTest", "gestures": ["Ctrl+T"] }
+    { "action": "ExportTest", "gestures": ["Ctrl+T"] },
+    { "action": "ViewLayout1", "gestures": ["Ctrl+Shift+1"] },
+    { "action": "ViewLayout2", "gestures": ["Ctrl+Shift+2"] },
+    { "action": "ViewLayout4", "gestures": ["Ctrl+Shift+4"] },
+    { "action": "LinkViews", "gestures": ["L"] },
+    { "action": "WorkPlaneThreePoints", "gestures": ["W"] },
+    { "action": "WorkPlaneFromFace", "gestures": ["Ctrl+W"] },
+    { "action": "WorkPlaneFromView", "gestures": ["Ctrl+Shift+W"] },
+    { "action": "WorkPlaneGlobal", "gestures": ["Shift+W"] },
+    { "action": "ClipAddView", "gestures": ["K"] },
+    { "action": "ClipAddFace", "gestures": ["Ctrl+K"] },
+    { "action": "ClipBox", "gestures": ["Ctrl+B"] },
+    { "action": "ClipFlip", "gestures": ["Shift+K"] },
+    { "action": "ClipClear", "gestures": ["Ctrl+Shift+B"] },
+    { "action": "ToggleClipPane", "gestures": ["Ctrl+Shift+K"] },
+    { "action": "SaveView", "gestures": ["Ctrl+Shift+V"] }
   ]
 }

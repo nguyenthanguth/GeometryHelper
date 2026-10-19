@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:hx="http://helix-toolkit.org/wpf/SharpDX"
+        xmlns:v="clr-namespace:GeometryHelper.Viewer.Views"
         Title="GeometryHelper Viewer" Width="1400" Height="850" AllowDrop="True"
         PreviewKeyDown="OnPreviewKeyDown" Drop="OnDrop" Closing="OnClosing" Loaded="OnLoaded">
     <Window.Resources>
@@ -40,7 +41,7 @@
                 <MenuItem Header="_Hide selected" Tag="HideSelected" Click="OnMenuAction" />
                 <MenuItem Header="Show a_ll" Tag="ShowAll" Click="OnMenuAction" />
                 <Separator />
-                <MenuItem x:Name="GridMenu" Header="Gri_d on z = 0" IsCheckable="True" Click="OnGridToggled" />
+                <MenuItem x:Name="GridMenu" Header="Gri_d on the work plane" IsCheckable="True" Click="OnGridToggled" />
                 <MenuItem x:Name="PropertiesMenu" Header="_Properties pane" IsCheckable="True" IsChecked="True" Tag="Properties" Click="OnPropertiesToggled" />
             </MenuItem>
             <MenuItem Header="_Tools">
@@ -58,6 +59,32 @@
                 <MenuItem x:Name="SnapNearestMenu" Header="Snap to _nearest" Tag="SnapNearest" IsCheckable="True" Click="OnSnapMenu" />
                 <Separator />
                 <MenuItem Header="E_xport test..." Tag="ExportTest" Click="OnMenuAction" />
+            </MenuItem>
+            <MenuItem Header="_Window">
+                <MenuItem Header="_One view" Tag="ViewLayout1" Click="OnMenuAction" />
+                <MenuItem Header="_Two views" Tag="ViewLayout2" Click="OnMenuAction" />
+                <MenuItem Header="_Four views: plan, front, right, iso" Tag="ViewLayout4" Click="OnMenuAction" />
+                <MenuItem x:Name="LinkMenu" Header="_Link this view to the others that are linked" Tag="LinkViews" IsCheckable="True" Click="OnLinkMenu" />
+                <Separator />
+                <MenuItem Header="_Save this view as..." Tag="SaveView" Click="OnMenuAction" />
+                <MenuItem x:Name="SavedViewsMenu" Header="Sa_ved views" />
+                <Separator />
+                <MenuItem Header="S_creenshot..." Tag="Screenshot" Click="OnMenuAction" />
+            </MenuItem>
+            <MenuItem Header="Work _plane">
+                <MenuItem Header="By _three points: origin, x direction, plane" Tag="WorkPlaneThreePoints" Click="OnMenuAction" />
+                <MenuItem Header="On a _face" Tag="WorkPlaneFromFace" Click="OnMenuAction" />
+                <MenuItem Header="On the _view" Tag="WorkPlaneFromView" Click="OnMenuAction" />
+                <MenuItem Header="_Global" Tag="WorkPlaneGlobal" Click="OnMenuAction" />
+            </MenuItem>
+            <MenuItem Header="C_lip">
+                <MenuItem Header="Plane through a _point, square to the view" Tag="ClipAddView" Click="OnMenuAction" />
+                <MenuItem Header="Plane on a _face" Tag="ClipAddFace" Click="OnMenuAction" />
+                <MenuItem Header="_Box round the selection" Tag="ClipBox" Click="OnMenuAction" />
+                <MenuItem Header="_Flip the selected plane" Tag="ClipFlip" Click="OnMenuAction" />
+                <MenuItem Header="_Remove every plane" Tag="ClipClear" Click="OnMenuAction" />
+                <Separator />
+                <MenuItem Header="Clip planes _pane" Tag="ToggleClipPane" Click="OnMenuAction" />
             </MenuItem>
             <MenuItem Header="_Diagnostics">
                 <MenuItem x:Name="DiagnosticsMenu" Header="_Pane" Tag="ToggleDiagnostics" IsCheckable="True" Click="OnDiagnosticsPaneMenu" />
@@ -108,6 +135,8 @@
             <StatusBarItem><TextBlock x:Name="SnapsText" Text="snaps -----" /></StatusBarItem>
             <Separator />
             <Separator />
+            <StatusBarItem><TextBlock x:Name="WorkPlaneText" Text="work plane: global" /></StatusBarItem>
+            <Separator />
             <StatusBarItem><TextBlock x:Name="SelectionText" Text="0 selected" /></StatusBarItem>
             <Separator />
             <StatusBarItem><TextBlock x:Name="ToleranceText" Text="EqualPoint -" /></StatusBarItem>
@@ -155,19 +184,9 @@
                     <RowDefinition x:Name="OutputRow" Height="150" MinHeight="40" />
                 </Grid.RowDefinitions>
                 <Grid x:Name="ViewHost" Grid.Row="0" ClipToBounds="True" Focusable="True">
-                    <!-- The graphics card clears the view to one colour; a gradient behind a see-through view came out black in a picture of the window. -->
-                    <hx:Viewport3DX x:Name="Viewport" BackgroundColor="#FFE9ECF1" ShowCoordinateSystem="True" ShowViewCube="False"
-                                    UseDefaultGestures="False" IsInertiaEnabled="False" IsRotationEnabled="False" IsPanEnabled="False" IsZoomEnabled="False"
-                                    EnableSwapChainRendering="False" MSAA="Four" CoordinateSystemLabelForeground="#FF303030"
-                                    CoordinateSystemHorizontalPosition="-0.85" CoordinateSystemVerticalPosition="-0.8" CoordinateSystemSize="1.6"
-                                    PreviewMouseDown="OnViewMouseDown" PreviewMouseMove="OnViewMouseMove" PreviewMouseUp="OnViewMouseUp"
-                                    PreviewMouseWheel="OnViewMouseWheel" SizeChanged="OnViewSizeChanged" MouseLeave="OnViewMouseLeave">
-                        <hx:AmbientLight3D Color="#FF707070" />
-                        <hx:DirectionalLight3D x:Name="Headlight" Color="#FFE0E0E0" Direction="0,0,-1" />
-                    </hx:Viewport3DX>
-                    <Canvas IsHitTestVisible="False" ClipToBounds="True">
-                        <Rectangle x:Name="Band" Visibility="Collapsed" StrokeThickness="1.2" />
-                    </Canvas>
+                    <!-- The views are made in code, one to four of them, each with its own viewport; the panel puts them where the layout says. The graphics card
+                         clears a view to one colour; a gradient behind a see-through view came out black in a picture of the window. -->
+                    <v:ViewHostPanel x:Name="Panes" />
                     <TextBlock x:Name="BusyText" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0"
                                Padding="12,5" Background="#E0FFFFFF" FontSize="14" Text="Running the script... Esc to stop" />
                 </Grid>
@@ -176,6 +195,33 @@
                     <TabItem x:Name="OutputTab" Header="Output">
                         <TextBox x:Name="Output" IsReadOnly="True" BorderThickness="0" FontFamily="Consolas" FontSize="12" TextWrapping="NoWrap"
                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+                    </TabItem>
+                    <TabItem x:Name="ClipTab" Header="Clip planes">
+                        <DockPanel>
+                            <WrapPanel DockPanel.Dock="Top" Margin="4,4,4,2">
+                                <Button Content="Through a point (K)" Padding="10,2" Margin="0,0,4,2" Click="OnClipAddView" ToolTip="Click a point; the plane goes through it square to the view and cuts away what is nearer the eye" />
+                                <Button Content="On a face (Ctrl+K)" Padding="10,2" Margin="0,0,4,2" Click="OnClipAddFace" ToolTip="Click a face; the plane lies on it and cuts away what is in front of it" />
+                                <Button Content="Box round the selection (Ctrl+B)" Padding="10,2" Margin="0,0,12,2" Click="OnClipBox" ToolTip="Six planes round the selected items, or round everything shown where none is selected" />
+                                <TextBlock Text="Offset" VerticalAlignment="Center" Margin="0,0,4,2" />
+                                <TextBox x:Name="ClipOffsetBox" Width="90" Margin="0,0,4,2" KeyDown="OnClipOffsetKey" ToolTip="How far the selected plane lies along its normal from where it was made; Enter sets it" />
+                                <Button Content="Set" Padding="10,2" Margin="0,0,12,2" Click="OnClipOffsetSet" />
+                                <Button Content="Flip" Padding="10,2" Margin="0,0,4,2" Click="OnClipFlip" ToolTip="Turn the selected plane over: the other side stays" />
+                                <Button Content="On / off" Padding="10,2" Margin="0,0,4,2" Click="OnClipToggle" />
+                                <Button Content="Remove" Padding="10,2" Margin="0,0,4,2" Click="OnClipRemove" />
+                                <Button Content="Remove all" Padding="10,2" Margin="0,0,4,2" Click="OnClipClearAll" />
+                            </WrapPanel>
+                            <ListView x:Name="ClipList" BorderThickness="0,1,0,0" SelectionMode="Single" SelectionChanged="OnClipSelected">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="#" Width="36" DisplayMemberBinding="{Binding Number}" />
+                                        <GridViewColumn Header="State" Width="60" DisplayMemberBinding="{Binding State}" />
+                                        <GridViewColumn Header="Plane passes through" Width="300" DisplayMemberBinding="{Binding Through}" />
+                                        <GridViewColumn Header="Normal, the side that stays" Width="300" DisplayMemberBinding="{Binding Normal}" />
+                                        <GridViewColumn Header="Offset" Width="120" DisplayMemberBinding="{Binding Offset}" />
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </DockPanel>
                     </TabItem>
                     <TabItem x:Name="CompareTab" Header="Compare" Visibility="Collapsed">
                         <DockPanel>

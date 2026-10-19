@@ -27,10 +27,10 @@ namespace GeometryHelper.Viewer
         private readonly Settings _settings;
         private readonly Keymap _keymap;
         private readonly string _keymapProblem;
-        private readonly SceneView _sceneView;
-        private readonly ViewCamera _camera = new ViewCamera();
-        private readonly PerspectiveCamera _perspective = new PerspectiveCamera { FieldOfView = 45.0 };
-        private readonly OrthographicCamera _orthographic = new OrthographicCamera();
+        private readonly SceneModel _model = new SceneModel();
+        private readonly ViewLayout _layout = new ViewLayout();
+        private readonly ViewPane[] _panes = new ViewPane[ViewLayout.MaxViews];
+        private readonly OverlayGroup _overlay = new OverlayGroup();
         private readonly ObservableCollection<TreeNode> _roots = new ObservableCollection<TreeNode>();
         private readonly ObservableCollection<PropertyRow> _rows = new ObservableCollection<PropertyRow>();
         private readonly List<TreeNode> _itemNodes = new List<TreeNode>();
@@ -39,7 +39,6 @@ namespace GeometryHelper.Viewer
         private bool _syncingSelection;
         private bool _rerunQueued;
         private readonly HashSet<CancellationTokenSource> _abandoned = new HashSet<CancellationTokenSource>();
-        private ViewCamera _saved3D;
         private FileSystemWatcher _watcher;
         private DispatcherTimer _watchTimer;
 
@@ -55,20 +54,17 @@ namespace GeometryHelper.Viewer
             _settings = command.Headless ? new Settings() : Settings.Load();
             _keymap = Keymap.Load(command.Headless ? null : Path.Combine(Settings.Folder, "keymap.json"), out _keymapProblem);
 
-            Viewport.EffectsManager = new HelixToolkit.SharpDX.Core.DefaultEffectsManager();
-            Viewport.Camera = _perspective;
-            _sceneView = new SceneView(Viewport);
-            _overlay = new OverlayView(Viewport, _sceneView);
-            _sceneView.OriginChanged += (s, e) =>
-            {
-                _overlay.Rebuild();
-                UpdateCamera();
-            };
+            // One graphics device for all the views; each view has a viewport of its own, made in code when it is first shown.
+            _effects = new HelixToolkit.SharpDX.Core.DefaultEffectsManager();
+            Panes.Layout = _layout;
+            _model.SceneChanged += (s, e) => RebuildSavedViewsMenu();
             Tree.ItemsSource = _roots;
             PropertiesList.ItemsSource = _rows;
             CompareList.ItemsSource = _compareRows;
+            ClipList.ItemsSource = _clipRows;
 
             ApplySettings();
+            ShowLayout();
             BuildDiagnosticsPane();
             LabelMenusWithKeys();
             RebuildRecentMenu();
@@ -110,9 +106,14 @@ namespace GeometryHelper.Viewer
             WatchMenu.IsChecked = _settings.RerunOnSave;
             CompareWatchMenu.IsChecked = _settings.CompareWatch;
 
-            if (Enum.TryParse(_settings.RenderMode, out RenderMode mode))
+            // The layout of the views comes back as it was left; a settings file from before there were several views has only the render mode, which was the view's.
+            if (_settings.Layout != null)
             {
-                _sceneView.Mode = mode;
+                _layout.Restore(_settings.Layout);
+            }
+            else if (Enum.TryParse(_settings.RenderMode, out RenderMode mode) && Enum.IsDefined(typeof(RenderMode), mode))
+            {
+                _layout.ActiveSlot.Mode = mode;
             }
         }
 
@@ -138,11 +139,7 @@ namespace GeometryHelper.Viewer
                     Log(_keymapProblem);
                 }
 
-                if (_sceneView.Grid != GridMenu.IsChecked)
-                {
-                    _sceneView.Grid = GridMenu.IsChecked == true;
-                }
-
+                SetGrid(GridMenu.IsChecked == true);
                 ParseHeadlessOptions();
                 UpdateModeText();
                 UpdateCamera();
@@ -200,15 +197,20 @@ namespace GeometryHelper.Viewer
                 _settings.OutputHeight = OutputRow.ActualHeight;
                 _settings.ShowProperties = PropertiesPane.Visibility == Visibility.Visible;
                 SaveDiagnosticsSettings();
-                _settings.RenderMode = _sceneView.Mode.ToString();
+                _settings.RenderMode = Active.Mode.ToString();
+                _settings.Layout = _layout.Capture();
                 _settings.Grid = GridMenu.IsChecked == true;
                 _settings.RerunOnSave = WatchMenu.IsChecked == true;
                 _settings.CompareWatch = CompareWatchMenu.IsChecked == true;
                 _settings.Save();
             }
 
-            _sceneView.Clear();
-            Viewport.Dispose();
+            _model.Clear();
+
+            foreach (ViewPane pane in _panes)
+            {
+                pane?.Dispose();
+            }
         }
 
         #region Files
@@ -312,31 +314,48 @@ namespace GeometryHelper.Viewer
                     Log("warning: " + warning);
                 }
 
+                foreach (string warning in result.Scene.LoadWarnings)
+                {
+                    Log("warning: " + warning);
+                }
+
                 foreach (string kind in result.Scene.UnknownKinds)
                 {
                     Log("warning: the kind '" + kind + "' is kept but not drawn.");
                 }
 
+                // The clip planes in force cut the new scene too: a script run again is looked at through the same section.
+                ClipSet cutBy = _clips;
+                ClipResult clipped = await ClipAsync(primitives, cutBy);
+
                 bool sameFile = string.Equals(_currentPath, path, StringComparison.OrdinalIgnoreCase) && _compare == null;
                 LeaveCompare(false);
                 _currentPath = path;
                 Title = (string.IsNullOrEmpty(result.Scene.Title) ? Path.GetFileName(path) : result.Scene.Title) + " - GeometryHelper Viewer";
-                _sceneView.Show(result.Scene, primitives);
+                _model.Show(result.Scene, primitives, clipped);
                 ResetTools(geometry, sameFile && result.WasScript);
                 BuildTree();
                 ShowProperties();
                 UpdateSelectionText();
+                CutAfterShow(cutBy);
                 ToleranceText.Text = "EqualPoint " + result.Scene.EqualPoint.ToString("G", CultureInfo.InvariantCulture);
                 Log("OK: " + result.Scene.Items.Count + " item(s) on " + result.Scene.Layers.Count + " layer(s)" + (result.WasScript ? ", " + result.Notes.Count + " note(s)" : string.Empty) + ".");
 
-                // A script run again keeps the view where the user put it, so that an edit can be watched; a new file is fitted.
+                // A script run again keeps the view where the user put it, so that an edit can be watched; a new file is fitted, and opens at its first saved
+                // view where it has one, which is how a repro opens at the spot it is about.
                 if (!sameFile || !result.WasScript)
                 {
-                    FitAll();
+                    FitAllViews();
+
+                    // A --view on the command line is the view that was asked for; it wins over the first saved view of the scene.
+                    if (_command.View == null)
+                    {
+                        RestoreFirstSavedView();
+                    }
                 }
                 else
                 {
-                    UpdateCamera();
+                    UpdateAllCameras();
                 }
 
                 if (!_command.Headless)
@@ -413,7 +432,7 @@ namespace GeometryHelper.Viewer
 
         private void SaveSceneAs()
         {
-            if (_sceneView.Scene == null)
+            if (_model.Scene == null)
             {
                 SetMessage("no scene to save");
                 return;
@@ -423,7 +442,7 @@ namespace GeometryHelper.Viewer
             {
                 Title = "Save the scene",
                 Filter = "Scene (*.ghscene.json)|*.ghscene.json",
-                FileName = (string.IsNullOrEmpty(_sceneView.Scene.Title) ? "scene" : string.Concat(_sceneView.Scene.Title.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_'))) + ".ghscene.json",
+                FileName = (string.IsNullOrEmpty(_model.Scene.Title) ? "scene" : string.Concat(_model.Scene.Title.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_'))) + ".ghscene.json",
                 InitialDirectory = _settings.LastFolder != null && Directory.Exists(_settings.LastFolder) ? _settings.LastFolder : null,
             };
 
@@ -445,7 +464,7 @@ namespace GeometryHelper.Viewer
 
             try
             {
-                new SceneWriter(_sceneView.Scene).Save(dialog.FileName);
+                new SceneWriter(_model.Scene).Save(dialog.FileName);
                 Log("Saved " + dialog.FileName);
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
@@ -526,7 +545,7 @@ namespace GeometryHelper.Viewer
         {
             _roots.Clear();
             _itemNodes.Clear();
-            Scene scene = _sceneView.Scene;
+            Scene scene = _model.Scene;
 
             if (scene == null)
             {
@@ -539,7 +558,7 @@ namespace GeometryHelper.Viewer
             {
                 SceneColor.TryParse(layer.Color, out byte r, out byte g, out byte b);
                 string name = layer.Name;
-                var node = new TreeNode(name + " (" + scene.Items.Count(i => i.Layer == name) + ")", new SolidColorBrush(Color.FromRgb(r, g, b)), -1, name, OnTreeChecked) { IsChecked = !_sceneView.IsLayerHidden(name) };
+                var node = new TreeNode(name + " (" + scene.Items.Count(i => i.Layer == name) + ")", new SolidColorBrush(Color.FromRgb(r, g, b)), -1, name, OnTreeChecked) { IsChecked = !_model.IsLayerHidden(name) };
                 layerNodes[name] = node;
                 _roots.Add(node);
             }
@@ -564,11 +583,11 @@ namespace GeometryHelper.Viewer
 
             if (node.ItemIndex < 0)
             {
-                _sceneView.SetLayerHidden(node.Layer, !isChecked);
+                _model.SetLayerHidden(node.Layer, !isChecked);
             }
             else
             {
-                _sceneView.SetItemHidden(node.ItemIndex, !isChecked);
+                _model.SetItemHidden(node.ItemIndex, !isChecked);
             }
         }
 
@@ -579,7 +598,7 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            _sceneView.Select(node.ItemIndex >= 0 ? new[] { node.ItemIndex } : _sceneView.Scene.Items.Select((item, i) => new { item, i }).Where(x => x.item.Layer == node.Layer).Select(x => x.i));
+            _model.Select(node.ItemIndex >= 0 ? new[] { node.ItemIndex } : _model.Scene.Items.Select((item, i) => new { item, i }).Where(x => x.item.Layer == node.Layer).Select(x => x.i));
             AfterSelectionChanged(false);
         }
 
@@ -596,9 +615,9 @@ namespace GeometryHelper.Viewer
                         node.IsSelected = false;
                     }
 
-                    if (_sceneView.Selected.Count == 1)
+                    if (_model.Selected.Count == 1)
                     {
-                        TreeNode node = _itemNodes[_sceneView.Selected.First()];
+                        TreeNode node = _itemNodes[_model.Selected.First()];
                         node.IsSelected = true;
                     }
                 }
@@ -620,12 +639,12 @@ namespace GeometryHelper.Viewer
             {
                 foreach (TreeNode layer in _roots)
                 {
-                    layer.SetCheckedQuietly(!_sceneView.IsLayerHidden(layer.Layer));
+                    layer.SetCheckedQuietly(!_model.IsLayerHidden(layer.Layer));
                 }
 
                 foreach (TreeNode node in _itemNodes)
                 {
-                    node.SetCheckedQuietly(!_sceneView.IsItemHidden(node.ItemIndex));
+                    node.SetCheckedQuietly(!_model.IsItemHidden(node.ItemIndex));
                 }
             }
             finally
@@ -636,20 +655,20 @@ namespace GeometryHelper.Viewer
 
         private void UpdateSelectionText()
         {
-            SelectionText.Text = _sceneView.Selected.Count + " selected";
+            SelectionText.Text = _model.Selected.Count + " selected";
         }
 
         private async void ShowProperties()
         {
             _rows.Clear();
-            Scene scene = _sceneView.Scene;
+            Scene scene = _model.Scene;
 
             if (scene == null)
             {
                 return;
             }
 
-            IReadOnlyCollection<int> selected = _sceneView.Selected;
+            IReadOnlyCollection<int> selected = _model.Selected;
 
             if (selected.Count == 0)
             {
@@ -658,7 +677,7 @@ namespace GeometryHelper.Viewer
                 _rows.Add(new PropertyRow("Layers", scene.Layers.Count.ToString(CultureInfo.InvariantCulture)));
                 _rows.Add(new PropertyRow("EqualPoint", scene.EqualPoint.ToString("G", CultureInfo.InvariantCulture)));
 
-                Bounds3 bounds = _sceneView.Primitives.Bounds;
+                Bounds3 bounds = _model.Primitives.Bounds;
 
                 if (!bounds.IsEmpty)
                 {
@@ -694,14 +713,14 @@ namespace GeometryHelper.Viewer
                 _rows.Add(new PropertyRow(pair.Key, pair.Value));
             }
 
-            ItemPrimitives drawn = _sceneView.Primitives.Items[index];
+            ItemPrimitives drawn = _model.Primitives.Items[index];
             _rows.Add(new PropertyRow("Measuring...", string.Empty));
             int measuring = _rows.Count - 1;
 
             // A body is closed and cut for its volume, which can take a while; the pane fills in when it is done.
             IReadOnlyList<KeyValuePair<string, string>> numbers = await Task.Run(() => ItemMeasures.Describe(item, scene, drawn));
 
-            if (_sceneView.Selected.Count == 1 && _sceneView.Selected.First() == index && measuring < _rows.Count && _rows[measuring].Name == "Measuring...")
+            if (_model.Selected.Count == 1 && _model.Selected.First() == index && measuring < _rows.Count && _rows[measuring].Name == "Measuring...")
             {
                 _rows.RemoveAt(measuring);
 
@@ -759,7 +778,7 @@ namespace GeometryHelper.Viewer
 
         private void UpdateModeText()
         {
-            ModeText.Text = _sceneView.Mode + (_camera.Orthographic ? ", ortho" : ", perspective");
+            ModeText.Text = Active.Mode + (Active.Camera.Orthographic ? ", ortho" : ", perspective") + (_layout.Count > 1 ? ", view " + (_layout.Active + 1) : string.Empty);
         }
 
         #endregion

@@ -26,6 +26,10 @@ namespace GeometryHelper.Viewer
             Distance,
             Angle,
             Radius,
+            WorkPlaneThreePoints,
+            WorkPlaneFace,
+            ClipPoint,
+            ClipFace,
         }
 
         /// <summary>
@@ -35,7 +39,6 @@ namespace GeometryHelper.Viewer
         private const int IdleSnapCurves = 200000;
 
         private ExactGeometry _geometry;
-        private OverlayView _overlay;
         private SnapKinds _snaps = SnapKinds.End | SnapKinds.Mid | SnapKinds.Intersection | SnapKinds.Centre;
         private PickMode _pickMode;
         private readonly List<ResolvedPoint> _picked = new List<ResolvedPoint>();
@@ -43,19 +46,19 @@ namespace GeometryHelper.Viewer
         private Vec3? _rotationCentre;
         private DispatcherTimer _probeTimer;
         private Point _probeAt;
+        private ViewPane _probePane;
         private Point? _lastMouse;
+        private ViewPane _lastMousePane;
+        private ViewPane _dragPane;
         private Point _bandStart;
         private bool _asking;
         private int _askGeneration;
 
         #region State
 
-        private bool HasScene => _sceneView.Scene != null && _geometry != null;
+        private bool HasScene => _model.Scene != null && _geometry != null;
 
-        private ScreenMap MakeMap()
-            => new ScreenMap(_camera, _sceneView.Primitives?.Bounds ?? default(Bounds3), Viewport.ActualWidth, Viewport.ActualHeight);
-
-        private bool Surfaces => _sceneView.Mode != RenderMode.Wireframe;
+        private bool Surfaces => Active.Mode != RenderMode.Wireframe;
 
         /// <summary>
         /// Starts a scene over: the picks, the dimensions and the tool in use belong to the one before. The rotation centre stays where a
@@ -122,7 +125,7 @@ namespace GeometryHelper.Viewer
                     break;
 
                 case "MeasureDistance":
-                    if (HasScene && _sceneView.Selected.Count == 2)
+                    if (HasScene && _model.Selected.Count == 2)
                     {
                         _ = MeasureSelectedAsync();
                     }
@@ -167,6 +170,10 @@ namespace GeometryHelper.Viewer
                 case PickMode.Distance: return _picked.Count == 0 ? "distance: click the first point" : "distance: click the second point";
                 case PickMode.Angle: return _picked.Count == 0 ? "angle: click a point on the first leg" : _picked.Count == 1 ? "angle: click the vertex" : "angle: click a point on the second leg";
                 case PickMode.Radius: return "radius: click an arc or a circle";
+                case PickMode.WorkPlaneThreePoints: return _picked.Count == 0 ? "work plane: click the origin" : _picked.Count == 1 ? "work plane: click a point along the x axis" : "work plane: click a point in the plane, on the side the y axis points to";
+                case PickMode.WorkPlaneFace: return "work plane: click a face";
+                case PickMode.ClipPoint: return "clip plane: click a point; the plane goes through it square to the view and cuts away what is nearer the eye";
+                case PickMode.ClipFace: return "clip plane: click a face; the plane lies on it and cuts away what is in front of it";
                 default: return string.Empty;
             }
         }
@@ -220,11 +227,11 @@ namespace GeometryHelper.Viewer
         {
             if (_rotationCentre.HasValue)
             {
-                _camera.RotateAbout(_rotationCentre.Value, azimuth, elevation);
+                Active.Camera.RotateAbout(_rotationCentre.Value, azimuth, elevation);
             }
             else
             {
-                _camera.Rotate(azimuth, elevation);
+                Active.Camera.Rotate(azimuth, elevation);
             }
 
             UpdateCamera();
@@ -249,11 +256,11 @@ namespace GeometryHelper.Viewer
             try
             {
                 ScreenMap map = MakeMap();
-                Scene scene = _sceneView.Scene;
+                Scene scene = _model.Scene;
 
                 if (_pickMode == PickMode.Radius)
                 {
-                    SceneCurve curve = PickEngine.PickConic(_geometry, map, p.X, p.Y, _sceneView.IsVisible, out Vec3 at);
+                    SceneCurve curve = PickEngine.PickConic(_geometry, map, p.X, p.Y, _model.IsVisible, out Vec3 at);
 
                     if (curve == null)
                     {
@@ -265,8 +272,26 @@ namespace GeometryHelper.Viewer
                     return;
                 }
 
-                // A point to turn about, found on nothing, is on the plane through the target square to the view, not on the plane z = 0.
-                ResolvedPoint point = PickEngine.ResolvePoint(_sceneView.Primitives, _geometry, map, p.X, p.Y, _snaps, scene.EqualPoint, _sceneView.IsVisible, Surfaces, _pickMode != PickMode.RotationCentre);
+                if (_pickMode == PickMode.WorkPlaneFace || _pickMode == PickMode.ClipFace)
+                {
+                    PickFaceForPlane(map, p);
+                    return;
+                }
+
+                // A point to turn about, found on nothing, is on the plane through the target square to the view, not on the work plane (the plane z = 0 where none is set).
+                ResolvedPoint point = PickEngine.ResolvePoint(_model.Primitives, _geometry, map, p.X, p.Y, _snaps, scene.EqualPoint, _model.IsVisible, Surfaces, _pickMode != PickMode.RotationCentre, _workPlane);
+
+                if (_pickMode == PickMode.ClipPoint)
+                {
+                    AddClipThrough(point.Point, "through " + point.Point + " (" + point.Source + ")");
+                    return;
+                }
+
+                if (_pickMode == PickMode.WorkPlaneThreePoints)
+                {
+                    TakeWorkPlanePoint(point);
+                    return;
+                }
 
                 if (_pickMode == PickMode.RotationCentre)
                 {
@@ -285,7 +310,7 @@ namespace GeometryHelper.Viewer
                 {
                     ResolvedPoint a = _picked[0];
                     ResolvedPoint b = _picked[1];
-                    MeasureResult result = Measurements.Distance(a.Point, b.Point);
+                    MeasureResult result = Measurements.Distance(a.Point, b.Point, _workPlane);
 
                     result.AddLine("  picked on " + Describe(a, scene) + " and " + Describe(b, scene));
 
@@ -355,8 +380,8 @@ namespace GeometryHelper.Viewer
         {
             try
             {
-                Scene scene = _sceneView.Scene;
-                int[] items = _sceneView.Selected.OrderBy(i => i).ToArray();
+                Scene scene = _model.Scene;
+                int[] items = _model.Selected.OrderBy(i => i).ToArray();
                 SetMessage("asking the library...");
                 int generation = ++_askGeneration;
                 _asking = true;
@@ -409,8 +434,9 @@ namespace GeometryHelper.Viewer
         /// Looks for the item and the snap under the mouse soon, once for however many moves come before then, so that the work follows
         /// the mouse without being done for every pixel of it.
         /// </summary>
-        private void ProbeLater(Point p)
+        private void ProbeLater(ViewPane pane, Point p)
         {
+            _probePane = pane;
             _probeAt = p;
 
             if (_probeTimer == null)
@@ -419,7 +445,7 @@ namespace GeometryHelper.Viewer
                 _probeTimer.Tick += (s, e) =>
                 {
                     _probeTimer.Stop();
-                    Probe(_probeAt);
+                    Probe(_probePane, _probeAt);
                 };
             }
 
@@ -429,7 +455,7 @@ namespace GeometryHelper.Viewer
             }
         }
 
-        private void Probe(Point p)
+        private void Probe(ViewPane pane, Point p)
         {
             if (!HasScene)
             {
@@ -438,15 +464,15 @@ namespace GeometryHelper.Viewer
 
             try
             {
-                ScreenMap map = MakeMap();
+                ScreenMap map = MapOf(pane);
                 // A scene with very many curves is not searched for its lines at every move of the mouse unless a tool is waiting for a point.
                 bool curves = _pickMode != PickMode.None || _geometry.Curves.Count <= IdleSnapCurves;
-                PickHit hit = PickEngine.Pick(_sceneView.Primitives, curves ? _geometry : null, map, p.X, p.Y, _sceneView.IsVisible, Surfaces);
-                _sceneView.SetHover(hit == null ? -1 : hit.ItemIndex);
+                PickHit hit = PickEngine.Pick(_model.Primitives, curves ? _geometry : null, map, p.X, p.Y, _model.IsVisible, pane.Mode != RenderMode.Wireframe);
+                _model.SetHover(hit == null ? -1 : hit.ItemIndex);
 
                 bool look = _snaps != SnapKinds.None && curves;
                 SnapHit snap = look
-                    ? SnapEngine.Find(_geometry, map, p.X, p.Y, _snaps, SnapEngine.DefaultRadius, _sceneView.Scene.EqualPoint, _sceneView.IsVisible)
+                    ? SnapEngine.Find(_geometry, map, p.X, p.Y, _snaps, SnapEngine.DefaultRadius, _model.Scene.EqualPoint, _model.IsVisible)
                     : null;
 
                 if (snap == null)
@@ -471,9 +497,9 @@ namespace GeometryHelper.Viewer
             _lastMouse = null;
             _probeTimer?.Stop();
 
-            if (_sceneView.Scene != null)
+            if (_model.Scene != null)
             {
-                _sceneView.SetHover(-1);
+                _model.SetHover(-1);
             }
 
             _overlay.SetSnap(null, SnapKinds.None);
@@ -486,15 +512,17 @@ namespace GeometryHelper.Viewer
 
         private void UpdateBand(Point start, Point now)
         {
+            // The band is drawn over the view the drag began in, which is the active one: the view is activated when the button goes down.
+            Rectangle band = Active.Band;
             bool window = BoxSelect.ModeOf(start.X, now.X) == BoxMode.Window;
-            Band.Stroke = window ? new SolidColorBrush(Color.FromRgb(0x1F, 0x4F, 0xD8)) : new SolidColorBrush(Color.FromRgb(0x1B, 0x8E, 0x3C));
-            Band.Fill = window ? new SolidColorBrush(Color.FromArgb(0x28, 0x1F, 0x4F, 0xD8)) : new SolidColorBrush(Color.FromArgb(0x28, 0x1B, 0x8E, 0x3C));
-            Band.StrokeDashArray = window ? new DoubleCollection() : new DoubleCollection { 5.0, 3.0 };
-            Canvas.SetLeft(Band, Math.Min(start.X, now.X));
-            Canvas.SetTop(Band, Math.Min(start.Y, now.Y));
-            Band.Width = Math.Abs(now.X - start.X);
-            Band.Height = Math.Abs(now.Y - start.Y);
-            Band.Visibility = Visibility.Visible;
+            band.Stroke = window ? new SolidColorBrush(Color.FromRgb(0x1F, 0x4F, 0xD8)) : new SolidColorBrush(Color.FromRgb(0x1B, 0x8E, 0x3C));
+            band.Fill = window ? new SolidColorBrush(Color.FromArgb(0x28, 0x1F, 0x4F, 0xD8)) : new SolidColorBrush(Color.FromArgb(0x28, 0x1B, 0x8E, 0x3C));
+            band.StrokeDashArray = window ? new DoubleCollection() : new DoubleCollection { 5.0, 3.0 };
+            Canvas.SetLeft(band, Math.Min(start.X, now.X));
+            Canvas.SetTop(band, Math.Min(start.Y, now.Y));
+            band.Width = Math.Abs(now.X - start.X);
+            band.Height = Math.Abs(now.Y - start.Y);
+            band.Visibility = Visibility.Visible;
         }
 
         /// <summary>
@@ -503,7 +531,7 @@ namespace GeometryHelper.Viewer
         /// <param name="modifiers">Shift adds the result to the selection, Ctrl toggles it, none replaces the selection.</param>
         private void ApplyBox(Point start, Point end, ModifierKeys modifiers)
         {
-            Band.Visibility = Visibility.Collapsed;
+            Active.Band.Visibility = Visibility.Collapsed;
 
             if (!HasScene)
             {
@@ -511,8 +539,8 @@ namespace GeometryHelper.Viewer
             }
 
             BoxMode mode = BoxSelect.ModeOf(start.X, end.X);
-            List<int> inside = BoxSelect.Select(_sceneView.Primitives, MakeMap(), start.X, start.Y, end.X, end.Y, mode, _sceneView.IsVisible);
-            var selection = new HashSet<int>(_sceneView.Selected);
+            List<int> inside = BoxSelect.Select(_model.Primitives, MakeMap(), start.X, start.Y, end.X, end.Y, mode, _model.IsVisible);
+            var selection = new HashSet<int>(_model.Selected);
 
             if ((modifiers & ModifierKeys.Shift) != 0)
             {
@@ -533,7 +561,7 @@ namespace GeometryHelper.Viewer
                 selection = new HashSet<int>(inside);
             }
 
-            _sceneView.Select(selection.OrderBy(i => i));
+            _model.Select(selection.OrderBy(i => i));
             AfterSelectionChanged(true);
             SetMessage((mode == BoxMode.Window ? "window" : "crossing") + ": " + inside.Count + " item(s)");
         }
@@ -583,12 +611,12 @@ namespace GeometryHelper.Viewer
                 switch (words[0].ToLowerInvariant())
                 {
                     case "select":
-                        _sceneView.Select(words.Skip(1).Select(w => int.Parse(w, CultureInfo.InvariantCulture)));
+                        _model.Select(words.Skip(1).Select(w => int.Parse(w, CultureInfo.InvariantCulture)));
                         AfterSelectionChanged(true);
                         break;
 
                     case "hover":
-                        Probe(Place());
+                        Probe(Active, Place());
                         break;
 
                     case "box":
@@ -620,7 +648,7 @@ namespace GeometryHelper.Viewer
                         break;
 
                     case "labelpx":
-                        Log("label heights in pixels: " + string.Join(", ", _sceneView.LabelHeights().Select(h => h.ToString("F1", CultureInfo.InvariantCulture))));
+                        Log("label heights in pixels: " + string.Join(", ", Active.View.LabelHeights().Select(h => h.ToString("F1", CultureInfo.InvariantCulture))));
                         break;
 
                     case "wait":
@@ -713,7 +741,7 @@ namespace GeometryHelper.Viewer
                         for (int frame = 0; frame < 8; frame++)
                         {
                             await Task.Delay(150);
-                            Viewport.InvalidateRender();
+                            InvalidateViews();
                         }
 
                         UpdateLayout();
@@ -741,7 +769,11 @@ namespace GeometryHelper.Viewer
                         break;
 
                     default:
-                        Log("--do: unknown command '" + words[0] + "'");
+                        if (!await ViewCommandAsync(words))
+                        {
+                            Log("--do: unknown command '" + words[0] + "'");
+                        }
+
                         break;
                 }
             }

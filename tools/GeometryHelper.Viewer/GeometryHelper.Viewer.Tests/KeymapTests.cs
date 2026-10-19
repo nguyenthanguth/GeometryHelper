@@ -65,6 +65,21 @@ namespace GeometryHelper.Viewer.Tests
         [InlineData("F5", "RunScript")]
         [InlineData("Ctrl+R", "RerunScript")]
         [InlineData("Ctrl+Shift+S", "Screenshot")]
+        [InlineData("Ctrl+Shift+1", "ViewLayout1")]
+        [InlineData("Ctrl+Shift+2", "ViewLayout2")]
+        [InlineData("Ctrl+Shift+4", "ViewLayout4")]
+        [InlineData("L", "LinkViews")]
+        [InlineData("W", "WorkPlaneThreePoints")]
+        [InlineData("Shift+W", "WorkPlaneGlobal")]
+        [InlineData("Ctrl+W", "WorkPlaneFromFace")]
+        [InlineData("Ctrl+Shift+W", "WorkPlaneFromView")]
+        [InlineData("K", "ClipAddView")]
+        [InlineData("Ctrl+K", "ClipAddFace")]
+        [InlineData("Ctrl+B", "ClipBox")]
+        [InlineData("Shift+K", "ClipFlip")]
+        [InlineData("Ctrl+Shift+B", "ClipClear")]
+        [InlineData("Ctrl+Shift+K", "ToggleClipPane")]
+        [InlineData("Ctrl+Shift+V", "SaveView")]
         public void TheDefaultKeymap_FollowsTheTableOfTheSpec(string gesture, string action)
         {
             Assert.Equal(action, Keymap.Default().ActionFor(Gesture.Parse(gesture)));
@@ -163,10 +178,8 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void EveryActionAKeyIsBoundTo_ThatThisVersionDoesNot_IsMarkedSo()
         {
-            // The second phase did the rotation centre, the box select, the measuring and the snaps; the screenshot is the fifth's.
-            Assert.Equal(
-                new[] { "Screenshot" },
-                KeymapActions.All.Where(a => !a.Implemented).Select(a => a.Name).OrderBy(n => n));
+            // The second phase did the rotation centre, the box select, the measuring and the snaps; the fifth did the screenshot, so every action is done now.
+            Assert.Empty(KeymapActions.All.Where(a => !a.Implemented).Select(a => a.Name).OrderBy(n => n));
         }
     }
 }

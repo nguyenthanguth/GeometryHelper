@@ -16,86 +16,113 @@ using MeshGeometry3D = HelixToolkit.SharpDX.Core.MeshGeometry3D;
 namespace GeometryHelper.Viewer.Views
 {
     /// <summary>
-    /// How the scene is drawn.
+    /// The elements of one 3D view for the scene of a <see cref="SceneModel"/>: one set of meshes, lines, points and labels for each item, built
+    /// relative to a render origin of the view's own so that the graphics card, which works in floats, is handed small numbers. It owns what
+    /// the view shows of the state: its render mode, its grid, the origin; which items are visible and selected it reads from the model, which the
+    /// views share.
     /// </summary>
-    public enum RenderMode
-    {
-        /// <summary>
-        /// Lines only.
-        /// </summary>
-        Wireframe,
-
-        /// <summary>
-        /// Surfaces only; shapes with no surface keep their lines.
-        /// </summary>
-        Shaded,
-
-        /// <summary>
-        /// Surfaces and their edges.
-        /// </summary>
-        ShadedEdges,
-
-        /// <summary>
-        /// Surfaces see-through, with their edges.
-        /// </summary>
-        Transparent,
-    }
-
-    /// <summary>
-    /// The elements of the 3D view for a scene: one set of meshes, lines, points and labels for each item, built relative to
-    /// the centre of the scene so that the graphics card, which works in floats, is handed small numbers. It also owns what
-    /// the view shows of the state: render mode, which items are visible, which are selected.
-    /// </summary>
-    public sealed class SceneView
+    public sealed class SceneView : IDisposable
     {
         private const double LineThickness = 1.4;
         internal const double LabelFontPixels = 24.0;
         private const double SelectedLineThickness = 3.2;
         private const double HoverLineThickness = 2.6;
+        private const double SectionThickness = 2.6;
         private static readonly Color SelectionColor = Color.FromRgb(0xFF, 0x7A, 0x00);
         private static readonly Color HoverColor = Color.FromRgb(0xFF, 0xC4, 0x40);
 
         private readonly Viewport3DX _viewport;
+        private readonly SceneModel _model;
         private readonly List<ItemVisual> _visuals = new List<ItemVisual>();
-        private readonly HashSet<int> _selected = new HashSet<int>();
-        private readonly HashSet<int> _hidden = new HashSet<int>();
-        private readonly HashSet<string> _hiddenLayers = new HashSet<string>(StringComparer.Ordinal);
         private readonly List<Element3D> _extras = new List<Element3D>();
-        private Scene _scene;
-        private Primitives _primitives;
+        private Primitives _drawn;
         private RenderMode _mode = RenderMode.ShadedEdges;
+        private WorkPlane _workPlane = WorkPlane.Global;
+        private Vec3 _wantedOrigin;
         private int _depthBias = 8;
-        private int _generation;
-        private bool _rebasing;
+        private bool _attached;
+        private bool _building;
+        private bool _again;
         private bool _grid;
-        private int _hover = -1;
         private ScreenMap _labelMap;
 
         /// <summary>
-        /// Initializes the view over a viewport, which should hold the lights already.
+        /// Initializes a view over a viewport, which should hold the lights already, and shows the scene of the model in it if there is one.
         /// </summary>
-        public SceneView(Viewport3DX viewport)
+        /// <param name="viewport">The viewport.</param>
+        /// <param name="model">What the views share.</param>
+        public SceneView(Viewport3DX viewport, SceneModel model)
         {
             _viewport = viewport;
+            _model = model;
+            Attach();
+        }
+
+        /// <summary>
+        /// Gets whether the view holds the elements of the scene and listens to the model.
+        /// </summary>
+        public bool IsAttached => _attached;
+
+        /// <summary>
+        /// Starts listening to the model and makes the elements of the scene it shows, relative to the middle of the scene. A view that is not shown is
+        /// detached, and is attached again when it is.
+        /// </summary>
+        public void Attach()
+        {
+            if (_attached)
+            {
+                return;
+            }
+
+            _attached = true;
+            _model.SceneChanged += OnSceneChanged;
+            _model.StateChanged += OnStateChanged;
+            _model.HoverChanged += OnHoverChanged;
+            _model.ClipChanged += OnClipChanged;
+
+            if (_model.Scene != null)
+            {
+                Build();
+            }
+        }
+
+        /// <summary>
+        /// Stops listening to the model and lets go of every element and the geometry on the graphics card, so that a view that is not shown costs nothing.
+        /// What it was making for the card when this was called is dropped when it comes back.
+        /// </summary>
+        public void Detach()
+        {
+            if (!_attached)
+            {
+                return;
+            }
+
+            _attached = false;
+            _model.SceneChanged -= OnSceneChanged;
+            _model.StateChanged -= OnStateChanged;
+            _model.HoverChanged -= OnHoverChanged;
+            _model.ClipChanged -= OnClipChanged;
+            ClearElements();
         }
 
         /// <summary>
         /// Gets the scene shown, or null.
         /// </summary>
-        public Scene Scene => _scene;
+        public Scene Scene => _model.Scene;
 
         /// <summary>
-        /// Gets what the scene is drawn with, or null.
+        /// Gets what the scene is drawn with before the clip planes cut it, or null.
         /// </summary>
-        public Primitives Primitives => _primitives;
+        public Primitives Primitives => _model.Primitives;
 
         /// <summary>
-        /// Gets the point every coordinate handed to the graphics card is measured from: the middle of the scene.
+        /// Gets the point every coordinate handed to the graphics card is measured from. It starts as the middle of the scene and follows the camera of
+        /// this view, which is why each view has its own.
         /// </summary>
         public Vec3 Origin { get; private set; }
 
         /// <summary>
-        /// Gets or sets how the scene is drawn.
+        /// Gets or sets how the scene is drawn in this view.
         /// </summary>
         public RenderMode Mode
         {
@@ -108,7 +135,7 @@ namespace GeometryHelper.Viewer.Views
         }
 
         /// <summary>
-        /// Gets or sets whether a grid is drawn on the plane z = 0.
+        /// Gets or sets whether a grid is drawn on the work plane.
         /// </summary>
         public bool Grid
         {
@@ -121,63 +148,95 @@ namespace GeometryHelper.Viewer.Views
         }
 
         /// <summary>
-        /// Gets the indexes of the selected items.
+        /// Gets or sets the work plane the grid lies on; the global plane z = 0 until it is set.
         /// </summary>
-        public IReadOnlyCollection<int> Selected => _selected;
-
-        /// <summary>
-        /// Gets whether an item is hidden by itself, not counting its layer.
-        /// </summary>
-        public bool IsItemHidden(int index) => _hidden.Contains(index);
-
-        /// <summary>
-        /// Gets whether a layer is hidden.
-        /// </summary>
-        public bool IsLayerHidden(string layer) => _hiddenLayers.Contains(layer);
-
-        /// <summary>
-        /// Shows a scene, replacing the one before.
-        /// </summary>
-        /// <param name="scene">The scene.</param>
-        /// <param name="primitives">What it is drawn with.</param>
-        public void Show(Scene scene, Primitives primitives)
+        public WorkPlane WorkPlane
         {
-            Clear();
-            _generation++;
-            _scene = scene;
-            _primitives = primitives;
-            _hidden.Clear();
-            _hiddenLayers.Clear();
-            _selected.Clear();
-            _hover = -1;
-            _labelMap = null;
-
-            foreach (Layer layer in scene.Layers.Where(l => !l.Visible))
+            get => _workPlane;
+            set
             {
-                _hiddenLayers.Add(layer.Name);
+                _workPlane = value ?? WorkPlane.Global;
+                RebuildGrid();
+            }
+        }
+
+        /// <summary>
+        /// Raised, on the thread that moved it, when the render origin has moved; the camera has to be sent again relative to it.
+        /// </summary>
+        public event EventHandler OriginChanged;
+
+        /// <summary>
+        /// Gets whether geometry is being made for the graphics card on another thread, for a move of the origin or a cut of the clip planes.
+        /// </summary>
+        public bool IsRebasing => _building;
+
+        /// <summary>
+        /// Lets go of the elements and stops listening to the model.
+        /// </summary>
+        public void Dispose() => Detach();
+
+        private void OnSceneChanged(object sender, EventArgs e)
+        {
+            ClearElements();
+
+            if (_model.Scene != null)
+            {
+                Build();
+            }
+        }
+
+        private void OnStateChanged(object sender, EventArgs e) => Refresh();
+
+        private void OnHoverChanged(int before, int after)
+        {
+            if (before >= 0 && before < _visuals.Count)
+            {
+                Apply(_visuals[before]);
             }
 
-            Origin = primitives.Bounds.IsEmpty ? default(Vec3) : primitives.Bounds.Center;
-
-            for (int i = 0; i < scene.Items.Count; i++)
+            if (after >= 0 && after < _visuals.Count)
             {
-                ItemVisual visual = Build(scene.Items[i], primitives.Items[i], i);
-                _visuals.Add(visual);
+                Apply(_visuals[after]);
+            }
+        }
 
-                foreach (Element3D element in visual.Elements)
-                {
-                    _viewport.Items.Add(element);
-                }
+        private async void OnClipChanged(object sender, EventArgs e)
+        {
+            if (_model.Scene == null)
+            {
+                return;
+            }
+
+            if (_building)
+            {
+                // The geometry under way is for the planes before; it is made again once it has been put in place.
+                _again = true;
+                return;
+            }
+
+            // A fault in the work reaches the unhandled handler of the application, which says it in the output pane and the log.
+            await SwapAsync();
+        }
+
+        private void Build()
+        {
+            _drawn = _model.Clip.Clipped;
+            Origin = _model.Primitives.Bounds.IsEmpty ? default(Vec3) : _model.Primitives.Bounds.Center;
+            _wantedOrigin = Origin;
+            _labelMap = null;
+
+            for (int i = 0; i < _model.Scene.Items.Count; i++)
+            {
+                var visual = new ItemVisual { Index = i, BaseColor = ColorOf(_model.Scene.Items[i]) };
+                ApplyGeometry(visual, MakeGeometry(_drawn.Items[i], Origin, _model.Clip.Sections[i]), _drawn.Items[i], Origin);
+                _visuals.Add(visual);
             }
 
             RebuildGrid();
             Refresh();
         }
 
-        /// <summary>
-        /// Takes the scene off the view.
-        /// </summary>
-        public void Clear()
+        private void ClearElements()
         {
             foreach (ItemVisual visual in _visuals)
             {
@@ -196,111 +255,7 @@ namespace GeometryHelper.Viewer.Views
 
             _extras.Clear();
             _visuals.Clear();
-            _scene = null;
-            _primitives = null;
-        }
-
-        /// <summary>
-        /// Shows or hides an item, apart from its layer.
-        /// </summary>
-        public void SetItemHidden(int index, bool hidden)
-        {
-            if (hidden ? _hidden.Add(index) : _hidden.Remove(index))
-            {
-                Refresh();
-            }
-        }
-
-        /// <summary>
-        /// Shows or hides several items at once, drawing the change once.
-        /// </summary>
-        public void SetItemsHidden(IEnumerable<int> items, bool hidden)
-        {
-            bool changed = false;
-
-            foreach (int index in items)
-            {
-                changed |= hidden ? _hidden.Add(index) : _hidden.Remove(index);
-            }
-
-            if (changed)
-            {
-                Refresh();
-            }
-        }
-
-        /// <summary>
-        /// Shows or hides a layer.
-        /// </summary>
-        public void SetLayerHidden(string layer, bool hidden)
-        {
-            if (hidden ? _hiddenLayers.Add(layer) : _hiddenLayers.Remove(layer))
-            {
-                Refresh();
-            }
-        }
-
-        /// <summary>
-        /// Shows every item and layer again.
-        /// </summary>
-        public void ShowAll()
-        {
-            _hidden.Clear();
-            _hiddenLayers.Clear();
-            Refresh();
-        }
-
-        /// <summary>
-        /// Gets whether an item is shown: not hidden itself, and not on a hidden layer.
-        /// </summary>
-        public bool IsVisible(int index)
-            => _scene != null && !_hidden.Contains(index) && !_hiddenLayers.Contains(_scene.Items[index].Layer);
-
-        /// <summary>
-        /// Replaces the selection.
-        /// </summary>
-        public void Select(IEnumerable<int> items)
-        {
-            _selected.Clear();
-
-            foreach (int index in items)
-            {
-                if (_scene != null && index >= 0 && index < _scene.Items.Count)
-                {
-                    _selected.Add(index);
-                }
-            }
-
-            Refresh();
-        }
-
-        /// <summary>
-        /// Gets the item the cursor is over, or -1; it is drawn lighter than the rest, as a pre-highlight of what a click would select.
-        /// </summary>
-        public int Hover => _hover;
-
-        /// <summary>
-        /// Sets the item the cursor is over; -1 for none.
-        /// </summary>
-        public void SetHover(int index)
-        {
-            if (_scene == null || index == _hover)
-            {
-                return;
-            }
-
-            int before = _hover;
-            _hover = index >= 0 && index < _visuals.Count ? index : -1;
-
-            if (before >= 0 && before < _visuals.Count)
-            {
-                Apply(_visuals[before]);
-            }
-
-            if (_hover >= 0)
-            {
-                Apply(_visuals[_hover]);
-            }
+            _drawn = null;
         }
 
         /// <summary>
@@ -314,9 +269,9 @@ namespace GeometryHelper.Viewer.Views
 
             foreach (ItemVisual visual in _visuals)
             {
-                if (visual.Labels != null && visual.Labels.Geometry is BillboardText3D text)
+                if (visual.Labels != null && visual.Labels.Geometry is BillboardText3D text && _drawn != null)
                 {
-                    ScaleLabels(_primitives.Items[visual.Index], text, map);
+                    ScaleLabels(_drawn.Items[visual.Index], text, map);
                 }
             }
         }
@@ -364,27 +319,6 @@ namespace GeometryHelper.Viewer.Views
         }
 
         /// <summary>
-        /// Gets the box round the selected items, or round the visible ones where none is selected.
-        /// </summary>
-        public Bounds3 BoundsOf(IEnumerable<int> items)
-        {
-            Bounds3 bounds = default(Bounds3);
-
-            foreach (int index in items)
-            {
-                bounds = bounds.Include(_primitives.Items[index].Bounds);
-            }
-
-            return bounds;
-        }
-
-        /// <summary>
-        /// Gets the box round the visible items.
-        /// </summary>
-        public Bounds3 VisibleBounds()
-            => _primitives == null ? default(Bounds3) : BoundsOf(Enumerable.Range(0, _primitives.Items.Count).Where(IsVisible));
-
-        /// <summary>
         /// What the graphics card is given for an item, relative to a render origin. It holds no screen type, so it can be made
         /// on another thread while the old geometry is still being drawn.
         /// </summary>
@@ -393,9 +327,10 @@ namespace GeometryHelper.Viewer.Views
             internal MeshGeometry3D Mesh;
             internal LineGeometry3D Lines;
             internal PointGeometry3D Points;
+            internal LineGeometry3D Section;
         }
 
-        private static ItemGeometry MakeGeometry(ItemPrimitives p, Vec3 origin)
+        private static ItemGeometry MakeGeometry(ItemPrimitives p, Vec3 origin, IReadOnlyList<DrawPolyline> section)
         {
             var geometry = new ItemGeometry();
             Vector3 Rel(Vec3 v)
@@ -425,32 +360,8 @@ namespace GeometryHelper.Viewer.Views
                 geometry.Mesh = new MeshGeometry3D { Positions = positions, Normals = normals, Indices = indices };
             }
 
-            if (p.Polylines.Count > 0)
-            {
-                var positions = new Vector3Collection();
-                var indices = new IntCollection();
-
-                foreach (DrawPolyline line in p.Polylines)
-                {
-                    int first = positions.Count;
-
-                    foreach (Vec3 point in line.Points)
-                    {
-                        positions.Add(Rel(point));
-                    }
-
-                    int count = line.Points.Length;
-                    int segments = line.Closed ? count : count - 1;
-
-                    for (int s = 0; s < segments; s++)
-                    {
-                        indices.Add(first + s);
-                        indices.Add(first + (s + 1) % count);
-                    }
-                }
-
-                geometry.Lines = new LineGeometry3D { Positions = positions, Indices = indices };
-            }
+            geometry.Lines = Lines(p.Polylines, Rel);
+            geometry.Section = Lines(section, Rel);
 
             if (p.Points.Count > 0)
             {
@@ -467,6 +378,38 @@ namespace GeometryHelper.Viewer.Views
             }
 
             return geometry;
+        }
+
+        private static LineGeometry3D Lines(IReadOnlyList<DrawPolyline> polylines, Func<Vec3, Vector3> rel)
+        {
+            if (polylines == null || polylines.Count == 0)
+            {
+                return null;
+            }
+
+            var positions = new Vector3Collection();
+            var indices = new IntCollection();
+
+            foreach (DrawPolyline line in polylines)
+            {
+                int first = positions.Count;
+
+                foreach (Vec3 point in line.Points)
+                {
+                    positions.Add(rel(point));
+                }
+
+                int count = line.Points.Length;
+                int segments = line.Closed ? count : count - 1;
+
+                for (int s = 0; s < segments; s++)
+                {
+                    indices.Add(first + s);
+                    indices.Add(first + (s + 1) % count);
+                }
+            }
+
+            return new LineGeometry3D { Positions = positions, Indices = indices };
         }
 
         private BillboardText3D MakeLabels(ItemPrimitives p, Vec3 origin, Color color)
@@ -487,58 +430,120 @@ namespace GeometryHelper.Viewer.Views
             return text;
         }
 
-        private ItemVisual Build(SceneItem item, ItemPrimitives p, int index)
+        /// <summary>
+        /// Puts the geometry made for an item on its elements, making the elements that the item has not had yet: a cut can leave an item that had no
+        /// surface a surface, and take its surface away.
+        /// </summary>
+        private void ApplyGeometry(ItemVisual visual, ItemGeometry g, ItemPrimitives p, Vec3 origin)
         {
-            var visual = new ItemVisual { Index = index, BaseColor = ColorOf(item) };
-            ItemGeometry g = MakeGeometry(p, Origin);
+            visual.HasMesh = g.Mesh != null;
+            visual.HasLines = g.Lines != null;
+            visual.HasPoints = g.Points != null;
+            visual.HasSection = g.Section != null;
+            visual.HasLabels = p.Labels.Count > 0;
 
             if (g.Mesh != null)
             {
-                visual.Mesh = new MeshGeometryModel3D
+                if (visual.Mesh == null)
                 {
-                    Geometry = g.Mesh,
-                    Material = new PhongMaterial { DiffuseColor = C4(visual.BaseColor), AmbientColor = C4(visual.BaseColor), SpecularColor = C4(Color.FromRgb(40, 40, 40)), SpecularShininess = 20f },
-                    CullMode = SharpDX.Direct3D11.CullMode.None,
-                    DepthBias = _depthBias,
-                    SlopeScaledDepthBias = 1f,
-                    IsHitTestVisible = true,
-                };
-                visual.Elements.Add(visual.Mesh);
+                    visual.Mesh = new MeshGeometryModel3D
+                    {
+                        Geometry = g.Mesh,
+                        Material = new PhongMaterial { DiffuseColor = C4(visual.BaseColor), AmbientColor = C4(visual.BaseColor), SpecularColor = C4(Color.FromRgb(40, 40, 40)), SpecularShininess = 20f },
+                        CullMode = SharpDX.Direct3D11.CullMode.None,
+                        DepthBias = _depthBias,
+                        SlopeScaledDepthBias = 1f,
+                        IsHitTestVisible = true,
+                    };
+                    Attach(visual, visual.Mesh);
+                }
+                else
+                {
+                    visual.Mesh.Geometry = g.Mesh;
+                }
             }
 
             if (g.Lines != null)
             {
-                visual.Lines = new LineGeometryModel3D
+                if (visual.Lines == null)
                 {
-                    Geometry = g.Lines,
-                    Color = visual.BaseColor,
-                    Thickness = LineThickness,
-                    HitTestThickness = 6,
-                    Smoothness = 0,
-                };
-                visual.Elements.Add(visual.Lines);
+                    visual.Lines = new LineGeometryModel3D
+                    {
+                        Geometry = g.Lines,
+                        Color = visual.BaseColor,
+                        Thickness = LineThickness,
+                        HitTestThickness = 6,
+                        Smoothness = 0,
+                    };
+                    Attach(visual, visual.Lines);
+                }
+                else
+                {
+                    visual.Lines.Geometry = g.Lines;
+                }
+            }
+
+            if (g.Section != null)
+            {
+                if (visual.Section == null)
+                {
+                    visual.Section = new LineGeometryModel3D
+                    {
+                        Geometry = g.Section,
+                        Color = Darker(visual.BaseColor, false),
+                        Thickness = SectionThickness,
+                        Smoothness = 0,
+                        IsHitTestVisible = false,
+                    };
+                    Attach(visual, visual.Section);
+                }
+                else
+                {
+                    visual.Section.Geometry = g.Section;
+                }
             }
 
             if (g.Points != null)
             {
-                visual.Points = new PointGeometryModel3D
+                if (visual.Points == null)
                 {
-                    Geometry = g.Points,
-                    Color = visual.BaseColor,
-                    Figure = PointFigure.Ellipse,
-                    Size = new Size(7, 7),
-                    HitTestThickness = 8,
-                };
-                visual.Elements.Add(visual.Points);
+                    visual.Points = new PointGeometryModel3D
+                    {
+                        Geometry = g.Points,
+                        Color = visual.BaseColor,
+                        Figure = PointFigure.Ellipse,
+                        Size = new Size(7, 7),
+                        HitTestThickness = 8,
+                    };
+                    Attach(visual, visual.Points);
+                }
+                else
+                {
+                    visual.Points.Geometry = g.Points;
+                }
             }
 
             if (p.Labels.Count > 0)
             {
-                visual.Labels = new BillboardTextModel3D { Geometry = MakeLabels(p, Origin, visual.BaseColor), FixedSize = true };
-                visual.Elements.Add(visual.Labels);
-            }
+                BillboardText3D text = MakeLabels(p, origin, visual.BaseColor);
 
-            return visual;
+                if (visual.Labels == null)
+                {
+                    visual.Labels = new BillboardTextModel3D { Geometry = text, FixedSize = true };
+                    Attach(visual, visual.Labels);
+                }
+                else
+                {
+                    visual.Labels.Geometry = text;
+                }
+            }
+        }
+
+
+        private void Attach(ItemVisual visual, Element3D element)
+        {
+            visual.Elements.Add(element);
+            _viewport.Items.Add(element);
         }
 
         /// <summary>
@@ -550,69 +555,69 @@ namespace GeometryHelper.Viewer.Views
         /// <returns>true when the origin moved; false when the scene changed meanwhile or a move was under way.</returns>
         public async Task<bool> RebaseAsync(Vec3 newOrigin)
         {
-            if (_scene == null || _rebasing)
+            if (_model.Scene == null || _building)
             {
                 return false;
             }
 
-            _rebasing = true;
-            int generation = _generation;
-            Primitives primitives = _primitives;
-
-            try
-            {
-                ItemGeometry[] made = await Task.Run(() => primitives.Items.Select(p => MakeGeometry(p, newOrigin)).ToArray());
-
-                if (generation != _generation)
-                {
-                    return false;
-                }
-
-                for (int i = 0; i < _visuals.Count; i++)
-                {
-                    ItemVisual visual = _visuals[i];
-
-                    if (visual.Mesh != null)
-                    {
-                        visual.Mesh.Geometry = made[i].Mesh;
-                    }
-
-                    if (visual.Lines != null)
-                    {
-                        visual.Lines.Geometry = made[i].Lines;
-                    }
-
-                    if (visual.Points != null)
-                    {
-                        visual.Points.Geometry = made[i].Points;
-                    }
-
-                    if (visual.Labels != null)
-                    {
-                        visual.Labels.Geometry = MakeLabels(primitives.Items[i], newOrigin, visual.BaseColor);
-                    }
-                }
-
-                Origin = newOrigin;
-                RebuildGrid();
-                OriginChanged?.Invoke(this, EventArgs.Empty);
-                return true;
-            }
-            finally
-            {
-                _rebasing = false;
-            }
+            _wantedOrigin = newOrigin;
+            return await SwapAsync();
         }
 
         /// <summary>
-        /// Raised, on the thread that moved it, when the render origin has moved; the camera has to be sent again relative to it.
+        /// Makes the geometry again, on another thread, from what the clip planes leave and from the origin that is wanted, and swaps it in for the geometry on
+        /// the screen in one step. A cut that comes while this goes on is made once it has been put in place.
         /// </summary>
-        public event EventHandler OriginChanged;
+        private async Task<bool> SwapAsync()
+        {
+            _building = true;
+            bool swapped = false;
 
-        /// <summary>
-        /// Gets whether the origin is being moved.
-        /// </summary>
-        public bool IsRebasing => _rebasing;
+            try
+            {
+                do
+                {
+                    _again = false;
+                    int generation = _model.Generation;
+                    ClipResult clip = _model.Clip;
+                    Vec3 origin = _wantedOrigin;
+                    Primitives drawn = clip.Clipped;
+                    ItemGeometry[] made = await Task.Run(() => drawn.Items.Select((p, i) => MakeGeometry(p, origin, clip.Sections[i])).ToArray());
+
+                    if (generation != _model.Generation || !_attached)
+                    {
+                        // Another scene was shown meanwhile, and was built whole, or the view was let go of.
+                        return false;
+                    }
+
+                    bool moved = !origin.Equals(Origin);
+                    _drawn = drawn;
+
+                    for (int i = 0; i < _visuals.Count; i++)
+                    {
+                        ApplyGeometry(_visuals[i], made[i], drawn.Items[i], origin);
+                    }
+
+                    Origin = origin;
+                    RebuildGrid();
+                    Refresh();
+
+                    if (moved)
+                    {
+                        OriginChanged?.Invoke(this, EventArgs.Empty);
+                    }
+
+                    swapped = true;
+                }
+                while (_again);
+
+                return swapped;
+            }
+            finally
+            {
+                _building = false;
+            }
+        }
 
         /// <summary>
         /// Sets how far the surfaces are pushed back from their edges, in units of the smallest step of the depth buffer, so
@@ -636,19 +641,21 @@ namespace GeometryHelper.Viewer.Views
                 }
             }
         }
+
         private static Color4 C4(Color color) => new Color4(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
 
         private Color ColorOf(SceneItem item)
         {
-            string text = item.Color ?? _scene.FindLayer(item.Layer)?.Color;
+            string text = item.Color ?? _model.Scene.FindLayer(item.Layer)?.Color;
             return SceneColor.TryParse(text, out byte r, out byte g, out byte b) ? Color.FromRgb(r, g, b) : Colors.Gray;
         }
+
         /// <summary>
         /// Applies render mode, visibility and selection to the elements.
         /// </summary>
         private void Refresh()
         {
-            if (_scene == null)
+            if (!_attached || _model.Scene == null)
             {
                 return;
             }
@@ -661,17 +668,17 @@ namespace GeometryHelper.Viewer.Views
 
         private void Apply(ItemVisual visual)
         {
-            bool shown = IsVisible(visual.Index);
-            bool selected = _selected.Contains(visual.Index);
-            bool hovered = !selected && visual.Index == _hover;
+            bool shown = _model.IsVisible(visual.Index);
+            bool selected = _model.Selected.Contains(visual.Index);
+            bool hovered = !selected && visual.Index == _model.Hover;
             Color color = selected ? SelectionColor : hovered ? Mix(visual.BaseColor, HoverColor, 0.55) : visual.BaseColor;
-            bool hasSurface = visual.Mesh != null;
+            bool hasSurface = visual.HasMesh;
 
             if (visual.Mesh != null)
             {
                 bool see = _mode != RenderMode.Wireframe;
-                visual.Mesh.Visibility = shown && see ? Visibility.Visible : Visibility.Collapsed;
-                visual.Mesh.IsHitTestVisible = shown && see;
+                visual.Mesh.Visibility = shown && see && visual.HasMesh ? Visibility.Visible : Visibility.Collapsed;
+                visual.Mesh.IsHitTestVisible = shown && see && visual.HasMesh;
 
                 if (visual.Mesh.SceneNode is MaterialGeometryNode node)
                 {
@@ -688,22 +695,29 @@ namespace GeometryHelper.Viewer.Views
             if (visual.Lines != null)
             {
                 bool see = _mode != RenderMode.Shaded || !hasSurface;
-                visual.Lines.Visibility = shown && (see || selected || hovered) ? Visibility.Visible : Visibility.Collapsed;
+                visual.Lines.Visibility = visual.HasLines && shown && (see || selected || hovered) ? Visibility.Visible : Visibility.Collapsed;
                 visual.Lines.Color = _mode == RenderMode.Wireframe || !hasSurface ? color : Darker(color, selected || hovered);
                 visual.Lines.Thickness = selected ? SelectedLineThickness : hovered ? HoverLineThickness : LineThickness;
             }
 
+            if (visual.Section != null)
+            {
+                visual.Section.Visibility = visual.HasSection && shown ? Visibility.Visible : Visibility.Collapsed;
+                visual.Section.Color = selected ? SelectionColor : Darker(visual.BaseColor, false);
+            }
+
             if (visual.Points != null)
             {
-                visual.Points.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+                visual.Points.Visibility = visual.HasPoints && shown ? Visibility.Visible : Visibility.Collapsed;
                 visual.Points.Color = color;
             }
 
             if (visual.Labels != null)
             {
-                visual.Labels.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+                visual.Labels.Visibility = visual.HasLabels && shown ? Visibility.Visible : Visibility.Collapsed;
             }
         }
+
         /// <summary>
         /// Gets a colour part of the way from one to another: a hovered item is its own colour warmed, so it can still be told apart.
         /// </summary>
@@ -723,37 +737,22 @@ namespace GeometryHelper.Viewer.Views
 
             _extras.Clear();
 
-            if (!_grid || _primitives == null || _primitives.Bounds.IsEmpty)
+            if (!_attached || !_grid || _model.Primitives == null || _model.Primitives.Bounds.IsEmpty)
             {
                 return;
             }
 
-            Bounds3 b = _primitives.Bounds;
-            double span = Math.Max(b.Size.X, b.Size.Y);
-            double step = NiceStep(Math.Max(span, 1.0) / 20.0);
-            double minX = Math.Floor(b.Min.X / step - 1.0) * step;
-            double maxX = Math.Ceiling(b.Max.X / step + 1.0) * step;
-            double minY = Math.Floor(b.Min.Y / step - 1.0) * step;
-            double maxY = Math.Ceiling(b.Max.Y / step + 1.0) * step;
             var positions = new Vector3Collection();
             var indices = new IntCollection();
 
-            void Segment(double x1, double y1, double x2, double y2)
+            foreach (DrawPolyline line in _workPlane.GridLines(_model.Primitives.Bounds))
             {
-                indices.Add(positions.Count);
-                positions.Add(new Vector3((float)(x1 - Origin.X), (float)(y1 - Origin.Y), (float)(0.0 - Origin.Z)));
-                indices.Add(positions.Count);
-                positions.Add(new Vector3((float)(x2 - Origin.X), (float)(y2 - Origin.Y), (float)(0.0 - Origin.Z)));
-            }
-
-            for (double x = minX; x <= maxX + step * 0.5; x += step)
-            {
-                Segment(x, minY, x, maxY);
-            }
-
-            for (double y = minY; y <= maxY + step * 0.5; y += step)
-            {
-                Segment(minX, y, maxX, y);
+                foreach (Vec3 end in line.Points)
+                {
+                    Vec3F f = RenderSpace.Relative(end, Origin);
+                    indices.Add(positions.Count);
+                    positions.Add(new Vector3(f.X, f.Y, f.Z));
+                }
             }
 
             var grid = new LineGeometryModel3D
@@ -768,19 +767,18 @@ namespace GeometryHelper.Viewer.Views
             _viewport.Items.Add(grid);
         }
 
-        private static double NiceStep(double raw)
-        {
-            double power = Math.Pow(10.0, Math.Floor(Math.Log10(raw)));
-            double scaled = raw / power;
-            return (scaled <= 1.0 ? 1.0 : scaled <= 2.0 ? 2.0 : scaled <= 5.0 ? 5.0 : 10.0) * power;
-        }
-
         private sealed class ItemVisual
         {
             internal int Index;
             internal Color BaseColor;
+            internal bool HasMesh;
+            internal bool HasLines;
+            internal bool HasPoints;
+            internal bool HasSection;
+            internal bool HasLabels;
             internal MeshGeometryModel3D Mesh;
             internal LineGeometryModel3D Lines;
+            internal LineGeometryModel3D Section;
             internal PointGeometryModel3D Points;
             internal BillboardTextModel3D Labels;
             internal readonly List<Element3D> Elements = new List<Element3D>();

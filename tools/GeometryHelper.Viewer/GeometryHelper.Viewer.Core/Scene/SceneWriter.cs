@@ -163,6 +163,42 @@ namespace GeometryHelper.Viewer
         }
 
         /// <summary>
+        /// Saves a look at the scene under a name, so that the viewer opens the scene at it: a repro opens at the spot it is about. A view of the same
+        /// name that was saved before is replaced.
+        /// </summary>
+        /// <param name="name">The name; not empty.</param>
+        /// <param name="eye">Where the eye stands.</param>
+        /// <param name="target">What it looks at.</param>
+        /// <param name="up">The direction of the top of the screen. The camera never rolls, so it is read only where the view looks straight up or down: +Z is up everywhere else.</param>
+        /// <param name="ortho">Whether the view has no perspective.</param>
+        /// <param name="width">How wide a view with no perspective is on the plane through the target, in millimetres, whatever the window; nought takes the distance from the eye to the target for the scale. Not read for a view with perspective.</param>
+        /// <returns>This writer, for the next call.</returns>
+        /// <exception cref="ArgumentException">Thrown when the name is empty, a number is not finite, the eye is on the target, or the width is negative.</exception>
+        /// <example>
+        /// <code>
+        /// s.View("the spike", new GeoPoint3(40, -60, 30), new GeoPoint3(40, 0, 0), new GeoVector3(0, 0, 1));
+        /// s.View("plan of it", new GeoPoint3(40, 0, 500), new GeoPoint3(40, 0, 0), new GeoVector3(0, 1, 0), ortho: true, width: 20);
+        /// </code>
+        /// </example>
+        public SceneWriter View(string name, GeoPoint3 eye, GeoPoint3 target, GeoVector3 up, bool ortho = false, double width = 0.0)
+        {
+            Cancellation.ThrowIfCancellationRequested();
+            var view = new SavedView(name, new Vec3(eye.X, eye.Y, eye.Z), new Vec3(target.X, target.Y, target.Z), new Vec3(up.X, up.Y, up.Z), ortho, width);
+            int index = Scene.Views.FindIndex(v => string.Equals(v.Name, name, StringComparison.Ordinal));
+
+            if (index >= 0)
+            {
+                Scene.Views[index] = view;
+            }
+            else
+            {
+                Scene.Views.Add(view);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Gets the scene as text, one line to a layer and one to an item, numbers as the 17 digits that read back as the
         /// same double.
         /// </summary>

@@ -41,6 +41,25 @@ namespace GeometryHelper.Viewer
             }))));
             text.Append("\n],\n");
 
+            // The saved views are left out of a scene that has none, so a scene that never had any is the file it was.
+            if (scene.Views.Count > 0)
+            {
+                text.Append("\"views\":[\n");
+                text.Append(string.Join(",\n", scene.Views.Select(view => Compact(w =>
+                {
+                    w.WriteStartObject();
+                    w.WriteString("name", view.Name);
+                    WritePoint(w, "eye", view.Eye);
+                    WritePoint(w, "target", view.Target);
+                    WritePoint(w, "up", view.Up);
+                    w.WriteBoolean("ortho", view.Orthographic);
+                    w.WritePropertyName("width");
+                    WriteDouble(w, view.Width);
+                    w.WriteEndObject();
+                }))));
+                text.Append("\n],\n");
+            }
+
             text.Append("\"items\":[\n");
             text.Append(string.Join(",\n", scene.Items.Select(item => Compact(w =>
             {
@@ -172,6 +191,32 @@ namespace GeometryHelper.Viewer
                 }
             }
 
+            if (root.TryGetProperty("views", out JsonElement views) && views.ValueKind == JsonValueKind.Array)
+            {
+                int number = 0;
+
+                foreach (JsonElement element in views.EnumerateArray())
+                {
+                    try
+                    {
+                        scene.Views.Add(new SavedView(
+                            String(element, "name") ?? string.Empty,
+                            DataJson.Point(element, "eye", 3),
+                            DataJson.Point(element, "target", 3),
+                            DataJson.Point(element, "up", 3),
+                            element.TryGetProperty("ortho", out JsonElement ortho) && ortho.ValueKind == JsonValueKind.True,
+                            element.TryGetProperty("width", out JsonElement width) ? DataJson.Number(width) : 0.0));
+                    }
+                    catch (Exception e) when (e is ArgumentException || e is FormatException || e is InvalidOperationException || e is KeyNotFoundException)
+                    {
+                        // One view that is not one does not stop a scene from opening: it is left out, and the scene says so.
+                        scene.LoadWarnings.Add("view " + number + " of the scene is not a view and was left out: " + System.Text.RegularExpressions.Regex.Replace(e.Message, @" \(Parameter '[^']*'\)$", string.Empty));
+                    }
+
+                    number++;
+                }
+            }
+
             if (root.TryGetProperty("items", out JsonElement items) && items.ValueKind == JsonValueKind.Array)
             {
                 int index = 0;
@@ -243,6 +288,16 @@ namespace GeometryHelper.Viewer
             {
                 writer.WriteRawValue(value.ToString("G17", CultureInfo.InvariantCulture), true);
             }
+        }
+
+        private static void WritePoint(Utf8JsonWriter writer, string name, Vec3 point)
+        {
+            writer.WritePropertyName(name);
+            writer.WriteStartArray();
+            WriteDouble(writer, point.X);
+            WriteDouble(writer, point.Y);
+            WriteDouble(writer, point.Z);
+            writer.WriteEndArray();
         }
 
         private static string Compact(Action<Utf8JsonWriter> write)

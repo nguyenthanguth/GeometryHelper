@@ -49,6 +49,7 @@ namespace GeometryHelper.Viewer
         /// behind the near plane is not in the picture, so a window leaves an item that reaches behind it out, and a crossing judges only
         /// the part in front.
         /// </returns>
+        /// <remarks>Where the view has clip planes, only what they leave is judged: an item they cut away wholly is never selected.</remarks>
         /// <exception cref="ArgumentNullException">Thrown when the primitives or the map is null.</exception>
         public static List<int> Select(Primitives primitives, ScreenMap map, double x1, double y1, double x2, double y2, BoxMode mode, Func<int, bool> visible)
         {
@@ -72,7 +73,9 @@ namespace GeometryHelper.Viewer
                     continue;
                 }
 
-                ItemPrimitives p = primitives.Items[i];
+                // What a clip plane cuts away is not there to be selected: the box is judged on what is left, so a window takes a body whose
+                // visible part is inside it.
+                ItemPrimitives p = map.Clip == null ? primitives.Items[i] : map.Clip.Apply(primitives.Items[i]);
 
                 if (mode == BoxMode.Window ? AllInside(p, map, rect) : AnyTouching(p, map, rect))
                 {

@@ -149,18 +149,22 @@ namespace GeometryHelper.Viewer
         /// </summary>
         /// <param name="first">The first point.</param>
         /// <param name="second">The second point.</param>
+        /// <param name="workPlane">The work plane the offsets are given along the axes of; null, or the global plane, for the axes of the scene.</param>
         /// <returns>
         /// The result: <see cref="MeasureResult.Value"/> is the straight distance and <see cref="MeasureResult.SecondValue"/> its length in the
-        /// plane z = 0; the lines give the offsets along each axis. The drawing is the segment between them with its length written at the middle.
+        /// plane z = 0, or in the xy plane of the work plane; the lines give the offsets along each axis, of the scene or of the work plane. The drawing is the
+        /// segment between them with its length written at the middle.
         /// </returns>
-        public static MeasureResult Distance(Vec3 first, Vec3 second)
+        public static MeasureResult Distance(Vec3 first, Vec3 second, WorkPlane workPlane = null)
         {
             Vec3 d = second - first;
-            double plan = Math.Sqrt(d.X * d.X + d.Y * d.Y);
+            bool onWork = workPlane != null && !workPlane.IsGlobal;
+            Vec3 e = onWork ? workPlane.DirectionToLocal(d) : d;
+            double plan = Math.Sqrt(e.X * e.X + e.Y * e.Y);
             double length = d.Length;
             var result = new MeasureResult("distance", length, plan);
 
-            result.AddLine("Distance " + N(length) + "  (dx " + N(d.X) + ", dy " + N(d.Y) + ", dz " + N(d.Z) + "; in plan " + N(plan) + ")");
+            result.AddLine("Distance " + N(length) + "  (dx " + N(e.X) + ", dy " + N(e.Y) + ", dz " + N(e.Z) + "; in plan " + N(plan) + (onWork ? "; along the axes of the work plane" : string.Empty) + ")");
             result.AddLine("  from " + first + " to " + second);
             result.Drawing.Lines.Add(new DrawPolyline(new[] { first, second }, false));
             result.Drawing.Points.Add(first);

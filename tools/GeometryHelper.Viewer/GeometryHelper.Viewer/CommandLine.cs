@@ -1,9 +1,10 @@
 using System;
+using System.Globalization;
 
 namespace GeometryHelper.Viewer
 {
     /// <summary>
-    /// What the viewer was started with: <c>GeometryHelper.Viewer.exe [file] [--check] [--screenshot png] [--view v] [--mode m] [--do commands]</c>.
+    /// What the viewer was started with: <c>GeometryHelper.Viewer.exe [file] [--check] [--screenshot png] [--view v] [--mode m] [--views n] [--scale n] [--background b] [--do commands]</c>.
     /// </summary>
     internal sealed class CommandLine
     {
@@ -31,6 +32,21 @@ namespace GeometryHelper.Viewer
         /// Gets the render mode of the picture: wireframe, shaded, edges or transparent.
         /// </summary>
         internal string Mode { get; private set; }
+
+        /// <summary>
+        /// Gets how many views the window shows, 1, 2 or 4, or null for the one view it starts with: <c>--views 4</c> takes the picture of the plan, the front, the right and the iso.
+        /// </summary>
+        internal int? Views { get; private set; }
+
+        /// <summary>
+        /// Gets how many times the size of the window the picture is: 1, 2 or 4.
+        /// </summary>
+        internal int Scale { get; private set; } = 1;
+
+        /// <summary>
+        /// Gets what is behind the scene in the picture: the colour of the views in the window unless it says white or transparent.
+        /// </summary>
+        internal ScreenshotBackground Background { get; private set; } = ScreenshotBackground.Window;
 
         /// <summary>
         /// Gets the commands to do after the view is fitted and before the picture is taken, or null: a box select, a hover, a measurement
@@ -66,6 +82,9 @@ namespace GeometryHelper.Viewer
                     case "--view":
                     case "--mode":
                     case "--do":
+                    case "--views":
+                    case "--scale":
+                    case "--background":
                         if (i + 1 >= args.Length)
                         {
                             line.Problem = arg + " needs a value after it.";
@@ -74,7 +93,37 @@ namespace GeometryHelper.Viewer
 
                         string value = args[++i];
 
-                        if (arg.Equals("--screenshot", StringComparison.OrdinalIgnoreCase))
+                        if (arg.Equals("--views", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int views) || (views != 1 && views != 2 && views != 4))
+                            {
+                                line.Problem = "--views is 1, 2 or 4, not '" + value + "'.";
+                                return line;
+                            }
+
+                            line.Views = views;
+                        }
+                        else if (arg.Equals("--scale", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int scale) || !ScreenshotOptions.IsScale(scale))
+                            {
+                                line.Problem = "--scale is 1, 2 or 4, not '" + value + "'.";
+                                return line;
+                            }
+
+                            line.Scale = scale;
+                        }
+                        else if (arg.Equals("--background", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!Enum.TryParse(value, true, out ScreenshotBackground background) || !Enum.IsDefined(typeof(ScreenshotBackground), background))
+                            {
+                                line.Problem = "--background is window, white or transparent, not '" + value + "'.";
+                                return line;
+                            }
+
+                            line.Background = background;
+                        }
+                        else if (arg.Equals("--screenshot", StringComparison.OrdinalIgnoreCase))
                         {
                             line.Screenshot = value;
                         }

@@ -26,11 +26,14 @@ namespace GeometryHelper.Viewer
         /// <param name="scene">The box round the scene, which sets where an orthographic eye stands and the near plane.</param>
         /// <param name="widthPixels">The width of the picture in pixels; at least one.</param>
         /// <param name="heightPixels">The height of the picture in pixels; at least one.</param>
+        /// <param name="clip">The clip planes that cut the scene away, or null for none; what they cut is not in the picture: it does not project, and is not picked or snapped to.</param>
         /// <exception cref="ArgumentNullException">Thrown when the camera is null.</exception>
-        public ScreenMap(ViewCamera camera, Bounds3 scene, double widthPixels, double heightPixels)
+        public ScreenMap(ViewCamera camera, Bounds3 scene, double widthPixels, double heightPixels, ClipSet clip = null)
         {
             _camera = (camera ?? throw new ArgumentNullException(nameof(camera))).Clone();
             _scene = scene;
+            Clip = clip != null && clip.IsActive ? clip.ForScene(scene) : null;
+
             Width = Math.Max(1.0, widthPixels);
             Height = Math.Max(1.0, heightPixels);
             _aspect = Width / Height;
@@ -76,11 +79,28 @@ namespace GeometryHelper.Viewer
         public double Far { get; }
 
         /// <summary>
-        /// Gets whether a point is between the near and far planes of a perspective view, as everything in front of an orthographic eye is.
+        /// Gets the clip planes that cut the scene away in this view, or null where none is on.
+        /// </summary>
+        public ClipSet Clip { get; }
+
+        /// <summary>
+        /// Gets whether a clip plane cuts a point away.
+        /// </summary>
+        /// <param name="point">The point.</param>
+        public bool IsClipped(Vec3 point) => Clip != null && !Clip.Contains(point);
+
+        /// <summary>
+        /// Gets whether a point is between the near and far planes of a perspective view, as everything in front of an orthographic eye is, and
+        /// not cut away by a clip plane.
         /// </summary>
         /// <param name="point">The point.</param>
         public bool IsInDepth(Vec3 point)
         {
+            if (IsClipped(point))
+            {
+                return false;
+            }
+
             if (_camera.Orthographic)
             {
                 return true;
@@ -127,11 +147,19 @@ namespace GeometryHelper.Viewer
         /// <param name="x">Where it is across the picture, in pixels from the left.</param>
         /// <param name="y">Where it is down the picture, in pixels from the top.</param>
         /// <param name="depth">How far it is from the eye along the view direction.</param>
-        /// <returns>false when the point is not in front of the near plane of a perspective view, and so not in the picture at all.</returns>
+        /// <returns>false when the point is not in front of the near plane of a perspective view, or is cut away by a clip plane, and so is not in the picture at all.</returns>
         public bool TryProject(Vec3 point, out double x, out double y, out double depth)
         {
             Vec3 d = point - _eye;
             depth = Vec3.Dot(d, _forward);
+
+            if (IsClipped(point))
+            {
+                x = double.NaN;
+                y = double.NaN;
+                return false;
+            }
+
             double across;
             double up;
 

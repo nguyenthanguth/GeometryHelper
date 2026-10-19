@@ -121,6 +121,11 @@ namespace GeometryHelper.Viewer
                 Console.WriteLine("warning: " + warning);
             }
 
+            foreach (string warning in result.Scene.LoadWarnings)
+            {
+                Console.WriteLine("warning: " + warning);
+            }
+
             foreach (string kind in result.Scene.UnknownKinds)
             {
                 Console.WriteLine("warning: the kind '" + kind + "' is kept but not drawn.");

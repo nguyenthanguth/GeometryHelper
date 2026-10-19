@@ -19,7 +19,7 @@ HelixToolkit.SharpDX (`HelixToolkit.SharpDX.Core.Wpf` 2.27.3). Scripts run with 
 
 | Project | What it is |
 |---|---|
-| `GeometryHelper.Viewer.Core` | netstandard2.0: the scene model, `SceneWriter` and `SceneReader`, the drawing primitives, the camera maths, the keymap. A net48 harness can reference it and dump a scene. |
+| `GeometryHelper.Viewer.Core` | netstandard2.0: the scene model, `SceneWriter` and `SceneReader`, the drawing primitives, the camera maths, the keymap, the work plane, the clip planes and their sections, the layout of the views, the saved views. A net48 harness can reference it and dump a scene. |
 | `GeometryHelper.Viewer.Scripting` | net8.0, no window in it: the script host, which the app and the runner both use, and what runs a script against another build of the library in a child process (the cache of runners, the build of a commit, the watching of a DLL) |
 | `GeometryHelper.Viewer.Runner` | net8.0 console: runs one script with the GeometryHelper.dll beside it and writes the scene. The app copies its folder once for each build of the library it compares |
 | `GeometryHelper.Viewer` | the window and the 3D view; the runner's folder is copied into `runner` beside it |
@@ -28,15 +28,19 @@ HelixToolkit.SharpDX (`HelixToolkit.SharpDX.Core.Wpf` 2.27.3). Scripts run with 
 ### Command line
 
 ```
-GeometryHelper.Viewer.exe [file] [--check] [--screenshot out.png] [--view iso|top|front|right] [--mode wireframe|shaded|edges|transparent] [--do commands]
+GeometryHelper.Viewer.exe [file] [--check] [--screenshot out.png] [--view iso|top|front|right] [--mode wireframe|shaded|edges|transparent]
+                          [--views 1|2|4] [--scale 1|2|4] [--background window|white|transparent] [--do commands]
 ```
 
 | Switch | Does |
 |---|---|
 | `file` | opens a `.csx` script or a `.ghscene.json` scene; a file dropped on the window is opened the same way |
 | `--check` | loads the file with no window, prints what it holds, and exits 0, or 1 with the errors, a script's with the file and line number |
-| `--screenshot out.png` | opens the file, fits the view, writes the picture of the 3D view, and exits 0; 1 when the file did not open |
-| `--view`, `--mode` | the standard view and the render mode a picture is taken in |
+| `--screenshot out.png` | opens the file, fits the views, writes the picture of the 3D views, and exits 0; 1 when the file did not open |
+| `--view`, `--mode` | the standard view of the active view and the render mode of every view in the picture |
+| `--views 1\|2\|4` | how many views the picture is of: 1 is the one view the window starts with, 4 the plan, the front, the right and the iso as they stand in the window |
+| `--scale 1\|2\|4` | how many times the size of the window the picture is: each view is drawn again at that size by the graphics card, not stretched, so the picture is the size of the area the views fill, rounded up, times 1, 2 or 4 |
+| `--background window\|white\|transparent` | what is behind the scene: the colour of the views in the window (the default, as pictures were always taken), white, or nothing, a PNG with an alpha channel |
 | `--do commands` | with `--screenshot`: does the commands, separated by semicolons, in the process through the code a click and a drag go through, after the view is fitted and before the picture, and prints the output pane and the status bar |
 
 The commands are `select 0 2`, `hover P`, `box P P [add|toggle]`, `band P P` (the rubber band as if mid-drag), `mode distance|angle|radius|centre`
@@ -51,19 +55,24 @@ The comparison has its own (see Comparing two builds): `compare own commit:9ee3f
 the comparison, `comparerows` writes the table to the output pane, `compareview left|right|both` is the keys 1, 2 and 3, `compareclick 3` clicks the third row, `comparedialog out.png` draws the window that asks for a
 comparison, and `exporttest file.cs` writes the test skeleton of the selected items to a file (and to no clipboard).
 
+The views, the work plane, the clip planes and the pictures have commands too (see Views, the work plane and the clip planes): `views 4`, `activeview plan|front|right|iso`, `viewmode front wireframe`, `viewset iso top`, `link front`
+(toggles), `grid on|off`, `viewsizes` and `cursor P` (the status bar readout for a place) write what the window shows to the output pane; `keys WorkPlaneThreePoints; click @0,0,0; click @100,0,0; click @100,60,40` sets a work plane the way three
+clicks do, `keys ClipAddView; click @50,0,20` and `keys ClipBox` add clip planes, `clipselect 1`, `clipoffset 1 12.5`, `clipoff 1` and `clipon 1` choose and move them (numbered from 1), `saveview name` and `restoreview name` keep and bring back a view, and `shot out.png [all|active] [1|2|4]
+[window|white|transparent]` writes a picture then and there, with what the commands before it have done.
+
 `--check` and `--screenshot` do not read or write the settings of the user.
 
 ## What the window holds
 
 - Left, the **scene tree**: layers, and the items on them, each with a check box that shows or hides it and a swatch of its colour.
   Clicking an item selects it, clicking a layer selects all its items.
-- Middle, the **3D view**, with the axes at the bottom left, and below it the **output**: what a script says with `Note`, its errors,
+- Middle, the **3D views** (one, two or four, each with the axes at the bottom left), and below them the **output**, with the tab of the clip planes beside it: what a script says with `Note`, its errors,
   and what the viewer could not draw.
 - Right, the **properties** of the selection: kind, name, layer, the properties the script gave it, and the numbers the library
   gives for the shape rebuilt from the scene (vertices, lengths, areas, the volume of a body and whether it is closed) and its bounds.
-- The **status bar**: where the cursor is on the plane z = 0, the snap under the cursor with its coordinates, which snaps are on
-  (`snaps EMIC-`: end, middle, intersection, centre, nearest), how many items are selected, the point tolerance of the scene
-  (`EqualPoint`), and the render mode.
+- The **status bar**: where the cursor is on the work plane (the plane z = 0 where none is set), the snap under the cursor with its coordinates, which snaps are on
+  (`snaps EMIC-`: end, middle, intersection, centre, nearest), the work plane, how many items are selected, the point tolerance of the scene
+  (`EqualPoint`), and the render mode of the active view.
 
 Everything is kept in double precision. The graphics card works in floats, so what it is given is each point less a render origin,
 and the origin follows the camera: when the target of the camera has strayed from it by more than a float can hold to a thousandth
@@ -136,7 +145,13 @@ keep theirs. A gesture is written `Ctrl+Shift+H`, `Wheel`, `Ctrl+MiddleDrag`, `D
 | The side of a comparison shown: left / right / both | 1 / 2 / 3 (only while a comparison is open) |
 | Export a test | Ctrl+T |
 | Open / save the scene as | Ctrl+O / Ctrl+S |
-| Screenshot | Ctrl+Shift+S: bound, and not in this version |
+| Screenshot | Ctrl+Shift+S |
+| One / two / four views | Ctrl+Shift+1 / Ctrl+Shift+2 / Ctrl+Shift+4 |
+| Link the active view to the other linked views | L |
+| Work plane: by three points / on a face / on the view / global | W / Ctrl+W / Ctrl+Shift+W / Shift+W |
+| Clip plane: through a point square to the view / on a face / box round the selection | K / Ctrl+K / Ctrl+B |
+| Clip plane: flip the selected one / remove them all / the pane | Shift+K / Ctrl+Shift+B / Ctrl+Shift+K |
+| Save the active view under a name | Ctrl+Shift+V |
 
 The mouse follows the scene: dragging the middle button right moves the scene right, and Ctrl and the middle button turns the near
 side of the scene right. Ctrl+Left turns the scene by 15 degrees counter-clockwise seen from above, Ctrl+Up tilts the camera down
@@ -190,6 +205,41 @@ Where the two points of a distance are on two different items, the library is as
 the two shapes rebuilt from the scene, and `GetShortestLineTo`, whose segment is drawn in teal apart from the dimension. Both numbers are shown, since
 the distance between two points on two shapes is not the distance between the shapes. With exactly two items selected, F2 asks the library alone about
 them. Where the library has no call between the two kinds, the output says so; where a call exists on only one of the two, the other is turned round.
+
+## Views, the work plane and the clip planes
+
+**Views.** Window > One view, Two views, Four views (Ctrl+Shift+1, 2, 4). The window starts with one, the iso it always had. Four are the plan, the front, the right and the iso, two by two: the plan and the front above, the right and the iso below.
+Two are the plan beside the active view, or the plan beside the front where the plan is the active one. Each view has a camera and a render mode of its own (Ctrl+1 to 4 and the standard views act on the active one) and its own render origin, so that each is rebased to its
+own target and a needle 0.0005 wide is as sharp in the view looked into as in the one looking out. The views share the scene, the selection, the hover, the snaps, the dimensions, the findings of the diagnostics, the work plane and the clip planes: a snap marker shows in all four at once.
+The view under the mouse is the active one, with a blue outline; the keys and the mouse act on it. Each view is fitted to a new scene, those not shown when they are shown, and the layout, the render modes and the links are kept in the settings.
+
+**Linked views.** L links the active view: linked views zoom and pan together, whichever of them is moved, each looking from its own direction, at the same target and the same distance, so that one pixel is the same length in all of them. A view that is not linked
+moves alone and takes none with it. It is for comparing one spot from two sides: link the plan and the front, and the wheel over one brings the other to the same place.
+
+**Work plane.** A coordinate system that the grid, the readout of the cursor, the point a click on nothing lands on, and the offsets of a measured distance use; the plane z = 0 until one is set. W then three clicks sets it: the origin, a point along the x axis, a point in the plane on the side
+the y axis points to; the clicks snap as any do, and three points on a line, or two the same, are refused and asked for again. Ctrl+W then a click on a face lays it on the face, its z the normal of the face turned to the eye, its x as near the right of the view as the face allows. Ctrl+Shift+W
+lays it on the active view, the target its origin, its x the right of the screen and its y up it. Shift+W goes back to the global plane. A work plane that is not global is drawn as a triad at its origin (x red, y green, z blue), and setting one turns the grid on (View > Grid on the work plane): the grid lies on it, through the scene, 20 lines across a round step apart; the status bar reads
+`x 20.462   y 33.871   z 0 (work plane)   world 20.462, 0.000, 33.871` and the measurement of a distance gives dx, dy and dz along its axes, "along the axes of the work plane" in the output. The axes are made perpendicular to a unit in the last place of the coordinates, so a point taken to the plane
+and back comes back to 1E-12 on coordinates of a thousand. A click that hits something is on it as always; the work plane is where a click on nothing goes.
+
+**Clip planes.** Up to six. A plane keeps the side its normal points to and cuts the rest away: it is not drawn, not picked, not snapped to and not selected by a box. K then a click puts a plane through the point square to the view and cuts away what is nearer the eye; Ctrl+K then a click on a face lays the plane on
+the face and cuts away what is in front of it; Ctrl+B puts a box of six planes round the selection, or round everything shown where nothing is selected, a hundredth of its diagonal out on every side (a box 100 by 60 by 40, 123.3 across its corners, is boxed 1.23 out), and takes the planes there were. The
+**Clip planes** tab beside the output lists them: choose one and its outline, an arrow along its normal and a handle show in every view; type an offset along the normal from where the plane was made and press Enter, or drag the handle in a view (a plane moves by how far along its normal the
+mouse has gone, and nothing is done where the view looks along the normal). Flip (Shift+K) turns the selected plane, or the last, over; On / off, Remove and Remove all do what they say. The outline of a plane is drawn where the other planes leave it, so the six planes of a box are the box.
+
+The cutting is done in double precision on the shapes themselves: a line is cut to the parts inside, a triangle to a convex piece that is cut again into triangles which keep the normal of the whole, a point or a label outside is dropped; what the graphics card is given is the cut scene, relative to the origin of
+each view, made on another thread while the old one is drawn. One slack decides what is on a plane: a billionth of the size of the scene and of a unit, and a trillionth of its largest coordinate (3.6E-7 mm on a scene 360 across at the origin, 8.6E-7 mm on the same scene 500 000 from it). A point no further outside a plane than that is ON it and is kept, so a face that lies in the plane, to the rounding of its corners, is kept whole whichever side the plane keeps, and is drawn, picked, snapped to, selected by a box and cut for its section by the same rule; a point beyond the slack is cut at the plane itself, so a line cut by a plane is as long as the plane leaves it. The picking, the snaps and the box select see the same cut: a click goes through what is cut away to what is behind it, a snap at the end of a line that is cut away is not offered, and a window takes an item by the part that is left. **The section lines** are
+where a plane meets the triangles of a body or a mesh, joined into lines in double precision: a box 30 by 20 by 10 cut at half its height has one closed line of four corners, 100 long; a prism of 64 sides cut across its axis, one of 64 corners as long as its perimeter; a box with a through hole of 10 by 10, two lines of 100 and 40. They are
+drawn in a darker shade of the item's colour, cut by the other planes so that only what lies inside the clipped region is left, and are not filled: a section is its outline. Where a plane only touches a body along a line, as a plane touches the top of a bore, the section is the outline with a line across it where the plane touches, and it is reported as the pieces between the points where three lines meet, none of them called closed that does not return to its start; a closed outline cut by another plane where it begins and ends is one piece across its start. Lines, curves and points are cut but have no section. A plane dragged over a large scene is not cut a hundred times: one cut runs and one waits, and the one that is out of date is stopped between thousands of triangles. A clip put in force while a scene loads is applied to the scene when it is shown. A view that is not shown lets go of its geometry and its overlay, and makes them again when it is shown.
+
+**Saved views.** Window > Save this view as... (Ctrl+Shift+V) names the active view and keeps it in the scene; Window > Saved views brings one back into the active view. The scene file holds them under `"views"` (eye, target, up, whether there is perspective, how wide a view with none is), so a repro opens at the spot it is about: a scene that
+has saved views opens the active view at the first, and a script puts one there with `Scene.View("the spike", new GeoPoint3(40, -60, 30), new GeoPoint3(40, 0, 0), new GeoVector3(0, 0, 1))`, or with `ortho: true, width: 20` for a view with no perspective 20 wide (the width is that of the view the file is opened in, whatever its shape). A `--view` on the command line is the view that was asked for, and wins over the first saved view; a comparison opens at the saved view of the build under test as a scene does. A view in the file that is not one (no name, an eye on its target) is left out with a warning in the output, and the rest of the scene opens. The camera of the viewer never rolls, so
+`up` is read only where the view looks straight down or up (within a twentieth of a degree of it): +Z is up everywhere else. The eye and the target are points, each carried to the last place of its largest coordinate, so a view saved from 0.1 away from a target 10 000 from the origin has its direction to a few parts in 1E-10. A scene with no views is
+written without the list, and a scene written before there were any opens as it did. The views saved while looking at a scene a script made are in the scene, not in the script: save the scene, or put `Scene.View` in the script, to keep them across a run.
+
+**Pictures.** Ctrl+Shift+S (Window > Screenshot...) asks for the active view or all the views as they stand in the window, one, two or four times the size of the window, and white, as in the window, or transparent behind the scene, then for the file, and writes a PNG. Each view is drawn again by the graphics card at the size
+it has in the picture, so 4 is four times as sharp and not four times as large a blur. A transparent picture is made by drawing each view twice, over white and over black: a pixel the scene covers is the same in both, one it does not is white and black, and the alpha of every pixel is 1 minus the difference of the two over 255, its colour the black one over the alpha;
+the lines are as smooth at their edges as the antialiasing makes them. `--screenshot out.png --views 4 --scale 2 --background white` does the same without a person.
 
 ## Diagnostics
 
@@ -267,7 +317,7 @@ space), arcs, circles, ellipses, rectangles, triangles, faces, bodies with their
 
 ### Samples
 
-`samples/` holds four small scripts, each built in code:
+`samples/` holds six small scripts, each built in code:
 
 | Sample | Shows |
 |---|---|
@@ -276,6 +326,7 @@ space), arcs, circles, ellipses, rectangles, triangles, faces, bodies with their
 | `mesh.csx` | an L-shaped plate as triangles, convex pieces and a grid, and tilted in space |
 | `snaps-and-measuring.csx` | a plate 200 by 120 with a rounded corner, a hole, two crossing lines and an arc, with things to try the snaps, the measuring and the box select on |
 | `diagnostics.csx` | one of each fault the diagnostics look for: an open box, a box with a face turned over, a fin on a box, a mesh with a triangle turned over, a bow tie, a needle, a doubled corner, a sliver, arcs that cross, a face off flat, two squares 0.0034 apart, and three pieces on a layer |
+| `sections-and-views.csx` | a block 100 by 60 by 40 with a bore along Y, a pipe through the bore and a marker box standing out at a corner, with two saved views, to try the clip planes (select the marker and press Ctrl+B), the work plane and the four views on; the scene opens at the front view of the bore |
 
 ## Comparing two builds
 
@@ -350,10 +401,13 @@ An item the script showed with no name carries `"auto":true` in its line: its na
 
 A kind a newer viewer wrote and this one does not know is kept in the scene, listed in the output, and written again unchanged.
 
+A scene with saved views has one more block between the layers and the items, `"views":[ ... ]`, a line to a view: `{"name":"v","eye":[0,0,10],"target":[0,0,0],"up":[0,1,0],"ortho":true,"width":12.5}`, the numbers in the 17 digits as the rest. A scene with none is written without
+the block, as every scene was before, and a file without it reads with no views; the version of the format stays 1. A view that is not one (no name, an eye on its target) is refused with its number.
+
 **Never save a scene of a real model in the repository.** Geometry from real projects does not go into this repository, and a
 scene holds it whole. Saving a scene to a folder inside a Git repository asks first. Build a body in code that shows the same thing.
 
 ## Settings
 
-`%APPDATA%\GeometryHelper.Viewer\settings.json` keeps the window layout, the width of the panes, the last folder, the render mode,
+`%APPDATA%\GeometryHelper.Viewer\settings.json` keeps the window layout, the width of the panes, the last folder, the render mode, the layout of the views (how many, which is active, the render mode and the link of each of the four: `Layout`), how the last picture was taken (`Screenshot`),
 the grid, run-on-save, the last ten files, and the last comparison (`CompareLeft`, `CompareRight`, `CompareRepository`, `CompareTimeoutSeconds`, `CompareCacheKeep`, `CompareWatch`). An error the window could not carry on from is appended to `error.log` beside it.

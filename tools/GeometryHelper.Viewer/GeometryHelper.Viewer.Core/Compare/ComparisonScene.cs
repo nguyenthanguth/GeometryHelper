@@ -191,6 +191,9 @@ namespace GeometryHelper.Viewer
 
             var scene = new Scene { Title = "compare: " + (left.Title ?? "left") + " | " + (right.Title ?? "right") };
             scene.SetTolerance(left.Tolerance);
+
+            // A comparison opens at the spot the script saved, if it saved one: the build under test says where, else the other.
+            scene.Views.AddRange(right.Views.Count > 0 ? right.Views : left.Views);
             var result = new ComparisonScene(scene, comparison) { _left = left, _right = right };
 
             // The layers in the order a person reads them; one that nothing is on is not made.

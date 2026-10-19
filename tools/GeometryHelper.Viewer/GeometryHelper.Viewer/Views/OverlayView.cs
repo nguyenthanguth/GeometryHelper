@@ -35,6 +35,9 @@ namespace GeometryHelper.Viewer.Views
         private DiagnosticOverlay _diagnostics;
         private DiagnosticOverlay _lens;
         private Vec3? _marker;
+        private WorkPlane _workPlane = WorkPlane.Global;
+        private ClipSet _clips = ClipSet.Empty;
+        private int _clipSelected = -1;
 
         /// <summary>
         /// Initializes the overlay over a viewport.
@@ -95,6 +98,28 @@ namespace GeometryHelper.Viewer.Views
         public void SetMarker(Vec3? at)
         {
             _marker = at;
+            Rebuild();
+        }
+
+        /// <summary>
+        /// Shows the axes of the work plane at its origin, which the global plane has no use for.
+        /// </summary>
+        /// <param name="plane">The work plane; null or the global plane shows nothing.</param>
+        public void SetWorkPlane(WorkPlane plane)
+        {
+            _workPlane = plane ?? WorkPlane.Global;
+            Rebuild();
+        }
+
+        /// <summary>
+        /// Shows the clip planes: a square outline on each, the one that is selected thicker with an arrow along its normal and a handle to take hold of.
+        /// </summary>
+        /// <param name="clips">The planes.</param>
+        /// <param name="selected">The number of the plane that is selected, or -1.</param>
+        public void SetClipPlanes(ClipSet clips, int selected)
+        {
+            _clips = clips ?? ClipSet.Empty;
+            _clipSelected = selected;
             Rebuild();
         }
 
@@ -165,7 +190,11 @@ namespace GeometryHelper.Viewer.Views
                 Points(new[] { _marker.Value }, ParseColor(DiagnosticColors.Marker, DimensionColor), PointFigure.Cross, 40.0, Rel);
             }
 
-            var labels = _drawings.SelectMany(d => d.Labels).Concat(_diagnostics?.Labels ?? new List<DrawLabel>()).Concat(_lens?.Labels ?? new List<DrawLabel>()).ToList();
+            var clipLabels = new List<DrawLabel>();
+            DrawWorkPlane(Rel);
+            DrawClipPlanes(clipLabels, Rel);
+
+            var labels = _drawings.SelectMany(d => d.Labels).Concat(_diagnostics?.Labels ?? new List<DrawLabel>()).Concat(_lens?.Labels ?? new List<DrawLabel>()).Concat(clipLabels).ToList();
 
             if (labels.Count > 0)
             {
@@ -212,6 +241,81 @@ namespace GeometryHelper.Viewer.Views
             _marker = null;
             _snapMarker.Visibility = Visibility.Collapsed;
             Rebuild();
+        }
+
+        private void DrawWorkPlane(Func<Vec3, Vector3> rel)
+        {
+            if (_workPlane == null || _workPlane.IsGlobal)
+            {
+                return;
+            }
+
+            Bounds3 scene = _sceneView.Primitives?.Bounds ?? default(Bounds3);
+            double length = Math.Max(1.0, scene.IsEmpty ? 100.0 : scene.Size.Length * 0.08);
+            Vec3 o = _workPlane.Origin;
+
+            Lines(new[] { new DrawPolyline(new[] { o, o + _workPlane.XAxis * length }, false) }, Color.FromRgb(0xD0, 0x20, 0x20), 3.0, rel);
+            Lines(new[] { new DrawPolyline(new[] { o, o + _workPlane.YAxis * length }, false) }, Color.FromRgb(0x20, 0xA0, 0x20), 3.0, rel);
+            Lines(new[] { new DrawPolyline(new[] { o, o + _workPlane.ZAxis * (length * 0.6) }, false) }, Color.FromRgb(0x20, 0x40, 0xD0), 3.0, rel);
+            Points(new[] { o }, Color.FromRgb(0x20, 0x20, 0x20), PointFigure.Ellipse, 9.0, rel);
+        }
+
+        private void DrawClipPlanes(List<DrawLabel> labels, Func<Vec3, Vector3> rel)
+        {
+            if (_clips == null || _clips.Count == 0)
+            {
+                return;
+            }
+
+            Bounds3 scene = _sceneView.Primitives?.Bounds ?? default(Bounds3);
+            double diagonal = scene.IsEmpty ? 100.0 : Math.Max(scene.Size.Length, 1.0);
+            double half = diagonal;
+            ClipSet sceneBox = scene.IsEmpty ? ClipSet.Empty : ClipSet.FromBox(scene);
+
+            for (int i = 0; i < _clips.Count; i++)
+            {
+                ClipPlane plane = _clips.Planes[i];
+                Vec3 handle = plane.HandleFor(scene);
+                WorkPlane axes = WorkPlane.FromNormal(handle, plane.Normal, new Vec3(1.0, 0.0, 0.0));
+                Vec3 u = axes.XAxis * half;
+                Vec3 v = axes.YAxis * half;
+                bool selected = i == _clipSelected;
+                Color color = plane.Enabled ? Color.FromRgb(0xE0, 0x80, 0x00) : Color.FromRgb(0xA0, 0xA0, 0xA0);
+
+                // A square larger than the scene is laid on the plane and cut to what the other planes leave, so that the six planes of a clip box are the six faces of the box, and to the box round the scene,
+                // so that it is the patch of the plane that the scene is in and lies inside the depth that every view draws.
+                List<Vec3> face = sceneBox.ClipPolygon(_clips.ClipPolygonExcept(new[] { handle - u - v, handle + u - v, handle + u + v, handle - u + v }, i));
+
+                if (face.Count >= 3)
+                {
+                    Lines(new[] { new DrawPolyline(face.ToArray(), true) }, color, selected ? 3.2 : 1.6, rel);
+                    labels.Add(new DrawLabel(face[0], (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), 0.0));
+                }
+
+                if (selected)
+                {
+                    // An arrow from the handle along the normal, towards the side that stays, with a head of four short lines.
+                    double arrow = diagonal * 0.15;
+                    Vec3 tip = handle + plane.Normal * arrow;
+                    Vec3 back = plane.Normal * (arrow * 0.2);
+                    Vec3 wing = axes.XAxis * (arrow * 0.1);
+                    Vec3 wing2 = axes.YAxis * (arrow * 0.1);
+
+                    Lines(
+                        new[]
+                        {
+                            new DrawPolyline(new[] { handle, tip }, false),
+                            new DrawPolyline(new[] { tip, tip - back + wing }, false),
+                            new DrawPolyline(new[] { tip, tip - back - wing }, false),
+                            new DrawPolyline(new[] { tip, tip - back + wing2 }, false),
+                            new DrawPolyline(new[] { tip, tip - back - wing2 }, false),
+                        },
+                        color,
+                        3.2,
+                        rel);
+                    Points(new[] { handle }, color, PointFigure.Ellipse, 15.0, rel);
+                }
+            }
         }
 
         private static Color ParseColor(string text, Color fallback)

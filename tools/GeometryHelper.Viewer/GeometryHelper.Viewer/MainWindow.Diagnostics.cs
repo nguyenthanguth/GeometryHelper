@@ -154,10 +154,10 @@ namespace GeometryHelper.Viewer
             }
 
             CancelDiagnostics();
-            Scene scene = _sceneView.Scene;
-            Primitives primitives = _sceneView.Primitives;
+            Scene scene = _model.Scene;
+            Primitives primitives = _model.Primitives;
             ExactGeometry geometry = _geometry;
-            int[] items = _sceneView.Selected.OrderBy(i => i).ToArray();
+            int[] items = _model.Selected.OrderBy(i => i).ToArray();
             var cts = new CancellationTokenSource();
             _diagCts = cts;
             int generation = ++_diagGeneration;
@@ -336,9 +336,9 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            if (finding.ItemIndex >= 0 && finding.ItemIndex < _sceneView.Scene.Items.Count)
+            if (finding.ItemIndex >= 0 && finding.ItemIndex < _model.Scene.Items.Count)
             {
-                _sceneView.Select(new[] { finding.ItemIndex });
+                _model.Select(new[] { finding.ItemIndex });
                 AfterSelectionChanged(true);
             }
 
@@ -349,7 +349,7 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            _camera.Fit(finding.Spot, Aspect);
+            Active.Camera.Fit(finding.Spot, Active.Aspect);
             UpdateCamera();
             _overlay.SetMarker(finding.At);
         }

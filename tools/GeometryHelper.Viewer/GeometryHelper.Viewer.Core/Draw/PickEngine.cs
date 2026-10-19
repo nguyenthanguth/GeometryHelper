@@ -28,13 +28,20 @@ namespace GeometryHelper.Viewer
     /// </summary>
     public sealed class PickHit
     {
-        internal PickHit(int itemIndex, PickKind kind, Vec3 point, double depth)
+        internal PickHit(int itemIndex, PickKind kind, Vec3 point, double depth, Vec3 normal = default(Vec3))
         {
             ItemIndex = itemIndex;
             Kind = kind;
             Point = point;
             Depth = depth;
+            Normal = normal;
         }
+
+        /// <summary>
+        /// Gets the unit normal of the triangle that was hit, as the drawing has it, for a surface; nought for a line or a point. It is the way the face
+        /// is wound, so it points out of a body that is wound properly, and not necessarily at the eye.
+        /// </summary>
+        public Vec3 Normal { get; }
 
         /// <summary>
         /// Gets the index of the item in <see cref="Scene.Items"/>.
@@ -77,7 +84,7 @@ namespace GeometryHelper.Viewer
 
         /// <summary>
         /// Gets how it was found: the name of the snap (end, point, mid, intersection, centre, nearest), "surface", "line", or the plane
-        /// it was taken on, "plane z = 0" or "view plane".
+        /// it was taken on, "plane z = 0", "work plane" or "view plane".
         /// </summary>
         public string Source { get; }
 
@@ -147,11 +154,11 @@ namespace GeometryHelper.Viewer
             PickHit best = null;
             double bestDepth = double.PositiveInfinity;
 
-            void Offer(int item, PickKind kind, Vec3 point, double depth, double rank)
+            void Offer(int item, PickKind kind, Vec3 point, double depth, double rank, Vec3 normal = default(Vec3))
             {
                 if (rank < bestDepth || (rank == bestDepth && best != null && item < best.ItemIndex))
                 {
-                    best = new PickHit(item, kind, point, depth);
+                    best = new PickHit(item, kind, point, depth, normal);
                     bestDepth = rank;
                 }
             }
@@ -181,7 +188,7 @@ namespace GeometryHelper.Viewer
 
                             if (map.IsInDepth(at))
                             {
-                                Offer(i, PickKind.Surface, at, depth, depth);
+                                Offer(i, PickKind.Surface, at, depth, depth, t.Normal);
                             }
                         }
                     }
@@ -327,10 +334,11 @@ namespace GeometryHelper.Viewer
         /// <param name="tolerance">How close two curves have to come to cross, in millimetres.</param>
         /// <param name="visible">Tells whether an item, by its index, is shown; null for all.</param>
         /// <param name="surfaces">Whether surfaces are shown.</param>
-        /// <param name="groundPlane">Whether the plane z = 0 is the plane to fall back on; where it is not, the plane through the target square to the view is, which is the right one for a point to turn about.</param>
-        /// <returns>The point and how it was found; never null.</returns>
+        /// <param name="groundPlane">Whether the work plane (the plane z = 0 where none is set) is the plane to fall back on; where it is not, the plane through the target square to the view is, which is the right one for a point to turn about.</param>
+        /// <param name="workPlane">The work plane that a click on nothing lands on; null, or the global one, for the plane z = 0.</param>
+        /// <returns>The point and how it was found; never null. A point on a work plane other than the global one is said to be on the "work plane".</returns>
         /// <exception cref="ArgumentNullException">Thrown when the primitives, the geometry or the map is null.</exception>
-        public static ResolvedPoint ResolvePoint(Primitives primitives, ExactGeometry geometry, ScreenMap map, double x, double y, SnapKinds snaps, double tolerance, Func<int, bool> visible, bool surfaces, bool groundPlane = true)
+        public static ResolvedPoint ResolvePoint(Primitives primitives, ExactGeometry geometry, ScreenMap map, double x, double y, SnapKinds snaps, double tolerance, Func<int, bool> visible, bool surfaces, bool groundPlane = true, WorkPlane workPlane = null)
         {
             if (geometry == null)
             {
@@ -353,7 +361,14 @@ namespace GeometryHelper.Viewer
 
             map.GetRay(x, y, out Vec3 origin, out Vec3 direction);
 
-            if (groundPlane && Math.Abs(direction.Z) > 1E-9)
+            if (groundPlane && workPlane != null && !workPlane.IsGlobal)
+            {
+                if (workPlane.TryIntersect(origin, direction, map.Orthographic, out Vec3 onWork))
+                {
+                    return new ResolvedPoint(onWork, "work plane", null, -1);
+                }
+            }
+            else if (groundPlane && Math.Abs(direction.Z) > 1E-9)
             {
                 double along = -origin.Z / direction.Z;
 
