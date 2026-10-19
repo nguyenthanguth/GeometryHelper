@@ -1,0 +1,157 @@
+<Window x:Class="GeometryHelper.Viewer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hx="http://helix-toolkit.org/wpf/SharpDX"
+        Title="GeometryHelper Viewer" Width="1400" Height="850" AllowDrop="True"
+        PreviewKeyDown="OnPreviewKeyDown" Drop="OnDrop" Closing="OnClosing" Loaded="OnLoaded">
+    <Window.Resources>
+        <Style x:Key="PaneHeader" TargetType="TextBlock">
+            <Setter Property="Background" Value="#FFE6E8EC" />
+            <Setter Property="Padding" Value="6,3" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </Window.Resources>
+    <DockPanel>
+        <Menu x:Name="MainMenu" DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open..." Tag="OpenFile" Click="OnMenuAction" />
+                <MenuItem Header="_Reload" Tag="RerunScript" Click="OnMenuAction" />
+                <MenuItem x:Name="RecentMenu" Header="Recent _files" />
+                <MenuItem Header="_Save scene as..." Tag="SaveSceneAs" Click="OnMenuAction" />
+                <Separator />
+                <MenuItem Header="E_xit" Click="OnExit" />
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="Fit _all" Tag="FitAll" Click="OnMenuAction" />
+                <MenuItem Header="Fit _selection" Tag="FitSelection" Click="OnMenuAction" />
+                <MenuItem Header="_3D / plan" Tag="TogglePlan" Click="OnMenuAction" />
+                <Separator />
+                <MenuItem Header="_Iso" Tag="ViewIso" Click="OnMenuAction" />
+                <MenuItem Header="_Top (plan)" Tag="ViewTop" Click="OnMenuAction" />
+                <MenuItem Header="_Front" Tag="ViewFront" Click="OnMenuAction" />
+                <MenuItem Header="_Right" Tag="ViewRight" Click="OnMenuAction" />
+                <Separator />
+                <MenuItem Header="_Wireframe" Tag="RenderWireframe" Click="OnMenuAction" />
+                <MenuItem Header="S_haded" Tag="RenderShaded" Click="OnMenuAction" />
+                <MenuItem Header="Shaded + _edges" Tag="RenderShadedEdges" Click="OnMenuAction" />
+                <MenuItem Header="Trans_parent" Tag="RenderTransparent" Click="OnMenuAction" />
+                <Separator />
+                <MenuItem Header="_Hide selected" Tag="HideSelected" Click="OnMenuAction" />
+                <MenuItem Header="Show a_ll" Tag="ShowAll" Click="OnMenuAction" />
+                <Separator />
+                <MenuItem x:Name="GridMenu" Header="Gri_d on z = 0" IsCheckable="True" Click="OnGridToggled" />
+                <MenuItem x:Name="PropertiesMenu" Header="_Properties pane" IsCheckable="True" IsChecked="True" Tag="Properties" Click="OnPropertiesToggled" />
+            </MenuItem>
+            <MenuItem Header="_Script">
+                <MenuItem Header="_Run" Tag="RunScript" Click="OnMenuAction" />
+                <MenuItem Header="Run _again" Tag="RerunScript" Click="OnMenuAction" />
+                <MenuItem Header="_Stop" Tag="Cancel" Click="OnMenuAction" />
+                <Separator />
+                <MenuItem x:Name="WatchMenu" Header="Run again when the file is _saved" IsCheckable="True" Click="OnWatchToggled" />
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_Keys" Click="OnShowKeys" />
+            </MenuItem>
+        </Menu>
+        <ToolBar DockPanel.Dock="Top" ToolBarTray.IsLocked="True">
+            <Button Content="Open" Tag="OpenFile" Click="OnMenuAction" />
+            <Button Content="Run" Tag="RerunScript" Click="OnMenuAction" ToolTip="Run the script again, or read the scene file again" />
+            <Separator />
+            <Button Content="Fit" Tag="FitAll" Click="OnMenuAction" />
+            <Button Content="3D / plan" Tag="TogglePlan" Click="OnMenuAction" />
+            <Button Content="Iso" Tag="ViewIso" Click="OnMenuAction" />
+            <Button Content="Top" Tag="ViewTop" Click="OnMenuAction" />
+            <Button Content="Front" Tag="ViewFront" Click="OnMenuAction" />
+            <Button Content="Right" Tag="ViewRight" Click="OnMenuAction" />
+            <Separator />
+            <Button Content="Wire" Tag="RenderWireframe" Click="OnMenuAction" />
+            <Button Content="Shaded" Tag="RenderShaded" Click="OnMenuAction" />
+            <Button Content="+ Edges" Tag="RenderShadedEdges" Click="OnMenuAction" />
+            <Button Content="Glass" Tag="RenderTransparent" Click="OnMenuAction" />
+        </ToolBar>
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem><TextBlock x:Name="CursorText" MinWidth="330" Text="x -   y -   z -" /></StatusBarItem>
+            <Separator />
+            <StatusBarItem><TextBlock x:Name="SnapText" Text="snap: none" /></StatusBarItem>
+            <Separator />
+            <StatusBarItem><TextBlock x:Name="SelectionText" Text="0 selected" /></StatusBarItem>
+            <Separator />
+            <StatusBarItem><TextBlock x:Name="ToleranceText" Text="EqualPoint -" /></StatusBarItem>
+            <Separator />
+            <StatusBarItem><TextBlock x:Name="ModeText" Text="" /></StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right"><TextBlock x:Name="MessageText" Text="" /></StatusBarItem>
+        </StatusBar>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="TreeColumn" Width="260" MinWidth="120" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="*" MinWidth="200" />
+                <ColumnDefinition x:Name="SplitterColumn" Width="5" />
+                <ColumnDefinition x:Name="PropertiesColumn" Width="300" MinWidth="150" />
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0">
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource PaneHeader}" Text="Scene" />
+                <TreeView x:Name="Tree" BorderThickness="0" SelectedItemChanged="OnTreeSelectionChanged">
+                    <TreeView.ItemContainerStyle>
+                        <Style TargetType="TreeViewItem">
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                            <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                        </Style>
+                    </TreeView.ItemContainerStyle>
+                    <TreeView.ItemTemplate>
+                        <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <Rectangle Width="10" Height="10" Margin="4,0" Fill="{Binding Swatch}" Stroke="#FF808080" StrokeThickness="0.5" />
+                                <TextBlock Text="{Binding Header}" />
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </DockPanel>
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" />
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" MinHeight="120" />
+                    <RowDefinition Height="5" />
+                    <RowDefinition x:Name="OutputRow" Height="150" MinHeight="40" />
+                </Grid.RowDefinitions>
+                <Grid x:Name="ViewHost" Grid.Row="0" ClipToBounds="True" Focusable="True">
+                    <!-- The graphics card clears the view to one colour; a gradient behind a see-through view came out black in a picture of the window. -->
+                    <hx:Viewport3DX x:Name="Viewport" BackgroundColor="#FFE9ECF1" ShowCoordinateSystem="True" ShowViewCube="False"
+                                    UseDefaultGestures="False" IsInertiaEnabled="False" IsRotationEnabled="False" IsPanEnabled="False" IsZoomEnabled="False"
+                                    EnableSwapChainRendering="False" MSAA="Four" CoordinateSystemLabelForeground="#FF303030"
+                                    CoordinateSystemHorizontalPosition="-0.85" CoordinateSystemVerticalPosition="-0.8" CoordinateSystemSize="1.6"
+                                    PreviewMouseDown="OnViewMouseDown" PreviewMouseMove="OnViewMouseMove" PreviewMouseUp="OnViewMouseUp"
+                                    PreviewMouseWheel="OnViewMouseWheel" SizeChanged="OnViewSizeChanged" MouseLeave="OnViewMouseLeave">
+                        <hx:AmbientLight3D Color="#FF707070" />
+                        <hx:DirectionalLight3D x:Name="Headlight" Color="#FFE0E0E0" Direction="0,0,-1" />
+                    </hx:Viewport3DX>
+                    <TextBlock x:Name="BusyText" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0"
+                               Padding="12,5" Background="#E0FFFFFF" FontSize="14" Text="Running the script... Esc to stop" />
+                </Grid>
+                <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" />
+                <DockPanel Grid.Row="2">
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PaneHeader}" Text="Output" />
+                    <TextBox x:Name="Output" IsReadOnly="True" BorderThickness="0" FontFamily="Consolas" FontSize="12" TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+                </DockPanel>
+            </Grid>
+
+            <GridSplitter x:Name="PropertiesSplitter" Grid.Column="3" Width="5" HorizontalAlignment="Stretch" />
+            <DockPanel x:Name="PropertiesPane" Grid.Column="4">
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource PaneHeader}" Text="Properties" />
+                <ListView x:Name="PropertiesList" BorderThickness="0">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Name" Width="110" DisplayMemberBinding="{Binding Name}" />
+                            <GridViewColumn Header="Value" Width="180" DisplayMemberBinding="{Binding Value}" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

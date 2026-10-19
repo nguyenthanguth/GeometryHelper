@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>GeometryHelper.Viewer</RootNamespace>
+    <AssemblyName>GeometryHelper.Viewer.Core</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\GeometryHelper\GeometryHelper.csproj" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+  <!-- The shipped keymap travels inside the assembly, so the loader and the tests need no file beside them. The app also
+       copies it next to the executable, where the user can see what to copy to change it. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Keymap\keymap.json" LogicalName="GeometryHelper.Viewer.keymap.json" />
+  </ItemGroup>
+
+</Project>

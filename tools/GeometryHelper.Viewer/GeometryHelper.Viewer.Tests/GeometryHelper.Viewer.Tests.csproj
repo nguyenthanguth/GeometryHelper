@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>GeometryHelper.Viewer.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GeometryHelper.Viewer.Core\GeometryHelper.Viewer.Core.csproj" />
+  </ItemGroup>
+
+  <!-- The script host has no screen type in it, but it lives in the app, which is a Windows desktop project this one cannot
+       reference. Its source is compiled in here instead, so the tests run the code the app runs. -->
+  <ItemGroup>
+    <Compile Include="..\GeometryHelper.Viewer\Scripting\*.cs" Link="Scripting\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>
