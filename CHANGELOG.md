@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `Offset2.Offset` of a curved loop came back empty, lost a loop, or grew a spike in four more cases. A slot
+5.12 wide and 15 deep cut into the rectangle 40 by 30, grown by 5 with miters, was nothing and is the rectangle 50 by
+40, 2 000: a stretch of a moved piece lying inside another corner's miter by less than the tolerance was kept, and left
+the run open by its own length; the audit's GA 10570 (chamfers, now 81.9007, the straight path's), 22422 and 1094 were
+empty in this way. A needle 0.0005 wide and 6 long on a square of side 10, grown by 0.3 at a tolerance of 1E-3, was
+nothing and is one loop of 115.8455, as at 1E-4. A miter's run-on that crosses the piece beyond its neighbour now
+pinches off the loop beyond it: the loop from (-4, -3) to (2, 1), round an arc of bulge -0.6 to (5, 8), round an arc of
+bulge -0.25 to (-4, -5) and straight back, shrunk by 0.3 with miters, was one loop of 5.9544 and is two, 11.4715 and
+5.9544, as the straight path gives; more audit cases are right with it. At a crossing where a moved piece was cut
+1.9E-4 past its own end, the piece became a sliver running backwards and the corner after it was mitered 35 away: a loop
+of 54.44 was 5 945.26. A corner cut square no longer takes a meeting further along its bisector than the limit times the
+distance. Other curved loops can move too: of 800 random star loops offset with every join by nine distances at three
+tolerances, 91 of 64 800 results change, none loses a loop, and none is further from the straight path than it was.
+
 **FIXED.** `Offset2.Offset` of a curved loop that crosses itself returned nothing, a loop too many, or the wrong loops,
 and now reads the loop as the straight offsets read it, even-odd, and keeps its arcs. The offset of a loop is built
 piece by piece and joined at its vertices, so it knew nothing of two edges that cross away from one: the run round the loop

@@ -752,6 +752,16 @@ circles and are cut square at the miter limit times the distance, and what lies 
 vertices shrunk by 1 with the default limit of 10 has two loops where round corners give three, the third of 0.203 lying
 wholly in a wedge; with a limit of 2 it stays.
 
+A miter that runs a piece on past its neighbour's other end can pinch the loop beyond it off: the loop from (-4, -3) to
+(2, 1), round an arc of bulge -0.6 to (5, 8), round an arc of bulge -0.25 to (-4, -5) and straight back, shrunk by 0.3
+with miters, is two loops of 11.4715 and 5.9544 (the straight path 11.4714 and 5.9544), and by 0.2 two of 13.0463 and
+7.5977.
+
+Beside an arc a chamfer is not always inside the miter, though a miter runs the arc on round its own circle and a chamfer
+along its tangent: the loop from the origin along x to (10, 0), round a quarter circle of radius 5 about (5, 0) to
+(5, 5) and straight back to (0, 5), grown by 1, is mitered to 76.246 and chamfered to 75.760, and still the chamfer's
+corner at (11, -0.414) stands 0.014 outside the circle of radius 6 that the miter runs the arc round.
+
 **What still needs flattening.** The four boolean operations do, because a boolean cannot be done piece by
 piece. They take an optional chord tolerance and hand back the straight types, which say plainly that the
 arcs are gone:

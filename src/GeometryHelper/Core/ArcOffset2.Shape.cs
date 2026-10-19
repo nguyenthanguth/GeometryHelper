@@ -60,9 +60,10 @@ namespace GeometryHelper.Core
             private readonly double _sideways;
             private readonly double _distance;
             private readonly double _slack;
+            private readonly double _depth;
             private readonly Tolerance _tolerance;
 
-            internal Shape(List<GeoEdge2> edges, bool closed, Spans spans, Region region, double sideways, double slack, List<Piece> offset, List<Mitre> mitres, Tolerance tolerance)
+            internal Shape(List<GeoEdge2> edges, bool closed, Spans spans, Region region, double sideways, double slack, double depth, List<Piece> offset, List<Mitre> mitres, Tolerance tolerance)
             {
                 double distance = Math.Abs(sideways);
 
@@ -73,6 +74,7 @@ namespace GeometryHelper.Core
                 _sideways = sideways;
                 _distance = distance;
                 _slack = slack;
+                _depth = depth;
                 _tolerance = tolerance;
 
                 int count = edges.Count;
@@ -117,7 +119,7 @@ namespace GeometryHelper.Core
                 _mitreCorners = new GeoPoint2[mitres.Count][];
                 _mitreTurns = new double[mitres.Count];
                 _mitreBuilt = new bool[mitres.Count];
-                _inside = new Tolerance(slack, tolerance.EqualVector, tolerance.EqualAngleRad, tolerance.EqualPlanar);
+                _inside = new Tolerance(_depth, tolerance.EqualVector, tolerance.EqualAngleRad, tolerance.EqualPlanar);
             }
 
             /// <summary>
@@ -315,7 +317,8 @@ namespace GeometryHelper.Core
             internal bool OnTheOffsetSide(GeoPoint2 point) => _region == null || _region.Holds(point) == _region.WantInside;
 
             /// <summary>
-            /// Determines whether a point lies inside the point of a miter, by more than the slack.
+            /// Determines whether a point lies inside the point of a miter, by more than the depth: the slack, or, in a second reading of an
+            /// offset that left a run open, a thousandth of it.
             /// </summary>
             internal bool InMitre(GeoPoint2 point)
             {
@@ -435,8 +438,8 @@ namespace GeometryHelper.Core
             }
 
             /// <summary>
-            /// Determines whether a point lies inside a convex loop of straight sides by more than the slack: further than
-            /// the slack inside the line of every side, which is how far it lies inside the loop.
+            /// Determines whether a point lies inside a convex loop of straight sides by more than the depth: further than
+            /// the depth inside the line of every side, which is how far it lies inside the loop.
             /// </summary>
             private bool InsideStraight(GeoPoint2[] corners, double turn, GeoPoint2 point)
             {
@@ -453,7 +456,7 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    if (side.CrossProduct(from.GetVectorTo(point)) * turn / length <= _slack)
+                    if (side.CrossProduct(from.GetVectorTo(point)) * turn / length <= _depth)
                     {
                         return false;
                     }

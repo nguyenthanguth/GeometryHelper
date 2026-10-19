@@ -354,5 +354,79 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         #endregion
+
+        #region Item 6 S3: stubs beside a join, needles, run-ons crossing a neighbour, a reversed sliver
+
+        /// <summary>The audit's t4: 1E-4 for points, 1E-6 for vectors.</summary>
+        internal static readonly Tolerance TenThousandth = new Tolerance(1E-4, 1E-6);
+
+        /// <summary>
+        /// The rectangle 40 by 30 from (-20, -30) to (20, 0) with a slot <paramref name="width"/> wide and 15 deep cut square
+        /// into its top from the origin. Grown by d, a slot narrower than 2d fills, and the rectangle comes back 40 + 2d by
+        /// 30 + 2d with mitered corners. The miter corner of the slot's left mouth, (d, d), stands sqrt((w - d)^2 + d^2) from its
+        /// right mouth, (w, 0): just past d when w is just past d.
+        /// </summary>
+        internal static GeoPolygonArc2 RectangleWithASlot(double width)
+            => Loop(new[] { P(-20, -30), P(20, -30), P(20, 0), P(width, 0), P(width, -15), P(0, -15), P(0, 0), P(-20, 0) });
+
+        /// <summary>
+        /// The square of side 10 with a needle 6 long standing on its top at x = 4, 0.0005 wide at its foot: thinner than
+        /// the default point tolerance, so that at 1E-3 its tip turns back within the tolerance and the loop is not simple.
+        /// </summary>
+        internal static GeoPolygonArc2 SquareWithANeedle()
+            => Loop(new[] { P(0, 0), P(10, 0), P(10, 10), P(4.0005, 10), P(4, 16), P(4, 10), P(0, 10) });
+
+        /// <summary>
+        /// A loop running clockwise: straight from (-4, -3) to (2, 1), round an arc of bulge -0.6 to (5, 8), round an arc of
+        /// bulge -0.25 to (-4, -5) and straight back. Shrunk by 0.3 it pinches in two beside (2, 1), where the corner
+        /// between the straight and the first arc opens; mitered, the first arc is run on back round its circle to the
+        /// miter, and the second arc's offset crosses that run-on at (2.39, 1.08), away from the corner the two arcs share.
+        /// </summary>
+        internal static GeoPolygonArc2 LoopPinchedBesideAMiter()
+            => Loop(new[] { P(-4, -3), P(2, 1), P(5, 8), P(-4, -5) }, 0.0, -0.6, -0.25);
+
+        /// <summary>
+        /// A loop of the S2 crossing fuzz (seed 2, random loop 100) that crosses itself twice: grown by 0.3 at 1E-3 its corner at
+        /// (3.4164, -7.0194), a tip of 22.6 degrees between two arcs all but straight, is met by a piece cut back to a sliver
+        /// 1.94E-4 long that runs the wrong way.
+        /// </summary>
+        internal static GeoPolygonArc2 LoopWithASliverBeforeATip() => new GeoPolygonArc2(
+            new[] { P(3.4163702621200915, -7.0193847627469275), P(8.8754816441216882, 7.4948687653499064), P(-2.0016640108086472, -8.9877581684793153), P(-2.6410758367930889, -6.0746122319598737), P(3.48895770194426, 0.97154249948055593) },
+            new[] { 0.089899056027596291, -0.39261626111930992, 0.0, 0.37293859332471069, -0.066002536456101768 });
+
+        /// <summary>
+        /// The square of side 10 with a notch from its top down to (5, 0.05), its right side an arc of bulge 0.1 and its left
+        /// an arc of bulge -0.1: grown by 2 with miters, the corner at (0, 10) is cut square 20 from it along its bisector,
+        /// and the cut's ends stand further from the corner than that, 21.34 at (4.714, 30.810).
+        /// </summary>
+        internal static GeoPolygonArc2 SquareWithABowedNotch()
+            => Loop(new[] { P(0, 0), P(10, 0), P(10, 10), P(5, 0.05), P(0, 10) }, 0.0, 0.0, 0.1, -0.1);
+
+        /// <summary>
+        /// The audit's case GA 10570 (offset seed 1), a comb of straight edges about (-14, 10): grown by 2.5 with chamfers,
+        /// two square cuts across its gaps meet within a few tolerances.
+        /// </summary>
+        internal static GeoPolygonArc2 AuditComb10570() => new GeoPolygonArc2(new[]
+        {
+            P(-10.16017998073694, 11.022759588985529), P(-10.085305938013004, 10.593369820921398), P(-15.996116797282214, 9.5626831634230154),
+            P(-15.908043732382326, 9.0575992714059161), P(-9.9972328731131164, 10.088285928904298), P(-9.9223588303891823, 9.6588961608401682),
+            P(-18.296007547687228, 8.1987567293841259), P(-18.533828698034988, 9.5626201575294871),
+        });
+
+        /// <summary>
+        /// The audit's case GA 1094 (offset seed 1), a notched quadrilateral placed 1E4 out, its notch's bottom an arc of bulge
+        /// -0.003: grown by 80 with a miter limit of 2, the moved bottom of the notch and the moved side beside it run along
+        /// each other and cross twice.
+        /// </summary>
+        internal static GeoPolygonArc2 AuditNotch1094() => Loop(
+            new[]
+            {
+                P(13317.627233135339, 25942.109211321032), P(13232.517966740832, 25994.610761524706), P(13195.766881598262, 25935.034275048551),
+                P(13240.64695062357, 25907.349002963667), P(13255.427457695561, 25931.309402398656), P(13268.595324084486, 25923.186510173397),
+                P(13253.814817012497, 25899.226110738411), P(13280.876147992769, 25882.532724844878),
+            },
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.003);
+
+        #endregion
     }
 }

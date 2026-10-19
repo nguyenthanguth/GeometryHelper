@@ -459,11 +459,42 @@ namespace GeometryHelper.Core
             {
                 // The edge leaving and the one arriving, run backwards, set off from the corner the same way, and the
                 // turn says nothing; how they bend away from that line does. Where they bend apart towards the side the
-                // offset goes, it goes round the tip of the cusp; two straight edges folding back are read as closing.
+                // offset goes, it goes round the tip of the cusp; two straight edges folding back are read as closing, unless
+                // they are not on one line, when the way they turn is read, as it is for a needle thinner than the tolerance:
+                // one 0.0005 wide and 6 long, standing on a square of side 10 and grown by 0.3, is gone round at its tip, since the
+                // pieces moved along its two sides stand 0.6 apart and never cross. Not on one line is told from the rounding of
+                // the coordinates: the far end of the longer edge stands off the other's line by more than twice their spacing.
+                if (!arriving.IsArc && !leaving.IsArc && sine * reach > CoordinateSpacing * Scale(arriving, leaving))
+                {
+                    return turn * distance > 0.0;
+                }
+
                 return (Bend(arriving) + Bend(leaving)) * distance <= 0.0;
             }
 
             return turn * distance > 0.0;
+        }
+
+        /// <summary>
+        /// Twice the relative spacing of the doubles: how far apart the least significant digits of a coordinate lie, in
+        /// units of the coordinate, to within a factor of two.
+        /// </summary>
+        private const double CoordinateSpacing = 4.4E-16;
+
+        /// <summary>
+        /// Gets the size the coordinates of two edges are rounded at: the largest coordinate they have, or their length where
+        /// that is the larger.
+        /// </summary>
+        private static double Scale(GeoEdge2 arriving, GeoEdge2 leaving)
+        {
+            double scale = Math.Max(arriving.Length, leaving.Length);
+
+            foreach (GeoPoint2 point in new[] { arriving.StartPoint, arriving.EndPoint, leaving.EndPoint })
+            {
+                scale = Math.Max(scale, Math.Max(Math.Abs(point.X), Math.Abs(point.Y)));
+            }
+
+            return scale;
         }
 
         /// <summary>
@@ -781,10 +812,14 @@ namespace GeometryHelper.Core
             }
 
             // The cut runs from the side the first piece ends on to the side the second begins on. Pieces that come
-            // to it the other way round have crossed short of it, and meet where they cross.
+            // to it the other way round have crossed short of it, and meet where they cross: a crossing that lies short
+            // of the cut along the bisector, though it may stand further than the reach from the corner to one side. One
+            // beyond the cut is no miter within the limit, and the corner is left to be rounded.
             if (first.GetVectorTo(second).DotProduct(outSecond - outFirst) <= 0.0)
             {
-                if (!roundTheCurves || !TryMeeting(before, after, from, to, corner, double.PositiveInfinity, tolerance, out GeoPoint2 meeting))
+                if (!roundTheCurves ||
+                    !TryMeeting(before, after, from, to, corner, double.PositiveInfinity, tolerance, out GeoPoint2 meeting) ||
+                    !IsAlong(corner, meeting, bisector, reach, tolerance))
                 {
                     return false;
                 }
@@ -831,6 +866,17 @@ namespace GeometryHelper.Core
 
             next = CurveMeet2.Stretch(after, second, false);
             return true;
+        }
+
+        /// <summary>
+        /// Determines whether a point lies out from a corner along its bisector, no further than the reach: between the
+        /// corner and the line square to the bisector at the reach, within the tolerance.
+        /// </summary>
+        private static bool IsAlong(GeoPoint2 corner, GeoPoint2 point, GeoVector2 bisector, double reach, Tolerance tolerance)
+        {
+            double along = corner.GetVectorTo(point).DotProduct(bisector);
+
+            return along >= -tolerance.EqualPoint && along <= reach + tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -1063,12 +1109,52 @@ namespace GeometryHelper.Core
             Region region,
             int winding)
         {
+            // A hair of slack, so that the piece running exactly along the offset is never thrown away.
+            double slack = Math.Max(tolerance.EqualPoint, Math.Abs(sideways) * 1E-6);
+
+            List<List<GeoEdge2>> loops = Prune(offset, mitres, original, closed, sideways, tolerance, pieceSpans, edgeSpans, region, winding, slack, slack, out int open);
+
+            // A stretch of a piece that lies inside the point of another corner's miter by less than the slack is kept, and
+            // a stub of it longer than the tolerance leaves the run it ends open by its own length: a slot 5.12 wide cut
+            // 15 deep into a rectangle, grown by 5 with miters, fills, and its two stubs 0.0014 long leave two runs open
+            // and nothing of the rectangle. A shape of one loop that left a run open is read again with only a stretch
+            // inside the point of a miter by more than a thousandth of the slack thrown away, and is the answer where it
+            // leaves none open.
+            if (region == null && open > 0)
+            {
+                List<List<GeoEdge2>> again = Prune(offset, mitres, original, closed, sideways, tolerance, pieceSpans, edgeSpans, region, winding, slack, slack * 1E-3, out int stillOpen);
+
+                if (stillOpen == 0 && again.Count >= loops.Count)
+                {
+                    return again;
+                }
+            }
+
+            return loops;
+        }
+
+        /// <summary>
+        /// Reads the offset once, with a point counted as inside the point of a miter when it lies further than a given depth
+        /// inside it, and says how many runs were left open.
+        /// </summary>
+        private static List<List<GeoEdge2>> Prune(
+            List<Piece> offset,
+            List<Mitre> mitres,
+            List<GeoEdge2> original,
+            bool closed,
+            double sideways,
+            Tolerance tolerance,
+            Spans pieceSpans,
+            Spans edgeSpans,
+            Region region,
+            int winding,
+            double slack,
+            double depth,
+            out int open)
+        {
             double distance = Math.Abs(sideways);
 
-            // A hair of slack, so that the piece running exactly along the offset is never thrown away.
-            double slack = Math.Max(tolerance.EqualPoint, distance * 1E-6);
-
-            var shape = new Shape(original, closed, edgeSpans, region, sideways, slack, offset, mitres, tolerance);
+            var shape = new Shape(original, closed, edgeSpans, region, sideways, slack, depth, offset, mitres, tolerance);
             List<List<Meet>> crossings = Crossings(offset, closed, pieceSpans, region != null, sideways, tolerance);
             var parts = new List<KeyValuePair<GeoEdge2, bool>>[offset.Count];
 
@@ -1208,7 +1294,7 @@ namespace GeometryHelper.Core
                     && Stands(edge.GetPointAtParameter(0.75), shape, distance, 2.0 * slack);
             }
 
-            return Group(survivors, held, loopOf, closed, original, winding, tolerance, region != null, spare, stands);
+            return Group(survivors, held, loopOf, closed, original, winding, tolerance, region != null, out open, spare, stands);
         }
 
         /// <summary>
@@ -1365,7 +1451,7 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Finds where the pieces of a run cross each other, other than where neighbours meet.
+        /// Finds where the pieces of a run cross each other, other than where neighbours meet, which two segments do only there.
         /// </summary>
         private static List<List<Meet>> Crossings(List<Piece> offset, bool closed, Spans spans, bool alsoNeighbours, double sideways, Tolerance tolerance)
         {
@@ -1380,65 +1466,96 @@ namespace GeometryHelper.Core
             }
 
             // Each piece is tried against the later ones whose boxes overlap its own along the axis that parts them most,
-            // in the order they come in the run, as if every pair were tried.
+            // in the order they come in the run, as if every pair were tried. Neighbours come last, and only where one of the two is
+            // an arc, since two segments meet in one point and neighbours meet in their corner: a second place where an arc and its
+            // neighbour cross, as the run-on of a miter can cross the piece after its neighbour, is noted if no other pair has
+            // noted it. A crossing noted already stays as it was found.
             var order = new BoxOrder(boxes);
             var near = new List<int>();
 
-            for (int i = 0; i < offset.Count; i++)
+            for (int pass = 0; pass < (alsoNeighbours ? 1 : 2); pass++)
             {
-                order.Overlapping(boxes[i], near);
-
-                foreach (int j in near)
+                for (int i = 0; i < offset.Count; i++)
                 {
-                    if (j <= i || (!alsoNeighbours && spans.First[i] == spans.First[j] && (j == i + 1 || (closed && i == spans.First[i] && j == spans.Last[i]))))
+                    if (pass == 0)
                     {
-                        continue;
+                        order.Overlapping(boxes[i], near);
+                    }
+                    else
+                    {
+                        // The piece after this one, and for the first of a loop the last.
+                        near.Clear();
+
+                        if (i + 1 < offset.Count)
+                        {
+                            near.Add(i + 1);
+                        }
+
+                        if (closed && i == spans.First[i] && spans.Last[i] != i + 1)
+                        {
+                            near.Add(spans.Last[i]);
+                        }
                     }
 
-                    // Two pieces whose boxes stay further apart than the tolerance meet nowhere.
-                    if (!boxes[i].Overlaps(boxes[j]))
+                    foreach (int j in near)
                     {
-                        continue;
-                    }
-
-                    foreach (GeoPoint2 meeting in offset[i].Edge.GetIntersections(offset[j].Edge, tolerance))
-                    {
-                        // Where one piece only touches the other with an end, neither crosses to a side of the other.
-                        bool touches = Ends(offset[i].Edge, meeting, tolerance) || Ends(offset[j].Edge, meeting, tolerance);
-
-                        // Of loops offset together, a piece that runs on through a place where the other ends is crossed by the
-                        // line the other lies along, and has a side of it to be read.
-                        bool endsI = alsoNeighbours ? Ends(offset[i].Edge, meeting, tolerance) : touches;
-                        bool endsJ = alsoNeighbours ? Ends(offset[j].Edge, meeting, tolerance) : touches;
-
-                        // A piece that the other runs on into, along it the same way, is not crossed there.
-                        if (alsoNeighbours && !endsI && endsJ && RunsOnAlong(offset, spans, j, offset[i].Edge, meeting, tolerance))
+                        if (j <= i)
                         {
-                            endsI = true;
+                            continue;
                         }
 
-                        if (alsoNeighbours && !endsJ && endsI && RunsOnAlong(offset, spans, i, offset[j].Edge, meeting, tolerance))
+                        bool neighbours = !alsoNeighbours && spans.First[i] == spans.First[j] && (j == i + 1 || (closed && i == spans.First[i] && j == spans.Last[i]));
+
+                        if (neighbours != (pass == 1) || (neighbours && !offset[i].Edge.IsArc && !offset[j].Edge.IsArc))
                         {
-                            endsJ = true;
+                            continue;
                         }
 
-                        GeoVector2 acrossI = endsI ? default(GeoVector2) : Heading(offset[j].Edge, meeting);
-                        GeoVector2 acrossJ = endsJ ? default(GeoVector2) : Heading(offset[i].Edge, meeting);
-
-                        // A piece that runs through the corner where the other ends is on the side of the run that turns there which
-                        // its two ways out lie on, and not of the one piece alone.
-                        if (alsoNeighbours && !endsI && endsJ)
+                        // Two pieces whose boxes stay further apart than the tolerance meet nowhere.
+                        if (!boxes[i].Overlaps(boxes[j]))
                         {
-                            acrossI = AcrossAtACorner(offset, spans, j, offset[i].Edge, meeting, sideways, acrossI, tolerance);
+                            continue;
                         }
 
-                        if (alsoNeighbours && !endsJ && endsI)
+                        foreach (GeoPoint2 meeting in offset[i].Edge.GetIntersections(offset[j].Edge, tolerance))
                         {
-                            acrossJ = AcrossAtACorner(offset, spans, i, offset[j].Edge, meeting, sideways, acrossJ, tolerance);
-                        }
+                            // Where one piece only touches the other with an end, neither crosses to a side of the other.
+                            bool touches = Ends(offset[i].Edge, meeting, tolerance) || Ends(offset[j].Edge, meeting, tolerance);
 
-                        Mark(cuts[i], offset[i].Edge, meeting, acrossI, tolerance);
-                        Mark(cuts[j], offset[j].Edge, meeting, acrossJ, tolerance);
+                            // Of loops offset together, a piece that runs on through a place where the other ends is crossed by the
+                            // line the other lies along, and has a side of it to be read.
+                            bool endsI = alsoNeighbours ? Ends(offset[i].Edge, meeting, tolerance) : touches;
+                            bool endsJ = alsoNeighbours ? Ends(offset[j].Edge, meeting, tolerance) : touches;
+
+                            // A piece that the other runs on into, along it the same way, is not crossed there.
+                            if (alsoNeighbours && !endsI && endsJ && RunsOnAlong(offset, spans, j, offset[i].Edge, meeting, tolerance))
+                            {
+                                endsI = true;
+                            }
+
+                            if (alsoNeighbours && !endsJ && endsI && RunsOnAlong(offset, spans, i, offset[j].Edge, meeting, tolerance))
+                            {
+                                endsJ = true;
+                            }
+
+                            GeoVector2 acrossI = endsI ? default(GeoVector2) : Heading(offset[j].Edge, meeting);
+                            GeoVector2 acrossJ = endsJ ? default(GeoVector2) : Heading(offset[i].Edge, meeting);
+
+                            // A piece that runs through the corner where the other ends is on the side of the run that turns there which
+                            // its two ways out lie on, and not of the one piece alone.
+                            if (alsoNeighbours && !endsI && endsJ)
+                            {
+                                acrossI = AcrossAtACorner(offset, spans, j, offset[i].Edge, meeting, sideways, acrossI, tolerance);
+                            }
+
+                            if (alsoNeighbours && !endsJ && endsI)
+                            {
+                                acrossJ = AcrossAtACorner(offset, spans, i, offset[j].Edge, meeting, sideways, acrossJ, tolerance);
+                            }
+
+                            Mark(cuts[i], offset[i].Edge, meeting, acrossI, tolerance);
+                            Mark(cuts[j], offset[j].Edge, meeting, acrossJ, tolerance);
+                        }
                     }
                 }
             }
@@ -1849,8 +1966,9 @@ namespace GeometryHelper.Core
         /// shape would come back where two were wanted. Only the runs that order leaves open are then
         /// matched up by their ends.
         /// </remarks>
-        private static List<List<GeoEdge2>> Group(List<List<GeoEdge2>> survivors, List<bool> held, List<int> loopOf, bool closed, List<GeoEdge2> original, int winding, Tolerance tolerance, bool ofSeveralLoops, List<GeoEdge2> spare = null, Func<GeoEdge2, bool> stands = null)
+        private static List<List<GeoEdge2>> Group(List<List<GeoEdge2>> survivors, List<bool> held, List<int> loopOf, bool closed, List<GeoEdge2> original, int winding, Tolerance tolerance, bool ofSeveralLoops, out int open, List<GeoEdge2> spare = null, Func<GeoEdge2, bool> stands = null)
         {
+            open = 0;
             var groups = new List<List<GeoEdge2>>();
             var holding = new List<bool>();
 
@@ -1958,6 +2076,7 @@ namespace GeometryHelper.Core
                 // A run that never comes back to where it began encloses nothing, and is no answer.
                 if (!IsClosedRun(group, meeting) || (ofSeveralLoops && group.Count < 2))
                 {
+                    open++;
                     continue;
                 }
 
