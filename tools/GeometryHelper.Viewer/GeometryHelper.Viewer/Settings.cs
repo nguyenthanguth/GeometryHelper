@@ -103,6 +103,11 @@ namespace GeometryHelper.Viewer
         public bool RerunOnSave { get; set; }
 
         /// <summary>
+        /// Gets or sets whether the closed lines in which a clip plane cuts a body are filled.
+        /// </summary>
+        public bool ClipCaps { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets whether the grid on the plane z = 0 is drawn.
         /// </summary>
         public bool Grid { get; set; }

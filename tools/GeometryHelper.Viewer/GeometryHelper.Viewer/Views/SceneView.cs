@@ -40,7 +40,9 @@ namespace GeometryHelper.Viewer.Views
         private WorkPlane _workPlane = WorkPlane.Global;
         private Vec3 _wantedOrigin;
         private int _depthBias = 8;
-        private bool _attached;
+        private readonly AttachGate _gate = new AttachGate();
+        private GeometryCache<ItemGeometry[]>.Entry _lease;
+        private ClipResult _applied;
         private bool _building;
         private bool _again;
         private bool _grid;
@@ -61,7 +63,7 @@ namespace GeometryHelper.Viewer.Views
         /// <summary>
         /// Gets whether the view holds the elements of the scene and listens to the model.
         /// </summary>
-        public bool IsAttached => _attached;
+        public bool IsAttached => _gate.IsAttached;
 
         /// <summary>
         /// Starts listening to the model and makes the elements of the scene it shows, relative to the middle of the scene. A view that is not shown is
@@ -69,12 +71,11 @@ namespace GeometryHelper.Viewer.Views
         /// </summary>
         public void Attach()
         {
-            if (_attached)
+            if (!_gate.Attach())
             {
                 return;
             }
 
-            _attached = true;
             _model.SceneChanged += OnSceneChanged;
             _model.StateChanged += OnStateChanged;
             _model.HoverChanged += OnHoverChanged;
@@ -92,12 +93,11 @@ namespace GeometryHelper.Viewer.Views
         /// </summary>
         public void Detach()
         {
-            if (!_attached)
+            if (!_gate.Detach())
             {
                 return;
             }
 
-            _attached = false;
             _model.SceneChanged -= OnSceneChanged;
             _model.StateChanged -= OnStateChanged;
             _model.HoverChanged -= OnHoverChanged;
@@ -220,20 +220,32 @@ namespace GeometryHelper.Viewer.Views
 
         private void Build()
         {
-            _drawn = _model.Clip.Clipped;
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            ClipResult clip = _model.Clip;
+            _drawn = clip.Clipped;
             Origin = _model.Primitives.Bounds.IsEmpty ? default(Vec3) : _model.Primitives.Bounds.Center;
             _wantedOrigin = Origin;
             _labelMap = null;
 
+            // The geometry for this origin and this cut is made by the first view to ask and held by every view that has them: four views open a scene with one build.
+            Vec3 origin = Origin;
+            Primitives drawn = _drawn;
+            TimeSpan before = clock.Elapsed;
+            _lease = _model.Geometry.Take(_model.Generation, clip, origin, () => MakeAll(drawn, clip, origin, null, null, default(Vec3)), true);
+            _applied = clip;
+            ItemGeometry[] made = _lease.Made.Result;
+            _model.GeometryMilliseconds.Add((clock.Elapsed - before).TotalMilliseconds);
+
             for (int i = 0; i < _model.Scene.Items.Count; i++)
             {
                 var visual = new ItemVisual { Index = i, BaseColor = ColorOf(_model.Scene.Items[i]) };
-                ApplyGeometry(visual, MakeGeometry(_drawn.Items[i], Origin, _model.Clip.Sections[i]), _drawn.Items[i], Origin);
+                ApplyGeometry(visual, made[i], _drawn.Items[i], Origin);
                 _visuals.Add(visual);
             }
 
             RebuildGrid();
             Refresh();
+            _model.ViewBuildMilliseconds.Add(clock.Elapsed.TotalMilliseconds);
         }
 
         private void ClearElements()
@@ -256,7 +268,52 @@ namespace GeometryHelper.Viewer.Views
             _extras.Clear();
             _visuals.Clear();
             _drawn = null;
+            _applied = null;
+            _model.Geometry.Release(_lease);
+            _lease = null;
         }
+
+        /// <summary>
+        /// Makes the geometry of every item of a cut scene relative to a render origin. It holds no screen type, so it can be made on any thread, and the one set it gives
+        /// is shared by the views that have that origin and that cut.
+        /// </summary>
+        /// <param name="drawn">What is drawn, as the cut leaves it.</param>
+        /// <param name="clip">The cut.</param>
+        /// <param name="origin">The render origin.</param>
+        /// <param name="before">The geometry already made for the same scene at the same origin for the cut before, or null; an item that the cut left as it was takes its geometry from here.</param>
+        /// <param name="beforeClip">The cut before.</param>
+        /// <param name="beforeOrigin">The render origin of the geometry before.</param>
+        private static ItemGeometry[] MakeAll(Primitives drawn, ClipResult clip, Vec3 origin, ItemGeometry[] before, ClipResult beforeClip, Vec3 beforeOrigin)
+        {
+            var made = new ItemGeometry[drawn.Items.Count];
+            bool sameOrigin = before != null && beforeClip != null && beforeOrigin.Equals(origin) && before.Length == made.Length;
+
+            for (int i = 0; i < made.Length; i++)
+            {
+                made[i] = sameOrigin && Unchanged(beforeClip, clip, i) ? before[i] : MakeGeometry(drawn.Items[i], origin, clip.Sections[i], clip.Caps[i]);
+            }
+
+            return made;
+        }
+
+        /// <summary>
+        /// Gets whether the cut of an item is the same in two cuts of the scene: the very same item, section lines and caps, or an item with nothing in it either time, which is
+        /// what a plane that has moved from beyond an item to beyond it again leaves. What is the same needs no new geometry for the graphics card and no new elements.
+        /// </summary>
+        private static bool Unchanged(ClipResult before, ClipResult after, int i)
+        {
+            ItemPrimitives a = before.Clipped.Items[i];
+            ItemPrimitives b = after.Clipped.Items[i];
+
+            if (ReferenceEquals(a, b) && ReferenceEquals(before.Sections[i], after.Sections[i]) && ReferenceEquals(before.Caps[i], after.Caps[i]))
+            {
+                return true;
+            }
+
+            return IsBare(a) && IsBare(b) && before.Sections[i].Count == 0 && after.Sections[i].Count == 0 && before.Caps[i].Count == 0 && after.Caps[i].Count == 0;
+        }
+
+        private static bool IsBare(ItemPrimitives p) => p.Points.Count == 0 && p.Polylines.Count == 0 && p.Triangles.Count == 0 && p.Labels.Count == 0;
 
         /// <summary>
         /// Gives every label the height it is drawn at for a view, so that it can be read at any zoom: a label with no height of its own
@@ -318,19 +375,7 @@ namespace GeometryHelper.Viewer.Views
             }
         }
 
-        /// <summary>
-        /// What the graphics card is given for an item, relative to a render origin. It holds no screen type, so it can be made
-        /// on another thread while the old geometry is still being drawn.
-        /// </summary>
-        private sealed class ItemGeometry
-        {
-            internal MeshGeometry3D Mesh;
-            internal LineGeometry3D Lines;
-            internal PointGeometry3D Points;
-            internal LineGeometry3D Section;
-        }
-
-        private static ItemGeometry MakeGeometry(ItemPrimitives p, Vec3 origin, IReadOnlyList<DrawPolyline> section)
+        private static ItemGeometry MakeGeometry(ItemPrimitives p, Vec3 origin, IReadOnlyList<DrawPolyline> section, IReadOnlyList<DrawTriangle> cap)
         {
             var geometry = new ItemGeometry();
             Vector3 Rel(Vec3 v)
@@ -339,27 +384,8 @@ namespace GeometryHelper.Viewer.Views
                 return new Vector3(f.X, f.Y, f.Z);
             }
 
-            if (p.Triangles.Count > 0)
-            {
-                var positions = new Vector3Collection(p.Triangles.Count * 3);
-                var normals = new Vector3Collection(p.Triangles.Count * 3);
-                var indices = new IntCollection(p.Triangles.Count * 3);
-
-                foreach (DrawTriangle t in p.Triangles)
-                {
-                    Vector3 n = new Vector3((float)t.Normal.X, (float)t.Normal.Y, (float)t.Normal.Z);
-
-                    foreach (Vec3 corner in new[] { t.A, t.B, t.C })
-                    {
-                        indices.Add(positions.Count);
-                        positions.Add(Rel(corner));
-                        normals.Add(n);
-                    }
-                }
-
-                geometry.Mesh = new MeshGeometry3D { Positions = positions, Normals = normals, Indices = indices };
-            }
-
+            geometry.Mesh = Surface(p.Triangles, Rel);
+            geometry.Cap = Surface(cap, Rel);
             geometry.Lines = Lines(p.Polylines, Rel);
             geometry.Section = Lines(section, Rel);
 
@@ -378,6 +404,35 @@ namespace GeometryHelper.Viewer.Views
             }
 
             return geometry;
+        }
+
+        private static MeshGeometry3D Surface(IReadOnlyList<DrawTriangle> triangles, Func<Vec3, Vector3> rel)
+        {
+            if (triangles == null || triangles.Count == 0)
+            {
+                return null;
+            }
+
+            var positions = new Vector3Collection(triangles.Count * 3);
+            var normals = new Vector3Collection(triangles.Count * 3);
+            var indices = new IntCollection(triangles.Count * 3);
+
+            foreach (DrawTriangle t in triangles)
+            {
+                Vector3 n = new Vector3((float)t.Normal.X, (float)t.Normal.Y, (float)t.Normal.Z);
+                int first = positions.Count;
+                indices.Add(first);
+                indices.Add(first + 1);
+                indices.Add(first + 2);
+                positions.Add(rel(t.A));
+                positions.Add(rel(t.B));
+                positions.Add(rel(t.C));
+                normals.Add(n);
+                normals.Add(n);
+                normals.Add(n);
+            }
+
+            return new MeshGeometry3D { Positions = positions, Normals = normals, Indices = indices };
         }
 
         private static LineGeometry3D Lines(IReadOnlyList<DrawPolyline> polylines, Func<Vec3, Vector3> rel)
@@ -440,7 +495,29 @@ namespace GeometryHelper.Viewer.Views
             visual.HasLines = g.Lines != null;
             visual.HasPoints = g.Points != null;
             visual.HasSection = g.Section != null;
+            visual.HasCap = g.Cap != null;
             visual.HasLabels = p.Labels.Count > 0;
+
+            if (g.Cap != null)
+            {
+                if (visual.Cap == null)
+                {
+                    visual.Cap = new MeshGeometryModel3D
+                    {
+                        Geometry = g.Cap,
+                        Material = new PhongMaterial { DiffuseColor = C4(CapColor(visual.BaseColor)), AmbientColor = C4(CapColor(visual.BaseColor)), SpecularColor = C4(Color.FromRgb(20, 20, 20)), SpecularShininess = 10f },
+                        CullMode = SharpDX.Direct3D11.CullMode.None,
+                        DepthBias = _depthBias,
+                        SlopeScaledDepthBias = 1f,
+                        IsHitTestVisible = false,
+                    };
+                    Attach(visual, visual.Cap);
+                }
+                else
+                {
+                    visual.Cap.Geometry = g.Cap;
+                }
+            }
 
             if (g.Mesh != null)
             {
@@ -578,26 +655,74 @@ namespace GeometryHelper.Viewer.Views
                 do
                 {
                     _again = false;
+                    int ticket = _gate.Ticket;
                     int generation = _model.Generation;
                     ClipResult clip = _model.Clip;
                     Vec3 origin = _wantedOrigin;
                     Primitives drawn = clip.Clipped;
-                    ItemGeometry[] made = await Task.Run(() => drawn.Items.Select((p, i) => MakeGeometry(p, origin, clip.Sections[i])).ToArray());
 
-                    if (generation != _model.Generation || !_attached)
+                    // Another view with this origin and this cut is making the same geometry, or has made it: it is waited for, and none is made again. An item that this cut leaves
+                    // as the one before did keeps the geometry it has.
+                    ItemGeometry[] before = _lease != null && _lease.Made.IsCompletedSuccessfully ? _lease.Made.Result : null;
+                    ClipResult beforeClip = _applied;
+                    Vec3 beforeOrigin = Origin;
+                    GeometryCache<ItemGeometry[]>.Entry entry = _model.Geometry.Take(generation, clip, origin, () => MakeAll(drawn, clip, origin, before, beforeClip, beforeOrigin), false);
+                    ItemGeometry[] made;
+
+                    try
                     {
-                        // Another scene was shown meanwhile, and was built whole, or the view was let go of.
+                        made = await entry.Made;
+                    }
+                    catch
+                    {
+                        _model.Geometry.Release(entry);
+                        throw;
+                    }
+
+                    if (generation != _model.Generation || !_gate.IsAttached)
+                    {
+                        // Another scene was shown meanwhile, and was built whole, or the view was let go of. A cut that came meanwhile is of the new scene, which this
+                        // does not make again: it is made now, from the scene as it is.
+                        _model.Geometry.Release(entry);
+
+                        if (_again && _gate.IsAttached && _model.Scene != null)
+                        {
+                            continue;
+                        }
+
+                        return false;
+                    }
+
+                    if (!_gate.IsCurrent(ticket))
+                    {
+                        // The view let go of its elements and took them again while this was made: these are not the elements it was made for, and the elements
+                        // that were made on taking them are of the scene as it is. A cut that came since is made.
+                        _model.Geometry.Release(entry);
+
+                        if (_again)
+                        {
+                            continue;
+                        }
+
                         return false;
                     }
 
                     bool moved = !origin.Equals(Origin);
+                    ClipResult applied = _applied;
                     _drawn = drawn;
 
                     for (int i = 0; i < _visuals.Count; i++)
                     {
-                        ApplyGeometry(_visuals[i], made[i], drawn.Items[i], origin);
+                        // An item the cut leaves as it was has its elements as they are, which for a plane moved through a scene of many items is nearly all of them.
+                        if (moved || applied == null || !Unchanged(applied, clip, i))
+                        {
+                            ApplyGeometry(_visuals[i], made[i], drawn.Items[i], origin);
+                        }
                     }
 
+                    _applied = clip;
+                    _model.Geometry.Release(_lease);
+                    _lease = entry;
                     Origin = origin;
                     RebuildGrid();
                     Refresh();
@@ -639,6 +764,11 @@ namespace GeometryHelper.Viewer.Views
                 {
                     visual.Mesh.DepthBias = units;
                 }
+
+                if (visual.Cap != null)
+                {
+                    visual.Cap.DepthBias = units;
+                }
             }
         }
 
@@ -655,7 +785,7 @@ namespace GeometryHelper.Viewer.Views
         /// </summary>
         private void Refresh()
         {
-            if (!_attached || _model.Scene == null)
+            if (!_gate.IsAttached || _model.Scene == null)
             {
                 return;
             }
@@ -692,6 +822,20 @@ namespace GeometryHelper.Viewer.Views
                     : color);
             }
 
+            if (visual.Cap != null)
+            {
+                bool see = _mode != RenderMode.Wireframe;
+                visual.Cap.Visibility = shown && see && visual.HasCap ? Visibility.Visible : Visibility.Collapsed;
+
+                if (visual.Cap.SceneNode is MaterialGeometryNode node)
+                {
+                    node.IsTransparent = _mode == RenderMode.Transparent;
+                }
+
+                Color fill = selected ? Mix(CapColor(visual.BaseColor), SelectionColor, 0.5) : CapColor(visual.BaseColor);
+                ((PhongMaterial)visual.Cap.Material).DiffuseColor = C4(_mode == RenderMode.Transparent ? Color.FromArgb(120, fill.R, fill.G, fill.B) : fill);
+            }
+
             if (visual.Lines != null)
             {
                 bool see = _mode != RenderMode.Shaded || !hasSurface;
@@ -724,6 +868,11 @@ namespace GeometryHelper.Viewer.Views
         private static Color Mix(Color from, Color to, double share)
             => Color.FromRgb((byte)(from.R + (to.R - from.R) * share), (byte)(from.G + (to.G - from.G) * share), (byte)(from.B + (to.B - from.B) * share));
 
+        /// <summary>
+        /// Gets the colour a section is filled with: the item's own, a fifth of the way to white, so that the cut face stands out from the surfaces round it.
+        /// </summary>
+        private static Color CapColor(Color color) => Mix(color, Colors.White, 0.2);
+
         private static Color Darker(Color color, bool selected)
             => selected ? color : Color.FromRgb((byte)(color.R * 0.55), (byte)(color.G * 0.55), (byte)(color.B * 0.55));
 
@@ -737,7 +886,7 @@ namespace GeometryHelper.Viewer.Views
 
             _extras.Clear();
 
-            if (!_attached || !_grid || _model.Primitives == null || _model.Primitives.Bounds.IsEmpty)
+            if (!_gate.IsAttached || !_grid || _model.Primitives == null || _model.Primitives.Bounds.IsEmpty)
             {
                 return;
             }
@@ -775,8 +924,10 @@ namespace GeometryHelper.Viewer.Views
             internal bool HasLines;
             internal bool HasPoints;
             internal bool HasSection;
+            internal bool HasCap;
             internal bool HasLabels;
             internal MeshGeometryModel3D Mesh;
+            internal MeshGeometryModel3D Cap;
             internal LineGeometryModel3D Lines;
             internal LineGeometryModel3D Section;
             internal PointGeometryModel3D Points;

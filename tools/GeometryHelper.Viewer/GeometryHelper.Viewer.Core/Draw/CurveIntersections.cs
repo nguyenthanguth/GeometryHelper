@@ -13,6 +13,8 @@ namespace GeometryHelper.Viewer
     /// when both its ends are within the tolerance of the plane, and the planes of two circles are one when they differ by an angle that,
     /// over the larger radius, moves a point by no more than the tolerance. A circle or an arc is measured from its start, so an arc of a
     /// bulge of 1E-8 on a chord of 60 000, whose centre is 1.5E12 away, crosses a line where it should to a few ulps of the coordinates.
+    /// Two circles or arcs in one plane are crossed from their centres, and where either radius is 100 000 or more the crossing is worked out again from the start of the
+    /// first, so that two arcs of a bulge of 1E-7 and 1E-8 on chords of 60 000 that cross at right angles cross to a billionth.
     /// </remarks>
     public static class CurveIntersections
     {
@@ -334,6 +336,156 @@ namespace GeometryHelper.Viewer
             }
         }
 
+        /// <summary>
+        /// The radius from which the crossing of two circles in one plane is worked out again from their starts: 100 000, where the arithmetic from the
+        /// centres has begun to lose more than a billionth.
+        /// </summary>
+        private const double RefineFromRadius = 1E5;
+
+        /// <summary>
+        /// Works a crossing of two circles in one plane out again by Newton's method along the first, measuring the gap to the second from its start, as an arc is
+        /// measured against a line: a point of the first is its start and a turn from it, the gap to the second is found in the frame of its start, and
+        /// no number in it is as big as a radius. The crossing from the centres, good to a few digits, is where it begins; a crossing that does not come out
+        /// nearer both circles than it began, or that comes out on one with another, is left as it was.
+        /// </summary>
+        private static void Refine(SceneCurve first, SceneCurve second, List<Vec3> candidates, double tolerance)
+        {
+            var refined = new Vec3[candidates.Count];
+            var moved = new bool[candidates.Count];
+
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                moved[i] = TryRefine(first, second, candidates[i], out refined[i]);
+            }
+
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                for (int j = i + 1; j < candidates.Count; j++)
+                {
+                    // Two crossings that were apart and come out as one: the one that was further from the root has fallen into the other's, and stays as it was.
+                    if (moved[i] && moved[j] && (refined[i] - refined[j]).Length <= tolerance && (candidates[i] - candidates[j]).Length > tolerance)
+                    {
+                        double shiftI = (refined[i] - candidates[i]).Length;
+                        double shiftJ = (refined[j] - candidates[j]).Length;
+                        moved[shiftI <= shiftJ ? j : i] = false;
+                    }
+                }
+            }
+
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                if (moved[i])
+                {
+                    candidates[i] = refined[i];
+                }
+            }
+        }
+
+        private static bool TryRefine(SceneCurve first, SceneCurve second, Vec3 start, out Vec3 result)
+        {
+            result = start;
+            double r1 = first.RadiusU;
+            double t = first.ParameterOf(start);
+            Vec3 point = first.PointAt(t);
+            double gap = Math.Abs(second.GapFromCircle(point, out _));
+
+            // How far the crossing from the centres is from the two circles together; what comes out has to be no further.
+            double startGap = Math.Abs(first.GapFromCircle(start, out _)) + Math.Abs(second.GapFromCircle(start, out _));
+
+            for (int step = 0; step < 24; step++)
+            {
+                second.ToStartFrame(point, out double u, out double v, out _);
+                double wu = u + second.RadiusU;
+                double length = Math.Sqrt(wu * wu + v * v);
+
+                if (!(length > 0.0))
+                {
+                    break;
+                }
+
+                // The gap changes along the first as the normal of the second dotted with the first's tangent there, a turn of f from the start of the first.
+                double f = t - first.StartAngle;
+                Vec3 tangent = first.RadialAtStart * (-Math.Sin(f)) + first.TangentAtStart * Math.Cos(f);
+                Vec3 normal = second.RadialAtStart * (wu / length) + second.TangentAtStart * (v / length);
+                double slope = r1 * Vec3.Dot(normal, tangent);
+                double signed = second.GapFromCircle(point, out _);
+
+                if (!(Math.Abs(slope) > 1E-12))
+                {
+                    break;
+                }
+
+                double next = t - signed / slope;
+                Vec3 candidate = first.PointAt(next);
+                double nextGap = Math.Abs(second.GapFromCircle(candidate, out _));
+
+                if (!(nextGap < gap))
+                {
+                    break;
+                }
+
+                bool done = (candidate - point).Length <= 1E-13 * Math.Max(1.0, Math.Abs(point.X) + Math.Abs(point.Y) + Math.Abs(point.Z));
+                t = next;
+                point = candidate;
+                gap = nextGap;
+
+                if (done)
+                {
+                    break;
+                }
+            }
+
+            result = point;
+            return !point.Equals(start) && gap + Math.Abs(first.GapFromCircle(point, out _)) <= startGap;
+        }
+
+        /// <summary>
+        /// Finds the crossings of two circles in one plane where one of them is huge, from the centre of the smaller and not from the centres of both: a unit vector from the
+        /// centre of the larger to it, and the gap of that centre from the larger circle measured from the start of the larger (an arc is exact from its start; its centre, a
+        /// million times further off, is not), give where the crossings lie round the centre of the smaller, at an angle that comes from the factors of the differences of
+        /// squares, so that nothing as big as a radius is subtracted from another. A crossing is then as exact as the small circle is, to a few parts in 1E16 of its radius.
+        /// </summary>
+        private static void HugeCoplanar(SceneCurve first, SceneCurve second, double tolerance, List<Vec3> candidates)
+        {
+            SceneCurve big = first.RadiusU >= second.RadiusU ? first : second;
+            SceneCurve small = ReferenceEquals(big, first) ? second : first;
+            double rb = big.RadiusU;
+            double rs = small.RadiusU;
+            double e = big.GapFromCircle(small.Center, out _);
+
+            // The small circle is clear of the big, or wholly inside it, by more than the tolerance: no crossing. Touching within it is one.
+            if (e > rs + tolerance || e < -rs - tolerance || !(rs > 0.0))
+            {
+                return;
+            }
+
+            Vec3 toSmall = small.Center - big.Center;
+            toSmall -= big.Normal * Vec3.Dot(toSmall, big.Normal);
+            double d = toSmall.Length;
+
+            if (!(d > 0.0))
+            {
+                return;
+            }
+
+            Vec3 n = toSmall * (1.0 / d);
+            Vec3 t = Vec3.Cross(big.Normal, n);
+            double twoD = 2.0 * (rb + e) * rs;
+            double cos = (e * (2.0 * rb + e) + rs * rs) / twoD;
+            double sin = Math.Sqrt(Math.Max(0.0, (rs - e) * (2.0 * rb + e - rs) / twoD * ((e + rs) * (2.0 * rb + e + rs) / twoD)));
+            Vec3 centre = small.Center - n * (rs * Math.Max(-1.0, Math.Min(1.0, cos)));
+
+            if (sin > 0.0)
+            {
+                candidates.Add(centre - t * (rs * sin));
+                candidates.Add(centre + t * (rs * sin));
+            }
+            else
+            {
+                candidates.Add(centre);
+            }
+        }
+
         private static void CircleCircle(SceneCurve first, SceneCurve second, double tolerance, List<Vec3> found)
         {
             double r1 = first.RadiusU;
@@ -354,25 +506,38 @@ namespace GeometryHelper.Viewer
                 Vec3 flat = between - first.Normal * Vec3.Dot(between, first.Normal);
                 double d = flat.Length;
 
-                if (!(d > 0.0) || d > r1 + r2 + tolerance || d < Math.Abs(r1 - r2) - tolerance)
+                if (Math.Max(r1, r2) >= RefineFromRadius)
                 {
-                    return;
-                }
-
-                double along = (d * d + r1 * r1 - r2 * r2) / (2.0 * d);
-                double h = Math.Sqrt(Math.Max(0.0, r1 * r1 - along * along));
-                Vec3 ex = flat * (1.0 / d);
-                Vec3 ey = Vec3.Cross(first.Normal, ex);
-                Vec3 mid = first.Center + ex * along;
-
-                if (h > 0.0)
-                {
-                    candidates.Add(mid - ey * h);
-                    candidates.Add(mid + ey * h);
+                    // Where a circle is huge its centre is a million times the size of the arcs away, and a point worked out from the centres has lost its last digits.
+                    HugeCoplanar(first, second, tolerance, candidates);
+                    Refine(first, second, candidates, tolerance);
                 }
                 else
                 {
-                    candidates.Add(mid);
+                    if (!(d > 0.0) || d > r1 + r2 + tolerance || d < Math.Abs(r1 - r2) - tolerance)
+                    {
+                        return;
+                    }
+
+                    // How far the chord of the two crossings is short of the far side of the first circle, g = r1 - along, from the factors of the difference of two squares
+                    // and not from squares of radii; then h is the half chord, from the factors of r1 squared less along squared, g (2 r1 - g).
+                    double dr = d - r1;
+                    double g = (r2 - dr) * (r2 + dr) / (2.0 * d);
+                    double along = r1 - g;
+                    double h = Math.Sqrt(Math.Max(0.0, g * (2.0 * r1 - g)));
+                    Vec3 ex = flat * (1.0 / d);
+                    Vec3 ey = Vec3.Cross(first.Normal, ex);
+                    Vec3 mid = first.Center + ex * along;
+
+                    if (h > 0.0)
+                    {
+                        candidates.Add(mid - ey * h);
+                        candidates.Add(mid + ey * h);
+                    }
+                    else
+                    {
+                        candidates.Add(mid);
+                    }
                 }
             }
             else

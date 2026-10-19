@@ -37,6 +37,32 @@ namespace GeometryHelper.Viewer.Views
         public int Generation { get; private set; }
 
         /// <summary>
+        /// Gets the geometry made for the graphics card, which the views that have the same render origin and the same cut of the scene share.
+        /// </summary>
+        internal GeometryCache<ItemGeometry[]> Geometry { get; } = new GeometryCache<ItemGeometry[]>();
+
+        /// <summary>
+        /// Gets how long the views took to make their elements when the scene was last shown, on the thread that showed it.
+        /// </summary>
+        public TimeSpan LastShowTime { get; private set; }
+
+        /// <summary>
+        /// Gets how long each view has taken to make its elements for the scene since it was shown, in milliseconds, in the order they were made: the first makes the geometry
+        /// and the others share it, so the first is the long one.
+        /// </summary>
+        public List<double> ViewBuildMilliseconds { get; } = new List<double>();
+
+        /// <summary>
+        /// Gets how much of that each view spent making the geometry for the graphics card, which only the first of the views that share it does.
+        /// </summary>
+        public List<double> GeometryMilliseconds { get; } = new List<double>();
+
+        /// <summary>
+        /// Gets how many cuts of the scene have been put in place with <see cref="SetClip"/>, which a run of a plane dragged across the scene counts the frames of.
+        /// </summary>
+        public int ClipsShown { get; private set; }
+
+        /// <summary>
         /// Gets the indexes of the selected items.
         /// </summary>
         public IReadOnlyCollection<int> Selected => _selected;
@@ -88,7 +114,11 @@ namespace GeometryHelper.Viewer.Views
                 _hiddenLayers.Add(layer.Name);
             }
 
+            ViewBuildMilliseconds.Clear();
+            GeometryMilliseconds.Clear();
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             SceneChanged?.Invoke(this, EventArgs.Empty);
+            LastShowTime = clock.Elapsed;
         }
 
         /// <summary>
@@ -114,6 +144,7 @@ namespace GeometryHelper.Viewer.Views
         public void SetClip(ClipResult clip)
         {
             Clip = clip;
+            ClipsShown++;
             ClipChanged?.Invoke(this, EventArgs.Empty);
         }
 

@@ -207,6 +207,24 @@ namespace GeometryHelper.Viewer
             => _camera.PointOnTargetPlane(2.0 * x / Width - 1.0, 1.0 - 2.0 * y / Height, _aspect);
 
         /// <summary>
+        /// Cuts a segment to the part that shows: between the near and far planes of a perspective view, and on the kept side of every clip plane.
+        /// </summary>
+        /// <param name="a">One end.</param>
+        /// <param name="b">The other end.</param>
+        /// <param name="from">Where the part that shows starts.</param>
+        /// <param name="to">Where it ends.</param>
+        /// <returns>false when none of the segment shows.</returns>
+        public bool ClipSegmentToView(Vec3 a, Vec3 b, out Vec3 from, out Vec3 to)
+        {
+            if (!ClipSegment(a, b, out from, out to))
+            {
+                return false;
+            }
+
+            return Clip == null || Clip.ClipSegment(from, to, out from, out to);
+        }
+
+        /// <summary>
         /// Cuts a segment to the part between the near and far planes, which is all of it in an orthographic view.
         /// </summary>
         /// <param name="a">One end.</param>

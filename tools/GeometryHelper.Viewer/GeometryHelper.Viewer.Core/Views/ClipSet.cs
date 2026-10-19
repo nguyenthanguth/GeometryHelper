@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace GeometryHelper.Viewer
 {
@@ -329,7 +330,7 @@ namespace GeometryHelper.Viewer
         /// slack, is kept whole.
         /// </summary>
         /// <param name="item">The item.</param>
-        /// <returns>The item itself where no plane is on; otherwise a copy holding what is kept.</returns>
+        /// <returns>The item itself where no plane is on, or where the box round it lies wholly on the kept side of every plane that is; otherwise a copy holding what is kept.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the item is null.</exception>
         public ItemPrimitives Apply(ItemPrimitives item) => Apply(item, CancellationToken.None);
 
@@ -358,14 +359,65 @@ namespace GeometryHelper.Viewer
                 return ForScene(item.Bounds).Apply(item, cancel);
             }
 
-            var kept = new ItemPrimitives { ItemIndex = item.ItemIndex, Bounds = item.Bounds, Warning = item.Warning };
+            var kept = new ItemPrimitives { ItemIndex = item.ItemIndex, Bounds = item.Bounds, Warning = item.Warning, BoundsCoverAll = item.BoundsCoverAll, IsClosedBody = item.IsClosedBody };
             kept.LibraryLog.AddRange(item.LibraryLog);
+
+            // An item whose box lies wholly on the kept side of every plane is kept whole, and one whose box lies wholly beyond a plane is cut away whole, whatever it is drawn with:
+            // what the cutting below would find, found from the eight corners of the box, so that a plane moved through a scene of many items looks at the few it meets.
+            if (item.BoundsCoverAll && !item.Bounds.IsEmpty)
+            {
+                int side = SideOf(item.Bounds);
+
+                if (side > 0)
+                {
+                    return item;
+                }
+
+                if (side < 0)
+                {
+                    return kept;
+                }
+            }
+
             kept.Points.AddRange(item.Points.Where(p => Contains(p)));
             kept.Labels.AddRange(item.Labels.Where(l => Contains(l.At)));
 
             foreach (DrawPolyline line in item.Polylines)
             {
                 ClipPolyline(line, kept.Polylines);
+            }
+
+            if (item.Triangles.Count >= ParallelFrom)
+            {
+                // A big item is cut in pieces on every core and the pieces are joined in order, so that the result is the same as one piece after another gives, to the bit.
+                int chunks = Math.Max(2, Math.Min(Environment.ProcessorCount, 16));
+                var parts = new List<DrawTriangle>[chunks];
+                int each = (item.Triangles.Count + chunks - 1) / chunks;
+
+                Parallel.For(0, chunks, new ParallelOptions { CancellationToken = cancel }, chunk =>
+                {
+                    var part = new List<DrawTriangle>(each);
+                    int to = Math.Min(item.Triangles.Count, (chunk + 1) * each);
+
+                    for (int i = chunk * each; i < to; i++)
+                    {
+                        if ((i & 8191) == 0)
+                        {
+                            cancel.ThrowIfCancellationRequested();
+                        }
+
+                        ClipTriangle(item.Triangles[i], part);
+                    }
+
+                    parts[chunk] = part;
+                });
+
+                foreach (List<DrawTriangle> part in parts)
+                {
+                    kept.Triangles.AddRange(part);
+                }
+
+                return kept;
             }
 
             int count = 0;
@@ -381,6 +433,49 @@ namespace GeometryHelper.Viewer
             }
 
             return kept;
+        }
+
+        /// <summary>
+        /// The number of triangles from which an item is cut on every core: fifty thousand, which one core cuts in about 20 ms.
+        /// </summary>
+        private const int ParallelFrom = 50000;
+
+        /// <summary>
+        /// Tells where a box lies against the planes that are on, with a margin of rounding either way: 1 where it is wholly on the kept side of every plane, -1 where it is
+        /// wholly beyond one of them, and 0 where that is not so by a margin, and the shapes in it have to be looked at one by one.
+        /// </summary>
+        internal int SideOf(Bounds3 box)
+        {
+            double largest = Math.Max(
+                Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Min.Y)), Math.Abs(box.Min.Z)),
+                Math.Max(Math.Max(Math.Abs(box.Max.X), Math.Abs(box.Max.Y)), Math.Abs(box.Max.Z)));
+            bool kept = true;
+
+            foreach (ClipPlane plane in _active)
+            {
+                double margin = 1E-12 * (1.0 + largest + Math.Max(Math.Max(Math.Abs(plane.Point.X), Math.Abs(plane.Point.Y)), Math.Abs(plane.Point.Z)));
+                double lowest = double.PositiveInfinity;
+                double highest = double.NegativeInfinity;
+
+                for (int i = 0; i < 8; i++)
+                {
+                    double d = plane.SignedDistance(new Vec3((i & 1) == 0 ? box.Min.X : box.Max.X, (i & 2) == 0 ? box.Min.Y : box.Max.Y, (i & 4) == 0 ? box.Min.Z : box.Max.Z));
+                    lowest = Math.Min(lowest, d);
+                    highest = Math.Max(highest, d);
+                }
+
+                if (highest < -_slack - margin)
+                {
+                    return -1;
+                }
+
+                if (!(lowest >= -_slack + margin))
+                {
+                    kept = false;
+                }
+            }
+
+            return kept ? 1 : 0;
         }
 
         /// <summary>
@@ -402,7 +497,7 @@ namespace GeometryHelper.Viewer
                 return primitives;
             }
 
-            var cut = new Primitives { Bounds = primitives.Bounds };
+            var cut = new Primitives { Bounds = primitives.Bounds, Tolerance = primitives.Tolerance };
             cut.Warnings.AddRange(primitives.Warnings);
 
             foreach (ItemPrimitives item in primitives.Items)
@@ -441,6 +536,36 @@ namespace GeometryHelper.Viewer
                 }
 
                 return;
+            }
+
+            // A line with every point on the kept side is kept whole, and one with every point beyond the same plane is cut away whole: what the pieces below come to,
+            // found without making a list for each piece, which matters to a body of two hundred thousand faces that has a loop of four corners for each.
+            bool whole = true;
+
+            for (int i = 0; i < n && whole; i++)
+            {
+                whole = Contains(points[i]);
+            }
+
+            if (whole)
+            {
+                into.Add(line);
+                return;
+            }
+
+            foreach (ClipPlane plane in _active)
+            {
+                bool beyond = true;
+
+                for (int i = 0; i < n && beyond; i++)
+                {
+                    beyond = plane.SignedDistance(points[i]) < -_slack;
+                }
+
+                if (beyond)
+                {
+                    return;
+                }
             }
 
             int segments = line.Closed ? n : n - 1;

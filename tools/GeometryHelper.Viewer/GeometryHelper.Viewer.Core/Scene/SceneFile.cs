@@ -45,18 +45,7 @@ namespace GeometryHelper.Viewer
             if (scene.Views.Count > 0)
             {
                 text.Append("\"views\":[\n");
-                text.Append(string.Join(",\n", scene.Views.Select(view => Compact(w =>
-                {
-                    w.WriteStartObject();
-                    w.WriteString("name", view.Name);
-                    WritePoint(w, "eye", view.Eye);
-                    WritePoint(w, "target", view.Target);
-                    WritePoint(w, "up", view.Up);
-                    w.WriteBoolean("ortho", view.Orthographic);
-                    w.WritePropertyName("width");
-                    WriteDouble(w, view.Width);
-                    w.WriteEndObject();
-                }))));
+                text.Append(string.Join(",\n", scene.Views.Select(ViewLine)));
                 text.Append("\n],\n");
             }
 
@@ -193,28 +182,7 @@ namespace GeometryHelper.Viewer
 
             if (root.TryGetProperty("views", out JsonElement views) && views.ValueKind == JsonValueKind.Array)
             {
-                int number = 0;
-
-                foreach (JsonElement element in views.EnumerateArray())
-                {
-                    try
-                    {
-                        scene.Views.Add(new SavedView(
-                            String(element, "name") ?? string.Empty,
-                            DataJson.Point(element, "eye", 3),
-                            DataJson.Point(element, "target", 3),
-                            DataJson.Point(element, "up", 3),
-                            element.TryGetProperty("ortho", out JsonElement ortho) && ortho.ValueKind == JsonValueKind.True,
-                            element.TryGetProperty("width", out JsonElement width) ? DataJson.Number(width) : 0.0));
-                    }
-                    catch (Exception e) when (e is ArgumentException || e is FormatException || e is InvalidOperationException || e is KeyNotFoundException)
-                    {
-                        // One view that is not one does not stop a scene from opening: it is left out, and the scene says so.
-                        scene.LoadWarnings.Add("view " + number + " of the scene is not a view and was left out: " + System.Text.RegularExpressions.Regex.Replace(e.Message, @" \(Parameter '[^']*'\)$", string.Empty));
-                    }
-
-                    number++;
-                }
+                ReadViews(views, scene.Views, scene.LoadWarnings, "the scene");
             }
 
             if (root.TryGetProperty("items", out JsonElement items) && items.ValueKind == JsonValueKind.Array)
@@ -259,6 +227,51 @@ namespace GeometryHelper.Viewer
             }
 
             return scene;
+        }
+
+        /// <summary>
+        /// Writes one saved view as a line of JSON: the same line in a scene and in the file of views kept beside a script.
+        /// </summary>
+        internal static string ViewLine(SavedView view) => Compact(w =>
+        {
+            w.WriteStartObject();
+            w.WriteString("name", view.Name);
+            WritePoint(w, "eye", view.Eye);
+            WritePoint(w, "target", view.Target);
+            WritePoint(w, "up", view.Up);
+            w.WriteBoolean("ortho", view.Orthographic);
+            w.WritePropertyName("width");
+            WriteDouble(w, view.Width);
+            w.WriteEndObject();
+        });
+
+        /// <summary>
+        /// Reads the saved views of a list of JSON objects. One that is not a view does not stop the rest from being read: it is left out, and the warning says which.
+        /// </summary>
+        internal static void ReadViews(JsonElement views, List<SavedView> into, List<string> warnings, string owner)
+        {
+            int number = 0;
+
+            foreach (JsonElement element in views.EnumerateArray())
+            {
+                try
+                {
+                    into.Add(new SavedView(
+                        String(element, "name") ?? string.Empty,
+                        DataJson.Point(element, "eye", 3),
+                        DataJson.Point(element, "target", 3),
+                        DataJson.Point(element, "up", 3),
+                        element.TryGetProperty("ortho", out JsonElement ortho) && ortho.ValueKind == JsonValueKind.True,
+                        element.TryGetProperty("width", out JsonElement width) ? DataJson.Number(width) : 0.0));
+                }
+                catch (Exception e) when (e is ArgumentException || e is FormatException || e is InvalidOperationException || e is KeyNotFoundException)
+                {
+                    // One view that is not one does not stop a scene from opening: it is left out, and the scene says so.
+                    warnings.Add("view " + number + " of " + owner + " is not a view and was left out: " + System.Text.RegularExpressions.Regex.Replace(e.Message, @" \(Parameter '[^']*'\)$", string.Empty));
+                }
+
+                number++;
+            }
         }
 
         private static string String(JsonElement element, string name)

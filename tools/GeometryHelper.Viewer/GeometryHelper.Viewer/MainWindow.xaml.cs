@@ -105,6 +105,8 @@ namespace GeometryHelper.Viewer
             GridMenu.IsChecked = _settings.Grid;
             WatchMenu.IsChecked = _settings.RerunOnSave;
             CompareWatchMenu.IsChecked = _settings.CompareWatch;
+            ClipCapsMenu.IsChecked = _settings.ClipCaps;
+            _clipCaps = _settings.ClipCaps;
 
             // The layout of the views comes back as it was left; a settings file from before there were several views has only the render mode, which was the view's.
             if (_settings.Layout != null)
@@ -202,6 +204,7 @@ namespace GeometryHelper.Viewer
                 _settings.Grid = GridMenu.IsChecked == true;
                 _settings.RerunOnSave = WatchMenu.IsChecked == true;
                 _settings.CompareWatch = CompareWatchMenu.IsChecked == true;
+                _settings.ClipCaps = ClipCapsMenu.IsChecked == true;
                 _settings.Save();
             }
 
@@ -323,6 +326,8 @@ namespace GeometryHelper.Viewer
                 {
                     Log("warning: the kind '" + kind + "' is kept but not drawn.");
                 }
+
+                MergeKeptViews(result.WasScript ? path : null, result.Scene);
 
                 // The clip planes in force cut the new scene too: a script run again is looked at through the same section.
                 ClipSet cutBy = _clips;

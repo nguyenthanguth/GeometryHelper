@@ -45,7 +45,8 @@ namespace GeometryHelper.Viewer
         private DiagnosticReport _diagReport;
         private bool _syncingDiag;
         private DispatcherTimer _lensTimer;
-        private double _lensScale = -1.0;
+        // The scale of the gap lens in each view, which each view works out from its own zoom; -1 for a view with no lens.
+        private readonly double[] _lensScales = { -1.0, -1.0, -1.0, -1.0 };
 
         /// <summary>
         /// A row of the findings list.
@@ -284,7 +285,7 @@ namespace GeometryHelper.Viewer
             CancelDiagnostics();
             _diagReport = null;
             _findings.Clear();
-            _lensScale = -1.0;
+            _lensScales[0] = _lensScales[1] = _lensScales[2] = _lensScales[3] = -1.0;
             _overlay.SetDiagnostics(null);
             _overlay.SetLens(null);
             _overlay.SetMarker(null);
@@ -370,28 +371,34 @@ namespace GeometryHelper.Viewer
         {
             GapReading gap = _diagReport?.Gap;
 
-            if (gap == null || !HasScene)
+            // Each view that is shown has a lens of its own: how many times the gap is drawn larger depends on how far the view is zoomed in on it.
+            foreach (GeometryHelper.Viewer.Views.ViewPane pane in _panes.Where(p => p != null))
             {
-                if (_lensScale >= 0.0)
+                int slot = pane.Number;
+
+                if (gap == null || !HasScene || !_layout.Shown.Contains(slot))
                 {
-                    _lensScale = -1.0;
-                    _overlay.SetLens(null);
+                    if (_lensScales[slot] >= 0.0)
+                    {
+                        _lensScales[slot] = -1.0;
+                        pane.Overlay.SetLens(null);
+                    }
+
+                    continue;
                 }
 
-                return;
+                Vec3 middle = (gap.From + gap.To) * 0.5;
+                double pixel = MapOf(pane).PixelSizeAt(middle);
+                double scale = GapMagnifier.ChooseScale(gap.Distance, pixel);
+
+                if (!force && scale == _lensScales[slot])
+                {
+                    continue;
+                }
+
+                _lensScales[slot] = scale;
+                pane.Overlay.SetLens(GapMagnifier.Build(_geometry, gap, pixel).Overlay);
             }
-
-            Vec3 middle = (gap.From + gap.To) * 0.5;
-            double pixel = MakeMap().PixelSizeAt(middle);
-            double scale = GapMagnifier.ChooseScale(gap.Distance, pixel);
-
-            if (!force && scale == _lensScale)
-            {
-                return;
-            }
-
-            _lensScale = scale;
-            _overlay.SetLens(GapMagnifier.Build(_geometry, gap, pixel).Overlay);
         }
 
         private void ScheduleLens()

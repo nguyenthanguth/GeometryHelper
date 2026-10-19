@@ -225,6 +225,13 @@ namespace GeometryHelper.Viewer
                         double depth = map.DepthOf(onCurve);
                         Offer(curve.ItemIndex, PickKind.Curve, onCurve, depth, depth - LineBiasPixels * map.PixelSizeAt(onCurve));
                     }
+                    else if (curve.VisibleGapPixels(map, x, y, out Vec3 shown) <= CurveRadius)
+                    {
+                        // The point of the curve nearest the ray is behind the near plane, beyond the far plane or cut away, or the curve comes within a few pixels
+                        // of the cursor only further along: it is picked by the part that shows.
+                        double depth = map.DepthOf(shown);
+                        Offer(curve.ItemIndex, PickKind.Curve, shown, depth, depth - LineBiasPixels * map.PixelSizeAt(shown));
+                    }
                 }
             }
 
@@ -301,13 +308,23 @@ namespace GeometryHelper.Viewer
                 }
 
                 double gap = curve.DistanceToLine(origin, direction, forward, out Vec3 at);
+                double pixels = double.IsInfinity(gap) || !map.IsInDepth(at) ? double.PositiveInfinity : gap / map.PixelSizeAt(at);
 
-                if (double.IsInfinity(gap) || !map.IsInDepth(at))
+                if (!(pixels <= ConicRadius))
                 {
-                    continue;
-                }
+                    // Nearest the ray in space is out of the picture, or too far: the part of the curve that shows is looked at, if the ball round the curve
+                    // comes near the ray at all.
+                    curve.BoundingSphere(out Vec3 center, out double radius);
+                    Vec3 w = center - origin;
+                    double along = Vec3.Dot(w, direction);
 
-                double pixels = gap / map.PixelSizeAt(at);
+                    if ((forward && along + radius < 0.0) || (w - direction * along).Length > radius + ConicRadius * map.PixelSizeAt(center + map.Forward * radius))
+                    {
+                        continue;
+                    }
+
+                    pixels = curve.VisibleGapPixels(map, x, y, out at);
+                }
 
                 if (pixels <= ConicRadius && (pixels < bestPixels || (pixels == bestPixels && curve.ItemIndex < best.ItemIndex)))
                 {

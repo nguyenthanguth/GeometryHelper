@@ -120,6 +120,9 @@ namespace GeometryHelper.Viewer
             }
 
             UpdateAllCameras();
+
+            // A view that is shown now has the gap lens at its own zoom; one that is not has none.
+            RefreshLens(true);
             LinkMenu.IsChecked = Active.Slot.Linked;
             UpdateModeText();
         }
@@ -198,7 +201,8 @@ namespace GeometryHelper.Viewer
         /// </summary>
         private Task<ClipResult> ClipAsync(Primitives primitives, ClipSet clips)
         {
-            return clips.IsActive ? Task.Run(() => ClipResult.Build(primitives, clips)) : Task.FromResult(ClipResult.Build(primitives, clips));
+            bool caps = _clipCaps;
+            return clips.IsActive ? Task.Run(() => ClipResult.Build(primitives, clips, caps)) : Task.FromResult(ClipResult.Build(primitives, clips, caps));
         }
 
         /// <summary>
@@ -278,6 +282,7 @@ namespace GeometryHelper.Viewer
             }
 
             RebuildSavedViewsMenu();
+            KeepViewFile(view);
             Log("view saved: " + name + " (eye " + view.Eye + ", target " + view.Target + (view.Orthographic ? ", ortho, " + view.Width.ToString("G6", CultureInfo.InvariantCulture) + " wide" : ", perspective") + "). Save the scene to keep it in the file.");
             SetMessage("view saved: " + name);
         }
@@ -656,7 +661,7 @@ namespace GeometryHelper.Viewer
                     {
                         ViewPane pane = _panes[slot];
                         Log("view " + slot + (slot == _layout.Active ? " (active)" : string.Empty) + ": " + pane.Width.ToString("0.#", CultureInfo.InvariantCulture) + " x " + pane.Height.ToString("0.#", CultureInfo.InvariantCulture)
-                            + ", " + pane.Mode + (pane.Camera.Orthographic ? ", ortho" : ", perspective") + (pane.Slot.Linked ? ", linked" : string.Empty)
+                            + ", " + pane.Mode + (pane.Camera.Orthographic ? ", ortho " + (2.0 * pane.Camera.Distance * pane.Camera.HalfHeightRatio * pane.Aspect).ToString("G6", CultureInfo.InvariantCulture) + " wide" : ", perspective") + (pane.Slot.Linked ? ", linked" : string.Empty)
                             + ", target " + pane.Camera.Target + ", distance " + pane.Camera.Distance.ToString("G6", CultureInfo.InvariantCulture) + ", render origin " + pane.View.Origin);
                     }
 
@@ -761,6 +766,50 @@ namespace GeometryHelper.Viewer
                 case "clipoff":
                 case "clipon":
                     ClipCommand(words);
+                    return true;
+
+                case "clipsweep":
+                {
+                    // clipsweep n from to steps interval: the plane n is dragged from one offset to another in so many steps, a step every interval milliseconds as a mouse moves, and
+                    // the output says how many cuts were shown while it went and how long the scene took to settle after it was let go.
+                    if (words.Length < 6 || !int.TryParse(words[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) || number < 1 || number > _clips.Count)
+                    {
+                        Log("--do: clipsweep n from to steps interval needs the number of a clip plane");
+                        return true;
+                    }
+
+                    double from = double.Parse(words[2], CultureInfo.InvariantCulture);
+                    double to = double.Parse(words[3], CultureInfo.InvariantCulture);
+                    int steps = int.Parse(words[4], CultureInfo.InvariantCulture);
+                    int interval = int.Parse(words[5], CultureInfo.InvariantCulture);
+                    int index = number - 1;
+                    int shownBefore = _model.ClipsShown;
+                    var clock = System.Diagnostics.Stopwatch.StartNew();
+                    _clipDragIndex = index;
+
+                    for (int step = 0; step <= steps; step++)
+                    {
+                        SetClips(_clips.Replace(index, _clips.Planes[index].WithOffset(from + (to - from) * step / steps)), index);
+                        await Task.Delay(interval);
+                    }
+
+                    long dragged = clock.ElapsedMilliseconds;
+                    int shownWhile = _model.ClipsShown - shownBefore;
+                    EndClipDrag();
+                    await SettleAsync();
+                    Log("clipsweep: " + (steps + 1) + " moves of the plane " + interval + " ms apart took " + dragged + " ms and " + shownWhile + " cut(s) were shown while it moved; the full cut was in place " + (clock.ElapsedMilliseconds - dragged) + " ms after it was let go");
+                    return true;
+                }
+
+                case "clipcaps":
+                    ClipCapsMenu.IsChecked = words.Length < 2 || !words[1].Equals("off", StringComparison.OrdinalIgnoreCase);
+                    OnClipCapsToggled(null, null);
+                    return true;
+
+                case "showtime":
+                    Log("showtime: " + _model.ViewBuildMilliseconds.Count + " view(s) made their elements for the scene on the UI thread in "
+                        + string.Join(" + ", _model.ViewBuildMilliseconds.Select(m => m.ToString("F1", CultureInfo.InvariantCulture))) + " ms = "
+                        + _model.ViewBuildMilliseconds.Sum().ToString("F1", CultureInfo.InvariantCulture) + " ms, of which making the geometry " + string.Join(" + ", _model.GeometryMilliseconds.Select(m => m.ToString("F1", CultureInfo.InvariantCulture))) + " ms; " + _model.Geometry.Builds + " set(s) of geometry made");
                     return true;
 
                 case "saveview":

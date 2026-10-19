@@ -26,7 +26,7 @@ namespace GeometryHelper.Viewer
                 throw new ArgumentNullException(nameof(scene));
             }
 
-            var result = new Primitives();
+            var result = new Primitives { Tolerance = scene.Tolerance };
 
             using (Tolerance.Use(scene.Tolerance))
             {
@@ -413,7 +413,7 @@ namespace GeometryHelper.Viewer
 
                     case "GeoFace3":
                         FaceLoops(p, d, 3);
-                        Surface(p, scene, () => ((GeoFace3)item.ToGeometry()).TriangulateSurface().Select(T).ToList());
+                        Surface(p, scene, () => FaceCutter.Cut((GeoFace3)item.ToGeometry()).Select(T).ToList());
                         break;
 
                     case "GeoSolid3":
@@ -427,14 +427,17 @@ namespace GeometryHelper.Viewer
 
                     case "GeoMesh3":
                         Mesh(p, d, 3);
+                        p.IsClosedBody = EveryEdgeUsedTwice(d);
                         break;
 
                     case "GeoAabb3":
                         Aabb(p, d);
+                        p.IsClosedBody = p.Triangles.Count > 0;
                         break;
 
                     case "GeoObb3":
                         Obb(p, d);
+                        p.IsClosedBody = p.Triangles.Count > 0;
                         break;
 
                     case "GeoPlane3":
@@ -474,6 +477,7 @@ namespace GeometryHelper.Viewer
             }
 
             p.Bounds = fixedBounds ?? Measure(p, rule.Extremes);
+            p.BoundsCoverAll = fixedBounds == null;
             return p;
         }
 
@@ -607,6 +611,7 @@ namespace GeometryHelper.Viewer
         private static void SolidSurface(ItemPrimitives p, Scene scene, SceneItem item)
         {
             string trouble;
+            bool closed = false;
 
             try
             {
@@ -614,7 +619,8 @@ namespace GeometryHelper.Viewer
                     () =>
                     {
                         var solid = (GeoSolid3)item.ToGeometry();
-                        List<DrawTriangle> all = solid.TriangulateSurface().Select(T).ToList();
+                        List<DrawTriangle> all = (solid.Openings.Count == 0 ? solid.Faces.SelectMany(FaceCutter.Cut).ToArray() : solid.TriangulateSurface()).Select(T).ToList();
+                        closed = solid.IsClosed(scene.Tolerance);
 
                         // A body with openings that gives nothing is not drawn face by face, which would show the material the
                         // openings took: it is warned of, and the library's own log of why goes to the output with it.
@@ -630,6 +636,7 @@ namespace GeometryHelper.Viewer
                 if (cut.Item1.Count > 0 || cut.Item2)
                 {
                     p.Triangles.AddRange(cut.Item1);
+                    p.IsClosedBody = closed;
 
                     if (cut.Item2)
                     {
@@ -656,7 +663,7 @@ namespace GeometryHelper.Viewer
 
                 try
                 {
-                    p.Triangles.AddRange(scene.Run(() => GeometryDecoder.DecodeFace3(face).TriangulateSurface().Select(T).ToList(), out string faceNote));
+                    p.Triangles.AddRange(scene.Run(() => FaceCutter.Cut(GeometryDecoder.DecodeFace3(face)).Select(T).ToList(), out string faceNote));
                     rebuilt |= faceNote != null;
                 }
                 catch (Exception e) when (!(e is OutOfMemoryException))
@@ -667,6 +674,34 @@ namespace GeometryHelper.Viewer
 
             Warn(p, trouble + "; its " + faces + " faces are drawn one by one with the openings ignored" + (refused > 0 ? ", " + refused + " of them could not be drawn" : string.Empty) + (rebuilt ? "; some were rebuilt and measured at 1E-12" : string.Empty));
         }
+        /// <summary>
+        /// Gets whether every edge of a mesh is used by exactly two of its faces, going by the indices of its corners, which is what makes a mesh a closed body.
+        /// </summary>
+        private static bool EveryEdgeUsedTwice(JsonElement d)
+        {
+            int points = DataJson.Points(d, "points", 3).Length;
+            var uses = new Dictionary<Tuple<int, int>, int>();
+
+            foreach (int[] face in GeometryDecoder.Faces(d))
+            {
+                if (face.Length < 3 || face.Any(i => i < 0 || i >= points))
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < face.Length; i++)
+                {
+                    int a = face[i];
+                    int b = face[(i + 1) % face.Length];
+                    var key = a < b ? Tuple.Create(a, b) : Tuple.Create(b, a);
+                    uses.TryGetValue(key, out int count);
+                    uses[key] = count + 1;
+                }
+            }
+
+            return uses.Count > 0 && uses.Values.All(c => c == 2);
+        }
+
         private static void Mesh(ItemPrimitives p, JsonElement d, int dimension)
         {
             Vec3[] points = DataJson.Points(d, "points", dimension);

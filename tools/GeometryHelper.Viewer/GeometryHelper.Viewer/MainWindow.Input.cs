@@ -538,10 +538,8 @@ namespace GeometryHelper.Viewer
             // Labels keep a readable size at any zoom, and the snap under a mouse that is still follows the scene moving beneath it.
             pane.View.UpdateLabels(MapOf(pane));
 
-            if (ReferenceEquals(pane, Active))
-            {
-                ScheduleLens();
-            }
+            // The gap lens of every view is drawn for the zoom of that view, so a move of any of them asks for its lens to be looked at again.
+            ScheduleLens();
 
             if (_lastMouse.HasValue && _dragButton == null && ReferenceEquals(pane, _lastMousePane))
             {

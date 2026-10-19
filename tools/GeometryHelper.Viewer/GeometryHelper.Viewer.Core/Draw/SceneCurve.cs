@@ -317,6 +317,49 @@ namespace GeometryHelper.Viewer
             return ConicToLine(origin, direction, forwardOnly, out onCurve);
         }
 
+        /// <summary>
+        /// Finds the point of the part of the curve that shows nearest to a place in the picture, as a number of pixels: a segment is cut to what lies between the
+        /// near and far planes and inside the clip planes, and its image, a segment of the picture, is measured from the cursor; an arc, a circle or an ellipse is
+        /// searched only where it shows. This is what a long curve is picked by when the point of it nearest the cursor ray in space is behind the near plane or
+        /// beyond the far plane, or is far from the cursor in pixels though the curve comes within a few of it further along.
+        /// </summary>
+        /// <param name="map">The view.</param>
+        /// <param name="x">The cursor across the picture, in pixels.</param>
+        /// <param name="y">The cursor down the picture, in pixels.</param>
+        /// <param name="onCurve">The nearest point of what shows.</param>
+        /// <returns>How far that point is from the cursor on the screen, in pixels; infinity when no part of the curve shows.</returns>
+        internal double VisibleGapPixels(ScreenMap map, double x, double y, out Vec3 onCurve)
+        {
+            if (Shape == CurveShape.Conic)
+            {
+                map.GetRay(x, y, out Vec3 origin, out Vec3 direction);
+                double gap = ConicToLine(origin, direction, !map.Orthographic, out onCurve, map.IsInDepth);
+                return double.IsInfinity(gap) || double.IsNaN(gap) ? double.PositiveInfinity : gap / map.PixelSizeAt(onCurve);
+            }
+
+            onCurve = _start;
+
+            if (!map.ClipSegmentToView(_start, _end, out Vec3 from, out Vec3 to)
+                || !map.TryProject(from, out double ax, out double ay, out double depthFrom)
+                || !map.TryProject(to, out double bx, out double by, out double depthTo))
+            {
+                return double.PositiveInfinity;
+            }
+
+            double ex = bx - ax;
+            double ey = by - ay;
+            double ee = ex * ex + ey * ey;
+            double u = ee > 0.0 ? Math.Max(0.0, Math.Min(1.0, ((x - ax) * ex + (y - ay) * ey) / ee)) : 0.0;
+            double dx = x - (ax + ex * u);
+            double dy = y - (ay + ey * u);
+
+            // The picture is a perspective image of the segment: a step along its image is not the same step along the segment, and the share of the segment is found
+            // from the depths of its ends.
+            double s = map.Orthographic || !(depthFrom * (1.0 - u) + depthTo * u > 0.0) ? u : u * depthFrom / (u * depthFrom + (1.0 - u) * depthTo);
+            onCurve = u == 0.0 ? from : u == 1.0 ? to : from + (to - from) * s;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+
         private static double SegmentToLine(Vec3 a, Vec3 b, Vec3 origin, Vec3 direction, bool forwardOnly, out Vec3 closest)
         {
             if (forwardOnly)
@@ -351,14 +394,15 @@ namespace GeometryHelper.Viewer
             return (wPerp + ePerp * s).Length;
         }
 
-        private double ConicToLine(Vec3 origin, Vec3 direction, bool forwardOnly, out Vec3 onCurve)
+        private double ConicToLine(Vec3 origin, Vec3 direction, bool forwardOnly, out Vec3 onCurve, Func<Vec3, bool> shown = null)
         {
             double Lateral2(double t)
             {
-                Vec3 w = PointAt(t) - origin;
+                Vec3 point = PointAt(t);
+                Vec3 w = point - origin;
                 double along = Vec3.Dot(w, direction);
 
-                if (forwardOnly && along < 0.0)
+                if ((forwardOnly && along < 0.0) || (shown != null && !shown(point)))
                 {
                     return double.PositiveInfinity;
                 }

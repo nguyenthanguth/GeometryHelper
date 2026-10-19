@@ -232,15 +232,17 @@ namespace GeometryHelper.Viewer
                 if ((enabled & (SnapKinds.Nearest | SnapKinds.Intersection)) != 0)
                 {
                     double gap = curve.DistanceToLine(origin, direction, forward, out Vec3 onCurve);
+                    double pixels = double.IsInfinity(gap) || !map.IsInDepth(onCurve) ? double.PositiveInfinity : gap / map.PixelSizeAt(onCurve);
 
-                    if (!double.IsInfinity(gap) && map.IsInDepth(onCurve))
+                    if (!(pixels <= radiusPixels))
                     {
-                        double pixels = gap / map.PixelSizeAt(onCurve);
+                        // The point nearest the ray in space is out of the picture or too far from the cursor on the screen: the part of the curve that shows is looked at.
+                        pixels = curve.VisibleGapPixels(map, x, y, out onCurve);
+                    }
 
-                        if (pixels <= radiusPixels)
-                        {
-                            near.Add(new Near(curve, i, pixels, onCurve));
-                        }
+                    if (pixels <= radiusPixels)
+                    {
+                        near.Add(new Near(curve, i, pixels, onCurve));
                     }
                 }
             }

@@ -147,6 +147,19 @@ namespace GeometryHelper.Viewer
         public Bounds3 Bounds { get; set; }
 
         /// <summary>
+        /// Gets or sets whether <see cref="Bounds"/> holds everything the item draws, which it does for every item but a ray and a plane: only then can a clip plane that
+        /// the box lies wholly on one side of be taken to leave the item whole or take it whole, without looking at what it is drawn with.
+        /// </summary>
+        internal bool BoundsCoverAll { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the item is a closed body, the only kind a clip plane fills the section of: a solid the library finds closed at the tolerance of the scene,
+        /// a box, a mesh whose every edge is used by two faces. A face, a polygon, an open mesh and a solid with a hole in its skin are not, and a plane cuts them to a line.
+        /// A solid of the four walls of a block 100 by 60 by 40 is not closed, and cut at half its height has a section line and no cap; the block with its top and bottom is, and has a cap of 6000.
+        /// </summary>
+        public bool IsClosedBody { get; set; }
+
+        /// <summary>
         /// Gets what the library logged, at Warn and above, while the item was built: the reason it gave nothing where it cut a body
         /// and could not.
         /// </summary>
@@ -173,6 +186,11 @@ namespace GeometryHelper.Viewer
         /// Gets the box round the scene.
         /// </summary>
         public Bounds3 Bounds { get; set; }
+
+        /// <summary>
+        /// Gets or sets the library tolerance the scene was drawn at, which the caps of a section are cut at too; the default tolerance for primitives that were not built from a scene.
+        /// </summary>
+        public Tolerance Tolerance { get; set; } = Tolerance.Default;
 
         /// <summary>
         /// Gets what went wrong, one line to an item that could not be drawn in full, naming the item.

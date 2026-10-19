@@ -55,6 +55,8 @@ namespace GeometryHelper.Viewer
         private bool _syncingClip;
         private bool _clipRunning;
         private bool _clipAgain;
+        private bool _clipRunningPreview;
+        private bool _clipCaps = true;
         private CancellationTokenSource _clipWork;
         private WorkPlane _workPlane = WorkPlane.Global;
 
@@ -317,7 +319,14 @@ namespace GeometryHelper.Viewer
             if (_clipRunning)
             {
                 _clipAgain = true;
-                _clipWork?.Cancel();
+
+                // While a plane is dragged a cut that is only a look is let finish and is shown, and the newest set is cut after it: a cut that is stopped for every
+                // move of the mouse never ends on a scene that takes longer to cut than the mouse takes to move, and the plane would seem to jump when the mouse stopped.
+                if (!(_clipRunningPreview && _clipDragIndex >= 0))
+                {
+                    _clipWork?.Cancel();
+                }
+
                 return;
             }
 
@@ -336,15 +345,24 @@ namespace GeometryHelper.Viewer
                     }
 
                     ClipSet clips = _clips;
+                    bool preview = _clipDragIndex >= 0;
+                    bool caps = _clipCaps;
+                    _clipRunningPreview = preview;
                     CancellationTokenSource work = _clipWork = new CancellationTokenSource();
 
                     try
                     {
-                        ClipResult result = await Task.Run(() => ClipResult.Build(primitives, clips, work.Token));
+                        // Under the mouse the scene is cut without its section lines and caps, which are made when the plane is let go.
+                        ClipResult result = await Task.Run(() => preview ? ClipResult.BuildPreview(primitives, clips, work.Token) : ClipResult.Build(primitives, clips, caps, work.Token));
 
-                        if (!_clipAgain && ReferenceEquals(primitives, _model.Primitives) && ReferenceEquals(clips, _clips))
+                        if (ReferenceEquals(primitives, _model.Primitives) && (preview || (!_clipAgain && ReferenceEquals(clips, _clips))))
                         {
                             _model.SetClip(result);
+
+                            if (result.CapsRefused > 0)
+                            {
+                                Log("clip: " + result.CapsRefused + " section outline(s) not filled: the library refused to cut them into a cap, or there were too many; the section line is still drawn.");
+                            }
                         }
                     }
                     catch (OperationCanceledException)
@@ -527,7 +545,25 @@ namespace GeometryHelper.Viewer
 
         private void EndClipDrag()
         {
+            bool was = _clipDragIndex >= 0;
             _clipDragIndex = -1;
+
+            // The plane is let go: the scene is cut in full, with its section lines and caps, for where it is.
+            if (was)
+            {
+                ApplyClipsAsync();
+            }
+        }
+
+        private void OnClipCapsToggled(object sender, RoutedEventArgs e)
+        {
+            _clipCaps = ClipCapsMenu.IsChecked == true;
+            SetMessage(_clipCaps ? "sections are filled" : "sections are not filled");
+
+            if (_clips.IsActive)
+            {
+                ApplyClipsAsync();
+            }
         }
 
         /// <summary>

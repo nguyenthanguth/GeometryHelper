@@ -264,6 +264,7 @@ namespace GeometryHelper.Viewer
                 _compare = state;
                 _currentPath = setup.Script;
                 Title = layout.Scene.Title + " - GeometryHelper Viewer";
+                MergeKeptViews(setup.Script, layout.Scene);
                 _model.Show(layout.Scene, built.Item1, clipped);
                 CutAfterShow(cutBy);
                 ResetTools(built.Item2, keepView);
@@ -283,6 +284,10 @@ namespace GeometryHelper.Viewer
 
                 state.View = keepView ? state.View : CompareView.Both;
                 ApplyCompareView(state.View, false);
+
+                // The table has taken room from the views: they are laid out again before the views are fitted and the saved view is restored, whose width with no
+                // perspective is that of the view it is restored in, or the view would open at the width of the window before the table.
+                UpdateLayout();
 
                 if (!keepView)
                 {

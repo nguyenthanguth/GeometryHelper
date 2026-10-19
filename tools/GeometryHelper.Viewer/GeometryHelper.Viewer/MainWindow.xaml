@@ -84,6 +84,7 @@
                 <MenuItem Header="_Flip the selected plane" Tag="ClipFlip" Click="OnMenuAction" />
                 <MenuItem Header="_Remove every plane" Tag="ClipClear" Click="OnMenuAction" />
                 <Separator />
+                <MenuItem x:Name="ClipCapsMenu" Header="Fill the _sections (caps)" IsCheckable="True" IsChecked="True" Click="OnClipCapsToggled" />
                 <MenuItem Header="Clip planes _pane" Tag="ToggleClipPane" Click="OnMenuAction" />
             </MenuItem>
             <MenuItem Header="_Diagnostics">

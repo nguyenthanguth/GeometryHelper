@@ -84,6 +84,7 @@ namespace GeometryHelper.Viewer
 
             SnapText.Text = "snap: none";
             UpdateSnapsText();
+            RebuildSavedViewsMenu();
         }
 
         /// <summary>
