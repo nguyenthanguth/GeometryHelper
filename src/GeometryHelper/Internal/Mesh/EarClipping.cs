@@ -178,7 +178,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            if (!TryClip(outer, tolerance, tolerance.EqualPoint, out triangles))
+            if (!TryClip(outer, tolerance, tolerance.EqualPoint, surface, out triangles))
             {
                 return false;
             }
@@ -201,7 +201,7 @@ namespace GeometryHelper.Core
                 {
                     double blocking = Math.Min(near, offFlat);
 
-                    if (TryClip(outer, tolerance, blocking, out GeoTriangle3[] wider) && !StandsUp(wider, frame.ZAxis))
+                    if (TryClip(outer, tolerance, blocking, surface, out GeoTriangle3[] wider) && !StandsUp(wider, frame.ZAxis))
                     {
                         triangles = wider;
                         break;
@@ -852,7 +852,7 @@ namespace GeometryHelper.Core
         /// edges of every such ear along a needle of a hole.
         /// </para>
         /// </remarks>
-        private static bool TryClip(List<Node> loop, Tolerance tolerance, double near, out GeoTriangle3[] triangles)
+        private static bool TryClip(List<Node> loop, Tolerance tolerance, double near, bool surface, out GeoTriangle3[] triangles)
         {
             triangles = null;
 
@@ -926,7 +926,7 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    Emit(result, previous, current, next, tolerance);
+                    Emit(result, previous, current, next, tolerance, surface);
 
                     after[previousIndex] = nextIndex;
                     before[nextIndex] = previousIndex;
@@ -987,7 +987,7 @@ namespace GeometryHelper.Core
             if (count == 3)
             {
                 int second = after[first];
-                Emit(result, nodes[first], nodes[second], nodes[after[second]], tolerance);
+                Emit(result, nodes[first], nodes[second], nodes[after[second]], tolerance, surface);
             }
 
             triangles = result.ToArray();
@@ -1083,15 +1083,38 @@ namespace GeometryHelper.Core
         /// A loop carrying a hole bridge has doubled vertices on it, and reducing one can leave a corner
         /// with no area. Such a triangle describes no material and is dropped rather than handed on, since
         /// anything reading the mesh would only have to guard against it again.
+        /// <para>
+        /// A mesh of a surface is held to a stricter meaning of nothing: see <see cref="IsCollapsed"/>.
+        /// </para>
         /// </remarks>
-        private static void Emit(List<GeoTriangle3> result, Node a, Node b, Node c, Tolerance tolerance)
+        private static void Emit(List<GeoTriangle3> result, Node a, Node b, Node c, Tolerance tolerance, bool surface)
         {
             GeoTriangle3 triangle = new GeoTriangle3(a.Source, b.Source, c.Source);
 
-            if (!triangle.IsDegenerate(tolerance))
+            if (surface ? !IsCollapsed(triangle, tolerance) : !triangle.IsDegenerate(tolerance))
             {
                 result.Add(triangle);
             }
+        }
+
+        /// <summary>
+        /// Checks whether a triangle of a surface mesh describes no material: its corners lie on a line, as far as rounding
+        /// can tell.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/> reads twice the area, a length squared, against a length. A
+        /// triangle 0.002 by 0.002 has twice the area 4E-6, under the 1E-5 of the default vector tolerance, so it was
+        /// called nothing, and a wall that thin is real material: a box with a void 0.002 from its corner has the corner
+        /// 0.002 thick left on every side, and the faces of 4E-6 square units there were dropped and left the mesh open
+        /// along 15 edges. Here a triangle is nothing when its narrowest width is within a millionth of the point
+        /// tolerance, so a sliver 100 long and 0.0008 wide is kept and the doubled corners of a hole's bridge are not.
+        /// </remarks>
+        internal static bool IsCollapsed(GeoTriangle3 triangle, Tolerance tolerance)
+        {
+            double longest = Math.Max(triangle.A.GetDistanceSquaredTo(triangle.B), Math.Max(triangle.B.GetDistanceSquaredTo(triangle.C), triangle.C.GetDistanceSquaredTo(triangle.A)));
+            double width = tolerance.EqualPoint * 1E-6;
+
+            return triangle.GetAreaVector().LengthSquared <= width * width * longest;
         }
 
         #endregion

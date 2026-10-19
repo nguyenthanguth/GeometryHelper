@@ -38,7 +38,7 @@ namespace GeometryHelper.Core
 
             var reaches = new List<double>();
 
-            foreach (GeoTriangle3 face in solid.Triangulate(tolerance))
+            foreach (GeoTriangle3 face in solid.TriangulateQuietly(tolerance))
             {
                 if (TryIntersectWith(ray, face, out GeoPoint3 meeting, tolerance))
                 {

@@ -735,7 +735,7 @@ namespace GeometryHelper.Core
                 return 0.0;
             }
 
-            return new Spatial.GeoBvh3(solid1.Triangulate(tolerance)).DistanceTo(new Spatial.GeoBvh3(solid2.Triangulate(tolerance)), tolerance);
+            return new Spatial.GeoBvh3(solid1.TriangulateQuietly(tolerance)).DistanceTo(new Spatial.GeoBvh3(solid2.TriangulateQuietly(tolerance)), tolerance);
         }
 
         /// <summary>

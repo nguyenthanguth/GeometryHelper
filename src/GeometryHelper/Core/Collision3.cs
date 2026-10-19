@@ -400,8 +400,8 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            GeoTriangle3[] mesh1 = solid1.Triangulate(tolerance);
-            GeoTriangle3[] mesh2 = solid2.Triangulate(tolerance);
+            GeoTriangle3[] mesh1 = solid1.TriangulateQuietly(tolerance);
+            GeoTriangle3[] mesh2 = solid2.TriangulateQuietly(tolerance);
 
             if (SurfacesTouch(mesh1, mesh2, tolerance))
             {

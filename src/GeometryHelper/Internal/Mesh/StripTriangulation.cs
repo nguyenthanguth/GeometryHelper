@@ -314,7 +314,7 @@ namespace GeometryHelper.Core
         {
             var triangle = new GeoTriangle3(a, b, c);
 
-            if (!triangle.IsDegenerate(tolerance))
+            if (!EarClipping.IsCollapsed(triangle, tolerance))
             {
                 triangles.Add(triangle);
             }

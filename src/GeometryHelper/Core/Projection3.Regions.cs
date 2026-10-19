@@ -916,7 +916,7 @@ namespace GeometryHelper.Core
             // The faces run straight across every opening; the nearest material can sit on any opening's rim.
             solid = Material3.Whole(solid, tolerance);
 
-            GeoTriangle3[] faces = solid.Triangulate(tolerance);
+            GeoTriangle3[] faces = solid.TriangulateQuietly(tolerance);
             GeoTriangle3[] pieces = face.TriangulateSurface(tolerance);
             GeoLine3 best = GetShortestLineTo(faces[0], pieces[0], tolerance);
             double shortest = best.Length;

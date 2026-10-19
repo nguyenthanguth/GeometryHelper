@@ -66,7 +66,7 @@ namespace GeometryHelper.Spatial
             // once here, as the convexity, the parting faces and every boolean of a pair read it.
             Material = Material3.Whole(solid, tolerance).TurnOutwards();
             Box = Material.GetAabb();
-            _surface = Material.Triangulate(tolerance);
+            _surface = Material.TriangulateQuietly(tolerance);
             Index = new GeoBvh3(_surface);
             _corners = Corners(Material);
             _convex = Boolean3.IsConvex(Material, tolerance);

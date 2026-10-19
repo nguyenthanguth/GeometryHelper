@@ -233,6 +233,17 @@ on the rim of an opening the probe never comes near. **A body asked many questio
 `TryCutOpenings` and the result asked instead: the same answers, the cutting paid once. `Triangulate` still
 meshes the faces as they are; `TriangulateSurface` is the mesh to read as the boundary.
 
+A triangle of the surface mesh is left out only when its corners lie on a line within a millionth of the point
+tolerance; a face 0.002 by 0.002 is its two triangles at the default tolerance. A triangle whose area vector,
+`GetAreaVector()`, twice its area, is no longer than the vector tolerance has `IsDegenerate(tolerance)` true, and its
+`Normal` and `GetPlane()`, which read `Tolerance.Global`, throw: each half of that face, 4E-6, is one, where a triangle
+100 by 0.0008, 0.08, keeps its normal. `ToFace3(tolerance)` refuses more, a triangle with its area within the vector
+tolerance or two corners within the point tolerance of each other, and meshes held such triangles
+before; take the normal of a triangle of the mesh from `GetAreaVector()`. A face thinner than the tolerance is a seam at
+it and has no triangle: a slab 100 by 100 and 0.0008 thick, built within 1E-5, is 12 triangles at 1E-5 and 4 at 0.001,
+its four sides gone, and a Debug line in `GeometryHelperLog` says how many faces were left out whole and how much area
+they had; a face meshed in part is not counted.
+
 ## Operations
 
 | Class | Answers |

@@ -200,7 +200,12 @@ namespace GeometryHelper.Viewer
         {
             var triangle = new GeoTriangle3(a, b, c);
 
-            if (!triangle.IsDegenerate(tolerance))
+            // The library's surface mesh drops a triangle only when it has no width, its narrowest width no more than a
+            // millionth of the point tolerance, measured against its longest side (EarClipping.IsCollapsed).
+            double longest = Math.Max(a.GetDistanceSquaredTo(b), Math.Max(b.GetDistanceSquaredTo(c), c.GetDistanceSquaredTo(a)));
+            double width = tolerance.EqualPoint * 1E-6;
+
+            if (!(triangle.GetAreaVector().LengthSquared <= width * width * longest))
             {
                 result.Add(triangle);
             }

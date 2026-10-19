@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using GeometryHelper;
 using GeometryHelper.Enums;
 using GeometryHelper.Core;
@@ -461,14 +462,65 @@ namespace GeometryHelper.Geometry
         /// <see cref="TriangulateSurface(Tolerance)"/>, which cuts the openings in first. For a body without
         /// openings the two are the same mesh.
         /// </para>
+        /// <para>
+        /// A face thinner than the tolerance is a seam at it and has no triangles: a slab 100 by 100 and 0.0008 thick,
+        /// built within 1E-5, is 12 triangles at 1E-5 but 4 at 0.001, its four sides gone. The mesh is then open, and a
+        /// Debug line in <see cref="GeometryHelperLog"/> says how many faces were left out whole and how much area they
+        /// had; a face meshed in part is not counted.
+        /// </para>
+        /// <para>
+        /// A triangle is left out only when it has no width, its corners on a line within a millionth of the point
+        /// tolerance. One whose area vector, <see cref="GeoTriangle3.GetAreaVector()"/>, is no longer than the vector
+        /// tolerance has <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/> true, and its
+        /// <see cref="GeoTriangle3.Normal"/> and <see cref="GeoTriangle3.GetPlane()"/>, which read
+        /// <see cref="Tolerance.Global"/>, throw: each half of a small face 0.002 by 0.002, 4E-6, is one, where a triangle
+        /// 100 by 0.0008, 0.08, keeps its normal. <see cref="GeoTriangle3.ToFace3(Tolerance)"/> refuses more, a triangle with
+        /// its area within the vector tolerance or two corners within the point tolerance of each other,
+        /// and meshes held such triangles before. Take the normal from <see cref="GeoTriangle3.GetAreaVector()"/>.
+        /// </para>
         /// </remarks>
         public GeoTriangle3[] Triangulate(Tolerance tolerance)
         {
+            GeoTriangle3[] triangles = TriangulateQuietly(tolerance, out int left, out double leftArea);
+
+            if (left > 0)
+            {
+                GeometryHelperLog.Debug(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "GeoSolid3.Triangulate: {0} of {1} faces, {2:G6} square units, thinner than the tolerance of {3:G6}, were left out of the mesh whole.",
+                    left,
+                    _faces.Length,
+                    leftArea,
+                    tolerance.EqualPoint));
+            }
+
+            return triangles;
+        }
+
+        /// <summary>
+        /// Breaks every face into triangles as <see cref="Triangulate(Tolerance)"/> does, and counts the faces it left out whole
+        /// instead of saying so, for the library's own questions, which ask of a body that may be valid at a tolerance wider than
+        /// one of its faces and have nothing to tell the caller.
+        /// </summary>
+        internal GeoTriangle3[] TriangulateQuietly(Tolerance tolerance) => TriangulateQuietly(tolerance, out _, out _);
+
+        private GeoTriangle3[] TriangulateQuietly(Tolerance tolerance, out int left, out double leftArea)
+        {
             List<GeoTriangle3> triangles = new List<GeoTriangle3>();
+            left = 0;
+            leftArea = 0.0;
 
             foreach (GeoFace3 face in _faces)
             {
-                triangles.AddRange(face.TriangulateSurface(tolerance));
+                GeoTriangle3[] pieces = face.TriangulateSurface(tolerance);
+                triangles.AddRange(pieces);
+
+                // A face with an area and no triangle is one thinner than the tolerance, read as a seam of it.
+                if (pieces.Length == 0 && face.Area > tolerance.EqualPoint * 1E-6 * face.Boundary.Length)
+                {
+                    left++;
+                    leftArea += face.Area;
+                }
             }
 
             return triangles.ToArray();
@@ -493,6 +545,13 @@ namespace GeometryHelper.Geometry
         /// is for a face. For a body without openings it is <see cref="Triangulate(Tolerance)"/>; with them,
         /// it costs cutting the openings in, so a body asked many questions is better cut once with
         /// <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/> and the result kept.
+        /// <para>
+        /// The mesh can hold triangles with no normal at the global tolerance, from small faces of the body: take a
+        /// triangle's normal from <see cref="GeoTriangle3.GetAreaVector()"/>, not <see cref="GeoTriangle3.Normal"/>; see
+        /// <see cref="Triangulate(Tolerance)"/> for which. A face thinner than
+        /// the tolerance is left out whole, and a Debug line in <see cref="GeometryHelperLog"/> says so; see
+        /// <see cref="Triangulate(Tolerance)"/>.
+        /// </para>
         /// </remarks>
         public GeoTriangle3[] TriangulateSurface(Tolerance tolerance)
             => Boolean3.TryCutOpenings(this, out GeoSolid3 material, tolerance)

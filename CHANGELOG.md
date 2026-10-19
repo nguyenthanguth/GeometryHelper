@@ -39,6 +39,35 @@ of 100 000 of each kind, 1.6 million pairs, and 100 000 rectangles passed as wel
 nothing that was there changes: every earlier test and the benchmark signatures are as they were. The space
 counterpart `GeoXLine3` comes in the next step.
 
+**FIXED.** The surface mesh of a body dropped any triangle whose doubled area was under 1E-5, comparing a length squared with a
+length, so a box 100 by 60 by 40 with a void 0.002 from its corner, which leaves a corner 0.002 thick, was meshed open along 15
+edges (69 triangles); it is now closed (72 triangles), and 3 000 random voids near corners, edges and faces mesh closed where
+538 did not. A triangle is dropped only when it has no width, within a millionth of the point tolerance. The same rule reads the
+faces cut into strips, which are those whose holes touch the boundary, whose rings meet each other or themselves, or that the
+clipping cannot reduce: on 6 000 random boolean pairs the union meshes that were open fell from 575 and 507 (two runs of 3 000)
+to 73 and 72. Four that were closed now have one open edge about 0.001 long, where the strips keep a crumb of their own cut
+points (1.6E-6 square units in one case) beside sliver faces left out by design; the results of the booleans themselves are
+unchanged by that.
+
+**CHANGED.** `GeoSolid3.TriangulateSurface` and `Triangulate`, and `GeoFace3.TriangulateSurface`, now return the triangles of
+small faces. A face 0.002 by 0.002 at the default tolerance is its two triangles, and a box with a void 0.002 from its corner
+meshes to 72 triangles, 6 of them like that, where it was 69. A triangle whose area vector, `GetAreaVector()`, twice its area,
+is no longer than the vector tolerance (1E-5) has `GeoTriangle3.IsDegenerate(tolerance)` true, and its `Normal` and `GetPlane()`,
+which read `Tolerance.Global`, throw: each half of that face, 4E-6, is one, where a triangle 100 by 0.0008, 0.08, keeps its
+normal. `ToFace3(tolerance)` refuses more, a triangle with its area within the vector tolerance or two corners within the point
+tolerance of each other, and meshes held such triangles before. Take the normal of a triangle of the mesh
+from `GetAreaVector()`. A face thinner than the tolerance is still left out whole, and the call now writes one Debug line to
+`GeometryHelperLog` saying how many faces and how much area were left out, counting only the faces left out whole: a slab 100 by
+100 and 0.0008 thick, built within 1E-5, is 4 triangles at 0.001, its four sides gone, and 12 at 1E-5. The library's own
+questions, the booleans, the preparing of a body and its volume, which mesh a body themselves, say nothing.
+
+**CHANGED.** Results of the booleans, of cutting openings in and of the volumes `Measure3` reads move, towards the exact
+answer, wherever a body has a face a few thousandths across, because the meshes they work from keep the triangles that were
+dropped. In 5 000 random voids near the corner of a box 91 cuts changed, the largest error in volume falling from 2.7E-8 to
+2.3E-10; in 3 000 random pairs of boxes 5 unions and 10 subtractions changed, one union from 48 006.583036559 to
+48 006.577472420; and of 3 000 bodies with a void near a box corner, 580 volumes read by the `Surface` and `FlatFaces` methods
+of `Measure3` changed, every one closer to the exact figure. The benchmarks do not cover these paths, and their signatures match.
+
 **NEW.** `DxfWriter` writes the curves of space as the curves they are. `Add(GeoArc3)` is an ARC and `Add(GeoCircle3)` a
 CIRCLE, each in the coordinate system of its own plane, so AutoCAD draws them as one entity that can be edited, dimensioned and
 snapped to, not as a polyline of chords: a circle of radius 25 about (10, 20, 30) standing on the normal (1, 1, 0) is a

@@ -224,8 +224,8 @@ namespace GeometryHelper.Geometry
         /// Breaks the face into triangles that each lie within its material, holes included, within a
         /// tolerance.
         /// </summary>
-        /// <param name="tolerance">The tolerance deciding what counts as a degenerate triangle.</param>
-        /// <returns>The triangles covering the face, wound to share its normal.</returns>
+        /// <param name="tolerance">The tolerance within which rings count as meeting and a region is read; a triangle is left out only when it has no width, within a millionth of its point tolerance.</param>
+        /// <returns>The triangles covering the face, wound to share its normal; a small one may have no normal at the global tolerance, see the remarks.</returns>
         /// <remarks>
         /// This is the triangulation to use wherever the mesh stands for the surface itself — ray casting,
         /// clash detection, distance to a body. Unlike <see cref="Triangulate()"/> every triangle lies
@@ -243,6 +243,20 @@ namespace GeometryHelper.Geometry
         /// <para>
         /// Such a face used to be handed back as the fan of its boundary, laid across every hole: a slab
         /// whose pits the clipping could not get round was meshed as 5 391 m2 for its 1 836.
+        /// </para>
+        /// <para>
+        /// A clipped triangle is left out only when it has no width: its corners lie on a line within a millionth of the
+        /// point tolerance. A small one is kept, so a face 0.002 by 0.002 is its two triangles at the default
+        /// tolerance, where they were once dropped as too small and left a gap in the mesh of the body they closed.
+        /// </para>
+        /// <para>
+        /// A triangle whose area vector, <see cref="GeoTriangle3.GetAreaVector()"/>, is no longer than the vector tolerance
+        /// has <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/> true, and its <see cref="GeoTriangle3.Normal"/> and
+        /// <see cref="GeoTriangle3.GetPlane()"/>, which read <see cref="Tolerance.Global"/>, throw: each half of a face
+        /// 0.002 by 0.002, 4E-6, is one, where a triangle 100 by 0.0008, 0.08, keeps its normal.
+        /// <see cref="GeoTriangle3.ToFace3(Tolerance)"/> refuses more, a triangle with its area within the vector tolerance
+        /// or two corners within the point tolerance of each other, and meshes held such triangles
+        /// before. Take the normal of a triangle of the mesh from <see cref="GeoTriangle3.GetAreaVector()"/>.
         /// </para>
         /// </remarks>
         public GeoTriangle3[] TriangulateSurface(Tolerance tolerance)

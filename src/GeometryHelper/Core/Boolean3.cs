@@ -1299,7 +1299,7 @@ namespace GeometryHelper.Core
             point = GeoPoint3.Origin;
             int tried = 0;
 
-            foreach (GeoTriangle3 triangle in LargestFirst(solid.Triangulate(tolerance)))
+            foreach (GeoTriangle3 triangle in LargestFirst(solid.TriangulateQuietly(tolerance)))
             {
                 if (side * plane.SignedDistanceTo(triangle.Centroid) <= tolerance.EqualPlanar)
                 {
@@ -1554,7 +1554,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            GeoTriangle3[] mesh = solid.Triangulate(tolerance);
+            GeoTriangle3[] mesh = solid.TriangulateQuietly(tolerance);
 
             for (double fraction = 1E-2; fraction >= 1E-5; fraction *= 0.1)
             {
@@ -1596,7 +1596,7 @@ namespace GeometryHelper.Core
             point = GeoPoint3.Origin;
             int tried = 0;
 
-            foreach (GeoTriangle3 triangle in LargestFirst(solid.Triangulate(tolerance)))
+            foreach (GeoTriangle3 triangle in LargestFirst(solid.TriangulateQuietly(tolerance)))
             {
                 if (TryGetMidpointUnder(solid, triangle, tolerance, out point))
                 {

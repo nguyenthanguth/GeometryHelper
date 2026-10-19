@@ -212,7 +212,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Theory]
         [InlineData(false, false, "5f8625c7f341c7c56e6aa84431924c5cd18f19d3b6b5fa58d6be554727531f9e")]
         [InlineData(true, false, "5e6236983c4152fa4730d9b59cb6564c721d64bbf2e4fe0f16149614ceddabe8")]
-        [InlineData(false, true, "a416e7c4443262b935515f25ac1f576377c72ce4243771ef885aac10906694e1")]
+        // Moved from a416e7c4...: the 0.0005 pinch's real waist, 5.7E-5 by 5.3E-4, is now kept by IsCollapsed, so the face is covered exactly where 3E-8 of area was lost.
+        [InlineData(false, true, "c5d97c76080ed964102e856bd17950ebaf6b22df2e620b6b68e65587a1dc4857")]
         [InlineData(true, true, "0f98cca8ed0389b6ead7db9123efebcdd79d0d7ca12f480c1b81feb9f55f12d9")]
         public void CombsPinchedAndSpiked_AreMeshedAsBeforeTheAxisWasChosen(bool swapped, bool sloping, string expected)
         {

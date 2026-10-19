@@ -130,7 +130,8 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ARingOfSixtyFourThousandCorners_IsCutLikeTheLibraryCutsIt_IncludingTheTrianglesItLeavesOutAsDegenerate()
         {
-            // The library takes 15 s over this ring; a ring of 4 000 is the same fan in a tenth of a second.
+            // The library took 15 s over the ring of 64 000 before its ear clipping went near-linear (8bc3e00); it now cuts it
+            // in a few hundredths, so both rings are checked against it to the bit.
             GeoSolid3 cone = Cone(4000);
             GeoFace3 ring = cone.Faces[0];
 
@@ -147,8 +148,8 @@ namespace GeometryHelper.Viewer.Tests
                 Assert.True(FaceCutter.TryFan(big, Tol, FaceCutter.FanFrom, out GeoTriangle3[] bigFan));
                 clock.Stop();
 
-                // The library leaves out eight of them as degenerate at this tolerance; the fan leaves out the same ones.
-                Assert.Equal(63990, bigFan.Length);
+                // The fan leaves out the same triangles the library leaves out as having no width.
+                AssertSameBits(big.TriangulateSurface(Tol), bigFan);
                 Assert.True(clock.Elapsed < TimeSpan.FromSeconds(1.0), clock.Elapsed.ToString());
             }
         }
