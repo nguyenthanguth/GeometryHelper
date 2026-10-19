@@ -347,6 +347,127 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Contains(DataJson.Points(b.Data, "points", 3), p => p.Equals(new Vec3(100, 100, 5)));
         }
 
+        private static void AssertSamePoint(GeoPoint3 expected, GeoPoint3 actual, double radius, string what)
+            => Assert.True(expected.DistanceTo(actual) <= 1E-9 * radius, what + ": " + expected + " against " + actual + ", " + expected.DistanceTo(actual) + " apart");
+
+        [Fact]
+        public void AnArcInSpaceWrittenExactly_ComesBackTheSameArc_EitherWayRound()
+        {
+            // An arc 120 degrees round a circle of radius 40 standing on the normal (1, 2, 3), centred at (10, -20, 30): the viewer takes the
+            // ARC and its extrusion back to world points and names the arc by three of them.
+            var counter = new GeoArc3(new GeoPoint3(10, -20, 30), new GeoVector3(1, 2, 3), 40, 0.4, 0.4 + 2.0 * Math.PI / 3.0);
+            GeoArc3 clockwise = counter.Reverse();
+
+            foreach (GeoArc3 arc in new[] { counter, clockwise })
+            {
+                SceneItem item = Imp.Only(Read(new DxfWriter().Add(arc, "bars")));
+                Assert.Equal("GeoArc3", item.Kind);
+
+                var back = (GeoArc3)GeometryDecoder.Decode(item);
+
+                Assert.Equal(arc.Radius, back.Radius, 9);
+                Assert.Equal(arc.Length, back.Length, 8);
+                AssertSamePoint(arc.Center, back.Center, arc.Radius, "the centre");
+                AssertSamePoint(arc.MidPoint, back.MidPoint, arc.Radius, "the middle");
+
+                // The viewer reads the ARC counter-clockwise about the extrusion, so a clockwise arc comes back from its end to its start.
+                AssertSamePoint(arc.IsClockwise ? arc.EndPoint : arc.StartPoint, back.StartPoint, arc.Radius, "the first end");
+                AssertSamePoint(arc.IsClockwise ? arc.StartPoint : arc.EndPoint, back.EndPoint, arc.Radius, "the last end");
+            }
+        }
+
+        [Fact]
+        public void ACircleInSpaceWrittenExactly_ComesBackTheSameCircle()
+        {
+            var circle = new GeoCircle3(new GeoPoint3(10, 20, 30), new GeoVector3(1, 1, 0), 25);
+            SceneItem item = Imp.Only(Read(new DxfWriter().Add(circle)));
+
+            Assert.Equal("GeoCircle3", item.Kind);
+
+            var back = (GeoCircle3)GeometryDecoder.Decode(item);
+
+            Assert.Equal(circle.Radius, back.Radius);
+            AssertSamePoint(circle.Center, back.Center, circle.Radius, "the centre");
+            Assert.Equal(1.0, Math.Abs(back.Normal.DotProduct(circle.Normal)), 12);
+        }
+
+        [Fact]
+        public void ASlotInATiltedPlaneWrittenExactly_ComesBackAsFourEdgesWithTheirHalfCircles()
+        {
+            double sin = Math.Sin(Math.PI / 6.0);
+            double cos = Math.Cos(Math.PI / 6.0);
+            var normal = new GeoVector3(0, -sin, cos);
+            GeoPoint3 At(double x, double y) => new GeoPoint3(5 + x, y * cos, 7 + y * sin);
+
+            var loop = new GeoPolygonArc3(
+                new[] { At(0, 0), At(60, 0), At(60, 20), At(0, 20) },
+                new[] { 0.0, 1.0, 0.0, 1.0 },
+                new[] { default(GeoVector3), normal, default(GeoVector3), normal },
+                Tol);
+
+            SceneItem item = Imp.Only(Read(new DxfWriter().Add(loop)));
+            Assert.Equal("GeoPolygonArc3", item.Kind);
+
+            var back = (GeoPolygonArc3)GeometryDecoder.Decode(item);
+
+            Assert.Equal(4, back.VertexCount);
+
+            for (int i = 0; i < 4; i++)
+            {
+                GeoEdge3 was = loop.GetEdgeAt(i);
+                GeoEdge3 now = back.GetEdgeAt(i);
+
+                Assert.Equal(was.IsArc, now.IsArc);
+                AssertSamePoint(was.StartPoint, now.StartPoint, 60.0, "vertex " + i);
+                AssertSamePoint(was.MidPoint, now.MidPoint, 60.0, "the middle of edge " + i);
+            }
+
+            Assert.Equal(loop.Area, back.Area, 6);
+        }
+
+        [Fact]
+        public void ABarBentInTwoPlanesWrittenExactly_ComesBackAsItsLinesAndArcs()
+        {
+            GeoArc3 first = GeoArc3.FromThreePoints(new GeoPoint3(100, 0, 0), new GeoPoint3(100 + 20 * Math.Sin(Math.PI / 4), 0, 20 - 20 * Math.Cos(Math.PI / 4)), new GeoPoint3(120, 0, 20), Tol);
+            GeoArc3 second = GeoArc3.FromThreePoints(new GeoPoint3(120, 0, 100), new GeoPoint3(120 + 20 * (1 - Math.Cos(Math.PI / 4)), 20 * Math.Sin(Math.PI / 4), 100), new GeoPoint3(140, 20, 100), Tol);
+
+            var bar = new GeoPolylineArc3(new[]
+            {
+                new GeoEdge3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)),
+                new GeoEdge3(first),
+                new GeoEdge3(first.EndPoint, new GeoPoint3(120, 0, 100)),
+                new GeoEdge3(second),
+                new GeoEdge3(second.EndPoint, new GeoPoint3(140, 80, 100)),
+            });
+
+            Scene scene = Read(new DxfWriter().Add(bar, Tol, "bar"));
+
+            Assert.Empty(scene.LoadWarnings);
+            Assert.Equal(new[] { "GeoLine3", "GeoArc3", "GeoLine3", "GeoArc3", "GeoLine3" }, scene.Items.Select(i => i.Kind).ToArray());
+
+            List<GeoEdge3> edges = bar.GetEdges().ToList();
+
+            for (int i = 0; i < edges.Count; i++)
+            {
+                object shape = GeometryDecoder.Decode(scene.Items[i]);
+
+                if (shape is GeoLine3 line)
+                {
+                    Assert.Equal(edges[i].StartPoint, line.StartPoint);
+                    Assert.Equal(edges[i].EndPoint, line.EndPoint);
+                }
+                else
+                {
+                    var arc = (GeoArc3)shape;
+                    // An arc whose normal points down is written about up, and so runs the other way: the same ends, either way round.
+                    bool turned = edges[i].StartPoint.DistanceTo(arc.StartPoint) > 1E-6;
+                    AssertSamePoint(turned ? edges[i].EndPoint : edges[i].StartPoint, arc.StartPoint, 20.0, "the start of edge " + i);
+                    AssertSamePoint(edges[i].MidPoint, arc.MidPoint, 20.0, "the middle of edge " + i);
+                    AssertSamePoint(turned ? edges[i].StartPoint : edges[i].EndPoint, arc.EndPoint, 20.0, "the end of edge " + i);
+                }
+            }
+        }
+
         [Fact]
         public void TheLayersAreTheLayers_WithTheirNames()
         {

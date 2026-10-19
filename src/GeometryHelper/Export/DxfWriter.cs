@@ -36,10 +36,13 @@ namespace GeometryHelper.Export
     /// its outline and not the cut; triangles given as they are keep every edge.
     /// </para>
     /// <para>
-    /// A curve in space (an arc, a circle, a chain or loop with arcs) is cut into chords no further from it than a chord
-    /// tolerance the caller states, which has no default: a circle of radius 100 at 0.1 is 71 chords, one of radius 50 000
-    /// at 0.001 is 15 708. A curve that would take more than 1 048 576 chords, counted over a whole chain or loop, is
-    /// refused.
+    /// A curve in space (an arc, a circle, a chain or loop with arcs) is written as itself when no chord tolerance is
+    /// given: an arc as an ARC and a circle as a CIRCLE, each in the coordinate system of its own plane (the arbitrary
+    /// axis algorithm AutoCAD itself uses), a chain or loop that lies in one plane as one lightweight polyline with the
+    /// plane's extrusion and elevation and the bulge of each arc edge, and a chain that bends out of one plane as a LINE
+    /// or an ARC for each edge. Given a chord tolerance, which has no default, it is cut into chords no further from
+    /// the curve than that: a circle of radius 100 at 0.1 is 71 chords, one of radius 50 000 at 0.001 is 15 708. A curve
+    /// that would take more than 1 048 576 chords, counted over a whole chain or loop, is refused.
     /// </para>
     /// <code>
     /// new DxfWriter().Add(plate, "plate").Add(slot, "cut").Add(bar, 0.1, "bars").Save("part.dxf");
@@ -722,6 +725,159 @@ namespace GeometryHelper.Export
             return Polyline3(Layer(layer), points, true);
         }
 
+        /// <summary>
+        /// Adds an arc in space as the ARC it is, in the coordinate system of its own plane, with no chords.
+        /// </summary>
+        /// <param name="arc">The arc.</param>
+        /// <param name="layer">The layer; layer 0 when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <exception cref="ArgumentException">Thrown when a coordinate or an angle is not a finite number, or the normal has no length.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a finite number above nought.</exception>
+        /// <remarks>
+        /// <para>
+        /// The normal of the arc, turned if need be to point up in its largest component (ties go to z, then y, then x), is the
+        /// extrusion of the ARC; the centre is written in the coordinates of the plane it stands on and the angles are degrees
+        /// counter-clockwise about the extrusion, from the x axis of the plane. That x axis is the one AutoCAD works out itself
+        /// from the extrusion by the arbitrary axis algorithm: the world y crossed with the normal where both x and y of the
+        /// normal are less than 1/64 from nought, and the world z crossed with it otherwise. A quarter of the circle of radius
+        /// 10 about (0, 0, 5), from (10, 0, 5) to (0, 10, 5), is an ARC with centre (0, 0, 5) and angles 0 and 90, and the same
+        /// quarter on the normal (0, 0, -1) is written the same way, since an arc counter-clockwise about down is
+        /// clockwise about up. An arc lying on the floor is written exactly as <see cref="Add(GeoArc2, string)"/> writes it:
+        /// the extrusion (0, 0, 1) is what a CIRCLE or ARC has when its groups are left out, and they are.
+        /// </para>
+        /// <para>
+        /// An arc that turns clockwise about the extrusion is written from its end to its start, as <see cref="Add(GeoArc2, string)"/>
+        /// does, since DXF arcs run counter-clockwise only. An arc of a whole turn is written as a CIRCLE. The result is
+        /// the arc itself: over 20 000 random arcs (radii 0.5 to 500, centres up to 1 000 from the origin, any normal, both
+        /// ways round) its start, middle and end, worked back from the groups written, are within 8.3E-13 of its radius, or 1.4E-15
+        /// of its radius plus its centre's distance from the origin, which is the rounding of the coordinates themselves.
+        /// <see cref="Add(GeoArc3, double, string)"/> gives chords instead.
+        /// </para>
+        /// </remarks>
+        public DxfWriter Add(GeoArc3 arc, string layer = null)
+        {
+            Check(arc.Center, nameof(arc));
+            Check(arc.Normal, nameof(arc));
+            Check(arc.Radius, nameof(arc));
+            Check(arc.StartAngle, nameof(arc));
+            Check(arc.SweptAngle, nameof(arc));
+            Guard.Positive(arc.Radius, nameof(arc), "An arc has to have a radius that is a finite number above nought.");
+            Guard.Positive(arc.Normal.Length, nameof(arc), "An arc has to have a normal of non-zero length.");
+
+            return Arc3(Layer(layer), arc);
+        }
+
+        /// <summary>
+        /// Adds a circle in space as the CIRCLE it is, in the coordinate system of its own plane, with no chords.
+        /// </summary>
+        /// <param name="circle">The circle.</param>
+        /// <param name="layer">The layer; layer 0 when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number or the normal has no length.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a finite number above nought.</exception>
+        /// <remarks>
+        /// The normal of the circle, turned up as <see cref="Add(GeoArc3, string)"/> turns an arc's, is the extrusion and the
+        /// centre is written in the coordinates of the plane by the arbitrary axis algorithm described there; a circle
+        /// on the floor is written exactly as a <see cref="GeoCircle2"/> is. A circle of radius 25 about (10, 20, 30)
+        /// on the normal (1, 1, 0) is a CIRCLE with extrusion (0.7071, 0.7071, 0) and centre (7.0711, 30, 21.2132), where
+        /// <see cref="Add(GeoCircle3, double, string)"/> at 0.1 gives 36 chords.
+        /// </remarks>
+        public DxfWriter Add(GeoCircle3 circle, string layer = null)
+        {
+            Check(circle.Center, nameof(circle));
+            Check(circle.Normal, nameof(circle));
+            Check(circle.Radius, nameof(circle));
+            Guard.Positive(circle.Radius, nameof(circle), "A circle has to have a radius that is a finite number above nought.");
+            Guard.Positive(circle.Normal.Length, nameof(circle), "A circle has to have a normal of non-zero length.");
+
+            return Circle3(Layer(layer), circle.Center, circle.Normal, circle.Radius);
+        }
+
+        /// <summary>
+        /// Adds a chain with arcs in space as it is: one lightweight polyline in its plane where it lies in one, and a LINE or
+        /// an ARC for each edge where it does not. The plane is judged at the global tolerance;
+        /// <see cref="Add(GeoPolylineArc3, Tolerance, string)"/> states it.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a coordinate, a bulge or a direction is not a finite number.</exception>
+        public DxfWriter Add(GeoPolylineArc3 chain, string layer = null) => Add(chain, Tolerance.Global, layer);
+
+        /// <summary>
+        /// Adds a chain with arcs in space as it is: one lightweight polyline in its plane where it lies in one, and a LINE or
+        /// an ARC for each edge where it does not.
+        /// </summary>
+        /// <param name="chain">The chain.</param>
+        /// <param name="tolerance">The tolerance that judges whether the chain lies in one plane, as <see cref="GeoPolylineArc3.TryGetPlane(out GeoPlane3, Tolerance)"/> does.</param>
+        /// <param name="layer">The layer; layer 0 when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a coordinate, a bulge or a direction is not a finite number.</exception>
+        /// <remarks>
+        /// <para>
+        /// A chain that lies in one plane within the planar tolerance is a single LWPOLYLINE whose coordinates are those of
+        /// the plane (extrusion, elevation, x and y) and whose bulges are those of the chain, negated where the arc turns
+        /// about the opposite side of the extrusion. The extrusion is the normal of the plane turned, where it has to be, to
+        /// point up in its largest component, so a chain on the floor is written with the extrusion (0, 0, 1), plain x and y
+        /// and its height as the elevation, whichever way its arcs turn. A vertex off the plane by less than the
+        /// tolerance is written on it, and so is an arc that stands off it by less: its bulge is written times the cosine
+        /// between its normal and the extrusion, so an arc bowing square to the plane (bulge 1.8E-5 about (0, 1, 0) on a
+        /// chord of 100 along x in the plane z = 0, which bows 0.0009 up) is written straight.
+        /// </para>
+        /// <para>
+        /// A chain that bends out of one plane, such as a reinforcing bar with bends in two, is a LINE for each straight
+        /// edge and an ARC, in the coordinate system of its own plane as <see cref="Add(GeoArc3, string)"/> writes it, for
+        /// each arc edge, in the order of the chain. An arc edge too shallow to place a circle for is read by its chord and
+        /// is a LINE. A chain with no arc whose vertices all lie on one line lies in no one plane, so it too is a LINE for
+        /// each edge.
+        /// </para>
+        /// </remarks>
+        public DxfWriter Add(GeoPolylineArc3 chain, Tolerance tolerance, string layer = null)
+        {
+            if (chain == null)
+            {
+                throw new ArgumentNullException(nameof(chain));
+            }
+
+            Check(chain.Vertices, nameof(chain));
+            Check(chain.Bulges, nameof(chain));
+            Check(chain.Normals, nameof(chain));
+
+            string name = Layer(layer);
+            var edges = new List<GeoEdge3>(chain.GetEdges());
+
+            return chain.TryGetPlane(out GeoPlane3 plane, tolerance)
+                ? Lightweight3(name, plane.Normal, edges, false)
+                : Edges3(name, edges);
+        }
+
+        /// <summary>
+        /// Adds a loop with arcs in space as one closed lightweight polyline in its plane, each arc edge carrying its bulge.
+        /// </summary>
+        /// <param name="loop">The loop.</param>
+        /// <param name="layer">The layer; layer 0 when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a coordinate, a bulge or a direction is not a finite number.</exception>
+        /// <remarks>
+        /// A loop lies in one plane by construction, so it is always one LWPOLYLINE, written as <see cref="Add(GeoPolylineArc3, Tolerance, string)"/>
+        /// writes a chain that lies in one. A slot 80 long and 20 wide (straight sides of 60) with a half circle at each end,
+        /// lying in a plane tilted 30 degrees about the x axis, is four vertices and two bulges of 1, where chords at 0.01 are 74 segments.
+        /// </remarks>
+        public DxfWriter Add(GeoPolygonArc3 loop, string layer = null)
+        {
+            if (loop == null)
+            {
+                throw new ArgumentNullException(nameof(loop));
+            }
+
+            Check(loop.Vertices, nameof(loop));
+            Check(loop.Bulges, nameof(loop));
+            Check(loop.Normals, nameof(loop));
+            Check(loop.Normal, nameof(loop));
+
+            return Lightweight3(Layer(layer), loop.Normal, new List<GeoEdge3>(loop.GetEdges()), true);
+        }
+
         #endregion
 
         #region The file
@@ -1208,6 +1364,317 @@ namespace GeometryHelper.Export
             return this;
         }
 
+        private void Grow(GeoPoint3 point) => Grow(point.X, point.Y, point.Z);
+
+        /// <summary>
+        /// Grows the extents by a circle in space: along each axis the circle reaches from its centre by the radius times the
+        /// root of what the normal leaves of 1 on that axis.
+        /// </summary>
+        private void GrowCircle(GeoPoint3 centre, GeoVector3 normal, double radius)
+        {
+            double reachX = radius * Math.Sqrt(Math.Max(0.0, 1.0 - normal.X * normal.X));
+            double reachY = radius * Math.Sqrt(Math.Max(0.0, 1.0 - normal.Y * normal.Y));
+            double reachZ = radius * Math.Sqrt(Math.Max(0.0, 1.0 - normal.Z * normal.Z));
+
+            Grow(centre.X - reachX, centre.Y - reachY, centre.Z - reachZ);
+            Grow(centre.X + reachX, centre.Y + reachY, centre.Z + reachZ);
+        }
+
+        /// <summary>
+        /// Grows the extents by an arc in space, by its two ends and by the point of it that reaches furthest along each axis,
+        /// each way, where the arc covers it.
+        /// </summary>
+        private void GrowArc(GeoArc3 arc)
+        {
+            Grow(arc.StartPoint);
+            Grow(arc.EndPoint);
+
+            arc.GetPlane().GetAxes(out GeoVector3 u, out GeoVector3 v);
+            double[] across = { u.X, u.Y, u.Z };
+            double[] up = { v.X, v.Y, v.Z };
+
+            double from = arc.SweptAngle >= 0.0 ? arc.StartAngle : arc.StartAngle + arc.SweptAngle;
+            double span = Math.Abs(arc.SweptAngle);
+
+            for (int axis = 0; axis < 3; axis++)
+            {
+                // Along an axis the circle is highest where the angle points the same way as the axis does in the plane, lowest opposite.
+                double high = Math.Atan2(up[axis], across[axis]);
+
+                for (int side = 0; side < 2; side++)
+                {
+                    double angle = high + side * Math.PI;
+                    double offset = (angle - from) % (Math.PI * 2.0);
+
+                    if (offset < 0.0)
+                    {
+                        offset += Math.PI * 2.0;
+                    }
+
+                    if (offset <= span)
+                    {
+                        Grow(arc.GetPointAtAngle(angle));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the arc of an arc edge when there is a circle to place: not when the edge bows less than its arc is known to,
+        /// as <see cref="Arc2.IsFlat"/> judges it, or its circle is too far off to be written. Such an edge is read by its chord.
+        /// </summary>
+        private static bool TryPlace(GeoEdge3 edge, out GeoArc3 arc)
+        {
+            arc = default(GeoArc3);
+
+            if (!edge.IsArc)
+            {
+                return false;
+            }
+
+            try
+            {
+                arc = edge.ToArc();
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+
+            GeoPoint3 centre = arc.Center;
+
+            if (!Guard.IsFinite(arc.Radius) || !Guard.IsFinite(centre.X) || !Guard.IsFinite(centre.Y) || !Guard.IsFinite(centre.Z))
+            {
+                return false;
+            }
+
+            double sag = Math.Abs(edge.Bulge) * edge.StartPoint.DistanceTo(edge.EndPoint) * 0.5;
+            return !(Math.Abs(edge.Bulge) <= 1.0 && Arc2.IsFlat(sag, new GeoPoint2(centre.X, Math.Abs(centre.Y) + Math.Abs(centre.Z)), arc.Radius));
+        }
+
+        /// <summary>
+        /// The object coordinate system of an extrusion by the arbitrary axis algorithm of the DXF reference: its x axis is the
+        /// world y crossed with the normal where x and y of the normal are both less than 1/64 from nought, and the world z crossed
+        /// with it otherwise; its y axis is the normal crossed with the x axis.
+        /// </summary>
+        private readonly struct Ocs
+        {
+            private readonly double _ux;
+            private readonly double _uy;
+            private readonly double _uz;
+            private readonly double _vx;
+            private readonly double _vy;
+            private readonly double _vz;
+            private readonly double _nx;
+            private readonly double _ny;
+            private readonly double _nz;
+
+            public Ocs(GeoVector3 normal)
+            {
+                _nx = normal.X;
+                _ny = normal.Y;
+                _nz = normal.Z;
+
+                bool nearZ = Math.Abs(_nx) < 1.0 / 64.0 && Math.Abs(_ny) < 1.0 / 64.0;
+                double ax = nearZ ? _nz : -_ny;
+                double ay = nearZ ? 0.0 : _nx;
+                double az = nearZ ? -_nx : 0.0;
+                double length = Math.Sqrt(ax * ax + ay * ay + az * az);
+
+                _ux = ax / length;
+                _uy = ay / length;
+                _uz = az / length;
+
+                double bx = _ny * _uz - _nz * _uy;
+                double by = _nz * _ux - _nx * _uz;
+                double bz = _nx * _uy - _ny * _ux;
+                length = Math.Sqrt(bx * bx + by * by + bz * bz);
+
+                _vx = bx / length;
+                _vy = by / length;
+                _vz = bz / length;
+            }
+
+            /// <summary>The coordinate along the x axis of the system of a point, or a vector, given in the world.</summary>
+            public double X(double x, double y, double z) => x * _ux + y * _uy + z * _uz;
+
+            /// <summary>The coordinate along the y axis of the system.</summary>
+            public double Y(double x, double y, double z) => x * _vx + y * _vy + z * _vz;
+
+            /// <summary>The coordinate along the extrusion.</summary>
+            public double Z(double x, double y, double z) => x * _nx + y * _ny + z * _nz;
+        }
+
+        /// <summary>
+        /// A normal turned to point up in its largest component, ties going to z, then y, then x: the extrusion a plane is
+        /// written with, so that a plane lying on the floor has the extrusion (0, 0, 1) and plain x and y whichever way its
+        /// normal was given.
+        /// </summary>
+        private static GeoVector3 Upward(GeoVector3 normal)
+        {
+            double x = Math.Abs(normal.X);
+            double y = Math.Abs(normal.Y);
+            double z = Math.Abs(normal.Z);
+            double largest = z >= y && z >= x ? normal.Z : y >= x ? normal.Y : normal.X;
+
+            return largest < 0.0 ? normal.Multiply(-1.0) : normal;
+        }
+
+        /// <summary>
+        /// Writes the groups of an extrusion, but for the world's own up, which is what a CIRCLE or ARC has without them, so that
+        /// a circle or arc lying on the floor is written exactly as the one in the plane is.
+        /// </summary>
+        private void Extrusion(GeoVector3 normal)
+        {
+            if (!(normal.X == 0.0 && normal.Y == 0.0 && normal.Z == 1.0))
+            {
+                _entities.Triple(210, normal.X, normal.Y, normal.Z);
+            }
+        }
+
+        /// <summary>
+        /// A circle in space: its centre in the coordinates of its plane, its radius, and its normal, turned up, as the extrusion.
+        /// </summary>
+        private DxfWriter Circle3(string layer, GeoPoint3 centre, GeoVector3 plane, double radius)
+        {
+            GeoVector3 normal = Upward(plane);
+            var ocs = new Ocs(normal);
+
+            Begin("CIRCLE", layer, "AcDbCircle");
+            _entities.Point(0, ocs.X(centre.X, centre.Y, centre.Z), ocs.Y(centre.X, centre.Y, centre.Z), ocs.Z(centre.X, centre.Y, centre.Z));
+            _entities.Real(40, radius);
+            Extrusion(normal);
+            GrowCircle(centre, normal, radius);
+            return this;
+        }
+
+        /// <summary>
+        /// An arc in space as an ARC about its normal turned up, from its start to its end, or from its end to its start where
+        /// it turns clockwise about the normal written (the one turned up, which is the arc's against it when turned over). A
+        /// whole turn is a CIRCLE.
+        /// </summary>
+        private DxfWriter Arc3(string layer, GeoArc3 arc)
+        {
+            GeoVector3 normal = Upward(arc.Normal);
+
+            if (Math.Abs(arc.SweptAngle) >= Math.PI * 2.0)
+            {
+                return Circle3(layer, arc.Center, normal, arc.Radius);
+            }
+
+            // Counter-clockwise about the arc's normal is clockwise about its opposite, so a turned arc swaps its ends too.
+            bool backwards = arc.IsClockwise != (normal.DotProduct(arc.Normal) < 0.0);
+            var ocs = new Ocs(normal);
+            arc.GetPlane().GetAxes(out GeoVector3 u, out GeoVector3 v);
+
+            // The angle of the radius to the point of the arc at an angle of the arc's own frame, from the x axis of the system.
+            double AngleOf(double at)
+            {
+                double c = arc.Radius * Math.Cos(at);
+                double s = arc.Radius * Math.Sin(at);
+                double x = u.X * c + v.X * s;
+                double y = u.Y * c + v.Y * s;
+                double z = u.Z * c + v.Z * s;
+
+                return Math.Atan2(ocs.Y(x, y, z), ocs.X(x, y, z));
+            }
+
+            double first = AngleOf(backwards ? arc.StartAngle + arc.SweptAngle : arc.StartAngle);
+            double last = first + Math.Abs(arc.SweptAngle);
+            GeoPoint3 centre = arc.Center;
+
+            Begin("ARC", layer, "AcDbCircle");
+            _entities.Point(0, ocs.X(centre.X, centre.Y, centre.Z), ocs.Y(centre.X, centre.Y, centre.Z), ocs.Z(centre.X, centre.Y, centre.Z));
+            _entities.Real(40, arc.Radius);
+            Extrusion(normal);
+            _entities.Str(100, "AcDbArc");
+            _entities.Real(50, Degrees360(first));
+            _entities.Real(51, Degrees360(last));
+            GrowArc(arc);
+            return this;
+        }
+
+        /// <summary>
+        /// A segment in space.
+        /// </summary>
+        private DxfWriter Line3(string layer, GeoPoint3 start, GeoPoint3 end)
+        {
+            Begin("LINE", layer, "AcDbLine");
+            Place(0, start.X, start.Y, start.Z);
+            Place(1, end.X, end.Y, end.Z);
+            return this;
+        }
+
+        /// <summary>
+        /// The edges of a chain that does not lie in one plane, a LINE or an ARC each, in order.
+        /// </summary>
+        private DxfWriter Edges3(string layer, List<GeoEdge3> edges)
+        {
+            foreach (GeoEdge3 edge in edges)
+            {
+                if (TryPlace(edge, out GeoArc3 arc))
+                {
+                    Arc3(layer, arc);
+                }
+                else
+                {
+                    Line3(layer, edge.StartPoint, edge.EndPoint);
+                }
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// A chain or loop that lies in one plane as one lightweight polyline in the coordinates of that plane: the extrusion
+        /// is the normal of the plane turned to point up in its largest component, the elevation is that of the first vertex,
+        /// and a bulge is the arc's times the cosine between its normal and the extrusion: its own where the two agree,
+        /// negated where they are opposite, and nought where the arc bows square to the plane.
+        /// </summary>
+        private DxfWriter Lightweight3(string layer, GeoVector3 plane, List<GeoEdge3> edges, bool closed)
+        {
+            GeoVector3 normal = Upward(plane);
+
+            var ocs = new Ocs(normal);
+            int count = closed ? edges.Count : edges.Count + 1;
+            GeoPoint3 first = edges[0].StartPoint;
+
+            Begin("LWPOLYLINE", layer, "AcDbPolyline");
+            _entities.Int(90, count);
+            _entities.Int(70, closed ? 1 : 0);
+            _entities.Real(38, ocs.Z(first.X, first.Y, first.Z));
+
+            for (int i = 0; i < count; i++)
+            {
+                GeoPoint3 at = i < edges.Count ? edges[i].StartPoint : edges[edges.Count - 1].EndPoint;
+
+                _entities.Real(10, ocs.X(at.X, at.Y, at.Z));
+                _entities.Real(20, ocs.Y(at.X, at.Y, at.Z));
+                Grow(at);
+
+                if (i < edges.Count && edges[i].IsArc)
+                {
+                    // An arc whose own plane is tilted against the extrusion (as one standing off the plane by less than the
+                    // tolerance may be) is written as what stands over the plane of its bow: the bulge times the cosine
+                    // between the two normals, negative where they point apart, and nought where the arc bows square to the plane.
+                    double bulge = edges[i].Bulge * edges[i].Normal.DotProduct(normal);
+
+                    if (bulge != 0.0)
+                    {
+                        _entities.Real(42, bulge);
+                    }
+
+                    if (TryPlace(edges[i], out GeoArc3 arc))
+                    {
+                        GrowArc(arc);
+                    }
+                }
+            }
+
+            _entities.Triple(210, normal.X, normal.Y, normal.Z);
+            return this;
+        }
+
         /// <summary>
         /// The last of an ELLIPSE's groups: the ratio of its radii and the parameters it runs between, nought to a whole turn.
         /// </summary>
@@ -1402,6 +1869,21 @@ namespace GeometryHelper.Export
         private static string Exact(double value) => Numbers.Exact(value);
 
         private static double Degrees(double radians) => radians * 180.0 / Math.PI;
+
+        /// <summary>
+        /// An angle in degrees from nought up to, and not including, 360.
+        /// </summary>
+        private static double Degrees360(double radians)
+        {
+            double degrees = Degrees(radians) % 360.0;
+
+            if (degrees < 0.0)
+            {
+                degrees += 360.0;
+            }
+
+            return degrees >= 360.0 ? degrees - 360.0 : degrees;
+        }
 
         #endregion
 

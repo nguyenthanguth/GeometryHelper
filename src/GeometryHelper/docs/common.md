@@ -294,7 +294,7 @@ string text = Wkt.Write(face);       // POLYGON ((...), (...)): GIS tools, datab
 new DxfWriter()                      // both: AutoCAD, Tekla and every CAD viewer open DXF
     .Add(outline, "plate")           // in the plane as the entities CAD has, arcs as arcs
     .Add(plate, "plate3d")           // a body as 3DFACEs
-    .Add(bar, 0.1, "bar")            // a bent bar as a 3D polyline, bends cut into chords
+    .Add(bar, "bar")                 // a bent bar as LINEs and ARCs, each bend in the coordinates of its own plane
     .Save("part.dxf");
 ```
 
@@ -311,7 +311,7 @@ What each writer takes:
 | `ObjWriter` | `GeoSolid3`, `GeoFace3`, `GeoPolygon3` (each with a `Tolerance` overload), `GeoTriangle3`, triangles, `GeoMesh3`, `GeoCellGrid3` and `GeoCell3`, `GeoAabb3` and `GeoObb3` (as their 12 triangles), `GeoPoint3` (a dot), `GeoLine3`, `GeoPolyline3`; with a chord tolerance `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoArc3`, `GeoCircle3`, `GeoEllipse3`; `GeoRay3` with a length |
 | `SvgWriter` | `GeoPoint2`, `GeoLine2`, `GeoArc2`, `GeoEdge2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2` and lists of `GeoTriangle2`, `GeoMesh2`, `GeoFace2`, `GeoRay2`, and `Text` for a label |
 | `Wkt` | `GeoPoint2` and `GeoPoint3`, segments, chains, polygons, `GeoRectangle2`, `GeoTriangle2` and `GeoTriangle3`, `GeoFace2` and `GeoFace3`; lists of points as `MULTIPOINT`, of segments and chains as `MULTILINESTRING`, of `GeoFace2` and `GeoFace3` as `MULTIPOLYGON`; `GeoMesh2` and `GeoMesh3` as `MULTIPOLYGON`; `GeoSolid3` as a `POLYHEDRALSURFACE Z`; with a chord tolerance the circles, arcs, ellipses and chains and loops with arcs, in the plane and in space; `GeoRay2` and `GeoRay3` with a length |
-| `DxfWriter` | in the plane `GeoPoint2`, `GeoLine2`, `GeoRay2`, `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2`, `GeoFace2`; in space `GeoPoint3`, `GeoLine3`, `GeoRay3`, `GeoEllipse3`, `GeoPolyline3`, `GeoPolygon3`, `GeoTriangle3`, triangles, `GeoFace3` and `GeoSolid3` (each with a `Tolerance` overload), `GeoMesh3`, `GeoAabb3` and `GeoObb3` (as six faces); with a chord tolerance `GeoArc3`, `GeoCircle3`, `GeoPolylineArc3`, `GeoPolygonArc3`; each on a layer |
+| `DxfWriter` | in the plane `GeoPoint2`, `GeoLine2`, `GeoRay2`, `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2`, `GeoFace2`; in space `GeoPoint3`, `GeoLine3`, `GeoRay3`, `GeoEllipse3`, `GeoPolyline3`, `GeoPolygon3`, `GeoTriangle3`, triangles, `GeoFace3` and `GeoSolid3` (each with a `Tolerance` overload), `GeoMesh3`, `GeoAabb3` and `GeoObb3` (as six faces), and `GeoArc3`, `GeoCircle3`, `GeoPolylineArc3` and `GeoPolygonArc3` as the curves they are (each also with a chord tolerance, for chords); each on a layer |
 
 OBJ and WKT have no curves, so a curve is written through chords and the caller says how far from the curve they may
 stray: a circle of radius 100 at a chord tolerance of 0.1 is 71 chords, none more than 0.1 inside it. The tolerance has
@@ -364,10 +364,28 @@ face of a mesh that has three or four corners and turns one way, and six for a `
 corners, so a box 100 by 100 by 0.002, or by nothing, is written too, and an empty `GeoAabb3` is refused with an
 `InvalidOperationException`, as `ToObb` refuses it. Where a face, a side of a body or a face of a mesh is cut into
 triangles, the edges between its own triangles are marked invisible, so a wireframe shows its outline; triangles given
-as they are keep every edge. A curve in space (`GeoArc3`, `GeoCircle3`, and chains and loops with arcs) is cut into
-chords no further from it than a chord tolerance you state, which has no default: a circle of radius 100 at 0.1 is 71
-chords, one of radius 50 000 at 0.001 is 15 708. DXF has arcs and circles of its own, but not yet in space: they are
-written as chords until a later round writes them as such. A curve that would need more than 1 048 576 chords, a chain or loop
+as they are keep every edge. A curve in space (`GeoArc3`, `GeoCircle3`, and chains and loops with arcs) is written as
+itself when no chord tolerance is given. An arc is an ARC and a circle a CIRCLE, each in the coordinate system of its
+own plane: the normal, turned if need be to point up in its largest component, is the extrusion, the centre is in the
+plane's coordinates by the arbitrary axis algorithm AutoCAD itself applies (x is the world y crossed with the normal
+where its x and y are both less than 1/64 from nought, the world z crossed with it otherwise), and the angles are degrees
+counter-clockwise about the extrusion from that x axis. A circle of radius 25 about (10, 20, 30) standing on the normal
+(1, 1, 0) is a CIRCLE with extrusion (0.7071, 0.7071, 0) and centre (7.0711, 30, 21.2132); an arc that turns clockwise
+about the extrusion is written from its end to its start, so an arc on the floor with the normal (0, 0, -1) is written
+about up, and is written exactly as the `GeoArc2` or `GeoCircle2` of the same arc is, with no extrusion groups. A chain or
+loop that lies in one plane is one lightweight polyline in that plane: the extrusion is the plane's normal turned up in
+the same way, the elevation is the height along it, the vertices are the plane's x and y and each arc edge keeps its
+bulge times the cosine between its normal and the extrusion (negated where they point apart, nought for an arc that
+bows square to the plane, which the planar tolerance lets stand off it). A slot 80 long and 20 wide (straight sides of
+60) with a half circle at each end, in a plane tilted 30 degrees about the x axis, is four vertices and two bulges of 1,
+and `Add(chain, tolerance)` states the tolerance that judges whether a chain lies in one plane (the global one without
+it). A chain that bends out of one plane, such as a reinforcing bar, is a LINE for each straight edge and an ARC for
+each arc edge, each in its own coordinate system, in the order of the chain; an arc edge too shallow to place a circle
+for is read by its chord, and a chain with no arc whose vertices lie on one line, which lies in no one plane, is a LINE
+for each edge. An arc or circle with a radius that is not a finite number above nought, or a normal of no length, is
+refused with an `ArgumentOutOfRangeException` or an `ArgumentException`. Given a chord tolerance instead (`Add(arc, 0.1)`), any of them is cut into chords no further from it
+than that, with no default: a circle of radius 100 at 0.1 is 71 chords, one of radius 50 000 at 0.001 is 15 708, and one
+of radius 25 at 0.1 is 36 where the CIRCLE is one entity. A curve that would need more than 1 048 576 chords, a chain or loop
 counted whole, is refused with an `ArgumentOutOfRangeException`. A shape holding a number that is not finite is refused
 with an `ArgumentException` and leaves nothing in the file. The file is plain ASCII, with the extents of what was drawn
 in its header and the view opened on them.

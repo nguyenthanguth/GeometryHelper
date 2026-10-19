@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfWriter` writes the curves of space as the curves they are. `Add(GeoArc3)` is an ARC and `Add(GeoCircle3)` a
+CIRCLE, each in the coordinate system of its own plane, so AutoCAD draws them as one entity that can be edited, dimensioned and
+snapped to, not as a polyline of chords: a circle of radius 25 about (10, 20, 30) standing on the normal (1, 1, 0) is a
+CIRCLE with extrusion (0.7071, 0.7071, 0) and centre (7.0711, 30, 21.2132), where 0.1 of chord tolerance was 36 segments. The
+centre and the angles follow the arbitrary axis algorithm AutoCAD applies to the extrusion, the normal is turned to point up
+in its largest component (a circle on the floor with the normal (0, 0, -1) is written exactly as the `GeoCircle2` is), and an
+arc that turns clockwise about the extrusion is written from its end to its start. `Add(GeoPolygonArc3)` and `Add(GeoPolylineArc3)` write a loop or a chain
+that lies in one plane as one lightweight polyline in that plane, with the plane's extrusion and elevation and the bulge of each
+arc: a slot 80 long and 20 wide (straight sides of 60) with a half circle at each end, in a plane tilted 30 degrees, is four
+vertices and two bulges of 1, where chords at 0.01 were 74. A chain that bends out of one plane, such as a bar with bends in two, is a LINE for each
+straight edge and an ARC for each bend, each in its own coordinate system, and so is a chain of no arc on one line;
+`Add(GeoPolylineArc3, Tolerance)` states the tolerance that decides whether a chain lies in one plane, and an arc that
+stands off it by less, bowing square to it, is written straight. A radius that is not above nought and a normal of no
+length are refused. The overloads that take a chord tolerance are as they were, and so
+is every file written for a shape in the plane or a body: 781 files of the shapes of the earlier round come out byte for byte
+the same. Tested over 1 000 normals (the six axes, the cube's corners, normals a hair off the poles, normals either side of
+the 1/64 where the algorithm changes its seed, and the rest at random) with the algorithm worked backwards from the written
+groups: the start, the middle and the end of every arc come back within 1E-9 of its radius, and so do the vertices and the
+arc middles of planar chains and loops in 1 000 planes and of 300 bent bars. netDxf, which has its own arbitrary axis code,
+reads a file of tilted circles, arcs, slots, filleted loops, a stirrup and a bar bent in three planes, and each curve lies
+on the chords the earlier overloads gave for it to within 2E-5.
+
 **FIXED.** `Offset2.Offset` of a curved loop came back empty, lost a loop, or grew a spike in four more cases. A slot
 5.12 wide and 15 deep cut into the rectangle 40 by 30, grown by 5 with miters, was nothing and is the rectangle 50 by
 40, 2 000: a stretch of a moved piece lying inside another corner's miter by less than the tolerance was kept, and left
