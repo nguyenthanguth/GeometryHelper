@@ -30,8 +30,9 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The nearest point is found as <see cref="GetKnotAtPoint(GeoPoint3)"/> finds it: on each span the parameters
         /// where the curve stops coming nearer, all of them, from the roots of a polynomial in Bernstein form, and the ends;
-        /// whichever span cannot be nearer than the best found, by the box of its control points, is not solved; the boxes of all
-        /// the spans are looked at, so a query costs time in proportion to the number of spans.
+        /// whichever span cannot be nearer than the best found, by the box of its control points, is not solved. The boxes are
+        /// kept in a tree, built once, so the spans near the point are reached without looking at the rest: a query costs time in
+        /// the logarithm of the number of spans and the number whose boxes are near the point, as in the plane.
         /// </remarks>
         public double DistanceTo(GeoPoint3 point, Tolerance tolerance)
         {

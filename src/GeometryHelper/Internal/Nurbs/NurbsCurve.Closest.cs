@@ -13,6 +13,11 @@ namespace GeometryHelper.Internal.Nurbs
         private const double TieShare = 1E-15;
 
         /// <summary>
+        /// The most pieces a curve can have and its boxes still be looked at one by one: past it the tree is faster.
+        /// </summary>
+        private const int FewPieces = 24;
+
+        /// <summary>
         /// Gets the parameter of the point of the curve nearest a point, and how far it is.
         /// </summary>
         /// <param name="query">The point, Dim numbers.</param>
@@ -31,43 +36,77 @@ namespace GeometryHelper.Internal.Nurbs
         /// <para>
         /// Pieces are not all solved. A piece lies in the hull of its control points, so it is no nearer than the box of
         /// them: the piece whose box is nearest is solved first, and every other is solved only if its box is nearer
-        /// than the best found. The boxes of all of them are looked at, though, so a query is linear in the number of pieces
-        /// (0.4 to 0.7 ms at 100 000), and an index over the pieces would make it logarithmic.
+        /// than the best found. The boxes are kept in a tree (<see cref="PieceIndex"/>), so the pieces whose boxes are
+        /// near the point are found without looking at the rest: a query costs time in the logarithm of the number of
+        /// pieces and the number near the point, 0.5 ms at 100 000 pieces before the tree and about 10 microseconds after.
+        /// The pieces are solved in the order of their index, as they were before the tree, so the answer is the same to
+        /// the bit.
         /// </para>
         /// </remarks>
         internal double ClosestParameter(double[] query, out double distance)
         {
             BezierPieces pieces = Pieces;
             int dim = pieces.Dim;
-            int count = pieces.Count;
-            int nearest = 0;
-            double nearestBound = double.PositiveInfinity;
-
-            for (int piece = 0; piece < count; piece++)
-            {
-                double bound = BoxDistance(pieces, piece, query);
-
-                if (bound < nearestBound)
-                {
-                    nearestBound = bound;
-                    nearest = piece;
-                }
-            }
+            var region = new PointBound(query);
 
             double bestDistance = double.PositiveInfinity;
             double bestParameter = Start;
             var roots = new List<double>();
+            int nearest = 0;
 
-            Solve(pieces, nearest, query, roots, ref bestDistance, ref bestParameter);
-
-            for (int piece = 0; piece < count; piece++)
+            if (pieces.Count <= FewPieces)
             {
-                if (piece == nearest || BoxDistance(pieces, piece, query) > bestDistance + TieShare * (bestDistance + Scale))
+                // A few pieces are looked at one by one, which costs less than walking a tree.
+                double nearestBound = double.PositiveInfinity;
+
+                for (int piece = 0; piece < pieces.Count; piece++)
                 {
-                    continue;
+                    double bound = BoxDistance(pieces, piece, query);
+
+                    if (bound < nearestBound)
+                    {
+                        nearestBound = bound;
+                        nearest = piece;
+                    }
                 }
 
-                Solve(pieces, piece, query, roots, ref bestDistance, ref bestParameter);
+                Solve(pieces, nearest, query, roots, ref bestDistance, ref bestParameter);
+
+                for (int piece = 0; piece < pieces.Count; piece++)
+                {
+                    if (piece == nearest || BoxDistance(pieces, piece, query) > bestDistance + TieShare * (bestDistance + Scale))
+                    {
+                        continue;
+                    }
+
+                    Solve(pieces, piece, query, roots, ref bestDistance, ref bestParameter);
+                }
+            }
+            else
+            {
+                // The piece whose box is nearest, the lowest of them where several are as near.
+                var first = new NearestBox { Reach = double.PositiveInfinity, Best = 0 };
+                Index.Search(ref region, ref first);
+                nearest = first.Best;
+
+                Solve(pieces, nearest, query, roots, ref bestDistance, ref bestParameter);
+
+                // Every piece whose box is within reach of the best so far, in the order of their index.
+                var near = new List<int>();
+                Index.Collect(ref region, bestDistance + TieShare * (bestDistance + Scale), near);
+                near.Sort();
+
+                for (int i = 0; i < near.Count; i++)
+                {
+                    int piece = near[i];
+
+                    if (piece == nearest || BoxDistance(pieces, piece, query) > bestDistance + TieShare * (bestDistance + Scale))
+                    {
+                        continue;
+                    }
+
+                    Solve(pieces, piece, query, roots, ref bestDistance, ref bestParameter);
+                }
             }
 
             var point = new double[dim];
@@ -82,6 +121,26 @@ namespace GeometryHelper.Internal.Nurbs
 
             distance = Math.Sqrt(square2);
             return bestParameter;
+        }
+
+        /// <summary>
+        /// Finds the piece whose box has the least bound, the lowest piece where several tie.
+        /// </summary>
+        private struct NearestBox : IVisit
+        {
+            internal double Reach;
+            internal int Best;
+
+            public double Limit => Reach;
+
+            public void Piece(int piece, double bound)
+            {
+                if (bound < Reach || (bound == Reach && piece < Best))
+                {
+                    Reach = bound;
+                    Best = piece;
+                }
+            }
         }
 
         /// <summary>
@@ -119,24 +178,26 @@ namespace GeometryHelper.Internal.Nurbs
         }
 
         /// <summary>
-        /// Finds the nearest point of one piece to a point and offers it, with the ends of the piece, to the best so far.
+        /// Gets the derivative of half the squared distance from a point along a piece, as a polynomial of the piece: its
+        /// roots, in the share of the piece's parameter, are the points where the curve stops coming nearer and starts going
+        /// away.
         /// </summary>
-        private void Solve(BezierPieces pieces, int piece, double[] query, List<double> roots, ref double bestDistance, ref double bestParameter)
+        /// <param name="pieces">The pieces.</param>
+        /// <param name="piece">Which piece.</param>
+        /// <param name="query">The point.</param>
+        /// <param name="numerators">The numerator of each coordinate of the piece, measured from the point.</param>
+        /// <param name="weights">The weights of the piece, or null when it is not rational.</param>
+        /// <param name="scale">The size of the numbers the polynomial was worked out from, which its rounding goes by.</param>
+        private static double[] PointSlope(BezierPieces pieces, int piece, double[] query, out double[][] numerators, out double[] weights, out double scale)
         {
             int p = pieces.Degree;
             int dim = pieces.Dim;
             int at = pieces.PointOffset(piece);
-            double from = pieces.From[piece];
-            double span = pieces.To[piece] - from;
 
-            double[][] numerators;
-            double[] weights;
             Numerators(pieces, piece, query, out numerators, out weights);
 
-            // The derivative of half the squared distance, as a polynomial of the piece: its roots, in the share of the
-            // piece's parameter, are the points where the curve stops coming nearer and starts going away.
             double[] slope = null;
-            double scale = 0.0;
+            scale = 0.0;
 
             for (int k = 0; k < dim; k++)
             {
@@ -177,6 +238,21 @@ namespace GeometryHelper.Internal.Nurbs
                 }
             }
 
+            return slope;
+        }
+
+        /// <summary>
+        /// Finds the nearest point of one piece to a point and offers it, with the ends of the piece, to the best so far.
+        /// </summary>
+        private void Solve(BezierPieces pieces, int piece, double[] query, List<double> roots, ref double bestDistance, ref double bestParameter)
+        {
+            int p = pieces.Degree;
+            int dim = pieces.Dim;
+            double from = pieces.From[piece];
+            double span = pieces.To[piece] - from;
+
+            double[] slope = PointSlope(pieces, piece, query, out double[][] numerators, out double[] weights, out double scale);
+
             roots.Clear();
             Bernstein.FindRoots(slope, NoiseShare * scale, roots);
             roots.Sort();
@@ -205,6 +281,31 @@ namespace GeometryHelper.Internal.Nurbs
             }
 
             ConsiderEnd(pieces, piece, p, query, pieces.To[piece], ref bestDistance, ref bestParameter);
+        }
+
+        /// <summary>
+        /// Adds to a list the parameters of one piece where the curve stops coming nearer a point, all of them, as knot
+        /// values.
+        /// </summary>
+        internal void PointCritical(BezierPieces pieces, int piece, double[] query, List<double> knots)
+        {
+            double from = pieces.From[piece];
+            double span = pieces.To[piece] - from;
+            double[] slope = PointSlope(pieces, piece, query, out _, out _, out double scale);
+            var roots = new List<double>();
+
+            Bernstein.FindRoots(slope, NoiseShare * scale, roots);
+            roots.Sort();
+
+            for (int i = 0; i < roots.Count; i++)
+            {
+                double s = roots[i];
+
+                if (s > 0.0 && s < 1.0)
+                {
+                    knots.Add(from + s * span);
+                }
+            }
         }
 
         private void ConsiderEnd(BezierPieces pieces, int piece, int index, double[] query, double parameter, ref double bestDistance, ref double bestParameter)

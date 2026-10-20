@@ -9,7 +9,7 @@ namespace GeometryHelper.Internal.Nurbs
         /// A polynomial whose coefficients are all within this share of the size of the numbers it was worked out from
         /// is rounding noise round nought.
         /// </summary>
-        private const double NoiseShare = 1E-14;
+        internal const double NoiseShare = 1E-14;
 
         /// <summary>
         /// Gets the Bernstein coefficients of the numerator of each coordinate of a piece, and of its weight, measured
@@ -20,7 +20,7 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="origin">The point to measure from, Dim numbers, or null for the origin of the drawing.</param>
         /// <param name="numerators">One array of Degree + 1 coefficients per coordinate.</param>
         /// <param name="weights">The weight's Degree + 1 coefficients, or null when the piece is not rational.</param>
-        private static void Numerators(BezierPieces pieces, int piece, double[] origin, out double[][] numerators, out double[] weights)
+        internal static void Numerators(BezierPieces pieces, int piece, double[] origin, out double[][] numerators, out double[] weights)
         {
             int p = pieces.Degree;
             int dim = pieces.Dim;
@@ -59,7 +59,7 @@ namespace GeometryHelper.Internal.Nurbs
         /// coordinate stops rising or falling. For a rational piece it is x' w - x w', the numerator of the quotient's
         /// derivative, since the weight squared is above nought.
         /// </summary>
-        private static double[] CoordinateSlope(double[] numerator, double[] weights, out double scale)
+        internal static double[] CoordinateSlope(double[] numerator, double[] weights, out double scale)
         {
             double[] slope = Bernstein.Derivative(numerator);
 

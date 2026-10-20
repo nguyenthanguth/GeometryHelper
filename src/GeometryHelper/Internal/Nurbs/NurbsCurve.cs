@@ -59,6 +59,7 @@ namespace GeometryHelper.Internal.Nurbs
         internal readonly double[] Homogeneous;
 
         private double _scale = -1.0;
+        private double _extent = -1.0;
 
         /// <summary>
         /// Takes arrays that have been checked, which the curve then owns: nobody may write to them again.
@@ -183,23 +184,28 @@ namespace GeometryHelper.Internal.Nurbs
         {
             get
             {
-                double extent = 0.0;
-
-                for (int k = 0; k < Dim; k++)
+                if (_extent < 0.0)
                 {
-                    double low = double.PositiveInfinity;
-                    double high = double.NegativeInfinity;
+                    double extent = 0.0;
 
-                    for (int i = 0; i < Count; i++)
+                    for (int k = 0; k < Dim; k++)
                     {
-                        low = Math.Min(low, Points[i * Dim + k]);
-                        high = Math.Max(high, Points[i * Dim + k]);
+                        double low = double.PositiveInfinity;
+                        double high = double.NegativeInfinity;
+
+                        for (int i = 0; i < Count; i++)
+                        {
+                            low = Math.Min(low, Points[i * Dim + k]);
+                            high = Math.Max(high, Points[i * Dim + k]);
+                        }
+
+                        extent = Math.Max(extent, high - low);
                     }
 
-                    extent = Math.Max(extent, high - low);
+                    _extent = extent;
                 }
 
-                return extent;
+                return _extent;
             }
         }
 

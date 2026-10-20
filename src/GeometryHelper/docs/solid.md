@@ -1764,7 +1764,9 @@ floor.DistanceTo(new GeoPoint3(0, 0, 30));       // 104.4: 100 across and 30 up 
 `FromCircle` (any plane: the circle is nine control points and every point of it is on the circle to rounding) are as in the plane. The
 nearest point is found as it is there, from the roots of a polynomial on each span, so `DistanceTo`, `GetClosestPointOnBoundary`,
 `GetKnotAtPoint`, `GetParameterAtPoint`, `GetShortestLineTo` and `IsPointOn` are exact to rounding and the same from either side;
-every span's box is looked at, so a query is linear in the number of spans (0.4 to 0.7 ms at 100 000). `Interpolate` takes a
+the boxes of the spans are kept in a tree, built on the first query, so the spans near the point are reached without looking at the rest and
+a query takes the logarithm of the number of spans (about 0.01 ms at 100 000, where it took 0.5), with every answer the same to the bit as it was
+before the tree. `Interpolate` takes a
 `Tolerance` that decides which neighbouring fit points are one point; points just above it make the curve swing far, as in the plane. A spline is carried by
 `TransformBy(GeoTransform3)` by its control points, exactly for every affine map; `ProjectToSpline2(frame)` lays it square onto the
 plane of a frame, and `GeoSpline2.ToSpline3(frame)` and `PlanarMap.ToSpline3` put one back, the weights and knots unchanged. A spline
