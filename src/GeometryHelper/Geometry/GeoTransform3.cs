@@ -730,6 +730,48 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Transforms a ball.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the transformation would turn the ball into an ellipsoid, or flatten it.
+        /// </exception>
+        /// <remarks>
+        /// A ball survives a transformation only when every direction is stretched by the same amount and none is sheared against
+        /// another, to the default vector tolerance of the square of the stretch: a turn, a shift, a mirror or an even scaling, under
+        /// which the radius is scaled by the stretch (a ball of radius 50 scaled by 3 has a radius of 150). A turn, a shift or a mirror
+        /// leaves the radius as it is. Under a non-uniform scaling or a shear it would be an ellipsoid, which this library has no type
+        /// for, so the attempt is refused rather than answered with a ball of some averaged radius.
+        /// </remarks>
+        public GeoSphere3 Transform(GeoSphere3 sphere)
+        {
+            GeoPoint3 center = Transform(sphere.Center);
+
+            if (KeepsLengths())
+            {
+                return new GeoSphere3(center, sphere.Radius);
+            }
+
+            GeoVector3 x = Transform(GeoVector3.XAxis);
+            GeoVector3 y = Transform(GeoVector3.YAxis);
+            GeoVector3 z = Transform(GeoVector3.ZAxis);
+            double stretch = Math.Sqrt((x.LengthSquared + y.LengthSquared + z.LengthSquared) / 3.0);
+            double slack = Tolerance.Global.EqualVector * stretch * stretch;
+
+            if (!(stretch > 0.0)
+                || Math.Abs(x.LengthSquared - stretch * stretch) > slack
+                || Math.Abs(y.LengthSquared - stretch * stretch) > slack
+                || Math.Abs(z.LengthSquared - stretch * stretch) > slack
+                || Math.Abs(x.DotProduct(y)) > slack
+                || Math.Abs(y.DotProduct(z)) > slack
+                || Math.Abs(z.DotProduct(x)) > slack)
+            {
+                throw new InvalidOperationException("This transformation stretches the sphere into an ellipsoid, or flattens it.");
+            }
+
+            return new GeoSphere3(center, sphere.Radius * stretch);
+        }
+
+        /// <summary>
         /// Transforms an ellipse in space. Every transformation that does not flatten its plane gives an ellipse, an uneven
         /// scaling and a shear among them: a circle of radius 100 in the plan made an ellipse and scaled by 3 along X is the
         /// ellipse 300 by 100.

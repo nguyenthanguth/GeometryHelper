@@ -11,7 +11,7 @@ instance method on the type it applies to. Both are measured with the same [shar
 
 | Namespace | Contents |
 |---|---|
-| `GeometryHelper.Geometry` | `GeoPoint3`, `GeoVector3`, `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoPlane3`, `GeoTriangle3`, `GeoPolyline3`, `GeoPolygon3`, `GeoCircle3`, `GeoEllipse3`, `GeoFace3`, `GeoAabb3`, `GeoObb3`, `GeoSolid3`, `GeoEdge3`, `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoCoordinateSystem3`, `GeoTransform3` |
+| `GeometryHelper.Geometry` | `GeoPoint3`, `GeoVector3`, `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoPlane3`, `GeoTriangle3`, `GeoPolyline3`, `GeoPolygon3`, `GeoCircle3`, `GeoEllipse3`, `GeoFace3`, `GeoAabb3`, `GeoObb3`, `GeoSolid3`, `GeoSphere3`, `GeoEdge3`, `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoCoordinateSystem3`, `GeoTransform3` |
 | `GeometryHelper.Core` | `Boolean3`, `Collision3`, `Containment3`, `Distance3`, `Intersection3`, `Lengthen3`, `Merge3`, `Offset3`, `Parallel3`, `Parametrization3`, `Projection3`, `Splition3`, `Ellipse3`, `PlanarMap` |
 | `GeometryHelper.Spatial` | `GeoBvh3` |
 | `GeometryHelper.Extension` | `EnumerableExtension` |
@@ -49,7 +49,7 @@ The shapes split into three families, and which family a shape belongs to decide
 |---|---|---|---|
 | Curve | `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoPolyline3` | no | no |
 | Planar region | `GeoTriangle3`, `GeoPolygon3`, `GeoCircle3`, `GeoEllipse3`, `GeoFace3` | yes | no |
-| Volume | `GeoObb3`, `GeoAabb3`, `GeoSolid3` | yes | yes |
+| Volume | `GeoObb3`, `GeoAabb3`, `GeoSolid3`, `GeoSphere3` | yes | yes |
 
 Only regions and volumes offer `Contains`. Every shape offers `Locate`, and a curve can only ever
 answer `OnSide` or `OutSide`, because a curve has no interior for a point to be inside of.
@@ -657,6 +657,74 @@ through (1, 2, 3) along Z, written 50 long, runs from (1, 2, -22) to (1, 2, 28).
 converts the `Xline` and `Ray` entities: `xline.ToGeoXLine3()` and `line.ToAcadXline()`, `ray.ToGeoRay3()` and `geoRay.ToAcadRay()`, losing nothing,
 since each holds a base point and a unit direction (the direction is made unit length again on reading, so it can differ in its last digit
 after a round trip, and an entity whose direction has no length is refused with an `ArgumentException`). The viewer draws a `GeoXLine3` through the box of the scene.
+
+### Balls
+
+`GeoSphere3` is a solid ball: a centre and a radius above nought (nought, a negative radius, an infinite one and a number that is
+not one are refused). It is a volume, so it offers `Contains` and `Locate`, `Volume` (a ball of radius 50 holds 523 598.8) and
+`SurfaceArea` (31 415.9), `GetAabb()`, `SignedDistanceTo` (negative inside, tied to `Locate` as for the other volumes) and
+`DistanceToSurface`, which measures to the shell from either side. It moves with `Translate` and `TransformBy`, which keeps a ball
+a ball under a turn, a shift, a mirror or an even scaling and refuses what would make it an ellipsoid, a scaling of one axis or a
+shear, as a circle is refused its stretch.
+
+```csharp
+var ball = new GeoSphere3(GeoPoint3.Origin, 50);
+
+ball.DistanceTo(new GeoPoint3(20, 0, 0));          // 0: a ball is filled, like a body
+ball.SignedDistanceTo(new GeoPoint3(20, 0, 0));    // -30: thirty inside the surface
+ball.DistanceTo(new GeoPoint3(200, 0, 0));         // 150
+ball.GetShortestLineTo(new GeoPoint3(200, 0, 0));  // (50, 0, 0) -> (200, 0, 0)
+
+ball.GetIntersections(new GeoXLine3(new GeoPoint3(0, 30, 0), GeoVector3.XAxis));   // (-40, 30, 0), (40, 30, 0)
+
+ball.TryGetIntersectionCircle(new GeoPlane3(new GeoPoint3(0, 0, 30), GeoVector3.ZAxis), out GeoCircle3 cut);
+// true: the circle of radius 40 about (0, 0, 30), square to Z
+
+GeoSolid3 mesh = ball.ToSolid(0.01);               // 30 420 triangles, none further than 0.01 from the sphere
+```
+
+**It is asked what a ray is asked, and more.** A ball is a point grown by its radius, so its gap to any shape is the distance
+from its centre to that shape less the radius, and nought where the shape reaches into it. The shape's own distance to a point
+does the measuring, so every shape is read as it reads a point: a point, a curve and a plane as they are, a polygon, a triangle and
+a face as filled surfaces (a hole is not material: a ball of radius 30 about (5, 0, 0) is 5 from the square 200 by 200 with a hole 80 by
+80 about the origin), a circle and an ellipse as the discs they are, a curved loop to its outline (a ball in the middle of a large curved loop is apart from it), a box and a body as their
+material, and another ball as a ball: the ball of radius 10 about (200, 0, 0) is 140 from the one above, 200 less 60, whichever is
+asked. Unlike the line and the ray, which are not measured from a curve in space, a ball is, because the distance from a curve to a
+point has a closed form: the arc of radius 100 about the origin in the floor, a quarter turn from (100, 0, 0), is 50 from the ball.
+Every shape in space answers `DistanceTo`, `CollidesWith`, `GetShortestLineTo` and the crossings below about a ball as the ball
+answers about it, to the bit, and the shortest line turned round is the one the other side gives: a point, a segment, a ray, a line,
+an arc, a circle, an ellipse, an edge, a polyline, a polygon, a curved chain, a curved loop, a triangle, a face, a plane, a box of
+either kind, a body and a ball. A point answers with `Contains` and `IsPointOn` and not `CollidesWith`, as it does for every shape.
+
+`CollidesWith` is the gap being no more than the point tolerance: the plane 50.0005 above the ball of radius 50 about the origin touches it
+and the plane 50.002 above does not. The shortest line leaves the surface of the ball for the point of the shape nearest its centre and is as
+long as the gap; where the shape reaches into the ball it has no length and lies at that point, the centre itself where a body holds it.
+Two balls that meet have one of no length at the middle of the stretch of the line between their centres that both hold.
+
+**Where the surface is crossed** is asked with `GetIntersections` and `TryIntersectWith`, of a segment, a ray, a line, an arc, a circle,
+an ellipse, an edge, a polyline, a curved chain, a polygon, a triangle, a face and a curved loop. It is the surface that is crossed, not the
+ball: a line through the middle crosses it twice, in order along the line, one that grazes it within the point tolerance once, at its
+foot, and a line or curve that lies wholly inside collides with the ball and crosses it nowhere, as does a curve that lies on the surface itself. A flat shape is crossed where its
+boundary meets the surface, so the square from (-100, -100, 0) to (100, 100, 0) holds the ball of radius 50 and is crossed nowhere, while
+the strip from (-30, -100, 0) to (30, 100, 0) is crossed at (30, -40, 0), (30, 40, 0), (-30, 40, 0) and (-30, -40, 0), in the order its sides are
+met. A curve in a plane meets the surface where it meets the circle that plane cuts from it, by the library's own crossing of two curves in a plane;
+a corner on the surface counts once. A body or a box is asked whether it touches the ball and how far from it, and where their surfaces cross is
+the clash's question, asked of `ToSolid`. A plane and another ball do not cross in points but in a circle:
+`TryGetIntersectionCircle` gives it, in the plane, about the foot of the centre (the ball of radius 50 about (0, 0, 30) cut by the floor is the circle of
+radius 40 about the origin), and for two balls about the point on the line between the centres where their surfaces cross, square to it, with
+its normal along the line from the ball asked to the other: the ball of radius 50 about the origin and the ball of radius 30 about (50, 0, 0)
+share the circle of radius 28.62 about (41, 0, 0). `TryGetTangentPoint` gives the one point where they only touch, within the point tolerance either
+side (for two balls halfway between the surfaces on the line of centres, so within the tolerance of both), and the two are never both true. Touching is read within the
+tolerance, so shells that cross within it of each other, or a plane that cuts less than it deep, touch at a point though the true circle can be a few units across: sqrt(2 R tol), 4.5 for a radius R of 10 000; balls on one centre share the whole surface or none of it, and give neither. Asked from either ball the
+circle is the same to the bit but for the sign of its normal.
+
+**Meshing.** `ToSolid(chordTolerance)` is a closed body of triangles facing outwards and `TriangulateSurface(chordTolerance)` its triangles: an
+icosahedron of twenty triangles, each cut into n by n by lines parallel to its sides, with every corner pushed out onto the sphere and the least n
+for which no triangle strays further than the tolerance from it. A ball of radius 50 within 0.1 is 20 by 13 by 13, 3 380 triangles, and within 0.01
+20 by 39 by 39, 30 420, which hold 0.036 % less than `Volume`, as the corners lie on the sphere and the body inside it. A tolerance that needs more
+than 1 048 576 triangles is refused, as it is for the chords of a circle: radius 50 within 0.0001 would need three million, and a ball of radius 1 can be
+cut within 5.7E-6 and not 5E-6. A tolerance of nought picks 0.2 % of the radius. A default ball is refused, and one of a radius below about 0.01 has triangles thinner than the point tolerance and may mesh into a body the library calls open at the default tolerance. A corner shared by two triangles is the same to the bit in both, so the
+body is closed with no weld. A ball goes into a clash as `ball.ToSolid(0.01)`, which is as exact as the tolerance.
 
 ### How deep inside, not just whether
 
