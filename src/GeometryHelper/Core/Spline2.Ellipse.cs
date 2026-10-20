@@ -31,11 +31,12 @@ namespace GeometryHelper.Core
 
         internal override double Extent => 2.0 * _ellipse.MajorRadius;
 
-        internal override double Gap(double px, double py, out double qx, out double qy, out double other)
+        internal override double Gap(double px, double py, double pz, out double qx, out double qy, out double qz, out double other)
         {
             GeoPoint2 rim = Ellipse2.GetClosestPointOnBoundary(_ellipse, new GeoPoint2(px, py));
             qx = rim.X;
             qy = rim.Y;
+            qz = 0.0;
             other = Math.Atan2(rim.Y - Cy, rim.X - Cx);
             double dx = px - qx;
             double dy = py - qy;
@@ -84,15 +85,17 @@ namespace GeometryHelper.Core
             return bound - slack > 0.0 ? bound - slack : 0.0;
         }
 
-        internal override void GetBox(out double minX, out double minY, out double maxX, out double maxY)
+        internal override void GetBox(out double minX, out double minY, out double minZ, out double maxX, out double maxY, out double maxZ)
         {
             minX = Cx - _ellipse.MajorRadius;
             maxX = Cx + _ellipse.MajorRadius;
             minY = Cy - _ellipse.MajorRadius;
             maxY = Cy + _ellipse.MajorRadius;
+            minZ = 0.0;
+            maxZ = 0.0;
         }
 
-        internal override bool TryGetFrame(double qx, double qy, double other, out double r1x, out double r1y, out double r2x, out double r2y)
+        internal override bool TryGetFrame(double qx, double qy, double qz, double other, out double r1x, out double r1y, out double r1z, out double r2x, out double r2y, out double r2z)
         {
             // By the angle of the unit circle the ellipse is made from: the point is the centre plus a cos t times the major axis and
             // b sin t times the minor, so the first derivative is -a sin t times the first and b cos t times the second, and the second
@@ -108,8 +111,10 @@ namespace GeometryHelper.Core
             double second = (b / a) * along;
             r1x = first * u.X - second * u.Y;
             r1y = first * u.Y + second * u.X;
+            r1z = 0.0;
             r2x = -dx;
             r2y = -dy;
+            r2z = 0.0;
             return true;
         }
 

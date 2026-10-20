@@ -39,7 +39,7 @@ namespace GeometryHelper.Internal.Nurbs
         /// piece that lies along it, to rounding, or at a join of two such pieces. Where such a piece joins one that does not,
         /// the curve is meeting the partner or leaving it, and that is a crossing.
         /// </summary>
-        internal bool OnOverlap(Partner2 partner, double knot)
+        internal bool OnOverlap(Partner partner, double knot)
         {
             BezierPieces pieces = Pieces;
 
@@ -104,13 +104,21 @@ namespace GeometryHelper.Internal.Nurbs
         /// Measures the curve's distance to a partner at a knot value and offers it to a hunt, as a meeting when it is
         /// nought to rounding.
         /// </summary>
-        internal void Consider(Hunt hunt, Partner2 partner, double knot)
+        internal void Consider(Hunt hunt, Partner partner, double knot)
         {
             knot = Clamp(knot);
             PointAt(knot, hunt.Point);
             double px = hunt.Point[0];
             double py = hunt.Point[1];
-            double gap = partner.Gap(px, py, out double qx, out double qy, out double other);
+            double pz = hunt.Point[2];
+            double gap = partner.Gap(px, py, pz, out double qx, out double qy, out double qz, out double other);
+
+            // A part of a flat shape has no nearest point to a place that does not stand over it.
+            if (double.IsPositiveInfinity(gap))
+            {
+                return;
+            }
+
             double raw = gap;
             bool overlap = false;
             bool verified = false;
@@ -122,6 +130,7 @@ namespace GeometryHelper.Internal.Nurbs
                 gap = 0.0;
                 qx = px;
                 qy = py;
+                qz = pz;
                 verified = true;
             }
 
@@ -132,8 +141,10 @@ namespace GeometryHelper.Internal.Nurbs
                 Raw = raw,
                 Px = px,
                 Py = py,
+                Pz = pz,
                 Qx = qx,
                 Qy = qy,
+                Qz = qz,
                 Other = other,
                 Part = partner.Position,
                 Overlap = overlap,
@@ -146,7 +157,7 @@ namespace GeometryHelper.Internal.Nurbs
         /// Looks over a curve against a partner: the ends of the curve, the true ends of the partner, and each piece of the
         /// curve that can come within the hunt's limit of it.
         /// </summary>
-        internal void Meet(Partner2 partner, Hunt hunt)
+        internal void Meet(Partner partner, Hunt hunt)
         {
             PieceIndex index = Index;
             var min = new double[Dim];
@@ -164,8 +175,8 @@ namespace GeometryHelper.Internal.Nurbs
 
             for (int e = 0; e < partner.EndCount; e++)
             {
-                partner.EndAt(e, out double ex, out double ey);
-                NearEnd(hunt, partner, ex, ey);
+                partner.EndAt(e, out double ex, out double ey, out double ez);
+                NearEnd(hunt, partner, ex, ey, ez);
             }
 
             BezierPieces pieces = Pieces;
@@ -192,7 +203,7 @@ namespace GeometryHelper.Internal.Nurbs
         {
             internal NurbsCurve Curve;
             internal BezierPieces Pieces;
-            internal Partner2 Partner;
+            internal Partner Partner;
             internal Hunt Hunt;
 
             public double Limit => Hunt.Limit;
@@ -207,9 +218,9 @@ namespace GeometryHelper.Internal.Nurbs
         /// Offers the places where the curve comes nearest a true end of a partner: the nearest, when only that is wanted, and
         /// when every place is, each place within the reach where the curve stops coming nearer the end.
         /// </summary>
-        private void NearEnd(Hunt hunt, Partner2 partner, double ex, double ey)
+        private void NearEnd(Hunt hunt, Partner partner, double ex, double ey, double ez)
         {
-            var query = new[] { ex, ey };
+            double[] query = Dim == 3 ? new[] { ex, ey, ez } : new[] { ex, ey };
 
             if (hunt.OnlyNearest)
             {
@@ -288,7 +299,7 @@ namespace GeometryHelper.Internal.Nurbs
         /// </remarks>
         private bool IsMinimum(Contact contact, Hunt hunt)
         {
-            if (!TryGetFoot(contact.From, contact.Px, contact.Py, hunt.Scale, out Foot foot))
+            if (!TryGetFoot(contact.From, contact.Px, contact.Py, contact.Pz, hunt.Scale, Dim, out Foot foot))
             {
                 return foot.G <= hunt.Snap || IsLeast(contact, hunt);
             }
@@ -302,18 +313,18 @@ namespace GeometryHelper.Internal.Nurbs
             bool hasLeft = contact.Knot > Start;
             bool hasRight = contact.Knot < End;
             double[][] along = hasRight ? right : left;
-            double speed = Math.Sqrt(along[1][0] * along[1][0] + along[1][1] * along[1][1]);
-            double speedLeft = Math.Sqrt(left[1][0] * left[1][0] + left[1][1] * left[1][1]);
-            double speedRight = Math.Sqrt(right[1][0] * right[1][0] + right[1][1] * right[1][1]);
+            double speed = Math.Sqrt(along[1][0] * along[1][0] + along[1][1] * along[1][1] + Z(along[1]) * Z(along[1]));
+            double speedLeft = Math.Sqrt(left[1][0] * left[1][0] + left[1][1] * left[1][1] + Z(left[1]) * Z(left[1]));
+            double speedRight = Math.Sqrt(right[1][0] * right[1][0] + right[1][1] * right[1][1] + Z(right[1]) * Z(right[1]));
 
             if (!(speedLeft > StillSpeed) || !(speedRight > StillSpeed))
             {
                 return IsLeast(contact, hunt);
             }
 
-            double cosLeft = (foot.Ux * left[1][0] + foot.Uy * left[1][1]) / speedLeft;
-            double cosRight = (foot.Ux * right[1][0] + foot.Uy * right[1][1]) / speedRight;
-            double turn = Math.Sqrt((left[1][0] - right[1][0]) * (left[1][0] - right[1][0]) + (left[1][1] - right[1][1]) * (left[1][1] - right[1][1]));
+            double cosLeft = (foot.Ux * left[1][0] + foot.Uy * left[1][1] + foot.Uz * Z(left[1])) / speedLeft;
+            double cosRight = (foot.Ux * right[1][0] + foot.Uy * right[1][1] + foot.Uz * Z(right[1])) / speedRight;
+            double turn = Math.Sqrt((left[1][0] - right[1][0]) * (left[1][0] - right[1][0]) + (left[1][1] - right[1][1]) * (left[1][1] - right[1][1]) + (Z(left[1]) - Z(right[1])) * (Z(left[1]) - Z(right[1])));
             bool smooth = hasLeft && hasRight && turn <= 1E-6 * Math.Max(speedLeft, speedRight);
 
             if (!smooth)
@@ -327,17 +338,88 @@ namespace GeometryHelper.Internal.Nurbs
             double curvatureAlong = curvature / (speed * speed);
             double flat = 1E-9 / hunt.Extent;
 
+            // Curving up too little to rise a snap a thousandth of the size of the curve along it: a least only if the distance falls
+            // neither way (FallsEitherWay). One that curves up more is the least the quadratic says, whatever lies beyond.
+            bool weak = 0.5 * curvatureAlong * (1E-3 * Extent) * (1E-3 * Extent) < hunt.Snap;
+
             // Level, the distance is at its least only if it curves up: a distance that is the same all along, as for two curves side
-            // by side, is at its least nowhere.
+            // by side, is at its least nowhere. In space a curve that runs parallel to its partner for a moment, a ring over a line that
+            // is tangent to it and a thousandth above its plane, has a distance of the fourth order about its least, which no second
+            // derivative shows; it is told from a level one by looking either way along the curve (<see cref="RisesBothWays"/>). In space a
+            // least that curves up is one only if the distance falls neither way along the curve: a curve whose offset from a line stops at
+            // an inflection, as a cubic's does across the line through its inflection, has a curvature of the distance there that changes
+            // sign, and a root found a hair to one side of it reads as one that curves up.
             if (Math.Abs(slopeAlong) <= foot.Slack)
             {
-                return curvatureAlong > flat;
+                return (curvatureAlong > flat && (Dim == 2 || !weak || !FallsEitherWay(contact, hunt))) || (Dim == 3 && !contact.From.InPlaneAt(this, contact.Knot) && RisesBothWays(contact, hunt));
             }
 
             // On a slope: a minimum within the reach, if the distance curves up; or a meeting within the reach, going the way it
             // falls, which is the crossing of a curve at an angle, where the distance is a V and the roots of the polynomials it is
             // found by are found to a few snaps and not to the last digit.
-            return (curvatureAlong > flat && Math.Abs(slopeAlong) <= curvatureAlong * hunt.Reach) || foot.G <= Math.Abs(slopeAlong) * hunt.Reach;
+            return (curvatureAlong > flat && Math.Abs(slopeAlong) <= curvatureAlong * hunt.Reach && (Dim == 2 || !weak || !FallsEitherWay(contact, hunt))) || foot.G <= Math.Abs(slopeAlong) * hunt.Reach;
+        }
+
+        /// <summary>
+        /// Says whether the distance from the curve to its partner falls, by more than a snap, a hundredth of the size of the curve along it
+        /// either way from a contact inside the piece the contact is on, or a thousandth of the size, or half that, and so on eleven times to
+        /// a millionth: a least does not. It is asked of a least that curves up too little to rise a snap a thousandth of the size along. The
+        /// offset of the cubic y = x³ / 100 from the line y = 0.0001 has fallen 8E-8 a thousandth of the size from its inflection, which a
+        /// million out is under the snap, and 8E-5 a hundredth of it; and a crossing between two of the looks, as that of the cubic 1 000
+        /// across with the line y = 1E-9 a tenth from its inflection, is told by a look in it, the steps being halved and not cut tenfold.
+        /// </summary>
+        private bool FallsEitherWay(Contact contact, Hunt hunt)
+        {
+            double[][] here = Derivatives(contact.Knot, 1);
+            double speed = Math.Sqrt(here[1][0] * here[1][0] + here[1][1] * here[1][1] + Z(here[1]) * Z(here[1]));
+
+            if (!(speed > StillSpeed))
+            {
+                return false;
+            }
+
+            var point = new double[Dim];
+            BezierPieces pieces = Pieces;
+            int piece = PieceAt(contact.Knot, out bool atStart);
+
+            for (int side = -1; side <= 1; side += 2)
+            {
+                int own = side < 0 && atStart && piece > 0 ? piece - 1 : piece;
+                double bound = side < 0 ? pieces.From[own] : pieces.To[own];
+                double far = contact.Knot + side * 1E-2 * Extent / speed;
+                far = side < 0 ? Math.Max(far, bound) : Math.Min(far, bound);
+
+                if (far != contact.Knot)
+                {
+                    PointAt(far, point);
+
+                    if (contact.From.Gap(point[0], point[1], Dim == 3 ? point[2] : 0.0, out _, out _, out _, out _) < contact.Gap - hunt.Snap)
+                    {
+                        return true;
+                    }
+                }
+
+                double share = 1E-3;
+
+                for (int ladder = 0; ladder < 11; ladder++, share *= 0.5)
+                {
+                    double knot = Clamp(contact.Knot + side * share * Extent / speed);
+
+                    if (knot == contact.Knot)
+                    {
+                        break;
+                    }
+
+                    PointAt(knot, point);
+
+                    if (contact.From.Gap(point[0], point[1], Dim == 3 ? point[2] : 0.0, out _, out _, out _, out _) < contact.Gap - hunt.Snap)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -350,10 +432,10 @@ namespace GeometryHelper.Internal.Nurbs
             internal double G;
 
             /// <summary>The unit direction from the partner to the point.</summary>
-            internal double Ux, Uy;
+            internal double Ux, Uy, Uz;
 
             /// <summary>The first and second derivative of the partner's nearest point, by its own number.</summary>
-            internal double R1x, R1y, R2x, R2y;
+            internal double R1x, R1y, R1z, R2x, R2y, R2z;
 
             /// <summary>The length of the first derivative.</summary>
             internal double PartnerSpeed;
@@ -363,7 +445,18 @@ namespace GeometryHelper.Internal.Nurbs
 
             /// <summary>How near nought a slope that is nought can read, by cosine.</summary>
             internal double Slack;
+
+            /// <summary>Whether the partner is a surface, a plane or a ball, whose distance bends by <see cref="Bend"/> where a curve's partner's frame would give it.</summary>
+            internal bool Surface;
+
+            /// <summary>For a surface, how the distance bends square to the direction to the point (<see cref="Partner.TryGetSurface"/>).</summary>
+            internal double Bend;
         }
+
+        /// <summary>
+        /// Gets a number of a row of derivatives: the third coordinate, which a curve in the plane does not have, is nought.
+        /// </summary>
+        internal static double Z(double[] row) => row.Length > 2 ? row[2] : 0.0;
 
         /// <summary>
         /// Finds the nearest point of a partner to a point and the direction to the point.
@@ -371,38 +464,80 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="partner">The partner.</param>
         /// <param name="px">The point.</param>
         /// <param name="py">The point.</param>
+        /// <param name="pz">The point; nought in the plane.</param>
         /// <param name="scale">The size of the numbers the shapes are given in, which the digits of the point are measured by.</param>
+        /// <param name="dim">The number of coordinates of the point, 2 or 3.</param>
         /// <param name="foot">What was found; its distance is given even when false is returned.</param>
         /// <returns>false when the partner cannot give its derivatives, or the point is on it.</returns>
         /// <remarks>
         /// The direction is the normal of the partner where its nearest point is free to move along it, which is exact, where the
-        /// difference of two points a few digits apart at a distance of a few snaps is not.
+        /// difference of two points a few digits apart at a distance of a few snaps is not. In space a curve has no one normal, and the
+        /// direction is the line to the nearest point with what runs along the partner taken off it. A plane and a ball give their own.
         /// </remarks>
-        internal static bool TryGetFoot(Partner2 partner, double px, double py, double scale, out Foot foot)
+        internal static bool TryGetFoot(Partner partner, double px, double py, double pz, double scale, int dim, out Foot foot)
         {
             foot = default(Foot);
-            foot.G = partner.Gap(px, py, out double qx, out double qy, out double other);
+            foot.G = partner.Gap(px, py, pz, out double qx, out double qy, out double qz, out double other);
 
-            if (!(foot.G > 0.0) || !partner.TryGetFrame(qx, qy, other, out foot.R1x, out foot.R1y, out foot.R2x, out foot.R2y))
+            if (!(foot.G > 0.0))
+            {
+                return false;
+            }
+
+            if (partner.TryGetSurface(px, py, pz, out foot.Ux, out foot.Uy, out foot.Uz, out foot.Bend, out double surfaceNoise))
+            {
+                foot.Surface = true;
+                foot.Free = true;
+                foot.Slack = 1E-9 + surfaceNoise;
+                return true;
+            }
+
+            if (!partner.TryGetFrame(qx, qy, qz, other, out foot.R1x, out foot.R1y, out foot.R1z, out foot.R2x, out foot.R2y, out foot.R2z))
             {
                 return false;
             }
 
             double rx = px - qx;
             double ry = py - qy;
+            double rz = pz - qz;
             double noise = 4.0 * 2.220446049250313E-16 * scale / foot.G;
-            foot.PartnerSpeed = Math.Sqrt(foot.R1x * foot.R1x + foot.R1y * foot.R1y);
+            foot.PartnerSpeed = Math.Sqrt(foot.R1x * foot.R1x + foot.R1y * foot.R1y + foot.R1z * foot.R1z);
             foot.Free = foot.PartnerSpeed > 0.0 && partner.IsFree(other);
             foot.Ux = rx / foot.G;
             foot.Uy = ry / foot.G;
+            foot.Uz = rz / foot.G;
             foot.Slack = 1E-9 + noise;
 
             if (foot.Free)
             {
-                double side = rx * -foot.R1y + ry * foot.R1x >= 0.0 ? 1.0 : -1.0;
-                foot.Ux = side * -foot.R1y / foot.PartnerSpeed;
-                foot.Uy = side * foot.R1x / foot.PartnerSpeed;
-                foot.Slack = 1E-9;
+                if (dim == 2)
+                {
+                    double side = rx * -foot.R1y + ry * foot.R1x >= 0.0 ? 1.0 : -1.0;
+                    foot.Ux = side * -foot.R1y / foot.PartnerSpeed;
+                    foot.Uy = side * foot.R1x / foot.PartnerSpeed;
+                }
+                else
+                {
+                    double tx = foot.R1x / foot.PartnerSpeed;
+                    double ty = foot.R1y / foot.PartnerSpeed;
+                    double tz = foot.R1z / foot.PartnerSpeed;
+                    double along = rx * tx + ry * ty + rz * tz;
+                    double ox = rx - along * tx;
+                    double oy = ry - along * ty;
+                    double oz = rz - along * tz;
+                    double length = Math.Sqrt(ox * ox + oy * oy + oz * oz);
+
+                    if (length > 0.0)
+                    {
+                        foot.Ux = ox / length;
+                        foot.Uy = oy / length;
+                        foot.Uz = oz / length;
+                    }
+                }
+
+                // In the plane the direction is the partner's normal, exact; in space it is the line to the nearest point, which carries
+                // the rounding of the coordinates over the distance.
+                foot.Slack = dim == 2 ? 1E-9 : 1E-9 + noise;
             }
 
             return true;
@@ -421,25 +556,212 @@ namespace GeometryHelper.Internal.Nurbs
         /// distance. The second variation is, the partner's nearest point moving to keep as near as it can, with a = u . P'' and
         /// b = u . Q'', ((P' x Q')² + g (a |Q'|² - b |P'|²) - g² a b) / (|Q'|² - g b): the first term is |P'|² |Q'|² less (P' . Q')²,
         /// written as the square of a cross product so that two tangents that run side by side, whose two terms are alike to the last
-        /// digit, leave no rounding behind. Held at an end of the partner, the point does not move, and it is |P'|² + g a.
+        /// digit, leave no rounding behind. Held at an end of the partner, the point does not move, and it is |P'|² + g a. In space the
+        /// first term is the squared length of the cross product, which is the same identity. For a surface the nearest point moves in two
+        /// directions and the curvature is its bend times the speed squared less the slope squared, plus a (<see cref="Partner.TryGetSurface"/>).
         /// </remarks>
         internal static void Variation(Foot foot, double[][] along, out double slope, out double curvature)
         {
-            double speed2 = along[1][0] * along[1][0] + along[1][1] * along[1][1];
-            double a = foot.Ux * along[2][0] + foot.Uy * along[2][1];
-            double b = foot.Ux * foot.R2x + foot.Uy * foot.R2y;
-            double partner2 = foot.R1x * foot.R1x + foot.R1y * foot.R1y;
+            double z1 = Z(along[1]);
+            double z2 = Z(along[2]);
+            double speed2 = along[1][0] * along[1][0] + along[1][1] * along[1][1] + z1 * z1;
+            double a = foot.Ux * along[2][0] + foot.Uy * along[2][1] + foot.Uz * z2;
+
+            if (foot.Surface)
+            {
+                slope = foot.Ux * along[1][0] + foot.Uy * along[1][1] + foot.Uz * z1;
+                curvature = foot.Bend * (speed2 - slope * slope) + a;
+                return;
+            }
+
+            double b = foot.Ux * foot.R2x + foot.Uy * foot.R2y + foot.Uz * foot.R2z;
+            double partner2 = foot.R1x * foot.R1x + foot.R1y * foot.R1y + foot.R1z * foot.R1z;
             double stiffness = partner2 - foot.G * b;
             double second = speed2 + foot.G * a;
 
             if (foot.Free && stiffness > 0.0)
             {
-                double cross = along[1][0] * foot.R1y - along[1][1] * foot.R1x;
-                second = (cross * cross + foot.G * (a * partner2 - b * speed2) - foot.G * foot.G * a * b) / stiffness;
+                double crossX = along[1][1] * foot.R1z - z1 * foot.R1y;
+                double crossY = z1 * foot.R1x - along[1][0] * foot.R1z;
+                double crossZ = along[1][0] * foot.R1y - along[1][1] * foot.R1x;
+                double cross2 = crossX * crossX + crossY * crossY + crossZ * crossZ;
+                second = (cross2 + foot.G * (a * partner2 - b * speed2) - foot.G * foot.G * a * b) / stiffness;
             }
 
-            slope = foot.Ux * along[1][0] + foot.Uy * along[1][1];
+            slope = foot.Ux * along[1][0] + foot.Uy * along[1][1] + foot.Uz * z1;
             curvature = (second - slope * slope) / foot.G;
+        }
+
+        /// <summary>
+        /// Brings a place of the curve where the distance to a partner is not nought to the least of it, by Newton's method on the
+        /// distance along the curve, not on its square: where the curve touches a straight partner, tangent to it, the distance is
+        /// the square of how far from the touch the place is and the squared distance the fourth power, which Newton's method on it
+        /// takes a halving of the step at a time to reach, where on the distance it takes one step.
+        /// </summary>
+        /// <remarks>
+        /// It moves only inside the piece it is on, only where the distance has a positive curvature, and only to a place that is no
+        /// farther from the partner, so it can leave a place where it was but never make it worse.
+        /// </remarks>
+        internal double Settle(Partner partner, double knot, Hunt hunt)
+        {
+            BezierPieces pieces = Pieces;
+            int piece = PieceAt(knot, out _);
+            double low = pieces.From[piece];
+            double high = pieces.To[piece];
+            double s = knot;
+            var query = new double[Dim];
+
+            for (int step = 0; step < 30; step++)
+            {
+                double[][] derivatives = Derivatives(s, 2);
+
+                if (!TryGetFoot(partner, derivatives[0][0], derivatives[0][1], Z(derivatives[0]), hunt.Scale, Dim, out Foot foot) || !(foot.G > hunt.Snap))
+                {
+                    return s;
+                }
+
+                Variation(foot, derivatives, out double slope, out double curvature);
+                double speed2 = derivatives[1][0] * derivatives[1][0] + derivatives[1][1] * derivatives[1][1] + Z(derivatives[1]) * Z(derivatives[1]);
+
+                if (!(curvature > 1E-9 / hunt.Extent * speed2))
+                {
+                    return s;
+                }
+
+                double move = -slope / curvature;
+                bool moved = false;
+
+                for (int half = 0; half < 6 && !moved && Math.Abs(move) > 1E-15 * (1.0 + Math.Abs(s)); half++)
+                {
+                    double next = Math.Min(Math.Max(s + move, low), high);
+                    PointAt(next, query);
+                    double distance = partner.Gap(query[0], query[1], Dim == 3 ? query[2] : 0.0, out _, out _, out _, out _);
+
+                    if (next != s && distance <= foot.G)
+                    {
+                        s = next;
+                        moved = true;
+
+                        // A step that gains less than a snap is no gain: along a stretch where the curve is as near as rounding tells, the
+                        // distance is level and Newton's method would go on for ever.
+                        if (foot.G - distance <= hunt.Snap)
+                        {
+                            return s;
+                        }
+                    }
+
+                    move *= 0.5;
+                }
+
+                if (!moved)
+                {
+                    return s;
+                }
+            }
+
+            return s;
+        }
+
+        /// <summary>
+        /// Says whether the distance from the curve to its partner has risen a thousandth of the size of the curve either way along it
+        /// from a contact, by more than the digits can tell, and has fallen nowhere on the way: a least that has no curvature, a distance
+        /// of the fourth order, has risen by then, and a stretch where the distance is level has not.
+        /// </summary>
+        /// <remarks>
+        /// A hump between two crossings of a plane, which falls to nought either side of it, is further out than a thousandth of the size
+        /// of the curve from the middle for a plane a ten-thousandth off the curve, and the distance there is higher than at the middle:
+        /// the steps taken are a thousandth, a ten-thousandth and so on down to a millionth, and the distance is not to have fallen at
+        /// any of them by as much as a snap, which a hump between two near touches that are a few snaps deep has done by the second.
+        /// </remarks>
+        private bool RisesBothWays(Contact contact, Hunt hunt)
+        {
+            double[][] here = Derivatives(contact.Knot, 1);
+            double speed = Math.Sqrt(here[1][0] * here[1][0] + here[1][1] * here[1][1] + Z(here[1]) * Z(here[1]));
+
+            if (!(speed > StillSpeed))
+            {
+                return false;
+            }
+
+            double band = 8.0 * hunt.Snap;
+            double fall = hunt.Snap;
+            var point = new double[Dim];
+
+            for (int side = -1; side <= 1; side += 2)
+            {
+                double share = 1E-3;
+
+                for (int ladder = 0; ladder < 4; ladder++, share *= 0.1)
+                {
+                    double knot = Clamp(contact.Knot + side * share * Extent / speed);
+
+                    if (knot == contact.Knot)
+                    {
+                        return false;
+                    }
+
+                    PointAt(knot, point);
+                    double gap = contact.From.Gap(point[0], point[1], Dim == 3 ? point[2] : 0.0, out _, out _, out _, out _);
+
+                    if (gap < contact.Gap - fall || (ladder == 0 && !(gap > contact.Gap + band) && !RisesFurther(contact, hunt, side, speed, band, fall, point)))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Says whether the distance from the curve to its partner, not yet risen a thousandth of the size of the curve along it from a
+        /// contact, has risen a hundredth or a tenth of it along, inside the piece the contact is on, and fallen at neither: a least of the
+        /// sixth order, a spline whose inflection a line passes over half a thousandth above its plane, has risen 6E-12 a thousandth of the
+        /// size along and 6E-6 a hundredth along. The piece bounds it, so that a stretch where the distance is level does not take the
+        /// rise of the piece beyond it for its own.
+        /// </summary>
+        private bool RisesFurther(Contact contact, Hunt hunt, int side, double speed, double band, double fall, double[] point)
+        {
+            BezierPieces pieces = Pieces;
+            int piece = PieceAt(contact.Knot, out bool atStart);
+
+            if (side < 0 && atStart && piece > 0)
+            {
+                piece--;
+            }
+
+            double bound = side < 0 ? pieces.From[piece] : pieces.To[piece];
+
+            for (double share = 1E-2; share <= 0.11; share *= 10.0)
+            {
+                double knot = contact.Knot + side * share * Extent / speed;
+                knot = side < 0 ? Math.Max(knot, bound) : Math.Min(knot, bound);
+
+                if (knot == contact.Knot)
+                {
+                    return false;
+                }
+
+                PointAt(knot, point);
+                double gap = contact.From.Gap(point[0], point[1], Dim == 3 ? point[2] : 0.0, out _, out _, out _, out _);
+
+                if (gap < contact.Gap - fall)
+                {
+                    return false;
+                }
+
+                if (gap > contact.Gap + band)
+                {
+                    return true;
+                }
+
+                if (knot == bound)
+                {
+                    return false;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -465,7 +787,7 @@ namespace GeometryHelper.Internal.Nurbs
 
                 PointAt(knot, hunt.Point);
 
-                if (contact.From.Gap(hunt.Point[0], hunt.Point[1], out _, out _, out _) < contact.Gap - noise)
+                if (contact.From.Gap(hunt.Point[0], hunt.Point[1], hunt.Point[2], out _, out _, out _, out _) < contact.Gap - noise)
                 {
                     return false;
                 }
@@ -479,7 +801,7 @@ namespace GeometryHelper.Internal.Nurbs
         /// </summary>
         /// <param name="partners">The partners: a shape that is several pieces, such as a polyline, gives each.</param>
         /// <param name="nearest">The nearest approach, with ties between places as near broken by the lowest knot value of the curve.</param>
-        internal bool TryGetNearest(IList<Partner2> partners, out Contact nearest)
+        internal bool TryGetNearest(IList<Partner> partners, out Contact nearest)
         {
             Hunt hunt = Begin(partners, true, 0.0);
 
@@ -502,11 +824,12 @@ namespace GeometryHelper.Internal.Nurbs
         /// (<see cref="IsMinimum"/>). Those no further apart than the reach, one from the next, are one place, the nearer kept, and so
         /// are two near touches next to each other along the curve within ten times the reach with no point between them farther from the
         /// partners than at either by more than four snaps (<see cref="MergeBasins"/>); two meetings are only one place when they are
-        /// within the reach of each other, whatever lies between. Where the curve runs along a partner for a stretch, to
+        /// within the reach of each other, whatever lies between, and in space a least within the reach of a meeting is left out, so that
+        /// it does not join two (<see cref="DropBesideMeetings"/>). Where the curve runs along a partner for a stretch, to
         /// rounding, or along another curve within the reach and level for a quarter of the size of the smaller (<see cref="DropAlong"/>),
         /// it is not crossing it there, and nothing is given along the stretch.
         /// </remarks>
-        internal List<Contact> GetMeetings(IList<Partner2> partners, double reach)
+        internal List<Contact> GetMeetings(IList<Partner> partners, double reach)
         {
             Hunt hunt = Begin(partners, false, reach);
 
@@ -537,7 +860,8 @@ namespace GeometryHelper.Internal.Nurbs
                 }
             }
 
-            kept.AddRange(DropNearerElsewhere(pending, partners, hunt));
+            List<Contact> leasts = DropNearerElsewhere(pending, partners, hunt);
+            kept.AddRange(Dim == 3 ? DropBesideMeetings(leasts, kept, reach, hunt) : leasts);
             kept.Sort(Compare);
 
             // Places no further apart than the reach, one from the next, are one place, the nearer kept: a run of near contacts is the
@@ -546,8 +870,10 @@ namespace GeometryHelper.Internal.Nurbs
             // square root of two where the digits allow, so that two in one cell are within the reach of each other and are one place
             // already: a cell that has a place within the reach of a new one has no need to be looked at further, which keeps a hundred
             // thousand places that rounding left at one touch from costing ten billion looks.
-            double cell = Math.Max(reach / 1.4142135623730951, 1E-9 * hunt.Scale);
-            bool mutual = cell * 1.4142135623730951 <= reach;
+            // In space the cells are as wide as the reach over the square root of three, so that two in one cell are within it of each other.
+            double diagonal = Dim == 3 ? 1.7320508075688772 : 1.4142135623730951;
+            double cell = Math.Max(reach / diagonal, 1E-9 * hunt.Scale);
+            bool mutual = cell * diagonal <= reach;
             int span = (int)Math.Ceiling(reach / cell);
             var grid = new Dictionary<long, List<int>>(new CellComparer());
             var parent = new int[kept.Count];
@@ -558,35 +884,42 @@ namespace GeometryHelper.Internal.Nurbs
                 Contact contact = kept[i];
                 long cx = (long)Math.Floor(contact.Px / cell);
                 long cy = (long)Math.Floor(contact.Py / cell);
+                long cz = Dim == 3 ? (long)Math.Floor(contact.Pz / cell) : 0L;
+                long zLow = Dim == 3 ? cz - span : 0L;
+                long zHigh = Dim == 3 ? cz + span : 0L;
 
                 for (long gx = cx - span; gx <= cx + span; gx++)
                 {
                     for (long gy = cy - span; gy <= cy + span; gy++)
                     {
-                        if (!grid.TryGetValue(CellKey(gx, gy), out List<int> inCell))
+                        for (long gz = zLow; gz <= zHigh; gz++)
                         {
-                            continue;
-                        }
-
-                        foreach (int j in inCell)
-                        {
-                            double dx = kept[j].Px - contact.Px;
-                            double dy = kept[j].Py - contact.Py;
-
-                            if (dx * dx + dy * dy <= reach * reach)
+                            if (!grid.TryGetValue(CellKey(gx, gy, gz), out List<int> inCell))
                             {
-                                Join(parent, i, j);
+                                continue;
+                            }
 
-                                if (mutual)
+                            foreach (int j in inCell)
+                            {
+                                double dx = kept[j].Px - contact.Px;
+                                double dy = kept[j].Py - contact.Py;
+                                double dz = kept[j].Pz - contact.Pz;
+
+                                if (dx * dx + dy * dy + dz * dz <= reach * reach)
                                 {
-                                    break;
+                                    Join(parent, i, j);
+
+                                    if (mutual)
+                                    {
+                                        break;
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                Register(grid, cx, cy, i);
+                Register(grid, cx, cy, cz, i);
             }
 
             // Of each run, the contact nearest the partner, the first along the curve where as near.
@@ -625,8 +958,9 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>
         /// Takes out the places inside a stretch where the curve lies along another curve to within the reach (<see cref="SplinePartner"/>
         /// finds them): the places a curve as good as the same as another has are where the rounding of the numbers has the two touch or
-        /// cross, which is no place. A crossing found there by the offset of the one from the other changing sign by more than a tenth
-        /// of the reach each way stays: the curves cross at a shallow angle.
+        /// cross, which is no place. A crossing found there by the offset of the one from the other changing sign by more than a hundredth
+        /// of the reach each way stays: the curves cross at a shallow angle; and so does, for two curves in space that share no plane, a
+        /// least of the distance where the two would cross if brought into one plane (<see cref="Contact.Dip"/>).
         /// </summary>
         private static List<Contact> DropAlong(List<Contact> places, Hunt hunt)
         {
@@ -639,7 +973,7 @@ namespace GeometryHelper.Internal.Nurbs
 
             foreach (Contact place in places)
             {
-                if (place.Crossing || !hunt.IsAlong(place.Part, place.Knot, place.Knot))
+                if (place.Crossing || place.Dip || !hunt.IsAlong(place.Part, place.Knot, place.Knot))
                 {
                     kept.Add(place);
                 }
@@ -677,18 +1011,20 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="partners">The partners.</param>
         /// <param name="qx">The points.</param>
         /// <param name="qy">The points.</param>
+        /// <param name="qz">The points; nought in the plane.</param>
         /// <param name="radius">How far from each point a partner must be to be of interest; no more than nought leaves the point out.</param>
         /// <param name="skip">The position of the one partner to leave out for each point, or -1.</param>
         /// <param name="least">The least distance found for each point, or infinity when no partner is within its radius.</param>
+        /// <param name="dim">The number of coordinates of the points, 2 or 3.</param>
         /// <remarks>
         /// The partners are the edges of a polygon, a chain or a polyline, which may be a million, and the points the few places a curve
         /// comes near them: the work is done from the partners' side, each partner looking up the cells of a grid of the points that its
         /// box reaches, so that it costs the number of the partners and of the pairs that are near, not their product.
         /// </remarks>
-        private static void MinGaps(IList<Partner2> partners, double[] qx, double[] qy, double[] radius, int[] skip, double[] least)
+        private static void MinGaps(IList<Partner> partners, double[] qx, double[] qy, double[] qz, double[] radius, int[] skip, double[] least, int dim)
         {
             int n = qx.Length;
-            var probe = new double[2];
+            var probe = new double[3];
             double widest = 0.0;
 
             for (int k = 0; k < n; k++)
@@ -713,39 +1049,41 @@ namespace GeometryHelper.Internal.Nurbs
                 {
                     if (radius[k] > 0.0)
                     {
-                        Register(grid, (long)Math.Floor(qx[k] / cell), (long)Math.Floor(qy[k] / cell), k);
+                        Register(grid, (long)Math.Floor(qx[k] / cell), (long)Math.Floor(qy[k] / cell), dim == 3 ? (long)Math.Floor(qz[k] / cell) : 0L, k);
                     }
                 }
             }
 
             for (int j = 0; j < partners.Count; j++)
             {
-                Partner2 partner = partners[j];
+                Partner partner = partners[j];
 
                 if (grid == null)
                 {
                     for (int k = 0; k < n; k++)
                     {
-                        Measure(partner, k, qx, qy, radius, skip, least, probe);
+                        Measure(partner, k, qx, qy, qz, radius, skip, least, probe, dim);
                     }
 
                     continue;
                 }
 
-                partner.GetBox(out double minX, out double minY, out double maxX, out double maxY);
+                partner.GetBox(out double minX, out double minY, out double minZ, out double maxX, out double maxY, out double maxZ);
                 double cx0 = Math.Floor((minX - widest) / cell);
                 double cx1 = Math.Floor((maxX + widest) / cell);
                 double cy0 = Math.Floor((minY - widest) / cell);
                 double cy1 = Math.Floor((maxY + widest) / cell);
+                double cz0 = dim == 3 ? Math.Floor((minZ - widest) / cell) : 0.0;
+                double cz1 = dim == 3 ? Math.Floor((maxZ + widest) / cell) : 0.0;
 
-                if (double.IsInfinity(cx0) || double.IsInfinity(cx1) || double.IsInfinity(cy0) || double.IsInfinity(cy1) || (cx1 - cx0 + 1.0) * (cy1 - cy0 + 1.0) > n)
+                if (double.IsInfinity(cx0) || double.IsInfinity(cx1) || double.IsInfinity(cy0) || double.IsInfinity(cy1) || double.IsInfinity(cz0) || double.IsInfinity(cz1) || (cx1 - cx0 + 1.0) * (cy1 - cy0 + 1.0) * (cz1 - cz0 + 1.0) > n)
                 {
                     // A box that reaches more cells than there are points: look at the points.
                     for (int k = 0; k < n; k++)
                     {
-                        if (qx[k] >= minX - radius[k] && qx[k] <= maxX + radius[k] && qy[k] >= minY - radius[k] && qy[k] <= maxY + radius[k])
+                        if (qx[k] >= minX - radius[k] && qx[k] <= maxX + radius[k] && qy[k] >= minY - radius[k] && qy[k] <= maxY + radius[k] && (dim == 2 || (qz[k] >= minZ - radius[k] && qz[k] <= maxZ + radius[k])))
                         {
-                            Measure(partner, k, qx, qy, radius, skip, least, probe);
+                            Measure(partner, k, qx, qy, qz, radius, skip, least, probe, dim);
                         }
                     }
 
@@ -756,11 +1094,14 @@ namespace GeometryHelper.Internal.Nurbs
                 {
                     for (long gy = (long)cy0; gy <= (long)cy1; gy++)
                     {
-                        if (grid.TryGetValue(CellKey(gx, gy), out List<int> inCell))
+                        for (long gz = (long)cz0; gz <= (long)cz1; gz++)
                         {
-                            foreach (int k in inCell)
+                            if (grid.TryGetValue(CellKey(gx, gy, gz), out List<int> inCell))
                             {
-                                Measure(partner, k, qx, qy, radius, skip, least, probe);
+                                foreach (int k in inCell)
+                                {
+                                    Measure(partner, k, qx, qy, qz, radius, skip, least, probe, dim);
+                                }
                             }
                         }
                     }
@@ -768,7 +1109,7 @@ namespace GeometryHelper.Internal.Nurbs
             }
         }
 
-        private static void Measure(Partner2 partner, int k, double[] qx, double[] qy, double[] radius, int[] skip, double[] least, double[] probe)
+        private static void Measure(Partner partner, int k, double[] qx, double[] qy, double[] qz, double[] radius, int[] skip, double[] least, double[] probe, int dim)
         {
             if (!(radius[k] > 0.0) || partner.Position == skip[k])
             {
@@ -777,10 +1118,11 @@ namespace GeometryHelper.Internal.Nurbs
 
             probe[0] = qx[k];
             probe[1] = qy[k];
+            probe[2] = dim == 3 ? qz[k] : 0.0;
 
             if (partner.Bound(probe, probe, 0) <= Math.Min(radius[k], least[k]))
             {
-                double gap = partner.Gap(qx[k], qy[k], out _, out _, out _);
+                double gap = partner.Gap(qx[k], qy[k], dim == 3 ? qz[k] : 0.0, out _, out _, out _, out _);
 
                 if (gap < least[k])
                 {
@@ -794,7 +1136,7 @@ namespace GeometryHelper.Internal.Nurbs
         /// they are not leasts of the distance to the shape: the places a curve comes near the edges of a polygon are those of the
         /// polygon, and an edge's own nearest place that another edge is nearer to is not one.
         /// </summary>
-        private static List<Contact> DropNearerElsewhere(List<Contact> pending, IList<Partner2> partners, Hunt hunt)
+        private List<Contact> DropNearerElsewhere(List<Contact> pending, IList<Partner> partners, Hunt hunt)
         {
             if (partners.Count < 2 || pending.Count == 0)
             {
@@ -805,6 +1147,7 @@ namespace GeometryHelper.Internal.Nurbs
             int n = pending.Count;
             var qx = new double[n];
             var qy = new double[n];
+            var qz = new double[n];
             var radius = new double[n];
             var skip = new int[n];
             var least = new double[n];
@@ -813,11 +1156,12 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 qx[i] = pending[i].Px;
                 qy[i] = pending[i].Py;
+                qz[i] = pending[i].Pz;
                 radius[i] = pending[i].Gap - slack;
                 skip[i] = pending[i].Part;
             }
 
-            MinGaps(partners, qx, qy, radius, skip, least);
+            MinGaps(partners, qx, qy, qz, radius, skip, least, Dim);
             var kept = new List<Contact>(n);
 
             for (int i = 0; i < n; i++)
@@ -832,13 +1176,79 @@ namespace GeometryHelper.Internal.Nurbs
         }
 
         /// <summary>
+        /// Drops, in space, the leasts of the distance that lie within the reach of a meeting: such a least would be one place with the
+        /// meeting, the meeting kept, and kept until then it joins two meetings further apart than the reach into one, which two crossings
+        /// are not. A line a millionth of a radian off the tangent of a spline in space crosses it twice 0.0011 apart, and the slope of
+        /// the distance between them, falling to each, was a place that made the two one.
+        /// </summary>
+        private static List<Contact> DropBesideMeetings(List<Contact> leasts, List<Contact> meetings, double reach, Hunt hunt)
+        {
+            if (leasts.Count == 0 || meetings.Count == 0)
+            {
+                return leasts;
+            }
+
+            double cell = Math.Max(reach, 1E-9 * hunt.Scale);
+            var grid = new Dictionary<long, List<int>>(new CellComparer());
+
+            for (int i = 0; i < meetings.Count; i++)
+            {
+                Register(grid, (long)Math.Floor(meetings[i].Px / cell), (long)Math.Floor(meetings[i].Py / cell), (long)Math.Floor(meetings[i].Pz / cell), i);
+            }
+
+            var kept = new List<Contact>(leasts.Count);
+
+            foreach (Contact least in leasts)
+            {
+                long cx = (long)Math.Floor(least.Px / cell);
+                long cy = (long)Math.Floor(least.Py / cell);
+                long cz = (long)Math.Floor(least.Pz / cell);
+                bool beside = false;
+
+                for (long gx = cx - 1; gx <= cx + 1 && !beside; gx++)
+                {
+                    for (long gy = cy - 1; gy <= cy + 1 && !beside; gy++)
+                    {
+                        for (long gz = cz - 1; gz <= cz + 1 && !beside; gz++)
+                        {
+                            if (!grid.TryGetValue(CellKey(gx, gy, gz), out List<int> inCell))
+                            {
+                                continue;
+                            }
+
+                            foreach (int j in inCell)
+                            {
+                                double dx = meetings[j].Px - least.Px;
+                                double dy = meetings[j].Py - least.Py;
+                                double dz = meetings[j].Pz - least.Pz;
+
+                                if (dx * dx + dy * dy + dz * dz <= reach * reach)
+                                {
+                                    beside = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!beside)
+                {
+                    kept.Add(least);
+                }
+            }
+
+            return kept;
+        }
+
+        /// <summary>
         /// Joins the near touches that lie in one basin of the distance: two next to each other along the curve, within ten times the
         /// reach of each other, with no point between them where the curve is farther from the partners than at either, by more than
         /// four snaps. A curve that touches a partner is as near as rounding can tell all along a stretch, and each place the rounding
         /// finds in it is the one touch. Two meetings are not joined, whatever lies between them: crossings are places, and are one
         /// only when they are within the reach of each other, as the exact curves have it.
         /// </summary>
-        private List<Contact> MergeBasins(List<Contact> places, IList<Partner2> partners, Hunt hunt)
+        private List<Contact> MergeBasins(List<Contact> places, IList<Partner> partners, Hunt hunt)
         {
             const int Samples = 8;
 
@@ -855,8 +1265,9 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 double dx = places[i + 1].Px - places[i].Px;
                 double dy = places[i + 1].Py - places[i].Py;
+                double dz = places[i + 1].Pz - places[i].Pz;
 
-                if (dx * dx + dy * dy <= near * near && !(places[i].Verified && places[i + 1].Verified))
+                if (dx * dx + dy * dy + dz * dz <= near * near && !(places[i].Verified && places[i + 1].Verified))
                 {
                     pairs.Add(i);
                 }
@@ -870,6 +1281,7 @@ namespace GeometryHelper.Internal.Nurbs
             int n = pairs.Count * Samples;
             var qx = new double[n];
             var qy = new double[n];
+            var qz = new double[n];
             var radius = new double[n];
             var skip = new int[n];
             var least = new double[n];
@@ -886,12 +1298,13 @@ namespace GeometryHelper.Internal.Nurbs
                     int at = p * Samples + k - 1;
                     qx[at] = point[0];
                     qy[at] = point[1];
+                    qz[at] = Dim == 3 ? point[2] : 0.0;
                     radius[at] = Math.Max(last.Raw, next.Raw) + band;
                     skip[at] = -1;
                 }
             }
 
-            MinGaps(partners, qx, qy, radius, skip, least);
+            MinGaps(partners, qx, qy, qz, radius, skip, least, Dim);
             var joined = new bool[places.Count];
 
             for (int p = 0; p < pairs.Count; p++)
@@ -936,11 +1349,14 @@ namespace GeometryHelper.Internal.Nurbs
             return merged;
         }
 
-        private static long CellKey(long x, long y) => (x << 32) ^ (y & 0xFFFFFFFFL);
+        // The key of a cell: the two halves as they were in the plane, and the third cell number, multiplied by a large odd number, added;
+        // two cells that share a key only share a list of candidates, each of which is measured, so a clash costs a look and no more. For a cell of
+        // the plane the third number is nought and the key is what it always was.
+        private static long CellKey(long x, long y, long z) => unchecked(((x << 32) ^ (y & 0xFFFFFFFFL)) + z * -7046029254386353131L);
 
-        private static void Register(Dictionary<long, List<int>> grid, long x, long y, int index)
+        private static void Register(Dictionary<long, List<int>> grid, long x, long y, long z, int index)
         {
-            long key = CellKey(x, y);
+            long key = CellKey(x, y, z);
 
             if (!grid.TryGetValue(key, out List<int> inCell))
             {
@@ -978,7 +1394,7 @@ namespace GeometryHelper.Internal.Nurbs
             return Hunt.Precedes(b, a) ? 1 : 0;
         }
 
-        private Hunt Begin(IList<Partner2> partners, bool onlyNearest, double reach)
+        private Hunt Begin(IList<Partner> partners, bool onlyNearest, double reach)
         {
             double scale = Scale;
             double extent = Extent;

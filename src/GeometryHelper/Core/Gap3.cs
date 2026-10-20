@@ -1262,6 +1262,34 @@ namespace GeometryHelper.Core
             }
 
             /// <summary>
+            /// Determines whether the foot of a point on the plane the region is read in lies in the region, a foot on the rim counting
+            /// as in it: the test <see cref="PointGap"/> makes before it reads the height as the distance.
+            /// </summary>
+            /// <remarks>
+            /// A triangle with no area has no plane and holds no foot.
+            /// </remarks>
+            internal bool Holds(GeoPoint3 point)
+            {
+                if (_isTriangle)
+                {
+                    double squared = _normal.DotProduct(_normal);
+
+                    if (!(squared > 0.0))
+                    {
+                        return false;
+                    }
+
+                    double height = _normal.DotProduct(_a.GetVectorTo(point));
+
+                    return TriangleCovers(_a, _b, _c, _normal, point.Add(_normal.Multiply(-height / squared)));
+                }
+
+                GeoPoint3 local = _frame.ToLocal(point);
+
+                return CoversInside(local.X, local.Y);
+            }
+
+            /// <summary>
             /// Gets the distance from a point to the sides of the rim: the outline and each hole.
             /// </summary>
             private double RimGap(GeoPoint3 point)

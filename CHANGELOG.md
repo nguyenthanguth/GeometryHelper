@@ -211,7 +211,7 @@ again on splines a million away from the origin, with control points repeated, a
 weights a thousandfold apart, with a cusp, and of degree up to 10. The suite gains 169 tests, and nothing that was there changes:
 every earlier test and the benchmark signatures are as they were. Not in this release: an offset (the offset of a spline is not a
 spline), splines as the edges of a curved chain, periodic knot vectors,
-distances and crossings against the shapes in space, and the writers, the viewer and the bridges.
+and the writers, the viewer and the bridges.
 
 **NEW.** The five queries of `GeoSpline2` about every other shape in the plane, from either side: `DistanceTo`, `CollidesWith`,
 `GetIntersections`, `TryIntersectWith` and `GetShortestLineTo`, each with a tolerance and without, asked of a segment, a ray, a line
@@ -307,6 +307,83 @@ the spline, and 6.4E-9 of it for splines a million and 30 million from the origi
 and nothing that was there changes: every earlier test and the benchmark signatures are as they were. Not offered: `SignedDistanceTo`,
 `Contains` and `GetClosestEdge` (a spline has neither an inside nor edges), and a `TryIntersectWith` that gives one point (the places are an
 array); the shapes in space follow with the spline in space.
+
+**NEW.** The five queries of `GeoSpline3` about every other shape in space, from either side: `DistanceTo`, `CollidesWith`,
+`GetIntersections`, `TryIntersectWith` and `GetShortestLineTo`, each with a tolerance and without, asked of a segment, a ray, a line
+without ends, a plane, a polyline, a polygon, a triangle, a face, a box, an oriented box, a solid, a ball, an arc, a circle, an
+ellipse, an edge, a curved chain, a curved loop and another spline, and each of those answers them about a spline by handing the
+question to the spline's member, so `plane.DistanceTo(spline)` is `spline.DistanceTo(plane)` to the bit, the crossings are the same
+points and the shortest segment the same turned round (two splines are worked out from the one that comes first, as in the plane).
+The rules are those of the other curves in space. A flat shape, a triangle, a polygon or a face, is filled: a spline that pierces it
+or lies in it is nought from it and its shortest segment has no length, and it is pierced where the spline passes through as well as
+crossed at its outline (the ring, the circle spline of radius 50 about the origin in the floor, pierces the polygon standing across
+y = 30 from (-100, 30, -10) to (100, 30, 10) at (-40, 30, 0) and (40, 30, 0), in order along it). A circle and an ellipse are the discs they are for the
+distance, as their own distance to a point reads them, and rims for the crossings: the ring through the middle of a standing disc is
+nought from it, collides with it and crosses nothing. A box, an oriented box, a solid (its openings cut in: the ring down the middle of
+a plate's opening is 10 from its walls) and a ball are material, so a spline inside is nought from them and crosses nothing, and its
+shortest segment runs out to the skin: the ring inside the box 200 by 200 by 20 is nought from it and 10 from its skin. A plane is a
+surface without ends, a curved chain and a curved loop are the paths they are (the ring inside the square outline of a loop is 50 from
+it, not nought), and the distance is nought only where the two truly meet and otherwise the gap, measured exactly: it never reads the
+tolerance, the planar tolerance is not read at all, and `CollidesWith` is the distance being no more than the point tolerance, exactly.
+In space two curves seldom meet, so a place is where the distance of the spline from the shape is least within the point tolerance: a
+crossing is such a place where it comes to nought, and the tolerance alone tells a touch from a near miss (the line 0.0005 over the top
+of the ring touches it at (0, 50, 0), the line 0.002 over it touches nothing). A stationary point of the distance that is a greatest is
+not a place, nor is a point on a slope, and one that is a least with no curvature is: a spline over a line that is tangent to it, a
+thousandth above its plane, has a distance of the fourth power there, and is told from a level one by being higher a thousandth of
+the size of the spline either way and lower nowhere on the way (the humps between two near touches, a few snaps deep, are no place,
+which a first try took for one), or a hundredth or a tenth inside the piece, for a least of the sixth order: the cubic y = x³ / 100 under
+the line along x half a thousandth above its plane touches it once. A least that curves up is one only where the distance falls neither
+way, so the line y = 0.0001 crosses that cubic once, at x = 0.21544, and the inflection, where its offset stops and goes on, is no place;
+and a least beside a crossing does not join two crossings further apart than the tolerance into one. The arch, the cubic (0, 0, 0), (100, 0, 150), (200, 0, 150), (300, 0, 0), meets the plane z = 100 at
+(100, 0, 100) and (200, 0, 100), is 0.5 from z = 113 and 7.5 from the ball of radius 30 about (150, 0, 150), and enters the box from
+(100, -10, 100) to (200, 10, 150) through an edge at (100, 0, 100) and leaves it through the other at (200, 0, 100). Against a
+segment, a ray or a line without ends the part of a span's offset that stands square to the line is taken as two signed polynomials in
+Bernstein form along two directions square to it: the span meets the line where both are nought, and a span in a plane through the line
+has its signed offset in that plane, as in the plane, so a line a millionth of a radian off the tangent of a cubic in its plane crosses it
+and is nought from it; out of such a plane the stationary points of the squared offset are brought to the least of the distance by Newton's
+method on the distance and, where it has no curvature, by a golden section down the slope. Against a plane the signed offset of each span
+is a polynomial (a dip a few snaps below the plane between two crossings is a greatest, no place), and against a ball the squared distance from the centre less the squared radius is one of twice the
+degree; a flat shape is its plane taken where the foot of the place stands over it, and the segments of its outline; a box is its six
+faces and twelve edges, and a solid its faces. Against an arc, a circle, an ellipse or another spline the pair is cut in halves nearest
+bound first, with the nearest pair brought to rounding, as in the plane, the hulls measured by their boxes and by the shadows of the
+control points on the chord of each part, on the two directions square to it and on the one square to both chords. Two splines that lie
+in one plane, every control point within a snap of it, are worked out in that plane as two splines of the plane are and give the plane's
+answers, to the bit in a plane square to an axis: two circle splines of radius 1 000 and 1 000.00002 with centres 1E-4 apart cross in two
+places at an angle of 1E-7 in any plane, and the polyline spline through (0, 0), (100, 0), (100, 100), (200, 150), (150, 300) and its copy
+moved (0.0003, 0.0004) along its plane cross at its three corners (a tilted plane is laid flat by directions of its own, so for two curves
+a hair apart it gives what the plane gives turned, which can be a place more or fewer). An arc, a circle, an ellipse, an edge or a chain of
+edges in the plane of a spline is laid flat with it the same way for the places: a circle spline of radius 100 moved (0.0003, 0.0005) crosses
+its circle three times, as in the plane. Two that share no plane can still cross (a helix and a straight spline along its cylinder, once a
+turn), and inside a stretch where they lie along each other a place is a least of the distance where the two would cross if brought into one
+plane: the copy lifted 0.0002 off the plane comes nearest, 0.0002 apart, at the same three corners, and a copy with a wobble of 0.0001 that
+never crosses the spline in the plane meets it nowhere lifted off it. In space the step of Newton's method on the pair is
+written with the cross product of the two tangents, which keeps its digits where the product less the square of the dot has none, and is
+taken with no damping first, since the damping of a trillionth of the trace goes a five-hundredth of the way along a matrix whose small
+eigenvalue is 1E-7 of it. A piece lies in a plane, along a line or on a ball when it is within 1E-13 of the size of its coordinates and not of
+the numbers measured from a point beside it, which a polygon turned about in space and a hundred thousand out carried into those
+numbers and gave places for that were not there. Two circle splines of radius 100 000 and 100 000.0005 with centres 2E-4 apart, in any
+plane of space, are 0.0003 apart, in about 0.15 s. Known limits: a million out in three coordinates a snap is 2E-7, and two circles
+that cross at an angle of 1E-7 are within it for two millimetres either side of each crossing, which gives the places the rounding
+gives; a line that cuts the circle of radius 1 000 in a chord of 0.02 a hundred thousand out (a depth of 5E-8, a snap of 3E-8) meets it
+to the digits all along the chord; the cutting is bounded as in the plane, with one Debug line past 40 000 pairs for the nearest
+approach and two million for the places; a polygon or a face of many corners is asked, for each place that stands over its box, one
+pass over its corners; and a spline against an arc, a circle, an ellipse or another spline takes the time of two splines (the arch
+against a circle 3 ms for the distance and crossings, where a ball takes 5 microseconds); a touch of two splines that share no plane, tangent
+to each other, reads a snap or two from nought (6E-11 to 1.7E-10 for a spline about 1 000 across, where the snap is 1E-10). Two splines
+within the tolerance of each other round a turn tighter than a millimetre have their parts measured once both are no larger than the
+tolerance, so the copy of a degree-four spline of ten points lifted 0.0002 off its plane takes about 0.1 s in any plane. The shortest
+segment from a spline inside a ball or a solid runs to the skin, where the ball's own question about a point gives the point itself and no
+length. The suite gains 289 tests: 127 hand cases, one row for each shape and each query with the numbers worked out, an oracle that shares no code with
+the library (the spline sampled densely over every span, the least of its distance to each piece found by golden section, shapes
+written independently) over 1 620 random pairs of the 18 kinds and 1 800 more built to touch a spline's tangent within a few
+ten-thousandths either way, with every query asked from both sides and the same to the bit; 1 080 pairs of a spline and a segment, a ray,
+a line, a polyline, a polygon, a triangle, a face, an arc, a circle, an ellipse, an edge or a chain laid in space from the plane's and held
+to the plane's answers (pairs whose answer turns on the tolerance, and pairs that run along each other, left out), and 15 splines and their
+copies moved along a plane square to an axis held to the plane's places to the bit; 700 of nasty splines (a cusp, repeated control points, all on a line, spans a
+millionth wide, weights a thousandfold apart, a million from the origin); and the hard cases (frames tilted and a million out,
+crossings behind the ends of the spline, a dart, chords, a spiral of 100 000 spans, a polyline of 100 000 edges, a solid of 30 000
+faces). Nothing that was there changes: the plane's answers hash the same, bit for bit, before and after, every earlier test and the
+benchmark signatures are as they were, and the plane's spline pairs and queries take the same time to within 1 to 8 %.
 
 **FIXED.** The surface mesh of a body dropped any triangle whose doubled area was under 1E-5, comparing a length squared with a
 length, so a box 100 by 60 by 40 with a void 0.002 from its corner, which leaves a corner 0.002 thick, was meshed open along 15

@@ -12,7 +12,7 @@ namespace GeometryHelper.Core
     internal sealed class SplineShape
     {
         /// <summary>The pieces of the shape's boundary, or the one of a shape that has none.</summary>
-        internal readonly List<Partner2> Parts = new List<Partner2>();
+        internal readonly List<Partner> Parts = new List<Partner>();
 
         /// <summary>Says whether a point lies in the material of a closed shape; null for a curve, which has no inside.</summary>
         internal Func<GeoPoint2, bool> Holds;
@@ -105,7 +105,7 @@ namespace GeometryHelper.Core
 
         private static void Add(SplineShape shape, GeoEdge2 edge)
         {
-            shape.Parts.Add(ArcChain2.Straight(edge, out GeoLine2 straight) ? (Partner2)Segment(straight.StartPoint, straight.EndPoint) : Round(edge.ToArc()));
+            shape.Parts.Add(ArcChain2.Straight(edge, out GeoLine2 straight) ? (Partner)Segment(straight.StartPoint, straight.EndPoint) : Round(edge.ToArc()));
         }
 
         private static void AddAll(SplineShape shape, IEnumerable<GeoLine2> edges)
@@ -353,9 +353,9 @@ namespace GeometryHelper.Core
             return false;
         }
 
-        private static List<Partner2> Against(GeoSpline2 second)
+        private static List<Partner> Against(GeoSpline2 second)
         {
-            return new List<Partner2> { new SplinePartner(second.Curve) };
+            return new List<Partner> { new SplinePartner(second.Curve) };
         }
 
         /// <summary>

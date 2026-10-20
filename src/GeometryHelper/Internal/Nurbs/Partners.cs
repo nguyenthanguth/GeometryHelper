@@ -18,11 +18,11 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>The same distance as measured, before one within rounding of nought was read as nought: of two places that both meet, the one that is nearer to the partner by this is the better place.</summary>
         internal double Raw;
 
-        /// <summary>The point of the curve.</summary>
-        internal double Px, Py;
+        /// <summary>The point of the curve; Z is nought for a curve in the plane.</summary>
+        internal double Px, Py, Pz;
 
         /// <summary>The point of the partner nearest it: the same point as the curve's where they meet.</summary>
-        internal double Qx, Qy;
+        internal double Qx, Qy, Qz;
 
         /// <summary>Where on the partner: how far along a straight one, the angle of a round one, the knot value of another curve.</summary>
         internal double Other;
@@ -39,8 +39,15 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>Whether it is a crossing found by the offset of the curve from the partner changing sign, which is a place even where the curve lies along the partner within the reach.</summary>
         internal bool Crossing;
 
+        /// <summary>
+        /// Whether it is a least of the distance of a curve in space from another that it does not share a plane with, inside a stretch
+        /// where the two lie along each other, where the two would cross if they were brought into one plane: the near crossing of
+        /// two curves in space, a place as a crossing is.
+        /// </summary>
+        internal bool Dip;
+
         /// <summary>The partner it was found against, which can measure the curve's distance to it elsewhere.</summary>
-        internal Partner2 From;
+        internal Partner From;
     }
 
     /// <summary>
@@ -105,8 +112,8 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>Room for the roots of a polynomial, reused.</summary>
         internal readonly List<double> Roots = new List<double>();
 
-        /// <summary>Room for a point, reused.</summary>
-        internal readonly double[] Point = new double[2];
+        /// <summary>Room for a point, reused; the third number stays nought for a curve in the plane.</summary>
+        internal readonly double[] Point = new double[3];
 
         /// <summary>When every place is wanted: every one found within the reach, before they are judged.</summary>
         internal readonly List<Contact> Found = new List<Contact>();
@@ -301,11 +308,12 @@ namespace GeometryHelper.Internal.Nurbs
     }
 
     /// <summary>
-    /// What a curve is asked about, in numbers: a straight stretch, an arc or a circle, an ellipse or another curve. It
-    /// measures the distance of a point to itself, bounds it over a box, and says at what parameters of a Bézier piece the
-    /// distance of the curve to it can be least, which together answer the nearest approach and every place the two meet.
+    /// What a curve is asked about, in numbers: a straight stretch, a plane or a ball, an arc or a circle, an ellipse or another
+    /// curve. It measures the distance of a point to itself, bounds it over a box, and says at what parameters of a Bézier piece
+    /// the distance of the curve to it can be least, which together answer the nearest approach and every place the two meet.
+    /// The numbers of a point are three, in the plane as in space; the third of a point of the plane is nought.
     /// </summary>
-    internal abstract class Partner2
+    internal abstract class Partner
     {
         /// <summary>Where this partner stands in the list of partners one question asks about; set by the caller.</summary>
         internal int Position;
@@ -321,9 +329,10 @@ namespace GeometryHelper.Internal.Nurbs
         internal abstract double Extent { get; }
 
         /// <summary>
-        /// Gets the distance from a point to the partner, with the nearest point of it and where it lies.
+        /// Gets the distance from a point to the partner, with the nearest point of it and where it lies: infinite for a partner
+        /// that has no nearest point to it, as a part of a flat shape has none for a point that does not stand over it.
         /// </summary>
-        internal abstract double Gap(double px, double py, out double qx, out double qy, out double other);
+        internal abstract double Gap(double px, double py, double pz, out double qx, out double qy, out double qz, out double other);
 
         /// <summary>
         /// Gets a bound the distance of any point of a box to the partner is not below.
@@ -334,10 +343,11 @@ namespace GeometryHelper.Internal.Nurbs
         internal virtual int EndCount => 0;
 
         /// <summary>Gets a true end of the partner.</summary>
-        internal virtual void EndAt(int index, out double x, out double y)
+        internal virtual void EndAt(int index, out double x, out double y, out double z)
         {
             x = 0.0;
             y = 0.0;
+            z = 0.0;
         }
 
         /// <summary>
@@ -353,18 +363,49 @@ namespace GeometryHelper.Internal.Nurbs
         /// </summary>
         /// <param name="qx">The point of the partner.</param>
         /// <param name="qy">The point of the partner.</param>
+        /// <param name="qz">The point of the partner.</param>
         /// <param name="other">Where on the partner it is, as <see cref="Gap"/> gave it.</param>
         /// <param name="r1x">The first derivative.</param>
         /// <param name="r1y">The first derivative.</param>
+        /// <param name="r1z">The first derivative.</param>
         /// <param name="r2x">The second derivative.</param>
         /// <param name="r2y">The second derivative.</param>
+        /// <param name="r2z">The second derivative.</param>
         /// <returns>false when the partner cannot say, and the distance is probed a little way either side instead.</returns>
-        internal virtual bool TryGetFrame(double qx, double qy, double other, out double r1x, out double r1y, out double r2x, out double r2y)
+        internal virtual bool TryGetFrame(double qx, double qy, double qz, double other, out double r1x, out double r1y, out double r1z, out double r2x, out double r2y, out double r2z)
         {
             r1x = 0.0;
             r1y = 0.0;
+            r1z = 0.0;
             r2x = 0.0;
             r2y = 0.0;
+            r2z = 0.0;
+            return false;
+        }
+
+        /// <summary>
+        /// Says, for a partner that is a surface, a plane or a ball, which way the distance to it runs from a point, and how it bends.
+        /// </summary>
+        /// <param name="px">The point.</param>
+        /// <param name="py">The point.</param>
+        /// <param name="pz">The point.</param>
+        /// <param name="ux">The unit direction from the nearest point of the surface to the point.</param>
+        /// <param name="uy">The unit direction from the nearest point of the surface to the point.</param>
+        /// <param name="uz">The unit direction from the nearest point of the surface to the point.</param>
+        /// <param name="bend">
+        /// How the distance bends as the point moves square to that direction: 1 over the distance from the centre for a point outside a
+        /// ball, minus that for one inside it, nought for a plane. The second derivative of the distance along a curve is then bend times
+        /// the speed squared less the slope squared, plus u . P''.
+        /// </param>
+        /// <param name="noise">How far from the true direction the one given can be, as a cosine: nought for a plane, a few units of rounding over the distance from the centre for a ball.</param>
+        /// <returns>false for a partner that is not a surface, which gives its frame instead (<see cref="TryGetFrame"/>).</returns>
+        internal virtual bool TryGetSurface(double px, double py, double pz, out double ux, out double uy, out double uz, out double bend, out double noise)
+        {
+            ux = 0.0;
+            uy = 0.0;
+            uz = 0.0;
+            bend = 0.0;
+            noise = 0.0;
             return false;
         }
 
@@ -378,18 +419,26 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>
         /// Gets a box the partner lies in: no tighter than the partner, as far out as nothing is known.
         /// </summary>
-        internal virtual void GetBox(out double minX, out double minY, out double maxX, out double maxY)
+        internal virtual void GetBox(out double minX, out double minY, out double minZ, out double maxX, out double maxY, out double maxZ)
         {
             minX = double.NegativeInfinity;
             minY = double.NegativeInfinity;
+            minZ = double.NegativeInfinity;
             maxX = double.PositiveInfinity;
             maxY = double.PositiveInfinity;
+            maxZ = double.PositiveInfinity;
         }
 
         /// <summary>
         /// Says whether a piece of the curve lies along the partner, all of it, to rounding.
         /// </summary>
         internal virtual bool Coincident(NurbsCurve curve, int piece) => false;
+
+        /// <summary>
+        /// Says whether the curve, at a knot value, lies in a plane with the partner, so that its distance there is the size of a signed
+        /// offset, as it is in the plane, and a least of it has a curvature: a line in space says so of a piece in a plane through it.
+        /// </summary>
+        internal virtual bool InPlaneAt(NurbsCurve curve, double knot) => false;
 
         /// <summary>
         /// Looks for the places the curve meets this partner or comes nearest, offering each to the hunt.
@@ -402,9 +451,9 @@ namespace GeometryHelper.Internal.Nurbs
     /// </summary>
     internal readonly struct PartnerBound : IBound
     {
-        private readonly Partner2 _partner;
+        private readonly Partner _partner;
 
-        internal PartnerBound(Partner2 partner)
+        internal PartnerBound(Partner partner)
         {
             _partner = partner;
         }
@@ -416,7 +465,7 @@ namespace GeometryHelper.Internal.Nurbs
     /// A straight stretch of a line: a segment, a ray, or a line without ends cut to the stretch that can matter. It
     /// is the line through an origin along a unit direction, taken from a first distance along to a last.
     /// </summary>
-    internal sealed class LinePartner : Partner2
+    internal sealed class LinePartner : Partner
     {
         private readonly double _scale;
         private Dictionary<int, bool> _coincident;
@@ -459,12 +508,13 @@ namespace GeometryHelper.Internal.Nurbs
 
         internal override double Extent => T1 - T0;
 
-        internal override double Gap(double px, double py, out double qx, out double qy, out double other)
+        internal override double Gap(double px, double py, double pz, out double qx, out double qy, out double qz, out double other)
         {
             double t = (px - Ox) * Dx + (py - Oy) * Dy;
             double c = t < T0 ? T0 : t > T1 ? T1 : t;
             qx = Ox + c * Dx;
             qy = Oy + c * Dy;
+            qz = 0.0;
             other = c;
             double ex = px - qx;
             double ey = py - qy;
@@ -505,18 +555,20 @@ namespace GeometryHelper.Internal.Nurbs
             return Math.Sqrt(across * across + beyond * beyond);
         }
 
-        internal override bool TryGetFrame(double qx, double qy, double other, out double r1x, out double r1y, out double r2x, out double r2y)
+        internal override bool TryGetFrame(double qx, double qy, double qz, double other, out double r1x, out double r1y, out double r1z, out double r2x, out double r2y, out double r2z)
         {
             r1x = Dx;
             r1y = Dy;
+            r1z = 0.0;
             r2x = 0.0;
             r2y = 0.0;
+            r2z = 0.0;
             return true;
         }
 
         internal override bool IsFree(double other) => other > T0 && other < T1;
 
-        internal override void GetBox(out double minX, out double minY, out double maxX, out double maxY)
+        internal override void GetBox(out double minX, out double minY, out double minZ, out double maxX, out double maxY, out double maxZ)
         {
             double x0 = Ox + T0 * Dx;
             double y0 = Oy + T0 * Dy;
@@ -526,15 +578,18 @@ namespace GeometryHelper.Internal.Nurbs
             maxX = Math.Max(x0, x1);
             minY = Math.Min(y0, y1);
             maxY = Math.Max(y0, y1);
+            minZ = 0.0;
+            maxZ = 0.0;
         }
 
         internal override int EndCount => (EndA ? 1 : 0) + (EndB ? 1 : 0);
 
-        internal override void EndAt(int index, out double x, out double y)
+        internal override void EndAt(int index, out double x, out double y, out double z)
         {
             double t = EndA && index == 0 ? T0 : T1;
             x = Ox + t * Dx;
             y = Oy + t * Dy;
+            z = 0.0;
         }
 
         /// <summary>
@@ -611,21 +666,128 @@ namespace GeometryHelper.Internal.Nurbs
     }
 
     /// <summary>
-    /// A curve that is the set of points where a quadratic form is nought: a circle or an ellipse. A Bézier piece put into
-    /// the form gives a polynomial of twice its degree, whose roots are where the piece meets the curve.
+    /// A partner that is where a polynomial form of the coordinates of a curve is nought, and so is met by a Bézier piece
+    /// where the polynomial the piece makes of the form has its roots: a circle or an ellipse in the plane, a ball in space, and, as
+    /// the square of the offset from it, a line in space. The distance of the curve to it stops falling where the form stops
+    /// rising or falling, which is where the derivative of the polynomial has its roots.
     /// </summary>
-    /// <remarks>
-    /// The form is m11 x² + 2 m12 x y + m22 y² - k, taken from the centre, which is nought on the curve. For a circle of
-    /// radius r it is x² + y² - r², and for an ellipse with unit axes u and v and radii a and b it is (u.p)² / a² +
-    /// (v.p)² / b² - 1.
-    /// </remarks>
-    internal abstract class QuadricPartner : Partner2
+    internal abstract class FormPartner : Partner
     {
         private Dictionary<int, bool> _coincident;
 
         // What has been found about which pieces of the curve lie along this partner, made when first asked.
         private Dictionary<int, bool> Memo => _coincident ?? (_coincident = new Dictionary<int, bool>());
 
+        /// <summary>
+        /// Gets the numerator of the form along a piece as a polynomial of twice the degree of the piece.
+        /// </summary>
+        /// <param name="pieces">The pieces of the curve.</param>
+        /// <param name="piece">Which piece.</param>
+        /// <param name="weights">The weights of the piece, or null when it is not rational.</param>
+        /// <param name="scale">How large the numbers the form was worked out from are, which noise is a share of.</param>
+        protected abstract double[] Form(BezierPieces pieces, int piece, out double[] weights, out double scale);
+
+        internal override void PieceCandidates(NurbsCurve curve, BezierPieces pieces, int piece, Hunt hunt)
+        {
+            double from = pieces.From[piece];
+            double span = pieces.To[piece] - from;
+
+            curve.Consider(hunt, this, from);
+
+            double[] form = Form(pieces, piece, out double[] weights, out double scale);
+            double noise = NurbsCurve.NoiseShare * scale;
+
+            if (Bernstein.MaxAbs(form) <= noise)
+            {
+                Memo[piece] = true;
+                return;
+            }
+
+            Memo[piece] = false;
+
+            // Where the piece meets the curve.
+            hunt.Roots.Clear();
+            Bernstein.FindRoots(form, noise, hunt.Roots);
+
+            double[] slope = FormSlope(form, weights, out double slopeScale);
+            Bernstein.FindRoots(slope, NurbsCurve.NoiseShare * slopeScale, hunt.Roots);
+            List<double> roots = hunt.Roots;
+
+            for (int i = 0; i < roots.Count; i++)
+            {
+                double s = roots[i];
+                curve.Consider(hunt, this, Refine(curve, hunt, s <= 0.0 ? from : s >= 1.0 ? pieces.To[piece] : from + s * span));
+            }
+
+            roots.Clear();
+        }
+
+        /// <summary>
+        /// Gets where a form stops rising or falling along a piece: its derivative over the weight squared, a polynomial of degree three
+        /// times that of the piece less one, since the form is a polynomial over the weight squared.
+        /// </summary>
+        /// <param name="form">The numerator of the form along the piece.</param>
+        /// <param name="weights">The weights of the piece, or null when it is not rational.</param>
+        /// <param name="slopeScale">How large the numbers the slope was worked out from are.</param>
+        protected static double[] FormSlope(double[] form, double[] weights, out double slopeScale)
+        {
+            double[] slope = Bernstein.Derivative(form);
+            slopeScale = Bernstein.MaxAbs(slope);
+
+            if (weights != null)
+            {
+                double[] weightSlope = Bernstein.Derivative(weights);
+                double[] weighted = Bernstein.Multiply(slope, weights);
+                double[] shifted = Bernstein.Multiply(form, weightSlope);
+                double larger = Math.Max(Bernstein.MaxAbs(weighted), 2.0 * Bernstein.MaxAbs(shifted));
+
+                for (int i = 0; i < weighted.Length; i++)
+                {
+                    weighted[i] -= 2.0 * shifted[i];
+                }
+
+                slope = weighted;
+                slopeScale = larger;
+            }
+
+            return slope;
+        }
+
+        /// <summary>
+        /// Brings a place the roots of the form found to the place the curve is nearest the partner, where the roots are not good to
+        /// the last digit: none are, by default.
+        /// </summary>
+        /// <param name="curve">The curve.</param>
+        /// <param name="hunt">The hunt.</param>
+        /// <param name="knot">The knot value of the place found.</param>
+        protected virtual double Refine(NurbsCurve curve, Hunt hunt, double knot) => knot;
+
+        internal override bool Coincident(NurbsCurve curve, int piece)
+        {
+            if (Memo.TryGetValue(piece, out bool known))
+            {
+                return known;
+            }
+
+            double[] form = Form(curve.Pieces, piece, out _, out double scale);
+            bool coincident = Bernstein.MaxAbs(form) <= NurbsCurve.NoiseShare * scale;
+            Memo[piece] = coincident;
+
+            return coincident;
+        }
+    }
+
+    /// <summary>
+    /// A curve that is the set of points of the plane where a quadratic form is nought: a circle or an ellipse. A Bézier piece
+    /// put into the form gives a polynomial of twice its degree, whose roots are where the piece meets the curve.
+    /// </summary>
+    /// <remarks>
+    /// The form is m11 x² + 2 m12 x y + m22 y² - k, taken from the centre, which is nought on the curve. For a circle of
+    /// radius r it is x² + y² - r², and for an ellipse with unit axes u and v and radii a and b it is (u.p)² / a² +
+    /// (v.p)² / b² - 1.
+    /// </remarks>
+    internal abstract class QuadricPartner : FormPartner
+    {
         internal readonly double Cx, Cy, M11, M12, M22, K;
 
         internal QuadricPartner(double cx, double cy, double m11, double m12, double m22, double k)
@@ -641,7 +803,7 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>
         /// Gets the numerator of the form along a piece as a polynomial of twice the degree of the piece.
         /// </summary>
-        private double[] Form(BezierPieces pieces, int piece, out double[] weights, out double scale)
+        protected override double[] Form(BezierPieces pieces, int piece, out double[] weights, out double scale)
         {
             NurbsCurve.Numerators(pieces, piece, new[] { Cx, Cy }, out double[][] numerators, out weights);
             double[] x = numerators[0];
@@ -677,75 +839,6 @@ namespace GeometryHelper.Internal.Nurbs
             }
 
             return ones;
-        }
-
-        internal override void PieceCandidates(NurbsCurve curve, BezierPieces pieces, int piece, Hunt hunt)
-        {
-            double from = pieces.From[piece];
-            double span = pieces.To[piece] - from;
-
-            curve.Consider(hunt, this, from);
-
-            double[] form = Form(pieces, piece, out double[] weights, out double scale);
-            double noise = NurbsCurve.NoiseShare * scale;
-
-            if (Bernstein.MaxAbs(form) <= noise)
-            {
-                Memo[piece] = true;
-                return;
-            }
-
-            Memo[piece] = false;
-
-            // Where the piece meets the curve.
-            hunt.Roots.Clear();
-            Bernstein.FindRoots(form, noise, hunt.Roots);
-
-            // Where the form stops rising or falling along the piece: its derivative over the weight squared, a polynomial
-            // of degree three times that of the piece less one, since the form is a polynomial over the weight squared.
-            double[] slope = Bernstein.Derivative(form);
-            double slopeScale = Bernstein.MaxAbs(slope);
-
-            if (weights != null)
-            {
-                double[] weightSlope = Bernstein.Derivative(weights);
-                double[] weighted = Bernstein.Multiply(slope, weights);
-                double[] shifted = Bernstein.Multiply(form, weightSlope);
-                double larger = Math.Max(Bernstein.MaxAbs(weighted), 2.0 * Bernstein.MaxAbs(shifted));
-
-                for (int i = 0; i < weighted.Length; i++)
-                {
-                    weighted[i] -= 2.0 * shifted[i];
-                }
-
-                slope = weighted;
-                slopeScale = larger;
-            }
-
-            Bernstein.FindRoots(slope, NurbsCurve.NoiseShare * slopeScale, hunt.Roots);
-            List<double> roots = hunt.Roots;
-
-            for (int i = 0; i < roots.Count; i++)
-            {
-                double s = roots[i];
-                curve.Consider(hunt, this, s <= 0.0 ? from : s >= 1.0 ? pieces.To[piece] : from + s * span);
-            }
-
-            roots.Clear();
-        }
-
-        internal override bool Coincident(NurbsCurve curve, int piece)
-        {
-            if (Memo.TryGetValue(piece, out bool known))
-            {
-                return known;
-            }
-
-            double[] form = Form(curve.Pieces, piece, out _, out double scale);
-            bool coincident = Bernstein.MaxAbs(form) <= NurbsCurve.NoiseShare * scale;
-            Memo[piece] = coincident;
-
-            return coincident;
         }
     }
 
@@ -799,11 +892,12 @@ namespace GeometryHelper.Internal.Nurbs
             return along <= Math.Abs(_sweep);
         }
 
-        internal override double Gap(double px, double py, out double qx, out double qy, out double other)
+        internal override double Gap(double px, double py, double pz, out double qx, out double qy, out double qz, out double other)
         {
             double dx = px - Cx;
             double dy = py - Cy;
             double rho = Math.Sqrt(dx * dx + dy * dy);
+            qz = 0.0;
 
             if (rho == 0.0)
             {
@@ -872,33 +966,38 @@ namespace GeometryHelper.Internal.Nurbs
             return bound > 0.0 ? bound : 0.0;
         }
 
-        internal override bool TryGetFrame(double qx, double qy, double other, out double r1x, out double r1y, out double r2x, out double r2y)
+        internal override bool TryGetFrame(double qx, double qy, double qz, double other, out double r1x, out double r1y, out double r1z, out double r2x, out double r2y, out double r2z)
         {
             // By the angle: the point is the centre and the radius turned, so the first derivative is the radius turned a quarter and the
             // second is the radius turned back.
             r1x = -(qy - Cy);
             r1y = qx - Cx;
+            r1z = 0.0;
             r2x = -(qx - Cx);
             r2y = -(qy - Cy);
+            r2z = 0.0;
             return true;
         }
 
         internal override bool IsFree(double other) => _whole || (other != _start && other != _start + _sweep);
 
-        internal override void GetBox(out double minX, out double minY, out double maxX, out double maxY)
+        internal override void GetBox(out double minX, out double minY, out double minZ, out double maxX, out double maxY, out double maxZ)
         {
             minX = Cx - _radius;
             maxX = Cx + _radius;
             minY = Cy - _radius;
             maxY = Cy + _radius;
+            minZ = 0.0;
+            maxZ = 0.0;
         }
 
         internal override int EndCount => _whole ? 0 : 2;
 
-        internal override void EndAt(int index, out double x, out double y)
+        internal override void EndAt(int index, out double x, out double y, out double z)
         {
             x = index == 0 ? _sx : _ex;
             y = index == 0 ? _sy : _ey;
+            z = 0.0;
         }
     }
 }
