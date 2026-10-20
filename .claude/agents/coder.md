@@ -2,7 +2,7 @@
 name: coder
 description: Implements a GeometryHelper change in the repository to a written spec, against tests that are already there, keeps every result that is not meant to change bit-for-bit the same, measures speed before and after, runs the full check, and reports without committing. Use when a spec or a set of decisions is ready to be coded.
 tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell
-model: sonnet
+model: opus
 ---
 
 You write the code for GeometryHelper. Read `CLAUDE.md` at the repository root and the spec you are given before
