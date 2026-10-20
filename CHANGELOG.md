@@ -159,6 +159,60 @@ product as a solid is: a uniform scale of the mapping scales the ball and an une
 the parts it aggregates, where `GetSolids` goes on giving the engine's mesh, 1.2 % under its volume for a radius of 0.5 m. A sphere in a Boolean result is not read,
 and with `ApplyVoids` an element that openings cut gives none, a warning naming it, a ball with a void in it not being a ball. Every call writes one Info line.
 
+**NEW.** `GeoSpline2` and `GeoSpline3`, the NURBS curve in the plane and in space: one smooth sweep in place of a chain of pieces, a
+B-spline whose control points may pull with different strengths, which is what the SPLINE of AutoCAD and the B-spline curves of IFC
+hold. A spline is a degree (1 to 10), control points, knots and, if it is rational, weights; it is clamped, so it starts at its first
+control point and ends at its last, and the knots are kept as given (nothing is rescaled to [0, 1] or reordered, so a spline read from a
+file goes out as it came). They are checked (a clamped knot vector with no inner knot repeated more than the degree, a weight above
+nought for each point and the largest no more than 1E12 times the smallest, since past that the length cannot be worked out right: a
+ratio of 1E16 came out 1E-7 short and one of 1E20 a third short; control points not all one point) and immutable, what they hand out is
+read-only. Two kinds of parameter are told apart by name, as the other curves keep theirs: the members named for a parameter
+(`GetPointAtParameter`, `GetTangentAtParameter`, `GetCurvatureAtParameter`, `GetParameterAtPoint`, `GetDistanceAtParameter`, `Split`)
+take a share of the domain from 0 to 1; those named for a knot (`GetPointAtKnot`, `GetDerivativeAtKnot`, `GetTangentAtKnot`,
+`GetCurvatureAtKnot`, `GetKnotAtPoint`, `SplitAtKnot`) take a value of the domain, `DomainStart` to `DomainEnd`, and
+`GetKnotAtParameter` and `GetParameterAtKnot` turn one into the other (8.5 is the parameter 0.5 of the domain [5, 12]); those named
+for a distance (`GetPointAtDistance`, `GetParameterAtDistance`, `GetDistanceAtParameter`, `GetDistanceAtPoint`) go by length.
+`FromControlPoints` spaces the knots evenly over [0, 1], `Interpolate(fitPoints, degree = 3)` is global interpolation with
+chord-length parameters (Piegl and Tiller, 9.2.1) solved as one banded system, 100 000 points in 58 ms, and with `startTangent` and
+`endTangent` as well (a tangent gives a direction only: the curve leaves at the speed it keeps on average, the length of the chain
+through the points over [0, 1]); both take a `Tolerance` that decides which neighbouring fit points are one point, and points just
+above it make the curve swing far (the chain (0, 0), (100, 0), (100.0011, 0.0005), (100.0022, 0), (200, 50), (300, 0) kept at the
+default tolerance is met at every point and swings 507 000 outside the box of the points, where at a tolerance of 0.01 it stays within
+13). `FromPolyline`, `FromArc` and `FromCircle` make a spline that is exactly the polyline, the arc or the circle: a circle is nine
+control points of a rational quadratic, every point of it at the radius to 4E-14 at a radius of 100, and 628.31853071796 long.
+`GetPointAtKnot` is de Boor's scheme in homogeneous coordinates, `GetDerivativeAtKnot` any order to ten, `GetTangentAtKnot` (the first
+derivative that does not vanish, so a spline whose first two control points coincide still has one; it throws where a span has all its
+control points one point and the spline stands still), `GetCurvatureAtKnot` (signed in the plane, never negative in space; 0.01 all
+round a circle of radius 100), `Length` (Gauss-Legendre of ten points over each Bézier span, cut where the rule over the whole and its
+halves disagree, cut at each place the speed is least, where a curve that turns back has a corner in what is integrated, and a
+rational span with weights more than two to one apart cut first), `GetAabb` (the box the curve fills, from the roots of the derivative
+on each span: 300 by 112.5 for the cubic (0, 0), (100, 150), (200, 150), (300, 0), whose control points fill 300 by 150),
+`Split(parameter)` and `SplitAtKnot(knot)` (the knot raised to the degree: two splines that are the spline exactly and meet at one
+control point, (90, 94.5) for that cubic at 0.3; a cut that would leave a part with all its control points one point is refused),
+`Reverse` (the same domain; each distinct knot is mirrored once, so equal knots stay equal and distinct ones stay distinct, and the
+result is checked: a knot 1E-17 from the start, or two knots a unit in the last place apart, no longer give an invalid spline),
+`Translate`, `TransformBy` (exact for every affine map by the control points: a circle scaled 3 along X is the ellipse 300 by 100, all
+of it), `ToSpline3(frame)` and `ProjectToSpline2(frame)` through `PlanarMap`, and `Flatten(chordTolerance)`, whose chord promise holds
+however fine the tolerance and whatever the weights: a span is cut in halves until every control point of a piece is within the
+tolerance of its chord, or, for a polynomial piece, its second differences, or, for a conic, the height of its middle control point, say
+so with less cutting (the circle of radius 100 within 0.01 is 256 chords, where 223 would hold; the cubic above 128); a tolerance that
+needs more than 1 048 576 pieces is refused. Points are asked of it: `DistanceTo`, `GetClosestPointOnBoundary`, `GetKnotAtPoint`,
+`GetShortestLineTo` and `IsPointOn`, from either side (`point.DistanceTo(spline)` is the same number to the bit), exact to rounding: on
+each span the places where the distance stops falling are the roots of a polynomial in Bernstein form, all found, none missed however
+close two lie, and a span is solved only if the box of its control points is nearer than the best found; the boxes of all the spans are
+looked at, so a query is linear in the number of spans, 0.4 to 0.7 ms at 100 000, and an index over the spans is not here yet. The
+centre of a circle is as near every point and gets the lowest parameter, 0. The suite checks the points and the derivatives against
+exact fractions worked out from the Cox-de Boor recursion (worst 11.7 units of rounding of the size of the spline for the point, on 800
+random splines of degree up to 10 in the plane and space, and 6E-14 for a derivative, on 500), the distances and the box against a
+dense sampling polished in 28-digit decimals (4.3 and 2.4 units of rounding), the length against Romberg's integration (1.3E-15 of
+the length), the parameter at a length, the cuts, the reverse, the tangents and curvature, the interpolation (a fit point met to 3
+units of rounding, an end tangent to 6E-15) and the chord promise (the curve was at most 0.976 of the tolerance from the chain), and
+again on splines a million away from the origin, with control points repeated, all on one line, with a span a millionth wide, with
+weights a thousandfold apart, with a cusp, and of degree up to 10. The suite gains 168 tests, and nothing that was there changes:
+every earlier test and the benchmark signatures are as they were. Not in this release: an offset (the offset of a spline is not a
+spline), splines as the edges of a curved chain, periodic knot vectors,
+distances and crossings against the other shapes, and the writers, the viewer and the bridges.
+
 **FIXED.** The surface mesh of a body dropped any triangle whose doubled area was under 1E-5, comparing a length squared with a
 length, so a box 100 by 60 by 40 with a void 0.002 from its corner, which leaves a corner 0.002 thick, was meshed open along 15
 edges (69 triangles); it is now closed (72 triangles), and 3 000 random voids near corners, edges and faces mesh closed where

@@ -1737,6 +1737,40 @@ Left out, as they are for the plane ellipse or the circle in space: offsetting, 
 ellipse is not an ellipse; the booleans; elliptical arcs; and the distance to anything but a point, for
 which `ToPolylineByChordTolerance` gives a chain that errs on the safe side.
 
+## Splines in space
+
+`GeoSpline3` is the NURBS curve of [the plane half](plane.md#splines) in space: a degree from 1 to 10, control points, knots kept as
+they were given and, when it is rational, weights; clamped, so it starts at its first control point and ends at its last. It is made,
+read, cut and measured as the plane's is, by the same engine, so everything said there about its exactness holds here: the point at a
+parameter, derivatives, tangent, `Length`, `GetAabb` (a `GeoAabb3`), `Split`, `Reverse`, `Flatten(chordTolerance)` into a
+`GeoPolyline3`, and the two kinds of parameter: the members named for a parameter (`GetPointAtParameter`, `GetParameterAtPoint`, `Split`)
+take a share of the domain from 0 to 1, those named for a knot (`GetPointAtKnot`, `GetKnotAtPoint`, `SplitAtKnot`) a value of the
+knots, and those named for a distance (`GetPointAtDistance`, `GetParameterAtDistance`, `GetDistanceAtPoint`) a length. In space a curve has no left to turn to, so `GetCurvatureAtParameter` and `GetCurvatureAtKnot` are never negative.
+
+```csharp
+var arch = new GeoSpline3(3,
+    new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 150, 60), new GeoPoint3(200, 150, 60), new GeoPoint3(300, 0, 0) },
+    new double[] { 0, 0, 0, 0, 1, 1, 1, 1 });
+
+arch.GetPointAtParameter(0.5);                   // (150, 112.5, 45)
+arch.GetAabb();                                  // 300 by 112.5 by 45, not the 300 by 150 by 60 of its control points
+arch.DistanceTo(new GeoPoint3(150, 200, 45));    // 87.5, and point.DistanceTo(arch) is the same number to the bit
+
+var floor = GeoSpline3.FromCircle(new GeoCircle3(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 100));
+floor.DistanceTo(new GeoPoint3(0, 0, 30));       // 104.4: 100 across and 30 up from every point of the rim
+```
+
+`GeoSpline3.Interpolate(fitPoints, degree)`, with or without the two tangents, `FromControlPoints`, `FromPolyline`, `FromArc` and
+`FromCircle` (any plane: the circle is nine control points and every point of it is on the circle to rounding) are as in the plane. The
+nearest point is found as it is there, from the roots of a polynomial on each span, so `DistanceTo`, `GetClosestPointOnBoundary`,
+`GetKnotAtPoint`, `GetParameterAtPoint`, `GetShortestLineTo` and `IsPointOn` are exact to rounding and the same from either side;
+every span's box is looked at, so a query is linear in the number of spans (0.4 to 0.7 ms at 100 000). `Interpolate` takes a
+`Tolerance` that decides which neighbouring fit points are one point; points just above it make the curve swing far, as in the plane. A spline is carried by
+`TransformBy(GeoTransform3)` by its control points, exactly for every affine map; `ProjectToSpline2(frame)` lays it square onto the
+plane of a frame, and `GeoSpline2.ToSpline3(frame)` and `PlanarMap.ToSpline3` put one back, the weights and knots unchanged. A spline
+that stands square to the plane has no spline to give there, and is refused. A spline answers questions about a point in this release; its
+distances to, and crossings with, the other shapes follow.
+
 ## Checking parts against each other
 
 `Clash3.Find` checks a whole set of parts, or one set against another, and says what every pair that clashes

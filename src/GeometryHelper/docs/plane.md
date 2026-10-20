@@ -13,7 +13,7 @@ measured with the same [shared types](common.md).
 
 | Namespace | Holds |
 |---|---|
-| `GeometryHelper.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoPolyline2`, `GeoPolygon2`, `GeoFace2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2`, `GeoTriangle2`, `GeoTransform2` |
+| `GeometryHelper.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoPolyline2`, `GeoPolygon2`, `GeoFace2`, `GeoCircle2`, `GeoEllipse2`, `GeoSpline2`, `GeoRectangle2`, `GeoTriangle2`, `GeoTransform2` |
 | `GeometryHelper.Core` | `Boolean2`, `Collision2`, `Containment2`, `Corner2`, `Distance2`, `Ellipse2`, `Intersection2`, `Lengthen2`, `Merge2`, `Offset2`, `Parallel2`, `Parametrization2`, `Projection2`, `Splition2`, `Triangle2`, `PlanarMap` |
 | `GeometryHelper.Meshing` | `GeoMesh2`, `Mesh2`, `MeshKind`, `MeshOptions`, `GridAlignment`: see [meshing the plane](mesh.md) |
 | `GeometryHelper.Extension` | `EnumerableExtension` |
@@ -25,7 +25,7 @@ imports one namespace and nothing collides.
 
 ## Geometric Types
 
-`GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2` (a half-line), `GeoXLine2` (an infinite line), `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2` (rotated rectangle — OBB), `GeoTriangle2`, `GeoPolygon2`, `GeoFace2` (a polygon with holes), `GeoPolyline2`, and the chains that may curve: `GeoEdge2`, `GeoPolylineArc2`, `GeoPolygonArc2`.
+`GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2` (a half-line), `GeoXLine2` (an infinite line), `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoSpline2` (a NURBS curve), `GeoRectangle2` (rotated rectangle — OBB), `GeoTriangle2`, `GeoPolygon2`, `GeoFace2` (a polygon with holes), `GeoPolyline2`, and the chains that may curve: `GeoEdge2`, `GeoPolylineArc2`, `GeoPolygonArc2`.
 
 ### Regions and curves
 
@@ -34,7 +34,7 @@ The shapes split into two families, and the distinction decides what you can ask
 | Family | Types | Encloses an area |
 |---|---|---|
 | Region | `GeoCircle2`, `GeoEllipse2`, `GeoRectangle2`, `GeoPolygon2`, `GeoFace2` | yes |
-| Curve | `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoArc2`, `GeoPolyline2`, `GeoPolylineArc2` | no |
+| Curve | `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoArc2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoSpline2` | no |
 | Curved loop | `GeoPolygonArc2` | yes, but see below |
 
 A `GeoPolyline2` is always an open chain — it has no `IsClosed` flag and never joins its last vertex back to its first. Geometry meant to enclose something is a `GeoPolygon2`, and `polyline.ToPolygon()` converts between them.
@@ -1171,6 +1171,100 @@ refused by all of them with an `ArgumentException`, and a length that is negativ
 `ArgumentOutOfRangeException`. The viewer (`tools/GeometryHelper.Viewer`) draws a `GeoXLine2` through the box of the scene with a dot at
 its origin, gives its origin and direction among its properties, picks it and snaps to the nearest point of it, and reads an XLINE of a
 DXF file back as the line in space.
+
+## Splines
+
+`GeoSpline2` is a curve that is one smooth sweep and not a chain of pieces: a NURBS, a B-spline whose control points may pull
+on it with different strengths, which is what the SPLINE of AutoCAD and the B-spline curves of IFC hold. It is given by its
+degree (1 to 10), its control points, its knots and, when it is rational, its weights. The curve is clamped, so it starts at its
+first control point and ends at its last, and the control polygon through the points shows where it goes without touching it.
+
+```csharp
+var arch = new GeoSpline2(3,
+    new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 150), new GeoPoint2(200, 150), new GeoPoint2(300, 0) },
+    new double[] { 0, 0, 0, 0, 1, 1, 1, 1 });
+
+arch.GetPointAtParameter(0.5);             // (150, 112.5): the curve, not the 150 of its control polygon
+arch.GetAabb();                            // 300 by 112.5, not the 300 by 150 of its control points
+arch.Length;                               // 389.8927
+arch.GetDerivativeAtKnot(0.0, 1);          // (300, 450): three times the first leg of the polygon
+arch.GetTangentAtParameter(0.5);            // (1, 0), level at the top
+arch.DistanceTo(new GeoPoint2(150, 200));  // 87.5
+arch.Split(0.3);                           // two cubics that meet at (90, 94.5), exactly
+
+var circle = GeoSpline2.FromCircle(new GeoCircle2(new GeoPoint2(0, 0), 100));
+circle.Length;                             // 628.3185307180, 2 pi r to a relative 1E-12 and better
+circle.GetCurvatureAtParameter(0.3);        // 0.01, all the way round
+circle.DistanceTo(new GeoPoint2(160, 0));  // 60
+```
+
+**The knots are kept as given.** A spline read from a file goes back out as it came: nothing is rescaled to [0, 1] or
+reordered, and the domain, `DomainStart` to `DomainEnd`, is whatever the knots say. Two kinds of parameter are told apart by name,
+as the other curves keep theirs. The members named for a **parameter** (`GetPointAtParameter`, `GetTangentAtParameter`,
+`GetCurvatureAtParameter`, `GetParameterAtPoint`, `GetDistanceAtParameter`, `Split`) take a share of the domain from 0 to 1, as
+every curve in the library does; the ones named for a **knot** (`GetPointAtKnot`, `GetDerivativeAtKnot`, `GetTangentAtKnot`,
+`GetCurvatureAtKnot`, `GetKnotAtPoint`, `SplitAtKnot`) take a value of the domain itself, which is what the knots say.
+`GetKnotAtParameter` and `GetParameterAtKnot` turn one into the other: over the domain [5, 12] the parameter 0.5 is the knot 8.5.
+Splines made here have the domain [0, 1], where the two are the same number. The ones named for a **distance**
+(`GetPointAtDistance`, `GetParameterAtDistance`, `GetDistanceAtParameter`, `GetDistanceAtPoint`) go by length; a distance of
+nought or less gives the start and the whole length or more gives the end, as for a chain. The knots are checked: clamped (the first
+and the last repeated degree + 1 times and no more), not decreasing, no inner knot repeated more than the degree, one weight above
+nought for each control point and the largest no more than 1E12 times the smallest (past that the length cannot be worked out
+right: a ratio of 1E16 comes out 1E-7 short and one of 1E20 a third short), and control points that are not all one point.
+`IsRational` says whether any weight is other than one; a plain B-spline stores no weight and is worked on exactly its own numbers.
+A closed spline is a clamped one whose first and last control points coincide, `IsClosed()`; it is not periodic, and has no smooth
+join at the end.
+
+**It is made four ways.** `new GeoSpline2(degree, points, knots, weights)` takes the numbers. `FromControlPoints(degree, points)`
+spaces the knots evenly over [0, 1]: seven points of degree 3 have the knots 0, 0, 0, 0, 1/4, 1/2, 3/4, 1, 1, 1, 1.
+`Interpolate(fitPoints, degree = 3)` finds the curve through points, as AutoCAD's fit-point splines do, by global
+interpolation with chord-length parameters (Piegl and Tiller, 9.2.1): each point is met at the share of the chain's length
+that comes before it, the inner knots are the means of a degree's worth of those parameters, and the control points solve one
+banded system, so 100 000 points take 58 ms. Four points (0, 0), (100, 50), (200, 0), (300, 50) are met at
+0, a third, two thirds and 1. `Interpolate(fitPoints, startTangent, endTangent, degree = 3)` adds the direction the curve
+leaves and arrives in; a tangent gives a direction and nothing else, the curve keeps the speed it has on average, which over
+[0, 1] is the length of the chain through the points, so three points 100 apart along X with the tangent (1, 0) at each end
+give the line through them at an even speed of 200 whatever the length of the tangents. A fit point within the point
+tolerance of the one before it is dropped, as a polyline drops a vertex, by the tolerance given (`Interpolate(fitPoints, degree, tolerance)`) or the global one; points just above it are kept, and the curve through three that are 0.0012 apart in a chain 300 long swings 507 000 away, where at a tolerance that drops them it stays within 13 of the points. Last, `FromPolyline`, `FromArc` and `FromCircle` make a
+spline that is exactly the polyline, arc or circle: a circle is the nine control points of a rational quadratic, four pieces of
+a quarter turn with the weights 1, 0.7071, 1, ..., and every point of it is at the radius to 4E-14 at a radius of 100; an arc of
+a hundred degrees is two pieces of fifty.
+
+**Everything is exact to rounding, nothing sampled.** The point at a parameter is de Boor's scheme in homogeneous coordinates, a
+weighted mean of the control points of the span (11.7 units of rounding, of 2.2E-16 times the size of the spline, at the worst of
+400 random splines of degrees up to 10 in the plane, checked against exact fractions). Derivatives to the tenth, the tangent
+and the curvature (signed in the plane, positive counter-clockwise; never negative in space) are those of the exact quotient,
+to 6E-14. `Length` integrates the speed by Gauss-Legendre of ten points over each Bézier span, the span cut in halves until the
+rule over the whole and over its halves agree to 1E-14 of the length of its control polygon, cut again at each place its speed is
+least, where a curve that turns back has a corner in the integrand, and a rational span whose weights are more than two to one
+apart is cut first: 1.3E-15 against a Romberg integration on 400 random splines. `GetAabb` is the box the curve fills, found from
+the roots of the derivative on each span, not the box of the control points. `Split(parameter)` and `SplitAtKnot(knot)` raise the knot to the degree,
+so the two parts are the spline exactly and meet at one control point (a cut where the spline stands still, so that a part would be one point, is refused); `Reverse` runs it the other way over the same domain
+(each distinct knot is mirrored about the middle of the domain once, so equal knots stay equal and distinct ones stay distinct, a unit in the last
+place apart if rounding would join them; the mirrored knots are rounded to the last place of the domain's ends, which moves the curve
+by the speed times that). `Translate`, `TransformBy` and `PlanarMap.ToSpline3`/`ProjectToSpline2` carry the control points, which
+is exact for every affine map: a circle scaled by 3 along X is the ellipse 300 by 100, all 400 points of it on it to 1E-12.
+A transformation that carries every control point to one point is refused.
+
+**Nearest point and distance.** `DistanceTo(point)`, `GetClosestPointOnBoundary`, `GetKnotAtPoint` (and `GetParameterAtPoint`, `GetDistanceAtPoint`), `GetShortestLineTo` and
+`IsPointOn` find the nearest point of the curve, which is a line and not a region, from either side to the bit
+(`point.DistanceTo(spline)`). On each Bézier span the distance stops falling where `(C(t) - q) . C'(t)` is nought, a polynomial
+in Bernstein form whose roots are all found by cutting in halves wherever its coefficients change sign twice or more, so a
+point inside a loop, one on the axis of a symmetric curve, the centre of an arc, a point at a cusp all give the nearest of
+all the places; where two points are equally near the lower parameter is given. A span is solved only if the box of its control
+points is nearer than the best found, though the boxes of all of them are looked at, so a query is linear in the number of spans:
+0.4 to 0.7 ms at 100 000 spans, and a span solved is about a microsecond. An index over the spans is not here yet. At the worst of 160 random splines and 800 points the distance was 4.3 units of rounding off the exact one.
+
+**Flattening** keeps the chord promise. `Flatten(chordTolerance)` returns a chain whose corners are on the curve and from which
+the curve is never further than the tolerance, however fine the tolerance and whatever the weights: a span is cut in halves until
+every control point of the piece is within the tolerance of its chord (a Bézier piece lies in the hull of its control points), or
+the second differences of a polynomial piece, or the height of the middle control point of a conic, say so with less cutting.
+The circle of radius 100 within 0.01 is 256 chords, where 223 would hold, and the cubic above is 128. There is no automatic
+tolerance, since a spline has no radius to take a share of; a tolerance that needs more than 1 048 576 pieces is refused.
+
+Not in this release, and why: an `Offset` (the offset of a spline is not a spline; it would be an approximation to a tolerance),
+splines as the edges of a `GeoPolylineArc2` chain, periodic knot vectors, and surfaces. A spline answers questions about a point;
+its distances to, and crossings with, the other shapes follow.
 
 ## Moving geometry
 
