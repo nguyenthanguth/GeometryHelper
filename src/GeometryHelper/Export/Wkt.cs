@@ -16,7 +16,7 @@ namespace GeometryHelper.Export
     /// very double on .NET Framework and on .NET 10 alike (the digits may differ between the two, a negative nought is -0 on
     /// both). A curve has no well-known text that online viewers and most tools read, so circles, arcs,
     /// ellipses and chains with arcs are written through chords, no further from the curve than the chord tolerance asked
-    /// for, a chord shorter than the point tolerance written all the same, and a ray through a length. A body is written as a <c>POLYHEDRALSURFACE Z</c> of triangles.
+    /// for, a chord shorter than the point tolerance written all the same, and a ray or a line without ends through a length. A body is written as a <c>POLYHEDRALSURFACE Z</c> of triangles.
     /// </remarks>
     public static class Wkt
     {
@@ -475,6 +475,24 @@ namespace GeometryHelper.Export
             Chords.Require(ray);
             return Write(ray.ToLine(length));
         }
+
+        /// <summary>
+        /// Writes a line without ends in the plane as a segment of a length, centred on its origin, as it has no end of its
+        /// own: <c>LINESTRING (...)</c>.
+        /// </summary>
+        /// <remarks>
+        /// The line through (10, 20) along X, written 100 long, is <c>LINESTRING (-40 20, 60 20)</c>.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the line has no direction, as a <c>default</c> one has.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the length is negative, NaN or infinite.</exception>
+        public static string Write(GeoXLine2 xline, double length) => Write(Chords.Segment(xline, length));
+
+        /// <summary>
+        /// Writes a line without ends in space as a segment of a length, centred on its origin: <c>LINESTRING Z (...)</c>.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the line has no direction, as a <c>default</c> one has.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the length is negative, NaN or infinite.</exception>
+        public static string Write(GeoXLine3 xline, double length) => Write(Chords.Segment(xline, length));
 
         private static string Rings(GeoFace3 face)
         {

@@ -350,6 +350,14 @@ namespace GeometryHelper.Viewer
                     Measure_GeoRay3(shape, add);
                     break;
 
+                case "GeoXLine2":
+                    Measure_GeoXLine2(shape, add);
+                    break;
+
+                case "GeoXLine3":
+                    Measure_GeoXLine3(shape, add);
+                    break;
+
                 case "GeoPolyline2":
                     Measure_GeoPolyline2(shape, add);
                     break;
@@ -495,6 +503,22 @@ namespace GeometryHelper.Viewer
         {
             GeoRay3 r = (GeoRay3)shape;
             add("Direction", N(r.Direction.X) + ", " + N(r.Direction.Y) + ", " + N(r.Direction.Z));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoXLine2(object shape, Action<string, string> add)
+        {
+            GeoXLine2 x = (GeoXLine2)shape;
+            add("Origin", N(x.Origin.X) + ", " + N(x.Origin.Y));
+            add("Direction", N(x.Direction.X) + ", " + N(x.Direction.Y));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoXLine3(object shape, Action<string, string> add)
+        {
+            GeoXLine3 x = (GeoXLine3)shape;
+            add("Origin", N(x.Origin.X) + ", " + N(x.Origin.Y) + ", " + N(x.Origin.Z));
+            add("Direction", N(x.Direction.X) + ", " + N(x.Direction.Y) + ", " + N(x.Direction.Z));
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

@@ -455,6 +455,20 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
+        /// Adds a line without ends as a line of a length, centred on its origin: the line has no end of its own.
+        /// </summary>
+        /// <param name="xline">The line.</param>
+        /// <param name="length">How long the drawn line is: half of it either side of the origin.</param>
+        /// <param name="name">What the viewer calls it; a number when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <remarks>
+        /// The line through (1, 2, 3) along Z, drawn 50 long, runs from (1, 2, -22) to (1, 2, 28).
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the line has no direction, as a <c>default</c> one has.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the length is negative, NaN or infinite.</exception>
+        public ObjWriter Add(GeoXLine3 xline, double length, string name = null) => Add(Chords.Segment(xline, length), name);
+
+        /// <summary>
         /// Adds a segment as a line.
         /// </summary>
         public ObjWriter Add(GeoLine3 line, string name = null) => Line(new[] { line.StartPoint, line.EndPoint }, name);

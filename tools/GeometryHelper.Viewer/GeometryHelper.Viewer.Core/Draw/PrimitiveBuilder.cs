@@ -60,14 +60,15 @@ namespace GeometryHelper.Viewer
                     bounds = bounds.Include(item.Bounds);
                 }
 
-                // Rays and planes have no end; they are drawn out to a length that takes in what else is in the scene.
+                // Rays and planes have no end; they are drawn out to a length that takes in what else is in the scene. A line without ends is
+                // drawn through the box of the scene instead, and a margin past it.
                 double extent = bounds.IsEmpty ? EmptySceneExtent : Math.Max(bounds.Size.Length * 2.0, 1.0);
 
                 for (int i = 0; i < scene.Items.Count; i++)
                 {
                     if (IsUnbounded(scene.Items[i].Kind))
                     {
-                        result.Items[i] = BuildItem(scene, scene.Items[i], i, extent, null);
+                        result.Items[i] = BuildItem(scene, scene.Items[i], i, extent, null, bounds);
                     }
                 }
 
@@ -286,7 +287,7 @@ namespace GeometryHelper.Viewer
                 + " instead, which leaves " + after + " points" + (after > maxPoints ? ", still over the cap, for the rest is not curves" : string.Empty));
             return chosen;
         }
-        private static bool IsUnbounded(string kind) => kind == "GeoRay2" || kind == "GeoRay3" || kind == "GeoPlane3";
+        private static bool IsUnbounded(string kind) => kind == "GeoRay2" || kind == "GeoRay3" || kind == "GeoXLine2" || kind == "GeoXLine3" || kind == "GeoPlane3";
 
         /// <summary>
         /// Gets how far a chord may lie from its curve: a tenth of the point tolerance of the scene, so that the drawing never
@@ -295,17 +296,17 @@ namespace GeometryHelper.Viewer
         private static double ChordOf(Scene scene)
             => scene.EqualPoint > 0.0 && !double.IsInfinity(scene.EqualPoint) ? scene.EqualPoint / 10.0 : Scene.DefaultEqualPoint / 10.0;
 
-        private static ItemPrimitives BuildItem(Scene scene, SceneItem item, int index, double extent, ChordRule rule)
+        private static ItemPrimitives BuildItem(Scene scene, SceneItem item, int index, double extent, ChordRule rule, Bounds3 around = default(Bounds3))
         {
             using (LibraryLog log = Viewer.LibraryLog.Begin())
             {
-                ItemPrimitives built = BuildItemCore(scene, item, index, extent, rule);
+                ItemPrimitives built = BuildItemCore(scene, item, index, extent, rule, around);
                 built.LibraryLog.AddRange(log.Lines.Distinct(StringComparer.Ordinal));
                 return built;
             }
         }
 
-        private static ItemPrimitives BuildItemCore(Scene scene, SceneItem item, int index, double extent, ChordRule rule)
+        private static ItemPrimitives BuildItemCore(Scene scene, SceneItem item, int index, double extent, ChordRule rule, Bounds3 around)
         {
             var p = new ItemPrimitives { ItemIndex = index };
             rule = rule ?? new ChordRule(ChordOf(scene));
@@ -323,6 +324,8 @@ namespace GeometryHelper.Viewer
                     case "GeoLine3": Line(p, false, DataJson.Point(d, "a", 3), DataJson.Point(d, "b", 3)); break;
                     case "GeoRay2": fixedBounds = Ray(p, DataJson.Point(d, "a", 2), DataJson.Point(d, "b", 2), extent); break;
                     case "GeoRay3": fixedBounds = Ray(p, DataJson.Point(d, "a", 3), DataJson.Point(d, "b", 3), extent); break;
+                    case "GeoXLine2": fixedBounds = XLine(p, DataJson.Point(d, "a", 2), DataJson.Point(d, "b", 2), extent, around); break;
+                    case "GeoXLine3": fixedBounds = XLine(p, DataJson.Point(d, "a", 3), DataJson.Point(d, "b", 3), extent, around); break;
                     case "GeoPolyline2": Line(p, false, DataJson.Points(d, "points", 2)); break;
                     case "GeoPolygon2": Line(p, true, DataJson.Points(d, "points", 2)); break;
                     case "GeoPolyline3": Line(p, false, DataJson.Points(d, "points", 3)); break;
@@ -515,6 +518,54 @@ namespace GeometryHelper.Viewer
             }
 
             return default(Bounds3).Include(origin);
+        }
+
+        /// <summary>
+        /// Draws a line without ends as a dot at its origin and, once the box of the scene is known, the stretch of it inside that box grown by a
+        /// twentieth of its diagonal on every side, at least a millimetre: the line is cut where it leaves the grown box.
+        /// </summary>
+        /// <remarks>
+        /// The origin is in the box of the scene, which takes in the origin of every ray, line and plane, so the line always has a stretch inside.
+        /// </remarks>
+        private static Bounds3 XLine(ItemPrimitives p, Vec3 origin, Vec3 direction, double extent, Bounds3 around)
+        {
+            p.Points.Add(origin);
+
+            if (extent > 0.0 && !around.IsEmpty && direction.Length > 0.0)
+            {
+                Vec3 unit = direction.Normalized();
+                double margin = Math.Max(around.Size.Length * 0.05, 1.0);
+                double near = double.NegativeInfinity;
+                double far = double.PositiveInfinity;
+
+                if (Slab(origin.X, unit.X, around.Min.X - margin, around.Max.X + margin, ref near, ref far)
+                    && Slab(origin.Y, unit.Y, around.Min.Y - margin, around.Max.Y + margin, ref near, ref far)
+                    && Slab(origin.Z, unit.Z, around.Min.Z - margin, around.Max.Z + margin, ref near, ref far)
+                    && near <= far)
+                {
+                    Line(p, false, origin + unit * near, origin + unit * far);
+                }
+            }
+
+            return default(Bounds3).Include(origin);
+        }
+
+        /// <summary>
+        /// Narrows the stretch of a line that lies between two parallel planes of a box: false when the line runs level with them and outside.
+        /// </summary>
+        private static bool Slab(double origin, double step, double low, double high, ref double near, ref double far)
+        {
+            if (step == 0.0)
+            {
+                return origin >= low && origin <= high;
+            }
+
+            double first = (low - origin) / step;
+            double second = (high - origin) / step;
+
+            near = Math.Max(near, Math.Min(first, second));
+            far = Math.Min(far, Math.Max(first, second));
+            return true;
         }
 
         /// <summary>

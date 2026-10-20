@@ -783,6 +783,7 @@ GeoBvh2 same = GeoBvh2.FromPolygonArc(cog);           // the same tree, named fr
 index.GetClosestPoint(point);
 index.DistanceTo(point);                              // to the edges, not to the region they enclose
 index.GetIntersections(knife);
+index.GetIntersections(line);                         // a GeoRay2 or a GeoXLine2: the line from either side of its origin
 index.DistanceTo(other);
 index.CollidesWith(other);
 ```
@@ -1154,6 +1155,22 @@ point lies. `ToRay()` is the half ahead of the origin, `ToLine(from, to)` the se
 along it, and `GeoRay2.ToXLine()` and `GeoLine2.ToXLine()` give the line a ray or a segment lies on. `ClipTo(rectangle)` clips a line that crosses the
 rectangle exactly; one that misses it by no more than the point tolerance is clipped to the rectangle grown by it, so
 its ends are no more than the tolerance outside, and one that misses by more gives null.
+
+`GeoBvh2.GetIntersections` takes a line as it takes a ray. Each edge is asked what the plain scan asks it, `edge.GetIntersections(line)`,
+so the answer is the scan's whatever else is indexed, and the branches whose box, grown by the point tolerance, the infinite line never
+enters are not looked at; wherever on the line its origin stands, the answer is the same. Over the square 100 by 100, the line
+through (500, 50) along X crosses at (0, 50) and (100, 50), where the ray from the same point, pointing away from the square,
+crosses nothing.
+
+A line without ends is written by `DxfWriter.Add(line, layer)` as the XLINE entity AutoCAD draws without end (`AcDbXline`, the
+origin in groups 10, 20, 30 and the unit direction in 11, 21, 31, at zero height in the plane), and is not counted in the extents of the
+drawing beyond its origin, as a ray's is not. `SvgWriter.Add(line, colour)` draws it across the picture from edge to edge both ways, its origin helping to fit the picture as a
+ray's does, and `Wkt.Write(line, length)` has no picture to run to, so it writes the segment of that length centred on the origin: the line through
+(10, 20) along X, written 100 long, is `LINESTRING (-40 20, 60 20)`. A `default` line, which has no direction, is
+refused by all of them with an `ArgumentException`, and a length that is negative, NaN or infinite with an
+`ArgumentOutOfRangeException`. The viewer (`tools/GeometryHelper.Viewer`) draws a `GeoXLine2` through the box of the scene with a dot at
+its origin, gives its origin and direction among its properties, picks it and snaps to the nearest point of it, and reads an XLINE of a
+DXF file back as the line in space.
 
 ## Moving geometry
 

@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace GeometryHelper.Viewer
 {
     /// <summary>
-    /// A point of the scene that is a shape by itself, for the snaps and the picking: a point item, the origin of a ray or a plane.
+    /// A point of the scene that is a shape by itself, for the snaps and the picking: a point item, the origin of a ray, a line without ends or a plane.
     /// </summary>
     public readonly struct ScenePoint
     {
@@ -182,8 +182,10 @@ namespace GeometryHelper.Viewer
 
                 case "GeoRay2":
                 case "GeoRay3":
+                case "GeoXLine2":
+                case "GeoXLine3":
                 {
-                    Vec3 origin = DataJson.Point(d, "a", item.Kind == "GeoRay2" ? 2 : 3);
+                    Vec3 origin = DataJson.Point(d, "a", item.Kind == "GeoRay2" || item.Kind == "GeoXLine2" ? 2 : 3);
 
                     if (origin.IsFinite)
                     {

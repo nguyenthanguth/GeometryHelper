@@ -65,6 +65,39 @@ namespace GeometryHelper.Spatial
             }
 
             /// <summary>
+            /// Determines whether a line without ends enters the box grown by a distance on every side: the slab test, the
+            /// box being two pairs of parallel lines and the line inside it where both intervals overlap.
+            /// </summary>
+            internal bool IsEnteredBy(GeoXLine2 line, double grow)
+            {
+                double enter = double.NegativeInfinity;
+                double exit = double.PositiveInfinity;
+
+                if (!Slab(line.Origin.X, line.Direction.X, MinX - grow, MaxX + grow, ref enter, ref exit)
+                    || !Slab(line.Origin.Y, line.Direction.Y, MinY - grow, MaxY + grow, ref enter, ref exit))
+                {
+                    return false;
+                }
+
+                return enter <= exit;
+            }
+
+            private static bool Slab(double origin, double step, double low, double high, ref double enter, ref double exit)
+            {
+                if (step == 0.0)
+                {
+                    return origin >= low && origin <= high;
+                }
+
+                double first = (low - origin) / step;
+                double second = (high - origin) / step;
+
+                enter = Math.Max(enter, Math.Min(first, second));
+                exit = Math.Min(exit, Math.Max(first, second));
+                return true;
+            }
+
+            /// <summary>
             /// Determines whether a box reaches a stretch of the plane at all.
             /// </summary>
             internal bool Reaches(double minX, double minY, double maxX, double maxY, double slack)
@@ -314,6 +347,35 @@ namespace GeometryHelper.Spatial
                 Math.Max(ray.GetDistanceAtPoint(new GeoPoint2(box.MaxX, box.MaxY)), ray.GetDistanceAtPoint(new GeoPoint2(box.MinX, box.MaxY))));
 
             return GetIntersections(Ray2.CutPast(ray, farthest, tolerance), tolerance);
+        }
+
+        /// <summary>
+        /// Gets the points where an infinite line crosses the indexed edges.
+        /// </summary>
+        public GeoPoint2[] GetIntersections(GeoXLine2 xline) => GetIntersections(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the points where an infinite line crosses the indexed edges, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// Each edge is asked <see cref="GeoEdge2.GetIntersections(GeoXLine2, Tolerance)"/>, so the answer is the plain scan's
+        /// over every edge, whatever else is indexed: an edge that draws apart from the line by less than the point
+        /// tolerance along its own length is parallel to it, as it is with no index at all. The branches whose box, grown by
+        /// the point tolerance, the infinite line never enters are not looked at, and the line runs both ways from its
+        /// origin, so the answer is the same wherever on it the origin stands. Over the edges of the square 100 by 100 with a
+        /// corner at the origin, the line through (500, 50) along X crosses at (0, 50) and (100, 50), which the ray from the
+        /// same origin, pointing away, does not. An empty hierarchy is crossed nowhere.
+        /// </remarks>
+        public GeoPoint2[] GetIntersections(GeoXLine2 xline, Tolerance tolerance)
+        {
+            var found = new List<GeoPoint2>();
+
+            if (_nodeCount > 0)
+            {
+                CrossLine(0, xline, tolerance, found);
+            }
+
+            return found.ToArray();
         }
 
         /// <summary>
@@ -579,6 +641,49 @@ namespace GeometryHelper.Spatial
 
             Cross(one.Left, line, minX, minY, maxX, maxY, tolerance, found);
             Cross(one.Right, line, minX, minY, maxX, maxY, tolerance, found);
+        }
+
+        /// <summary>
+        /// Collects where an infinite line crosses the edges, leaving alone the branches whose box it never enters.
+        /// </summary>
+        private void CrossLine(int node, GeoXLine2 xline, Tolerance tolerance, List<GeoPoint2> found)
+        {
+            Node one = _nodes[node];
+
+            if (!one.Bounds.IsEnteredBy(xline, tolerance.EqualPoint))
+            {
+                return;
+            }
+
+            if (one.Left < 0)
+            {
+                for (int i = one.Start; i < one.Start + one.Count; i++)
+                {
+                    foreach (GeoPoint2 meeting in _edges[_order[i]].GetIntersections(xline, tolerance))
+                    {
+                        bool already = false;
+
+                        foreach (GeoPoint2 kept in found)
+                        {
+                            if (kept.IsEqualTo(meeting, tolerance))
+                            {
+                                already = true;
+                                break;
+                            }
+                        }
+
+                        if (!already)
+                        {
+                            found.Add(meeting);
+                        }
+                    }
+                }
+
+                return;
+            }
+
+            CrossLine(one.Left, xline, tolerance, found);
+            CrossLine(one.Right, xline, tolerance, found);
         }
 
         /// <summary>

@@ -49,6 +49,44 @@ namespace GeometryHelper.Export
             }
         }
 
+        /// <summary>Refuses a line with no direction, as a <c>default</c> one has.</summary>
+        internal static void Require(GeoXLine2 xline)
+        {
+            double length = xline.Direction.Length;
+
+            if (!(length > 0.0) || double.IsInfinity(length))
+            {
+                throw new ArgumentException("A line needs a direction of non-zero length.", nameof(xline));
+            }
+        }
+
+        /// <summary>Refuses a line with no direction, as a <c>default</c> one has.</summary>
+        internal static void Require(GeoXLine3 xline)
+        {
+            double length = xline.Direction.Length;
+
+            if (!(length > 0.0) || double.IsInfinity(length))
+            {
+                throw new ArgumentException("A line needs a direction of non-zero length.", nameof(xline));
+            }
+        }
+
+        /// <summary>The stretch of a line without ends that a writer with none draws: that long, centred on its origin.</summary>
+        internal static GeoLine2 Segment(GeoXLine2 xline, double length)
+        {
+            Require(xline);
+            Guard.NonNegative(length, nameof(length), "A line without ends is drawn for a length that is a number, nought or more.");
+            return xline.ToLine(-length * 0.5, length * 0.5);
+        }
+
+        /// <summary>The stretch of a line without ends that a writer with none draws: that long, centred on its origin.</summary>
+        internal static GeoLine3 Segment(GeoXLine3 xline, double length)
+        {
+            Require(xline);
+            Guard.NonNegative(length, nameof(length), "A line without ends is drawn for a length that is a number, nought or more.");
+            return xline.ToLine(-length * 0.5, length * 0.5);
+        }
+
         /// <summary>The chords of an arc, from its start to its end, both exactly.</summary>
         internal static List<GeoPoint3> Of(GeoArc3 arc, double chordTolerance)
             => Along(arc, ForArc(arc.Radius, Math.Abs(arc.SweptAngle), chordTolerance, 1));

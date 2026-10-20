@@ -437,6 +437,8 @@ namespace GeometryHelper.Viewer
                 case "GeoLine3": return "new GeoLine3(" + P3(DataJson.Point(d, "a", 3)) + ", " + P3(DataJson.Point(d, "b", 3)) + ")";
                 case "GeoRay2": return "new GeoRay2(" + P2(DataJson.Point(d, "a", 2)) + ", " + V2(DataJson.Point(d, "b", 2)) + ")";
                 case "GeoRay3": return "new GeoRay3(" + P3(DataJson.Point(d, "a", 3)) + ", " + V3(DataJson.Point(d, "b", 3)) + ")";
+                case "GeoXLine2": return "new GeoXLine2(" + P2(DataJson.Point(d, "a", 2)) + ", " + V2(DataJson.Point(d, "b", 2)) + ")";
+                case "GeoXLine3": return "new GeoXLine3(" + P3(DataJson.Point(d, "a", 3)) + ", " + V3(DataJson.Point(d, "b", 3)) + ")";
                 case "GeoPolyline2": return "new GeoPolyline2(" + Array("GeoPoint2", DataJson.Points(d, "points", 2).Select(P2).ToList(), indent) + ")";
                 case "GeoPolygon2": return "new GeoPolygon2(" + Array("GeoPoint2", DataJson.Points(d, "points", 2).Select(P2).ToList(), indent) + ")";
                 case "GeoPolyline3": return "new GeoPolyline3(" + Array("GeoPoint3", DataJson.Points(d, "points", 3).Select(P3).ToList(), indent) + ")";

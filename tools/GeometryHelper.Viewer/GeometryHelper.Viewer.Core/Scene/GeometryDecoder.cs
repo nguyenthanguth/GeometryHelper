@@ -30,6 +30,8 @@ namespace GeometryHelper.Viewer
                 case "GeoLine3": return Decode_GeoLine3(d);
                 case "GeoRay2": return Decode_GeoRay2(d);
                 case "GeoRay3": return Decode_GeoRay3(d);
+                case "GeoXLine2": return Decode_GeoXLine2(d);
+                case "GeoXLine3": return Decode_GeoXLine3(d);
                 case "GeoPolyline2": return Decode_GeoPolyline2(d);
                 case "GeoPolygon2": return Decode_GeoPolygon2(d);
                 case "GeoPolyline3": return Decode_GeoPolyline3(d);
@@ -98,6 +100,18 @@ namespace GeometryHelper.Viewer
         private static object Decode_GeoRay3(JsonElement d)
         {
             return new GeoRay3(P3(DataJson.Point(d, "a", 3)), V3(DataJson.Point(d, "b", 3)));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static object Decode_GeoXLine2(JsonElement d)
+        {
+            return new GeoXLine2(P2(DataJson.Point(d, "a", 2)), V2(DataJson.Point(d, "b", 2)));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static object Decode_GeoXLine3(JsonElement d)
+        {
+            return new GeoXLine3(P3(DataJson.Point(d, "a", 3)), V3(DataJson.Point(d, "b", 3)));
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

@@ -335,6 +335,67 @@ namespace GeometryHelper.Spatial
         }
 
         /// <summary>
+        /// Finds every point where an infinite line crosses the mesh, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoXLine3 xline) => GetIntersections(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Finds every point where an infinite line crosses the mesh, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The line runs both ways from its origin, so the answer is the same wherever along it the origin stands, but for a
+        /// crossing within rounding of the tolerance: it is what the ray gives from before the mesh, and from behind it,
+        /// together. The results come back in no
+        /// particular order, and a line through an edge two triangles share is reported by both of them, as a ray's is.
+        /// Each triangle is crossed as <see cref="GeoXLine3.TryIntersectWith(GeoTriangle3, out GeoPoint3, Tolerance)"/>
+        /// crosses it, so the answer is the plain scan's over every triangle, without looking at the branches whose box,
+        /// grown by the larger of the point and planar tolerances, the line never enters. The line through (3, 6, 4)
+        /// along Z crosses a mesh of the box 10 by 10 by 10 from the origin at (3, 6, 0) and (3, 6, 10), the ray from the
+        /// same point only at the second.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance)
+        {
+            List<GeoPoint3> hits = new List<GeoPoint3>();
+
+            if (_rootCount == 0)
+            {
+                return hits.ToArray();
+            }
+
+            double grow = Math.Max(tolerance.EqualPoint, tolerance.EqualPlanar);
+            Stack<int> pending = new Stack<int>();
+            pending.Push(0);
+
+            while (pending.Count > 0)
+            {
+                Node node = _nodes[pending.Pop()];
+
+                if (!LineEntersBox(xline.Origin, xline.Direction, node.Bounds, grow, double.NegativeInfinity))
+                {
+                    continue;
+                }
+
+                if (node.Left < 0)
+                {
+                    for (int i = node.Start; i < node.Start + node.Count; i++)
+                    {
+                        if (Intersection3.TryIntersectWith(xline, _triangles[_order[i]], out GeoPoint3 hit, tolerance))
+                        {
+                            hits.Add(hit);
+                        }
+                    }
+
+                    continue;
+                }
+
+                pending.Push(node.Left);
+                pending.Push(node.Right);
+            }
+
+            return hits.ToArray();
+        }
+
+        /// <summary>
         /// Counts where a ray crosses the mesh, unless a crossing lands so near the rim of its triangle that the
         /// count cannot be trusted.
         /// </summary>
@@ -961,19 +1022,26 @@ namespace GeometryHelper.Spatial
         /// its origin is within the tolerance of the face.
         /// </remarks>
         private static bool RayEntersBox(GeoRay3 ray, GeoAabb3 box, double grow)
+            => LineEntersBox(ray.Origin, ray.Direction, box, grow, 0.0);
+
+        /// <summary>
+        /// Checks whether a line from a point along a direction enters a box grown by a distance on every side, at any
+        /// distance along it from <paramref name="lowest"/> on: nought for a ray, minus infinity for a line without ends.
+        /// </summary>
+        private static bool LineEntersBox(GeoPoint3 start, GeoVector3 direction, GeoAabb3 box, double grow, double lowest)
         {
             if (box.IsEmpty)
             {
                 return false;
             }
 
-            double enter = 0.0;
+            double enter = lowest;
             double exit = double.MaxValue;
 
             for (int axis = 0; axis < 3; axis++)
             {
-                double origin = Component(ray.Origin, axis);
-                double step = Component(GeoPoint3.Origin.Add(ray.Direction), axis);
+                double origin = Component(start, axis);
+                double step = Component(GeoPoint3.Origin.Add(direction), axis);
                 double low = Component(box.Min, axis) - grow;
                 double high = Component(box.Max, axis) + grow;
 

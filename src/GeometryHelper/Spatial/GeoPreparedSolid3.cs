@@ -262,6 +262,58 @@ namespace GeometryHelper.Spatial
             return reaches;
         }
 
+        /// <summary>
+        /// Gets where a line without ends passes where the material ends, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoXLine3 xline) => GetIntersections(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Gets where a line without ends passes where the material ends, in the order the line meets them going along its
+        /// direction, within a tolerance.
+        /// </summary>
+        /// <remarks>
+        /// The line runs both ways from its origin, so the answer is the same wherever along it the origin stands, but for a
+        /// crossing within rounding of the tolerance. A crossing landing on a seam of the mesh arrives once per triangle and
+        /// is reported once, as the body reports it. The line through (3, 6, 4) along Z passes the box 10 by 10 by 10 at
+        /// (3, 6, 0) and (3, 6, 10), in that order.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance)
+        {
+            var hits = new List<GeoPoint3>();
+            var reaches = new List<double>();
+
+            foreach (GeoPoint3 hit in Index.GetIntersections(xline, tolerance))
+            {
+                reaches.Add(xline.GetDistanceAtPoint(hit));
+            }
+
+            reaches.Sort();
+
+            foreach (double reach in reaches)
+            {
+                if (hits.Count > 0 && reach - xline.GetDistanceAtPoint(hits[hits.Count - 1]) <= tolerance.EqualPoint)
+                {
+                    continue;
+                }
+
+                hits.Add(xline.GetPointAtDistance(reach));
+            }
+
+            return hits.ToArray();
+        }
+
+        /// <summary>
+        /// Checks whether a line without ends starts in the material or passes through where it ends, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoXLine3 xline) => CollidesWith(xline, Tolerance.Global);
+
+        /// <summary>
+        /// Checks whether a line without ends starts in the material or passes through where it ends, within a tolerance, the
+        /// crossings read as <see cref="GetIntersections(GeoXLine3, Tolerance)"/> reads them.
+        /// </summary>
+        public bool CollidesWith(GeoXLine3 xline, Tolerance tolerance)
+            => Contains(xline.Origin, tolerance) || Index.GetIntersections(xline, tolerance).Length > 0;
+
         #endregion
 
         #region Another body

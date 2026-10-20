@@ -69,6 +69,23 @@ that shares no code with the library, from both sides, as two rays, turned round
 with 20 000 boxes for `ClipTo`, and 18 000 pairs of two lines and 12 000 of a line and a plane held to exact arithmetic; a separate
 run of 100 000 of each kind, 1.8 million pairs, and 100 000 boxes passed as well. The suite gains 256 tests for the line in space.
 
+Both lines go the rest of the way into the library. `GeoBvh2.GetIntersections`, `GeoBvh3.GetIntersections` and, with
+`CollidesWith`, `GeoPreparedSolid3` take a line as they take a ray, and give what the plain scan over every edge or triangle gives (each
+edge or triangle is asked the line itself, so a near-parallel edge is judged by its own length, whatever else is indexed), without looking at
+a branch whose box the infinite line never enters, whichever side of its origin the mesh lies, but for a crossing within rounding of the tolerance: the line through (3, 6, 4) along Z crosses the mesh of the box 10 by 10 by 10
+at (3, 6, 0) and (3, 6, 10), where the ray from the same point reaches only the second, and in the plane the line through
+(500, 50) along X crosses the square 100 by 100 at (0, 50) and (100, 50), where the ray pointing away crosses nothing.
+`DxfWriter.Add(line)` writes the XLINE entity of the R2000 file for either line (`AcDbXline`, the origin in groups 10, 20, 30
+and the unit direction in 11, 21, 31), on a layer, and refuses a line with no direction; `SvgWriter.Add(line)` draws it across
+the picture from edge to edge both ways, its origin helping to fit the picture as a ray's does, and `ObjWriter.Add(line, length)` and
+`Wkt.Write(line, length)` write the segment of that length centred on the origin, as the ray's writers take a length (the line
+through (10, 20) along X, written 100 long, is `LINESTRING (-40 20, 60 20)`). The viewer
+draws `GeoXLine2` and `GeoXLine3` as scene kinds, through the box of the scene and a twentieth of its diagonal past it, with a dot
+at the origin, shows the origin and the unit direction among the properties of the item, picks it and snaps to the nearest point of
+it, and reads the XLINE of a DXF file. `GeometryHelper.CadConvert` converts the `Xline` and `Ray` entities both ways,
+`ToGeoXLine3` and `ToAcadXline`, `ToGeoRay3` and `ToAcadRay`. Nothing that was there changes: the ray's queries, the writers of the
+old shapes and the benchmark signatures are as they were.
+
 **FIXED.** The surface mesh of a body dropped any triangle whose doubled area was under 1E-5, comparing a length squared with a
 length, so a box 100 by 60 by 40 with a void 0.002 from its corner, which leaves a corner 0.002 thick, was meshed open along 15
 edges (69 triangles); it is now closed (72 triangles), and 3 000 random voids near corners, edges and faces mesh closed where

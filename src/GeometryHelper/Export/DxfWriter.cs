@@ -24,12 +24,12 @@ namespace GeometryHelper.Export
     /// <para>
     /// In the plane a shape is written as the entity AutoCAD has for it, not as chords: a polygon, a rectangle, a triangle
     /// and each ring of a face as a closed lightweight polyline, a chain or loop with arcs as one too with the bulge of each
-    /// arc edge, a circle as a CIRCLE, an arc as an ARC, an ellipse as an ELLIPSE and a ray as a RAY. A clockwise arc is
+    /// arc edge, a circle as a CIRCLE, an arc as an ARC, an ellipse as an ELLIPSE, a ray as a RAY and a line without ends as an XLINE. A clockwise arc is
     /// written from its end to its start, since DXF arcs run counter-clockwise only. A face is its rings and not a filled
     /// area: <see cref="SvgWriter"/> fills.
     /// </para>
     /// <para>
-    /// In space a segment, a point, a ray and an ellipse are written as they are, a chain and a polygon as a 3D polyline,
+    /// In space a segment, a point, a ray, a line without ends and an ellipse are written as they are, a chain and a polygon as a 3D polyline,
     /// and anything with a surface as 3DFACEs: one per triangle of a face or a body, one per face of a mesh that has three
     /// or four corners and turns one way, and six for a box, written from its corners. Where a face, a side of a body or a
     /// face of a mesh is cut into triangles, the edges between its own triangles are marked invisible, so a wireframe shows
@@ -344,6 +344,24 @@ namespace GeometryHelper.Export
             return this;
         }
 
+        /// <summary>
+        /// Adds a line without ends in the plane, which AutoCAD draws as an XLINE running both ways from its origin.
+        /// </summary>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a coordinate or a direction is not a finite number, or the line has no direction, as a <c>default</c> one has.
+        /// </exception>
+        public DxfWriter Add(GeoXLine2 xline, string layer = null)
+        {
+            Check(xline.Origin, nameof(xline));
+            Check(xline.Direction, nameof(xline));
+            Chords.Require(xline);
+
+            Begin("XLINE", Layer(layer), "AcDbXline");
+            Place(0, xline.Origin.X, xline.Origin.Y, 0.0);
+            _entities.Point(1, xline.Direction.X, xline.Direction.Y, 0.0);
+            return this;
+        }
+
         #endregion
 
         #region Space
@@ -418,6 +436,24 @@ namespace GeometryHelper.Export
             Begin("RAY", Layer(layer), "AcDbRay");
             Place(0, ray.Origin.X, ray.Origin.Y, ray.Origin.Z);
             _entities.Point(1, ray.Direction.X, ray.Direction.Y, ray.Direction.Z);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a line without ends in space, which AutoCAD draws as an XLINE running both ways from its origin.
+        /// </summary>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a coordinate or a direction is not a finite number, or the line has no direction, as a <c>default</c> one has.
+        /// </exception>
+        public DxfWriter Add(GeoXLine3 xline, string layer = null)
+        {
+            Check(xline.Origin, nameof(xline));
+            Check(xline.Direction, nameof(xline));
+            Chords.Require(xline);
+
+            Begin("XLINE", Layer(layer), "AcDbXline");
+            Place(0, xline.Origin.X, xline.Origin.Y, xline.Origin.Z);
+            _entities.Point(1, xline.Direction.X, xline.Direction.Y, xline.Direction.Z);
             return this;
         }
 

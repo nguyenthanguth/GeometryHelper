@@ -644,6 +644,20 @@ A line lies in the plane of a frame as a line of the plane, `line.ProjectToXLine
 stands in space again with `xline.ToXLine3(frame)`; a line along the normal of the frame has no direction in its plane and is
 refused.
 
+`GeoBvh3.GetIntersections` and `GeoPreparedSolid3.GetIntersections` and `CollidesWith` take a line as they take a ray (the prepared body names a seam once, in the order along the line, as the body does), and `GeoBvh3` gives what the plain scan gives, each triangle asked
+`line.TryIntersectWith(triangle, ...)`: the branches whose box, grown by the larger of the point and planar tolerances, the line
+never enters are not looked at, and the line runs both ways from its origin, so the answer is the same whether the origin lies before
+the mesh, inside it or past it, but for a crossing within rounding of the tolerance. The line through (3, 6, 4) along Z crosses the mesh of the box 10 by 10 by 10 from the origin at
+(3, 6, 0) and (3, 6, 10), where the ray from the same point reaches only the second. Like the ray's, a line through an edge two
+triangles share is named by both.
+
+`DxfWriter.Add(line, layer)` writes the XLINE entity (`AcDbXline`, the origin in groups 10, 20, 30 and the unit direction in 11, 21, 31);
+`ObjWriter.Add(line, length, name)` and `Wkt.Write(line, length)` write the segment of that length centred on the origin: the line
+through (1, 2, 3) along Z, written 50 long, runs from (1, 2, -22) to (1, 2, 28). The AutoCAD bridge, `GeometryHelper.CadConvert`,
+converts the `Xline` and `Ray` entities: `xline.ToGeoXLine3()` and `line.ToAcadXline()`, `ray.ToGeoRay3()` and `geoRay.ToAcadRay()`, losing nothing,
+since each holds a base point and a unit direction (the direction is made unit length again on reading, so it can differ in its last digit
+after a round trip, and an entity whose direction has no length is refused with an `ArgumentException`). The viewer draws a `GeoXLine3` through the box of the scene.
+
 ### How deep inside, not just whether
 
 `DistanceTo` reads a body as solid through, so a point anywhere inside one is nought away and how far in it
@@ -1821,7 +1835,7 @@ var tree = solid.BuildIndex();     // and on GeoFace3; GeoBvh3.FromSolid(solid) 
 
 tree.DistanceTo(point);            // nearest point on the surface
 tree.GetClosestPoint(point);
-tree.GetIntersections(ray);        // every crossing of the surface
+tree.GetIntersections(ray);        // every crossing of the surface; a GeoXLine3 is asked the same, both ways from its origin
 tree.CollidesWith(otherTree);      // surface contact between two meshes
 ```
 

@@ -9,7 +9,7 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Viewer
 {
     /// <summary>
-    /// Reads the DXF that <c>DxfWriter</c> writes, and what a CAD program writes of the same kinds: POINT, LINE, RAY, LWPOLYLINE with bulges,
+    /// Reads the DXF that <c>DxfWriter</c> writes, and what a CAD program writes of the same kinds: POINT, LINE, RAY, XLINE, LWPOLYLINE with bulges,
     /// POLYLINE (a 3D chain, a 2D chain with bulges, a polygon mesh, a polyface mesh), CIRCLE, ARC, ELLIPSE, 3DFACE, TEXT and MTEXT, on their
     /// layers, in their colours. Anything else is counted and said once. The edges a 3DFACE marks invisible, which DxfWriter does between the triangles it cuts a side into, are drawn
     /// like the others, so the cut shows. The numbers are read as the file prints them, to the bit; the
@@ -179,7 +179,7 @@ namespace GeometryHelper.Viewer
 
             foreach (string type in _unknownOrder)
             {
-                _b.Warn("DXF: " + _unknown[type].ToString(CultureInfo.InvariantCulture) + " " + type + " entity(ies) are not read (the DXF reader takes what DxfWriter writes: POINT, LINE, RAY, LWPOLYLINE, POLYLINE, CIRCLE, ARC, ELLIPSE, 3DFACE, TEXT, MTEXT)");
+                _b.Warn("DXF: " + _unknown[type].ToString(CultureInfo.InvariantCulture) + " " + type + " entity(ies) are not read (the DXF reader takes what DxfWriter writes: POINT, LINE, RAY, XLINE, LWPOLYLINE, POLYLINE, CIRCLE, ARC, ELLIPSE, 3DFACE, TEXT, MTEXT)");
             }
 
             if (_paperSpace > 0)
@@ -516,9 +516,10 @@ namespace GeometryHelper.Viewer
                     break;
 
                 case "RAY":
+                case "XLINE":
                     if (TryPoint(r, 0, out Vec3 origin) && TryPoint(r, 1, out Vec3 direction))
                     {
-                        Emit("GeoRay3", ImportData.Line(origin, direction, 3), r);
+                        Emit(r.Type == "RAY" ? "GeoRay3" : "GeoXLine3", ImportData.Line(origin, direction, 3), r);
                     }
                     else
                     {

@@ -5,8 +5,8 @@
 
 Converts geometry between AutoCAD and
 [GeometryHelper](https://github.com/nguyenthanguth/GeometryHelper), both ways: points, vectors, line
-segments and `Line` entities, polylines and polygons with the arcs their bulges draw, arcs, circles,
-ellipses, and `Extents2d`/`Extents3d` as rectangles.
+segments and `Line` entities, `Ray` and `Xline` entities, polylines and polygons with the arcs their
+bulges draw, arcs, circles, ellipses, and `Extents2d`/`Extents3d` as rectangles.
 
 ## Installation
 
@@ -180,6 +180,30 @@ radius, and a tilted `Arc` is still refused by `ToGeoArc2`, since in plan it is 
 GeoEllipse2 outline = tiltedCircle.ToGeoEllipse2();
 tiltedCircle.TryToGeoEllipse2(out GeoEllipse2 seen);   // false when it stands square to XY
 ```
+
+## Rays and infinite lines
+
+An AutoCAD `Ray` and `Xline` are each held as a base point and a unit direction, which is what a
+`GeoRay3` and a `GeoXLine3` hold, so they convert with nothing lost; the direction is made unit length again on reading, so
+it can differ in its last digit after a round trip, and an entity whose direction has no length is refused with an
+`ArgumentException`. A ray runs for ever from its base
+point, an `Xline` for ever both ways.
+
+```csharp
+GeoRay3 ray = acadRay.ToGeoRay3();
+GeoXLine3 axis = acadXline.ToGeoXLine3();
+
+Ray drawnRay = ray.ToAcadRay();
+Xline drawnAxis = axis.ToAcadXline();
+
+// In the plan: lay the line out in a frame, here the world's.
+GeoXLine2 inPlan = axis.ProjectToXLine2(GeoCoordinateSystem3.Global);
+```
+
+A `default` ray or line, which has no direction, is refused with an `ArgumentException` on its way to
+AutoCAD, which has no entity for it.
+
+These conversions are checked to compile and are untested at run time: AutoCAD's entities cannot be made outside AutoCAD.
 
 ## Licence
 

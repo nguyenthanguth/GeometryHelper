@@ -14,6 +14,7 @@ namespace GeometryHelper.Viewer
     /// <item><term>GeoPoint2, GeoPoint3</term><description><c>[x,y]</c>, <c>[x,y,z]</c></description></item>
     /// <item><term>GeoLine2, GeoLine3</term><description><c>{a:point, b:point}</c>, the two ends</description></item>
     /// <item><term>GeoRay2, GeoRay3</term><description><c>{a:origin, b:direction}</c>, the direction as the ray holds it</description></item>
+    /// <item><term>GeoXLine2, GeoXLine3</term><description><c>{a:origin, b:direction}</c>, the direction as the line holds it; drawn through the box of the scene</description></item>
     /// <item><term>GeoPolyline2, GeoPolyline3, GeoPolygon2, GeoPolygon3</term><description><c>{points:[point,..]}</c>, as the library holds them</description></item>
     /// <item><term>GeoPolylineArc2, GeoPolygonArc2</term><description><c>{points:[..], bulges:[..]}</c>, the bulge of the edge leaving each vertex</description></item>
     /// <item><term>GeoPolylineArc3, GeoPolygonArc3</term><description><c>{points:[..], bulges:[..], normals:[[x,y,z],..]}</c>, the normal each bulge is read about</description></item>
@@ -44,6 +45,7 @@ namespace GeometryHelper.Viewer
             "GeoPoint2", "GeoPoint3",
             "GeoLine2", "GeoLine3",
             "GeoRay2", "GeoRay3",
+            "GeoXLine2", "GeoXLine3",
             "GeoPolyline2", "GeoPolyline3", "GeoPolygon2", "GeoPolygon3",
             "GeoPolylineArc2", "GeoPolygonArc2", "GeoPolylineArc3", "GeoPolygonArc3",
             "GeoArc2", "GeoArc3", "GeoCircle2", "GeoCircle3", "GeoEllipse2", "GeoEllipse3",

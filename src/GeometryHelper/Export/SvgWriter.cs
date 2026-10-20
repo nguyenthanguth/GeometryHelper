@@ -16,7 +16,7 @@ namespace GeometryHelper.Export
     /// The picture is fitted round everything added, with Y pointing up as in the drawing, and every line is
     /// drawn the same width however far the picture is zoomed. Arcs and ellipses are drawn as arcs and ellipses,
     /// not as chords. Each shape takes a stroke colour and, where it encloses something, a fill — any colour SVG
-    /// knows, such as <c>"red"</c> or <c>"#3070c0"</c>. A ray is drawn on to the edge of the picture, and
+    /// knows, such as <c>"red"</c> or <c>"#3070c0"</c>. A ray is drawn on to the edge of the picture, a line without ends across it both ways, and
     /// <see cref="Text"/> names a shape in it.
     /// </para>
     /// <code>
@@ -28,6 +28,7 @@ namespace GeometryHelper.Export
         private readonly List<string> _elements = new List<string>();
         private readonly List<(GeoPoint2 Point, string Colour)> _points = new List<(GeoPoint2, string)>();
         private readonly List<(GeoRay2 Ray, string Colour)> _rays = new List<(GeoRay2, string)>();
+        private readonly List<(GeoXLine2 XLine, string Colour)> _xlines = new List<(GeoXLine2, string)>();
         private readonly List<(GeoPoint2 At, string Text, string Colour)> _labels = new List<(GeoPoint2, string, string)>();
         private double _minX = double.PositiveInfinity;
         private double _minY = double.PositiveInfinity;
@@ -172,6 +173,24 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
+        /// Adds a line without ends, drawn across the picture from edge to edge.
+        /// </summary>
+        /// <remarks>
+        /// A line has no end, so how far it runs is settled when the picture is read: both ways to the edge of the picture fitted
+        /// round everything else, as a ray's one way. Its origin counts towards the fit, as a ray's does.
+        /// The line along X through (0, 0) in a picture of a square 0 to 100 is drawn from x = -5 to x = 105, the edges with their margin;
+        /// a line added to nothing else has no picture to leave and is drawn a hair long.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the line has no direction, as a <c>default</c> one has.</exception>
+        public SvgWriter Add(GeoXLine2 xline, string colour = "black")
+        {
+            Chords.Require(xline);
+            Grow(xline.Origin.X, xline.Origin.Y);
+            _xlines.Add((xline, colour));
+            return this;
+        }
+
+        /// <summary>
         /// Adds a label, the text starting at a point and reading upright however the picture is zoomed.
         /// </summary>
         /// <param name="at">Where the text starts, at its baseline.</param>
@@ -300,28 +319,21 @@ namespace GeometryHelper.Export
 
             foreach ((GeoRay2 ray, string colour) in _rays)
             {
-                double reach = double.PositiveInfinity;
-
-                if (ray.Direction.X > 0.0)
-                {
-                    reach = Math.Min(reach, (right - ray.Origin.X) / ray.Direction.X);
-                }
-                else if (ray.Direction.X < 0.0)
-                {
-                    reach = Math.Min(reach, (left - ray.Origin.X) / ray.Direction.X);
-                }
-
-                if (ray.Direction.Y > 0.0)
-                {
-                    reach = Math.Min(reach, (top - ray.Origin.Y) / ray.Direction.Y);
-                }
-                else if (ray.Direction.Y < 0.0)
-                {
-                    reach = Math.Min(reach, (bottom - ray.Origin.Y) / ray.Direction.Y);
-                }
+                double reach = Reach(ray.Origin, ray.Direction, left, right, top, bottom);
 
                 GeoPoint2 end = ray.Origin.Add(new GeoVector2(ray.Direction.X * reach, ray.Direction.Y * reach));
                 text.Append("<path d=\"M ").Append(Xy(ray.Origin)).Append(" L ").Append(Xy(end)).Append("\" ").Append(Style(colour, "none")).Append("/>\n");
+            }
+
+            // A line without ends runs on both ways, to the edge it meets first each way.
+            foreach ((GeoXLine2 xline, string colour) in _xlines)
+            {
+                double ahead = Reach(xline.Origin, xline.Direction, left, right, top, bottom);
+                double behind = Reach(xline.Origin, new GeoVector2(-xline.Direction.X, -xline.Direction.Y), left, right, top, bottom);
+
+                GeoPoint2 from = xline.Origin.Add(new GeoVector2(-xline.Direction.X * behind, -xline.Direction.Y * behind));
+                GeoPoint2 to = xline.Origin.Add(new GeoVector2(xline.Direction.X * ahead, xline.Direction.Y * ahead));
+                text.Append("<path d=\"M ").Append(Xy(from)).Append(" L ").Append(Xy(to)).Append("\" ").Append(Style(colour, "none")).Append("/>\n");
             }
 
             double dot = size * 0.006;
@@ -362,6 +374,34 @@ namespace GeometryHelper.Export
         /// Writes the picture to a path, replacing whatever is there.
         /// </summary>
         public void Save(string path) => File.WriteAllText(path, ToString(), new UTF8Encoding(false));
+
+        /// <summary>
+        /// Gets how far along a direction of unit length, from a point inside the picture, the first of its four edges is.
+        /// </summary>
+        private static double Reach(GeoPoint2 origin, GeoVector2 direction, double left, double right, double top, double bottom)
+        {
+            double reach = double.PositiveInfinity;
+
+            if (direction.X > 0.0)
+            {
+                reach = Math.Min(reach, (right - origin.X) / direction.X);
+            }
+            else if (direction.X < 0.0)
+            {
+                reach = Math.Min(reach, (left - origin.X) / direction.X);
+            }
+
+            if (direction.Y > 0.0)
+            {
+                reach = Math.Min(reach, (top - origin.Y) / direction.Y);
+            }
+            else if (direction.Y < 0.0)
+            {
+                reach = Math.Min(reach, (bottom - origin.Y) / direction.Y);
+            }
+
+            return reach;
+        }
 
         private SvgWriter Path(string data, string colour, string fill)
         {

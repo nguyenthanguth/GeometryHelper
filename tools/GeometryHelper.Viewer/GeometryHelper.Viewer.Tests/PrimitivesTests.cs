@@ -36,8 +36,8 @@ namespace GeometryHelper.Viewer.Tests
 
             Assert.All(everything, p => Assert.True(p.IsFinite));
 
-            // A ray and a plane are drawn out to the edge of the scene, and count for their origin only.
-            if (kind != "GeoRay2" && kind != "GeoRay3" && kind != "GeoPlane3")
+            // A ray, a line without ends and a plane are drawn out to the edge of the scene, and count for their origin only.
+            if (kind != "GeoRay2" && kind != "GeoRay3" && kind != "GeoXLine2" && kind != "GeoXLine3" && kind != "GeoPlane3")
             {
                 Assert.All(everything, p =>
                 {

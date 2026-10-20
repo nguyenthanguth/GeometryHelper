@@ -78,6 +78,30 @@ namespace GeometryHelper.Viewer
             => Put(geometry, layer, name, color, props);
 
         /// <summary>
+        /// Adds a line without ends in the plane, drawn through the box of the scene with a dot at its origin.
+        /// </summary>
+        /// <param name="geometry">The shape.</param>
+        /// <param name="layer">The layer; the layer named "default" when none is given.</param>
+        /// <param name="name">The name in the scene tree; the kind and a number when none is given.</param>
+        /// <param name="color">The colour of this item as #RRGGBB; its layer's when none is given.</param>
+        /// <param name="props">Properties to show with the item: an anonymous object, a dictionary, or any object whose public properties are read.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        public SceneWriter Add(GeoXLine2 geometry, string layer = null, string name = null, string color = null, object props = null)
+            => Put(geometry, layer, name, color, props);
+
+        /// <summary>
+        /// Adds a line without ends in space, drawn through the box of the scene with a dot at its origin.
+        /// </summary>
+        /// <param name="geometry">The shape.</param>
+        /// <param name="layer">The layer; the layer named "default" when none is given.</param>
+        /// <param name="name">The name in the scene tree; the kind and a number when none is given.</param>
+        /// <param name="color">The colour of this item as #RRGGBB; its layer's when none is given.</param>
+        /// <param name="props">Properties to show with the item: an anonymous object, a dictionary, or any object whose public properties are read.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        public SceneWriter Add(GeoXLine3 geometry, string layer = null, string name = null, string color = null, object props = null)
+            => Put(geometry, layer, name, color, props);
+
+        /// <summary>
         /// Adds an open chain in the plane.
         /// </summary>
         /// <param name="geometry">The shape.</param>

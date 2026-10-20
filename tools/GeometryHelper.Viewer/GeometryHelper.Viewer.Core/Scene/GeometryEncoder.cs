@@ -77,6 +77,14 @@ namespace GeometryHelper.Viewer
                     WriteGeoRay3(w, geometry);
                     break;
 
+                case "GeoXLine2":
+                    WriteGeoXLine2(w, geometry);
+                    break;
+
+                case "GeoXLine3":
+                    WriteGeoXLine3(w, geometry);
+                    break;
+
                 case "GeoPolyline2":
                     WriteGeoPolyline2(w, geometry);
                     break;
@@ -233,6 +241,26 @@ namespace GeometryHelper.Viewer
             w.BeginObject();
             w.Field("a", r.Origin.X, r.Origin.Y, r.Origin.Z);
             w.Field("b", r.Direction.X, r.Direction.Y, r.Direction.Z);
+            w.EndObject();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void WriteGeoXLine2(DataWriter w, object geometry)
+        {
+            GeoXLine2 x = (GeoXLine2)geometry;
+            w.BeginObject();
+            w.Field("a", x.Origin.X, x.Origin.Y);
+            w.Field("b", x.Direction.X, x.Direction.Y);
+            w.EndObject();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void WriteGeoXLine3(DataWriter w, object geometry)
+        {
+            GeoXLine3 x = (GeoXLine3)geometry;
+            w.BeginObject();
+            w.Field("a", x.Origin.X, x.Origin.Y, x.Origin.Z);
+            w.Field("b", x.Direction.X, x.Direction.Y, x.Direction.Z);
             w.EndObject();
         }
 

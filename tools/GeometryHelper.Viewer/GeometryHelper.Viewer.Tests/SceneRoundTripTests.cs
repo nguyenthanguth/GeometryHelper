@@ -121,7 +121,7 @@ namespace GeometryHelper.Viewer.Tests
 
         private static readonly HashSet<string> ConstructorScalesItsDirections = new HashSet<string>
         {
-            "GeoRay2", "GeoRay3", "GeoArc2", "GeoArc3", "GeoCircle3", "GeoEllipse2", "GeoEllipse3", "GeoObb3", "GeoPlane3",
+            "GeoRay2", "GeoRay3", "GeoXLine2", "GeoXLine3", "GeoArc2", "GeoArc3", "GeoCircle3", "GeoEllipse2", "GeoEllipse3", "GeoObb3", "GeoPlane3",
         };
 
         /// <summary>
