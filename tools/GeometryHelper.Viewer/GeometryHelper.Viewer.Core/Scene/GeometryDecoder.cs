@@ -56,6 +56,7 @@ namespace GeometryHelper.Viewer
                 case "GeoMesh3": return Decode_GeoMesh3(d);
                 case "GeoAabb3": return Decode_GeoAabb3(d);
                 case "GeoObb3": return Decode_GeoObb3(d);
+                case "GeoSphere3": return Decode_GeoSphere3(d);
                 case "GeoPlane3": return Decode_GeoPlane3(d);
                 case SceneKinds.Text:
                     throw new NotSupportedException("A label has no library shape.");
@@ -289,6 +290,12 @@ namespace GeometryHelper.Viewer
                 DataJson.Number(d, "sizeZ"),
                 V3(DataJson.Point(d, "axisX", 3)),
                 V3(DataJson.Point(d, "axisY", 3)));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static object Decode_GeoSphere3(JsonElement d)
+        {
+            return new GeoSphere3(P3(DataJson.Point(d, "center", 3)), DataJson.Number(d, "radius"));
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

@@ -181,6 +181,19 @@ namespace GeometryHelper.IfcConvert.Core.Internal
             return GetCachedGeometry(guid, product, options);
         }
 
+        public IReadOnlyList<GeoSphere3> GetSpheres(string guid, IfcConvertOptions options)
+        {
+            if (string.IsNullOrWhiteSpace(guid) || !_productsByGuid.TryGetValue(guid, out IIfcProduct product))
+            {
+                GeometryHelperLog.Info($"IfcStoreCache.GetSpheres: {(string.IsNullOrWhiteSpace(guid) ? "no GlobalId was given" : guid + " is not a product of the file")}; no ball.");
+                return Array.Empty<GeoSphere3>();
+            }
+
+            List<GeoSphere3> spheres = product.ToGeoSpheres(options);
+            GeometryHelperLog.Info($"IfcStoreCache.GetSpheres: {guid} ({IfcTypeNames.GetName(product)}) has {spheres.Count} ball(s).");
+            return spheres;
+        }
+
         public IReadOnlyList<GeoSolid3> GetSolidsByType(string ifcTypeName, IfcConvertOptions options)
         {
             if (string.IsNullOrWhiteSpace(ifcTypeName))

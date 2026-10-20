@@ -31,7 +31,7 @@ namespace GeometryHelper.Viewer
 
     /// <summary>
     /// The exact curves and points of a scene, read from the numbers in the data of its items: the segments of lines, chains, loops, the
-    /// edges of faces and bodies and meshes, boxes and triangles, and the arcs, circles and ellipses, whole and in the bulges of a chain.
+    /// edges of faces and bodies and meshes, boxes and triangles, the arcs, circles and ellipses, whole and in the bulges of a chain, and the three great circles of a ball.
     /// The snaps, the picking and the measuring work on these and never on the chords the curves are drawn with.
     /// </summary>
     public sealed class ExactGeometry
@@ -344,6 +344,21 @@ namespace GeometryHelper.Viewer
                         center - dx - dy - dz, center + dx - dy - dz, center + dx + dy - dz, center - dx + dy - dz,
                         center - dx - dy + dz, center + dx - dy + dz, center + dx + dy + dz, center - dx + dy + dz,
                     });
+                    break;
+                }
+
+                case "GeoSphere3":
+                {
+                    // The three great circles that are drawn, whole: the snaps and the picking of lines take them, and their centre is the centre of the ball.
+                    Vec3 center = DataJson.Point(d, "center", 3);
+                    double radius = DataJson.Number(d, "radius");
+
+                    foreach (Vec3 normal in PrimitiveBuilder.GreatCircleNormals)
+                    {
+                        ArcTessellation.Axes(normal, out Vec3 u, out Vec3 v);
+                        Add(SceneCurve.Conic(index, center, u, v, radius, radius, 0.0, 2.0 * Math.PI));
+                    }
+
                     break;
                 }
 

@@ -140,6 +140,25 @@ fuzz of balls against balls and planes (40 000 a run, 4 million in a separate ru
 crossings, the circle, the touch and the shortest line to the formulas and the same from both sides to the bit; nothing that was
 there changes.
 
+**NEW.** The ball is written, shown and read from IFC. `ObjWriter.Add(GeoSphere3, chordTolerance, name)`, `DxfWriter.Add(GeoSphere3,
+chordTolerance, layer)` and `Wkt.Write(GeoSphere3, chordTolerance)` write the triangles of `TriangulateSurface(chordTolerance)` as a body
+is written as its triangles: a ball of radius 50 within 0.1 is 3 380 triangles, as OBJ faces, 3DFACEs with every edge visible, or a `POLYHEDRALSURFACE Z`,
+and the same bytes as writing those triangles as a mesh. The tolerance is a finite number above nought (a nought for automatic is refused, as it is for a circle's chords)
+and one that needs more than 1 048 576 triangles is refused, as is a `default` ball, with nothing written; SVG, a drawing in the plane, has none.
+Every earlier output is byte for byte as it was. The viewer has the kind `GeoSphere3`: the scene writer takes it, scenes keep it, and it is drawn as the
+mesh the library cuts at the chord tolerance of the scene in at most 262 144 triangles (a ball of radius 50 is 255 380, none further than 0.0012
+from the sphere, in 80 ms), with a dot at its centre and three great circles, which are exact, so its centre snaps as a centre, its circles are
+picked and snapped to, a clip plane through it leaves the cap of the disc it cuts, and its properties give the centre, the radius, the volume and the
+surface area; a ball whose mesh would pass the cap is cut coarser and is warned of where that leaves the mesh further from the sphere than ten point
+tolerances (a radius of 500 is). All the balls of a scene share a budget of four million triangles, over which every one is cut at one coarser
+tolerance and the scene is warned of it once (40 balls of radius 100, 10.2 million at the chord tolerance, are 3 808 800 triangles within 0.0062).
+A ball is not a body of the viewer's clash check, which takes the mesh of `ToSolid`; the gap check measures it exactly.
+`GeometryHelper.IfcConvert` gains `IfcStoreCache.GetSpheres(guid, options)`: the `GeoSphere3` of each `IfcSphere` among the body items of a product, at
+the root of an `IfcCsgSolid`, or in a mapped item, its centre and radius as the file gives them (scaled by the options, placed by the mapping and the
+product as a solid is: a uniform scale of the mapping scales the ball and an uneven one is refused with a warning), with `IncludeAggregatedParts` those of
+the parts it aggregates, where `GetSolids` goes on giving the engine's mesh, 1.2 % under its volume for a radius of 0.5 m. A sphere in a Boolean result is not read,
+and with `ApplyVoids` an element that openings cut gives none, a warning naming it, a ball with a void in it not being a ball. Every call writes one Info line.
+
 **FIXED.** The surface mesh of a body dropped any triangle whose doubled area was under 1E-5, comparing a length squared with a
 length, so a box 100 by 60 by 40 with a void 0.002 from its corner, which leaves a corner 0.002 thick, was meshed open along 15
 edges (69 triangles); it is now closed (72 triangles), and 3 000 random voids near corners, edges and faces mesh closed where

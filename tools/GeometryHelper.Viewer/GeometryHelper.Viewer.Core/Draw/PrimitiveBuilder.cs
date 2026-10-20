@@ -19,6 +19,25 @@ namespace GeometryHelper.Viewer
         /// </summary>
         private const double EmptySceneExtent = 1000.0;
 
+        /// <summary>
+        /// The most triangles one ball is drawn with: 262 144. A ball of radius 50 is cut at the tolerance that fits them, 6 r / 262 144 = 0.00114, and the
+        /// library cuts it 20 by 113 by 113, 255 380 triangles.
+        /// The ball is cut coarser than the chord tolerance of the scene to keep to it, which a ball of radius 50 is at the default one (it would take
+        /// three million at 1E-4).
+        /// </summary>
+        internal const int MostBallTriangles = 262144;
+
+        /// <summary>
+        /// The most triangles all the balls of a scene are drawn with together: four million, which is about 400 MB of triangles in double precision.
+        /// Over it every ball is cut at one coarser chord tolerance, the finest at which they fit, as the lines of a scene are over their cap.
+        /// </summary>
+        internal const int MostBallTrianglesInAScene = 4000000;
+
+        /// <summary>
+        /// The normals of the three great circles drawn on a ball and read for its snaps: the planes through its centre square to X, to Y and to Z.
+        /// </summary>
+        internal static readonly Vec3[] GreatCircleNormals = { new Vec3(1.0, 0.0, 0.0), new Vec3(0.0, 1.0, 0.0), new Vec3(0.0, 0.0, 1.0) };
+
         internal static Primitives Build(Scene scene, int maxPoints)
         {
             if (scene == null)
@@ -49,9 +68,44 @@ namespace GeometryHelper.Viewer
 
                 ChordRule curveRule = ChooseRule(scene, items, curved, maxPoints, result.Warnings);
 
+                // The balls are cut at one tolerance for all of them, coarser than the rule where together they would take more triangles than the budget.
+                List<int> balls = curved.Where(i => scene.Items[i].Kind == "GeoSphere3").ToList();
+                double ballTolerance = ChooseBallTolerance(scene, balls, curveRule.ChordTolerance);
+
+                ChordRule RuleFor(int index) => new ChordRule(curveRule.ChordTolerance, curveRule.AngleOnly) { BallTolerance = scene.Items[index].Kind == "GeoSphere3" ? ballTolerance : 0.0 };
+
                 foreach (int i in curved)
                 {
-                    items[i] = BuildItem(scene, scene.Items[i], i, 0.0, new ChordRule(curveRule.ChordTolerance, curveRule.AngleOnly));
+                    items[i] = BuildItem(scene, scene.Items[i], i, 0.0, RuleFor(i));
+                }
+
+                // The count of triangles a ball takes is about what the formula says, not exactly: where the balls built took more than the budget, the tolerance is raised by
+                // what they were over and they are built again, a few times at most.
+                for (int round = 0; round < 6 && balls.Count > 0 && ballTolerance > 0.0; round++)
+                {
+                    long total = balls.Sum(i => (long)items[i].Triangles.Count);
+
+                    if (total <= MostBallTrianglesInAScene)
+                    {
+                        break;
+                    }
+
+                    ballTolerance *= Math.Max(1.02, total / (double)MostBallTrianglesInAScene);
+
+                    foreach (int i in balls)
+                    {
+                        items[i] = BuildItem(scene, scene.Items[i], i, 0.0, RuleFor(i));
+                    }
+                }
+
+                if (balls.Count > 0 && ballTolerance > curveRule.ChordTolerance)
+                {
+                    long after = balls.Sum(i => (long)items[i].Triangles.Count);
+                    result.Warnings.Add(
+                        "the " + balls.Count + " ball(s) of the scene would take more triangles than the budget of " + MostBallTrianglesInAScene + " at the chord tolerance of "
+                        + curveRule.ChordTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture) + ": they are all cut within "
+                        + ballTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture) + " of their spheres instead, which leaves " + after + " triangles"
+                        + (after > MostBallTrianglesInAScene ? ", still over the budget" : string.Empty));
                 }
 
                 foreach (ItemPrimitives item in items)
@@ -119,6 +173,7 @@ namespace GeometryHelper.Viewer
                 case "GeoPolygonArc2":
                 case "GeoPolylineArc3":
                 case "GeoPolygonArc3":
+                case "GeoSphere3":
                     return true;
                 default:
                     return false;
@@ -168,6 +223,14 @@ namespace GeometryHelper.Viewer
                     case "GeoCircle2":
                     case "GeoCircle3":
                         count.Turns.Add(new KeyValuePair<double, double>(2.0 * Math.PI, DataJson.Number(d, "radius")));
+                        break;
+
+                    case "GeoSphere3":
+                        for (int circle = 0; circle < GreatCircleNormals.Length; circle++)
+                        {
+                            count.Turns.Add(new KeyValuePair<double, double>(2.0 * Math.PI, DataJson.Number(d, "radius")));
+                        }
+
                         break;
 
                     case "GeoEllipse2":
@@ -287,6 +350,88 @@ namespace GeometryHelper.Viewer
                 + " instead, which leaves " + after + " points" + (after > maxPoints ? ", still over the cap, for the rest is not curves" : string.Empty));
             return chosen;
         }
+        /// <summary>
+        /// Gets how many triangles the balls of a scene take, by the formula (a ball cut within a tolerance takes about 6 r / tolerance, at least the
+        /// twenty of an icosahedron and at most <see cref="MostBallTriangles"/>).
+        /// </summary>
+        private static long EstimateBallTriangles(List<double> radii, double tolerance)
+        {
+            double total = 0.0;
+
+            foreach (double radius in radii)
+            {
+                double within = Math.Max(tolerance, 6.0 * radius / MostBallTriangles);
+                total += Math.Max(20.0, Math.Min(MostBallTriangles, 6.0 * radius / within));
+            }
+
+            return (long)Math.Ceiling(total);
+        }
+
+        /// <summary>
+        /// Chooses the chord tolerance every ball of a scene is cut at: the one of the rule where the balls then take no more than
+        /// <see cref="MostBallTrianglesInAScene"/> triangles together, and otherwise the finest coarser one at which they do, found by the formula and
+        /// not by cutting them. Gives nought where the scene has no ball.
+        /// </summary>
+        private static double ChooseBallTolerance(Scene scene, List<int> balls, double chord)
+        {
+            var radii = new List<double>();
+
+            foreach (int i in balls)
+            {
+                try
+                {
+                    double radius = DataJson.Number(scene.Items[i].Data, "radius");
+
+                    if (radius > 0.0 && !double.IsInfinity(radius))
+                    {
+                        radii.Add(radius);
+                    }
+                }
+                catch (Exception e) when (e is FormatException || e is InvalidOperationException || e is KeyNotFoundException)
+                {
+                    // The numbers are wrong: the drawing of the item says so, and it takes no triangles here.
+                }
+            }
+
+            if (balls.Count == 0)
+            {
+                return 0.0;
+            }
+
+            long budget = MostBallTrianglesInAScene - (long)(MostBallTrianglesInAScene * 0.03);
+
+            if (EstimateBallTriangles(radii, chord) <= budget)
+            {
+                return chord;
+            }
+
+            // The finest tolerance that fits lies between the one of the rule, which does not, and the first of its doublings that does.
+            double low = chord;
+            double high = chord * 2.0;
+
+            for (int doublings = 0; doublings < 200 && EstimateBallTriangles(radii, high) > budget; doublings++)
+            {
+                low = high;
+                high *= 2.0;
+            }
+
+            for (int step = 0; step < 40; step++)
+            {
+                double middle = Math.Sqrt(low * high);
+
+                if (EstimateBallTriangles(radii, middle) > budget)
+                {
+                    low = middle;
+                }
+                else
+                {
+                    high = middle;
+                }
+            }
+
+            return high;
+        }
+
         private static bool IsUnbounded(string kind) => kind == "GeoRay2" || kind == "GeoRay3" || kind == "GeoXLine2" || kind == "GeoXLine3" || kind == "GeoPlane3";
 
         /// <summary>
@@ -443,6 +588,10 @@ namespace GeometryHelper.Viewer
                         p.IsClosedBody = p.Triangles.Count > 0;
                         break;
 
+                    case "GeoSphere3":
+                        Ball(p, scene, item, rule);
+                        break;
+
                     case "GeoPlane3":
                         fixedBounds = Plane(p, DataJson.Point(d, "origin", 3), DataJson.Point(d, "normal", 3), extent);
                         break;
@@ -591,6 +740,57 @@ namespace GeometryHelper.Viewer
             }
 
             return default(Bounds3).Include(origin);
+        }
+
+        /// <summary>
+        /// Draws a ball as a dot at its centre, three great circles cut by the rule, and the mesh of its surface the library cuts at the chord tolerance of the
+        /// rule: a closed body. The outline is read from the numbers, so a ball the library refuses is still drawn by its circles.
+        /// </summary>
+        /// <remarks>
+        /// A ball cut within a tolerance takes about 6 r / tolerance triangles, so the tolerance is raised to keep them to <see cref="MostBallTriangles"/>; the item is
+        /// warned of only where that leaves the mesh further from the sphere than ten point tolerances of the scene (a ball of radius 500, cut in 255 380 triangles within 0.0114, is; one of radius 400 is not): the great circles, the snaps and the measures are exact whatever the mesh.
+        /// Where the balls of a scene together would pass <see cref="MostBallTrianglesInAScene"/>, the rule carries the one tolerance they are all cut at, and the scene is warned of it once instead.
+        /// </remarks>
+        private static void Ball(ItemPrimitives p, Scene scene, SceneItem item, ChordRule rule)
+        {
+            JsonElement d = item.Data;
+            Vec3 center = DataJson.Point(d, "center", 3);
+            double radius = DataJson.Number(d, "radius");
+
+            p.Points.Add(center);
+
+            foreach (Vec3 normal in GreatCircleNormals)
+            {
+                Line(p, true, ArcTessellation.Circle3(rule, center, normal, radius));
+            }
+
+            double basis = rule.BallTolerance > 0.0 ? rule.BallTolerance : rule.ChordTolerance;
+            double within = basis;
+
+            Surface(p, scene, () =>
+            {
+                var ball = (GeoSphere3)item.ToGeometry();
+                within = Math.Max(basis, 6.0 * ball.Radius / MostBallTriangles);
+                GeoTriangle3[] cut = ball.TriangulateSurface(within);
+
+                // The count is a little over or under what the sag formula says: a tolerance a fifth coarser takes about a tenth fewer pieces an edge.
+                while (cut.Length > MostBallTriangles)
+                {
+                    within *= 1.2;
+                    cut = ball.TriangulateSurface(within);
+                }
+
+                return cut.Select(T).ToList();
+            });
+
+            p.IsClosedBody = p.Triangles.Count > 0;
+
+            if (p.Triangles.Count > 0 && within > basis && within > ChordOf(scene) * 100.0)
+            {
+                Warn(p, "its mesh is cut in " + p.Triangles.Count + " triangles, within " + within.ToString("G3", System.Globalization.CultureInfo.InvariantCulture)
+                    + " of the sphere and not within the chord tolerance of " + ChordOf(scene).ToString("G3", System.Globalization.CultureInfo.InvariantCulture)
+                    + ": a ball is drawn with at most " + MostBallTriangles + " triangles (its circles, snaps and measures are exact)");
+            }
         }
 
         private static Vec3[] RectangleCorners(JsonElement d)

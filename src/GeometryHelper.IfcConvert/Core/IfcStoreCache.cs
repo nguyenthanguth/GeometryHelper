@@ -251,6 +251,30 @@ namespace GeometryHelper.IfcConvert.Core
         }
 
         /// <summary>
+        /// Retrieves the balls of a product by its GlobalId (GUID): each <c>IfcSphere</c> among the items of its body, at the root
+        /// of an <c>IfcCsgSolid</c> among them, or in a mapped item, as a <see cref="GeoSphere3"/> with its exact centre and radius.
+        /// Returns an empty list if the product is not found or has no ball.
+        /// </summary>
+        /// <param name="guid">The GlobalId (GUID) of the product.</param>
+        /// <param name="options">Optional conversion options: the scale, the target unit, the coordinate space and the name filters apply as for solids.</param>
+        /// <returns>A read-only list of the balls, in the order of the product's items.</returns>
+        /// <remarks>
+        /// <see cref="GetSolids"/> gives the same ball as a closed mesh of triangles inside the sphere, cut by the geometry engine
+        /// (a ball of radius 0.5 m comes out 1.2 % under its volume), and goes on doing so: this reads the sphere itself, so a
+        /// ball of radius 250 mm at (1000, 2000, 3000) comes with exactly that centre and radius, and
+        /// <see cref="GeoSphere3.ToSolid(double)"/> meshes it within a chord tolerance you choose. A sphere in a mapped item is placed by the mapping as a solid is:
+        /// a uniform scale of the mapping scales the ball, and one that stretches unevenly makes an ellipsoid of it, which is left out with a warning.
+        /// With <see cref="IfcConvertOptions.IncludeAggregatedParts"/> the balls of the parts a product aggregates come too. A sphere inside a Boolean
+        /// result, such as a ball with a flat cut off it, is not read. With <see cref="IfcConvertOptions.ApplyVoids"/> an element that openings cut
+        /// gives none of its own balls (a warning names it), as a ball with a void in it is not a ball. A placement does not stretch (it is rigid);
+        /// only a mapping can.
+        /// </remarks>
+        public IReadOnlyList<GeoSphere3> GetSpheres(string guid, IfcConvertOptions options = null)
+        {
+            return _session?.GetSpheres(guid, ResolveOptions(options)) ?? Array.Empty<GeoSphere3>();
+        }
+
+        /// <summary>
         /// Retrieves all <see cref="GeoSolid3"/> bodies for products of a specific IFC type (e.g. "IfcWall", "IfcBeam", "Wall").
         /// </summary>
         /// <param name="ifcTypeName">The IFC entity type name (with or without 'Ifc' prefix, case-insensitive).</param>

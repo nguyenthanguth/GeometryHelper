@@ -726,6 +726,20 @@ than 1 048 576 triangles is refused, as it is for the chords of a circle: radius
 cut within 5.7E-6 and not 5E-6. A tolerance of nought picks 0.2 % of the radius. A default ball is refused, and one of a radius below about 0.01 has triangles thinner than the point tolerance and may mesh into a body the library calls open at the default tolerance. A corner shared by two triangles is the same to the bit in both, so the
 body is closed with no weld. A ball goes into a clash as `ball.ToSolid(0.01)`, which is as exact as the tolerance.
 
+**Writing, showing and reading from IFC.** `ObjWriter`, `DxfWriter` and `Wkt` take a ball with a chord tolerance and write the triangles of
+`TriangulateSurface(chordTolerance)`, as they write a body: the ball of radius 50 within 0.1 is 3 380 triangles in each (a 3DFACE apiece in DXF, a
+`POLYHEDRALSURFACE Z` in WKT), the tolerance a finite number above nought and one that needs more than 1 048 576 triangles refused; see
+[Common](common.md) for the writers. The viewer shows a ball as that mesh cut at its chord tolerance (a tenth of the point tolerance of the scene) in
+at most 262 144 triangles, with a dot at its centre and three great circles, which are exact, and its centre snaps as a centre. A ball
+of radius 50 is drawn in 255 380 triangles, none further than 0.0012 from the sphere; one of radius 5 000
+in as many, within 0.114, and the item is warned of where the mesh may lie further from the sphere than ten point tolerances. All the balls of a scene
+together are drawn in at most four million triangles: 40 balls of radius 100, which would take 10.2 million, are all cut within 0.0062 of their spheres
+instead, 3 808 800 triangles, and the scene is warned of it once. From an IFC file,
+`IfcStoreCache.GetSpheres(guid)` of GeometryHelper.IfcConvert gives the `GeoSphere3` of each `IfcSphere` among the items of a product's body, at the
+root of an `IfcCsgSolid` among them, or in a mapped item (placed by the mapping, a uniform scale of it scaling the ball), with its position and radius as the
+file gives them, where `GetSolids` gives the same ball as the engine's mesh, 1.2 % under its volume for a radius of 0.5 m. An element that openings cut
+gives no ball when `ApplyVoids` is set, a ball with a void in it not being a ball.
+
 ### How deep inside, not just whether
 
 `DistanceTo` reads a body as solid through, so a point anywhere inside one is nought away and how far in it

@@ -67,6 +67,29 @@ loops to their vertices and drop the hole.
 the deflection xBIM derives from the model's length unit, which keeps round sections within about 0.5 %
 of their true volume.
 
+## Balls
+
+A ball in an IFC file, an `IfcSphere` among the items of a product's body, at the root of an `IfcCsgSolid` among them, or in a mapped item, comes out of
+`GetSolids` as the engine's mesh of triangles, which lies inside the sphere: a ball of radius 0.5 m is 1.2 % under its volume at the default
+deflection. `IfcStoreCache.GetSpheres(guid, options)` reads the sphere itself as a `GeoSphere3`, its centre the position the file gives and its
+radius the radius, scaled by the options and placed by the product as a solid is (the placement is left off with `CoordinateSpace.Local`):
+
+```csharp
+IReadOnlyList<GeoSphere3> balls = model.GetSpheres(guid, new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters });
+GeoSolid3 mesh = balls[0].ToSolid(0.01);   // a mesh of your own choice of chord tolerance
+```
+
+A ball of radius 250 at (1, 2, 3) in a model in millimetres comes with exactly that centre and radius (0.25 at (0.001, 0.002, 0.003) in metres).
+
+A ball in a mapped item is placed by the mapping as a solid is, the scale of its `IfcCartesianTransformationOperator3D` included: scaled by 2, a ball of
+radius 0.5 is one of radius 1; one scaled unevenly (`IfcCartesianTransformationOperator3DnonUniform`) is an ellipsoid, which is left out with a Warn.
+With `IncludeAggregatedParts` the balls of the parts a product aggregates come too, in the world, or in the frame of the assembly with
+`CoordinateSpace.Local`. A sphere inside a Boolean result (a ball with a flat cut off it) is not read, nor is a sphere of no radius; a placement
+is rigid, so only a mapping can stretch a ball, and one that stretches it unevenly leaves it out with a Warn. With `ApplyVoids` an element that openings cut gives none of its own balls, a Warn naming
+it and saying why: a ball with a void in it is not a ball, and `GetSolids` gives the ball with the void cut. Every call writes one Info line, for a
+GlobalId the file does not hold too; a sphere left out is a Warn, and the items of the body that are not spheres are counted in one Debug line.
+A product with no ball, or one not found, gives an empty list.
+
 ## Conversion Rules
 
 - **Body only**: the `Body` representation is converted (then `Body-*`, then `Facetation`). `Box`,

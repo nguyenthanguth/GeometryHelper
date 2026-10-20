@@ -29,6 +29,7 @@ namespace GeometryHelper.Viewer
     /// <item><term>GeoMesh2, GeoMesh3</term><description><c>{kind, points:[..], faces:[[i,j,k,..],..]}</c>, each face the indexes of its corners, counter-clockwise</description></item>
     /// <item><term>GeoAabb3</term><description><c>{min, max}</c>, or <c>{empty:true}</c></description></item>
     /// <item><term>GeoObb3</term><description><c>{center, sizeX, sizeY, sizeZ, axisX, axisY}</c></description></item>
+    /// <item><term>GeoSphere3</term><description><c>{center, radius}</c>; drawn as a fine mesh at the chord tolerance of the scene, with three great circles</description></item>
     /// <item><term>GeoPlane3</term><description><c>{origin, normal}</c>; drawn as a square patch sized to the scene</description></item>
     /// <item><term>Text</term><description><c>{at, text, height}</c>, a label; height 0 draws it at a size that suits the screen</description></item>
     /// </list>
@@ -51,7 +52,7 @@ namespace GeometryHelper.Viewer
             "GeoArc2", "GeoArc3", "GeoCircle2", "GeoCircle3", "GeoEllipse2", "GeoEllipse3",
             "GeoRectangle2", "GeoTriangle2", "GeoTriangle3",
             "GeoFace2", "GeoFace3", "GeoSolid3", "GeoMesh2", "GeoMesh3",
-            "GeoAabb3", "GeoObb3", "GeoPlane3",
+            "GeoAabb3", "GeoObb3", "GeoSphere3", "GeoPlane3",
             Text,
         };
 

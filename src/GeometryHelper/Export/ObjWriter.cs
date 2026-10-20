@@ -14,7 +14,7 @@ namespace GeometryHelper.Export
     /// <remarks>
     /// <para>
     /// Every shape added becomes an object of its own, named as given, so a viewer lists them separately: a
-    /// body as the mesh of where its material ends, a face as its triangles, a chain as a line, a point as a dot. A
+    /// body as the mesh of where its material ends, a ball as the mesh of its surface, a face as its triangles, a chain as a line, a point as a dot. A
     /// polygon that turns the same way at every corner is one face, any other its triangles; a circle, an arc or an
     /// ellipse is a line of chords no further from the curve than the chord tolerance asked for, a chord shorter than the
     /// point tolerance written all the same. Coordinates are written exactly, as a text that reads back to the very double on .NET Framework
@@ -437,6 +437,28 @@ namespace GeometryHelper.Export
         {
             Chords.Require(chordTolerance);
             return Line(Chords.Of(ellipse, chordTolerance), name);
+        }
+
+        /// <summary>
+        /// Adds a ball as the mesh of its surface, cut into triangles no further than a tolerance from it.
+        /// </summary>
+        /// <param name="sphere">The ball.</param>
+        /// <param name="chordTolerance">The largest gap allowed between a triangle and the sphere, in millimetres.</param>
+        /// <param name="name">What the viewer calls it; a number when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <remarks>
+        /// The mesh is <see cref="GeoSphere3.TriangulateSurface(double)"/>, as a body is written as its triangles: a ball of radius 50
+        /// within 0.1 is 3 380 triangles, every corner on the sphere, wound outwards. A tolerance that needs more than 1 048 576
+        /// triangles is refused; radius 50 within 0.0001 would need three million.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the ball is not valid, as a <c>default</c> one is.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is not a finite number above nought, or would need more than 1 048 576 triangles.
+        /// </exception>
+        public ObjWriter Add(GeoSphere3 sphere, double chordTolerance, string name = null)
+        {
+            Chords.Require(chordTolerance);
+            return Add(sphere.TriangulateSurface(chordTolerance), name);
         }
 
         /// <summary>

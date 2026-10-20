@@ -555,6 +555,25 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         }
 
         /// <summary>
+        /// The transformation a mapped item puts its mapped representation through: first the map's MappingOrigin, then the item's
+        /// MappingTarget (world = Target * Origin * local), as IfcOpenShell does. xBIM's scene builder composes them the other way.
+        /// The scale of an IfcCartesianTransformationOperator is in it, and the offsets are scaled by <paramref name="scale"/>.
+        /// </summary>
+        /// <param name="mappedItem">A mapped item with a mapping source and target.</param>
+        /// <param name="scale">The coordinate scale factor.</param>
+        internal static GeoTransform3 MappingTransformOf(IIfcMappedItem mappedItem, double scale)
+        {
+            GeoTransform3 mappingTransform = mappedItem.MappingTarget.ToMatrix3D().ToGeoTransform3(scale);
+            IIfcAxis2Placement mappingOrigin = mappedItem.MappingSource.MappingOrigin;
+            if (mappingOrigin != null)
+            {
+                mappingTransform = mappingTransform * mappingOrigin.ToMatrix3D().ToGeoTransform3(scale);
+            }
+
+            return mappingTransform;
+        }
+
+        /// <summary>
         /// Recursively collects and transforms solids from an <see cref="IIfcMappedItem"/> (e.g. type representations, assemblies).
         /// </summary>
         private static void CollectMappedItemSolids(
@@ -571,12 +590,7 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             // The mapped representation is first placed by the map's MappingOrigin, then by the item's MappingTarget
             // (world = Target * Origin * local), as IfcOpenShell does. xBIM's scene builder composes them the other way.
-            GeoTransform3 mappingTransform = mappedItem.MappingTarget.ToMatrix3D().ToGeoTransform3(options.ScaleFactor);
-            IIfcAxis2Placement mappingOrigin = mappedItem.MappingSource.MappingOrigin;
-            if (mappingOrigin != null)
-            {
-                mappingTransform = mappingTransform * mappingOrigin.ToMatrix3D().ToGeoTransform3(options.ScaleFactor);
-            }
+            GeoTransform3 mappingTransform = MappingTransformOf(mappedItem, options.ScaleFactor);
 
             // Compute cumulative transform for this mapped level: outerTransforms * mappingTransform
             GeoTransform3 cumulativeTransform = mappingTransform;

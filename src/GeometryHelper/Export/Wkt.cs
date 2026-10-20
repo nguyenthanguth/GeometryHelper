@@ -16,7 +16,7 @@ namespace GeometryHelper.Export
     /// very double on .NET Framework and on .NET 10 alike (the digits may differ between the two, a negative nought is -0 on
     /// both). A curve has no well-known text that online viewers and most tools read, so circles, arcs,
     /// ellipses and chains with arcs are written through chords, no further from the curve than the chord tolerance asked
-    /// for, a chord shorter than the point tolerance written all the same, and a ray or a line without ends through a length. A body is written as a <c>POLYHEDRALSURFACE Z</c> of triangles.
+    /// for, a chord shorter than the point tolerance written all the same, and a ray or a line without ends through a length. A body or a ball is written as a <c>POLYHEDRALSURFACE Z</c> of triangles.
     /// </remarks>
     public static class Wkt
     {
@@ -194,6 +194,33 @@ namespace GeometryHelper.Export
                 return "POLYHEDRALSURFACE Z EMPTY";
             }
 
+            var parts = new List<string>(triangles.Length);
+
+            foreach (GeoTriangle3 triangle in triangles)
+            {
+                parts.Add("((" + Points(new[] { triangle.A, triangle.B, triangle.C }, true) + "))");
+            }
+
+            return "POLYHEDRALSURFACE Z (" + string.Join(", ", parts) + ")";
+        }
+
+        /// <summary>
+        /// Writes a ball as the triangles of its surface, no further than a tolerance from the sphere:
+        /// <c>POLYHEDRALSURFACE Z (((...)), ((...)))</c>, wound outwards.
+        /// </summary>
+        /// <remarks>
+        /// A ball of radius 50 within 0.1 is 3 380 triangles, written as a body is: the triangles of
+        /// <see cref="GeoSphere3.TriangulateSurface(double)"/>.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the ball is not valid, as a <c>default</c> one is.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is not a finite number above nought, or would need more than 1 048 576 triangles.
+        /// </exception>
+        public static string Write(GeoSphere3 sphere, double chordTolerance)
+        {
+            Chords.Require(chordTolerance);
+
+            GeoTriangle3[] triangles = sphere.TriangulateSurface(chordTolerance);
             var parts = new List<string>(triangles.Length);
 
             foreach (GeoTriangle3 triangle in triangles)

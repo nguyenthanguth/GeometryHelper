@@ -56,6 +56,12 @@ namespace GeometryHelper.Viewer
         }
 
         /// <summary>
+        /// Gets or sets the chord tolerance the balls are cut at where it is not <see cref="ChordTolerance"/>, which the scene chooses so that all its
+        /// balls fit the budget of triangles; nought, the default, cuts them at <see cref="ChordTolerance"/>.
+        /// </summary>
+        internal double BallTolerance { get; set; }
+
+        /// <summary>
         /// Gets whether the rule cuts by the angle alone: at most 2 degrees a piece and at least 16 a turn, whatever the chord tolerance.
         /// </summary>
         public bool AngleOnly { get; }

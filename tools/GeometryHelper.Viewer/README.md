@@ -332,7 +332,7 @@ s.Save(@"C:\scenes\star.ghscene.json");
 ```
 
 `Add` takes every kind the viewer draws: points, segments, rays, lines without ends, chains, polygons, chains and loops with arcs (in the plane and in
-space), arcs, circles, ellipses, rectangles, triangles, faces, bodies with their openings, meshes, boxes, oriented boxes and planes.
+space), arcs, circles, ellipses, rectangles, triangles, faces, bodies with their openings, meshes, boxes, oriented boxes, balls and planes.
 `Add(object)` takes any of them, or a sequence of them, and throws an `ArgumentException` naming the type it cannot draw.
 
 ### Samples
@@ -508,4 +508,14 @@ What a run with no window cannot do, since it cannot press a key or click in a d
 **What a script shows**
 - A compile error in a script is in the output with the file and the line, and the scene before stays; fix the line, save, and (with run on save) the scene comes.
 - A label (`Scene.Text`) stays readable when zoomed in and out; a ray and a plane are drawn out to the edge of the scene, and a line without ends (`GeoXLine2`, `GeoXLine3`) through the box of the scene and a twentieth of its diagonal past it (at least a millimetre) on each side, with a dot at its origin; its origin counts towards the box of the scene, so that the line always has a stretch inside it, and its properties give the origin and the unit direction. It is picked and snapped to (the nearest point) along the stretch drawn.
+- A ball (`GeoSphere3`) is drawn as the mesh of its surface the library cuts at the chord tolerance of the scene (a tenth of its point tolerance), in at most 262 144 triangles, with
+  three great circles (the planes through its centre square to X, Y and Z) cut by the chord rule like any circle and a dot at its centre. A ball of radius 50 is 255 380 triangles, none
+  further than 0.0012 from the sphere, drawn in 80 ms; a ball whose mesh would pass the cap is cut in as many, coarser, and is warned of where that leaves it further from the sphere than
+  ten point tolerances (a ball of radius 500, at 0.0114, is; one of radius 400, at 0.009, is not). All the balls of a scene share a budget of four million triangles: where
+  they would take more at the chord tolerance, every one is cut at one coarser tolerance, the finest at which they fit, and the scene is warned of it once (40 balls of radius 100, which
+  would take 10.2 million, are 3 808 800 triangles within 0.0062 of their spheres, in 0.8 s). The circles, the centre, the measures and the gap are exact whatever the mesh: the properties give the
+  centre, the radius, the volume and the surface area, the centre snaps as a centre and the circles as curves, a click on the surface picks the triangle it meets (within the same distance of
+  the sphere), a clip plane through it leaves a cap of the disc it cuts (the section of the mesh, within a part in a thousand of the circle), and the Gap check measures it with the library's
+  exact `DistanceTo`. It is not a body of the clash check, which takes a solid, a box or a mesh that closes: use `ball.ToSolid(chordTolerance)` for that, or the gap. A ball written to DXF, OBJ
+  or WKT comes back as the mesh that was written.
 - A scene with a million points in lines says once that its curves were cut coarser and by how much.

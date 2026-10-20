@@ -40,6 +40,7 @@ namespace GeometryHelper.Viewer.Tests
                 case "GeoRay3": return new GeoRay3(P3(), UnitVector());
                 case "GeoXLine2": return new GeoXLine2(P2(), new GeoVector2(R(1.0) + 1.5, R(1.0)));
                 case "GeoXLine3": return new GeoXLine3(P3(), UnitVector());
+                case "GeoSphere3": return new GeoSphere3(P3(), 100.0 + R(50.0));
                 case "GeoPolyline2": return new GeoPolyline2(Enumerable.Range(0, 6).Select(i => new GeoPoint2(i * 400.0 + R(100.0), R(900.0))));
                 case "GeoPolyline3": return new GeoPolyline3(Enumerable.Range(0, 6).Select(i => new GeoPoint3(i * 400.0 + R(100.0), R(900.0), R(900.0))));
                 case "GeoPolygon2": return new GeoPolygon2(Convex2(random, 7));

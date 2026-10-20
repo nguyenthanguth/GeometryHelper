@@ -179,6 +179,7 @@ namespace GeometryHelper.Viewer
                 case "GeoCircle3": return BoxOf_GeoCircle3(shape);
                 case "GeoEllipse3": return BoxOf_GeoEllipse3(shape);
                 case "GeoObb3": return BoxOf_GeoObb3(shape);
+                case "GeoSphere3": return BoxOf_GeoSphere3(shape);
                 case "GeoPolygonArc3": return BoxOf_GeoPolygonArc3(shape);
                 case "GeoPolylineArc3": return BoxOf_GeoPolylineArc3(shape);
                 default: return null;
@@ -214,6 +215,9 @@ namespace GeometryHelper.Viewer
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static GeoAabb3? BoxOf_GeoObb3(object shape) => ((GeoObb3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoSphere3(object shape) => ((GeoSphere3)shape).GetAabb();
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static GeoAabb3? BoxOf_GeoPolygonArc3(object shape) => ((GeoPolygonArc3)shape).GetAabb();
@@ -452,6 +456,10 @@ namespace GeometryHelper.Viewer
 
                 case "GeoObb3":
                     Measure_GeoObb3(shape, add);
+                    break;
+
+                case "GeoSphere3":
+                    Measure_GeoSphere3(shape, add);
                     break;
 
                 case "GeoPlane3":
@@ -740,6 +748,16 @@ namespace GeometryHelper.Viewer
             GeoObb3 b = (GeoObb3)shape;
             add("Size", N(b.SizeX) + " x " + N(b.SizeY) + " x " + N(b.SizeZ));
             add("Volume", N(b.Volume));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoSphere3(object shape, Action<string, string> add)
+        {
+            GeoSphere3 s = (GeoSphere3)shape;
+            add("Center", N(s.Center.X) + ", " + N(s.Center.Y) + ", " + N(s.Center.Z));
+            add("Radius", N(s.Radius));
+            add("Volume", N(s.Volume));
+            add("Surface area", N(s.SurfaceArea));
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

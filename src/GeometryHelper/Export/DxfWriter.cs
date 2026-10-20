@@ -30,7 +30,7 @@ namespace GeometryHelper.Export
     /// </para>
     /// <para>
     /// In space a segment, a point, a ray, a line without ends and an ellipse are written as they are, a chain and a polygon as a 3D polyline,
-    /// and anything with a surface as 3DFACEs: one per triangle of a face or a body, one per face of a mesh that has three
+    /// and anything with a surface as 3DFACEs: one per triangle of a face, a body or a ball, one per face of a mesh that has three
     /// or four corners and turns one way, and six for a box, written from its corners. Where a face, a side of a body or a
     /// face of a mesh is cut into triangles, the edges between its own triangles are marked invisible, so a wireframe shows
     /// its outline and not the cut; triangles given as they are keep every edge.
@@ -565,6 +565,27 @@ namespace GeometryHelper.Export
             }
 
             return Surfaces(sides, layer);
+        }
+
+        /// <summary>
+        /// Adds a ball as a 3DFACE for each triangle of its surface, cut no further than a tolerance from the sphere, every edge
+        /// visible.
+        /// </summary>
+        /// <param name="sphere">The ball.</param>
+        /// <param name="chordTolerance">The largest gap allowed between a triangle and the sphere, in millimetres.</param>
+        /// <param name="layer">The layer; layer 0 when none is given.</param>
+        /// <remarks>
+        /// The triangles are <see cref="GeoSphere3.TriangulateSurface(double)"/>, each a face of its own as in the body
+        /// <see cref="GeoSphere3.ToSolid(double)"/>: a ball of radius 50 within 0.1 is 3 380 3DFACEs.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is not a finite number above nought, or would need more than 1 048 576 triangles.
+        /// </exception>
+        /// <exception cref="ArgumentException">Thrown when the ball is not valid, as a <c>default</c> one is, or a coordinate is not a finite number.</exception>
+        public DxfWriter Add(GeoSphere3 sphere, double chordTolerance, string layer = null)
+        {
+            Chords.Require(chordTolerance);
+            return Add(sphere.TriangulateSurface(chordTolerance), layer);
         }
 
         /// <summary>

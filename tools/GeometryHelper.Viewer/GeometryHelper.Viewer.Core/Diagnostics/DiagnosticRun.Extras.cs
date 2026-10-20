@@ -261,6 +261,12 @@ namespace GeometryHelper.Viewer
                     source = "GeoSolid3.TryGetVolume";
                     return s.TryGetVolume(out value, _scene.Tolerance);
 
+                case GeoSphere3 s:
+                    name = "volume";
+                    value = s.Volume;
+                    source = "GeoSphere3.Volume";
+                    return true;
+
                 case GeoPolyline2 s: name = "length"; value = s.Length; source = "GeoPolyline2.Length"; return true;
                 case GeoPolyline3 s: name = "length"; value = s.Length; source = "GeoPolyline3.Length"; return true;
                 case GeoPolylineArc2 s: name = "length"; value = s.Length; source = "GeoPolylineArc2.Length"; return true;

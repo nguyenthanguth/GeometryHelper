@@ -181,6 +181,10 @@ namespace GeometryHelper.Viewer
                     WriteGeoObb3(w, geometry);
                     break;
 
+                case "GeoSphere3":
+                    WriteGeoSphere3(w, geometry);
+                    break;
+
                 case "GeoPlane3":
                     WriteGeoPlane3(w, geometry);
                     break;
@@ -535,6 +539,16 @@ namespace GeometryHelper.Viewer
             w.Field("sizeZ", b.SizeZ);
             w.Field("axisX", b.AxisX.X, b.AxisX.Y, b.AxisX.Z);
             w.Field("axisY", b.AxisY.X, b.AxisY.Y, b.AxisY.Z);
+            w.EndObject();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void WriteGeoSphere3(DataWriter w, object geometry)
+        {
+            GeoSphere3 s = (GeoSphere3)geometry;
+            w.BeginObject();
+            w.Field("center", s.Center.X, s.Center.Y, s.Center.Z);
+            w.Field("radius", s.Radius);
             w.EndObject();
         }
 

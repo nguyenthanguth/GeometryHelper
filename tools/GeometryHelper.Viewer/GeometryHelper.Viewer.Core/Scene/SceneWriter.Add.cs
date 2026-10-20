@@ -404,6 +404,18 @@ namespace GeometryHelper.Viewer
             => Put(geometry, layer, name, color, props);
 
         /// <summary>
+        /// Adds a solid ball, drawn as a fine mesh of its surface at the chord tolerance of the scene with three great circles through its centre.
+        /// </summary>
+        /// <param name="geometry">The shape.</param>
+        /// <param name="layer">The layer; the layer named "default" when none is given.</param>
+        /// <param name="name">The name in the scene tree; the kind and a number when none is given.</param>
+        /// <param name="color">The colour of this item as #RRGGBB; its layer's when none is given.</param>
+        /// <param name="props">Properties to show with the item: an anonymous object, a dictionary, or any object whose public properties are read.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        public SceneWriter Add(GeoSphere3 geometry, string layer = null, string name = null, string color = null, object props = null)
+            => Put(geometry, layer, name, color, props);
+
+        /// <summary>
         /// Adds a plane, drawn as a square patch sized to the scene.
         /// </summary>
         /// <param name="geometry">The shape.</param>

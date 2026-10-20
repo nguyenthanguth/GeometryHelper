@@ -268,6 +268,7 @@ namespace GeometryHelper.Viewer
                 ["GeoMesh3"] = new[] { "Area=Sum(f => f.Area)" },
                 ["GeoAabb3"] = new[] { "Volume=Volume" },
                 ["GeoObb3"] = new[] { "Volume=Volume" },
+                ["GeoSphere3"] = new[] { "Radius=Radius", "Volume=Volume", "Surface area=SurfaceArea" },
             };
         }
 
@@ -532,6 +533,9 @@ namespace GeometryHelper.Viewer
 
                 case "GeoObb3":
                     return "new GeoObb3(" + P3(DataJson.Point(d, "center", 3)) + ", " + D(DataJson.Number(d, "sizeX")) + ", " + D(DataJson.Number(d, "sizeY")) + ", " + D(DataJson.Number(d, "sizeZ")) + ", " + V3(DataJson.Point(d, "axisX", 3)) + ", " + V3(DataJson.Point(d, "axisY", 3)) + ")";
+
+                case "GeoSphere3":
+                    return "new GeoSphere3(" + P3(DataJson.Point(d, "center", 3)) + ", " + D(DataJson.Number(d, "radius")) + ")";
 
                 case "GeoPlane3":
                     return "new GeoPlane3(" + P3(DataJson.Point(d, "origin", 3)) + ", " + V3(DataJson.Point(d, "normal", 3)) + ")";
