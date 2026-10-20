@@ -1210,7 +1210,7 @@ Splines made here have the domain [0, 1], where the two are the same number. The
 nought or less gives the start and the whole length or more gives the end, as for a chain. The knots are checked: clamped (the first
 and the last repeated degree + 1 times and no more), not decreasing, no inner knot repeated more than the degree, one weight above
 nought for each control point and the largest no more than 1E12 times the smallest (past that the length cannot be worked out
-right: a ratio of 1E16 comes out 1E-7 short and one of 1E20 a third short), and control points that are not all one point.
+right: a ratio of 1E16 comes out 1E-7 short and one of 1E20 two fifths short), and control points that are not all one point.
 `IsRational` says whether any weight is other than one; a plain B-spline stores no weight and is worked on exactly its own numbers.
 A closed spline is a clamped one whose first and last control points coincide, `IsClosed()`; it is not periodic, and has no smooth
 join at the end.
@@ -1225,7 +1225,7 @@ banded system, so 100 000 points take 58 ms. Four points (0, 0), (100, 50), (200
 leaves and arrives in; a tangent gives a direction and nothing else, the curve keeps the speed it has on average, which over
 [0, 1] is the length of the chain through the points, so three points 100 apart along X with the tangent (1, 0) at each end
 give the line through them at an even speed of 200 whatever the length of the tangents. A fit point within the point
-tolerance of the one before it is dropped, as a polyline drops a vertex, by the tolerance given (`Interpolate(fitPoints, degree, tolerance)`) or the global one; points just above it are kept, and the curve through three that are 0.0012 apart in a chain 300 long swings 507 000 away, where at a tolerance that drops them it stays within 13 of the points. Last, `FromPolyline`, `FromArc` and `FromCircle` make a
+tolerance of the one before it is dropped, as a polyline drops a vertex, by the tolerance given (`Interpolate(fitPoints, degree, tolerance)`) or the global one; points just above it are kept, and the curve through three that are 0.0012 apart in a chain 300 long swings 507 000 away, where at a tolerance that drops them it stays within about 13 of the box of the points. Last, `FromPolyline`, `FromArc` and `FromCircle` make a
 spline that is exactly the polyline, arc or circle: a circle is the nine control points of a rational quadratic, four pieces of
 a quarter turn with the weights 1, 0.7071, 1, ..., and every point of it is at the radius to 4E-14 at a radius of 100; an arc of
 a hundred degrees is two pieces of fifty.

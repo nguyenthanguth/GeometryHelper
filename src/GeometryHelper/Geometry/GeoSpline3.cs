@@ -686,7 +686,14 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentOutOfRangeException(nameof(parameter), parameter, "A spline is cut inside its domain, above 0 and below 1.");
             }
 
-            return Cut(_curve.KnotAtParameter(parameter), nameof(parameter));
+            double knot = _curve.KnotAtParameter(parameter);
+
+            if (!(knot > _curve.Start && knot < _curve.End))
+            {
+                throw new ArgumentOutOfRangeException(nameof(parameter), parameter, "A spline is cut inside its domain, and this share comes to the knot value of an end, " + knot.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ".");
+            }
+
+            return Cut(knot, nameof(parameter));
         }
 
         /// <summary>

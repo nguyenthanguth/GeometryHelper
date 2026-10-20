@@ -76,6 +76,46 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
+        public void ARationalSplinesEnds_AreItsEndControlPoints_ToTheBit_ByEveryRoute()
+        {
+            // A weight off one at an end used to put the point there a last digit off its control point:
+            // (13.499999999999998, -168.24999999999997) for (13.5, -168.25).
+            var random = new Random(20261020);
+
+            for (int n = 0; n < 200; n++)
+            {
+                var points = new GeoPoint2[5];
+                var points3 = new GeoPoint3[5];
+                var weights = new double[5];
+
+                for (int i = 0; i < 5; i++)
+                {
+                    double x = Math.Round(random.NextDouble() * 400.0 - 200.0, 2);
+                    double y = Math.Round(random.NextDouble() * 400.0 - 200.0, 2);
+                    double z = Math.Round(random.NextDouble() * 400.0 - 200.0, 2);
+                    points[i] = new GeoPoint2(x, y);
+                    points3[i] = new GeoPoint3(x, y, z);
+                    weights[i] = 0.5 + random.NextDouble() * 2.0;
+                }
+
+                double[] knots = { 0, 0, 0, 0, 0.4, 1, 1, 1, 1 };
+                var s = new GeoSpline2(3, points, knots, weights);
+                var s3 = new GeoSpline3(3, points3, knots, weights);
+
+                Assert.Equal(s.StartPoint, s.GetPointAtParameter(0.0));
+                Assert.Equal(s.StartPoint, s.GetPointAtKnot(s.DomainStart));
+                Assert.Equal(s.StartPoint, s.GetPointAtDistance(0.0));
+                Assert.Equal(s.EndPoint, s.GetPointAtParameter(1.0));
+                Assert.Equal(s.EndPoint, s.GetPointAtKnot(s.DomainEnd));
+                Assert.Equal(s.EndPoint, s.GetPointAtDistance(s.Length));
+                Assert.Equal(s3.StartPoint, s3.GetPointAtParameter(0.0));
+                Assert.Equal(s3.StartPoint, s3.GetPointAtDistance(0.0));
+                Assert.Equal(s3.EndPoint, s3.GetPointAtParameter(1.0));
+                Assert.Equal(s3.EndPoint, s3.GetPointAtKnot(s3.DomainEnd));
+            }
+        }
+
+        [Fact]
         public void ParametersThatAreNotNumbers_AreRefused_ByEveryMemberThatTakesOne()
         {
             GeoSpline2 s = Shifted();
@@ -168,7 +208,7 @@ namespace GeometryHelper.UnitTest.Plane
 
             // A share so near an end that its knot value is the end's is refused, not turned into an empty part.
             var thin = new GeoSpline2(3, Arch, new[] { 5.0, 5.0, 5.0, 5.0, 5.0 + 1E-12, 5.0 + 1E-12, 5.0 + 1E-12, 5.0 + 1E-12 });
-            Assert.Throws<ArgumentOutOfRangeException>(() => thin.Split(1E-9));
+            Assert.Equal(1E-9, Assert.Throws<ArgumentOutOfRangeException>(() => thin.Split(1E-9)).ActualValue);
             Assert.Equal(2, thin.Split(0.5).Length);
         }
 

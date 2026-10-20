@@ -165,7 +165,7 @@ hold. A spline is a degree (1 to 10), control points, knots and, if it is ration
 control point and ends at its last, and the knots are kept as given (nothing is rescaled to [0, 1] or reordered, so a spline read from a
 file goes out as it came). They are checked (a clamped knot vector with no inner knot repeated more than the degree, a weight above
 nought for each point and the largest no more than 1E12 times the smallest, since past that the length cannot be worked out right: a
-ratio of 1E16 came out 1E-7 short and one of 1E20 a third short; control points not all one point) and immutable, what they hand out is
+ratio of 1E16 came out 1E-7 short and one of 1E20 two fifths short; control points not all one point) and immutable, what they hand out is
 read-only. Two kinds of parameter are told apart by name, as the other curves keep theirs: the members named for a parameter
 (`GetPointAtParameter`, `GetTangentAtParameter`, `GetCurvatureAtParameter`, `GetParameterAtPoint`, `GetDistanceAtParameter`, `Split`)
 take a share of the domain from 0 to 1; those named for a knot (`GetPointAtKnot`, `GetDerivativeAtKnot`, `GetTangentAtKnot`,
@@ -208,7 +208,7 @@ dense sampling polished in 28-digit decimals (4.3 and 2.4 units of rounding), th
 the length), the parameter at a length, the cuts, the reverse, the tangents and curvature, the interpolation (a fit point met to 3
 units of rounding, an end tangent to 6E-15) and the chord promise (the curve was at most 0.976 of the tolerance from the chain), and
 again on splines a million away from the origin, with control points repeated, all on one line, with a span a millionth wide, with
-weights a thousandfold apart, with a cusp, and of degree up to 10. The suite gains 168 tests, and nothing that was there changes:
+weights a thousandfold apart, with a cusp, and of degree up to 10. The suite gains 169 tests, and nothing that was there changes:
 every earlier test and the benchmark signatures are as they were. Not in this release: an offset (the offset of a spline is not a
 spline), splines as the edges of a curved chain, periodic knot vectors,
 distances and crossings against the other shapes, and the writers, the viewer and the bridges.

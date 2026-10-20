@@ -433,6 +433,14 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="result">Dim numbers to write the point to.</param>
         internal void PointAt(double t, double[] result)
         {
+            // A clamped curve passes through its end control points; dividing by a weight off one there would
+            // leave the point a last digit off them.
+            if (t <= Start || t >= End)
+            {
+                Array.Copy(Points, t <= Start ? 0 : (Count - 1) * Dim, result, 0, Dim);
+                return;
+            }
+
             double[] h = Scratch((Degree + 1) * Stride + Stride);
             HomogeneousPointAt(t, h);
 

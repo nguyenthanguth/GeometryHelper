@@ -187,7 +187,7 @@ namespace GeometryHelper.Geometry
         /// lengths the parameters come from are then tiny beside the rest, so the curve can swing far between them: the chain
         /// (0, 0), (100, 0), (100.0011, 0.0005), (100.0022, 0), (200, 50), (300, 0) at the default tolerance of 0.001 keeps all six,
         /// its chords at the three near points 0.0012 long, and the curve through them swings 507 000 outside the box of the points;
-        /// at a tolerance of 0.01 the two in the middle are dropped and it stays within 13 of the box. Drop such points before
+        /// at a tolerance of 0.01 the two in the middle are dropped and it stays within about 13 of the box. Drop such points before
         /// asking, or give a tolerance that does.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
@@ -697,7 +697,14 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentOutOfRangeException(nameof(parameter), parameter, "A spline is cut inside its domain, above 0 and below 1.");
             }
 
-            return Cut(_curve.KnotAtParameter(parameter), nameof(parameter));
+            double knot = _curve.KnotAtParameter(parameter);
+
+            if (!(knot > _curve.Start && knot < _curve.End))
+            {
+                throw new ArgumentOutOfRangeException(nameof(parameter), parameter, "A spline is cut inside its domain, and this share comes to the knot value of an end, " + knot.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ".");
+            }
+
+            return Cut(knot, nameof(parameter));
         }
 
         /// <summary>
