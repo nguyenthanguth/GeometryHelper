@@ -163,8 +163,12 @@ namespace GeometryHelper.Core
         /// Finds where two rays cross, at any angle, placed on the first ray and never behind its origin.
         /// </summary>
         /// <remarks>
-        /// Only a sine at the rounding level, below 1E-15, has no crossing; a NaN has none either. Two rays at half a degree that cross a thousand
-        /// along cross there, though <see cref="Intersection2.TryIntersectWith(GeoRay2, GeoRay2, out GeoPoint2, Tolerance)"/>
+        /// Two rays cross unless they are parallel by rounding, by the rule of the line without ends (see <see cref="XLine2"/>):
+        /// a sine below 1E-15, or a sine of 1E-9 or less with a crossing further along than a double can place within the
+        /// point tolerance, measured by the larger of the two distances along, so that both ways round agree; a NaN has none
+        /// either. A ray rebuilt through two points a hundred apart of another moved 10 to its side is a sine of some 1E-14 off
+        /// it at coordinates of ten thousand, and crosses it nowhere: the crossing would lie 1E15 along. Two rays at half a
+        /// degree that cross a thousand along cross there, though <see cref="Intersection2.TryIntersectWith(GeoRay2, GeoRay2, out GeoPoint2, Tolerance)"/>
         /// calls them parallel by angle: distance, collision and the shortest line ask where the rays are, not whether the
         /// crossing is well placed.
         /// <para>
@@ -199,6 +203,12 @@ namespace GeometryHelper.Core
             double slack = pastEnds ? tolerance.EqualPoint : 0.0;
 
             if (!(t >= -slack && u >= -slack))
+            {
+                return false;
+            }
+
+            // Nearly parallel, a crossing further out than a double can place is rounding too.
+            if (!XLine2.Placeable(sine, Math.Max(Math.Abs(t), Math.Abs(u)), ray1.Origin, ray2.Origin, tolerance))
             {
                 return false;
             }

@@ -331,9 +331,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The rule is for lines parallel by rounding, a sine of 1E-9 or less, such as a line rebuilt from two points of another;
         /// lines at any real angle cross, whatever the tolerance, even where it is 1E-12 or nought. With a point tolerance of a
-        /// thousandth and coordinates near nought the limit is 4.5E12 along.
+        /// thousandth and coordinates near nought the limit is 4.5E12 along. Two rays are read by it as well (see <see cref="Ray2"/>).
         /// </remarks>
-        private static bool Placeable(double sine, double along, GeoPoint2 first, GeoPoint2 second, Tolerance tolerance)
+        internal static bool Placeable(double sine, double along, GeoPoint2 first, GeoPoint2 second, Tolerance tolerance)
         {
             if (Math.Abs(sine) > NearlyParallel)
             {

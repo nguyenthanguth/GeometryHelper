@@ -6,6 +6,84 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Two circles whose centres stand no further apart than the point tolerance crossed nowhere, however far apart they drew
+elsewhere. The circle of radius 1 000 about the origin and the one of radius 1 000.0005 about (0.0006, 0), as much as 1.1E-3 apart in
+places, cross at (-833.33324, 552.77094) and (-833.33324, -552.77094), as the splines made of them find, and
+`GeoCircle2.GetIntersections` gave none; nor did the arcs and edges on them, the curved chains and loops made of those, or
+`GeoCircle3` and `GeoArc3` in one plane. Two circles that stay within the point tolerance of each other all the way round, their
+centres and their radii no more than the tolerance apart put together, are one circle, as before: they cross nowhere and meet along
+their length, so the circles of radius 1 000 and 1 000.00002 with their centres 1E-4 apart, 1.2E-4 apart at most, and two arcs of one
+circle whose ends are rounded to six places, with their centres 1.6E-6 apart, are cut nowhere. Further apart than that, centres
+within the tolerance are one centre only where the rounding of the numbers leaves the line the circles cross on nowhere in
+particular: where the rounding of the largest coordinate or radius, times the sum of the radii over the distance between the
+centres, is more than the point tolerance. The difference of the squared radii is worked out as the product of the difference and
+the sum of the radii, which keeps the digits the squares of radii a thousand long lose. On 60 000 random pairs of circles in the
+plane, checked against the crossings worked out to 80 digits: of the 1 902 whose centres are within the tolerance but which draw
+further apart than it, 10 are given crossings where they had none, within 9.2E-14 of them; the 11 504 within the tolerance of each
+other all round are unchanged; and the 5 375 others whose crossings moved by rounding came nearer in 3 343 and further in 2 021, by at
+most 7.6E-8, the worst error falling from 5.2E-5 to 2.1E-7, 39 of them over 1E-6 before and none after. The arcs and edges on such
+circles move alike, 11 pairs of arcs given crossings and none of 24 498 pairs of edges near one centre; in space 16 pairs are given
+crossings, within 9.4E-8, and the worst error of the others fell from 4.2E-4 to 1.8E-4. What is worked out from the crossings of arcs
+moves by that rounding with them: of 3 000 random curved loops offset, 415 moved, by at most 4.7E-10. `CollidesWith` and `DistanceTo`
+are unchanged.
+
+**FIXED.** `GeoTransform3.Transform(GeoCircle3)` and `GeoCircle3.TransformBy`, and `GeoTransform2.Transform(GeoCircle2)` and
+`GeoCircle2.TransformBy` in the plane, took a circle to stay round when the two axes came out equally long, to the vector tolerance
+in drawing units, and never asked whether they came out square to each other. The skew that sends X to (1, 0, 0) and Y to
+(0.6, 0.8, 0) keeps both lengths, so the circle of radius 100 came out a circle of radius 100, where it is an ellipse of radii 126.5
+and 63.2. Round means now that the two axes come out equally long and square to each other, to the default vector tolerance of the
+square of the stretch, the rule `GeoSphere3` reads its transformation by, so that a turn whose numbers are rounded to six places or to
+a float still moves a circle; anything else is refused with the `InvalidOperationException` an uneven scaling gets, and
+`GeoEllipse3.FromCircle(circle).TransformBy` or `GeoEllipse2.FromCircle(circle).TransformBy` gives the ellipse. On 60 000 random
+transformations in space and 60 000 in the plane every turn, shift, mirror and even scaling gives what it gave to the bit; the skews
+and shears beyond the tolerance that came through are refused, 2 287 in space and 6 399 in the plane, and so are 36 slight uneven
+scalings of a tilted circle in space, whose axes came out equally long to 1E-5 but off square by more. An arc keeps its rule: `GeoArc3.TransformBy` is the arc through where its ends
+and its middle land, skewed or not, to the bit as before on 60 000 random arcs, and only an arc of a whole turn, which is the whole
+circle, is refused under a skew as the circle is; `GeoArc2.TransformBy` and the edges of the plane are unchanged. An even scaling of
+about 1E5 or more of a circle in space is still refused, with an `ArgumentException`, since the normal of the plane carried with it
+comes out shorter than the vector tolerance. `GeoSphere3` is unchanged.
+
+**FIXED.** `GeoArc3.ProjectToArc2`, and `PlanarMap.ProjectToArc2` through it, took any arc sweeping within the global angle
+tolerance, a whole degree, of a whole turn for the whole circle from angle nought: the arc of radius 10 about the origin in the plan
+from 1 radian sweeping 359.5 degrees came down as the whole circle, its start 19.2 from where it is. An arc is the whole circle now
+only when it sweeps a whole turn. One within a degree of it is laid out from its centre, as it was, its start and its end being too
+near each other to find a circle through three of its points, but from where it starts and as far as it sweeps. Every other arc
+comes down to the bit as it did: of 60 000 random arcs in the plan and tilted, the 13 241 that moved all sweep within a degree of a
+whole turn. An arc tilted to the frame comes down as part of an ellipse, which an arc cannot be, so one within a degree of a whole
+turn, laid out on its own radius, stands off where its points come down: some 0.056 for that arc with its normal (0.2, 0, 1).
+
+**FIXED.** `DxfWriter.Add(GeoRay2)` and `Add(GeoRay3)` took a `default` ray and wrote a RAY with a direction of nought, which AutoCAD
+does not read. It is refused with an `ArgumentException` before anything is written, as a line without ends of no direction is.
+`SvgWriter` wrote the picture of a point, a ray or a line without ends alone with a view box of nought by nought, which shows nothing,
+and a segment 2E-6 long along X with one of height nought. An axis the view box would hold less than a millionth of, margin and all,
+the six places its numbers are written to, is given a unit now, centred on what is drawn: a point, a ray or a line without ends alone
+is a view box 1.1 by 1.1, so that the ray along X from (5, 5) alone runs to x = 5.55, and that segment one 0.100002 by 1.1. Every other
+picture is written byte for byte as it was: of 2 000 random pictures, the 573 that changed all had a view box nought or a millionth
+wide or high.
+
+**FIXED.** Two rays crossed wherever the sine of the angle between them was above 1E-15, however far out the crossing fell, so two
+rays parallel but for the rounding of the points they were built through read nought apart and touching wherever that crossing lay
+ahead of both: a ray rebuilt through two points a hundred apart of another moved 10 to its side did so in 34 793 of 100 000 pairs at
+coordinates of ten thousand. Two rays follow the rule of `GeoXLine2` now: at a sine of 1E-9 or less a crossing further along than a
+double can place within the point tolerance, measured by the larger of the two distances along so that both ways round agree, is no
+crossing, and those pairs are 10 apart in 100 000 of 100 000 at coordinates of a thousand to a million. `DistanceTo`, `CollidesWith`
+and `GetShortestLineTo` between two rays change only there: of 60 000 random pairs, the 1 150 that changed are all at a sine of 1E-9
+or less. At any real angle two rays still cross however far out, `TryIntersectWith`, which reads the angle tolerance, is unchanged,
+and segments, which do not share the rule, are unchanged.
+
+**FIXED.** `GeoBvh2.GetIntersections(GeoRay2)` cut the ray past the box round everything indexed and asked every edge the segment it
+was cut to, so an edge nearly along the ray was judged parallel or not over a length the farthest edges set: the edge from (0, 0) to
+(100, 0.0005), parallel at a thousandth to the ray from (-50, 0) along X, was crossed at (0, 0) once an edge a million away was
+indexed beside it. Each edge is asked the ray itself now, as the plain scan asks it, and a branch is left alone where the ray, by a
+slab test, never enters its box grown by the point tolerance, as `GetIntersections(GeoXLine2)` does. Among 3 000 rays over edges
+near-parallel to them and far from them the answer is the same points as the scan's (in tree order) every time, where 8 differed; of
+60 000 random rays over random edges, 30 220 crossings moved by rounding, by at most 4.2E-9, to the scan's own to the bit, and in 64,
+at a tolerance of 0.01, the tree keeps the other of two crossings within the tolerance of each other that the scan merges. Pruning
+by the box of the cut segment let nearly every branch in for a diagonal ray: 200 diagonal rays over 90 000 edges take 50 ms where
+they took 1 345 (20 where 532 on .NET 10), and 200 rays from inside 19 where 216.
+
+The suite gains 51 tests for these six, 24 of them red before.
+
 **NEW.** `GeoXLine2`, an infinite line in the plane: a point on it and a direction of unit length, running both ways
 for ever, as the XLINE of AutoCAD does and as `GeoRay2` does with no start. It is made from a point and a direction or
 through two points, moved with `Translate` and `TransformBy`, and measured along with signed distances

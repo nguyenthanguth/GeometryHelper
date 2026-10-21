@@ -1661,6 +1661,14 @@ A sampled chain lies inside the arcs it stands for, so it is never nearer to any
 the bar is: a clearance worked out this way errs on the safe side. The same bargain `GeoCircle3` offers
 through `ToPolylineByChordTolerance`.
 
+Two coplanar circles that stay within the point tolerance of each other all the way round, their centres and their
+radii no more than the tolerance apart put together, are one circle, as in the plane, and cross nowhere: the circles of
+radius 1 000 and 1 000.00002 with their centres 1E-4 apart, and two arcs of one circle. Two that draw further apart
+than that somewhere cross on their radical line however close their centres: the circles of radius 1 000 and
+1 000.0005 with their centres 6E-4 apart cross at (-833.33324, 552.77094, 0) and (-833.33324, -552.77094, 0) in the
+plan, and at the same points turned with them in any plane. Centres no further apart than the point tolerance are still
+one centre where the rounding of the numbers leaves the line nowhere in particular.
+
 ## Ellipses in space
 
 `GeoEllipse3` is the ellipse of [the plane half](plane.md#ellipses) standing in space: a centre, the normal of
@@ -1715,8 +1723,17 @@ the world origin, which keeps the crossings within 2E-7 of where they are on pla
 apart, a thousand from the origin. Whether a line grazes the rim is judged in drawing units, so an ellipse 210
 by 0.23 touched by a plane is touched at one point.
 
-**Seen from elsewhere.** A circle in space stays a circle only under an even scaling, and refuses any other;
-an ellipse takes every transformation that can be undone, and comes back an ellipse. Seen square onto a
+**Seen from elsewhere.** A circle in space stays a circle only under an even scaling, and refuses any other, a
+shear or a skew that keeps both lengths among them: round means that the two axes of its plane come out of the
+transformation equally long and square to each other, to the default vector tolerance of the square of the stretch,
+as a ball is read, so that a turn whose numbers are rounded to six places or to a float still moves it, and so
+the skew that sends X to (1, 0, 0) and Y to (0.6, 0.8, 0), which a circle of radius 100 in the plan came through at
+radius 100, is refused, since it would be an ellipse. The test reads alike at any size, but the plane is carried by its
+normal, which an even scaling of about 1E5 or more makes shorter than the vector tolerance, so such a scaling is refused
+all the same, with an `ArgumentException`. An arc is not refused so: it is the arc through where its two ends and its
+middle land, as it has been, so that skew takes the arc of radius 100 in the plan from 0.5 to 2 radians to an arc of radius
+177.7 through its moved ends and middle; only an arc of a whole turn, which has no ends to go through, is refused as the
+circle is. An ellipse takes every transformation that can be undone, and comes back an ellipse. Seen square onto a
 plane, a circle or an ellipse is an ellipse in that plane:
 
 ```csharp

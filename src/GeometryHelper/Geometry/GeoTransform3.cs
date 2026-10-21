@@ -709,10 +709,46 @@ namespace GeometryHelper.Geometry
         /// </exception>
         /// <remarks>
         /// A circle survives a transformation only when every direction in its plane is stretched by the
-        /// same amount. Under a non-uniform scaling it becomes an ellipse, which this library has no type
-        /// for, so the attempt is refused rather than answered with a circle of some averaged radius.
+        /// same amount: when the two axes of its plane come out equally long and square to each other, to the default
+        /// vector tolerance of the square of the stretch, as a ball is read (<see cref="Transform(GeoSphere3)"/>), so that
+        /// a turn whose numbers are rounded to six places or to a float still moves it. Under a non-uniform scaling or a
+        /// shear it becomes an ellipse, which <see cref="Transform(GeoEllipse3)"/> gives, so the attempt is refused rather
+        /// than answered with a circle of some averaged radius. The skew that sends X to (1, 0, 0) and Y to (0.6, 0.8, 0)
+        /// keeps both lengths, and is refused for a circle in the plan: it would be an ellipse of radii 126.5 and 63.2 for
+        /// a radius of 100. The test is a share of the stretch, so it reads alike at any size, but the circle's plane is
+        /// carried by its normal, which an even scaling of about 1E5 or more makes shorter than the vector tolerance: such a
+        /// scaling is refused all the same, with an <see cref="ArgumentException"/> from the plane. An arc on a circle is
+        /// carried by <see cref="GeoArc3.TransformBy(GeoTransform3)"/>, through where its ends and its middle land.
         /// </remarks>
         public GeoCircle3 Transform(GeoCircle3 circle)
+        {
+            circle.GetPlane().GetAxes(out GeoVector3 uAxis, out GeoVector3 vAxis);
+
+            GeoVector3 movedU = Transform(uAxis);
+            GeoVector3 movedV = Transform(vAxis);
+
+            // The rule of the ball, for the two axes of the circle's plane.
+            double stretch = Math.Sqrt((movedU.LengthSquared + movedV.LengthSquared) / 2.0);
+            double slack = Tolerance.Global.EqualVector * stretch * stretch;
+
+            if (!(stretch > 0.0)
+                || Math.Abs(movedU.LengthSquared - stretch * stretch) > slack
+                || Math.Abs(movedV.LengthSquared - stretch * stretch) > slack
+                || Math.Abs(movedU.DotProduct(movedV)) > slack)
+            {
+                throw new InvalidOperationException("This transformation stretches the circle into an ellipse.");
+            }
+
+            return Carry(circle, movedU.Length);
+        }
+
+        /// <summary>
+        /// Transforms the circle an arc lies on, by the rule an arc has kept: the two axes of its plane have to come out
+        /// equally long, to the vector tolerance, and may come out skewed, since the arc itself is then the arc through where
+        /// its ends and its middle land (see <see cref="GeoArc3.TransformBy(GeoTransform3)"/>).
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the two axes come out of unequal length.</exception>
+        internal GeoCircle3 TransformCarryingArc(GeoCircle3 circle)
         {
             circle.GetPlane().GetAxes(out GeoVector3 uAxis, out GeoVector3 vAxis);
 
@@ -724,6 +760,14 @@ namespace GeometryHelper.Geometry
                 throw new InvalidOperationException("This transformation stretches the circle into an ellipse.");
             }
 
+            return Carry(circle, alongU);
+        }
+
+        /// <summary>
+        /// The circle moved, its radius stretched as the axes of its plane are.
+        /// </summary>
+        private GeoCircle3 Carry(GeoCircle3 circle, double alongU)
+        {
             GeoPlane3 movedPlane = Transform(circle.GetPlane());
 
             return new GeoCircle3(Transform(circle.Center), movedPlane.Normal, circle.Radius * alongU);

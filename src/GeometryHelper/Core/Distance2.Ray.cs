@@ -66,7 +66,9 @@ namespace GeometryHelper.Core
         /// The ray from (0.0009, 0) along X and the one leaving 0.0009 along 120 degrees from the origin, whose carriers
         /// cross 0.0009 behind each, are 0.00156 apart, origin to origin, at every tolerance. Two rays along the X axis from 0 and from 100, facing each other, are nought apart;
         /// two at half a degree that meet a thousand along are nought apart too, though
-        /// <see cref="Intersection2.TryIntersectWith(GeoRay2, GeoRay2, out GeoPoint2, Tolerance)"/> calls them parallel.
+        /// <see cref="Intersection2.TryIntersectWith(GeoRay2, GeoRay2, out GeoPoint2, Tolerance)"/> calls them parallel. Two
+        /// parallel but for rounding do not cross where a double cannot place the crossing, as two lines without ends do not:
+        /// a ray rebuilt through two points a hundred apart of another moved 10 to its side is 10 from it.
         /// </returns>
         /// <remarks>
         /// The ray from the origin along X and the one from (50, 30) along Y are 30 apart, the second origin standing

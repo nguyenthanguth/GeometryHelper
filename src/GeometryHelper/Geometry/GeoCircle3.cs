@@ -97,6 +97,8 @@ namespace GeometryHelper.Geometry
         /// Applies a transformation to this circle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the transformation would stretch or skew the circle into an ellipse.</exception>
+        /// <remarks>See <see cref="GeoTransform3.Transform(GeoCircle3)"/>.</remarks>
         public GeoCircle3 TransformBy(GeoTransform3 transform)
         {
             if (transform == null)

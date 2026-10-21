@@ -41,8 +41,10 @@ namespace GeometryHelper.Core
             double apart = between.Length;
 
             // Concentric: either the same circle, which meets along its length rather than at points, or one
-            // inside the other with nothing shared. Neither names a point.
-            if (apart <= tolerance.EqualPoint)
+            // inside the other with nothing shared. Neither names a point. Centres closer than the point tolerance are one
+            // where the circles stay within the tolerance of each other all round, or where the rounding of the numbers leaves
+            // no line to cross on, as in the plane (Intersection2).
+            if (apart <= tolerance.EqualPoint && Intersection2.AboutOneCentre(apart, Scale(first, second), first.Radius, second.Radius, tolerance))
             {
                 return found;
             }
@@ -92,11 +94,19 @@ namespace GeometryHelper.Core
             // radical line crossed with that circle. From the circle of radius 2.5E8 behind an edge 100 long of bulge
             // 1E-7, the square of the half chord is the difference of two squares near 6E16, and the crossings with a
             // circle of radius 40 were lost. The line still runs the way it did, so the points come in the same order.
+            // The difference of the squared radii is taken as the product of their difference and their sum, as in the plane.
+            // The line runs square to the centres, along a vector as long as they are apart; where that is less than the point
+            // tolerance it is made a unit long, which the vector tolerance would otherwise take for no direction at all.
             GeoVector3 across = first.Normal.CrossProduct(between);
+
+            if (apart <= tolerance.EqualPoint)
+            {
+                across = across.Multiply(1.0 / apart);
+            }
 
             if (second.Radius < first.Radius)
             {
-                double back = (apart * apart + second.Radius * second.Radius - first.Radius * first.Radius) / (2.0 * apart);
+                double back = (apart * apart + (second.Radius - first.Radius) * (second.Radius + first.Radius)) / (2.0 * apart);
                 GeoPoint3 nearer = second.Center.Add(between.Multiply(-back / apart));
 
                 foreach (GeoPoint3 candidate in PointsOnLine(second, nearer, across, tolerance))
@@ -110,7 +120,7 @@ namespace GeometryHelper.Core
                 return found;
             }
 
-            double along =(apart * apart + first.Radius * first.Radius - second.Radius * second.Radius) / (2.0 * apart);
+            double along =(apart * apart + (first.Radius - second.Radius) * (first.Radius + second.Radius)) / (2.0 * apart);
             GeoPoint3 foot = first.Center.Add(between.Multiply(along / apart));
 
             foreach (GeoPoint3 candidate in PointsOnLine(first, foot, across, tolerance))
@@ -122,6 +132,21 @@ namespace GeometryHelper.Core
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// The largest coordinate of the centres of two arcs, or radius, whichever is larger: the size of the numbers whose
+        /// rounding <see cref="Intersection2.AboutOneCentre(double, double, double, double, Tolerance)"/> weighs.
+        /// </summary>
+        private static double Scale(GeoArc3 first, GeoArc3 second)
+        {
+            GeoPoint3 a = first.Center;
+            GeoPoint3 b = second.Center;
+            double coordinates = Math.Max(
+                Math.Max(Math.Max(Math.Abs(a.X), Math.Abs(a.Y)), Math.Abs(a.Z)),
+                Math.Max(Math.Max(Math.Abs(b.X), Math.Abs(b.Y)), Math.Abs(b.Z)));
+
+            return Math.Max(coordinates, Math.Max(first.Radius, second.Radius));
         }
 
         /// <summary>

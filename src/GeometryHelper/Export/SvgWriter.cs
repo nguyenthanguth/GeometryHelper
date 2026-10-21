@@ -26,6 +26,11 @@ namespace GeometryHelper.Export
     /// </remarks>
     public sealed class SvgWriter
     {
+        /// <summary>
+        /// The least width or height of the view box drawn as it is: a millionth, the last of the six places it is written to.
+        /// </summary>
+        private const double Smallest = 1E-6;
+
         private readonly List<string> _elements = new List<string>();
         private readonly List<(GeoPoint2 Point, string Colour)> _points = new List<(GeoPoint2, string)>();
         private readonly List<(GeoRay2 Ray, string Colour)> _rays = new List<(GeoRay2, string)>();
@@ -240,8 +245,8 @@ namespace GeometryHelper.Export
         /// <remarks>
         /// A ray has no end, so how far it runs is settled when the picture is read: to the edge of the picture fitted round
         /// everything else. Its origin counts towards the fit and its length does not. A ray along +X from (0, 0) in a picture
-        /// of a square 0 to 100 is drawn to x = 105, the edge with its margin; a ray added to nothing else has no picture to
-        /// leave and is drawn a hair long.
+        /// of a square 0 to 100 is drawn to x = 105, the edge with its margin; a ray added to nothing else is drawn in the
+        /// picture a unit across centred on its origin, so that the ray along +X from (5, 5) runs to x = 5.55.
         /// </remarks>
         /// <exception cref="ArgumentException">Thrown when the ray has no direction, as a <c>default</c> one has.</exception>
         public SvgWriter Add(GeoRay2 ray, string colour = "black")
@@ -259,7 +264,7 @@ namespace GeometryHelper.Export
         /// A line has no end, so how far it runs is settled when the picture is read: both ways to the edge of the picture fitted
         /// round everything else, as a ray's one way. Its origin counts towards the fit, as a ray's does.
         /// The line along X through (0, 0) in a picture of a square 0 to 100 is drawn from x = -5 to x = 105, the edges with their margin;
-        /// a line added to nothing else has no picture to leave and is drawn a hair long.
+        /// a line added to nothing else is drawn in the picture a unit across centred on its origin, from x = -0.55 to x = 0.55.
         /// </remarks>
         /// <exception cref="ArgumentException">Thrown when the line has no direction, as a <c>default</c> one has.</exception>
         public SvgWriter Add(GeoXLine2 xline, string colour = "black")
@@ -370,14 +375,46 @@ namespace GeometryHelper.Export
         /// <summary>
         /// Gets the picture as SVG text.
         /// </summary>
+        /// <remarks>
+        /// The view box is fitted round everything added with a margin of 5 % of its larger side all round: a segment 100 long
+        /// along X is a view box 110 by 10. An axis the view box would hold less than a millionth of, margin and all, nought at
+        /// the six places it is written to, is given a unit centred on what is drawn, since a view box of no width or height
+        /// shows nothing: a point, a ray or a line without ends alone is a view box 1.1 by 1.1, and a segment 2E-6 long along X
+        /// one 0.100002 by 1.1.
+        /// </remarks>
         public override string ToString()
         {
+            double minX = _minX;
+            double maxY = _maxY;
             double width = double.IsInfinity(_minX) ? 1.0 : _maxX - _minX;
             double height = double.IsInfinity(_minY) ? 1.0 : _maxY - _minY;
             double size = Math.Max(Math.Max(width, height), 1E-9);
             double margin = size * 0.05;
-            double left = double.IsInfinity(_minX) ? 0.0 : _minX - margin;
-            double top = double.IsInfinity(_maxY) ? 0.0 : _maxY + margin;
+
+            // An axis of no size to six places, margin and all, would be nought wide or high in the view box, which shows
+            // nothing: it is given a unit centred on what is drawn, and the margin is worked out again.
+            bool narrow = width + 2 * margin < Smallest;
+            bool low = height + 2 * margin < Smallest;
+
+            if (narrow)
+            {
+                minX = 0.5 * (_minX + _maxX) - 0.5;
+                width = 1.0;
+            }
+
+            if (low)
+            {
+                maxY = 0.5 * (_minY + _maxY) + 0.5;
+                height = 1.0;
+            }
+
+            if (narrow || low)
+            {
+                size = Math.Max(width, height);
+                margin = size * 0.05;
+            }
+            double left = double.IsInfinity(minX) ? 0.0 : minX - margin;
+            double top = double.IsInfinity(maxY) ? 0.0 : maxY + margin;
             double viewWidth = Math.Max(width, 1E-9) + 2 * margin;
             double viewHeight = Math.Max(height, 1E-9) + 2 * margin;
             int pixelsHigh = Math.Max(1, (int)Math.Round(800.0 * viewHeight / viewWidth));

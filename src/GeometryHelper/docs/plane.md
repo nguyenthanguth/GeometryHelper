@@ -614,8 +614,28 @@ point, a segment or another arc), `IsPointOn`, `Locate`, `TryIntersectWith` and 
 `TrySplitAt`. Moving an arc is `Translate`, `RotateBy` and `TransformBy`; scaling it evenly is fine, and a
 transformation that would make it an ellipse is refused rather than approximated.
 
+Two circles that stay within the point tolerance of each other all the way round, their centres and their radii no
+more than the tolerance apart put together, are one circle, which meets along its length rather than at points, and
+so are the arcs and edges on them: they cross nowhere, and whether they touch is asked by `CollidesWith` and
+`DistanceTo`. The circles of radius 1 000 and 1 000.00002 with their centres 1E-4 apart, 1.2E-4 apart at most, are
+one at a tolerance of a thousandth, and so are two arcs of one circle whose ends are rounded to six places, their
+centres 1.6E-6 apart. Two circles that draw further apart than the tolerance somewhere cross where they truly cross,
+however close their centres: the circle of radius 1 000 about the origin and the one of radius 1 000.0005 about
+(0.0006, 0), 1.1E-3 apart at most, cross at (-833.33324, 552.77094) and (-833.33324, -552.77094). The difference of
+the squared radii is worked out as the product of the difference and the sum of the radii, so a crossing keeps the
+digits that rounding the squares of radii a thousand long would lose. Centres no further apart than the point
+tolerance are still one centre where the rounding of the numbers leaves the line the circles cross on nowhere in
+particular: where the rounding of the largest coordinate or radius, times the sum of the radii over the distance
+between the centres, is more than the point tolerance.
+
 `GeoArc3` is the same arc in its own plane, carrying a `Normal` as well. It adds `GetAabb()`, which is
-exact rather than the box round the whole circle, and `ProjectToArc2(frame)` to bring it into the plane.
+exact rather than the box round the whole circle, and `ProjectToArc2(frame)` to bring it into the plane. An arc
+comes down as the whole circle only when it sweeps a whole turn; one within a degree of it is laid out from its
+centre, its start and its end too near each other for a circle through three of its points, but from where it starts
+and as far as it sweeps: the arc of radius 10 from 1 radian sweeping 359.5 degrees comes down as that arc, where it
+came down as the whole circle from angle nought, its start 19.2 from where it is. An arc tilted to the frame comes down as
+part of an ellipse, which an arc cannot be, and one within a degree of a whole turn, laid out on its own radius about its
+centre, stands off where its points come down: some 0.056 for that arc with its normal (0.2, 0, 1).
 
 ### Chains that curve
 
@@ -1092,13 +1112,21 @@ one drawn, and for a ray that is as far as the other shape reaches.
 Two rays are measured directly. The ray from the origin along X and the one from (50, -50) along Y cross
 at (50, 0). Two rays that cross at any angle, at or ahead of both origins, are nought apart; a crossing
 behind an origin does not count, so two rays leaving origins 0.00156 apart are 0.00156 apart and, at a
-tolerance of a thousandth, do not collide. `TryIntersectWith` still places a crossing up to the tolerance
+tolerance of a thousandth, do not collide. Two rays parallel but for rounding follow the rule of the
+infinite lines below: at a sine of 1E-9 or less a crossing further along than a double can place within the
+point tolerance is no crossing, so a ray rebuilt through two points a hundred apart of another moved 10 to its
+side, a sine of some 1E-14 off it at coordinates of ten thousand, is 10 from it, where 34 793 of 100 000 such
+pairs read nought. `TryIntersectWith` still places a crossing up to the tolerance
 behind an origin, and gives no point for two within the angle tolerance of parallel, as for two infinite
 lines.
 
 `PlanarMap.ProjectToRay2` lays a ray in space out in a frame and `ToRay3` puts it back; a ray along the
 frame's normal has no direction in the plane and is refused. `GeoBvh2.GetIntersections` takes a ray as it
-takes a segment.
+takes an infinite line: each edge is asked `edge.GetIntersections(ray)`, so the answer is the same points as
+the plain scan's (in tree order) whatever else is indexed, and a branch whose box, grown by the point tolerance, the ray never enters is not
+looked at. The edge from (0, 0) to (100, 0.0005), parallel at a thousandth to the ray from (-50, 0) along X, is
+crossed nowhere, with or without an edge a million away indexed beside it, where the ray was cut past the box
+round everything and crossed it at (0, 0); 200 diagonal rays over 90 000 edges take 50 ms where they took 1.3 s.
 
 ## Infinite lines
 
@@ -1439,8 +1467,11 @@ A bulge measures an arc against its own chord, so moving, turning and scaling ev
 mirroring changes its sign, because the arc then leans the other way against the same chord.
 
 **What a transformation cannot do.** A circle stays a circle only when every direction is stretched by the
-same amount; under a scaling that differs between the axes it would be an ellipse, and the attempt is
-refused rather than answered with an averaged radius. Transform `GeoEllipse2.FromCircle(circle)` instead:
+same amount: when the two axes come out equally long and square to each other, to the default vector tolerance of
+the square of the stretch, as a ball in space is read, so that a turn whose numbers are rounded to six places or to a
+float still moves it. Under a scaling that differs between the axes, or a shear, it would be an ellipse, and the attempt is
+refused rather than answered with an averaged radius; the skew that sends X to (1, 0) and Y to (0.6, 0.8) keeps
+both lengths, and a circle of radius 100 is refused under it, where it came through at radius 100. Transform `GeoEllipse2.FromCircle(circle)` instead:
 a circle of radius 100 scaled by `Scaling(3, 1)` is the ellipse 300 by 100. An ellipse itself takes every
 transformation that does not flatten the plane, and stays an ellipse. A rectangle is
 refused the same way when it would come out a parallelogram — transform `rectangle.ToPolygon()` when that

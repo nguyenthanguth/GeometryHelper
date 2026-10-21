@@ -333,11 +333,14 @@ namespace GeometryHelper.Export
         /// <summary>
         /// Adds a ray, which AutoCAD draws without end from its origin.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown when a coordinate or a direction is not a finite number.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a coordinate or a direction is not a finite number, or the ray has no direction, as a <c>default</c> one has.
+        /// </exception>
         public DxfWriter Add(GeoRay2 ray, string layer = null)
         {
             Check(ray.Origin, nameof(ray));
             Check(ray.Direction, nameof(ray));
+            Chords.Require(ray);
 
             Begin("RAY", Layer(layer), "AcDbRay");
             Place(0, ray.Origin.X, ray.Origin.Y, 0.0);
@@ -476,11 +479,14 @@ namespace GeometryHelper.Export
         /// <summary>
         /// Adds a ray in space, which AutoCAD draws without end from its origin.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown when a coordinate or a direction is not a finite number.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a coordinate or a direction is not a finite number, or the ray has no direction, as a <c>default</c> one has.
+        /// </exception>
         public DxfWriter Add(GeoRay3 ray, string layer = null)
         {
             Check(ray.Origin, nameof(ray));
             Check(ray.Direction, nameof(ray));
+            Chords.Require(ray);
 
             Begin("RAY", Layer(layer), "AcDbRay");
             Place(0, ray.Origin.X, ray.Origin.Y, ray.Origin.Z);

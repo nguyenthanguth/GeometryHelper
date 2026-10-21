@@ -443,7 +443,17 @@ namespace GeometryHelper.Geometry
         /// <param name="transform">The transformation to apply.</param>
         /// <returns>The transformed arc.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the transformation would stretch the arc into part of an ellipse.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the transformation would stretch the arc into part of an ellipse, the two axes of its plane coming out
+        /// of unequal length, or, for an arc of a whole turn, would skew it, as <see cref="GeoTransform3.Transform(GeoCircle3)"/>
+        /// refuses a circle.
+        /// </exception>
+        /// <remarks>
+        /// An arc is the arc through where its two ends and its middle land, so a skew that keeps the lengths of both axes of
+        /// its plane, such as the one that sends X to (1, 0, 0) and Y to (0.6, 0.8, 0), takes the arc of radius 100 in the plan
+        /// from 0.5 to 2 radians to an arc of radius 177.7 through its moved ends and middle. An arc of a whole turn has no ends
+        /// to go through: it is the whole circle, and is refused under such a skew, since it would be an ellipse.
+        /// </remarks>
         public GeoArc3 TransformBy(GeoTransform3 transform)
         {
             if (transform == null)
@@ -451,8 +461,12 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(transform));
             }
 
-            // A circle survives only under an even stretch, and the circle test carries the arc with it.
-            GeoCircle3 moved = transform.Transform(GetCircle());
+            // A whole turn is the whole circle, refused under a skew or an uneven stretch as the circle is. Any other arc keeps
+            // the rule it has had: the two axes of its plane have to come out equally long, and it is then the arc through
+            // where its ends and its middle land, skewed or not.
+            GeoCircle3 moved = Math.Abs(SweptAngle) >= FullTurn
+                ? transform.Transform(GetCircle())
+                : transform.TransformCarryingArc(GetCircle());
 
             GetPlane().GetAxes(out GeoVector3 uAxis, out GeoVector3 vAxis);
             GeoPoint3 start = transform.Transform(StartPoint);
@@ -497,17 +511,36 @@ namespace GeometryHelper.Geometry
         /// <para>
         /// A whole turn has to be laid out from its centre rather than from three of its points, because its
         /// start and its end are in the same place and there is no third point to be found among them. Any
-        /// pair of angles describes the whole of a circle, so nought to nought is as good as any.
+        /// pair of angles describes the whole of a circle, so nought to nought is as good as any. Only an arc that
+        /// sweeps a whole turn is one. An arc within a degree of one is laid out from its centre too, its start and its end
+        /// being too near each other to find a circle through, but from where it starts and as far as it sweeps: the arc of
+        /// radius 10 from 1 radian sweeping 359.5 degrees comes down as that arc, not as the whole circle from angle nought.
+        /// An arc tilted to the frame comes down as part of an ellipse, which an arc cannot be, and one within a degree of a
+        /// whole turn is laid out on its own radius about its centre, so its start, middle and end stand off where they come
+        /// down: some 0.056 for that arc with its normal (0.2, 0, 1), and 0.0036 with (0.05, 0, 1).
         /// </para>
         /// </remarks>
         public GeoArc2 ProjectToArc2(GeoCoordinateSystem3 frame)
         {
-            if (Math.Abs(SweptAngle) >= 2.0 * Math.PI - Tolerance.Global.EqualAngleRad)
+            // A whole turn is one the arc sweeps, as TransformBy reads it.
+            if (Math.Abs(SweptAngle) >= FullTurn)
             {
                 return new GeoArc2(ToLocal(frame, Center), Radius, 0.0, 0.0, IsClockwise);
             }
 
             GeoPoint2 start = ToLocal(frame, StartPoint);
+
+            // Within a degree of one, the start and the end are too near each other to find a circle through them and the
+            // middle, and the arc is laid out from its centre, as a whole turn is, from where it starts and as far as it sweeps.
+            if (Math.Abs(SweptAngle) >= FullTurn - Tolerance.Global.EqualAngleRad)
+            {
+                GeoPoint2 centre = ToLocal(frame, Center);
+                double from = Math.Atan2(start.Y - centre.Y, start.X - centre.X);
+                double sweep = Normal.DotProduct(frame.ZAxis) < 0.0 ? -SweptAngle : SweptAngle;
+
+                return new GeoArc2(centre, Radius, from, from + sweep, sweep < 0.0);
+            }
+
             GeoPoint2 middle = ToLocal(frame, MidPoint);
             GeoPoint2 end = ToLocal(frame, EndPoint);
 

@@ -517,22 +517,33 @@ namespace GeometryHelper.Geometry
         /// Thrown when the transformation would turn the circle into an ellipse.
         /// </exception>
         /// <remarks>
-        /// A circle survives a transformation only when every direction is stretched by the same amount.
-        /// Under a scaling that differs between the axes it becomes an ellipse, so the attempt is refused rather
-        /// than answered with a circle of some averaged radius; transform <see cref="GeoEllipse2.FromCircle(GeoCircle2)"/>
-        /// to get the ellipse.
+        /// A circle survives a transformation only when every direction is stretched by the same amount: when the two
+        /// axes come out equally long and square to each other, to the default vector tolerance of the square of the
+        /// stretch, as a ball in space is read (<see cref="GeoTransform3.Transform(GeoSphere3)"/>), so that a turn whose
+        /// numbers are rounded to six places or to a float still moves it. Under a scaling that differs between the axes,
+        /// or a shear, it becomes an ellipse, so the attempt is refused rather than answered with a circle of some averaged
+        /// radius; transform <see cref="GeoEllipse2.FromCircle(GeoCircle2)"/> to get the ellipse. The skew that sends X to
+        /// (1, 0) and Y to (0.6, 0.8) keeps both lengths, and is refused: the circle of radius 100 would be an ellipse of
+        /// radii 126.5 and 63.2.
         /// </remarks>
         public GeoCircle2 Transform(GeoCircle2 circle)
         {
-            double alongX = Transform(GeoVector2.XAxis).Length;
-            double alongY = Transform(GeoVector2.YAxis).Length;
+            GeoVector2 movedX = Transform(GeoVector2.XAxis);
+            GeoVector2 movedY = Transform(GeoVector2.YAxis);
 
-            if (Math.Abs(alongX - alongY) > Tolerance.Global.EqualVector)
+            // The rule of the ball, for the two axes of the plane.
+            double stretch = Math.Sqrt((movedX.LengthSquared + movedY.LengthSquared) / 2.0);
+            double slack = Tolerance.Global.EqualVector * stretch * stretch;
+
+            if (!(stretch > 0.0)
+                || Math.Abs(movedX.LengthSquared - stretch * stretch) > slack
+                || Math.Abs(movedY.LengthSquared - stretch * stretch) > slack
+                || Math.Abs(movedX.DotProduct(movedY)) > slack)
             {
                 throw new InvalidOperationException("This transformation stretches the circle into an ellipse.");
             }
 
-            return new GeoCircle2(Transform(circle.Center), circle.Radius * alongX);
+            return new GeoCircle2(Transform(circle.Center), circle.Radius * movedX.Length);
         }
 
         /// <summary>

@@ -328,7 +328,11 @@ draws it across the picture from edge to edge both ways, its origin helping to f
 through (50, 50) over the square 0 to 100 runs from x = -5 to x = 105), and OBJ and WKT take it with a length and write the
 segment of that length centred on its origin (the line through (10, 20) along X, written 100 long, is
 `LINESTRING (-40 20, 60 20)`); a negative, NaN or infinite length is refused with an `ArgumentOutOfRangeException`. A `default`
-ray or line, which has no direction, is refused by all three with an `ArgumentException`. SVG draws an ellipse as an ellipse, turned by its major axis, and fits
+ray or line, which has no direction, is refused by all three with an `ArgumentException`, and by DXF, which would write a direction
+of nought AutoCAD does not read. An axis the SVG view box would hold less than a millionth of, margin and all, nought at the
+six places it is written to, is given a unit centred on what is drawn: a point, a ray or a line without ends alone is a view box
+1.1 by 1.1, where it was nought by nought and showed nothing, so the ray along X from (5, 5) alone runs to x = 5.55, and a
+segment 2E-6 long along X is one 0.100002 by 1.1, where it was nought high. SVG draws an ellipse as an ellipse, turned by its major axis, and fits
 the picture to its bounding box: an ellipse of radii 30 and 10 (60 across by 20) turned 30 degrees is 52.9 wide and 34.6
 high. SVG draws an arc of a whole turn as a circle, since an SVG arc command that ends where it starts is left out of the
 picture: the arc of radius 10 about the origin from angle 0 round to angle 0 is a `<circle r="10">`, where its path

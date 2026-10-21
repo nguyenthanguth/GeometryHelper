@@ -348,19 +348,29 @@ namespace GeometryHelper.Core
         /// Tries to calculate the intersection points between two circles within tolerance.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The crossings are worked out from the smaller circle, so they are the same two points whichever circle is
         /// asked first, and stay accurate when the other is huge. The circle of radius 2.5E8 that carries an edge 100
         /// long of bulge 1E-7, from (0, 0) to (100, 0), meets the circle of radius 40 about (50, 30) at (23.54249, 0)
         /// and (76.45751, 0) either way round; worked from the larger circle, they came out 0.076 off.
+        /// </para>
+        /// <para>
+        /// Two circles that stay within the point tolerance of each other all the way round, their centres and their radii
+        /// no more than the tolerance apart put together, are one circle and cross nowhere; so are two whose centres are
+        /// closer than the tolerance where the rounding of the numbers leaves no line to cross on (see
+        /// <see cref="AboutOneCentre(double, double, double, double, Tolerance)"/>). Otherwise the circles cross where they do,
+        /// however close their centres: the circle of radius 1000 about the origin and the circle of radius 1000.0005 about
+        /// (0.0006, 0) cross at (-833.33324, 552.77094) and (-833.33324, -552.77094).
+        /// </para>
         /// </remarks>
         public static bool TryIntersectWith(GeoCircle2 c1, GeoCircle2 c2, out GeoPoint2[] intersections, Tolerance tolerance)
         {
             double d = Distance2.DistanceTo(c1.Center, c2.Center);
 
-            // Coincident circles or separate circles
+            // Separate circles, one inside the other, one circle, or two about one centre.
             if (d > c1.Radius + c2.Radius + tolerance.EqualPoint ||
                 d < Math.Abs(c1.Radius - c2.Radius) - tolerance.EqualPoint ||
-                d <= tolerance.EqualPoint)
+                (d <= tolerance.EqualPoint && AboutOneCentre(d, Scale(c1, c2), c1.Radius, c2.Radius, tolerance)))
             {
                 intersections = Array.Empty<GeoPoint2>();
                 return false;
@@ -404,7 +414,9 @@ namespace GeometryHelper.Core
             double towardsX = fromSecond ? first.X - second.X : second.X - first.X;
             double towardsY = fromSecond ? first.Y - second.Y : second.Y - first.Y;
 
-            double a = (nearRadius * nearRadius - farRadius * farRadius + d * d) / (2.0 * d);
+            // The difference of the squared radii is taken as the product of their difference and their sum, so that two
+            // radii of 1000 and 1000.00002 leave it all its digits rather than the last few of a million.
+            double a = ((nearRadius - farRadius) * (nearRadius + farRadius) + d * d) / (2.0 * d);
             double hSq = nearRadius * nearRadius - a * a;
             double h = hSq > 0 ? Math.Sqrt(hSq) : 0.0;
 
@@ -445,6 +457,59 @@ namespace GeometryHelper.Core
             TryIntersectWith(c1, c2, out GeoPoint2[] pts, tolerance);
             return pts;
         }
+
+        /// <summary>
+        /// The relative rounding of a double: the gap between one and the next number above it.
+        /// </summary>
+        private const double Epsilon = 2.2204460492503131E-16;
+
+        /// <summary>
+        /// Whether two circles whose centres stand no further apart than the point tolerance are one circle, or about one
+        /// centre: whether they stay within the point tolerance of each other all the way round, or the rounding of the
+        /// numbers they are made of leaves the line they cross on nowhere in particular.
+        /// </summary>
+        /// <param name="apart">How far apart the centres are, no more than the point tolerance.</param>
+        /// <param name="scale">The largest coordinate of the centres, or radius, whichever is larger.</param>
+        /// <param name="firstRadius">The radius of the first circle.</param>
+        /// <param name="secondRadius">The radius of the second circle.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// <para>
+        /// Two circles are never further apart than the distance between their centres and the difference of their radii put
+        /// together; where that is no more than the point tolerance they are one circle, which meets along its length rather
+        /// than at points. Two arcs of the circle of radius 750 about (1234.5678, 2345.6789) whose ends are rounded to six places
+        /// have centres 1.6E-6 apart, and they cross nowhere, where they were cut at (1650.09, 2970.05). The circles of radius
+        /// 1000 and 1000.00002 with their centres a ten-thousandth apart are within 1.2E-4 of each other all round and are one
+        /// at a tolerance of a thousandth.
+        /// </para>
+        /// <para>
+        /// Further apart than that, two circles cross on their radical line, the difference of their squared radii over twice
+        /// the distance between their centres from the centre. A rounding of the numbers, the largest of them times the
+        /// rounding of a double, moves that line by about as much times the sum of the radii over that distance; where that is
+        /// more than the point tolerance the line cannot be placed, and the centres are one. The circles of radius 1000 and
+        /// 1000.0005 with their centres 6E-4 apart, as much as 1.1E-3 apart in places, place it to 7.4E-7 and cross. It is the
+        /// rule of the line without ends (see <see cref="XLine2"/>), whose crossing is no crossing where a double cannot place it.
+        /// </para>
+        /// </remarks>
+        internal static bool AboutOneCentre(double apart, double scale, double firstRadius, double secondRadius, Tolerance tolerance)
+        {
+            if (apart + Math.Abs(firstRadius - secondRadius) <= tolerance.EqualPoint)
+            {
+                return true;
+            }
+
+            // Written as what has to hold for the line to be placed, so that a NaN reads as one centre, as it did.
+            return !(apart * tolerance.EqualPoint > Epsilon * scale * (firstRadius + secondRadius));
+        }
+
+        /// <summary>
+        /// The largest coordinate of the centres of two circles, or radius, whichever is larger: the size of the numbers whose
+        /// rounding <see cref="AboutOneCentre(double, double, double, double, Tolerance)"/> weighs.
+        /// </summary>
+        private static double Scale(GeoCircle2 c1, GeoCircle2 c2)
+            => Math.Max(
+                Math.Max(Math.Max(Math.Abs(c1.Center.X), Math.Abs(c1.Center.Y)), Math.Max(Math.Abs(c2.Center.X), Math.Abs(c2.Center.Y))),
+                Math.Max(c1.Radius, c2.Radius));
 
         #endregion
 

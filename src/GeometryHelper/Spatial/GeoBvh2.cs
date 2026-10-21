@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using GeometryHelper.Core;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Spatial
@@ -80,6 +79,24 @@ namespace GeometryHelper.Spatial
                 }
 
                 return enter <= exit;
+            }
+
+            /// <summary>
+            /// Determines whether a ray enters the box grown by a distance on every side: the slab test of its line, the
+            /// stretch inside the box ending no further than the distance behind the origin.
+            /// </summary>
+            internal bool IsEnteredBy(GeoRay2 ray, double grow)
+            {
+                double enter = double.NegativeInfinity;
+                double exit = double.PositiveInfinity;
+
+                if (!Slab(ray.Origin.X, ray.Direction.X, MinX - grow, MaxX + grow, ref enter, ref exit)
+                    || !Slab(ray.Origin.Y, ray.Direction.Y, MinY - grow, MaxY + grow, ref enter, ref exit))
+                {
+                    return false;
+                }
+
+                return enter <= exit && exit >= -grow;
             }
 
             private static bool Slab(double origin, double step, double low, double high, ref double enter, ref double exit)
@@ -327,26 +344,25 @@ namespace GeometryHelper.Spatial
         /// Gets the points where a ray crosses the indexed edges, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The ray is cut past the box round everything indexed, by a margin of a millimetre or a hundred point
-        /// tolerances, whichever is more, and the segment it is cut to is walked as
-        /// <see cref="GetIntersections(GeoLine2, Tolerance)"/> walks one: nothing indexed lies past that end, so the
-        /// answer is that segment's. Over the edges of the square 100 by 100 with a corner at the origin, the ray from
-        /// (-50, 50) along X is cut at (101, 50) and crosses at (0, 50) and (100, 50). An empty hierarchy is crossed nowhere.
+        /// Each edge is asked <see cref="GeoEdge2.GetIntersections(GeoRay2, Tolerance)"/>, so the answer is the same points as
+        /// the plain scan's over every edge (in tree order, and of two crossings within the tolerance of each other the one the
+        /// tree meets first), whatever else is indexed: an edge that draws apart from the ray by less than the point tolerance
+        /// along its own length is parallel to it, as it is with no index at all. The edge from (0, 0) to (100, 0.0005) is
+        /// crossed nowhere by the ray from (-50, 0) along X at the default tolerance, with or without an edge a million away
+        /// beside it. The branches whose box, grown by the point tolerance, the ray never enters are not looked at. Over the
+        /// edges of the square 100 by 100 with a corner at the origin, the ray from (-50, 50) along X crosses at (0, 50) and
+        /// (100, 50). An empty hierarchy is crossed nowhere.
         /// </remarks>
         public GeoPoint2[] GetIntersections(GeoRay2 ray, Tolerance tolerance)
         {
-            if (_nodeCount == 0)
+            var found = new List<GeoPoint2>();
+
+            if (_nodeCount > 0)
             {
-                return new GeoPoint2[0];
+                CrossRay(0, ray, tolerance, found);
             }
 
-            Box box = _nodes[0].Bounds;
-
-            double farthest = Math.Max(
-                Math.Max(ray.GetDistanceAtPoint(new GeoPoint2(box.MinX, box.MinY)), ray.GetDistanceAtPoint(new GeoPoint2(box.MaxX, box.MinY))),
-                Math.Max(ray.GetDistanceAtPoint(new GeoPoint2(box.MaxX, box.MaxY)), ray.GetDistanceAtPoint(new GeoPoint2(box.MinX, box.MaxY))));
-
-            return GetIntersections(Ray2.CutPast(ray, farthest, tolerance), tolerance);
+            return found.ToArray();
         }
 
         /// <summary>
@@ -641,6 +657,49 @@ namespace GeometryHelper.Spatial
 
             Cross(one.Left, line, minX, minY, maxX, maxY, tolerance, found);
             Cross(one.Right, line, minX, minY, maxX, maxY, tolerance, found);
+        }
+
+        /// <summary>
+        /// Collects where a ray crosses the edges, leaving alone the branches whose box it never enters.
+        /// </summary>
+        private void CrossRay(int node, GeoRay2 ray, Tolerance tolerance, List<GeoPoint2> found)
+        {
+            Node one = _nodes[node];
+
+            if (!one.Bounds.IsEnteredBy(ray, tolerance.EqualPoint))
+            {
+                return;
+            }
+
+            if (one.Left < 0)
+            {
+                for (int i = one.Start; i < one.Start + one.Count; i++)
+                {
+                    foreach (GeoPoint2 meeting in _edges[_order[i]].GetIntersections(ray, tolerance))
+                    {
+                        bool already = false;
+
+                        foreach (GeoPoint2 kept in found)
+                        {
+                            if (kept.IsEqualTo(meeting, tolerance))
+                            {
+                                already = true;
+                                break;
+                            }
+                        }
+
+                        if (!already)
+                        {
+                            found.Add(meeting);
+                        }
+                    }
+                }
+
+                return;
+            }
+
+            CrossRay(one.Left, ray, tolerance, found);
+            CrossRay(one.Right, ray, tolerance, found);
         }
 
         /// <summary>
