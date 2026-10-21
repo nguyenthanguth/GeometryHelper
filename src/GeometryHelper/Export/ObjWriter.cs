@@ -15,8 +15,8 @@ namespace GeometryHelper.Export
     /// <para>
     /// Every shape added becomes an object of its own, named as given, so a viewer lists them separately: a
     /// body as the mesh of where its material ends, a ball as the mesh of its surface, a face as its triangles, a chain as a line, a point as a dot. A
-    /// polygon that turns the same way at every corner is one face, any other its triangles; a circle, an arc or an
-    /// ellipse is a line of chords no further from the curve than the chord tolerance asked for, a chord shorter than the
+    /// polygon that turns the same way at every corner is one face, any other its triangles; a circle, an arc, an
+    /// ellipse or a spline is a line of chords no further from the curve than the chord tolerance asked for, a chord shorter than the
     /// point tolerance written all the same. Coordinates are written exactly, as a text that reads back to the very double on .NET Framework
     /// and on .NET 10 alike (the digits may differ between the two, a negative nought is -0 on both), so what is looked at is
     /// what was computed, however far from the origin.
@@ -437,6 +437,34 @@ namespace GeometryHelper.Export
         {
             Chords.Require(chordTolerance);
             return Line(Chords.Of(ellipse, chordTolerance), name);
+        }
+
+        /// <summary>
+        /// Adds a spline as a line, cut into chords no further than a tolerance from it.
+        /// </summary>
+        /// <param name="spline">The spline.</param>
+        /// <param name="chordTolerance">The largest gap allowed between a chord and the spline, in millimetres.</param>
+        /// <param name="name">What the viewer calls it; a number when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <remarks>
+        /// The line runs from the start of the spline to its end, through the corners <see cref="GeoSpline3.Flatten(double)"/>
+        /// cuts it at, every one kept, a chord shorter than the point tolerance among them, and its ends are the first and last
+        /// control points exactly. OBJ has no curve: the circle of radius 100 that <see cref="GeoSpline3.FromCircle(GeoCircle3)"/>
+        /// builds, within 0.01, is a line of 256 chords whose last vertex is its first. No spline is cut into more than 1 048 576 chords.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the spline is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is not a finite number above nought, or would need more than 1 048 576 chords.
+        /// </exception>
+        public ObjWriter Add(GeoSpline3 spline, double chordTolerance, string name = null)
+        {
+            if (spline == null)
+            {
+                throw new ArgumentNullException(nameof(spline));
+            }
+
+            Chords.Require(chordTolerance);
+            return Line(Chords.Of(spline, chordTolerance), name);
         }
 
         /// <summary>

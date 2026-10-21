@@ -275,6 +275,40 @@ namespace GeometryHelper.IfcConvert.Core
         }
 
         /// <summary>
+        /// Retrieves the B-spline curves of a product by its GlobalId (GUID): each <c>IfcBSplineCurveWithKnots</c>, rational or not, among the
+        /// items of its representations, as a <see cref="GeoSpline3"/> with the file's degree, control points, knots and weights. Returns an
+        /// empty list if the product is not found or has none.
+        /// </summary>
+        /// <param name="guid">The GlobalId (GUID) of the product.</param>
+        /// <param name="options">Optional conversion options: the scale, the target unit, the coordinate space and the name filters apply as for solids.</param>
+        /// <returns>A read-only list of the splines, in the order of the product's representations and their items.</returns>
+        /// <remarks>
+        /// <para>
+        /// A curve is read from every representation of the product, the 'Axis' of a member above all: as an item itself, among the elements of
+        /// an <c>IfcGeometricSet</c> or <c>IfcGeometricCurveSet</c>, as the parent curve of a segment of an <c>IfcCompositeCurve</c>, as the
+        /// directrix of an <c>IfcSweptDiskSolid</c>, and in a mapped item, placed by the mapping as a solid is. A swept disk that runs along only a
+        /// part of its directrix, from <c>StartParam</c> to <c>EndParam</c>, gives that part: the parameter of a B-spline curve is the value of its
+        /// knots, so the part is the spline cut exactly at those knot values (the cubic over [0, 1] swept from 0.25 to 0.75 gives its middle half
+        /// by the knots); a pair outside the domain, or not in order, gives the whole curve with a Warn. A curve met twice in one place in the same
+        /// way, as an axis and as the directrix of a disk that runs along all of it, is read once. The file gives each distinct knot once with the number of times it is repeated; the
+        /// spline has them repeated, so the cubic Bézier with the knots (0, 1) repeated (4, 4) has the knots 0, 0, 0, 0, 1, 1, 1, 1. The control
+        /// points are scaled to the target unit and placed; the knots and weights are kept as the file gives them, and a mapping that scales
+        /// unevenly is carried exactly, a NURBS being the NURBS of its carried control points.
+        /// </para>
+        /// <para>
+        /// GeometryHelper's splines are clamped, so a curve whose knots run on past its ends, a periodic one, is left out with a Warn, as is one
+        /// whose numbers do not make a spline. An <c>IfcIndexedPolyCurve</c> holds no B-spline; a B-spline that is the basis of an
+        /// <c>IfcTrimmedCurve</c> is only a part of itself there, and one in the outline of a profile lies in a frame of the solid it is swept
+        /// into: neither is read. The <c>IfcBezierCurve</c> of IFC2X3 gives no knots, and is not read either. Every call writes one Info line; the
+        /// items with no B-spline in them are counted in one Debug line.
+        /// </para>
+        /// </remarks>
+        public IReadOnlyList<GeoSpline3> GetSplines(string guid, IfcConvertOptions options = null)
+        {
+            return _session?.GetSplines(guid, ResolveOptions(options)) ?? Array.Empty<GeoSpline3>();
+        }
+
+        /// <summary>
         /// Retrieves all <see cref="GeoSolid3"/> bodies for products of a specific IFC type (e.g. "IfcWall", "IfcBeam", "Wall").
         /// </summary>
         /// <param name="ifcTypeName">The IFC entity type name (with or without 'Ifc' prefix, case-insensitive).</param>

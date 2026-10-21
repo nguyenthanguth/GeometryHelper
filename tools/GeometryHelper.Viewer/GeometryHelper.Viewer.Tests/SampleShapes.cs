@@ -72,6 +72,18 @@ namespace GeometryHelper.Viewer.Tests
                     return new GeoEllipse3(P3(), normal, normal.GetPerpendicularVector(), 200.0 + R(50.0), 100.0 + R(50.0));
                 }
 
+                case "GeoSpline2":
+                {
+                    double inner = 0.5 + R(0.2);
+                    return new GeoSpline2(3, Enumerable.Range(0, 6).Select(i => new GeoPoint2(i * 400.0 + R(100.0), R(900.0))), new[] { 0.0, 0.0, 0.0, 0.0, inner * 0.5, inner, 1.0, 1.0, 1.0, 1.0 });
+                }
+
+                case "GeoSpline3":
+                {
+                    double start = R(10.0);
+                    return new GeoSpline3(2, Enumerable.Range(0, 5).Select(i => new GeoPoint3(i * 400.0 + R(100.0), R(900.0), R(900.0))), new[] { start, start, start, start + 1.0 + R(0.5), start + 2.0 + R(0.5), start + 3.0, start + 3.0, start + 3.0 }, Enumerable.Range(0, 5).Select(i => 1.0 + R(0.5)));
+                }
+
                 case "GeoRectangle2": return new GeoRectangle2(P2(), 300.0 + R(50.0), 200.0 + R(50.0), R(3.0));
                 case "GeoTriangle2": return new GeoTriangle2(P2(), P2(), P2());
                 case "GeoTriangle3": return new GeoTriangle3(P3(), P3(), P3());

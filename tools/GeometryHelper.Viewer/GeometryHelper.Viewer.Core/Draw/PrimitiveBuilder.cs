@@ -66,7 +66,9 @@ namespace GeometryHelper.Viewer
                     }
                 }
 
-                ChordRule curveRule = ChooseRule(scene, items, curved, maxPoints, result.Warnings);
+                // A spline is cut into its Bézier pieces once, for the count of the scene's points and for its drawing.
+                var cuts = new Dictionary<int, SplineCut>();
+                ChordRule curveRule = ChooseRule(scene, items, curved, maxPoints, result.Warnings, cuts);
 
                 // The balls are cut at one tolerance for all of them, coarser than the rule where together they would take more triangles than the budget.
                 List<int> balls = curved.Where(i => scene.Items[i].Kind == "GeoSphere3").ToList();
@@ -76,7 +78,7 @@ namespace GeometryHelper.Viewer
 
                 foreach (int i in curved)
                 {
-                    items[i] = BuildItem(scene, scene.Items[i], i, 0.0, RuleFor(i));
+                    items[i] = BuildItem(scene, scene.Items[i], i, 0.0, RuleFor(i), cuts: cuts);
                 }
 
                 // The count of triangles a ball takes is about what the formula says, not exactly: where the balls built took more than the budget, the tolerance is raised by
@@ -94,7 +96,7 @@ namespace GeometryHelper.Viewer
 
                     foreach (int i in balls)
                     {
-                        items[i] = BuildItem(scene, scene.Items[i], i, 0.0, RuleFor(i));
+                        items[i] = BuildItem(scene, scene.Items[i], i, 0.0, RuleFor(i), cuts: cuts);
                     }
                 }
 
@@ -174,6 +176,8 @@ namespace GeometryHelper.Viewer
                 case "GeoPolylineArc3":
                 case "GeoPolygonArc3":
                 case "GeoSphere3":
+                case "GeoSpline2":
+                case "GeoSpline3":
                     return true;
                 default:
                     return false;
@@ -181,13 +185,15 @@ namespace GeometryHelper.Viewer
         }
 
         /// <summary>
-        /// What the curves of a scene take in points, apart from the pieces they are cut in: a number of points that do not change, and each turn
-        /// of a curve with the radius it is cut at.
+        /// What the curves of a scene take in points, apart from the pieces they are cut in: a number of points that do not change, each turn
+        /// of a curve with the radius it is cut at, and each spline by the points it takes at the chord tolerance of the scene and by the angle alone.
         /// </summary>
         private sealed class CurveCount
         {
             internal long Fixed;
             internal readonly List<KeyValuePair<double, double>> Turns = new List<KeyValuePair<double, double>>();
+            internal readonly List<SplineCut> Splines = new List<SplineCut>();
+            internal double Chord;
 
             internal long At(ChordRule rule)
             {
@@ -198,6 +204,26 @@ namespace GeometryHelper.Viewer
                     points += rule.Pieces(turn.Key, turn.Value);
                 }
 
+                // A spline is cut at the rule of the scene, which is what draws it unless the scene is over its cap; at a coarser rule a smooth curve
+                // takes chords in proportion to one over the root of the tolerance, and never fewer than the angle alone asks.
+                foreach (SplineCut spline in Splines)
+                {
+                    int fine = spline.Points(new ChordRule(Chord)).Length;
+
+                    if (rule.AngleOnly)
+                    {
+                        points += spline.Points(new ChordRule(Chord, true)).Length;
+                    }
+                    else if (rule.ChordTolerance == Chord)
+                    {
+                        points += fine;
+                    }
+                    else
+                    {
+                        points += Math.Max(spline.Points(new ChordRule(Chord, true)).Length, (long)Math.Ceiling(fine * Math.Sqrt(Chord / rule.ChordTolerance)));
+                    }
+                }
+
                 return points;
             }
         }
@@ -206,7 +232,7 @@ namespace GeometryHelper.Viewer
         /// Reads what an item that is a curve will take in points, without cutting it: an arc takes its pieces and one more, a circle or an
         /// ellipse its pieces, a chain its vertices and the pieces of each arc less one.
         /// </summary>
-        private static void Count(SceneItem item, CurveCount count)
+        private static void Count(SceneItem item, int index, CurveCount count, Dictionary<int, SplineCut> cuts)
         {
             try
             {
@@ -237,6 +263,15 @@ namespace GeometryHelper.Viewer
                     case "GeoEllipse3":
                         count.Turns.Add(new KeyValuePair<double, double>(2.0 * Math.PI, Math.Max(Math.Abs(DataJson.Number(d, "majorRadius")), Math.Abs(DataJson.Number(d, "minorRadius")))));
                         break;
+
+                    case "GeoSpline2":
+                    case "GeoSpline3":
+                    {
+                        SplineCut cut = CutOf(item);
+                        cuts[index] = cut;
+                        count.Splines.Add(cut);
+                        break;
+                    }
 
                     default:
                     {
@@ -276,7 +311,7 @@ namespace GeometryHelper.Viewer
         /// cap, and otherwise at one coarser tolerance for all of them, the finest at which they do, found by counting the pieces and not by cutting
         /// the curves; failing any, by the angle alone, 2 degrees a piece. Where it is not the chord tolerance of the scene it says so, once.
         /// </summary>
-        private static ChordRule ChooseRule(Scene scene, ItemPrimitives[] items, List<int> curved, int maxPoints, List<string> warnings)
+        private static ChordRule ChooseRule(Scene scene, ItemPrimitives[] items, List<int> curved, int maxPoints, List<string> warnings, Dictionary<int, SplineCut> cuts)
         {
             double chord = ChordOf(scene);
             var rule = new ChordRule(chord);
@@ -290,11 +325,11 @@ namespace GeometryHelper.Viewer
                 }
             }
 
-            var count = new CurveCount();
+            var count = new CurveCount { Chord = chord };
 
             foreach (int i in curved)
             {
-                Count(scene.Items[i], count);
+                Count(scene.Items[i], i, count, cuts);
             }
 
             long before = others + count.At(rule);
@@ -432,6 +467,15 @@ namespace GeometryHelper.Viewer
             return high;
         }
 
+        /// <summary>
+        /// Cuts a spline item into its Bézier pieces, from the numbers of its data.
+        /// </summary>
+        private static SplineCut CutOf(SceneItem item)
+        {
+            JsonElement d = item.Data;
+            return SplineCut.Of(DataJson.Degree(d), DataJson.Points(d, "points", item.Kind == "GeoSpline2" ? 2 : 3), DataJson.Numbers(DataJson.Get(d, "knots")), DataJson.Weights(d));
+        }
+
         private static bool IsUnbounded(string kind) => kind == "GeoRay2" || kind == "GeoRay3" || kind == "GeoXLine2" || kind == "GeoXLine3" || kind == "GeoPlane3";
 
         /// <summary>
@@ -441,17 +485,17 @@ namespace GeometryHelper.Viewer
         private static double ChordOf(Scene scene)
             => scene.EqualPoint > 0.0 && !double.IsInfinity(scene.EqualPoint) ? scene.EqualPoint / 10.0 : Scene.DefaultEqualPoint / 10.0;
 
-        private static ItemPrimitives BuildItem(Scene scene, SceneItem item, int index, double extent, ChordRule rule, Bounds3 around = default(Bounds3))
+        private static ItemPrimitives BuildItem(Scene scene, SceneItem item, int index, double extent, ChordRule rule, Bounds3 around = default(Bounds3), Dictionary<int, SplineCut> cuts = null)
         {
             using (LibraryLog log = Viewer.LibraryLog.Begin())
             {
-                ItemPrimitives built = BuildItemCore(scene, item, index, extent, rule, around);
+                ItemPrimitives built = BuildItemCore(scene, item, index, extent, rule, around, cuts != null && cuts.TryGetValue(index, out SplineCut cut) ? cut : null);
                 built.LibraryLog.AddRange(log.Lines.Distinct(StringComparer.Ordinal));
                 return built;
             }
         }
 
-        private static ItemPrimitives BuildItemCore(Scene scene, SceneItem item, int index, double extent, ChordRule rule, Bounds3 around)
+        private static ItemPrimitives BuildItemCore(Scene scene, SceneItem item, int index, double extent, ChordRule rule, Bounds3 around, SplineCut cut)
         {
             var p = new ItemPrimitives { ItemIndex = index };
             rule = rule ?? new ChordRule(ChordOf(scene));
@@ -535,6 +579,11 @@ namespace GeometryHelper.Viewer
                         Line(p, true, ArcTessellation.Ellipse(rule, DataJson.Point(d, "center", 3), major, minor, DataJson.Number(d, "majorRadius"), DataJson.Number(d, "minorRadius")));
                         break;
                     }
+
+                    case "GeoSpline2":
+                    case "GeoSpline3":
+                        Line(p, false, (cut ?? CutOf(item)).Points(rule));
+                        break;
 
                     case "GeoRectangle2":
                         Line(p, true, RectangleCorners(d));
@@ -623,7 +672,12 @@ namespace GeometryHelper.Viewer
                 Warn(p, dropped + " coordinate(s) that are not numbers left out of the drawing");
             }
 
-            if (rule.Capped)
+            if (rule.Capped && (item.Kind == "GeoSpline2" || item.Kind == "GeoSpline3"))
+            {
+                int most = 1 << SplineTessellation.MostHalvings;
+                Warn(p, "a Bézier piece of the spline would take more than " + most + " chords at a chord tolerance of " + rule.ChordTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture) + " and is cut in that many, halved " + SplineTessellation.MostHalvings + " times");
+            }
+            else if (rule.Capped)
             {
                 Warn(p, "a curve would take more than " + ChordRule.MaxPiecesPerTurn + " pieces a turn at a chord tolerance of " + rule.ChordTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture) + " and is cut in that many");
             }

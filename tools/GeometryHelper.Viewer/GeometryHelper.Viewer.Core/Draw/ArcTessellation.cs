@@ -119,6 +119,11 @@ namespace GeometryHelper.Viewer
         }
 
         /// <summary>
+        /// Notes that a curve would have taken more pieces than the cap allows and was cut in fewer, as a spline is past 65 536 chords to a piece.
+        /// </summary>
+        internal void MarkCapped() => Capped = true;
+
+        /// <summary>
         /// Notes where the curve P(t) = c + u a cos t + v b sin t, for t from <paramref name="start"/> through
         /// <paramref name="sweep"/>, reaches furthest along each axis.
         /// </summary>

@@ -34,12 +34,16 @@ namespace GeometryHelper.Viewer
         private readonly Vec3 _tangent;
         private readonly bool _anchored;
 
-        private SceneCurve(int itemIndex, Vec3 a, Vec3 b)
+        // For a chord of a curve drawn by its chords: 1 that it is one, 2 that its start is an end of the curve, 4 that its end is; nought for any other curve.
+        private readonly byte _chord;
+
+        private SceneCurve(int itemIndex, Vec3 a, Vec3 b, byte chord = 0)
         {
             ItemIndex = itemIndex;
             Shape = CurveShape.Segment;
             _start = a;
             _end = b;
+            _chord = chord;
         }
 
         private SceneCurve(int itemIndex, Vec3 center, Vec3 u, Vec3 v, double radiusU, double radiusV, double startAngle, double sweep, Vec3? start, Vec3? end, Vec3? middle)
@@ -72,6 +76,13 @@ namespace GeometryHelper.Viewer
         }
 
         internal static SceneCurve Segment(int itemIndex, Vec3 a, Vec3 b) => new SceneCurve(itemIndex, a, b);
+
+        /// <summary>
+        /// Makes one chord of a curve that is drawn and snapped to by its chords, as a spline is: a segment with no middle of its own, whose
+        /// ends are ends of the curve only where it says so, the first chord's start and the last chord's end.
+        /// </summary>
+        internal static SceneCurve Chord(int itemIndex, Vec3 a, Vec3 b, bool startIsEnd, bool endIsEnd)
+            => new SceneCurve(itemIndex, a, b, (byte)(1 | (startIsEnd ? 2 : 0) | (endIsEnd ? 4 : 0)));
 
         internal static SceneCurve Conic(int itemIndex, Vec3 center, Vec3 u, Vec3 v, double radiusU, double radiusV, double startAngle, double sweep)
             => new SceneCurve(itemIndex, center, u, v, radiusU, radiusV, startAngle, sweep, null, null, null);
@@ -132,9 +143,25 @@ namespace GeometryHelper.Viewer
         public bool HasEnds => Shape == CurveShape.Segment || !IsFull;
 
         /// <summary>
-        /// Gets the middle of a segment, or of an arc along the curve; none for a full circle or ellipse.
+        /// Gets whether the segment is one chord of a curve drawn by its chords, a spline, and not a segment of its own.
         /// </summary>
-        public Vec3? Middle => Shape == CurveShape.Segment ? (_start + _end) * 0.5 : _middle;
+        public bool IsChord => (_chord & 1) != 0;
+
+        /// <summary>
+        /// Gets whether <see cref="Start"/> is an end to snap to: it is for every curve with ends but a chord, whose start is one only
+        /// where it starts the curve.
+        /// </summary>
+        public bool StartIsEnd => (_chord & 1) == 0 || (_chord & 2) != 0;
+
+        /// <summary>
+        /// Gets whether <see cref="End"/> is an end to snap to, as <see cref="StartIsEnd"/> says of the start.
+        /// </summary>
+        public bool EndIsEnd => (_chord & 1) == 0 || (_chord & 4) != 0;
+
+        /// <summary>
+        /// Gets the middle of a segment, or of an arc along the curve; none for a full circle or ellipse, nor for a chord of a curve.
+        /// </summary>
+        public Vec3? Middle => Shape == CurveShape.Segment ? (IsChord ? (Vec3?)null : (_start + _end) * 0.5) : _middle;
 
         /// <summary>
         /// Gets the centre of a conic; the origin for a segment.

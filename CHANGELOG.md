@@ -385,6 +385,44 @@ crossings behind the ends of the spline, a dart, chords, a spiral of 100 000 spa
 faces). Nothing that was there changes: the plane's answers hash the same, bit for bit, before and after, every earlier test and the
 benchmark signatures are as they were, and the plane's spline pairs and queries take the same time to within 1 to 8 %.
 
+**NEW.** The spline is written, shown, and read from AutoCAD and IFC. `DxfWriter.Add(GeoSpline2, layer)` and `Add(GeoSpline3, layer)`
+write the R2000 SPLINE entity of the spline's own degree, knots, weights (only where it is rational) and control points, every number to
+the bit and no fit points: flagged closed (1) only where its first and last control points are the same point exactly, as they are for the circle
+`FromCircle` builds, whose last control point now repeats its first where it was worked out at a whole turn and came 2.4E-14 off it
+(so `FromArc` of any whole turn ends on its start to the bit), rational (4) where a weight is other than
+one, and planar (8), with the plane's normal turned up in its largest component as the extrusion, where its control points lie in one
+plane to the rounding of their coordinates, as a spline in the plane always does. The knot, control point and fit tolerances are written
+as 1E-10, and the extents of the drawing grow by the box the curve fills, not by its control points: the cubic (0, 0), (100, 150),
+(200, 150), (300, 0) is 300 by 112.5. A file of eight such splines beside lines and arcs reads with no error and no fix in ezdxf's
+recover and audit, and netDxf loads all eight; AutoCAD's own AUDIT has not been run on it. `SvgWriter.Add(GeoSpline2, chordTolerance,
+colour)` draws a spline that is not rational and of degree 3 or less exactly, as the Bézier pieces it is cut into at its knots, a C, Q
+or L command for each (that cubic is `M 0 0 C 100 150 200 150 300 0`), and any other, the circle among them, through chords within the
+tolerance; `ObjWriter.Add(GeoSpline3, chordTolerance, name)` and `Wkt.Write(GeoSpline2, chordTolerance)` and `Write(GeoSpline3,
+chordTolerance)` write chords, the corners `Flatten` cuts at, every one kept and the ends the first and last control points exactly: the
+circle of radius 100 that `FromCircle` builds is 256 chords within 0.01. Every earlier output is byte for byte as it was. The viewer
+has the kinds `GeoSpline2` and `GeoSpline3`: the scene writer takes them and a scene keeps them to the bit; they are drawn by a cut of
+the viewer's own, never the library's `Flatten`, at the knots into Bézier pieces in one pass, each halved until it lies within the chord
+tolerance of the scene and turns no more than 2 degrees (the cubic above is 1 722 chords at 1E-4), once for the count of the scene's points
+and its drawing, so that a cubic of 40 000 control points is drawn in 0.8 s, and a scene over its cap of points cuts them coarser with its
+other curves and says so; a Bézier piece is cut in at most 65 536 chords, and one that would take more says so. A spline's two ends snap as
+ends, where its first or last piece has no length too, and the corners between its chords do not, its nearest point
+and its pick go along the chords, within the chord tolerance of it, and its properties give its degree, the number of its control points,
+whether it is rational, its domain, whether it is closed (its first and last control points one point exactly) and its length. The viewer's DXF reader reads a SPLINE by its control points,
+knots and weights to the bit (100 random splines of degree up to 4, rational and not, come back equal), a `GeoSpline2` where it lies on
+the floor with its extrusion up, and leaves one given by its fit points alone, a periodic one, or one whose weights do not match its
+control points out with a warning. `GeometryHelper.CadConvert` converts AutoCAD's `Spline` to and from `GeoSpline3` through its
+`NurbsData`, its numbers passed over as they are, and to `GeoSpline2` as it is seen in plan, exactly (`TryToGeoSpline2` gives false in place of a
+throw); a periodic spline is refused, GeometryHelper's splines being clamped. It is checked to compile, and untested at run time.
+`GeometryHelper.IfcConvert` gains `IfcStoreCache.GetSplines(guid, options)`: the `GeoSpline3` of each `IfcBSplineCurveWithKnots` and
+`IfcRationalBSplineCurveWithKnots` of a product, an item of any of its representations (the 'Axis' of a member above all), an element of a
+geometric set, the parent curve of a segment of a composite curve, the directrix of a swept disk (the part the disk runs along, its
+`StartParam` and `EndParam` being values of the knots, cut out exactly), or in a mapped item (an uneven scale of
+it carried exactly), its knots each repeated as the file says ((0, 0.5, 1) repeated (4, 1, 4) is 0, 0, 0, 0, 0.5, 1, 1, 1, 1), scaled and
+placed as a solid is; a curve met twice in one place is read once, and a periodic curve, or one whose knots and multiplicities do not pair,
+is left out with a warning. Every call writes one Info line. The suites gain 63 tests: 26 for the writers, 21 for the viewer, whose five
+tests that run over every kind take the two kinds too, and 16 for IFC; one viewer test that took SPLINE for an entity the reader does not
+read takes LEADER now.
+
 **FIXED.** The surface mesh of a body dropped any triangle whose doubled area was under 1E-5, comparing a length squared with a
 length, so a box 100 by 60 by 40 with a void 0.002 from its corner, which leaves a corner 0.002 thick, was meshed open along 15
 edges (69 triangles); it is now closed (72 triangles), and 3 000 random voids near corners, edges and faces mesh closed where

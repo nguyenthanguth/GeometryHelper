@@ -141,6 +141,14 @@ namespace GeometryHelper.Viewer
                     WriteGeoEllipse3(w, geometry);
                     break;
 
+                case "GeoSpline2":
+                    WriteGeoSpline2(w, geometry);
+                    break;
+
+                case "GeoSpline3":
+                    WriteGeoSpline3(w, geometry);
+                    break;
+
                 case "GeoRectangle2":
                     WriteGeoRectangle2(w, geometry);
                     break;
@@ -392,6 +400,58 @@ namespace GeometryHelper.Viewer
             w.Field("majorAxis", e.MajorAxis.X, e.MajorAxis.Y, e.MajorAxis.Z);
             w.Field("majorRadius", e.MajorRadius);
             w.Field("minorRadius", e.MinorRadius);
+            w.EndObject();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void WriteGeoSpline2(DataWriter w, object geometry)
+        {
+            GeoSpline2 s = (GeoSpline2)geometry;
+            w.BeginObject();
+            w.Name("degree");
+            w.Integer(s.Degree);
+            w.Name("points");
+            w.BeginArray();
+
+            foreach (GeoPoint2 p in s.ControlPoints)
+            {
+                w.Point(p.X, p.Y);
+            }
+
+            w.EndArray();
+            w.Numbers("knots", s.Knots);
+
+            if (s.IsRational)
+            {
+                w.Numbers("weights", s.Weights);
+            }
+
+            w.EndObject();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void WriteGeoSpline3(DataWriter w, object geometry)
+        {
+            GeoSpline3 s = (GeoSpline3)geometry;
+            w.BeginObject();
+            w.Name("degree");
+            w.Integer(s.Degree);
+            w.Name("points");
+            w.BeginArray();
+
+            foreach (GeoPoint3 p in s.ControlPoints)
+            {
+                w.Point(p.X, p.Y, p.Z);
+            }
+
+            w.EndArray();
+            w.Numbers("knots", s.Knots);
+
+            if (s.IsRational)
+            {
+                w.Numbers("weights", s.Weights);
+            }
+
             w.EndObject();
         }
 

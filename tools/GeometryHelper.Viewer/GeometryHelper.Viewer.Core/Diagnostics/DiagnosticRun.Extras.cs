@@ -275,6 +275,8 @@ namespace GeometryHelper.Viewer
                 case GeoLine3 s: name = "length"; value = s.Length; source = "GeoLine3.Length"; return true;
                 case GeoArc2 s: name = "length"; value = s.Length; source = "GeoArc2.Length"; return true;
                 case GeoArc3 s: name = "length"; value = s.Length; source = "GeoArc3.Length"; return true;
+                case GeoSpline2 s: name = "length"; value = s.Length; source = "GeoSpline2.Length"; return true;
+                case GeoSpline3 s: name = "length"; value = s.Length; source = "GeoSpline3.Length"; return true;
                 default: return false;
             }
         }

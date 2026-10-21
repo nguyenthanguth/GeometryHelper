@@ -245,6 +245,26 @@ namespace GeometryHelper.Viewer
             return padded;
         }
 
+        /// <summary>
+        /// Reads the degree of a spline: a whole number from 1.
+        /// </summary>
+        internal static int Degree(JsonElement element)
+        {
+            double degree = Number(element, "degree");
+
+            if (!(degree >= 1.0 && degree <= 64.0) || degree != Math.Floor(degree))
+            {
+                throw new FormatException("The degree of a spline is a whole number from 1.");
+            }
+
+            return (int)degree;
+        }
+
+        /// <summary>
+        /// Reads the weights of a spline, or null where the data has none, as it has none for a spline that is not rational.
+        /// </summary>
+        internal static double[] Weights(JsonElement element) => TryGet(element, "weights", out JsonElement list) ? Numbers(list) : null;
+
         internal static IEnumerable<JsonElement> List(JsonElement element, string name)
         {
             JsonElement list = Get(element, name);

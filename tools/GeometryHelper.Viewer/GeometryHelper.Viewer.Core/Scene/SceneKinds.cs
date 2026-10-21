@@ -22,6 +22,7 @@ namespace GeometryHelper.Viewer
     /// <item><term>GeoArc3</term><description><c>{center, normal, radius, start, sweep}</c></description></item>
     /// <item><term>GeoCircle2, GeoCircle3</term><description><c>{center, radius}</c>, <c>{center, normal, radius}</c></description></item>
     /// <item><term>GeoEllipse2, GeoEllipse3</term><description><c>{center, majorAxis, majorRadius, minorRadius}</c>, with <c>normal</c> in space</description></item>
+    /// <item><term>GeoSpline2, GeoSpline3</term><description><c>{degree, points:[..], knots:[..], weights:[..]}</c>, the weights only where it is rational; drawn by the viewer's own cut at its knots</description></item>
     /// <item><term>GeoRectangle2</term><description><c>{center, width, height, angle}</c>, the angle in radians</description></item>
     /// <item><term>GeoTriangle2, GeoTriangle3</term><description><c>{points:[a,b,c]}</c></description></item>
     /// <item><term>GeoFace2, GeoFace3</term><description><c>{outer:[point,..], holes:[[point,..],..]}</c>, the loops as the face holds them</description></item>
@@ -50,6 +51,7 @@ namespace GeometryHelper.Viewer
             "GeoPolyline2", "GeoPolyline3", "GeoPolygon2", "GeoPolygon3",
             "GeoPolylineArc2", "GeoPolygonArc2", "GeoPolylineArc3", "GeoPolygonArc3",
             "GeoArc2", "GeoArc3", "GeoCircle2", "GeoCircle3", "GeoEllipse2", "GeoEllipse3",
+            "GeoSpline2", "GeoSpline3",
             "GeoRectangle2", "GeoTriangle2", "GeoTriangle3",
             "GeoFace2", "GeoFace3", "GeoSolid3", "GeoMesh2", "GeoMesh3",
             "GeoAabb3", "GeoObb3", "GeoSphere3", "GeoPlane3",

@@ -1772,6 +1772,21 @@ before the tree. `Interpolate` takes a
 plane of a frame, and `GeoSpline2.ToSpline3(frame)` and `PlanarMap.ToSpline3` put one back, the weights and knots unchanged. A spline
 that stands square to the plane has no spline to give there, and is refused.
 
+**Writing, showing and reading from IFC.** `DxfWriter.Add(spline, layer)` writes a spline in space as the SPLINE it is, as
+[in the plane](plane.md#splines), its control points in world coordinates: flagged planar, with the plane's normal turned up in its largest
+component as the extrusion, where its control points lie in one plane to the rounding of their coordinates (the circle of radius 25 on the
+normal (1, 1, 0) has the extrusion (0.7071, 0.7071, 0)), and with no flag and no extrusion where they do not, as for the cubic through
+(0, 0, 0), (100, 0, 0), (100, 100, 0), (100, 100, 100). `ObjWriter.Add(spline, chordTolerance, name)` and `Wkt.Write(spline, chordTolerance)`
+write the line of its chords, every corner of `Flatten` kept and the ends exact, as an OBJ line and a `LINESTRING Z`. The viewer draws,
+measures, snaps to and reads a spline in space as it does one in the plane; a SPLINE of a DXF file that lies on the floor with its extrusion
+up comes back as a `GeoSpline2`, and any other as a `GeoSpline3`. From an IFC file, `IfcStoreCache.GetSplines(guid)` of
+GeometryHelper.IfcConvert gives the `GeoSpline3` of each `IfcBSplineCurveWithKnots` and `IfcRationalBSplineCurveWithKnots` of a product: an
+item of any of its representations, the 'Axis' of a member above all, an element of a geometric set, the parent curve of a segment of a
+composite curve, the directrix of a swept disk (the part of it the disk runs along, from its `StartParam` to its `EndParam`, which are
+values of the knots), or in a mapped item, placed by the mapping and the product as a solid is, the knots each
+repeated as the file says ((0, 0.5, 1) repeated (4, 1, 4) is 0, 0, 0, 0, 0.5, 1, 1, 1, 1) and the weights as it gives them. A periodic curve,
+whose knots run on past its ends, is left out with a warning, GeometryHelper's splines being clamped.
+
 ### Against the other shapes in space
 
 A spline in space answers the five queries about every shape in space, from either side, as a ray and a line without ends do:

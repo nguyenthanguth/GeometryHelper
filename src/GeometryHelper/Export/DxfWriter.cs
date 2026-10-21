@@ -6,6 +6,7 @@ using System.Text;
 using GeometryHelper.Core;
 using GeometryHelper.Geometry;
 using GeometryHelper.Internal;
+using GeometryHelper.Internal.Nurbs;
 using GeometryHelper.Meshing;
 
 namespace GeometryHelper.Export
@@ -24,12 +25,12 @@ namespace GeometryHelper.Export
     /// <para>
     /// In the plane a shape is written as the entity AutoCAD has for it, not as chords: a polygon, a rectangle, a triangle
     /// and each ring of a face as a closed lightweight polyline, a chain or loop with arcs as one too with the bulge of each
-    /// arc edge, a circle as a CIRCLE, an arc as an ARC, an ellipse as an ELLIPSE, a ray as a RAY and a line without ends as an XLINE. A clockwise arc is
+    /// arc edge, a circle as a CIRCLE, an arc as an ARC, an ellipse as an ELLIPSE, a ray as a RAY, a line without ends as an XLINE and a spline as a SPLINE of its own knots and control points. A clockwise arc is
     /// written from its end to its start, since DXF arcs run counter-clockwise only. A face is its rings and not a filled
     /// area: <see cref="SvgWriter"/> fills.
     /// </para>
     /// <para>
-    /// In space a segment, a point, a ray, a line without ends and an ellipse are written as they are, a chain and a polygon as a 3D polyline,
+    /// In space a segment, a point, a ray, a line without ends, an ellipse and a spline are written as they are, a chain and a polygon as a 3D polyline,
     /// and anything with a surface as 3DFACEs: one per triangle of a face, a body or a ball, one per face of a mesh that has three
     /// or four corners and turns one way, and six for a box, written from its corners. Where a face, a side of a body or a
     /// face of a mesh is cut into triangles, the edges between its own triangles are marked invisible, so a wireframe shows
@@ -362,6 +363,54 @@ namespace GeometryHelper.Export
             return this;
         }
 
+        /// <summary>
+        /// Adds a spline as the SPLINE it is, at height nought: its degree, its knots, its weights where it is rational and its
+        /// control points, as the spline holds them.
+        /// </summary>
+        /// <param name="spline">The spline.</param>
+        /// <param name="layer">The layer; layer 0 when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the spline is null.</exception>
+        /// <remarks>
+        /// <para>
+        /// Nothing is refitted or rescaled, so a reader gets the very curve back, every number to the bit: the cubic with the
+        /// control points (0, 0), (100, 150), (200, 150), (300, 0) is a SPLINE of degree 3 with its 8 knots 0, 0, 0, 0, 1, 1, 1, 1
+        /// and its 4 control points, and the circle of radius 100 that <see cref="GeoSpline2.FromCircle(GeoCircle2)"/> builds is
+        /// its 12 knots, 9 weights and 9 control points. No fit points are written: the control points are the curve.
+        /// </para>
+        /// <para>
+        /// The flags say what the SPLINE is: 1, closed, only where its first and last control points are the same point exactly, as
+        /// the clamped spline then ends where it starts (it is never flagged periodic; the circle of <see cref="GeoSpline2.FromCircle(GeoCircle2)"/>
+        /// ends on its start exactly and is flagged closed, where ends only within the tolerance of each other are not); 4, rational, where a weight is other than one, and only then are the weights
+        /// written; 8, planar, always, with the extrusion (0, 0, 1). The knot, control point and fit tolerances are written as
+        /// 1E-10.
+        /// </para>
+        /// </remarks>
+        public DxfWriter Add(GeoSpline2 spline, string layer = null)
+        {
+            if (spline == null)
+            {
+                throw new ArgumentNullException(nameof(spline));
+            }
+
+            var points = new GeoPoint3[spline.ControlPointCount];
+
+            for (int i = 0; i < points.Length; i++)
+            {
+                points[i] = new GeoPoint3(spline.ControlPoints[i].X, spline.ControlPoints[i].Y, 0.0);
+            }
+
+            Spline(Layer(layer), spline.Degree, spline.Knots, spline.IsRational ? spline.Weights : null, points, spline.StartPoint.Equals(spline.EndPoint), new GeoVector3(0.0, 0.0, 1.0));
+
+            // The drawing grows by the box the curve fills, not by its control points.
+            var min = new double[2];
+            var max = new double[2];
+            spline.Curve.Bounds(min, max);
+            Grow(min[0], min[1], 0.0);
+            Grow(max[0], max[1], 0.0);
+            return this;
+        }
+
         #endregion
 
         #region Space
@@ -454,6 +503,53 @@ namespace GeometryHelper.Export
             Begin("XLINE", Layer(layer), "AcDbXline");
             Place(0, xline.Origin.X, xline.Origin.Y, xline.Origin.Z);
             _entities.Point(1, xline.Direction.X, xline.Direction.Y, xline.Direction.Z);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a spline in space as the SPLINE it is: its degree, its knots, its weights where it is rational and its control
+        /// points in world coordinates, as the spline holds them.
+        /// </summary>
+        /// <param name="spline">The spline.</param>
+        /// <param name="layer">The layer; layer 0 when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the spline is null.</exception>
+        /// <remarks>
+        /// As <see cref="Add(GeoSpline2, string)"/> writes one in the plane, every number to the bit, but for the planar flag: it is
+        /// set, with the plane's normal turned up in its largest component as the extrusion, where the control points lie in one
+        /// plane to the rounding of their coordinates, as the spline's own queries judge it, and left off, with no extrusion,
+        /// where they do not. A circle of radius 25 on the normal (1, 1, 0) is planar with the extrusion (0.7071, 0.7071, 0);
+        /// the cubic with the control points (0, 0, 0), (100, 0, 0), (100, 100, 0), (100, 100, 100) is not.
+        /// </remarks>
+        public DxfWriter Add(GeoSpline3 spline, string layer = null)
+        {
+            if (spline == null)
+            {
+                throw new ArgumentNullException(nameof(spline));
+            }
+
+            double[] flat = spline.Curve.Points;
+            GeoVector3? normal = null;
+
+            if (NurbsCurve.InOnePlane(flat, flat, spline.Curve.Scale, out FlatFrame frame))
+            {
+                normal = Upward(new GeoVector3(frame.Nx, frame.Ny, frame.Nz));
+            }
+
+            var points = new GeoPoint3[spline.ControlPointCount];
+
+            for (int i = 0; i < points.Length; i++)
+            {
+                points[i] = spline.ControlPoints[i];
+            }
+
+            Spline(Layer(layer), spline.Degree, spline.Knots, spline.IsRational ? spline.Weights : null, points, spline.StartPoint.Equals(spline.EndPoint), normal);
+
+            var min = new double[3];
+            var max = new double[3];
+            spline.Curve.Bounds(min, max);
+            Grow(min[0], min[1], min[2]);
+            Grow(max[0], max[1], max[2]);
             return this;
         }
 
@@ -1730,6 +1826,50 @@ namespace GeometryHelper.Export
 
             _entities.Triple(210, normal.X, normal.Y, normal.Z);
             return this;
+        }
+
+        /// <summary>
+        /// A SPLINE, in world coordinates: the extrusion where it is planar, the flags (1 closed, 4 rational, 8 planar), the
+        /// degree, the counts of knots, control points and fit points (none), the knot, control point and fit tolerances, then
+        /// each knot, each weight where there are weights, and each control point.
+        /// </summary>
+        private void Spline(string layer, int degree, IReadOnlyList<double> knots, IReadOnlyList<double> weights, IReadOnlyList<GeoPoint3> points, bool closed, GeoVector3? normal)
+        {
+            const double Fitting = 1E-10;
+
+            Begin("SPLINE", layer, "AcDbSpline");
+
+            if (normal.HasValue)
+            {
+                _entities.Triple(210, normal.Value.X, normal.Value.Y, normal.Value.Z);
+            }
+
+            _entities.Int(70, (closed ? 1 : 0) | (weights != null ? 4 : 0) | (normal.HasValue ? 8 : 0));
+            _entities.Int(71, degree);
+            _entities.Int(72, knots.Count);
+            _entities.Int(73, points.Count);
+            _entities.Int(74, 0);
+            _entities.Real(42, Fitting);
+            _entities.Real(43, Fitting);
+            _entities.Real(44, Fitting);
+
+            for (int i = 0; i < knots.Count; i++)
+            {
+                _entities.Real(40, knots[i]);
+            }
+
+            if (weights != null)
+            {
+                for (int i = 0; i < weights.Count; i++)
+                {
+                    _entities.Real(41, weights[i]);
+                }
+            }
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                _entities.Point(0, points[i].X, points[i].Y, points[i].Z);
+            }
         }
 
         /// <summary>

@@ -90,6 +90,31 @@ it and saying why: a ball with a void in it is not a ball, and `GetSolids` gives
 GlobalId the file does not hold too; a sphere left out is a Warn, and the items of the body that are not spheres are counted in one Debug line.
 A product with no ball, or one not found, gives an empty list.
 
+## Splines
+
+A B-spline curve in an IFC file, an `IfcBSplineCurveWithKnots` or an `IfcRationalBSplineCurveWithKnots`, comes out of `IfcStoreCache.GetSplines(guid, options)`
+as a `GeoSpline3` with the file's degree, control points, knots and weights. It is read from every representation of the product, the `Axis` of a
+member above all: as an item itself, among the elements of an `IfcGeometricSet` or `IfcGeometricCurveSet`, as the parent curve of a segment of an
+`IfcCompositeCurve`, as the directrix of an `IfcSweptDiskSolid` (the path of a bar or a pipe), and in a mapped item; a curve met twice in one place, as an
+axis and as the directrix of a disk that runs along all of it, is read once. A disk that runs from a `StartParam` to an `EndParam` gives the part of its
+directrix between them: the parameter of a B-spline curve is the value of its knots, so the part is the spline cut exactly at those values with
+`SplitAtKnot`; a pair outside the curve's domain, or not in order, gives the whole curve with a Warn, and so does a trim of a composite directrix,
+whose parameters are the composite's and are not read.
+
+```csharp
+IReadOnlyList<GeoSpline3> axes = model.GetSplines(guid, new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters });
+GeoPolyline3 drawn = axes[0].Flatten(0.01);   // chords of your own choice of tolerance
+```
+
+The file gives each distinct knot once with the number of times it is repeated, and the spline has them repeated: the knots (0, 0.5, 1) repeated
+(4, 1, 4) are 0, 0, 0, 0, 0.5, 1, 1, 1, 1. The control points are scaled to the target unit and placed by the product as a solid is (the placement is left
+off with `CoordinateSpace.Local`), and by the mapping of a mapped item, an uneven scale of it included, which a NURBS carries exactly; the knots and
+the weights are kept as the file gives them. GeometryHelper's splines are clamped, so a curve whose knots run on past its ends, a periodic one, is left
+out with a Warn, as is one whose knots and multiplicities do not pair or whose numbers do not make a spline. An `IfcIndexedPolyCurve` holds no B-spline;
+a B-spline that is the basis of an `IfcTrimmedCurve` is only a part of itself there, and one in the outline of a profile lies in a frame of the solid it
+is swept into, so neither is read; the `IfcBezierCurve` of IFC2X3 gives no knots and is not read either. With `IncludeAggregatedParts` the splines of
+the parts a product aggregates come too. Every call writes one Info line; the items with no B-spline in them are counted in one Debug line.
+
 ## Conversion Rules
 
 - **Body only**: the `Body` representation is converted (then `Body-*`, then `Facetation`). `Box`,

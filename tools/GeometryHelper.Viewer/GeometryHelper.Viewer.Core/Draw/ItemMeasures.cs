@@ -178,6 +178,7 @@ namespace GeometryHelper.Viewer
                 case "GeoArc3": return BoxOf_GeoArc3(shape);
                 case "GeoCircle3": return BoxOf_GeoCircle3(shape);
                 case "GeoEllipse3": return BoxOf_GeoEllipse3(shape);
+                case "GeoSpline3": return BoxOf_GeoSpline3(shape);
                 case "GeoObb3": return BoxOf_GeoObb3(shape);
                 case "GeoSphere3": return BoxOf_GeoSphere3(shape);
                 case "GeoPolygonArc3": return BoxOf_GeoPolygonArc3(shape);
@@ -212,6 +213,9 @@ namespace GeometryHelper.Viewer
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static GeoAabb3? BoxOf_GeoEllipse3(object shape) => ((GeoEllipse3)shape).GetAabb();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static GeoAabb3? BoxOf_GeoSpline3(object shape) => ((GeoSpline3)shape).GetAabb();
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static GeoAabb3? BoxOf_GeoObb3(object shape) => ((GeoObb3)shape).GetAabb();
@@ -310,7 +314,7 @@ namespace GeometryHelper.Viewer
 
                 if (e.ValueKind == System.Text.Json.JsonValueKind.Object)
                 {
-                    return e.EnumerateObject().Where(p => p.Name != "bulges" && p.Name != "normals" && !(mesh && p.Name == "faces")).Sum(p => Count(p.Value));
+                    return e.EnumerateObject().Where(p => p.Name != "bulges" && p.Name != "normals" && p.Name != "knots" && p.Name != "weights" && !(mesh && p.Name == "faces")).Sum(p => Count(p.Value));
                 }
 
                 return 0;
@@ -416,6 +420,14 @@ namespace GeometryHelper.Viewer
 
                 case "GeoEllipse3":
                     Measure_GeoEllipse3(shape, add);
+                    break;
+
+                case "GeoSpline2":
+                    Measure_GeoSpline2(shape, add);
+                    break;
+
+                case "GeoSpline3":
+                    Measure_GeoSpline3(shape, add);
                     break;
 
                 case "GeoRectangle2":
@@ -656,6 +668,32 @@ namespace GeometryHelper.Viewer
             add("Minor radius", N(e.MinorRadius));
             add("Length", N(e.Length));
             add("Area", N(e.Area));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoSpline2(object shape, Action<string, string> add)
+        {
+            GeoSpline2 s = (GeoSpline2)shape;
+            add("Degree", s.Degree.ToString(CultureInfo.InvariantCulture));
+            add("Control points", s.ControlPointCount.ToString(CultureInfo.InvariantCulture));
+            add("Rational", s.IsRational ? "yes" : "no");
+            add("Domain", N(s.DomainStart) + " to " + N(s.DomainEnd));
+
+            // Closed only where the first and last control points are one point exactly, as a DXF file of DxfWriter flags it.
+            add("Closed", s.StartPoint.Equals(s.EndPoint) ? "yes" : "no");
+            add("Length", N(s.Length));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void Measure_GeoSpline3(object shape, Action<string, string> add)
+        {
+            GeoSpline3 s = (GeoSpline3)shape;
+            add("Degree", s.Degree.ToString(CultureInfo.InvariantCulture));
+            add("Control points", s.ControlPointCount.ToString(CultureInfo.InvariantCulture));
+            add("Rational", s.IsRational ? "yes" : "no");
+            add("Domain", N(s.DomainStart) + " to " + N(s.DomainEnd));
+            add("Closed", s.StartPoint.Equals(s.EndPoint) ? "yes" : "no");
+            add("Length", N(s.Length));
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

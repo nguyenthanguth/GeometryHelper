@@ -194,6 +194,19 @@ namespace GeometryHelper.IfcConvert.Core.Internal
             return spheres;
         }
 
+        public IReadOnlyList<GeoSpline3> GetSplines(string guid, IfcConvertOptions options)
+        {
+            if (string.IsNullOrWhiteSpace(guid) || !_productsByGuid.TryGetValue(guid, out IIfcProduct product))
+            {
+                GeometryHelperLog.Info($"IfcStoreCache.GetSplines: {(string.IsNullOrWhiteSpace(guid) ? "no GlobalId was given" : guid + " is not a product of the file")}; no spline.");
+                return Array.Empty<GeoSpline3>();
+            }
+
+            List<GeoSpline3> splines = product.ToGeoSplines(options);
+            GeometryHelperLog.Info($"IfcStoreCache.GetSplines: {guid} ({IfcTypeNames.GetName(product)}) has {splines.Count} spline(s).");
+            return splines;
+        }
+
         public IReadOnlyList<GeoSolid3> GetSolidsByType(string ifcTypeName, IfcConvertOptions options)
         {
             if (string.IsNullOrWhiteSpace(ifcTypeName))

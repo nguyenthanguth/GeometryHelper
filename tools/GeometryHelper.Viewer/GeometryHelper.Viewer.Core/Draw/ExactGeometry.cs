@@ -31,7 +31,8 @@ namespace GeometryHelper.Viewer
 
     /// <summary>
     /// The exact curves and points of a scene, read from the numbers in the data of its items: the segments of lines, chains, loops, the
-    /// edges of faces and bodies and meshes, boxes and triangles, the arcs, circles and ellipses, whole and in the bulges of a chain, and the three great circles of a ball.
+    /// edges of faces and bodies and meshes, boxes and triangles, the arcs, circles and ellipses, whole and in the bulges of a chain, and the three great circles of a ball;
+    /// a spline by the chords it is drawn with, within the chord tolerance of it, its two ends exact.
     /// The snaps, the picking and the measuring work on these and never on the chords the curves are drawn with.
     /// </summary>
     public sealed class ExactGeometry
@@ -259,6 +260,44 @@ namespace GeometryHelper.Viewer
                     Vec3 major = DataJson.Point(d, "majorAxis", 3).Normalized();
                     Vec3 minor = Vec3.Cross(DataJson.Point(d, "normal", 3).Normalized(), major);
                     Add(SceneCurve.Conic(index, DataJson.Point(d, "center", 3), major, minor, DataJson.Number(d, "majorRadius"), DataJson.Number(d, "minorRadius"), 0.0, 2.0 * Math.PI));
+                    break;
+                }
+
+                case "GeoSpline2":
+                case "GeoSpline3":
+                {
+                    // A spline is read by the chords it is drawn with, within the chord tolerance of it: its ends are its first and last control
+                    // points, exactly, and the corners between are not ends.
+                    if (drawn != null)
+                    {
+                        foreach (DrawPolyline line in drawn.Polylines)
+                        {
+                            // A piece of no length at an end, as control points repeated there give, draws chords of no length: the ends are
+                            // the first and last chords that have one.
+                            bool Has(int k) => line.Points[k].IsFinite && line.Points[k + 1].IsFinite && (line.Points[k].X != line.Points[k + 1].X || line.Points[k].Y != line.Points[k + 1].Y || line.Points[k].Z != line.Points[k + 1].Z);
+                            int first = 0;
+                            int last = line.Points.Length - 2;
+
+                            while (first <= last && !Has(first))
+                            {
+                                first++;
+                            }
+
+                            while (last >= first && !Has(last))
+                            {
+                                last--;
+                            }
+
+                            for (int k = first; k <= last; k++)
+                            {
+                                if (Has(k))
+                                {
+                                    Add(SceneCurve.Chord(index, line.Points[k], line.Points[k + 1], k == first, k == last));
+                                }
+                            }
+                        }
+                    }
+
                     break;
                 }
 

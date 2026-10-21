@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using GeometryHelper.Geometry;
+using GeometryHelper.Internal.Nurbs;
 using GeometryHelper.Meshing;
 
 namespace GeometryHelper.Export
@@ -15,8 +16,8 @@ namespace GeometryHelper.Export
     /// <para>
     /// The picture is fitted round everything added, with Y pointing up as in the drawing, and every line is
     /// drawn the same width however far the picture is zoomed. Arcs and ellipses are drawn as arcs and ellipses,
-    /// not as chords. Each shape takes a stroke colour and, where it encloses something, a fill — any colour SVG
-    /// knows, such as <c>"red"</c> or <c>"#3070c0"</c>. A ray is drawn on to the edge of the picture, a line without ends across it both ways, and
+    /// not as chords, and a spline as the Bézier curves it is made of wherever SVG has them. Each shape takes a stroke
+    /// colour and, where it encloses something, a fill — any colour SVG knows, such as <c>"red"</c> or <c>"#3070c0"</c>. A ray is drawn on to the edge of the picture, a line without ends across it both ways, and
     /// <see cref="Text"/> names a shape in it.
     /// </para>
     /// <code>
@@ -105,6 +106,85 @@ namespace GeometryHelper.Export
                 "<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" transform=\"rotate({4} {0} {1})\" {5}/>",
                 N(ellipse.Center.X), N(ellipse.Center.Y), N(a), N(b), N(degrees), Style(colour, fill)));
             return this;
+        }
+
+        /// <summary>
+        /// Adds a spline: as the Bézier curves it is made of where SVG has them, and through chords no further from it than a
+        /// tolerance where it has none.
+        /// </summary>
+        /// <param name="spline">The spline.</param>
+        /// <param name="chordTolerance">The largest gap allowed between a chord and the spline where it is drawn through chords, in drawing units; above nought.</param>
+        /// <param name="colour">The colour of the line.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <remarks>
+        /// A spline that is not rational and of degree 3 or less is drawn exactly, to the six places the picture's numbers have, cut
+        /// at its knots into the Bézier pieces it is made of: a C command for each piece of a cubic, a Q for each of a quadratic and an L for each of a spline of degree 1,
+        /// so that the cubic with the control points (0, 0), (100, 150), (200, 150), (300, 0) is <c>M 0 0 C 100 150 200 150 300 0</c>,
+        /// and the tolerance is not used. SVG has no curve for a rational spline, a circle among them, nor for a degree above 3:
+        /// such a spline is drawn through the corners <see cref="GeoSpline2.Flatten(double)"/> cuts it at, every one kept, so that
+        /// the circle of radius 100 within 0.01 is 256 chords. The picture grows by the box the curve fills, not by its control points,
+        /// and not at all where the spline is refused.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the spline is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is not a finite number above nought, or a spline drawn through chords would need more than 1 048 576 of them.
+        /// </exception>
+        public SvgWriter Add(GeoSpline2 spline, double chordTolerance, string colour = "black")
+        {
+            if (spline == null)
+            {
+                throw new ArgumentNullException(nameof(spline));
+            }
+
+            Chords.Require(chordTolerance);
+
+            // The path is made before the picture grows by the spline, so that a tolerance that needs too many chords leaves the picture as it was.
+            string data = spline.IsRational || spline.Degree > 3 ? ThroughChords(spline, chordTolerance) : AlongPieces(spline);
+
+            var min = new double[2];
+            var max = new double[2];
+            spline.Curve.Bounds(min, max);
+            Grow(min[0], min[1]);
+            Grow(max[0], max[1]);
+            return Path(data, colour, "none");
+        }
+
+        private static string ThroughChords(GeoSpline2 spline, double chordTolerance)
+        {
+            List<GeoPoint2> corners = Chords.Of(spline, chordTolerance);
+            var chords = new StringBuilder("M ").Append(Xy(corners[0]));
+
+            for (int i = 1; i < corners.Count; i++)
+            {
+                chords.Append(" L ").Append(Xy(corners[i]));
+            }
+
+            return chords.ToString();
+        }
+
+        /// <summary>
+        /// The path of a spline that is not rational and of degree 3 or less: a command for each of its Bézier pieces. The pieces run on from
+        /// one another, so each command takes the control points of its piece but the first.
+        /// </summary>
+        private static string AlongPieces(GeoSpline2 spline)
+        {
+            BezierPieces pieces = spline.Curve.Pieces;
+            int degree = pieces.Degree;
+            string command = degree == 3 ? " C" : degree == 2 ? " Q" : " L";
+            var data = new StringBuilder("M ").Append(Xy(spline.StartPoint));
+
+            for (int piece = 0; piece < pieces.Count; piece++)
+            {
+                int at = pieces.PointOffset(piece);
+                data.Append(command);
+
+                for (int j = 1; j <= degree; j++)
+                {
+                    data.Append(' ').Append(Xy(new GeoPoint2(pieces.Points[at + 2 * j], pieces.Points[at + 2 * j + 1])));
+                }
+            }
+
+            return data.ToString();
         }
 
         /// <summary>Adds a triangle.</summary>

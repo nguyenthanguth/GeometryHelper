@@ -10,8 +10,8 @@ namespace GeometryHelper.Viewer
 {
     /// <summary>
     /// Reads the DXF that <c>DxfWriter</c> writes, and what a CAD program writes of the same kinds: POINT, LINE, RAY, XLINE, LWPOLYLINE with bulges,
-    /// POLYLINE (a 3D chain, a 2D chain with bulges, a polygon mesh, a polyface mesh), CIRCLE, ARC, ELLIPSE, 3DFACE, TEXT and MTEXT, on their
-    /// layers, in their colours. Anything else is counted and said once. The edges a 3DFACE marks invisible, which DxfWriter does between the triangles it cuts a side into, are drawn
+    /// POLYLINE (a 3D chain, a 2D chain with bulges, a polygon mesh, a polyface mesh), CIRCLE, ARC, ELLIPSE, SPLINE (by its control points, knots
+    /// and weights), 3DFACE, TEXT and MTEXT, on their layers, in their colours. Anything else is counted and said once. The edges a 3DFACE marks invisible, which DxfWriter does between the triangles it cuts a side into, are drawn
     /// like the others, so the cut shows. The numbers are read as the file prints them, to the bit; the
     /// angles of an ARC are degrees in the file and come back as radians, so they are right to the last place or two, as are the major
     /// axis and the minor radius of an ELLIPSE, which the file keeps as an end point and a ratio.
@@ -179,7 +179,7 @@ namespace GeometryHelper.Viewer
 
             foreach (string type in _unknownOrder)
             {
-                _b.Warn("DXF: " + _unknown[type].ToString(CultureInfo.InvariantCulture) + " " + type + " entity(ies) are not read (the DXF reader takes what DxfWriter writes: POINT, LINE, RAY, XLINE, LWPOLYLINE, POLYLINE, CIRCLE, ARC, ELLIPSE, 3DFACE, TEXT, MTEXT)");
+                _b.Warn("DXF: " + _unknown[type].ToString(CultureInfo.InvariantCulture) + " " + type + " entity(ies) are not read (the DXF reader takes what DxfWriter writes: POINT, LINE, RAY, XLINE, LWPOLYLINE, POLYLINE, CIRCLE, ARC, ELLIPSE, SPLINE, 3DFACE, TEXT, MTEXT)");
             }
 
             if (_paperSpace > 0)
@@ -544,6 +544,10 @@ namespace GeometryHelper.Viewer
                     ReadEllipse(r);
                     break;
 
+                case "SPLINE":
+                    ReadSpline(r);
+                    break;
+
                 case "3DFACE":
                     ReadFace(r);
                     break;
@@ -716,6 +720,78 @@ namespace GeometryHelper.Viewer
             else
             {
                 Emit("GeoEllipse3", ImportData.Ellipse(centre, n, axis, major, ratio * major, 3), r);
+            }
+        }
+
+        /// <summary>
+        /// Reads a SPLINE by its degree (71), its knots (each 40), its weights (each 41, none where it is not rational) and its control points
+        /// (each 10, 20, 30), into the library's spline, every number as the file prints it: a spline in the plane where its extrusion is up and
+        /// every control point at z = 0, else in space. A SPLINE given by its fit points alone (11, 21, 31) is left out with a warning, as is one
+        /// the library does not take, a periodic one among them, its knots not clamped.
+        /// </summary>
+        private void ReadSpline(Record r)
+        {
+            var points = new List<double[]>();
+            var knots = new List<double>();
+            var weights = new List<double>();
+            int fitPoints = 0;
+
+            foreach (Group g in r.Groups)
+            {
+                if (g.Code != 10 && g.Code != 20 && g.Code != 30 && g.Code != 40 && g.Code != 41 && g.Code != 11)
+                {
+                    continue;
+                }
+
+                if (!ImportNumber.TryParse(g.Value.Trim(), out double value))
+                {
+                    continue;
+                }
+
+                switch (g.Code)
+                {
+                    case 10: points.Add(new[] { value, double.NaN, 0.0 }); break;
+                    case 20: if (points.Count > 0) { points[points.Count - 1][1] = value; } break;
+                    case 30: if (points.Count > 0) { points[points.Count - 1][2] = value; } break;
+                    case 40: knots.Add(value); break;
+                    case 41: weights.Add(value); break;
+                    default: fitPoints++; break;
+                }
+            }
+
+            if (points.Count == 0)
+            {
+                if (fitPoints > 0)
+                {
+                    _b.Warn("DXF: a SPLINE given by its " + fitPoints.ToString(CultureInfo.InvariantCulture) + " fit point(s) alone was left out; the viewer reads a spline by its control points, which the file does not give");
+                }
+                else
+                {
+                    Incomplete(r);
+                }
+
+                return;
+            }
+
+            if (weights.Count > 0 && weights.Count != points.Count)
+            {
+                _b.Warn("DXF: a SPLINE of " + points.Count.ToString(CultureInfo.InvariantCulture) + " control points with " + weights.Count.ToString(CultureInfo.InvariantCulture) + " weights was left out");
+                return;
+            }
+
+            int degree = r.Int(71, 0);
+            bool flat = IsUp(Extrusion(r)) && points.TrueForAll(p => p[2] == 0.0);
+
+            try
+            {
+                object spline = flat
+                    ? (object)new GeoSpline2(degree, points.Select(p => new GeoPoint2(p[0], p[1])), knots, weights.Count > 0 ? weights : null)
+                    : new GeoSpline3(degree, points.Select(p => new GeoPoint3(p[0], p[1], p[2])), knots, weights.Count > 0 ? weights : null);
+                Emit(flat ? "GeoSpline2" : "GeoSpline3", GeometryEncoder.Encode(spline), r);
+            }
+            catch (ArgumentException e)
+            {
+                _b.Warn("DXF: a SPLINE the library does not take was left out" + ((r.Int(70, 0) & 2) != 0 ? " (it is periodic, and the library's splines are clamped)" : string.Empty) + ": " + e.Message);
             }
         }
 

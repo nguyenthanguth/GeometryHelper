@@ -282,6 +282,48 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
+        /// The chords of a spline from its start to its end: the corners <see cref="GeoSpline2.Flatten(double)"/> cuts it at, every
+        /// one kept where the chain would merge those closer than the point tolerance, and the two ends the spline's first and last
+        /// control points exactly, where a rational one's are worked out a last digit off them.
+        /// </summary>
+        internal static List<GeoPoint2> Of(GeoSpline2 spline, double chordTolerance)
+        {
+            var corners = new List<double>();
+            spline.Curve.Flatten(chordTolerance, corners);
+
+            var points = new List<GeoPoint2>(corners.Count / 2);
+
+            for (int i = 0; i < corners.Count; i += 2)
+            {
+                points.Add(new GeoPoint2(corners[i], corners[i + 1]));
+            }
+
+            points[0] = spline.StartPoint;
+            points[points.Count - 1] = spline.EndPoint;
+            return points;
+        }
+
+        /// <summary>
+        /// The chords of a spline in space from its start to its end, as for the one in the plane.
+        /// </summary>
+        internal static List<GeoPoint3> Of(GeoSpline3 spline, double chordTolerance)
+        {
+            var corners = new List<double>();
+            spline.Curve.Flatten(chordTolerance, corners);
+
+            var points = new List<GeoPoint3>(corners.Count / 3);
+
+            for (int i = 0; i < corners.Count; i += 3)
+            {
+                points.Add(new GeoPoint3(corners[i], corners[i + 1], corners[i + 2]));
+            }
+
+            points[0] = spline.StartPoint;
+            points[points.Count - 1] = spline.EndPoint;
+            return points;
+        }
+
+        /// <summary>
         /// Whether an arc's circle can be placed: a radius, a sweep and a centre that are numbers. The arc of a bulge of 1E-200
         /// has a radius of 1E202 and a centre that is not one.
         /// </summary>

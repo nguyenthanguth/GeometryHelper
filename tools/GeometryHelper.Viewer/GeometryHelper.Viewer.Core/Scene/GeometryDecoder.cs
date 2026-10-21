@@ -46,6 +46,8 @@ namespace GeometryHelper.Viewer
                 case "GeoCircle3": return Decode_GeoCircle3(d);
                 case "GeoEllipse2": return Decode_GeoEllipse2(d);
                 case "GeoEllipse3": return Decode_GeoEllipse3(d);
+                case "GeoSpline2": return Decode_GeoSpline2(d);
+                case "GeoSpline3": return Decode_GeoSpline3(d);
                 case "GeoRectangle2": return Decode_GeoRectangle2(d);
                 case "GeoTriangle2": return Decode_GeoTriangle2(d);
                 case "GeoTriangle3": return Decode_GeoTriangle3(d);
@@ -210,6 +212,18 @@ namespace GeometryHelper.Viewer
                 V3(DataJson.Point(d, "majorAxis", 3)),
                 DataJson.Number(d, "majorRadius"),
                 DataJson.Number(d, "minorRadius"));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static object Decode_GeoSpline2(JsonElement d)
+        {
+            return new GeoSpline2(DataJson.Degree(d), DataJson.Points(d, "points", 2).Select(P2), DataJson.Numbers(DataJson.Get(d, "knots")), DataJson.Weights(d));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static object Decode_GeoSpline3(JsonElement d)
+        {
+            return new GeoSpline3(DataJson.Degree(d), DataJson.Points(d, "points", 3).Select(P3), DataJson.Numbers(DataJson.Get(d, "knots")), DataJson.Weights(d));
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

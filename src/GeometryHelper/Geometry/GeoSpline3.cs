@@ -324,7 +324,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A quarter circle of radius 100 about the origin in the floor is one piece: the control points (100, 0, 0),
         /// (100, 100, 0), (0, 100, 0) with the weights 1, 0.7071, 1. A half circle is two pieces, a whole one four. The ends
-        /// are the arc's own: the spline starts at <see cref="GeoArc3.StartPoint"/> and ends at its end point.
+        /// are the arc's own: the spline starts at <see cref="GeoArc3.StartPoint"/> and ends at its end point,
+        /// but that an arc of a whole turn, and so the circle, ends on its start exactly, its first control point repeated.
         /// </remarks>
         public static GeoSpline3 FromArc(GeoArc3 arc)
         {
@@ -341,6 +342,12 @@ namespace GeometryHelper.Geometry
                 ends[3 * i] = end.X;
                 ends[3 * i + 1] = end.Y;
                 ends[3 * i + 2] = end.Z;
+            }
+
+            // A whole turn ends where it starts, exactly: the point at the start angle and a whole turn on is worked out a last digit away.
+            if (Math.Abs(sweep) >= Math.PI * 2.0)
+            {
+                Array.Copy(ends, 0, ends, pieces * 3, 3);
             }
 
             double cosine = Math.Cos(Math.Abs(step) * 0.5);

@@ -26,6 +26,7 @@ namespace GeometryHelper.IfcConvert.Core.Internal
         IReadOnlyList<GeoSolid3> GetSolids(string guid, IfcConvertOptions options);
         IfcProductGeometry GetGeometry(string guid, IfcConvertOptions options);
         IReadOnlyList<GeoSphere3> GetSpheres(string guid, IfcConvertOptions options);
+        IReadOnlyList<GeoSpline3> GetSplines(string guid, IfcConvertOptions options);
 
         IReadOnlyList<GeoSolid3> GetSolidsByType(string ifcTypeName, IfcConvertOptions options);
         IReadOnlyList<IfcProductGeometry> GetGeometriesByType(string ifcTypeName, IfcConvertOptions options);

@@ -269,6 +269,8 @@ namespace GeometryHelper.Viewer
                 ["GeoAabb3"] = new[] { "Volume=Volume" },
                 ["GeoObb3"] = new[] { "Volume=Volume" },
                 ["GeoSphere3"] = new[] { "Radius=Radius", "Volume=Volume", "Surface area=SurfaceArea" },
+                ["GeoSpline2"] = new[] { "Length=Length" },
+                ["GeoSpline3"] = new[] { "Length=Length" },
             };
         }
 
@@ -489,6 +491,16 @@ namespace GeometryHelper.Viewer
 
                 case "GeoEllipse3":
                     return "new GeoEllipse3(" + P3(DataJson.Point(d, "center", 3)) + ", " + V3(DataJson.Point(d, "normal", 3)) + ", " + V3(DataJson.Point(d, "majorAxis", 3)) + ", " + D(DataJson.Number(d, "majorRadius")) + ", " + D(DataJson.Number(d, "minorRadius")) + ")";
+
+                case "GeoSpline2":
+                case "GeoSpline3":
+                {
+                    bool space = item.Kind == "GeoSpline3";
+                    double[] weights = DataJson.Weights(d);
+                    List<string> points = DataJson.Points(d, "points", space ? 3 : 2).Select(space ? (Func<Vec3, string>)P3 : P2).ToList();
+                    return "new " + item.Kind + "(" + DataJson.Degree(d).ToString(CultureInfo.InvariantCulture) + ", " + Array(space ? "GeoPoint3" : "GeoPoint2", points, indent) + ", "
+                        + Numbers(DataJson.Numbers(DataJson.Get(d, "knots"))) + (weights != null ? ", " + Numbers(weights) : string.Empty) + ")";
+                }
 
                 case "GeoRectangle2":
                     return "new GeoRectangle2(" + P2(DataJson.Point(d, "center", 2)) + ", " + D(DataJson.Number(d, "width")) + ", " + D(DataJson.Number(d, "height")) + ", " + D(DataJson.Number(d, "angle")) + ")";

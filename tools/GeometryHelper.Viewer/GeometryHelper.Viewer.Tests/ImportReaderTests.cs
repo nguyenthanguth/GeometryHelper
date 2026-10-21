@@ -127,11 +127,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnEntityThisReaderDoesNotTake_IsCountedAndSaidOnce()
         {
-            string entities = G(0, "SPLINE", 8, "0") + G(0, "SPLINE", 8, "0") + G(0, "HATCH", 8, "0") + G(0, "POINT", 10, 1, 20, 2);
+            string entities = G(0, "LEADER", 8, "0") + G(0, "LEADER", 8, "0") + G(0, "HATCH", 8, "0") + G(0, "POINT", 10, 1, 20, 2);
             Scene scene = ReadDxf(Dxf(entities));
 
             Assert.Single(scene.Items);
-            HasWarning(scene, "2 SPLINE entity(ies) are not read");
+            HasWarning(scene, "2 LEADER entity(ies) are not read");
             HasWarning(scene, "1 HATCH entity(ies) are not read");
         }
 

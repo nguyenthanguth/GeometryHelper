@@ -1227,7 +1227,7 @@ leaves and arrives in; a tangent gives a direction and nothing else, the curve k
 give the line through them at an even speed of 200 whatever the length of the tangents. A fit point within the point
 tolerance of the one before it is dropped, as a polyline drops a vertex, by the tolerance given (`Interpolate(fitPoints, degree, tolerance)`) or the global one; points just above it are kept, and the curve through three that are 0.0012 apart in a chain 300 long swings 507 000 away, where at a tolerance that drops them it stays within about 13 of the box of the points. Last, `FromPolyline`, `FromArc` and `FromCircle` make a
 spline that is exactly the polyline, arc or circle: a circle is the nine control points of a rational quadratic, four pieces of
-a quarter turn with the weights 1, 0.7071, 1, ..., and every point of it is at the radius to 4E-14 at a radius of 100; an arc of
+a quarter turn with the weights 1, 0.7071, 1, ..., and every point of it is at the radius to 4E-14 at a radius of 100, its last control point its first exactly, as for any whole turn; an arc of
 a hundred degrees is two pieces of fifty.
 
 **Everything is exact to rounding, nothing sampled.** The point at a parameter is de Boor's scheme in homogeneous coordinates, a
@@ -1264,6 +1264,24 @@ every control point of the piece is within the tolerance of its chord (a Bézier
 the second differences of a polynomial piece, or the height of the middle control point of a conic, say so with less cutting.
 The circle of radius 100 within 0.01 is 256 chords, where 223 would hold, and the cubic above is 128. There is no automatic
 tolerance, since a spline has no radius to take a share of; a tolerance that needs more than 1 048 576 pieces is refused.
+
+**Writing, showing and reading.** `DxfWriter.Add(spline, layer)` writes a spline as the R2000 SPLINE entity AutoCAD reads: its degree, its
+knots, its weights where it is rational and its control points, at height nought, every number to the bit and no fit points, flagged
+closed only where its first and last control points are the same point exactly, rational where a weight is other than one, and planar with the extrusion (0, 0, 1).
+The arch above is a SPLINE of degree 3 with its 8 knots and 4 control points, and the extents of the drawing are its box, 300 by 112.5.
+`SvgWriter.Add(spline, chordTolerance, colour)` draws a spline that is not rational and of degree 3 or less as the Bézier curves it is made
+of, cut at its knots, a C command for each piece of a cubic (the arch is `M 0 0 C 100 150 200 150 300 0`), a Q for each of a quadratic and
+an L for each of a spline of degree 1; SVG has no curve for the rest, the circle among them, which are drawn through the corners `Flatten`
+cuts at within the tolerance. `Wkt.Write(spline, chordTolerance)` writes the `LINESTRING` of those corners, every one kept and the ends the
+first and last control points exactly: the circle of radius 100 within 0.01 is 256 chords. See [Common](common.md) for the writers. The
+viewer (`tools/GeometryHelper.Viewer`) draws a spline by a cut of its own at its knots, each piece halved until it lies within the chord
+tolerance of the scene (a tenth of its point tolerance) and turns no more than 2 degrees, so the arch is 1 722 chords, and a cubic of
+40 000 control points is drawn in 0.8 s; it snaps to the two
+ends of a spline and to the nearest point of it, picks it, gives its degree, control points, rational or not, domain, closedness and length
+among its properties, and reads a SPLINE of a DXF file back by its control points, knots and weights to the bit; one given by its fit points
+alone, and a periodic one, are left out with a warning. GeometryHelper.CadConvert converts AutoCAD's `Spline` to and from `GeoSpline3`
+through its `NurbsData`, and to a `GeoSpline2` as it is seen in plan (`ToGeoSpline2`, or `TryToGeoSpline2` for false in place of a throw),
+which is exact, since a spline seen square onto a plane is the spline of its control points seen so.
 
 ### Against the other shapes
 

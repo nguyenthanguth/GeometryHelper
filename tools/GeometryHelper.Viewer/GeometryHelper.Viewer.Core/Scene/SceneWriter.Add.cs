@@ -278,6 +278,30 @@ namespace GeometryHelper.Viewer
             => Put(geometry, layer, name, color, props);
 
         /// <summary>
+        /// Adds a spline in the plane, drawn by the viewer's own cut at its knots, its ends snapped to.
+        /// </summary>
+        /// <param name="geometry">The shape.</param>
+        /// <param name="layer">The layer; the layer named "default" when none is given.</param>
+        /// <param name="name">The name in the scene tree; the kind and a number when none is given.</param>
+        /// <param name="color">The colour of this item as #RRGGBB; its layer's when none is given.</param>
+        /// <param name="props">Properties to show with the item: an anonymous object, a dictionary, or any object whose public properties are read.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        public SceneWriter Add(GeoSpline2 geometry, string layer = null, string name = null, string color = null, object props = null)
+            => Put(geometry, layer, name, color, props);
+
+        /// <summary>
+        /// Adds a spline in space, drawn by the viewer's own cut at its knots, its ends snapped to.
+        /// </summary>
+        /// <param name="geometry">The shape.</param>
+        /// <param name="layer">The layer; the layer named "default" when none is given.</param>
+        /// <param name="name">The name in the scene tree; the kind and a number when none is given.</param>
+        /// <param name="color">The colour of this item as #RRGGBB; its layer's when none is given.</param>
+        /// <param name="props">Properties to show with the item: an anonymous object, a dictionary, or any object whose public properties are read.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        public SceneWriter Add(GeoSpline3 geometry, string layer = null, string name = null, string color = null, object props = null)
+            => Put(geometry, layer, name, color, props);
+
+        /// <summary>
         /// Adds a rectangle in the plane, which may be turned.
         /// </summary>
         /// <param name="geometry">The shape.</param>

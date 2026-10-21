@@ -6,7 +6,7 @@
 Converts geometry between AutoCAD and
 [GeometryHelper](https://github.com/nguyenthanguth/GeometryHelper), both ways: points, vectors, line
 segments and `Line` entities, `Ray` and `Xline` entities, polylines and polygons with the arcs their
-bulges draw, arcs, circles, ellipses, and `Extents2d`/`Extents3d` as rectangles.
+bulges draw, arcs, circles, ellipses, splines, and `Extents2d`/`Extents3d` as rectangles.
 
 ## Installation
 
@@ -204,6 +204,34 @@ A `default` ray or line, which has no direction, is refused with an `ArgumentExc
 AutoCAD, which has no entity for it.
 
 These conversions are checked to compile and are untested at run time: AutoCAD's entities cannot be made outside AutoCAD.
+
+## Splines
+
+An AutoCAD `Spline` holds a NURBS curve, read through its `NurbsData`: a degree, control points, knots and,
+where it is rational, weights, which is what a `GeoSpline3` holds, kept as given, so its numbers pass over
+as they are, both ways. A spline AutoCAD made from fit points is read by the control points AutoCAD keeps for it;
+the fit points themselves are not carried.
+
+```csharp
+GeoSpline3 real = acadSpline.ToGeoSpline3();         // in space, as AutoCAD holds it
+GeoSpline2 flat = acadSpline.ToGeoSpline2();         // as it is seen in plan
+acadSpline.TryToGeoSpline2(out GeoSpline2 read);     // false rather than throwing
+
+Spline drawn = real.ToAcadSpline();                  // not periodic, its tolerances 1E-10
+Spline drawnFlat = flat.ToAcadSpline();              // in the XY plane
+```
+
+GeometryHelper's splines are clamped: they start at their first control point and end at their last. A
+periodic `Spline`, which is how AutoCAD closes a spline smoothly, is refused with an `ArgumentException`
+rather than reshaped, and so is one GeometryHelper cannot hold (a degree above 10 throws an
+`ArgumentOutOfRangeException`). Reading in plan is exact, a NURBS seen square onto a plane being the NURBS of its
+control points seen so, so a tilted spline, or one that bends out of a plane, is read as its outline in plan;
+it throws an `InvalidOperationException` only where it stands square to the XY plane and every control point
+lands on one point. A spline written to AutoCAD is told it is closed only where its first and last control points are
+the same point exactly, as they are for a circle `FromCircle` builds; ends that are only near do not make it closed.
+
+These conversions too are checked to compile and are untested at run time, AutoCAD's entities not being made outside
+AutoCAD: whether AutoCAD reads a clamped spline it is told is closed as anything more than a flag is not known here.
 
 ## Licence
 

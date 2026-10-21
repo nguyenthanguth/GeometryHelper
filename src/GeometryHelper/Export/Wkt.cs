@@ -15,7 +15,7 @@ namespace GeometryHelper.Export
     /// boundary goes counter-clockwise and its holes clockwise. Coordinates are written exactly, as a text that reads back to the
     /// very double on .NET Framework and on .NET 10 alike (the digits may differ between the two, a negative nought is -0 on
     /// both). A curve has no well-known text that online viewers and most tools read, so circles, arcs,
-    /// ellipses and chains with arcs are written through chords, no further from the curve than the chord tolerance asked
+    /// ellipses, chains with arcs and splines are written through chords, no further from the curve than the chord tolerance asked
     /// for, a chord shorter than the point tolerance written all the same, and a ray or a line without ends through a length. A body or a ball is written as a <c>POLYHEDRALSURFACE Z</c> of triangles.
     /// </remarks>
     public static class Wkt
@@ -403,6 +403,42 @@ namespace GeometryHelper.Export
             List<GeoPoint2> points = Chords.Of(loop.GetEdges(), chordTolerance);
             points.RemoveAt(points.Count - 1);
             return "POLYGON (" + RingOf(points, true) + ")";
+        }
+
+        /// <summary>
+        /// Writes a spline as a chain, cut into chords no further than a tolerance from it: <c>LINESTRING (...)</c>, from the
+        /// start of the spline to its end.
+        /// </summary>
+        /// <remarks>
+        /// The points are the corners <see cref="GeoSpline2.Flatten(double)"/> cuts it at, every one kept, and the ends are the first
+        /// and last control points exactly, so a closed spline is a chain that comes back to its first point: the circle of radius
+        /// 100 that <see cref="GeoSpline2.FromCircle(GeoCircle2)"/> builds, within 0.01, is 256 chords. No spline is cut into more than
+        /// 1 048 576 chords.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the spline is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is not a finite number above nought, or would need more than 1 048 576 chords.
+        /// </exception>
+        public static string Write(GeoSpline2 spline, double chordTolerance)
+        {
+            NotNull(spline, nameof(spline));
+            Chords.Require(chordTolerance);
+            return "LINESTRING (" + Points(Chords.Of(spline, chordTolerance), false) + ")";
+        }
+
+        /// <summary>
+        /// Writes a spline in space as a chain, cut into chords no further than a tolerance from it: <c>LINESTRING Z (...)</c>,
+        /// as <see cref="Write(GeoSpline2, double)"/> writes one in the plane.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the spline is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown when the chord tolerance is not a finite number above nought, or would need more than 1 048 576 chords.
+        /// </exception>
+        public static string Write(GeoSpline3 spline, double chordTolerance)
+        {
+            NotNull(spline, nameof(spline));
+            Chords.Require(chordTolerance);
+            return "LINESTRING Z (" + Points(Chords.Of(spline, chordTolerance), false) + ")";
         }
 
         /// <summary>

@@ -220,8 +220,16 @@ namespace GeometryHelper.Viewer
 
                 if ((enabled & SnapKinds.End) != 0 && curve.HasEnds)
                 {
-                    Offer(curve.Start, SnapKinds.End, "end", curve, curve.ItemIndex, -1);
-                    Offer(curve.End, SnapKinds.End, "end", curve, curve.ItemIndex, -1);
+                    // The corners between the chords of a spline are not ends of it: only its first and last are.
+                    if (curve.StartIsEnd)
+                    {
+                        Offer(curve.Start, SnapKinds.End, "end", curve, curve.ItemIndex, -1);
+                    }
+
+                    if (curve.EndIsEnd)
+                    {
+                        Offer(curve.End, SnapKinds.End, "end", curve, curve.ItemIndex, -1);
+                    }
                 }
 
                 if ((enabled & SnapKinds.Mid) != 0 && curve.Middle.HasValue)
@@ -302,7 +310,7 @@ namespace GeometryHelper.Viewer
         }
 
         private static bool AtAnEnd(SceneCurve curve, Vec3 point, double tolerance)
-            => curve.HasEnds && ((curve.Start - point).Length <= tolerance || (curve.End - point).Length <= tolerance);
+            => curve.HasEnds && ((curve.StartIsEnd && (curve.Start - point).Length <= tolerance) || (curve.EndIsEnd && (curve.End - point).Length <= tolerance));
 
         private static bool Better(SnapHit hit, SnapHit than)
         {
