@@ -13,7 +13,7 @@ namespace GeometryHelper.Core
     {
         #region Options
 
-        private delegate bool Operation(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome);
+        private delegate bool Operation(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open);
 
         /// <summary>
         /// Joins two solids into one as the options say; see <see cref="SolidBooleanOptions"/>.
@@ -26,7 +26,7 @@ namespace GeometryHelper.Core
         /// <returns>false when the two could not be combined, which is logged.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either body or the options are null.</exception>
         public static bool TryUnion(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, SolidBooleanOptions options, out BooleanOutcome outcome)
-            => WithOptions(TryUnion, first, second, options, false, out result, out outcome, out _, out _, out _, out _);
+            => WithOptions(Union, first, second, options, false, out result, out outcome, out _, out _, out _, out _, out _);
 
         /// <summary>
         /// Gets the solid two bodies share as the options say; see <see cref="SolidBooleanOptions"/>.
@@ -39,7 +39,7 @@ namespace GeometryHelper.Core
         /// <returns>false when the two share nothing, or when it cannot be worked out.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either body or the options are null.</exception>
         public static bool TryIntersect(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, SolidBooleanOptions options, out BooleanOutcome outcome)
-            => WithOptions(TryIntersect, first, second, options, false, out result, out outcome, out _, out _, out _, out _);
+            => WithOptions(Intersect, first, second, options, false, out result, out outcome, out _, out _, out _, out _, out _);
 
         /// <summary>
         /// Takes one solid out of another as the options say; see <see cref="SolidBooleanOptions"/>.
@@ -52,7 +52,7 @@ namespace GeometryHelper.Core
         /// <returns>false when nothing is left, or when it cannot be worked out.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either body or the options are null.</exception>
         public static bool TrySubtract(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, SolidBooleanOptions options, out BooleanOutcome outcome)
-            => WithOptions(TrySubtract, subject, tool, options, false, out result, out outcome, out _, out _, out _, out _);
+            => WithOptions(Subtract, subject, tool, options, false, out result, out outcome, out _, out _, out _, out _, out _);
 
         /// <summary>
         /// Takes bodies out of a solid one after another as the options say, each result checked, and says what it did.
@@ -201,7 +201,7 @@ namespace GeometryHelper.Core
                 }
 
                 int at = tried++;
-                bool left = WithOptions(TrySubtract, current, tool, options, true, out GeoSolid3 rest, out BooleanOutcome outcome, out bool good, out bool again, out GeoSolid3 put, out GeoSolid3 restAgain);
+                bool left = WithOptions(Subtract, current, tool, options, true, out GeoSolid3 rest, out BooleanOutcome outcome, out bool good, out bool again, out GeoSolid3 put, out GeoSolid3 restAgain, out GeoSolid3 restOpen);
 
                 if (!good)
                 {
@@ -213,7 +213,7 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    if (!TryCloseCut(current, put, left ? rest : null, restAgain, options, closing, out rest, out SolidClosing3 how, out again, out bool outOfBounds))
+                    if (!TryCloseCut(current, put, left ? rest : restOpen, restAgain, options, closing, out rest, out SolidClosing3 how, out again, out bool outOfBounds))
                     {
                         if (outOfBounds)
                         {
@@ -333,8 +333,10 @@ namespace GeometryHelper.Core
         /// <param name="again">Whether the result taken was worked out within the fallback.</param>
         /// <param name="put">The second body as it was used, put onto the first.</param>
         /// <param name="resultAgain">Where the result is not valid and was worked out again within the fallback, what that
-        /// gave, though not valid; null otherwise, and where it gave no body.</param>
-        private static bool WithOptions(Operation operation, GeoSolid3 first, GeoSolid3 second, SolidBooleanOptions options, bool check, out GeoSolid3 result, out BooleanOutcome outcome, out bool good, out bool again, out GeoSolid3 put, out GeoSolid3 resultAgain)
+        /// gave, though not valid, or what came out open where it gave none; null otherwise.</param>
+        /// <param name="open">Where two closed bodies gave nothing closed, what came out open, for a closing to try; null
+        /// otherwise.</param>
+        private static bool WithOptions(Operation operation, GeoSolid3 first, GeoSolid3 second, SolidBooleanOptions options, bool check, out GeoSolid3 result, out BooleanOutcome outcome, out bool good, out bool again, out GeoSolid3 put, out GeoSolid3 resultAgain, out GeoSolid3 open)
         {
             Guard(first, second);
 
@@ -348,7 +350,7 @@ namespace GeometryHelper.Core
             Tolerance tolerance = options.Tolerance;
             GeoSolid3 tool = Touching3.PutOnto(first, second, options.Contact, tolerance);
             put = tool;
-            bool made = operation(first, tool, out result, tolerance, out outcome);
+            bool made = operation(first, tool, out result, tolerance, out outcome, out open);
 
             if (!check && !options.Fallback.HasValue)
             {
@@ -363,12 +365,12 @@ namespace GeometryHelper.Core
                 return made;
             }
 
-            bool madeAgain = operation(first, tool, out GeoSolid3 worked, options.Fallback.Value, out BooleanOutcome outcomeAgain);
+            bool madeAgain = operation(first, tool, out GeoSolid3 worked, options.Fallback.Value, out BooleanOutcome outcomeAgain, out GeoSolid3 openAgain);
 
             if (!Valid(madeAgain, worked, outcomeAgain, tolerance))
             {
                 // Kept for a closing, which tries the result within the tolerance first.
-                resultAgain = madeAgain ? worked : null;
+                resultAgain = madeAgain ? worked : openAgain;
                 return made;
             }
 

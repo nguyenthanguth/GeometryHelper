@@ -1484,10 +1484,15 @@ moved under a shear of 5E-6 at the scale it is drawn, its corners 0.00018 off, a
 would be 0.18 off.
 
 An arc, and an edge with a bulge, is moved whole by its centre and its radius under a turn, a shift, a mirror or an even
-scaling, to the bit as it was. Under any other transformation, a skew or a stretch, the arc is part of an ellipse, and
-the arc through where its two ends and its middle land, as an arc in space is moved, stands for it only where it lands
-within the global point tolerance of where the transformation puts the rest of it, asked at every sixteenth of its
-sweep, and is refused otherwise, as the circle under it is: a stretch of 3E-6 along X moves the arc of radius 100 from
+scaling, to the bit as it was, where it lands within the global point tolerance so: a transformation whose axes are one
+length and square to each other only to a share of some 1E-9, the rounding of a matrix built from axes, takes a large arc
+off, X stretched by a share of 4E-10 and scaled by 1 000 the arc of radius 1E5 sweeping 6 radians 0.04, and such an arc is
+read as under a stretch, and a circle, a ball or a rectangle refused. Under any other transformation, a skew or a
+stretch, the arc is part of an ellipse, and the arc through where its two ends and its middle land, as an arc in space is
+moved, stands for it only where it lands within the global point tolerance of where the transformation puts the rest of
+it, everywhere along it, and is refused otherwise: asked at every sixteenth of its sweep only, the arc of radius 87.66 from
+0.2 radians sweeping 1.51, under X stretched by 1 + 1.793E-6 and scaled by 84.1, landed 0.0010114 off between two of them,
+and was moved. It is refused as the circle under it is: a stretch of 3E-6 along X moves the arc of radius 100 from
 0.5 to 2 radians at the scale it is drawn, 0.000017 off, and refuses it scaled by 1 000, where it would be 0.017 off; the
 skew that sends Y to (0.000001, 1) moves it 0.0000069 off, the edge of bulge 0.5 from (0, 0) to (100, 0) ending at
 (100, 0), so a chain of such edges stays joined; and the skew that sends X to (1, 0) and Y to (0.6, 0.8) refuses it, the

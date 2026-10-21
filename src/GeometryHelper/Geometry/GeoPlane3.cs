@@ -98,6 +98,11 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Gets a plane from a normal already of unit length, which is not normalized again nor judged against a tolerance.
+        /// </summary>
+        internal static GeoPlane3 FromUnitNormal(GeoPoint3 origin, GeoVector3 unitNormal) => new GeoPlane3(origin, unitNormal, true);
+
+        /// <summary>
         /// Creates a copy of this plane.
         /// </summary>
         /// <remarks>

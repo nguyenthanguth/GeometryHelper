@@ -396,7 +396,12 @@ namespace GeometryHelper.Geometry
             GeoVector3 movedAlong = transform.Transform(chord.Multiply(1.0 / chord.Length));
             GeoVector3 movedSide = transform.Transform(side);
 
-            if (!GeoTransform3.KeepsRound(movedAlong, movedSide) && !ToArc().LandsWithin(transform, through.ToArc()))
+            // Round to the rounding of a matrix built from axes, they can still be a share of some 1E-9 apart: such an edge too
+            // is judged where the circle it lies on would not be carried.
+            GeoArc3 arc = ToArc();
+
+            if (!(GeoTransform3.KeepsRound(movedAlong, movedSide) && GeoTransform3.KeepsCircles(movedAlong, movedSide, arc.Radius))
+                && !arc.LandsWithin(transform, through.ToArc()))
             {
                 throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
             }

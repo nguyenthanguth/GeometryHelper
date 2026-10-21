@@ -541,6 +541,196 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Determines whether a body closes as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it: no stretch of edge, its
+        /// edges matched by overlap along a line, covered by an odd number of them (<see cref="UnevenStretches"/>).
+        /// </summary>
+        /// <remarks>
+        /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> matches the ends of the edges first, made one within the tolerance, and
+        /// calls two copies of an edge about the tolerance apart one edge, which matched along a line are two, each open: a box
+        /// less a cube a hair the tolerance off two of its faces came out of the difference so, closed to <c>IsClosed</c> and
+        /// open by two stretches to <c>Validate</c>.
+        /// </remarks>
+        internal static bool Closes(GeoSolid3 solid, Tolerance tolerance)
+        {
+            if (solid.Faces.Count == 0)
+            {
+                return false;
+            }
+
+            if (PairsUp(solid.Faces, tolerance))
+            {
+                return true;
+            }
+
+            foreach (Stretch stretch in UnevenStretches(solid.Faces, tolerance))
+            {
+                if ((stretch.Forward + stretch.Backward) % 2 != 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether every edge of the faces longer than the point tolerance is run as many times one way as the
+        /// other, each with its face on the left, its corners taken on a grid a sixty-fourth of the point tolerance across:
+        /// each stretch of each is then covered an even number of times, and there is nothing for
+        /// <see cref="UnevenStretches"/> to find open. A hole is wound as the boundary is, so its edges are run the other way
+        /// round.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Two faces a boolean cut apart carry the corner they share as each worked it out, which can differ in the last bits:
+        /// a plate 3000 by 1000 by 20 with 100 holes drilled far from the origin pairs 26 622 of its 29 976 edges to the bit and
+        /// all of them on the grid. Corners either side of a line of the grid do not pair, and the full reading is asked.
+        /// </para>
+        /// <para>
+        /// Why a body paired so reads closed to <see cref="UnevenStretches"/>. Two corners in one cell of the grid stand less
+        /// than its diagonal d, the step times the root of 3, apart, so an edge and the one run back along it, its twin, differ
+        /// in length by less than 2d. An edge no longer than the tolerance is left out here as <c>AddLoop</c> leaves it out,
+        /// and where an edge is within 2d of the tolerance either way the full reading is asked: so of an edge and its twin
+        /// either both are left out or both are kept, and both kept are longer than the tolerance and 2d. The twin's ends then
+        /// lie within d of the edge's line and overlap it by more than its length less 2d, more than the tolerance, so
+        /// <see cref="Overlap"/> joins the two into one line, by the sweep or by the points. Along that line the stops of the
+        /// two ends of each lie within d of each other, so a stretch whose middle one of them covers and the other does not
+        /// is no longer than d and is passed over; every stretch longer than the tolerance is covered by both of each such pair
+        /// or by neither, once each way, and no stretch is covered an odd number of times. Two copies of an edge either side
+        /// of the tolerance, one kept and one not, are what the margin is for: paired on the grid, they read open.
+        /// </para>
+        /// </remarks>
+        internal static bool PairsUp(IReadOnlyList<GeoFace3> faces, Tolerance tolerance)
+        {
+            double step = tolerance.EqualPoint / 64.0;
+
+            if (!(step > 0.0))
+            {
+                return false;
+            }
+
+            // Within two diagonals of a cell of the tolerance, an edge and its twin may fall either side of it.
+            double margin = 2.0 * Math.Sqrt(3.0) * step;
+            var runs = new Dictionary<(Cell From, Cell To), int>();
+
+            foreach (GeoFace3 face in faces)
+            {
+                if (!Count(face.Boundary, false, step, tolerance.EqualPoint, margin, runs))
+                {
+                    return false;
+                }
+
+                foreach (GeoPolygon3 hole in face.Holes)
+                {
+                    if (!Count(hole, true, step, tolerance.EqualPoint, margin, runs))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            foreach (KeyValuePair<(Cell From, Cell To), int> run in runs)
+            {
+                if (!runs.TryGetValue((run.Key.To, run.Key.From), out int back) || back != run.Value)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Counts the edges of one ring longer than the point tolerance by the cells of the grid their corners fall in; false
+        /// where a corner lies too far out for its cell to be counted in a whole number, or an edge is within the margin of
+        /// the tolerance.
+        /// </summary>
+        private static bool Count(GeoPolygon3 ring, bool reversed, double step, double shortest, double margin, Dictionary<(Cell From, Cell To), int> runs)
+        {
+            int count = ring.VertexCount;
+            var cells = new Cell[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                if (!Cell.TryOf(ring[i], step, out cells[i]))
+                {
+                    return false;
+                }
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                // Measured as AddLoop measures it, and left out as it is left out.
+                double length = ring[i].GetVectorTo(ring[(i + 1) % count]).Length;
+
+                if (Math.Abs(length - shortest) <= margin)
+                {
+                    return false;
+                }
+
+                if (length <= shortest)
+                {
+                    continue;
+                }
+
+                Cell from = cells[i], to = cells[(i + 1) % count];
+                var key = reversed ? (to, from) : (from, to);
+                runs.TryGetValue(key, out int seen);
+                runs[key] = seen + 1;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// The cell of a grid a point falls in.
+        /// </summary>
+        private readonly struct Cell : IEquatable<Cell>
+        {
+            private readonly long x, y, z;
+
+            private Cell(long x, long y, long z)
+            {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+            }
+
+            /// <summary>
+            /// The cell of the point on a grid of the step; false past 2^52 steps from the origin, where a cell is no longer
+            /// one whole number.
+            /// </summary>
+            public static bool TryOf(GeoPoint3 point, double step, out Cell cell)
+            {
+                const double Reach = 4503599627370496.0;
+                double x = Math.Round(point.X / step), y = Math.Round(point.Y / step), z = Math.Round(point.Z / step);
+
+                if (!(Math.Abs(x) < Reach && Math.Abs(y) < Reach && Math.Abs(z) < Reach))
+                {
+                    cell = default;
+                    return false;
+                }
+
+                cell = new Cell((long)x, (long)y, (long)z);
+                return true;
+            }
+
+            public bool Equals(Cell other) => x == other.x && y == other.y && z == other.z;
+
+            public override bool Equals(object obj) => obj is Cell other && Equals(other);
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    int hash = x.GetHashCode();
+                    hash = (hash * 397) ^ y.GetHashCode();
+                    return (hash * 397) ^ z.GetHashCode();
+                }
+            }
+        }
+
+        /// <summary>
         /// Determines whether faces close up: every stretch of every edge is shared by an even number of them.
         /// </summary>
         /// <remarks>

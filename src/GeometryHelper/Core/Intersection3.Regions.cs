@@ -894,18 +894,15 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// The one point of <see cref="TryIntersectWith(GeoRay3, GeoTriangle3, out GeoPoint3, Tolerance)"/>, or nothing:
-        /// the segment's reading with the far end taken away. A ray lying in the triangle's plane names no place.
+        /// the segment's reading with the far end taken away, where it stands within the point tolerance of both and the two
+        /// touch. A ray that touches within the point tolerance without crossing is given the point of it nearest, and a ray
+        /// lying level over the material, within the planar tolerance of the triangle's plane as far as it reaches past it, none.
         /// </returns>
         /// <remarks>
         /// A ray from (20, 20, 10) pointing straight down crosses the triangle with corners (0, 0, 0), (100, 0, 0) and
         /// (0, 100, 0) at (20, 20, 0).
         /// </remarks>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
-        {
-            return TryIntersectWith(ray, triangle, out GeoPoint3 crossing, tolerance)
-                ? new[] { crossing }
-                : new GeoPoint3[0];
-        }
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance) => Meeting(ray, triangle, tolerance);
 
         /// <summary>
         /// Gets where a ray crosses a polygon, as a list, using the default tolerance.
@@ -925,19 +922,16 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// The one point of <see cref="TryIntersectWith(GeoRay3, GeoPolygon3, out GeoPoint3, Tolerance)"/>, or nothing:
-        /// the segment's reading with the far end taken away. A ray lying in the polygon's plane names no place.
+        /// the segment's reading with the far end taken away, where it stands within the point tolerance of both and the two
+        /// touch. A ray that touches within the point tolerance without crossing is given the point of it nearest, and a ray
+        /// lying level over the material, within the planar tolerance of the polygon's plane as far as it reaches past it, none.
         /// </returns>
         /// <remarks>
         /// A ray from (20, 20, 10) pointing straight down crosses the square 100 by 100 in the floor with a corner at the
         /// origin at (20, 20, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoPolygon3 polygon, Tolerance tolerance)
-        {
-            return TryIntersectWith(ray, polygon, out GeoPoint3 crossing, tolerance)
-                ? new[] { crossing }
-                : new GeoPoint3[0];
-        }
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoPolygon3 polygon, Tolerance tolerance) => Meeting(ray, polygon, tolerance);
 
         /// <summary>
         /// Gets where a ray crosses the material of a face, as a list, using the default tolerance.
@@ -957,19 +951,16 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// The one point of <see cref="TryIntersectWith(GeoRay3, GeoFace3, out GeoPoint3, Tolerance)"/>, or nothing:
-        /// the segment's reading with the far end taken away. A ray lying in the face's plane names no place.
+        /// the segment's reading with the far end taken away, where it stands within the point tolerance of both and the two
+        /// touch. A ray that touches within the point tolerance without crossing is given the point of it nearest, and a ray
+        /// lying level over the material, within the planar tolerance of the face's plane as far as it reaches past it, none.
         /// </returns>
         /// <remarks>
         /// A ray from (50, 50, 10) pointing straight down passes through the hole 40 by 40 in the middle of the square
         /// 100 by 100 in the floor and crosses nothing; from (20, 20, 10) it crosses the material at (20, 20, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoFace3 face, Tolerance tolerance)
-        {
-            return TryIntersectWith(ray, face, out GeoPoint3 crossing, tolerance)
-                ? new[] { crossing }
-                : new GeoPoint3[0];
-        }
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoFace3 face, Tolerance tolerance) => Meeting(ray, face, tolerance);
 
         /// <summary>
         /// Gets where two rays cross, as a list, using the default tolerance.

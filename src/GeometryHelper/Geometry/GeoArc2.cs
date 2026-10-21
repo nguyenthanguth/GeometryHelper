@@ -392,11 +392,16 @@ namespace GeometryHelper.Geometry
         /// </exception>
         /// <remarks>
         /// A turn, a shift, a mirror or an even scaling moves the arc whole, by its centre and its radius, so an arc of any
-        /// sweep moves; one that turns shapes round, a mirror or a negative scaling, also reverses the way the arc sweeps.
-        /// Any other transformation, a skew or a stretch, makes part of an ellipse of the arc, and the arc through where its two
-        /// ends and its middle land, as in space (<see cref="GeoArc3.TransformBy(GeoTransform3)"/>), stands for it only where it
-        /// lands within the global point tolerance of where the transformation puts the rest of it, asked at every sixteenth of
-        /// its sweep, and is refused otherwise. The skew that sends Y to (0.000001, 1) moves the arc of radius 100 from 0.5 to 2
+        /// sweep moves; one that turns shapes round, a mirror or a negative scaling, also reverses the way the arc sweeps. One
+        /// whose axes are one length and square to each other only to a share of some 1E-9, the rounding of a matrix built
+        /// from axes, moves it whole where it lands within the global point tolerance so, and is read as a stretch otherwise:
+        /// X stretched by a share of 4E-10 and scaled by 1 000 took the arc of radius 1E5 sweeping 6 radians to one 0.04 off,
+        /// and refuses it. Any other transformation, a skew or a stretch, makes part of an ellipse of the arc, and the arc
+        /// through where its two ends and its middle land, as in space (<see cref="GeoArc3.TransformBy(GeoTransform3)"/>), stands
+        /// for it only where it lands within the global point tolerance of where the transformation puts the rest of it,
+        /// everywhere along it, and is refused otherwise: asked at every sixteenth of its sweep only, the arc of radius 87.66
+        /// from 0.2 radians sweeping 1.51, under X stretched by 1 + 1.793E-6 and scaled by 84.1, landed 0.0010114 off between two
+        /// of them, and was moved. The skew that sends Y to (0.000001, 1) moves the arc of radius 100 from 0.5 to 2
         /// radians 0.0000069 off, and refuses it scaled by 1 000, where it would be 0.0069 off; the skew that sends X to (1, 0)
         /// and Y to (0.6, 0.8) refuses it, the arc of radius 66.09 through its moved ends and middle standing far off the
         /// ellipse it becomes. A skew that keeps both axes one length is judged as a stretch is: a turn of 0.7529 radians of a stretch of
@@ -429,24 +434,57 @@ namespace GeometryHelper.Geometry
             if (Math.Abs(SweptAngle) >= FullTurn)
             {
                 transform.Transform(GetCircle());
+
+                return MovedWhole(transform, alongX);
             }
-            else if (!GeoTransform2.KeepsRound(alongX, alongY) && !(EndsMeetUnder(transform) && GeoTransform2.KeepsCircles(alongX, alongY, Radius)))
+
+            bool round = GeoTransform2.KeepsRound(alongX, alongY);
+
+            if (round || (EndsMeetUnder(transform) && GeoTransform2.KeepsCircles(alongX, alongY, Radius)))
             {
-                if (stretched && EndsMeetUnder(transform))
+                GeoArc2 whole = MovedWhole(transform, alongX);
+
+                // Round to the rounding of a matrix built from axes, the axes can still be a share of some 1E-9 apart, which
+                // takes an arc moved to a radius of 1E8 up to 0.04 off: where its circle would not be carried, it is moved whole
+                // only where it lands within the tolerance, and is otherwise read as under a stretch.
+                if (!round || GeoTransform2.KeepsCircles(alongX, alongY, Radius) || LandsWholeWithin(transform, whole))
                 {
-                    throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
+                    return whole;
                 }
-
-                GeoArc2 through = ThroughMoved(transform);
-
-                if (!LandsWithin(transform, through))
-                {
-                    throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
-                }
-
-                return through;
             }
 
+            if (stretched && EndsMeetUnder(transform))
+            {
+                throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
+            }
+
+            GeoArc2 through = ThroughMoved(transform);
+
+            if (!LandsWithin(transform, through))
+            {
+                throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
+            }
+
+            return through;
+        }
+
+        /// <summary>
+        /// Determines whether this arc, moved whole, lands within the global point tolerance of where a transformation puts its
+        /// points everywhere along it, the moved arc's circle read by its own centre and radius.
+        /// </summary>
+        private bool LandsWholeWithin(GeoTransform2 transform, GeoArc2 moved)
+        {
+            GeoVector2 toCentre = transform.Transform(StartPoint).GetVectorTo(moved.Center);
+            double reach = toCentre.Length;
+
+            return LandsWithin(transform, toCentre, moved.Radius, (reach - moved.Radius) * (reach + moved.Radius));
+        }
+
+        /// <summary>
+        /// Gets the arc moved whole, by its centre and its radius, as a turn, a shift, a mirror or an even scaling moves it.
+        /// </summary>
+        private GeoArc2 MovedWhole(GeoTransform2 transform, GeoVector2 alongX)
+        {
             GeoPoint2 center = transform.Transform(Center);
             GeoPoint2 start = transform.Transform(StartPoint);
             GeoPoint2 middle = transform.Transform(MidPoint);
@@ -460,7 +498,8 @@ namespace GeometryHelper.Geometry
 
         /// <summary>
         /// Determines whether this arc, moved to another, lands within the global point tolerance of where a transformation
-        /// puts its points, asked at every sixteenth of its sweep.
+        /// puts its points, everywhere along it: asked at every sixteenth of its sweep, and between them by how far it can
+        /// stray (<see cref="Core.ArcLanding"/>).
         /// </summary>
         /// <remarks>
         /// Each point is read from the moved start, across the arc, and its distance from the moved circle is worked out from
@@ -470,23 +509,71 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         internal bool LandsWithin(GeoTransform2 transform, GeoArc2 moved)
         {
-            double tolerance = Tolerance.Global.EqualPoint;
             GeoVector2 toCentre = transform.Transform(StartPoint).GetVectorTo(moved.Center);
-            double radius = toCentre.Length;
+
+            return LandsWithin(transform, toCentre, toCentre.Length, 0.0);
+        }
+
+        /// <summary>
+        /// Determines whether this arc lands within the global point tolerance of a circle everywhere along it under a
+        /// transformation (<see cref="LandsWithin(GeoTransform2, GeoArc2)"/>).
+        /// </summary>
+        /// <param name="transform">The transformation.</param>
+        /// <param name="toCentre">The circle's centre, read from where the start lands.</param>
+        /// <param name="radius">The circle's radius.</param>
+        /// <param name="shift">
+        /// The square of how far the centre stands from where the start lands, less the square of the radius: nought for an
+        /// arc through where the start lands.
+        /// </param>
+        private bool LandsWithin(GeoTransform2 transform, GeoVector2 toCentre, double radius, double shift)
+        {
+            double tolerance = Tolerance.Global.EqualPoint;
+            var gaps = new double[17];
 
             // Read off the circle the moved arc lies on, which an arc shorter than the tolerance has as surely as any other.
             for (int i = 1; i < 16; i++)
             {
                 GeoVector2 across = transform.Transform(Across(StartAngle, SweptAngle * (i / 16.0)));
-                double off = (across.LengthSquared - 2.0 * across.DotProduct(toCentre)) / (across.Subtract(toCentre).Length + radius);
+                double off = (across.LengthSquared - 2.0 * across.DotProduct(toCentre) + shift) / (across.Subtract(toCentre).Length + radius);
 
                 if (Math.Abs(off) > tolerance)
                 {
                     return false;
                 }
+
+                gaps[i] = across.LengthSquared - 2.0 * across.DotProduct(toCentre) + shift;
             }
 
-            return true;
+            // The two ends, which an arc through where they land lands on, and an arc moved whole may not.
+            GeoVector2 toEnd = transform.Transform(Across(StartAngle, SweptAngle));
+            gaps[0] = shift;
+            gaps[16] = toEnd.LengthSquared - 2.0 * toEnd.DotProduct(toCentre) + shift;
+
+            if (Math.Abs(gaps[0] / (toCentre.Length + radius)) > tolerance
+                || Math.Abs(gaps[16] / (toEnd.Subtract(toCentre).Length + radius)) > tolerance)
+            {
+                return false;
+            }
+
+            // The axes of the plane the radius long, carried: what the stray between the points asked is bounded by.
+            GeoVector2 p = transform.Transform(GeoVector2.XAxis).Multiply(Radius);
+            GeoVector2 q = transform.Transform(GeoVector2.YAxis).Multiply(Radius);
+            double bend = Core.ArcLanding.Bend(p.X, p.Y, 0.0, q.X, q.Y, 0.0, StartAngle, toCentre.X, toCentre.Y, 0.0);
+            var heights = new double[17];
+
+            if (Core.ArcLanding.Plainly(heights, gaps, SweptAngle, radius, bend, 0.0, tolerance))
+            {
+                return true;
+            }
+
+            GeoArc2 arc = this;
+            Func<double, (double Height, double Gap)> at = share =>
+            {
+                GeoVector2 across = transform.Transform(arc.Across(arc.StartAngle, arc.SweptAngle * share));
+                return (0.0, across.LengthSquared - 2.0 * across.DotProduct(toCentre) + shift);
+            };
+
+            return Core.ArcLanding.Holds(at, heights, gaps, SweptAngle, radius, bend, 0.0, tolerance);
         }
 
         /// <summary>

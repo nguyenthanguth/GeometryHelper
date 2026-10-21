@@ -69,6 +69,11 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the point where this infinite line crosses a triangle, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Read over the stretch of the line that reaches past the triangle, as <see cref="GeoLine3.GetIntersections(GeoTriangle3, Tolerance)"/>
+        /// reads a segment: the crossing, or where it only touches, the point of it nearest, and none where it lies level over
+        /// the material or along the rim.
+        /// </remarks>
         public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) => Intersection3.GetIntersections(this, triangle, tolerance);
 
         /// <summary>
@@ -80,6 +85,11 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the point where this infinite line crosses a polygon, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Read over the stretch of the line that reaches past the polygon, as <see cref="GeoLine3.GetIntersections(GeoPolygon3, Tolerance)"/>
+        /// reads a segment: the crossing, or where it only touches, the point of it nearest, and none where it lies level over
+        /// the material or along the rim.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) => Intersection3.GetIntersections(this, polygon, tolerance);
 
@@ -92,6 +102,11 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the point where this infinite line crosses a face, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Read over the stretch of the line that reaches past the face, as <see cref="GeoLine3.GetIntersections(GeoFace3, Tolerance)"/>
+        /// reads a segment: the crossing, or where it only touches, the point of it nearest, and none where it lies level over
+        /// the material or along the rim.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) => Intersection3.GetIntersections(this, face, tolerance);
 

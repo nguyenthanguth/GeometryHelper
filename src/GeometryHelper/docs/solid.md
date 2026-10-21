@@ -158,7 +158,9 @@ box.AxisX.CrossProduct(box.AxisY).IsEqualTo(box.AxisZ); // true
 A box has its six faces, `GetFaces()` and `ToSolid()`, however thin, read from its own numbers rather than against
 the global tolerance: a plate 0.002 by 50 by 30 is a body, where it was refused as having a zero size on some axis,
 and only a side no more than a millionth of a millionth of how far the box reaches from the origin is nought; it reaches
-every query that goes through its solid, though `IsDegenerate()` still calls it flat at the global point tolerance. A box,
+every query that goes through its solid, and `IsDegenerate()` calls it flat only where a whole side is no longer than the
+point tolerance: the plate 0.0015 thick is a box at a tolerance of a thousandth, where half its side was read and it was
+flat, and one 0.0005 thick is flat. A box,
 oriented or not, gives crossings only where a shape comes within the point tolerance of it, as `CollidesWith` reads
 it: a segment along X standing 0.000714 off both faces past an edge of the box 10 by 10 by 10, 0.00101 from it, crosses
 nothing, where it was given two points, and so for a ray, a line without ends, a chain and an arc ending near a corner.
@@ -480,6 +482,17 @@ and chains and loops of arcs against all of them. Measured at a thousandth:
   tolerance round its circle, is given none, as a curve lying on a surface crosses it nowhere; tilted further it touches:
   the arc of radius 300 tilted 9E-6, which rises 0.0027 round its circle, touches the material where it dips to 0.0006
   over it. Cutting a curved chain by a face or a box still cuts only where it crosses.
+* **Segments, rays, lines and chains against a triangle, a polygon or a face** are read alike. The crossing is given
+  where it stands within the point tolerance of both and the two touch: a ray starting 0.00076 under the plane of a plate
+  and beside the rim of its hole, 0.00113 from the material and running away from it, is given nothing, where it was
+  given its origin. One that touches without crossing is given the point of it nearest the region: the segment from
+  (-5.0004, 4.9996, 0.0004) to (4.9996, -5.0004, 0.0004), passing 0.0007 off the corner at the origin of the triangle
+  (0, 0, 0), (100, 0, 0), (0, 100, 0), is given (-0.0004, -0.0004, 0.0004), where it collided and was given nothing, and
+  so a ray, a line and a chain, whose corner touching it is given. One lying level over the material, within the planar
+  tolerance of the region's plane at both its ends, running in over the rim among them, is given none, and so is one lying
+  along a side of the rim within that of the side's line, as a segment lying along an edge of a box is; a line without ends
+  is read over the stretch of it that reaches past the region. Cutting a curved chain by a face still cuts only where it
+  crosses.
 
 A triangle with no area, by `GeoTriangle3.IsDegenerate`, its height over its longest side within the point tolerance,
 such as (0, 0, 0), (100, 0, 0), (50, 1E-8, 0), is the segment it has collapsed to: it touches what comes within the
@@ -1140,6 +1153,31 @@ default and within its own tolerance, and holds its volume within the tolerance 
 result open within its own tolerance is welded too, where that closes it, and one closed within the default is left
 as it is. `Validate()` shows where a body is open, and why.
 
+**Closed as `Validate` reads it, or not made.** `IsClosed()` matches the ends of the edges first, made one within the
+tolerance, and calls two copies of an edge about the tolerance apart one edge, where `Validate()`, matching them along a
+line, reads two, each open. A boolean of two closed bodies takes what it makes as closed only where `Validate` reads it
+so: one open to it is welded as above, within the tolerance the boolean was given, kept where it closes and the weld
+moves the volume no further than moving each corner it moves by the point tolerance can, and otherwise worked out by
+cutting both bodies by every plane of both, or for a common part the other body; where it stays open the boolean says it
+could not be worked out, `false`, logged, rather than handing it back, and `TrySubtractAll` asked to close the cuts it
+skips is handed what it gave. A corner moved by a distance sweeps, on each face it is a corner of, no more than the
+distance times a third of the triangle it makes with its two neighbours. A result that came out open on the way is taken
+only where its volume adds up: a union holds the two less their common part, a difference the first less the common
+part, a common part the two less their union, the other worked out by the same boolean at the same tolerance, within the
+tolerance times the area of the common part's skin and what the weld moved. The union of a box 100 by 60 by 40 and a
+cube 1.25 across standing out through three of its faces a hair more than the tolerance came out open and, closed, held
+240 001.2065, the cube counted whole, where the two less their common part hold 240 000.0032, and is not worked out; two
+cubes of 100 side by side 0.01 apart, turned, closed across the gap at a tolerance of a hundredth into a body of 2 000
+000, where the two share nothing at the tolerance and hold 1 999 900, and are not worked out either. What a weld closes
+from a body that adds up is taken, and can hold a volume between the readings of a feature exactly the tolerance thick:
+the union of a cube of 100 and a block 120 by 120 by 50 running 0.001 into its top holds 1 720 012.73, the two with
+nothing in common at the tolerance being 1 720 014.4 and the cube and the block beyond it 1 720 004.4. A result that
+closes as it comes is taken unchecked. Of 8 000 boxes 100 by 60 by 40 less a cube 0.1 to 1.9 across a hair either side
+of the tolerance off one to three of their faces, turned or not, far from the origin or not, 17 came out closed to
+`IsClosed` and open by two stretches to `Validate`, and 2 open to both: 13 close now, each holding a volume between the
+cube cut and the cube taken with the outside, and 6 are reported as not worked out. No result closed to both moved, by a
+bit, across 40 000 differences, unions, common parts and cuttings of openings of those boxes.
+
 **Thinner than the tolerance is nothing; thicker is cut.** A void, a chip or a slab no thicker than the point
 tolerance is within the tolerance of nothing, and a boolean takes no notice of it: a cube of 100 less a box 40 by 30
 and 0.0005 thick inside it is the cube. One thicker than the tolerance and a trillionth of the size of the
@@ -1792,8 +1830,10 @@ transformation so nearly equally long and square to each other that the circle m
 tolerance of where the transformation puts each of its points, as a ball is read: a turn whose numbers are rounded to six
 places on their own moves the circle of radius 100 at the scale it is drawn, 0.000065 off, and not scaled by 1 000, where
 it would be 0.065 off, and the skew that sends X to (1, 0, 0) and Y to (0.6, 0.8, 0), which a circle of radius 100 in the plan came through at
-radius 100, is refused, since it would be an ellipse. The plane is carried by its normal, which an even scaling of about 1E5 or more makes shorter than the vector tolerance, so such a scaling is refused
-all the same, with an `ArgumentException`. An arc is not refused so. A turn, a shift, a mirror or an even scaling of its
+radius 100, is refused, since it would be an ellipse. The plane is carried by its normal, made of unit length by its own
+length, so an even scaling of 1E5 or more carries it as any other does: the circle of radius 10 scaled by a million is the
+circle of radius 10 000 000, where the normal, a millionth long, was read shorter than the vector tolerance and the
+scaling refused. A turn, a shift, a mirror or an even scaling of its
 plane moves it whole, by its centre and its radius, so an arc of any sweep moves, one a hair short of a whole turn
 among them, which threw; under any other transformation, a skew or a stretch of its plane, the arc through where its two
 ends and its middle land stands for the ellipse only where it lands within the global point tolerance of where the

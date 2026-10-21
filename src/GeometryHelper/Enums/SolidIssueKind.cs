@@ -30,8 +30,11 @@ namespace GeometryHelper.Enums
         InsideOut,
 
         /// <summary>
-        /// Faces enclosing no more volume than the point tolerance times their area: a sheet, or faces lying back to back,
-        /// thinner than the tolerance everywhere.
+        /// Faces enclosing no more volume than half the point tolerance times their area: a sheet, or faces lying back to
+        /// back, no thicker than the tolerance, as a slab t thick encloses half its faces' area times t. A slab 100 by 100
+        /// and 0.0015 thick encloses something at a tolerance of a thousandth, and one 0.001 thick nothing; read against the
+        /// whole tolerance, a slab up to twice it thick enclosed nothing. A square rod encloses a quarter of its side times its
+        /// area, and so encloses nothing up to twice the tolerance across, where it was up to four times.
         /// </summary>
         NoVolume,
 

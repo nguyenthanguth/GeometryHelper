@@ -40,7 +40,7 @@ namespace GeometryHelper
 
         /// <summary>
         /// Gets whether the faces bound a body every boolean and measure can read: closed, wound alike and outwards, and
-        /// enclosing more than the tolerance; no issue of the first four kinds of <see cref="SolidIssueKind"/>.
+        /// enclosing more than a slab the tolerance thick; no issue of the first four kinds of <see cref="SolidIssueKind"/>.
         /// </summary>
         public bool IsValid { get; }
 
@@ -117,8 +117,10 @@ namespace GeometryHelper
             double volume = solid.GetSignedVolume();
             GeoPoint3 middle = solid.GetAabb().Center;
 
-            // As Shells3 reads a group of faces enclosing nothing: no thicker than the tolerance on average.
-            if (Math.Abs(volume) <= tolerance.EqualPoint * area)
+            // No thicker than the tolerance: a slab t thick encloses its area times t, half its faces' area times t, so it
+            // encloses nothing where the volume is no more than half the tolerance times the area. Read against the whole
+            // tolerance, a slab up to twice the tolerance thick enclosed nothing, where the booleans cut and give one.
+            if (Math.Abs(volume) <= 0.5 * tolerance.EqualPoint * area)
             {
                 issues.Add(SolidIssue3.OfBody(SolidIssueKind.NoVolume, middle, volume));
             }

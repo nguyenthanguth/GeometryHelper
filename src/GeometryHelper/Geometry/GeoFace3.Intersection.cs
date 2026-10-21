@@ -90,12 +90,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="line">The segment.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance)
-        {
-            return Intersection3.TryIntersectWith(line, this, out GeoPoint3 crossing, tolerance)
-                ? new[] { crossing }
-                : new GeoPoint3[0];
-        }
+        /// <remarks>The same points as <see cref="GeoLine3.GetIntersections(GeoFace3, Tolerance)"/>: the crossing, or the point of a touch.</remarks>
+        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => Intersection3.Meeting(line, this, true, tolerance);
 
         /// <summary>
         /// Gets every point where an edge crosses this face.

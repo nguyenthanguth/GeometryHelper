@@ -223,14 +223,13 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A segment meets a triangle at a single point, and this is that point wrapped so that it reads
         /// like every other crossing. It is what lets a <see cref="GeoEdge3"/> be handed on as
-        /// whichever of a segment or an arc it is, since an arc can meet one twice.
+        /// whichever of a segment or an arc it is, since an arc can meet one twice. The crossing is given where it stands within
+        /// the point tolerance of both and the two touch, as <see cref="CollidesWith(GeoTriangle3, Tolerance)"/> reads it. A segment
+        /// that touches the triangle within the point tolerance without crossing it is given the point of it nearest the triangle, and
+        /// none where it lies level over the material, within the planar tolerance of its plane at both ends:
+        /// the segment from (20, 20, 0.0005) to (20, 20, 5), ending 0.0005 over the triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0), is given (20, 20, 0.0005), where it collided and was given nothing.
         /// </remarks>
-        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance)
-        {
-            return Intersection3.TryIntersectWith(this, triangle, out GeoPoint3 crossing, tolerance)
-                ? new[] { crossing }
-                : new GeoPoint3[0];
-        }
+        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) => Intersection3.Meeting(this, triangle, true, tolerance);
 
         /// <summary>
         /// Gets every point where this segment crosses a polygon.
@@ -245,14 +244,13 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A segment meets a polygon at a single point, and this is that point wrapped so that it reads
         /// like every other crossing. It is what lets a <see cref="GeoEdge3"/> be handed on as
-        /// whichever of a segment or an arc it is, since an arc can meet one twice.
+        /// whichever of a segment or an arc it is, since an arc can meet one twice. The crossing is given where it stands within
+        /// the point tolerance of both and the two touch, as <see cref="CollidesWith(GeoPolygon3, Tolerance)"/> reads it. A segment
+        /// that touches the polygon within the point tolerance without crossing it is given the point of it nearest the polygon, and
+        /// none where it lies level over the material, within the planar tolerance of its plane at both ends:
+        /// the segment from (20, 20, 0.0005) to (20, 20, 5), ending 0.0005 over the square 100 by 100 in the floor with a corner at the origin, is given (20, 20, 0.0005), where it collided and was given nothing.
         /// </remarks>
-        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance)
-        {
-            return Intersection3.TryIntersectWith(this, polygon, out GeoPoint3 crossing, tolerance)
-                ? new[] { crossing }
-                : new GeoPoint3[0];
-        }
+        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) => Intersection3.Meeting(this, polygon, true, tolerance);
 
         /// <summary>
         /// Gets every point where this segment crosses a face.
@@ -267,14 +265,13 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A segment meets a face at a single point, and this is that point wrapped so that it reads
         /// like every other crossing. It is what lets a <see cref="GeoEdge3"/> be handed on as
-        /// whichever of a segment or an arc it is, since an arc can meet one twice.
+        /// whichever of a segment or an arc it is, since an arc can meet one twice. The crossing is given where it stands within
+        /// the point tolerance of both and the two touch, as <see cref="CollidesWith(GeoFace3, Tolerance)"/> reads it. A segment
+        /// that touches the face within the point tolerance without crossing it is given the point of it nearest the face, and
+        /// none where it lies level over the material, within the planar tolerance of its plane at both ends:
+        /// the segment from (20, 20, 0.0005) to (20, 20, 5), ending 0.0005 over the material of the square 100 by 100 in the floor with a hole 40 by 40 in its middle, is given (20, 20, 0.0005), where it collided and was given nothing.
         /// </remarks>
-        public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance)
-        {
-            return Intersection3.TryIntersectWith(this, face, out GeoPoint3 crossing, tolerance)
-                ? new[] { crossing }
-                : new GeoPoint3[0];
-        }
+        public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) => Intersection3.Meeting(this, face, true, tolerance);
 
         /// <summary>
         /// Gets where this segment crosses a segment, as a list.

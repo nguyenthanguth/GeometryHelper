@@ -6,6 +6,104 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A segment, a ray, a line without ends or a straight chain against a triangle, a polygon or a face is given
+a point where it touches the region within the point tolerance without crossing it, as an arc and a box are: the point
+of it nearest the region. `GetIntersections` of `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoPolyline3` and `GeoEdge3`, and
+of the regions the other way round, gave the crossing of the region's plane or nothing: the segment from (-5.0004,
+4.9996, 0.0004) to (4.9996, -5.0004, 0.0004), passing 0.0007 off the corner at the origin of the triangle (0, 0, 0),
+(100, 0, 0), (0, 100, 0), collided with it and was given nothing, and is given (-0.0004, -0.0004, 0.0004). One lying
+level over the material, within the planar tolerance of the region's plane at both its ends, running in over the rim
+among them, is given none, and so is one lying along a side of the rim within that of the side's line, as a segment
+lying along an edge of a box is. And a crossing is given only where the two touch: a ray starting 0.00076 under the
+plane of a plate and beside the rim of its hole, 0.00113 from the material, was given its origin and did not collide. Of
+40 000 such shapes near the planes, rims and corners of triangles, squares and plates with a hole, turned and far from
+the origin, 2 459 collided and were given nothing though they did not lie level, 5 were given a point and did not
+collide and 7 a point further than the tolerance from the region; none is now, and the answers are the same whichever
+way round they are asked. Every other answer is the same to the bit. `TryIntersectWith` with a single point gives the
+crossing only, as before, and cutting a curved chain by a face cuts only where it crosses. A list costs about what
+`CollidesWith` and the crossing cost together: 20 000 segments near a triangle, 5 ms before, take 16 now on .NET 10 and
+10 on .NET Framework 4.8, where `CollidesWith` takes 11 and 6.
+
+**FIXED.** A union, a common part and a difference of two closed bodies give a body closed as `Validate` reads it, or
+report that they could not work one out. `IsClosed` matches the ends of the edges first, made one within the tolerance,
+and called two copies of an edge about the tolerance apart one edge, which `Validate`, matching them along a line, reads
+as two, each open; the boolean took what `IsClosed` called closed and tried nothing else: a box 100 by 60 by 40 less a
+cube 0.92 across a hair inside the tolerance off two of its faces, the two turned 0.0061 radians, came back closed to
+the one and open by two stretches to the other. Such a result is welded closed now, within the tolerance the boolean was
+given, where that holds a volume the operation can give and moves the volume no further than moving each corner it moves
+by the point tolerance can, and worked out the other way otherwise; where it stays open the boolean returns false,
+`NotWorkedOut`, logged, and `TrySubtractAll` asked to close the cuts it skips is handed what such a cut gave, and closes
+it as before. A result that came out open on the way is taken only where its volume adds up: a union holds the two less
+their common part, a difference the first less the common part and a common part the two less their union, the other
+worked out by the same boolean at the same tolerance, within the tolerance times the area of the common part's skin and
+what the weld moved; otherwise, or where that other comes out open on the way too, it is not worked out. The union of a
+box 100 by 60 by 40 and a cube 1.25 across standing out through three of its faces a hair more than the tolerance came
+out open and, closed, held 240 001.2065, the cube counted whole, where the two less their common part hold 240 000.0032;
+it is reported as not worked out now. A result that closes as it comes is taken as before, unchecked. Of 8 000 such
+boxes less such cubes, 17 came out closed to `IsClosed` and open to `Validate` and 2 open to both: 13 close, each
+holding a volume between the cube cut and the cube taken with the outside through walls the tolerance thick, and 6 are
+reported as not worked out. Of 5 400 unions, common parts and differences of a cube turned at random with chips, slabs
+and gaps exactly the tolerance thick, 97 came back not valid: 94 are reported as not worked out, among them the two
+cubes 0.001 apart closed across the gap at 2 000 000, where the two hold 1 999 990 and share nothing at the tolerance,
+and 3 are valid between the readings, closed by a weld from a body holding the two less their common part: the union of
+the cube and a block 120 by 120 by 50 running 0.001 into its top at 1 720 012.73, the two with nothing in common at the
+tolerance being 1 720 014.4, and two cubes 0.001 apart at 1 999 995, the two being 1 999 990. Of 4 000 unions of the
+boxes and cubes, 13 that came out open are reported as not worked out, 8 of them 0.67 to 1.2 over the union, and 2 are
+valid within 0.00033 of it. No valid result moved, by a bit, across 40 000 differences, unions, common parts and cuttings
+of openings of the boxes, the 28 000 of the boxes and cubes, 6 000 differences closed or not and 6 000 booleans of
+columns and beams; and results that close as they come are not checked and keep the volumes they had, outside the
+readings as they were: 52 of the 5 400 unions of the cube and the chips, slabs and gaps, valid by up to 2.8 cubic
+millimetres outside every reading at a tolerance of a thousandth and 33 at a hundredth, and 177 of 16 000 differences of
+the boxes less cubes, by up to 20, most of them at a hundredth. The check reads the edges of most results paired one way
+and the other, their corners taken on a grid a sixty-fourth of the tolerance across and edges within two cells of the
+tolerance long read in full, and costs little: a plate 3000 by 1000 by 20 drilled with 100 holes one after another takes
+11.4 seconds, as before, and a cylinder of 20 002 faces less a box 3.1. Working out the common part costs the unions
+that came out open some 5 % more.
+
+**FIXED.** An arc or an edge moved by a skew or a stretch lands within the global point tolerance of where the
+transformation puts it everywhere along it, not only at the sixteen points it was asked at: between them it could land
+further, and the arc of radius 87.66 from 0.2 radians sweeping 1.51 under X stretched by 1 + 1.793E-6 and scaled by 84.1
+was moved 0.0010114 off. The stretch between two points asked is bounded by the second derivative of the square of the
+distance from the moved centre, worked out from the axes, and halved until it is settled or a point lands off. An arc
+that lands within the tolerance is moved as it was, to the bit; of 40 000 arcs and edges under turns, skews and
+stretches, 3 that landed 0.0010002 to 0.0010072 off are refused, and no other moved. Moving 20 000 arcs under a stretch
+costs up to a third more, 26 ms against 34 on .NET 10 and 36 against 41 on .NET Framework 4.8.
+
+**FIXED.** A circle, an arc, an edge, a ball and a rectangle moved by a transformation whose axes are one length and
+square to each other to a share of 1E-9 are judged by how far they land, as under any other: they were moved whole,
+their radius times that share past the tolerance at large sizes, and X stretched by a share of 4E-10 and scaled by 1 000
+took the arc of radius 1E5 to one 0.04 off. A circle, a ball or a rectangle that would land further than the global
+point tolerance off is refused; an arc or an edge goes through where its ends and its middle land, where that lands
+within the tolerance, and is refused otherwise. Of 20 000 circles, balls and rectangles and 40 000 arcs and edges under
+turns, skews and stretches, the 45 that landed 0.001 to 0.23 off are refused or land within the tolerance, and 6 circles
+and balls the rule bounds by more than they land, 0.0005 to 0.0009 off, are refused with them. An arc moved whole is
+asked where its two ends land as well: the arc of radius 2 630 000 from 1.77 radians sweeping 1, X stretched by a share
+of 4E-10 and moved by (5, 7, 9), had its start land 0.0010108 off; of 62 208 such arcs in the plane, and as many in
+space, 968 landed further than the tolerance off before, and none does now.
+
+**FIXED.** `GeoTransform3.Transform(GeoPlane3)` and `GeoPlane3.TransformBy` carry a plane under an even scaling of 1E5
+or more, and so `GeoCircle3.TransformBy` a circle on it: the normal carried by the inverse transpose, a
+hundred-thousandth long, was read against the vector tolerance and the plane refused. It is made of unit length by its
+own length now, dividing as the plane's constructor divides, so a plane it took comes out to the bit as it did; the
+circle of radius 10 scaled by a million is the circle of radius 10 000 000. A circle stretched under such a scaling is
+refused as stretched, with an `InvalidOperationException`, where the plane threw an `ArgumentException` first.
+
+**CHANGED.** `GeoObb3.IsDegenerate` reads a whole side against the point tolerance, as the box's faces read it: a plate
+50 by 30 and 0.0015 or 0.002 thick is a box at a tolerance of a thousandth, where half its side was read and it was
+flat, and one 0.0005 thick is flat. `ToCells` of such a plate lays its cells now, where it laid none, and refuses a
+division into cells no thicker than the tolerance, as for any box; clashes and the BVH do not read it.
+
+**CHANGED.** `Validate` calls a body enclosing nothing, `NoVolume`, where it encloses no more than half the point
+tolerance times its area: a slab t thick encloses half its faces' area times t, so a slab no thicker than the tolerance.
+Read against the whole tolerance, a slab up to twice the tolerance thick enclosed nothing, while the booleans cut and
+give such slabs: the common part of a cube of 100 and a block running 0.0015 into its top, 1.8 cubic millimetres, is
+valid now. Of the booleans of boxes with chips, slabs and voids 0.0001 to 0.5 thick, 960 such slabs are valid now, each
+the same body; the net volumes of a take-off of a column, a beam, a slab and a stiffener overlapping 0.0015 take their
+common parts as bodies where they sliced them, and move in the last digits: 9 000 097.919999965 is 9 000 097.919999946,
+4 860 144.30000002 is 4 860 144.299999987 and 9 001 569.300000468 is 9 001 569.299999667, and turned far from the origin
+they move by 5.7E-6, 5.5E-6 and -1.6E-5. A square rod encloses a quarter of its side times its area, and so encloses
+nothing up to twice the tolerance across, where it did up to four times.
+
 **CHANGED.** A union, a common part, a difference and the cutting in of openings cut a void, a chip or a slab thicker
 than the point tolerance and a trillionth of the size of the coordinates, however thin it is, and take no notice of one
 no thicker. A cell of the cut no thicker than twice the tolerance is placed by the middle of its thickness, which lies
@@ -20,11 +118,11 @@ booleans of boxes with chips, slabs, voids and openings 0.0001 to 0.5 thick or o
 turned and not, and three cuts one after another, 275 moved, every one a feature thicker than the tolerance and no
 thicker than twice it, or an opening exactly the tolerance off a face (below); none came out open or not valid that was
 not before, and the common parts that are slabs no thicker than twice the tolerance read as enclosing nothing to
-`Validate`, as such slabs always have. Of 2 700 unions, common parts and differences of a cube turned at random with
-chips, slabs and gaps exactly the tolerance thick, none moved. Still as in 12.2.0: of 1 600 unions and differences of a
-column and a beam the tolerance into or clear of it, placed at random, 4 hold a volume outside both readings, by up to
-24 cubic millimetres; and bolt holes stopping exactly the tolerance short of a plate's face leave the skin on some
-placements far from the origin and not on others.
+`Validate`, as such slabs then did (those thicker than the tolerance are valid now; above). Of 2 700 unions, common
+parts and differences of a cube turned at random with chips, slabs and gaps exactly the tolerance thick, none moved.
+Still as in 12.2.0: of 1 600 unions and differences of a column and a beam the tolerance into or clear of it, placed at
+random, 4 hold a volume outside both readings, by up to 24 cubic millimetres; and bolt holes stopping exactly the
+tolerance short of a plate's face leave the skin on some placements far from the origin and not on others.
 
 **FIXED.** A body whose opening stood the planar tolerance off a face, to the last bit, came out of the cutting of its
 openings open. The cut read a corner on one side of the opening's plane by its distance, 0.0010000000000000009, and

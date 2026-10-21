@@ -1622,6 +1622,177 @@ namespace GeometryHelper.Core
                 return best;
             }
 
+            /// <summary>
+            /// Gets the point of a segment nearest the region: where it passes through the region, or else an end or where it
+            /// passes nearest a side of the rim, as <see cref="AroundGap"/> reads the gap.
+            /// </summary>
+            /// <remarks>
+            /// The ends are read in a fixed order, the smaller by its coordinates first, and of points as near the first found is
+            /// kept, so the answer is the same whichever way round the segment is given.
+            /// </remarks>
+            internal GeoPoint3 Nearest(GeoPoint3 from, GeoPoint3 to)
+            {
+                if (Before(to, from))
+                {
+                    GeoPoint3 swap = from;
+                    from = to;
+                    to = swap;
+                }
+
+                if (Pierces(from, to))
+                {
+                    return Piercing(from, to);
+                }
+
+                GeoPoint3 nearest = from;
+                double best = PointGap(from);
+                double atTo = PointGap(to);
+
+                if (atTo < best)
+                {
+                    nearest = to;
+                    best = atTo;
+                }
+
+                for (int i = 0; i < EdgeCount; i++)
+                {
+                    GeoPoint3 start = EdgeFrom(i);
+                    GeoPoint3 end = EdgeTo(i);
+
+                    if (Beyond(SegmentsGap(from, to, start, end), best))
+                    {
+                        continue;
+                    }
+
+                    double at = Block.NearestAlong(from, to, start, end);
+                    GeoPoint3 point = new GeoPoint3(from.X + (to.X - from.X) * at, from.Y + (to.Y - from.Y) * at, from.Z + (to.Z - from.Z) * at);
+                    double gap = PointGap(point);
+
+                    if (gap < best)
+                    {
+                        nearest = point;
+                        best = gap;
+                    }
+                }
+
+                return nearest;
+            }
+
+            /// <summary>
+            /// Gets where a segment that passes through the region crosses the plane it is read in, as <see cref="Pierces"/>
+            /// finds it.
+            /// </summary>
+            private GeoPoint3 Piercing(GeoPoint3 from, GeoPoint3 to)
+            {
+                double along;
+
+                if (_isTriangle)
+                {
+                    double atFrom = _normal.DotProduct(_a.GetVectorTo(from));
+                    double atTo = _normal.DotProduct(_a.GetVectorTo(to));
+                    along = atFrom / (atFrom - atTo);
+                }
+                else
+                {
+                    double startZ = _frame.ToLocal(from).Z;
+                    double endZ = _frame.ToLocal(to).Z;
+                    along = startZ / (startZ - endZ);
+                }
+
+                return new GeoPoint3(from.X + along * (to.X - from.X), from.Y + along * (to.Y - from.Y), from.Z + along * (to.Z - from.Z));
+            }
+
+            /// <summary>
+            /// Determines whether a segment lies level over the region or along its rim, as a curve lying on a surface crosses
+            /// it nowhere: both its ends within a height of the plane the region is read in, so all of it, and its point nearest
+            /// the region standing over the material or its shadow on the plane meeting the material, as it does running in over
+            /// the rim; or else both its ends within that height of the line of the side of the rim it stands nearest, as a
+            /// segment lies along an edge of a box. Near a corner it never lies along.
+            /// </summary>
+            /// <param name="from">One end of the segment.</param>
+            /// <param name="to">The other end.</param>
+            /// <param name="nearest">The point of the segment nearest the region (<see cref="Nearest"/>).</param>
+            /// <param name="rise">How far its ends may stand off the plane or the line, the planar tolerance.</param>
+            /// <param name="flat">Whether the region has a plane: a triangle with no area has none, and is read by its sides only.</param>
+            internal bool LiesLevel(GeoPoint3 from, GeoPoint3 to, GeoPoint3 nearest, double rise, bool flat)
+            {
+                if (flat)
+                {
+                    GeoVector3 normal = UnitNormal;
+                    GeoPoint3 origin = PlaneOrigin;
+                    double atFrom = normal.DotProduct(origin.GetVectorTo(from));
+                    double atTo = normal.DotProduct(origin.GetVectorTo(to));
+
+                    if (!(Math.Abs(atFrom) > rise) && !(Math.Abs(atTo) > rise))
+                    {
+                        if (Holds(nearest))
+                        {
+                            return true;
+                        }
+
+                        // Running in over the rim, its point nearest the region is on the rim, where whether its foot is held is
+                        // the rounding of it: its shadow meets the material, to the rounding and as far as the corners stand off.
+                        GeoPoint3 footFrom = from.Add(normal.Multiply(-atFrom));
+                        GeoPoint3 footTo = to.Add(normal.Multiply(-atTo));
+                        double scale = Math.Max(1.0, Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z))));
+
+                        if (!(AroundGap(footFrom, footTo, 0.0) > PlaneSlack + 1E-12 * scale))
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                int side = -1;
+                double best = double.MaxValue;
+
+                for (int i = 0; i < EdgeCount; i++)
+                {
+                    double gap = PointToSegment(nearest, EdgeFrom(i), EdgeTo(i));
+
+                    if (gap < best)
+                    {
+                        best = gap;
+                        side = i;
+                    }
+                }
+
+                return side >= 0
+                    && !AtCorner(nearest, EdgeFrom(side), EdgeTo(side))
+                    && !(OffLine(from, EdgeFrom(side), EdgeTo(side)) > rise)
+                    && !(OffLine(to, EdgeFrom(side), EdgeTo(side)) > rise);
+            }
+
+            /// <summary>
+            /// Determines whether the point of a side nearest a point is one of its ends, to the rounding of their numbers: the
+            /// point stands off a corner, past the side, rather than beside it.
+            /// </summary>
+            private static bool AtCorner(GeoPoint3 point, GeoPoint3 start, GeoPoint3 end)
+            {
+                GeoVector3 along = start.GetVectorTo(end);
+                double squared = along.LengthSquared;
+
+                if (!(squared > 0.0))
+                {
+                    return true;
+                }
+
+                double at = start.GetVectorTo(point).DotProduct(along) / squared;
+
+                return !(at > 1E-12) || !(at < 1.0 - 1E-12);
+            }
+
+            /// <summary>
+            /// Gets how far a point stands off the line through two others, or off the one where they are one.
+            /// </summary>
+            private static double OffLine(GeoPoint3 point, GeoPoint3 start, GeoPoint3 end)
+            {
+                GeoVector3 along = start.GetVectorTo(end);
+                double length = along.Length;
+
+                return length > 0.0 ? start.GetVectorTo(point).CrossProduct(along).Length / length : start.DistanceTo(point);
+            }
+
             private bool OutsideByMore(double x, double y, double z, double margin)
                 => x < _box.Min.X - margin || x > _box.Max.X + margin
                     || y < _box.Min.Y - margin || y > _box.Max.Y + margin

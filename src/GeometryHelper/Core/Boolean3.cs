@@ -47,6 +47,12 @@ namespace GeometryHelper.Core
     /// apart to meet are the exception — nothing is cut there, and each keeps the openings it came with.
     /// </para>
     /// <para>
+    /// A result of two closed bodies is closed as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, or not made: one
+    /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> calls closed on two copies of an edge about the tolerance apart, which
+    /// <c>Validate</c> reads as open, is welded, or worked out another way, and where it stays open the operation reports
+    /// <c>false</c>, logged, as one it could not work out.
+    /// </para>
+    /// <para>
     /// A void, a chip or a slab no thicker than the point tolerance is within the tolerance of nothing and changes
     /// nothing; one thicker than the tolerance and a trillionth of the size of the coordinates is cut however thin: a
     /// cube of 100 less a box 40 by 30 and 0.0005 thick inside it is the cube, and less one 0.0015 thick holds
@@ -98,12 +104,20 @@ namespace GeometryHelper.Core
         /// </param>
         /// <returns>false when the two could not be combined into a closed body, which is logged.</returns>
         public static bool TryUnion(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
+            => Union(first, second, out result, tolerance, out outcome, out _);
+
+        /// <summary>
+        /// Works out the union as <see cref="TryUnion(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/> does, and
+        /// hands back what came out open where two closed bodies gave nothing closed, for a closing to try.
+        /// </summary>
+        private static bool Union(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
         {
             Guard(first, second);
+            open = null;
 
             try
             {
-                if (Unite(first, second, out result, tolerance, out string unworkable))
+                if (Unite(first, second, out result, tolerance, out string unworkable, out open))
                 {
                     outcome = BooleanOutcome.Made;
                     return true;
@@ -122,9 +136,14 @@ namespace GeometryHelper.Core
         }
 
         private static bool Unite(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable)
+            => Unite(first, second, out result, tolerance, out unworkable, out _);
+
+        private static bool Unite(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable, out GeoSolid3 open, OpenPath path = null)
         {
             result = null;
             unworkable = null;
+            open = null;
+            path = path ?? new OpenPath();
 
             if (!first.GetAabb().CollidesWith(second.GetAabb(), tolerance))
             {
@@ -166,7 +185,14 @@ namespace GeometryHelper.Core
                 if (found.HasValue)
                 {
                     result = Weld3.Sealed(result, tolerance);
-                    return found.Value;
+
+                    if (!found.Value || ClosesOrSeals("union", ref result, a, b, tolerance, path))
+                    {
+                        return found.Value && AddsUp("union", ref result, a, b, tolerance, path, out unworkable, ref open);
+                    }
+
+                    GeometryHelperLog.Debug("Boolean3: cutting one body, the union came out open to Validate; both are cut by every plane of both instead.");
+                    open = result;
                 }
 
                 openCut = result;
@@ -201,7 +227,16 @@ namespace GeometryHelper.Core
             }
 
             result = Weld3.Sealed(result, tolerance);
-            return true;
+
+            if (!ClosesOrSeals("union", ref result, first, second, tolerance, path))
+            {
+                unworkable = OpenWhy;
+                open = open ?? result;
+                result = null;
+                return false;
+            }
+
+            return AddsUp("union", ref result, first, second, tolerance, path, out unworkable, ref open);
         }
 
         /// <summary>
@@ -215,7 +250,10 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the part two solids have in common, within a tolerance.
         /// </summary>
-        /// <returns>false when the two bodies share no volume, or when it cannot be worked out, which is logged.</returns>
+        /// <returns>
+        /// false when the two bodies share no volume, or when it cannot be worked out, which is logged: of two closed bodies,
+        /// a common part closed as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, or none.
+        /// </returns>
         /// <remarks>
         /// Only one body is cut, and only by the planes of the other that come near it and of its own openings:
         /// those are what leave every cell wholly inside or wholly outside the other, and wholly material or wholly
@@ -246,12 +284,20 @@ namespace GeometryHelper.Core
         /// </param>
         /// <returns>false when the two bodies share no volume, or when it cannot be worked out.</returns>
         public static bool TryIntersect(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
+            => Intersect(first, second, out result, tolerance, out outcome, out _);
+
+        /// <summary>
+        /// Works out the intersection as <see cref="TryIntersect(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/> does, and
+        /// hands back what came out open where two closed bodies gave nothing closed, for a closing to try.
+        /// </summary>
+        private static bool Intersect(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
         {
             Guard(first, second);
+            open = null;
 
             try
             {
-                if (Share(first, second, out result, tolerance, out string unworkable))
+                if (Share(first, second, out result, tolerance, out string unworkable, out open))
                 {
                     outcome = BooleanOutcome.Made;
                     return true;
@@ -275,9 +321,14 @@ namespace GeometryHelper.Core
         }
 
         private static bool Share(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable)
+            => Share(first, second, out result, tolerance, out unworkable, out _);
+
+        private static bool Share(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable, out GeoSolid3 open, OpenPath path = null)
         {
             result = null;
             unworkable = null;
+            open = null;
+            path = path ?? new OpenPath();
 
             if (!first.GetAabb().CollidesWith(second.GetAabb(), tolerance))
             {
@@ -345,7 +396,14 @@ namespace GeometryHelper.Core
                     && Implausible("intersection", otherWay, first, second, tolerance) == null)
                 {
                     result = Weld3.Sealed(otherWay, tolerance);
-                    return true;
+
+                    if (ClosesOrSeals("intersection", ref result, first, second, tolerance, path))
+                    {
+                        return AddsUp("intersection", ref result, first, second, tolerance, path, out unworkable, ref open);
+                    }
+
+                    why = OpenWhy;
+                    open = result;
                 }
 
                 unworkable = why;
@@ -354,7 +412,30 @@ namespace GeometryHelper.Core
             }
 
             result = Weld3.Sealed(result, tolerance);
-            return true;
+
+            if (ClosesOrSeals("intersection", ref result, first, second, tolerance, path))
+            {
+                return AddsUp("intersection", ref result, first, second, tolerance, path, out unworkable, ref open);
+            }
+
+            // Open to Validate, the other body is cut instead, whatever it costs.
+            GeometryHelperLog.Debug("Boolean3: the common part came out open to Validate; the other body is cut instead.");
+            open = result;
+
+            if (TryGlue(CellsInside(other, cut, otherKnives, tolerance, out _, out _, out List<int> openOwners), openOwners, tolerance, out GeoSolid3 cutOtherWay)
+                && Implausible("intersection", cutOtherWay, first, second, tolerance) == null)
+            {
+                result = Weld3.Sealed(cutOtherWay, tolerance);
+
+                if (ClosesOrSeals("intersection", ref result, first, second, tolerance, path))
+                {
+                    return AddsUp("intersection", ref result, first, second, tolerance, path, out unworkable, ref open);
+                }
+            }
+
+            unworkable = OpenWhy;
+            result = null;
+            return false;
         }
 
         /// <summary>
@@ -393,7 +474,8 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// false when nothing is left, because the tool swallowed the subject whole, or when it cannot be worked out,
-        /// which is logged.
+        /// which is logged: of two closed bodies, what is left closed as <see cref="GeoSolid3.Validate(Tolerance)"/> reads
+        /// it, or not at all.
         /// </returns>
         /// <remarks>
         /// The walls of the cavity are not taken from the tool; they are already there. Dividing the
@@ -424,12 +506,20 @@ namespace GeometryHelper.Core
         /// </param>
         /// <returns>false when nothing is left, or when it cannot be worked out.</returns>
         public static bool TrySubtract(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
+            => Subtract(subject, tool, out result, tolerance, out outcome, out _);
+
+        /// <summary>
+        /// Works out the difference as <see cref="TrySubtract(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/> does, and
+        /// hands back what came out open where two closed bodies gave nothing closed, for a closing to try.
+        /// </summary>
+        private static bool Subtract(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
         {
             Guard(subject, tool);
+            open = null;
 
             try
             {
-                if (TakeAway(subject, tool, out result, tolerance, out string unworkable))
+                if (TakeAway(subject, tool, out result, tolerance, out string unworkable, out open))
                 {
                     outcome = BooleanOutcome.Made;
                     return true;
@@ -453,9 +543,14 @@ namespace GeometryHelper.Core
         }
 
         private static bool TakeAway(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out string unworkable)
+            => TakeAway(subject, tool, out result, tolerance, out unworkable, out _);
+
+        private static bool TakeAway(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out string unworkable, out GeoSolid3 open, OpenPath path = null)
         {
             result = null;
             unworkable = null;
+            open = null;
+            path = path ?? new OpenPath();
 
             if (!subject.GetAabb().CollidesWith(tool.GetAabb(), tolerance))
             {
@@ -494,7 +589,14 @@ namespace GeometryHelper.Core
                 if (found.HasValue)
                 {
                     result = Weld3.Sealed(result, tolerance);
-                    return found.Value;
+
+                    if (!found.Value || ClosesOrSeals("difference", ref result, a, b, tolerance, path))
+                    {
+                        return found.Value && AddsUp("difference", ref result, a, b, tolerance, path, out unworkable, ref open);
+                    }
+
+                    GeometryHelperLog.Debug("Boolean3: cutting one body, the difference came out open to Validate; both are cut by every plane of both instead.");
+                    open = result;
                 }
 
                 openCut = result;
@@ -522,8 +624,164 @@ namespace GeometryHelper.Core
             }
 
             result = Weld3.Sealed(result, tolerance);
+
+            if (!ClosesOrSeals("difference", ref result, subject, tool, tolerance, path))
+            {
+                unworkable = OpenWhy;
+                open = open ?? result;
+                result = null;
+                return false;
+            }
+
+            return AddsUp("difference", ref result, subject, tool, tolerance, path, out unworkable, ref open);
+        }
+
+        /// <summary>
+        /// Why a boolean of two closed bodies is reported as not made where what it gave stays open.
+        /// </summary>
+        private const string OpenWhy = "it came out open, as Validate reads it, whichever way it was cut";
+
+        /// <summary>
+        /// Determines whether what a boolean of two bodies gave closes as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it,
+        /// where the two do: closed as it is, or sealed so (<see cref="Weld3.SealedAsValidated"/>), which it is then made.
+        /// </summary>
+        /// <param name="operation">"difference", "union" or "intersection", whose bounds the sealed body has to hold (<see cref="Implausible"/>).</param>
+        /// <param name="result">What the boolean gave, sealed where that closes it.</param>
+        /// <param name="first">The first body; for a difference, the one material is taken from.</param>
+        /// <param name="second">The second body; for a difference, the one taken away.</param>
+        /// <param name="tolerance">The tolerance of the work.</param>
+        /// <param name="path">Marked where what they gave did not close as it was, with how far the weld may have moved it.</param>
+        /// <returns>false where the two close and what they gave does not, for the boolean to try another way or say so.</returns>
+        /// <remarks>
+        /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> matches the ends of the edges first and calls two copies of an edge about
+        /// the tolerance apart one edge, which <c>Validate</c>, matching them along a line, reads as two, each open: a box 100 by
+        /// 60 by 40 less a cube 1.3 across a hair the tolerance off three of its faces, turned and far from the origin, came out
+        /// of the difference so, closed to the one and open by two stretches to the other, and the boolean never tried another
+        /// way. A body two such bodies give that closes to both is the same to the bit, read once more.
+        /// </remarks>
+        private static bool ClosesOrSeals(string operation, ref GeoSolid3 result, GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, OpenPath path)
+        {
+            path.Moved = 0.0;
+
+            if (result == null || Shells3.Closes(result, tolerance) || !Shells3.Closes(first, tolerance) || !Shells3.Closes(second, tolerance))
+            {
+                return true;
+            }
+
+            path.Taken = true;
+
+            // A weld may move the faces by up to four tolerances, and is taken only where what it leaves is a volume the
+            // operation can give: the box less a cube 0.34 across welded closed held 0.25 cubic millimetres less than either
+            // reading of the cube.
+            GeoSolid3 sealedResult = Weld3.SealedAsValidated(result, tolerance, out double moved);
+
+            if (!Shells3.Closes(sealedResult, tolerance) || Implausible(operation, sealedResult, first, second, tolerance) != null)
+            {
+                return false;
+            }
+
+            result = sealedResult;
+            path.Moved = moved;
             return true;
         }
+
+        /// <summary>
+        /// Whether a boolean of two closed bodies came out open to <see cref="GeoSolid3.Validate(Tolerance)"/> on the way to
+        /// its result, and how far the weld that closed the result moved its volume.
+        /// </summary>
+        private sealed class OpenPath
+        {
+            /// <summary>A result of the two came out open to <c>Validate</c>, and was welded or worked out another way.</summary>
+            public bool Taken;
+
+            /// <summary>How far the weld that closed the result moved its volume; nought where it closed unwelded.</summary>
+            public double Moved;
+
+            /// <summary>Whether the boolean is worked out only to check another's volume, and so is not checked itself.</summary>
+            public bool Checking;
+        }
+
+        /// <summary>
+        /// Takes what a boolean of two closed bodies gave where it closed as it was, and checks the volume of one that came
+        /// out open on the way, welded or worked out another way, against the volumes of the two and of their common part, or
+        /// of their union for a common part; false, not worked out, where it does not add up.
+        /// </summary>
+        /// <param name="operation">"difference", "union" or "intersection".</param>
+        /// <param name="result">What the boolean gave; null where it is not taken.</param>
+        /// <param name="first">The first body; for a difference, the one material is taken from.</param>
+        /// <param name="second">The second body; for a difference, the one taken away.</param>
+        /// <param name="tolerance">The tolerance of the work.</param>
+        /// <param name="path">How the result was come to.</param>
+        /// <param name="unworkable">Why it is not taken; null where it is.</param>
+        /// <param name="open">What came out open, for a closing: the result where it is not taken, unless one is there already.</param>
+        /// <remarks>
+        /// <para>
+        /// A union holds the two less their common part, a difference the first less the common part, and a common part the
+        /// two less their union. The bodies a boolean gives at a tolerance have their faces within the tolerance of where
+        /// they belong, and the faces the result and the common part, or the union, can place apart are those along the
+        /// common part's skin: the two readings differ by no more than the tolerance times the area of that skin. A weld that
+        /// closed the result moved it by as much again (<see cref="Weld3.SealedAsValidated"/>), no more than moving its
+        /// corners can. Further off than both, and a hair for the rounding, the result counts some of the material twice or
+        /// not at all, and is not taken: the union of a box 100 by 60 by 40 and a cube 1.25 across standing out through
+        /// three of its faces by a hair more than the tolerance came out open and, closed, held 240 001.2065, the cube
+        /// counted whole, where the two less their common part hold 240 000.0032 within 0.028.
+        /// </para>
+        /// <para>
+        /// The common part, or the union for a common part, is worked out by the same boolean at the same tolerance; where
+        /// that one comes out open on the way too, or cannot be worked out, the result is not taken either. A result that
+        /// closes as it was is taken as it is, unchecked, at no cost.
+        /// </para>
+        /// </remarks>
+        private static bool AddsUp(string operation, ref GeoSolid3 result, GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, OpenPath path, out string unworkable, ref GeoSolid3 open)
+        {
+            unworkable = null;
+
+            if (!path.Taken || path.Checking || result == null)
+            {
+                return true;
+            }
+
+            var checking = new OpenPath { Checking = true };
+            GeoSolid3 other;
+            string otherWhy;
+            bool made = operation == "intersection"
+                ? Unite(first, second, out other, tolerance, out otherWhy, out _, checking)
+                : Share(first, second, out other, tolerance, out otherWhy, out _, checking);
+            string against = operation == "intersection" ? "union" : "common part";
+
+            if (!checking.Taken && (made || otherWhy == null))
+            {
+                double v = VolumeOf(result, tolerance);
+                double v1 = VolumeOf(first, tolerance);
+                double v2 = VolumeOf(second, tolerance);
+                double vOther = made ? VolumeOf(other, tolerance) : 0.0;
+                double skin = operation == "intersection" ? result.GrossSurfaceArea : (made ? other.GrossSurfaceArea : 0.0);
+                double expected = operation == "difference" ? v1 - vOther : v1 + v2 - vOther;
+                double bound = path.Moved + tolerance.EqualPoint * skin + 1E-9 * (Math.Abs(v1) + Math.Abs(v2));
+
+                if (Math.Abs(v - expected) <= bound)
+                {
+                    return true;
+                }
+
+                unworkable = $"it came out open on the way, and holds {v:R} where the two less their {against} hold {expected:R}, within {bound:R}";
+            }
+            else
+            {
+                unworkable = $"it came out open on the way, and the {against} its volume is checked by {(made ? "came out open on the way too" : "could not be worked out")}";
+            }
+
+            GeometryHelperLog.Debug($"Boolean3: the {operation} {unworkable}; it is reported as not made.");
+            open = open ?? result;
+            result = null;
+            return false;
+        }
+
+        /// <summary>
+        /// Gets the volume of a body as the check of a boolean reads it: its faces', or its material's where it carries openings.
+        /// </summary>
+        private static double VolumeOf(GeoSolid3 solid, Tolerance tolerance)
+            => solid.Openings.Count == 0 ? solid.GrossVolume : solid.GetVolume(tolerance);
 
         /// <summary>
         /// Says why the volume of what a boolean of two bodies gave is one the operation cannot give; null where it can.

@@ -146,7 +146,9 @@ namespace GeometryHelper.Core
         /// nothing.
         /// </summary>
         private static GeoPoint3[] CutsOf(GeoEdge3 edge, GeoFace3 face, Tolerance tolerance)
-            => edge.IsArc ? Arc3.CutsOf(edge.ToArc(), face, tolerance) : edge.ToLine().GetIntersections(face, tolerance);
+            => edge.IsArc
+                ? Arc3.CutsOf(edge.ToArc(), face, tolerance)
+                : Intersection3.TryIntersectWith(edge.ToLine(), face, out GeoPoint3 cut, tolerance) ? new[] { cut } : new GeoPoint3[0];
 
         #region By a point and by a distance
 

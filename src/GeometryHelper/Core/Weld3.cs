@@ -89,6 +89,44 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets a body a boolean made sealed as <see cref="Sealed"/> seals it, within the tolerance the boolean was given and
+        /// no other, taken as closed only where <see cref="GeoSolid3.Validate(Tolerance)"/> reads it so as well
+        /// (<see cref="Shells3.Closes"/>), and only where the weld moves the volume no further than moving each corner it moves
+        /// by the point tolerance can: one that <see cref="GeoSolid3.IsClosed(Tolerance)"/> calls closed on two copies of an edge
+        /// about the tolerance apart is welded too.
+        /// </summary>
+        /// <remarks>
+        /// Moving a corner by a distance sweeps, on each face it is a corner of, no more than the distance times a third of the
+        /// triangle it makes with its two neighbours: so much, at the point tolerance, for each corner moved, bounds the weld.
+        /// Bounded only by the volumes the operation can give, the union of a cube of 100 and a block 40 by 30 by 50 running
+        /// 0.001 into its top over an edge, the two turned, welded closed held 1 059 999.53 cubic millimetres, less than any
+        /// reading of the block: 1 060 000 without the overlap, 1 060 000.6 with it.
+        /// </remarks>
+        /// <param name="solid">The body a boolean made.</param>
+        /// <param name="work">The tolerance the boolean was given.</param>
+        /// <param name="moved">How far the weld taken moved the volume; nought where none was.</param>
+        internal static GeoSolid3 SealedAsValidated(GeoSolid3 solid, Tolerance work, out double moved)
+        {
+            moved = 0.0;
+
+            if (solid == null || Shells3.Closes(solid, work))
+            {
+                return solid;
+            }
+
+            for (double wide = work.EqualPoint; wide <= LoopAssembly.Bridge * work.EqualPoint; wide *= 2.0)
+            {
+                if (TryWeld(solid, work, work, wide, true, out GeoSolid3 welded, out moved))
+                {
+                    return welded;
+                }
+            }
+
+            moved = 0.0;
+            return solid;
+        }
+
+        /// <summary>
         /// Welds the corners of a body's faces within a tolerance; false where what comes of it does not close within it and
         /// within the finer one, or moves its volume further than the tolerance times its area.
         /// </summary>
@@ -101,8 +139,16 @@ namespace GeometryHelper.Core
         /// its volume further than the wider reach times its area.
         /// </summary>
         private static bool TryWeld(GeoSolid3 solid, Tolerance work, Tolerance fine, double wide, out GeoSolid3 welded)
+            => TryWeld(solid, work, fine, wide, false, out welded, out _);
+
+        /// <summary>
+        /// Welds as <see cref="TryWeld(GeoSolid3, Tolerance, Tolerance, double, out GeoSolid3)"/> does, what comes of it read
+        /// as closed by <see cref="Shells3.Closes"/> where asked to be.
+        /// </summary>
+        private static bool TryWeld(GeoSolid3 solid, Tolerance work, Tolerance fine, double wide, bool asValidated, out GeoSolid3 welded, out double shift)
         {
             welded = null;
+            shift = 0.0;
             IReadOnlyList<GeoFace3> faces = solid.Faces;
             double reach = work.EqualPoint;
 
@@ -129,6 +175,7 @@ namespace GeometryHelper.Core
             }
 
             int[] to = Representatives(points, corners, reach);
+            int[] wider = null;
 
             // Each ring on the corners it is welded to, a corner repeated in a row once.
             bool anyMoved = false;
@@ -145,7 +192,7 @@ namespace GeometryHelper.Core
 
             if (wide > reach)
             {
-                int[] wider = Representatives(points, corners, wide, Loose(rings));
+                wider = Representatives(points, corners, wide, Loose(rings));
 
                 foreach (List<List<int>> faceRings in rings)
                 {
@@ -202,21 +249,58 @@ namespace GeometryHelper.Core
 
             var candidate = new GeoSolid3(built, solid.Openings);
 
-            if (!candidate.IsClosed(fine) || !candidate.IsClosed(work))
+            if (asValidated
+                ? !Shells3.Closes(candidate, fine) || !Shells3.Closes(candidate, work)
+                : !candidate.IsClosed(fine) || !candidate.IsClosed(work))
             {
                 return false;
             }
 
             double before = solid.GetSignedVolume();
             double after = candidate.GetSignedVolume();
+            double bound = asValidated ? Swept(points, corners, to, wider, reach) : wide * solid.GrossSurfaceArea;
 
-            if (Math.Abs(after - before) > wide * solid.GrossSurfaceArea + 1E-9 * Math.Abs(before))
+            if (Math.Abs(after - before) > bound + 1E-9 * Math.Abs(before))
             {
                 return false;
             }
 
+            shift = Math.Abs(after - before);
             welded = candidate;
             return true;
+        }
+
+        /// <summary>
+        /// Gets how much volume moving each corner a weld moves by a distance can sweep: on each face it is a corner of, the
+        /// distance times a third of the triangle it makes with its two neighbours.
+        /// </summary>
+        /// <param name="points">Every distinct corner.</param>
+        /// <param name="corners">The triangle each makes on each ring it is a corner of, as an area vector.</param>
+        /// <param name="to">Where each is welded to.</param>
+        /// <param name="wider">Where each welded corner is welded to next, or null.</param>
+        /// <param name="distance">How far a corner may move: one moved further is taken to move so far.</param>
+        private static double Swept(List<GeoPoint3> points, List<List<GeoVector3>> corners, int[] to, int[] wider, double distance)
+        {
+            double swept = 0.0;
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                int at = wider == null ? to[i] : wider[to[i]];
+
+                double moved = Math.Min(points[at].DistanceTo(points[i]), distance);
+
+                if (!(moved > 0.0))
+                {
+                    continue;
+                }
+
+                foreach (GeoVector3 corner in corners[i])
+                {
+                    swept += moved * corner.Length / 3.0;
+                }
+            }
+
+            return swept;
         }
 
         /// <summary>

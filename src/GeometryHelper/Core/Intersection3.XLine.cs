@@ -75,17 +75,17 @@ namespace GeometryHelper.Core
 
         internal static GeoPoint3[] GetIntersections(GeoXLine3 xline, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            return TryIntersectWith(xline, triangle, out GeoPoint3 crossing, tolerance) ? new[] { crossing } : new GeoPoint3[0];
+            return Meeting(XLine3.CutPast(xline, triangle, tolerance), triangle, true, tolerance);
         }
 
         internal static GeoPoint3[] GetIntersections(GeoXLine3 xline, GeoPolygon3 polygon, Tolerance tolerance)
         {
-            return TryIntersectWith(xline, polygon, out GeoPoint3 crossing, tolerance) ? new[] { crossing } : new GeoPoint3[0];
+            return Meeting(XLine3.CutPast(xline, polygon, tolerance), polygon, true, tolerance);
         }
 
         internal static GeoPoint3[] GetIntersections(GeoXLine3 xline, GeoFace3 face, Tolerance tolerance)
         {
-            return TryIntersectWith(xline, face, out GeoPoint3 crossing, tolerance) ? new[] { crossing } : new GeoPoint3[0];
+            return Meeting(XLine3.CutPast(xline, face, tolerance), face, true, tolerance);
         }
 
         internal static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoXLine3 xline, Tolerance tolerance)

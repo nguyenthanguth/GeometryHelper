@@ -392,14 +392,20 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether the box has zero size on any axis, using the default tolerance.
         /// </summary>
+        /// <remarks>See <see cref="IsDegenerate(Tolerance)"/>.</remarks>
         public bool IsDegenerate() => IsDegenerate(Tolerance.Global);
 
         /// <summary>
-        /// Checks whether the box has zero size on any axis, within a tolerance.
+        /// Checks whether the box has zero size on any axis, within a tolerance: a side no longer than the point tolerance.
         /// </summary>
+        /// <remarks>
+        /// A side is read whole, as its faces have it: a plate 50 by 30 and 0.0015 thick is a box at the default tolerance, its
+        /// six faces 0.0015 apart, and one 0.0005 thick is flat. Half a side was read, so the plate 0.0015 or 0.002 thick was
+        /// called flat though it had its faces.
+        /// </remarks>
         public bool IsDegenerate(Tolerance tolerance)
         {
-            return ExtentX <= tolerance.EqualPoint || ExtentY <= tolerance.EqualPoint || ExtentZ <= tolerance.EqualPoint;
+            return SizeX <= tolerance.EqualPoint || SizeY <= tolerance.EqualPoint || SizeZ <= tolerance.EqualPoint;
         }
 
         /// <summary>

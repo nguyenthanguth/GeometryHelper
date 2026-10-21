@@ -548,16 +548,12 @@ namespace GeometryHelper.Geometry
         /// it, by <see cref="RoundGap(double, double, double, double)"/>: the rule by which a circle stays a circle.
         /// </summary>
         /// <remarks>
-        /// A transformation that keeps shapes round to the rounding of its numbers, <see cref="KeepsRound(GeoVector2, GeoVector2)"/>,
-        /// carries a circle of any size, as it always has.
+        /// A transformation that keeps shapes round to the rounding of a matrix built from axes,
+        /// <see cref="KeepsRound(GeoVector2, GeoVector2)"/>, is read by the same rule: its axes may still differ by a share of
+        /// some 1E-9, which takes a circle moved to a radius of 1E8 up to 0.04 off.
         /// </remarks>
         internal static bool KeepsCircles(GeoVector2 movedX, GeoVector2 movedY, double radius)
         {
-            if (KeepsRound(movedX, movedY))
-            {
-                return true;
-            }
-
             double alongX = movedX.Length;
             double alongY = movedY.Length;
 
@@ -620,7 +616,9 @@ namespace GeometryHelper.Geometry
         /// square to each other that its corners land within the global point tolerance of where the transformation puts
         /// them. The rectangle 100 by 50 is moved under a shear of 5E-6 at the scale it is drawn, its corners 0.00018 off,
         /// and refused scaled by 1 000, where they would be 0.18 off; a turn whose numbers are rounded to six places
-        /// or to a float on their own moves it at any scale.
+        /// or to a float on their own moves it at any scale. A transformation that keeps shapes round to the rounding of a
+        /// matrix built from axes is read alike: a scaling by 1 000 with X a share of 4E-10 longer moves the rectangle 200 by 100
+        /// at the scale it is drawn, and refuses the one 2E8 by 1E8, whose corners it took 44 off.
         /// </remarks>
         public GeoRectangle2 Transform(GeoRectangle2 rectangle)
         {
@@ -630,8 +628,7 @@ namespace GeometryHelper.Geometry
 
             // Written as what a rectangle needs, so that a scaling to nought, which leaves no lengths to weigh, still gives a
             // rectangle of no size, as it did.
-            if (!KeepsRound(alongX, alongY)
-                && RoundGap(alongX.Length, alongY.Length, alongX.DotProduct(alongY), halfDiagonal) > Tolerance.Global.EqualPoint)
+            if (RoundGap(alongX.Length, alongY.Length, alongX.DotProduct(alongY), halfDiagonal) > Tolerance.Global.EqualPoint)
             {
                 throw new InvalidOperationException("This transformation turns the rectangle into a parallelogram.");
             }
