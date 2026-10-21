@@ -6,6 +6,79 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A circle, an arc, an edge, a ball and a rectangle are moved by a transformation that is not an exact turn, shift,
+mirror or even scaling only where they land within the global point tolerance of where it puts their points, and refused
+otherwise. `GeoArc2.TransformBy`, `GeoEdge2.TransformBy` and `GeoArc3.TransformBy` read the two axes as equally long
+against the global vector tolerance outright, a number with no size, while a circle and a ball read them as a share of the
+stretch: under a turn rounded to six places unevenly and scaled by 1 000 the circle was carried and every arc on it threw,
+and the share let a true stretch through at a large scale, where the shape landed visibly off: a stretch of 3E-6 along X
+scaled by 1 000 moved the circle of radius 100 0.3 off and the arc of radius 100 from 0.5 to 2 radians 0.017 off, and
+scaled by 1E5 an arc a hair short of a whole turn 46 off. A circle, the whole turn of an arc and a ball are refused now where their radius times the
+difference of the two axes and their lean, the dot product over the longer, exceeds the tolerance, the ball reading its
+three axes in pairs; an arc whose axes differ in length is the arc through its ends and its middle where that lands within
+the tolerance of where the transformation puts the rest of it, asked at every sixteenth of its sweep; a rectangle reads
+its axes as a circle as large as its half diagonal. A turn whose numbers are rounded to six places or to a float on their
+own keeps the axes alike to the last digit in the plane and moves every shape at any scale, within 4E-8 at 1E5; in space
+such a turn leaves them some 1E-6 apart, and moves the circle of radius 100 at the scale it is drawn, 0.000065 off, and
+refuses it scaled by 1 000, where it would be 0.065 off. A skew that keeps both lengths takes an arc through its ends and
+its middle as before. Of 1 500 random arcs, edges and circles of radius 0.01 to 1 000 under 45 maps in the plane and 35
+in space, none that moves has moved by a bit; 13 425 that moved landing further than the tolerance off are refused, and
+30 008 that threw move, landing within it. Of 2 000 rectangles up to 500 by 500 under 60 maps, 4 910 that moved are
+refused and 253 move that were refused, none moved otherwise, and a scaling to nought still gives a rectangle of no size.
+
+**FIXED.** The constructor of `GeoEdge3` read the length of the chord against the vector tolerance, a number with no
+size, and refused any chord of 1E-5 or less: an edge 1E-6 long could not be built, a short arc moved under a turn rounded
+to a float threw "Two points in the same place have no chord to bulge", and so did 75 of 12 000 chains cut by an oriented
+box near its surface and 91 cut by an axis-aligned one, the cut leaving a piece a hair long. A chord is refused now only
+where its two ends are one point to the last digit, as an edge in the plane refuses only a chord of nought, and moving
+an edge reads the side it bows to by its length alone. Of 40 000 random edges with chords from 1E-9 to 1 000, at four
+tolerances, every one built before is built, read, moved and split to the bit as it was; 8 992 refused at the tolerance
+given and 13 160 at the global one are built, and 9 843 moves and 13 298 splits are answered that threw, as are 68 of
+the small arcs in space of the transformation fuzz. A piece a billionth of a chord that short has a chord whose
+direction is rounding, and is refused as not lying in the plane of the edge. Of those chains, 13 and 14 still throw, cut so
+near a corner that the piece's two ends are one; the cuts themselves are as they were. `new GeoEdge3(arc)` read its chord
+against the global vector tolerance in the same way, and refused the arc of an edge 1E-6 long as "sweeping a whole turn",
+so that edge could not be extended; it tells a whole turn by its sweep now, as `GeoEdge2` does.
+
+**FIXED.** `Arc3.GetIntersections` against a triangle, a polygon or a face, and the circles and curved chains and loops
+through it, gave points where `CollidesWith` was false: a point of the arc is read as on the region within the point
+tolerance of its plane and of its outline, and the two together reach further than the tolerance off a side, so an arc
+starting 0.00107 beside a side and 0.0007 over the plane, 0.0013 from the region, was given a point, for 123 of 6 000 arcs
+starting near the side of a polygon and 229 near the rim of a hole. The points are kept now only where the arc touches the
+region, as a box keeps them, and none are; a triangle with no area, which touches nothing, is crossed nowhere. Of 12 000
+random arcs near a side, a rim or a corner and anywhere, at three tolerances, 23 lose their point against the polygon, the
+face or the triangle, 51 answers, and in none of them did the arc collide; the chains through them lose the same points,
+the circle of one of those arcs its point against the triangle, and against boxes and bodies, and in cutting by them,
+nothing moves. A curved chain cut by a face is cut only at those points, so a spurious cut at a corner 0.0021 from the
+face is dropped. Arcs in the plane against polygons had no such fault.
+
+**FIXED.** A segment, a ray, a line without ends or a straight chain that touched a box within the point tolerance without
+crossing a face collided with it and crossed nothing, since the slabs of the axes it moves along are read exactly: 19 256
+of 200 000 segments near an edge of the box 10 by 10 by 10. It is given the point of it nearest the box now, as the other
+shapes give a touch: the segment from (5, 10.1, 9.9007) to (5, 9.9007, 10.1), 0.0005 off the edge, touches it at
+(5, 10.00035, 10.00035). `CollidesWith` and a crossing found agree on all 200 000, both ways round, for oriented and
+axis-aligned boxes, rays, lines and chains. Of 60 000 random segments at three tolerances, 5 583 gain the point and none
+loses or moves one; in 40 straight chains a crossing within the tolerance of a touch is named by whichever is found first,
+at most 0.92 of the tolerance from it. A segment wholly inside the box still crosses nothing, and cutting a segment, a
+chain or a curved chain by a box cuts where it crosses a face only, to the bit as before. The touch is the same point
+whichever way round the shape is given, and it is given only where the shape touches the box at one place: one lying
+along the box within the tolerance, level with the face it stands over or running with the edge to the vector tolerance,
+such as a chain 0.0005 over the top face, is given none, as the body of the box and an arc in the same place give none.
+A segment barely moving across a pair of faces is held
+within them only where both its ends are within the tolerance of them, so no crossing stands further than the tolerance
+from the box (28 crossings of 60 000 segments did) and the answer does not turn on which end comes first. A ray starting
+within the tolerance of the box and running away from it, which every corner stands behind, touches it at its origin,
+where it was given nothing and collided: the ray from (5, 5, 10.0005) up along Z, and 21 of 100 000 rays near the box in
+every direction.
+
+**FIXED.** The fillets and the offsets of curved chains and loops in the plane met two circles with the difference of the
+squared radii taken as the difference of two squares, which keeps only the last digits of two radii near 2.5E8 a few
+apart: the circles of radius 250 000 007.25 about the origin and 250 000 000 about (40, 30) were crossed 0.035 from where
+they cross. It is the product of the difference and the sum now, as the crossings of two circles take it; on 20 000 such
+pairs the worst crossing is 4.7E-6 off where it was 2.0. Of 3 000 random chains and loops filleted and offset, 1 263 moved:
+by at most 3.5E-5 where an edge some 100 long bulges no more than 1E-6, its radius 2.5E7 or more, and by at most 2E-10
+elsewhere.
+
 **FIXED.** `GeoArc2.TransformBy` and `GeoEdge2.TransformBy`, and the curved chains and loops of the plane through them,
 moved an arc by its centre and its radius under any transformation that kept both axes equally long, a skew among them:
 the skew that sends X to (1, 0) and Y to (0.6, 0.8) took the arc of radius 100 about the origin from 0.5 to 2 radians
@@ -122,8 +195,8 @@ are unchanged.
 in drawing units, and never asked whether they came out square to each other. The skew that sends X to (1, 0, 0) and Y to
 (0.6, 0.8, 0) keeps both lengths, so the circle of radius 100 came out a circle of radius 100, where it is an ellipse of radii 126.5
 and 63.2. Round means now that the two axes come out equally long and square to each other, to the default vector tolerance of the
-square of the stretch, the rule `GeoSphere3` reads its transformation by, so that a turn whose numbers are rounded to six places or to
-a float still moves a circle; anything else is refused with the `InvalidOperationException` an uneven scaling gets, and
+square of the stretch, the rule `GeoSphere3` reads its transformation by (both read since by how far the shape lands, in the
+entry above), so that a turn whose numbers are rounded to six places or to a float still moves a circle; anything else is refused with the `InvalidOperationException` an uneven scaling gets, and
 `GeoEllipse3.FromCircle(circle).TransformBy` or `GeoEllipse2.FromCircle(circle).TransformBy` gives the ellipse. On 60 000 random
 transformations in space and 60 000 in the plane every turn, shift, mirror and even scaling gives what it gave to the bit; the skews
 and shears beyond the tolerance that came through are refused, 2 287 in space and 6 399 in the plane, and so are 36 slight uneven

@@ -64,7 +64,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            var cuts = new List<GeoPoint3>(GetIntersections(chain, cutter, tolerance));
+            var cuts = new List<GeoPoint3>(Crossings(chain.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance));
 
             return Sorted(AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)), point => cutter.Contains(point, tolerance), out inside, out outside);
         }
@@ -106,7 +106,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            var cuts = new List<GeoPoint3>(GetIntersections(chain, cutter, tolerance));
+            var cuts = new List<GeoPoint3>(Crossings(chain.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance));
 
             return Sorted(AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)), point => cutter.Contains(point, tolerance), out inside, out outside);
         }
@@ -190,7 +190,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(chain.GetEdges(), cutters, one => one == null, (edge, one) => edge.GetIntersections(one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(CrossingsOfAll(chain.GetEdges(), cutters, one => one == null, (edge, one) => CutsOf(edge, one, tolerance), tolerance));
 
             return Sorted(AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)), point => InsideAny(cutters, point, one => one == null, (box, at) => box.Contains(at, tolerance)), out inside, out outside);
         }
@@ -232,7 +232,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(chain.GetEdges(), cutters, one => one.IsEmpty, (edge, one) => edge.GetIntersections(one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(CrossingsOfAll(chain.GetEdges(), cutters, one => one.IsEmpty, (edge, one) => CutsOf(edge, one, tolerance), tolerance));
 
             return Sorted(AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)), point => InsideAny(cutters, point, one => one.IsEmpty, (box, at) => box.Contains(at, tolerance)), out inside, out outside);
         }
@@ -274,7 +274,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            var cuts = new List<GeoPoint3>(GetIntersections(loop, cutter, tolerance));
+            var cuts = new List<GeoPoint3>(Crossings(loop.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance));
 
             return Sorted(CutLoop(loop, cuts, tolerance), point => cutter.Contains(point, tolerance), out inside, out outside);
         }
@@ -316,7 +316,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            var cuts = new List<GeoPoint3>(GetIntersections(loop, cutter, tolerance));
+            var cuts = new List<GeoPoint3>(Crossings(loop.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance));
 
             return Sorted(CutLoop(loop, cuts, tolerance), point => cutter.Contains(point, tolerance), out inside, out outside);
         }
@@ -400,7 +400,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(loop.GetEdges(), cutters, one => one == null, (edge, one) => edge.GetIntersections(one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(CrossingsOfAll(loop.GetEdges(), cutters, one => one == null, (edge, one) => CutsOf(edge, one, tolerance), tolerance));
 
             return Sorted(CutLoop(loop, cuts, tolerance), point => InsideAny(cutters, point, one => one == null, (box, at) => box.Contains(at, tolerance)), out inside, out outside);
         }
@@ -442,7 +442,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(loop.GetEdges(), cutters, one => one.IsEmpty, (edge, one) => edge.GetIntersections(one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(CrossingsOfAll(loop.GetEdges(), cutters, one => one.IsEmpty, (edge, one) => CutsOf(edge, one, tolerance), tolerance));
 
             return Sorted(CutLoop(loop, cuts, tolerance), point => InsideAny(cutters, point, one => one.IsEmpty, (box, at) => box.Contains(at, tolerance)), out inside, out outside);
         }
@@ -533,6 +533,27 @@ namespace GeometryHelper.Core
             outside = without.ToArray();
 
             return runs > 1;
+        }
+
+        /// <summary>
+        /// Gets where an edge crosses an oriented box, the places it is cut at: a straight edge only where it crosses a face,
+        /// since a touch cuts nothing.
+        /// </summary>
+        private static GeoPoint3[] CutsOf(GeoEdge3 edge, GeoObb3 box, Tolerance tolerance)
+            => edge.IsArc ? edge.ToArc().GetIntersections(box, tolerance) : Intersection3.CrossingsOf(edge.ToLine(), box, tolerance);
+
+        /// <summary>
+        /// Gets where an edge crosses an axis-aligned box, the places it is cut at: a straight edge only where it crosses a
+        /// face, since a touch cuts nothing.
+        /// </summary>
+        private static GeoPoint3[] CutsOf(GeoEdge3 edge, GeoAabb3 box, Tolerance tolerance)
+        {
+            if (edge.IsArc)
+            {
+                return edge.ToArc().GetIntersections(box, tolerance);
+            }
+
+            return box.IsEmpty ? new GeoPoint3[0] : Intersection3.CrossingsOf(edge.ToLine(), box.ToObb(), tolerance);
         }
 
         /// <summary>

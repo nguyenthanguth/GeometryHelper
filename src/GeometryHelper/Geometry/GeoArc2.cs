@@ -381,8 +381,8 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when the transformation would stretch the arc into part of an ellipse, the two axes coming out of unequal
-        /// length, or, for an arc of a whole turn, would skew it, as <see cref="GeoTransform2.Transform(GeoCircle2)"/> refuses a
-        /// circle.
+        /// length so that the arc would land further than the global point tolerance from where its points are put, or, for an
+        /// arc of a whole turn, would skew or stretch it, as <see cref="GeoTransform2.Transform(GeoCircle2)"/> refuses a circle.
         /// </exception>
         /// <exception cref="ArgumentException">
         /// Thrown when a skew, a transformation <see cref="GeoTransform2.Transform(GeoCircle2)"/> would refuse for a circle, brings
@@ -400,7 +400,12 @@ namespace GeometryHelper.Geometry
         /// refused under such a skew, since it would be an ellipse; an arc past a half turn whose ends the skew brings within the
         /// global point tolerance of each other is refused too. Where the ends come that close under a transformation that
         /// carries a circle, a turn whose numbers are rounded to six places, the arc is moved whole as the whole turn is: the arc
-        /// of radius 100 sweeping a whole turn less 1E-9 under such a turn moves, where it threw.
+        /// of radius 100 sweeping a whole turn less 1E-9 under such a turn moves, where it threw. Where the two axes come out of
+        /// unequal length the arc is part of an ellipse, and the arc through its ends and its middle stands for it only where it
+        /// lands within the global point tolerance of where the transformation puts the rest of it, asked at every sixteenth
+        /// of its sweep, and is refused otherwise: a stretch of 3E-6 along X moves the arc of radius 100 from 0.5 to 2 radians
+        /// at the scale it is drawn, 0.000017 off, and refuses it scaled by 1 000, where it would be 0.017 off. A whole turn,
+        /// or an arc whose ends come together, is read as its circle is (<see cref="GeoTransform2.Transform(GeoCircle2)"/>).
         /// </remarks>
         public GeoArc2 TransformBy(GeoTransform2 transform)
         {
@@ -412,10 +417,8 @@ namespace GeometryHelper.Geometry
             GeoVector2 alongX = transform.Transform(GeoVector2.XAxis);
             GeoVector2 alongY = transform.Transform(GeoVector2.YAxis);
 
-            if (Math.Abs(alongX.Length - alongY.Length) > Tolerance.Global.EqualVector)
-            {
-                throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
-            }
+            // Axes of unequal length stretch the arc into part of an ellipse.
+            bool stretched = !GeoTransform2.EquallyLong(alongX, alongY);
 
             // A whole turn is the whole circle, refused under a skew as the circle is. Any other arc is carried by its centre
             // where the axes also come out square and of one length to rounding, or where its ends come together as a whole
@@ -424,9 +427,21 @@ namespace GeometryHelper.Geometry
             {
                 transform.Transform(GetCircle());
             }
-            else if (!GeoTransform2.KeepsRound(alongX, alongY) && !(EndsMeetUnder(transform) && GeoTransform2.KeepsCircles(alongX, alongY)))
+            else if (!GeoTransform2.KeepsRound(alongX, alongY) && !(EndsMeetUnder(transform) && GeoTransform2.KeepsCircles(alongX, alongY, Radius)))
             {
-                return ThroughMoved(transform);
+                if (stretched && EndsMeetUnder(transform))
+                {
+                    throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
+                }
+
+                GeoArc2 through = ThroughMoved(transform);
+
+                if (stretched && !LandsWithin(transform, through))
+                {
+                    throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
+                }
+
+                return through;
             }
 
             GeoPoint2 center = transform.Transform(Center);
@@ -438,6 +453,26 @@ namespace GeometryHelper.Geometry
 
             return new GeoArc2(center, Radius * alongX.Length, AngleOf(center, start), sweep, sweep < 0.0, true)
                 .WithMiddleThrough(middle);
+        }
+
+        /// <summary>
+        /// Determines whether this arc, moved to another, lands within the global point tolerance of where a transformation
+        /// puts its points, asked at every sixteenth of its sweep.
+        /// </summary>
+        internal bool LandsWithin(GeoTransform2 transform, GeoArc2 moved)
+        {
+            double tolerance = Tolerance.Global.EqualPoint;
+
+            // Read off the circle the moved arc lies on, which an arc shorter than the tolerance has as surely as any other.
+            for (int i = 1; i < 16; i++)
+            {
+                if (Math.Abs(transform.Transform(GetPointAtParameter(i / 16.0)).DistanceTo(moved.Center) - moved.Radius) > tolerance)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

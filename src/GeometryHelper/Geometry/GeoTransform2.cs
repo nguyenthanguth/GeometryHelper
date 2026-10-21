@@ -518,9 +518,12 @@ namespace GeometryHelper.Geometry
         /// </exception>
         /// <remarks>
         /// A circle survives a transformation only when every direction is stretched by the same amount: when the two
-        /// axes come out equally long and square to each other, to the default vector tolerance of the square of the
-        /// stretch, as a ball in space is read (<see cref="GeoTransform3.Transform(GeoSphere3)"/>), so that a turn whose
-        /// numbers are rounded to six places or to a float still moves it. Under a scaling that differs between the axes,
+        /// axes come out so nearly equally long and square to each other that the circle moved lands within the global point
+        /// tolerance of where the transformation puts each of its points, as a ball in space is read
+        /// (<see cref="GeoTransform3.Transform(GeoSphere3)"/>). A turn whose numbers are rounded to six places or to a float
+        /// on their own keeps the two axes alike to the last digit and moves a circle of any size; a stretch of 3E-6 along X
+        /// moves the circle of radius 100 at the scale it is drawn, 0.0003 off at the most, and is refused scaled by 1 000,
+        /// where it would be 0.3 off. Under a scaling that differs between the axes,
         /// or a shear, it becomes an ellipse, so the attempt is refused rather than answered with a circle of some averaged
         /// radius; transform <see cref="GeoEllipse2.FromCircle(GeoCircle2)"/> to get the ellipse. The skew that sends X to
         /// (1, 0) and Y to (0.6, 0.8) keeps both lengths, and is refused: the circle of radius 100 would be an ellipse of
@@ -531,7 +534,7 @@ namespace GeometryHelper.Geometry
             GeoVector2 movedX = Transform(GeoVector2.XAxis);
             GeoVector2 movedY = Transform(GeoVector2.YAxis);
 
-            if (!KeepsCircles(movedX, movedY))
+            if (!KeepsCircles(movedX, movedY, circle.Radius))
             {
                 throw new InvalidOperationException("This transformation stretches the circle into an ellipse.");
             }
@@ -540,20 +543,42 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Determines whether the X and Y axes come out of the transformation equally long and square to each other, to the
-        /// default vector tolerance of the square of the stretch: the rule of the ball (<see cref="GeoTransform3.Transform(GeoSphere3)"/>)
-        /// by which a circle stays a circle.
+        /// Determines whether the X and Y axes come out of the transformation so nearly equally long and square to each other
+        /// that a circle of a radius moved by them lands within the global point tolerance of where the transformation puts
+        /// it, by <see cref="RoundGap(double, double, double, double)"/>: the rule by which a circle stays a circle.
         /// </summary>
-        internal static bool KeepsCircles(GeoVector2 movedX, GeoVector2 movedY)
+        /// <remarks>
+        /// A transformation that keeps shapes round to the rounding of its numbers, <see cref="KeepsRound(GeoVector2, GeoVector2)"/>,
+        /// carries a circle of any size, as it always has.
+        /// </remarks>
+        internal static bool KeepsCircles(GeoVector2 movedX, GeoVector2 movedY, double radius)
         {
-            double stretch = Math.Sqrt((movedX.LengthSquared + movedY.LengthSquared) / 2.0);
-            double slack = Tolerance.Global.EqualVector * stretch * stretch;
+            if (KeepsRound(movedX, movedY))
+            {
+                return true;
+            }
 
-            return stretch > 0.0
-                && !(Math.Abs(movedX.LengthSquared - stretch * stretch) > slack)
-                && !(Math.Abs(movedY.LengthSquared - stretch * stretch) > slack)
-                && !(Math.Abs(movedX.DotProduct(movedY)) > slack);
+            double alongX = movedX.Length;
+            double alongY = movedY.Length;
+
+            return Math.Max(alongX, alongY) > 0.0
+                && !(RoundGap(alongX, alongY, movedX.DotProduct(movedY), radius) > Tolerance.Global.EqualPoint);
         }
+
+        /// <summary>
+        /// Determines whether the X and Y axes come out of the transformation of one length to the rounding of its numbers,
+        /// as a turn, a skew or an even scaling leaves them, so that an arc under it is not stretched into part of an ellipse.
+        /// </summary>
+        internal static bool EquallyLong(GeoVector2 movedX, GeoVector2 movedY)
+            => !(Math.Abs(movedX.LengthSquared - movedY.LengthSquared) > RoundSlack * (movedX.LengthSquared + movedY.LengthSquared) * 0.5);
+
+        /// <summary>
+        /// Gets how far, at the most, a circle of a radius moved by two axes whose images are so long and lean on each other
+        /// so much strays from where the transformation puts its points: the radius times the difference of the two lengths
+        /// and the lean, the dot product over the longer of them.
+        /// </summary>
+        internal static double RoundGap(double alongX, double alongY, double dot, double radius)
+            => radius * (Math.Abs(alongX - alongY) + Math.Abs(dot) / Math.Max(alongX, alongY));
 
         /// <summary>
         /// Determines whether the X and Y axes come out of the transformation square to each other and of one length to the
@@ -590,15 +615,23 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A rectangle stays a rectangle under a move, a turn, a mirror and a uniform scaling. A scaling
         /// that differs between the axes, or a shear, leaves a parallelogram instead, which this library
-        /// has no type for: transform <c>rectangle.ToPolygon()</c> when that is what you want.
+        /// has no type for: transform <c>rectangle.ToPolygon()</c> when that is what you want. The axes are read as a
+        /// circle as large as the rectangle's half diagonal reads them: they have to come out so nearly equally long and
+        /// square to each other that its corners land within the global point tolerance of where the transformation puts
+        /// them. The rectangle 100 by 50 is moved under a shear of 5E-6 at the scale it is drawn, its corners 0.00018 off,
+        /// and refused scaled by 1 000, where they would be 0.18 off; a turn whose numbers are rounded to six places
+        /// or to a float on their own moves it at any scale.
         /// </remarks>
         public GeoRectangle2 Transform(GeoRectangle2 rectangle)
         {
             GeoVector2 alongX = Transform(GeoVector2.XAxis);
             GeoVector2 alongY = Transform(GeoVector2.YAxis);
+            double halfDiagonal = 0.5 * Math.Sqrt(rectangle.Width * rectangle.Width + rectangle.Height * rectangle.Height);
 
-            if (Math.Abs(alongX.Length - alongY.Length) > Tolerance.Global.EqualVector ||
-                Math.Abs(alongX.DotProduct(alongY)) > Tolerance.Global.EqualVector)
+            // Written as what a rectangle needs, so that a scaling to nought, which leaves no lengths to weigh, still gives a
+            // rectangle of no size, as it did.
+            if (!KeepsRound(alongX, alongY)
+                && RoundGap(alongX.Length, alongY.Length, alongX.DotProduct(alongY), halfDiagonal) > Tolerance.Global.EqualPoint)
             {
                 throw new InvalidOperationException("This transformation turns the rectangle into a parallelogram.");
             }

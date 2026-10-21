@@ -1051,6 +1051,140 @@ namespace GeometryHelper.Core
 
                 return near <= far;
             }
+
+            /// <summary>
+            /// Gets the point where a segment touches the box on its own: the point of it nearest the box, and none where it lies
+            /// along the box, level with the face it stands over or running with the edge, to an angle, as a curve lying on a
+            /// surface crosses it nowhere.
+            /// </summary>
+            /// <param name="from">One end of the segment.</param>
+            /// <param name="to">The other end.</param>
+            /// <param name="angle">How far off level the segment may run and lie along the box, the vector tolerance.</param>
+            /// <param name="point">The point of the touch when the method returns true.</param>
+            /// <remarks>
+            /// For a segment clear of the box the nearest point is an end, or where it passes nearest an edge of the box: against
+            /// a face the gap changes linearly along the segment, least at an end or the same all along, and an edge of the face
+            /// is then as near (see <see cref="Block"/>). The ends are read in a fixed order, the smaller by its coordinates
+            /// first, so the answer is the same whichever way round the segment is given. Near a corner it never lies along.
+            /// </remarks>
+            internal bool TryTouchAlone(GeoPoint3 from, GeoPoint3 to, double angle, out GeoPoint3 point)
+            {
+                if (Before(to, from))
+                {
+                    GeoPoint3 swap = from;
+                    from = to;
+                    to = swap;
+                }
+
+                GeoPoint3 p = Local(from);
+                GeoPoint3 q = Local(to);
+
+                double bestAt = 0.0;
+                double best = Outside(p);
+
+                if (Outside(q) < best)
+                {
+                    best = Outside(q);
+                    bestAt = 1.0;
+                }
+
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    for (int corner = 0; corner < 4; corner++)
+                    {
+                        double a = (corner & 1) == 0 ? -1.0 : 1.0;
+                        double b = (corner & 2) == 0 ? -1.0 : 1.0;
+                        GeoPoint3 start = axis == 0 ? new GeoPoint3(-_hx, a * _hy, b * _hz)
+                            : axis == 1 ? new GeoPoint3(a * _hx, -_hy, b * _hz)
+                            : new GeoPoint3(a * _hx, b * _hy, -_hz);
+                        GeoPoint3 end = axis == 0 ? new GeoPoint3(_hx, a * _hy, b * _hz)
+                            : axis == 1 ? new GeoPoint3(a * _hx, _hy, b * _hz)
+                            : new GeoPoint3(a * _hx, b * _hy, _hz);
+
+                        double at = NearestAlong(p, q, start, end);
+                        double gap = Outside(At(p, q, at));
+
+                        if (gap < best || (gap == best && at < bestAt))
+                        {
+                            best = gap;
+                            bestAt = at;
+                        }
+                    }
+                }
+
+                point = bestAt <= 0.0 ? from : bestAt >= 1.0 ? to : At(from, to, bestAt);
+
+                // Which faces of the box the nearest point stands beyond, past the rounding of numbers the size of the two: one
+                // is a face, two an edge, three a corner.
+                GeoPoint3 near = At(p, q, bestAt);
+                double scale = Math.Max(1.0, Math.Max(Math.Max(Math.Abs(near.X), Math.Abs(near.Y)), Math.Abs(near.Z)) + Math.Max(_hx, Math.Max(_hy, _hz)));
+                double rounding = 1E-12 * scale;
+                bool beyondX = Math.Abs(near.X) - _hx > rounding;
+                bool beyondY = Math.Abs(near.Y) - _hy > rounding;
+                bool beyondZ = Math.Abs(near.Z) - _hz > rounding;
+
+                double dx = q.X - p.X, dy = q.Y - p.Y, dz = q.Z - p.Z;
+                double length = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+
+                if (!(length > 0.0))
+                {
+                    return true;
+                }
+
+                // Level with the face it stands over, or running with the edge, to the vector tolerance, it lies along the box.
+                double across = (beyondX ? dx * dx : 0.0) + (beyondY ? dy * dy : 0.0) + (beyondZ ? dz * dz : 0.0);
+                int beyond = (beyondX ? 1 : 0) + (beyondY ? 1 : 0) + (beyondZ ? 1 : 0);
+                bool along = (beyond == 1 || beyond == 2) && !(Math.Sqrt(across) > angle * length);
+
+                return !along;
+            }
+
+            private static GeoPoint3 At(GeoPoint3 from, GeoPoint3 to, double at)
+                => new GeoPoint3(from.X + (to.X - from.X) * at, from.Y + (to.Y - from.Y) * at, from.Z + (to.Z - from.Z) * at);
+
+            /// <summary>
+            /// Gets how far along the segment from <paramref name="p"/> to <paramref name="q"/>, from nought to one, the pair
+            /// of points it and another segment come nearest at stands.
+            /// </summary>
+            private static double NearestAlong(GeoPoint3 p, GeoPoint3 q, GeoPoint3 start, GeoPoint3 end)
+            {
+                double d1x = q.X - p.X, d1y = q.Y - p.Y, d1z = q.Z - p.Z;
+                double d2x = end.X - start.X, d2y = end.Y - start.Y, d2z = end.Z - start.Z;
+                double rx = p.X - start.X, ry = p.Y - start.Y, rz = p.Z - start.Z;
+
+                double a = d1x * d1x + d1y * d1y + d1z * d1z;
+                double e = d2x * d2x + d2y * d2y + d2z * d2z;
+                double f = d2x * rx + d2y * ry + d2z * rz;
+
+                if (a == 0.0)
+                {
+                    return 0.0;
+                }
+
+                double c = d1x * rx + d1y * ry + d1z * rz;
+
+                if (e == 0.0)
+                {
+                    return Clamp(-c / a);
+                }
+
+                double b = d1x * d2x + d1y * d2y + d1z * d2z;
+                double denominator = a * e - b * b;
+                double s = denominator > 0.0 ? Clamp((b * f - c * e) / denominator) : 0.0;
+                double t = (b * s + f) / e;
+
+                if (t < 0.0)
+                {
+                    return Clamp(-c / a);
+                }
+
+                if (t > 1.0)
+                {
+                    return Clamp((b - c) / a);
+                }
+
+                return s;
+            }
         }
 
         /// <summary>

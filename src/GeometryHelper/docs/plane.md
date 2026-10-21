@@ -1468,15 +1468,19 @@ A bulge measures an arc against its own chord, so moving, turning and scaling ev
 mirroring changes its sign, because the arc then leans the other way against the same chord.
 
 **What a transformation cannot do.** A circle stays a circle only when every direction is stretched by the
-same amount: when the two axes come out equally long and square to each other, to the default vector tolerance of
-the square of the stretch, as a ball in space is read, so that a turn whose numbers are rounded to six places or to a
-float still moves it. Under a scaling that differs between the axes, or a shear, it would be an ellipse, and the attempt is
+same amount: when the two axes come out so nearly equally long and square to each other that the circle moved lands
+within the global point tolerance of where the transformation puts each of its points, as a ball in space is read. A turn
+whose numbers are rounded to six places or to a float on their own keeps the two axes alike to the last digit and moves
+a circle of any size; a stretch of 3E-6 along X moves the circle of radius 100 at the scale it is drawn, 0.0003 off, and
+is refused scaled by 1 000, where it would be 0.3 off. Under a scaling that differs between the axes, or a shear, it would be an ellipse, and the attempt is
 refused rather than answered with an averaged radius; the skew that sends X to (1, 0) and Y to (0.6, 0.8) keeps
 both lengths, and a circle of radius 100 is refused under it, where it came through at radius 100. Transform `GeoEllipse2.FromCircle(circle)` instead:
 a circle of radius 100 scaled by `Scaling(3, 1)` is the ellipse 300 by 100. An ellipse itself takes every
 transformation that does not flatten the plane, and stays an ellipse. A rectangle is
 refused the same way when it would come out a parallelogram — transform `rectangle.ToPolygon()` when that
-is what you want.
+is what you want. Its axes are read as a circle as large as its half diagonal reads them: the rectangle 100 by 50 is
+moved under a shear of 5E-6 at the scale it is drawn, its corners 0.00018 off, and refused scaled by 1 000, where they
+would be 0.18 off.
 
 An arc, and an edge with a bulge, is moved whole by its centre and its radius under a turn, a shift, a mirror or an even
 scaling, to the bit as it was. Under a skew that keeps both axes equally long it is the arc through where its two ends
@@ -1486,8 +1490,13 @@ and its middle land, as an arc in space is: the skew that sends X to (1, 0) and 
 (100, 0), where it ended 22.05 off, so a chain of such edges stays joined. An arc of a whole turn is the whole circle and
 is refused under the skew as the circle is, and so, with an `ArgumentException`, is an arc past a half turn whose ends
 the skew brings within the global point tolerance of each other. Under a transformation that carries a circle without
-being an exact turn, a turn whose numbers are rounded to six places, such an arc is moved whole as the whole turn is. An
-uneven scaling is refused as before.
+being an exact turn, a turn whose numbers are rounded to six places, such an arc is moved whole as the whole turn is.
+Under a scaling that differs between the axes the arc is part of an ellipse, and the arc through its ends and its middle
+stands for it only where it lands within the global point tolerance of where the transformation puts the rest of it,
+asked at every sixteenth of its sweep: a stretch of 3E-6 along X moves the arc of radius 100 from 0.5 to 2 radians at
+the scale it is drawn, 0.000017 off, and refuses it scaled by 1 000, where it would be 0.017 off, as the circle under it
+is refused. A skew that keeps both lengths is not judged so: its arc is the arc through its ends and its middle, however
+far the rest of the ellipse strays from it.
 
 **Mirroring turns shapes round.** A polygon that ran counter-clockwise comes back clockwise, its
 `SignedArea` changes sign and its `Area` does not. `GetDeterminant` says so in advance: it is the factor

@@ -295,11 +295,13 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A bulge is the shape of the arc against its own chord, so moving, turning and scaling evenly
         /// leave it alone, and mirroring changes its sign because the arc then leans the other way. A
-        /// transformation that scales the axes differently would make an arc part of an ellipse, and is
-        /// refused rather than answered with an averaged one. One that keeps both axes equally long but skews
+        /// transformation that scales the axes differently makes an arc part of an ellipse, and is
+        /// refused where the arc would land visibly off it rather than answered with an averaged one. One that keeps both axes equally long but skews
         /// them gives the edge from where its ends land through where its middle lands, as in space
         /// (<see cref="GeoEdge3.TransformBy(GeoTransform3)"/>): the edge of bulge 0.5 from (0, 0) to (100, 0)
         /// under the skew that sends X to (1, 0) and Y to (0.6, 0.8) ends at (100, 0), where it ended 22.05 off.
+        /// Where the axes come out of unequal length the edge is moved only where it lands within the global point tolerance
+        /// of where the transformation puts the rest of it, as the arc is (<see cref="GeoArc2.TransformBy(GeoTransform2)"/>).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the transformation would stretch an arc into part of an ellipse.</exception>
@@ -327,11 +329,6 @@ namespace GeometryHelper.Geometry
                 return new GeoEdge2(ToArc().TransformBy(transform));
             }
 
-            if (Math.Abs(alongX.Length - alongY.Length) > Tolerance.Global.EqualVector)
-            {
-                throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
-            }
-
             // The middle stands half the chord times the bulge off the chord's middle, to the right of the chord for a
             // positive bulge: worked out from the chord, so however little the edge bows.
             GeoVector2 chord = StartPoint.GetVectorTo(EndPoint);
@@ -343,7 +340,16 @@ namespace GeometryHelper.Geometry
                 throw new InvalidOperationException("Three points on one line have no arc through them.");
             }
 
-            return new GeoEdge2(start, end, bulge);
+            var through = new GeoEdge2(start, end, bulge);
+
+            // Axes of unequal length stretch the arc into part of an ellipse: it stands for it where it lands within the global
+            // point tolerance of where the transformation puts the rest of the edge.
+            if (!GeoTransform2.EquallyLong(alongX, alongY) && !ToArc().LandsWithin(transform, through.ToArc()))
+            {
+                throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
+            }
+
+            return through;
         }
 
         /// <summary>

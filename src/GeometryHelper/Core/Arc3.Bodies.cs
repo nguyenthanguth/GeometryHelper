@@ -37,7 +37,7 @@ namespace GeometryHelper.Core
         {
             foreach (GeoFace3 face in part.Faces)
             {
-                foreach (GeoPoint3 candidate in GetIntersections(arc, face, tolerance))
+                foreach (GeoPoint3 candidate in CrossingsOf(arc, face, tolerance))
                 {
                     if (Containment3.Locate(body, candidate, tolerance) == PointLocation.OnSide)
                     {
@@ -173,7 +173,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoPolygon3 face in box.GetFaces())
             {
-                foreach (GeoPoint3 candidate in GetIntersections(arc, face, tolerance))
+                foreach (GeoPoint3 candidate in CrossingsOf(arc, face, tolerance))
                 {
                     AddOnce(found, candidate, tolerance);
                 }

@@ -61,6 +61,34 @@ namespace GeometryHelper.Core
             return found;
         }
 
+        /// <summary>
+        /// Keeps the crossings found only where the arc comes within the point tolerance of the region, as
+        /// <c>CollidesWith</c> reads it: rule R. A crossing within half the tolerance of the arc and of the region put
+        /// together settles it without asking the gap of the whole arc, since the two then stand no further apart than that.
+        /// </summary>
+        /// <param name="arc">The arc.</param>
+        /// <param name="found">The crossings found.</param>
+        /// <param name="region">The region, read for the gap.</param>
+        /// <param name="box">The box of the region.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        private static GeoPoint3[] WhereTouching(GeoArc3 arc, List<GeoPoint3> found, Gap3.Region region, GeoAabb3 box, Tolerance tolerance)
+        {
+            foreach (GeoPoint3 point in found)
+            {
+                if (arc.DistanceTo(point, tolerance) + region.PointGap(point) <= tolerance.EqualPoint * 0.5)
+                {
+                    return found.ToArray();
+                }
+            }
+
+            Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+            bool touches = curve.Box.DistanceTo(box) <= Collision3.Reach(tolerance)
+                && curve.GapToRegion(region, tolerance.EqualPoint) <= tolerance.EqualPoint;
+
+            return touches ? found.ToArray() : new GeoPoint3[0];
+        }
+
         #endregion
 
         #region Against a triangle
@@ -79,21 +107,37 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// Where the arc pierces the triangle, the points of the face it goes through; where the arc lies in
-        /// the triangle's plane, the points where it cuts one of the three edges.
+        /// the triangle's plane, the points where it cuts one of the three edges. None where the arc does not come within
+        /// the point tolerance of the triangle, as <see cref="CollidesWith(GeoArc3, GeoTriangle3, Tolerance)"/> reads it,
+        /// and none for a triangle with no area, which touches nothing.
         /// </returns>
+        /// <remarks>
+        /// A point of the arc is read as on the triangle within the point tolerance of its plane and within the tolerance of
+        /// its outline in that plane, and the two together reach further than the tolerance off a side: an arc starting 0.00107
+        /// beside a side of the triangle and 0.0007 over its plane, and running away from it, is 0.0013 from the triangle, and
+        /// is given no point now, where it was given one.
+        /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            if (!IsCoplanar(arc, triangle.GetPlane(), tolerance))
+            if (triangle.IsDegenerateByArea(tolerance))
             {
-                return PiercingPoints(arc, triangle.GetPlane(),
-                    point => Containment3.Contains(triangle, point, tolerance), tolerance).ToArray();
+                return new GeoPoint3[0];
             }
 
-            var found = new List<GeoPoint3>();
+            List<GeoPoint3> found;
 
-            AddCrossingsOfEdges(found, arc, new[] { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) }, tolerance);
+            if (!IsCoplanar(arc, triangle.GetPlane(), tolerance))
+            {
+                found = PiercingPoints(arc, triangle.GetPlane(), point => Containment3.Contains(triangle, point, tolerance), tolerance);
+            }
+            else
+            {
+                found = new List<GeoPoint3>();
 
-            return found.ToArray();
+                AddCrossingsOfEdges(found, arc, new[] { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) }, tolerance);
+            }
+
+            return found.Count == 0 ? found.ToArray() : WhereTouching(arc, found, Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance);
         }
 
         /// <summary>
@@ -163,8 +207,13 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// Where the arc pierces the polygon, the points of the region it goes through; where the arc lies in
-        /// the polygon's plane, the points where it cuts the outline.
+        /// the polygon's plane, the points where it cuts the outline. None where the arc does not come within the point
+        /// tolerance of the polygon, as <see cref="CollidesWith(GeoArc3, GeoPolygon3, Tolerance)"/> reads it.
         /// </returns>
+        /// <remarks>
+        /// A point of the arc is read as on the polygon within the point tolerance of its plane and within the tolerance of
+        /// its outline in that plane, as for a triangle, and is kept only where the arc touches the polygon.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoPolygon3 polygon, Tolerance tolerance)
         {
@@ -173,17 +222,27 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
+            List<GeoPoint3> found = CrossingsOf(arc, polygon, tolerance);
+
+            return found.Count == 0 ? found.ToArray() : WhereTouching(arc, found, Gap3.Region.Of(polygon), polygon.GetAabb(), tolerance);
+        }
+
+        /// <summary>
+        /// Gets the points where an arc crosses a polygon, each read on its own, as a box reads each of its faces before it
+        /// asks whether the arc touches the box at all.
+        /// </summary>
+        internal static List<GeoPoint3> CrossingsOf(GeoArc3 arc, GeoPolygon3 polygon, Tolerance tolerance)
+        {
             if (!IsCoplanar(arc, polygon.GetPlane(), tolerance))
             {
-                return PiercingPoints(arc, polygon.GetPlane(),
-                    point => Containment3.Contains(polygon, point, tolerance), tolerance).ToArray();
+                return PiercingPoints(arc, polygon.GetPlane(), point => Containment3.Contains(polygon, point, tolerance), tolerance);
             }
 
             var found = new List<GeoPoint3>();
 
             AddCrossingsOfEdges(found, arc, polygon.GetEdges(), tolerance);
 
-            return found.ToArray();
+            return found;
         }
 
         /// <summary>
@@ -253,8 +312,14 @@ namespace GeometryHelper.Core
         /// <returns>
         /// Where the arc pierces the face, the points of its <i>material</i> it goes through, so a bar passing
         /// down a hole reaches nothing; where the arc lies in the face's plane, the points where it cuts the
-        /// outline or the rim of a hole.
+        /// outline or the rim of a hole. None where the arc does not come within the point tolerance of the material, as
+        /// <see cref="CollidesWith(GeoArc3, GeoFace3, Tolerance)"/> reads it.
         /// </returns>
+        /// <remarks>
+        /// A point of the arc is read as on the face within the point tolerance of its plane and within the tolerance of its
+        /// outline and of the rim of each hole, as for a triangle, and is kept only where the arc touches the material: an
+        /// arc in a hole starting 0.0012 off its rim and 0.0003 over the plane, and running away from it, is given no point.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoFace3 face, Tolerance tolerance)
         {
@@ -263,10 +328,20 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
+            List<GeoPoint3> found = CrossingsOf(arc, face, tolerance);
+
+            return found.Count == 0 ? found.ToArray() : WhereTouching(arc, found, Gap3.Region.Of(face), face.GetAabb(), tolerance);
+        }
+
+        /// <summary>
+        /// Gets the points where an arc crosses a face, each read on its own, as a body reads each of its faces before it
+        /// asks whether a point found lies on its surface.
+        /// </summary>
+        internal static List<GeoPoint3> CrossingsOf(GeoArc3 arc, GeoFace3 face, Tolerance tolerance)
+        {
             if (!IsCoplanar(arc, face.GetPlane(), tolerance))
             {
-                return PiercingPoints(arc, face.GetPlane(),
-                    point => Containment3.Contains(face, point, tolerance), tolerance).ToArray();
+                return PiercingPoints(arc, face.GetPlane(), point => Containment3.Contains(face, point, tolerance), tolerance);
             }
 
             var found = new List<GeoPoint3>();
@@ -278,7 +353,7 @@ namespace GeometryHelper.Core
                 AddCrossingsOfEdges(found, arc, hole.GetEdges(), tolerance);
             }
 
-            return found.ToArray();
+            return found;
         }
 
         /// <summary>

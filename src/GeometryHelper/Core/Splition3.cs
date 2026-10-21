@@ -1776,7 +1776,7 @@ namespace GeometryHelper.Core
             {
                 GeoLine3 edge = subject.GetEdgeAt(i);
 
-                foreach (GeoPoint3 hit in Intersection3.GetIntersections(edge, cutter, tolerance))
+                foreach (GeoPoint3 hit in Intersection3.CrossingsOf(edge, cutter, tolerance))
                 {
                     cuts.Add(travelled + Parametrization3.GetDistanceAtPoint(edge, hit));
                 }
@@ -1807,7 +1807,7 @@ namespace GeometryHelper.Core
 
             List<double> cuts = new List<double>();
 
-            foreach (GeoPoint3 hit in Intersection3.GetIntersections(subject, cutter, tolerance))
+            foreach (GeoPoint3 hit in Intersection3.CrossingsOf(subject, cutter, tolerance))
             {
                 cuts.Add(Parametrization3.GetDistanceAtPoint(subject, hit));
             }
@@ -1923,7 +1923,7 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    foreach (GeoPoint3 hit in Intersection3.GetIntersections(edge, cutter, tolerance))
+                    foreach (GeoPoint3 hit in Intersection3.CrossingsOf(edge, cutter, tolerance))
                     {
                         cuts.Add(travelled + Parametrization3.GetDistanceAtPoint(edge, hit));
                     }
@@ -1971,7 +1971,7 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                foreach (GeoPoint3 hit in Intersection3.GetIntersections(subject, cutter, tolerance))
+                foreach (GeoPoint3 hit in Intersection3.CrossingsOf(subject, cutter, tolerance))
                 {
                     cuts.Add(Parametrization3.GetDistanceAtPoint(subject, hit));
                 }

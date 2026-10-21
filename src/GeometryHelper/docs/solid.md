@@ -162,6 +162,15 @@ every query that goes through its solid, though `IsDegenerate()` still calls it 
 oriented or not, gives crossings only where a shape comes within the point tolerance of it, as `CollidesWith` reads
 it: a segment along X standing 0.000714 off both faces past an edge of the box 10 by 10 by 10, 0.00101 from it, crosses
 nothing, where it was given two points, and so for a ray, a line without ends, a chain and an arc ending near a corner.
+The other way round, a segment, a ray, a line or a chain that touches the box within the point tolerance without crossing
+a face is given the point of it nearest the box: the segment from (5, 10.1, 9.9007) to (5, 9.9007, 10.1), 0.0005 off the
+edge where the faces y = 10 and z = 10 meet, is given (5, 10.00035, 10.00035), where it collided and was given nothing.
+The point is the same whichever way round the shape is given. One lying wholly inside the box collides and crosses
+nothing, as before, and so does one lying along the box within the tolerance, level with the face it stands over or
+running with the edge to the vector tolerance, as the body of the box and an arc in the same place read it, a curve lying
+on a surface crossing it nowhere: the chain 0.0005 over the top face is given no point. A ray starting within the
+tolerance of the box and running away from it touches it at its origin. Cutting a chain by a box cuts only where it
+crosses a face, since a touch cuts nothing.
 
 ### Solids and openings
 
@@ -460,6 +469,9 @@ and chains and loops of arcs against all of them. Measured at a thousandth:
   its corners, so one thinner than the tolerance, or a few thousandths across, is asked about as surely as any other. No member
   measures the distance from a curve in space to anything but a point; the gap is worked out inside. On .NET Framework 4.8
   an arc against a triangle takes 1.2 microseconds to ask about where they stand far apart and 6.8 where they stand near.
+  An arc or a circle crosses a triangle, a polygon or a face only where it collides with it: an arc starting 0.00107
+  beside a side and 0.0007 over the plane, 0.0013 from the region and running away from it, is given no point, where it
+  was given one, and a triangle with no area, which touches nothing, is crossed nowhere.
 
 Eight things are read otherwise, on purpose:
 
@@ -1516,7 +1528,9 @@ land, that middle worked out across the chord; neither is refused for three poin
 one line. A move that stretches the arc's plane unevenly makes part of an ellipse of it, and the arc through
 those three points stands for it, as it always has. An arc is kept as its centre and radius, so it places its
 points within a few times its radius times 1E-16 of where they are: 0.00001 for an edge 100 long with a bulge of
-a billionth, of radius 2.5E10.
+a billionth, of radius 2.5E10. However short the chord, the edge is an arc: only two ends that are one point to the
+last digit are refused, as an edge in the plane refuses only a chord of nought, so an edge 1E-6 long is built, read and
+moved, and a piece split off an arc a hair from its end is one.
 
 ### A bar is a chain with a bend at every corner
 
@@ -1738,11 +1752,11 @@ by 0.23 touched by a plane is touched at one point.
 
 **Seen from elsewhere.** A circle in space stays a circle only under an even scaling, and refuses any other, a
 shear or a skew that keeps both lengths among them: round means that the two axes of its plane come out of the
-transformation equally long and square to each other, to the default vector tolerance of the square of the stretch,
-as a ball is read, so that a turn whose numbers are rounded to six places or to a float still moves it, and so
-the skew that sends X to (1, 0, 0) and Y to (0.6, 0.8, 0), which a circle of radius 100 in the plan came through at
-radius 100, is refused, since it would be an ellipse. The test reads alike at any size, but the plane is carried by its
-normal, which an even scaling of about 1E5 or more makes shorter than the vector tolerance, so such a scaling is refused
+transformation so nearly equally long and square to each other that the circle moved lands within the global point
+tolerance of where the transformation puts each of its points, as a ball is read: a turn whose numbers are rounded to six
+places on their own moves the circle of radius 100 at the scale it is drawn, 0.000065 off, and not scaled by 1 000, where
+it would be 0.065 off, and the skew that sends X to (1, 0, 0) and Y to (0.6, 0.8, 0), which a circle of radius 100 in the plan came through at
+radius 100, is refused, since it would be an ellipse. The plane is carried by its normal, which an even scaling of about 1E5 or more makes shorter than the vector tolerance, so such a scaling is refused
 all the same, with an `ArgumentException`. An arc is not refused so. A turn, a shift, a mirror or an even scaling of its
 plane moves it whole, by its centre and its radius, so an arc of any sweep moves, one a hair short of a whole turn
 among them, which threw; any other transformation that keeps both axes of its plane equally long takes it through where
@@ -1750,7 +1764,10 @@ its two ends and its middle land, so that skew takes the arc of radius 100 in th
 of radius 177.7 through its moved ends and middle. An arc of a whole turn, which has no ends to go through, is refused as
 the circle is, and one past a half turn whose ends the skew brings within the global point tolerance of each other is
 refused with an `ArgumentException`; under a turn rounded to a float or to six places, which carries a circle, such an arc
-is moved whole as the whole turn is. An ellipse takes every transformation that can be undone, and comes back an ellipse. Seen square onto a
+is moved whole as the whole turn is. Where the two axes of its plane come out of unequal length the arc through its ends
+and its middle stands for the ellipse only where it lands within the global point tolerance of where the transformation
+puts the rest of it: a stretch of 3E-6 moves the arc of radius 100 sweeping a whole turn less 1 at the scale it is drawn,
+0.00035 off, and refuses it scaled by 1 000, where it would be 0.35 off, as its circle and a ball are refused. An ellipse takes every transformation that can be undone, and comes back an ellipse. Seen square onto a
 plane, a circle or an ellipse is an ellipse in that plane:
 
 ```csharp

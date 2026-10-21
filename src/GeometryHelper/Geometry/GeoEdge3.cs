@@ -74,12 +74,22 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the bulge is not a number.</exception>
         /// <exception cref="ArgumentException">
         /// Thrown when a bulge that is not nought comes with a normal of no length, or with one the chord does
-        /// not lie square to, since neither describes a plane the arc could bulge in.
+        /// not lie square to, since neither describes a plane the arc could bulge in, or when the two points are one, so
+        /// there is no chord to bulge.
         /// </exception>
+        /// <remarks>
+        /// A chord is refused only where the two points are one to the last digit, as the edge in the plane refuses only
+        /// a chord of nought: an edge 1E-6 long is an arc, where the vector tolerance read against its length refused it.
+        /// </remarks>
         public GeoEdge3(GeoPoint3 startPoint, GeoPoint3 endPoint, double bulge, GeoVector3 normal)
             : this(startPoint, endPoint, bulge, normal, Tolerance.Global)
         {
         }
+
+        /// <summary>
+        /// A tolerance of nought, against which a vector has a direction wherever it has a length.
+        /// </summary>
+        private static Tolerance NoLength => default(Tolerance);
 
         /// <summary>
         /// Initializes an edge between two points, bulging by a given amount in a given plane, within a tolerance.
@@ -89,6 +99,11 @@ namespace GeometryHelper.Geometry
         /// <param name="bulge">The bulge; nought for a straight segment, in which case the normal is ignored.</param>
         /// <param name="normal">The normal of the plane the arc bulges in; it need not be of unit length.</param>
         /// <param name="tolerance">The tolerance, which decides how square to the chord the normal must be.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the bulge is not a number.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a bulge that is not nought comes with a normal of no length, or with one the chord does not lie square
+        /// to within the tolerance, or when the two points are one to the last digit.
+        /// </exception>
         public GeoEdge3(GeoPoint3 startPoint, GeoPoint3 endPoint, double bulge, GeoVector3 normal, Tolerance tolerance)
         {
             if (double.IsNaN(bulge) || double.IsInfinity(bulge))
@@ -113,7 +128,9 @@ namespace GeometryHelper.Geometry
 
             GeoVector3 chord = startPoint.GetVectorTo(endPoint);
 
-            if (!chord.TryGetNormal(out GeoVector3 along, tolerance))
+            // A chord is a length, so it is refused only where it has no direction at all, as the edge in the plane refuses
+            // only a chord of nought; the vector tolerance read against it refused a chord of 1E-5, which has one.
+            if (!chord.TryGetNormal(out GeoVector3 along, NoLength))
             {
                 throw new ArgumentException("Two points in the same place have no chord to bulge.", nameof(endPoint));
             }
@@ -131,12 +148,21 @@ namespace GeometryHelper.Geometry
         /// Initializes an edge from an arc in space.
         /// </summary>
         /// <param name="arc">The arc; a whole turn cannot be held as one edge, because its ends meet.</param>
-        /// <exception cref="ArgumentException">Thrown when the arc closes on itself, leaving no chord.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the arc sweeps a whole turn, to 1E-12 of a radian, or its ends are one point to the last digit,
+        /// leaving no chord.
+        /// </exception>
+        /// <remarks>
+        /// An arc is told from a whole turn by its sweep, as <see cref="GeoEdge2(GeoArc2)"/> tells it, so the arc of radius
+        /// 1E-6 sweeping 1.3 radians is an edge, where its chord read against the vector tolerance refused it.
+        /// </remarks>
         public GeoEdge3(GeoArc3 arc)
         {
             GeoVector3 chord = arc.StartPoint.GetVectorTo(arc.EndPoint);
 
-            if (!chord.TryGetNormal(out _))
+            // A whole turn is told by its sweep, as an edge in the plane tells it, and not by its chord against the vector
+            // tolerance, which refused every arc with a chord of 1E-5 or less; ends that are one point have no chord either.
+            if (Math.Abs(Math.Abs(arc.SweptAngle) - Math.PI * 2.0) <= 1E-12 || !chord.TryGetNormal(out _, NoLength))
             {
                 throw new ArgumentException("An arc sweeping a whole turn has no chord, so it is not one edge of a chain.", nameof(arc));
             }
@@ -342,8 +368,10 @@ namespace GeometryHelper.Geometry
 
             // The middle stands half the chord times the bulge off the chord's middle, to the right of the run round the
             // normal for a positive bulge: worked out from the chord, so however little the edge bows.
+            // The side the edge bows to is as long as the chord, so it is made a unit by its length alone, however short.
             GeoVector3 chord = StartPoint.GetVectorTo(EndPoint);
-            GeoVector3 bow = chord.CrossProduct(Normal).Normalize().Multiply(Bulge > 0.0 ? 1.0 : -1.0);
+            chord.CrossProduct(Normal).TryGetNormal(out GeoVector3 side, NoLength);
+            GeoVector3 bow = side.Multiply(Bulge > 0.0 ? 1.0 : -1.0);
             GeoVector3 toMiddle = chord.Multiply(0.5).Add(bow.Multiply(Math.Abs(Bulge) * chord.Length * 0.5));
 
             if (!Arc3.TryBulgeThrough(start.GetVectorTo(end), transform.Transform(toMiddle), out double bulge, out GeoVector3 normal))

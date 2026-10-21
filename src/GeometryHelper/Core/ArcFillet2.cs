@@ -232,12 +232,13 @@ namespace GeometryHelper.Core
 
             // Worked from the smaller circle, as Intersection2 does. From the circle of radius 2.5E8 behind an edge 100
             // long of bulge 1E-7, the half chord to a circle of radius 40 is the root of the difference of two squares
-            // near 6E16 and came out 0.076 off, so a corner beside a nearly flat edge was left unrounded.
+            // near 6E16 and came out 0.076 off, so a corner beside a nearly flat edge was left unrounded. The difference of the
+            // squared radii is the product of their difference and their sum, as Intersection2 takes it.
             var unit = new GeoVector2(between.X / apart, between.Y / apart);
 
             if (secondRadius < firstRadius)
             {
-                double back = (secondRadius * secondRadius - firstRadius * firstRadius + apart * apart) / (2.0 * apart);
+                double back = ((secondRadius - firstRadius) * (secondRadius + firstRadius) + apart * apart) / (2.0 * apart);
                 double remaining = secondRadius * secondRadius - back * back;
                 double half = remaining <= 0.0 ? 0.0 : Math.Sqrt(remaining);
                 double footX = second.X - unit.X * back;
@@ -249,7 +250,7 @@ namespace GeometryHelper.Core
                 return;
             }
 
-            double along = (firstRadius * firstRadius - secondRadius * secondRadius + apart * apart) / (2.0 * apart);
+            double along = ((firstRadius - secondRadius) * (firstRadius + secondRadius) + apart * apart) / (2.0 * apart);
             double square = firstRadius * firstRadius - along * along;
             double across = square <= 0.0 ? 0.0 : Math.Sqrt(square);
 

@@ -621,7 +621,9 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// The crossing points in order along the segment: none when it misses the box, one when it starts
-        /// or ends inside, two when it passes through.
+        /// or ends inside, two when it passes through, and one, the point of it nearest the box, when it touches the box
+        /// within the point tolerance on its own without crossing a face. None for a segment lying wholly inside the box, or
+        /// lying along it within the tolerance, which collide with it and cross nothing.
         /// </returns>
         /// <remarks>
         /// This is the slab method. Taking the segment into the local frame of the box turns it into three
@@ -632,9 +634,31 @@ namespace GeometryHelper.Core
         /// outside than the point tolerance, and is then given its crossings only where it comes within the
         /// point tolerance of the box, as <see cref="Collision3.CollidesWith(GeoLine3, GeoObb3, Tolerance)"/>
         /// reads it: past an edge of the box 10 by 10 by 10 a segment along X standing 0.000714 off both faces
-        /// is 0.00101 from the box, and crosses nothing, where it was given two points.
+        /// is 0.00101 from the box, and crosses nothing, where it was given two points. The other way round, the slabs
+        /// of the axes it moves along are read exactly, so a segment that comes within the tolerance of an edge or a face
+        /// without reaching the box touches it and crosses no face: it is given the point of it nearest the box, as the
+        /// other shapes give a touch. The segment from (5, 10.1, 9.9007) to (5, 9.9007, 10.1) passes 0.0005 off the edge
+        /// of that box and is given (5, 10.00035, 10.00035), where it was given nothing and collided. The touch is given only
+        /// where the segment touches the box at one place: one lying along the box within the tolerance, level with the face
+        /// it stands over or running with the edge to the vector tolerance, such as one 0.0005 over the top face and level
+        /// with it, is given none, as the body of the box gives none and an arc in the same place none, a curve lying on a
+        /// surface crossing it nowhere. The point is the same whichever way round the segment is given.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoObb3 box, Tolerance tolerance)
+            => SlabCrossings(line, box, tolerance, true);
+
+        /// <summary>
+        /// Gets where a segment crosses the faces of a box, and nothing where it only touches the box: the places the
+        /// splitting of a segment or a chain by a box cuts at, since a touch cuts nothing.
+        /// </summary>
+        internal static GeoPoint3[] CrossingsOf(GeoLine3 line, GeoObb3 box, Tolerance tolerance)
+            => SlabCrossings(line, box, tolerance, false);
+
+        /// <summary>
+        /// Gets where a segment crosses the faces of a box, by the slabs, and where it touches the box without crossing a
+        /// face when asked to.
+        /// </summary>
+        private static GeoPoint3[] SlabCrossings(GeoLine3 line, GeoObb3 box, Tolerance tolerance, bool touching)
         {
             if (box == null)
             {
@@ -661,10 +685,13 @@ namespace GeometryHelper.Core
                 if (Math.Abs(step) <= tolerance.EqualPoint)
                 {
                     // The segment does not move along this axis, so the slab either holds all of it or
-                    // none of it.
-                    if (Math.Abs(origin) > extent + tolerance.EqualPoint)
+                    // none of it: held where both ends stand within the tolerance of the slab, so alike either way round, and
+                    // otherwise asked whether it touches; the cuts of a chain read it from the start, as they always have.
+                    double held = touching ? Math.Max(Math.Abs(origin), Math.Abs(origin + step)) : Math.Abs(origin);
+
+                    if (held > extent + tolerance.EqualPoint)
                     {
-                        return new GeoPoint3[0];
+                        return touching && MayTouch(origins, steps, extents, tolerance) ? Touch(line, box, tolerance) : new GeoPoint3[0];
                     }
 
                     // Held, either end may stand outside the slab, the one it starts at or the one it ends at.
@@ -687,7 +714,7 @@ namespace GeometryHelper.Core
 
                 if (enter > exit)
                 {
-                    return new GeoPoint3[0];
+                    return touching && MayTouch(origins, steps, extents, tolerance) ? Touch(line, box, tolerance) : new GeoPoint3[0];
                 }
             }
 
@@ -720,7 +747,60 @@ namespace GeometryHelper.Core
                 hits.Add(exitPoint);
             }
 
+            // Held within a slab it runs outside of, and touching, it crosses no face it is not held by, and still meets the
+            // box: it is given the point of it nearest the box, as one held in no slab is.
+            if (touching && hits.Count == 0 && heldOutside)
+            {
+                return new Gap3.Block(box).TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualVector, out GeoPoint3 alone)
+                    ? new[] { alone }
+                    : new GeoPoint3[0];
+            }
+
             return hits.ToArray();
+        }
+
+        /// <summary>
+        /// Determines whether the box of a segment, in the frame of a box, stands near enough the box for the two to touch,
+        /// so that a segment plainly clear of it is not measured: the reach of <see cref="Collision3.Reach(Tolerance)"/>, and
+        /// the rounding of numbers the size of the two besides.
+        /// </summary>
+        private static bool MayTouch(double[] origins, double[] steps, double[] extents, Tolerance tolerance)
+        {
+            double squared = 0.0;
+            double scale = 0.0;
+
+            for (int axis = 0; axis < 3; axis++)
+            {
+                double from = origins[axis];
+                double to = from + steps[axis];
+                double extent = extents[axis];
+                double low = from < to ? from : to;
+                double high = from < to ? to : from;
+                double off = low > extent ? low - extent : high < -extent ? -extent - high : 0.0;
+
+                squared += off * off;
+                scale += Math.Abs(from) + Math.Abs(steps[axis]) + extent;
+            }
+
+            double reach = Collision3.Reach(tolerance) + 1E-12 * scale;
+
+            // Written as what a touch needs, so that a segment of NaNs goes on to be measured, as it did.
+            return !(squared > reach * reach);
+        }
+
+        /// <summary>
+        /// Gets the point where a segment that crosses no face of a box touches it, as <see cref="Collision3.CollidesWith(GeoLine3, GeoObb3, Tolerance)"/>
+        /// reads a touch: the point of the segment nearest the box, where they come within the point tolerance of each other
+        /// at one place, and none otherwise, or where the segment lies along the box.
+        /// </summary>
+        private static GeoPoint3[] Touch(GeoLine3 line, GeoObb3 box, Tolerance tolerance)
+        {
+            var block = new Gap3.Block(box);
+
+            return block.Within(line.StartPoint, line.EndPoint, tolerance, Collision3.Reach(tolerance))
+                && block.TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualVector, out GeoPoint3 alone)
+                ? new[] { alone }
+                : new GeoPoint3[0];
         }
 
         #endregion
@@ -963,7 +1043,9 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// A ray runs to infinity, so it is sampled as a segment long enough to reach past the far side of
-        /// the box. Nothing beyond that point can be a crossing: past it the ray is only moving away.
+        /// the box. Nothing beyond that point can be a crossing: past it the ray is only moving away. A ray starting within
+        /// the point tolerance of the box and running away from it touches it at its origin: the ray from (5, 5, 10.0005) up
+        /// along Z meets the box 10 by 10 by 10 there, where it was given nothing and collided.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoObb3 box, Tolerance tolerance)
         {
@@ -979,12 +1061,9 @@ namespace GeometryHelper.Core
                 reach = Math.Max(reach, Parametrization3.GetDistanceAtPoint(ray, corner));
             }
 
-            if (reach <= 0.0)
-            {
-                return new GeoPoint3[0];
-            }
-
-            return GetIntersections(ray.ToLine(reach + tolerance.EqualPoint), box, tolerance);
+            // A ray running away from every corner can still start within the tolerance of the box, and then touches it at
+            // its origin: it is cut a tolerance long rather than passed over.
+            return GetIntersections(ray.ToLine(Math.Max(reach, 0.0) + tolerance.EqualPoint), box, tolerance);
         }
 
         /// <summary>
