@@ -157,7 +157,16 @@ namespace GeometryHelper.Core
         /// <param name="arc">The arc.</param>
         /// <param name="box">The box.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>The points where the arc meets one of the six faces, each corner or edge counted once.</returns>
+        /// <returns>
+        /// The points where the arc meets one of the six faces, each corner or edge counted once; none where the arc does not
+        /// come within the point tolerance of the box, as <see cref="CollidesWith(GeoArc3, GeoObb3, Tolerance)"/> reads it.
+        /// </returns>
+        /// <remarks>
+        /// A face reads an end of the arc standing within the point tolerance of its plane, and within the tolerance of its
+        /// outline in that plane, as on it, and the two together reach further than the tolerance off an edge or a corner of the
+        /// box: an arc starting 0.00064 off a corner of the box 30 by 20 by 10 in each of the three directions, and running away
+        /// from it, is 0.0011 from the box, and is given no point now, where it was given one.
+        /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoObb3 box, Tolerance tolerance)
         {
             var found = new List<GeoPoint3>();
@@ -170,7 +179,31 @@ namespace GeometryHelper.Core
                 }
             }
 
+            // Rule R: crossings only where the arc touches the box. A crossing plainly on both settles it without asking the
+            // gap of the whole arc.
+            if (found.Count > 0 && !PlainlyOnBoth(arc, box, found, tolerance) && !CollidesWith(arc, box, tolerance))
+            {
+                return new GeoPoint3[0];
+            }
+
             return found.ToArray();
+        }
+
+        /// <summary>
+        /// Determines whether one of the crossings found stands within half the point tolerance of the arc and the box put
+        /// together, so that the two plainly touch.
+        /// </summary>
+        private static bool PlainlyOnBoth(GeoArc3 arc, GeoObb3 box, List<GeoPoint3> found, Tolerance tolerance)
+        {
+            foreach (GeoPoint3 point in found)
+            {
+                if (arc.DistanceTo(point, tolerance) + Distance3.DistanceTo(box, point) <= tolerance.EqualPoint * 0.5)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

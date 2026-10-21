@@ -380,7 +380,7 @@ namespace GeometryHelper.Meshing
         {
             Check(options, placement);
 
-            if (triangle.IsDegenerate(tolerance) || !triangle.GetAreaVector().TryGetNormal(out GeoVector3 normal, tolerance))
+            if (triangle.IsDegenerateByArea(tolerance) || !triangle.GetAreaVector().TryGetNormal(out GeoVector3 normal, tolerance))
             {
                 GeoCoordinateSystem3 anywhere = GeoCoordinateSystem3.Global.WithOrigin(triangle.A);
                 return new GeoMesh3(Mesh2.Empty(options.Kind, tolerance), new GeoPoint3[0], anywhere);

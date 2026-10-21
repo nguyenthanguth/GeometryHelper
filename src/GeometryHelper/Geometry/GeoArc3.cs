@@ -448,11 +448,22 @@ namespace GeometryHelper.Geometry
         /// of unequal length, or, for an arc of a whole turn, would skew it, as <see cref="GeoTransform3.Transform(GeoCircle3)"/>
         /// refuses a circle.
         /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a skew, a transformation <see cref="GeoTransform3.Transform(GeoCircle3)"/> would refuse for a circle in the
+        /// arc's plane, brings the two ends of an arc past a half turn within the global point tolerance of each other, so that
+        /// no arc can be told through them and its middle.
+        /// </exception>
         /// <remarks>
-        /// An arc is the arc through where its two ends and its middle land, so a skew that keeps the lengths of both axes of
-        /// its plane, such as the one that sends X to (1, 0, 0) and Y to (0.6, 0.8, 0), takes the arc of radius 100 in the plan
-        /// from 0.5 to 2 radians to an arc of radius 177.7 through its moved ends and middle. An arc of a whole turn has no ends
-        /// to go through: it is the whole circle, and is refused under such a skew, since it would be an ellipse.
+        /// A turn, a shift, a mirror or an even scaling of the arc's plane moves the arc whole, by its centre and its radius, so
+        /// an arc of any sweep moves: the arc of radius 100 sweeping a whole turn less 1E-9 turned 0.7 radians about any axis,
+        /// which threw, its ends being too close to tell a chord between. Any other transformation that keeps both axes of its
+        /// plane equally long is a skew, and the arc is then the arc through where its two ends and its middle land: the one
+        /// that sends X to (1, 0, 0) and Y to (0.6, 0.8, 0) takes the arc of radius 100 in the plan from 0.5 to 2 radians to an
+        /// arc of radius 177.7 through its moved ends and middle. An arc of a whole turn has no ends to go through: it is the
+        /// whole circle, and is refused under such a skew, since it would be an ellipse; one past a half turn whose ends the
+        /// skew brings within the global point tolerance of each other is refused too. Where the ends come that close under a
+        /// transformation that carries a circle, a turn whose numbers are rounded to six places or to a float, the arc is moved
+        /// whole as the whole turn is.
         /// </remarks>
         public GeoArc3 TransformBy(GeoTransform3 transform)
         {
@@ -461,28 +472,51 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(transform));
             }
 
-            // A whole turn is the whole circle, refused under a skew or an uneven stretch as the circle is. Any other arc keeps
-            // the rule it has had: the two axes of its plane have to come out equally long, and it is then the arc through
-            // where its ends and its middle land, skewed or not.
-            GeoCircle3 moved = Math.Abs(SweptAngle) >= FullTurn
-                ? transform.Transform(GetCircle())
-                : transform.TransformCarryingArc(GetCircle());
-
             GetPlane().GetAxes(out GeoVector3 uAxis, out GeoVector3 vAxis);
             GeoPoint3 start = transform.Transform(StartPoint);
 
-            // A whole turn has no chord: it is the moved circle, run the way its carried axes say, which a mirror turns
-            // over.
+            // A whole turn is the whole circle, refused under a skew or an uneven stretch as the circle is. It has no chord:
+            // it is the moved circle, run the way its carried axes say, which a mirror turns over.
             if (Math.Abs(SweptAngle) >= FullTurn)
             {
+                GeoCircle3 moved = transform.Transform(GetCircle());
                 GeoVector3 across = transform.Transform(uAxis).CrossProduct(transform.Transform(vAxis));
 
                 return FromCircle(moved.Center, across.Multiply(1.0 / across.Length), moved.Radius, start, SweptAngle);
             }
 
-            // Any other is the arc through where its ends and its middle land. They are reached from the start across the
-            // arc, not from the centre, so an arc bowing a thousandth of its chord off it is not three points on a line.
+            // A turn, a shift, a mirror or an even scaling of its plane moves any other arc whole as well, by its centre and
+            // its radius, so that an arc a hair short of a whole turn, whose ends no chord can be told between, moves too.
+            GeoVector3 movedU = transform.Transform(uAxis);
+            GeoVector3 movedV = transform.Transform(vAxis);
+
             GeoVector3 toEnd = Across(uAxis, vAxis, StartAngle, SweptAngle);
+
+            // Past a half turn, ends within the global point tolerance of each other are a hair short of a whole turn, whose
+            // chord says nothing about which way round the arc runs: such an arc is moved whole, as the whole turn is, where
+            // the circle would be carried, and refused under a skew.
+            bool endsMeet = Math.Abs(SweptAngle) > Math.PI && !(transform.Transform(toEnd).Length > Tolerance.Global.EqualPoint);
+
+            if (GeoTransform3.KeepsRound(movedU, movedV) || (endsMeet && GeoTransform3.KeepsCircles(movedU, movedV)))
+            {
+                GeoVector3 across = movedU.CrossProduct(movedV);
+
+                return FromCircle(transform.Transform(Center), across.Multiply(1.0 / across.Length), Radius * movedU.Length, start, SweptAngle);
+            }
+
+            if (endsMeet)
+            {
+                // An uneven stretch is refused as one, as it always has been.
+                transform.TransformCarryingArc(GetCircle());
+
+                throw new ArgumentException("This transformation brings the ends of the arc together, so no arc runs through them and its middle.", nameof(transform));
+            }
+
+            // Any other keeps the rule it has had: the two axes of its plane have to come out equally long, and it is then the
+            // arc through where its ends and its middle land, skewed or not. They are reached from the start across the arc,
+            // not from the centre, so an arc bowing a thousandth of its chord off it is not three points on a line.
+            transform.TransformCarryingArc(GetCircle());
+
             GeoVector3 toMiddle = Across(uAxis, vAxis, StartAngle, SweptAngle * 0.5);
 
             if (!Arc3.TryBulgeThrough(transform.Transform(toEnd), transform.Transform(toMiddle), out double bulge, out GeoVector3 normal))

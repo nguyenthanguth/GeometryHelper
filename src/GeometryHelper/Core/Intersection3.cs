@@ -376,7 +376,7 @@ namespace GeometryHelper.Core
         {
             intersection = GeoPoint3.Origin;
 
-            if (triangle.IsDegenerate(tolerance))
+            if (triangle.IsDegenerateByArea(tolerance))
             {
                 return false;
             }
@@ -417,7 +417,7 @@ namespace GeometryHelper.Core
         {
             intersection = GeoPoint3.Origin;
 
-            if (triangle.IsDegenerate(tolerance))
+            if (triangle.IsDegenerateByArea(tolerance))
             {
                 return false;
             }
@@ -628,6 +628,11 @@ namespace GeometryHelper.Core
         /// pairs of parallel planes, and the part of the segment inside the box is the overlap of the three
         /// intervals those pairs cut out of it. The overlap is empty exactly when some axis separates them,
         /// which is the same reasoning the separating axis test in <c>Collision3</c> rests on.
+        /// A segment that barely moves across a pair of faces is held within them when it runs no further
+        /// outside than the point tolerance, and is then given its crossings only where it comes within the
+        /// point tolerance of the box, as <see cref="Collision3.CollidesWith(GeoLine3, GeoObb3, Tolerance)"/>
+        /// reads it: past an edge of the box 10 by 10 by 10 a segment along X standing 0.000714 off both faces
+        /// is 0.00101 from the box, and crosses nothing, where it was given two points.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoObb3 box, Tolerance tolerance)
         {
@@ -641,6 +646,7 @@ namespace GeometryHelper.Core
 
             double enter = 0.0;
             double exit = 1.0;
+            bool heldOutside = false;
 
             double[] origins = { start.X, start.Y, start.Z };
             double[] steps = { direction.X, direction.Y, direction.Z };
@@ -661,6 +667,8 @@ namespace GeometryHelper.Core
                         return new GeoPoint3[0];
                     }
 
+                    // Held, either end may stand outside the slab, the one it starts at or the one it ends at.
+                    heldOutside |= Math.Max(Math.Abs(origin), Math.Abs(origin + step)) > extent;
                     continue;
                 }
 
@@ -681,6 +689,13 @@ namespace GeometryHelper.Core
                 {
                     return new GeoPoint3[0];
                 }
+            }
+
+            // Held within slabs it runs outside of, by up to the tolerance on each, it may stand further than the tolerance
+            // off an edge or a corner: rule R, the crossings only where it touches.
+            if (heldOutside && !new Gap3.Block(box).Within(line.StartPoint, line.EndPoint, tolerance, Collision3.Reach(tolerance)))
+            {
+                return new GeoPoint3[0];
             }
 
             GeoPoint3 entryPoint = Parametrization3.GetPointAtParameter(line, enter);

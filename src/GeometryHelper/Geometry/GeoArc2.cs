@@ -379,11 +379,28 @@ namespace GeometryHelper.Geometry
         /// <param name="transform">The transformation to apply.</param>
         /// <returns>The transformed arc.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the transformation would stretch the arc into part of an ellipse.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the transformation would stretch the arc into part of an ellipse, the two axes coming out of unequal
+        /// length, or, for an arc of a whole turn, would skew it, as <see cref="GeoTransform2.Transform(GeoCircle2)"/> refuses a
+        /// circle.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a skew, a transformation <see cref="GeoTransform2.Transform(GeoCircle2)"/> would refuse for a circle, brings
+        /// the two ends of an arc past a half turn within the global point tolerance of each other, so that no arc can be told
+        /// through them and its middle.
+        /// </exception>
         /// <remarks>
-        /// An arc survives a transformation only when every direction is stretched by the same amount, just
-        /// as a circle does. A transformation that turns shapes round, a mirror or a negative scaling, also
-        /// reverses the way the arc sweeps.
+        /// A turn, a shift, a mirror or an even scaling moves the arc whole, by its centre and its radius, so an arc of any
+        /// sweep moves; one that turns shapes round, a mirror or a negative scaling, also reverses the way the arc sweeps.
+        /// Any other transformation that keeps both axes equally long is a skew, and the arc is then the arc through where its
+        /// two ends and its middle land, as in space (<see cref="GeoArc3.TransformBy(GeoTransform3)"/>): the skew that sends X
+        /// to (1, 0) and Y to (0.6, 0.8) takes the arc of radius 100 about the origin from 0.5 to 2 radians to an arc of radius
+        /// 66.09 about (52.98, 20.16) through its moved ends and middle, where it came out at radius 100 about the moved centre
+        /// with its ends 22.7 and 44.6 off. An arc of a whole turn has no ends to go through: it is the whole circle, and is
+        /// refused under such a skew, since it would be an ellipse; an arc past a half turn whose ends the skew brings within the
+        /// global point tolerance of each other is refused too. Where the ends come that close under a transformation that
+        /// carries a circle, a turn whose numbers are rounded to six places, the arc is moved whole as the whole turn is: the arc
+        /// of radius 100 sweeping a whole turn less 1E-9 under such a turn moves, where it threw.
         /// </remarks>
         public GeoArc2 TransformBy(GeoTransform2 transform)
         {
@@ -400,6 +417,18 @@ namespace GeometryHelper.Geometry
                 throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
             }
 
+            // A whole turn is the whole circle, refused under a skew as the circle is. Any other arc is carried by its centre
+            // where the axes also come out square and of one length to rounding, or where its ends come together as a whole
+            // turn's do and the circle would be carried, and is otherwise the arc through where its ends and its middle land.
+            if (Math.Abs(SweptAngle) >= FullTurn)
+            {
+                transform.Transform(GetCircle());
+            }
+            else if (!GeoTransform2.KeepsRound(alongX, alongY) && !(EndsMeetUnder(transform) && GeoTransform2.KeepsCircles(alongX, alongY)))
+            {
+                return ThroughMoved(transform);
+            }
+
             GeoPoint2 center = transform.Transform(Center);
             GeoPoint2 start = transform.Transform(StartPoint);
             GeoPoint2 middle = transform.Transform(MidPoint);
@@ -409,6 +438,50 @@ namespace GeometryHelper.Geometry
 
             return new GeoArc2(center, Radius * alongX.Length, AngleOf(center, start), sweep, sweep < 0.0, true)
                 .WithMiddleThrough(middle);
+        }
+
+        /// <summary>
+        /// Gets the arc through where this one's ends and its middle land under a transformation, the middle read across
+        /// the chord from the start, so that an arc bowing a thousandth of its chord off it is not three points on a line.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the ends land within the point tolerance of each other.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the transformation lays the arc flat on a line.</exception>
+        private GeoArc2 ThroughMoved(GeoTransform2 transform)
+        {
+            GeoPoint2 start = transform.Transform(StartPoint);
+            GeoVector2 toEnd = transform.Transform(Across(StartAngle, SweptAngle));
+            GeoVector2 toMiddle = transform.Transform(Across(StartAngle, SweptAngle * 0.5));
+
+            if (EndsMeetUnder(transform))
+            {
+                throw new ArgumentException("This transformation brings the ends of the arc together, so no arc runs through them and its middle.", nameof(transform));
+            }
+
+            if (!Arc2.TryBulgeThrough(toEnd, toMiddle, out double bulge))
+            {
+                throw new InvalidOperationException("Three points on one line have no arc through them.");
+            }
+
+            return FromBulge(start, start.Add(toEnd), bulge);
+        }
+
+        /// <summary>
+        /// Determines whether the arc sweeps past a half turn and a transformation brings its ends within the global point
+        /// tolerance of each other: a hair short of a whole turn, whose chord says nothing about which way round it runs.
+        /// </summary>
+        private bool EndsMeetUnder(GeoTransform2 transform)
+            => Math.Abs(SweptAngle) > Math.PI && !(transform.Transform(Across(StartAngle, SweptAngle)).Length > Tolerance.Global.EqualPoint);
+
+        /// <summary>
+        /// Gets the chord from the point of the arc's circle at one angle to the point a turn further round.
+        /// </summary>
+        private GeoVector2 Across(double from, double turn)
+        {
+            double half = turn * 0.5;
+            double toward = from + half;
+            double chord = 2.0 * Radius * Math.Sin(half);
+
+            return new GeoVector2(-chord * Math.Sin(toward), chord * Math.Cos(toward));
         }
 
         /// <summary>

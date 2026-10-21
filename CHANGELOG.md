@@ -6,6 +6,96 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `GeoArc2.TransformBy` and `GeoEdge2.TransformBy`, and the curved chains and loops of the plane through them,
+moved an arc by its centre and its radius under any transformation that kept both axes equally long, a skew among them:
+the skew that sends X to (1, 0) and Y to (0.6, 0.8) took the arc of radius 100 about the origin from 0.5 to 2 radians
+to radius 100 about the moved centre, its start 22.7 and its end 44.6 from where they land, and the edge of bulge 0.5 from
+(0, 0) to (100, 0) ended 22.05 off, so that 13 844 of 20 000 random chains under skews came apart and were refused. The
+plane follows space now: a turn, a shift, a mirror or an even scaling, the axes coming out square and of one length to a
+part in 1E9 of the stretch, moves an arc whole as it did, to the bit on 20 000 random arcs, edges and chains each; any
+other transformation that keeps both axes equally long gives the arc through where its ends and its middle land, the
+middle read across the chord, so that arc is of radius 66.09 about (52.98, 20.16), the edge ends at (100, 0), every chain
+stays joined, and the worst end of 20 000 skewed arcs, 1.6 times the radius off, is 1.5E-8 of it. An arc of a whole turn
+is the whole circle and is refused under a skew as `GeoCircle2` is, and an arc past a half turn whose ends a skew brings
+within the global point tolerance of each other is refused with an `ArgumentException`. Under a transformation that carries
+a circle by that rule without being an exact turn, a turn whose numbers are rounded to six places on their own, such an arc
+moves whole as the whole turn does, its ends 6.2E-5 off for a radius of 100 as they were, so that from a whole turn down
+nothing between moves, throws and moves again as the sweep shrinks. An uneven scaling is refused as before.
+
+**FIXED.** `GeoArc3.TransformBy` threw on a plain turn for an arc a hair short of a whole turn, its sweep from a whole
+turn less 1E-15 to less 1E-6: its ends being too close to tell a chord between, the three-point path said "Two points in
+the same place have no chord to bulge" or "The X and Y directions must not be parallel". A turn, a shift, a mirror or an
+even scaling of the arc's plane, a stretch square to it among them, moves the arc whole now, by its centre and its
+radius, so an arc of any sweep moves: of 20 000 random arcs under such maps the 5 723 that threw are answered, and the
+11 078 others moved through three points move by at most 1.7E-8 of their radius at the ends, nearer the exact moved ends
+in 5 612 and further in 3 853, their middles within 2.8E-8 of the radius where they were up to 1.1E-4 off. Any other
+transformation still takes the arc through its ends and its middle, to the bit as before; an arc past a half turn whose
+ends it brings within the global point tolerance of each other is moved whole too where the circle would be carried, a turn
+rounded to a float or to six places, and refused under a skew with the `ArgumentException` documented now.
+
+**FIXED.** Whether two arcs in the plane truly meet, which settles their distance and whether they collide, took the
+difference of the squared radii as the difference of two squares, where their crossings take it as the product of the
+difference and the sum: two near-equal arcs of radius 8 633 about centres 0.87 apart crossed at (96 116.465, 92 341.693)
+and stood 1.5E-11 apart, and at a tolerance of nought did not collide. Both read it one way now. On 240 000 random pairs
+of arcs, both ways round, near-tangent, near-concentric and ending at a crossing among them, `CollidesWith` and
+`GetIntersections` are unchanged to the bit, and `DistanceTo` moved in 3 638, all arcs ending a hair from a crossing, by at
+most 1.2E-10, between nought and a residual of rounding either way; at a tolerance of nought the 42 pairs that crossed
+while standing apart are none.
+
+**FIXED.** `GeoTriangle3.IsDegenerate` read twice the area, a length squared, against the vector tolerance, and
+`GeoTriangle3.Normal` and `GetPlane` refused any triangle under the default vector tolerance whatever tolerance the caller
+worked to: the surface mesh keeps real triangles 0.002 wide, and a body with an opening 0.002 from its corner threw from
+`Normal` in 1 036 of 8 000 queries `GetIntersections`, `GetShortestLineTo`, `DistanceTo` and `CollidesWith` at a
+tolerance of 1E-6. A triangle has no area now when its height over its longest side is within the point tolerance, or its
+corners lie on one line to rounding; `Normal` is read from the triangle's own numbers and throws only for the second, never
+for a triangle with area. Of 40 000 random triangles, `Normal` and `GetPlane` are the same to the bit in the 24 795 that
+had them and given in the 15 205 that threw; `IsDegenerate` now says so for 9 777 slivers thinner than the default
+tolerance it did not, and at a tolerance of 1E-6 and of 0.01 flips both ways. That body answers every query. The
+queries and meshes of the library keep their own reading of no area, twice the area within the vector tolerance, so their
+answers are the same to the bit: to them the triangle 0.002 by 0.002 still has none at the default tolerance, its centroid
+`OutSide` it and a segment through it not colliding, where `IsDegenerate` calls it a triangle; moving them is a step of
+its own. `GeoPolygon3` refused a loop under the vector tolerance in area as collinear: a square 0.002 by 0.002, of 4E-6
+square units, and a triangle 0.002 across read with `ToFace3`. Such a loop is kept now where it has width, twice its area
+over its span within the point tolerance otherwise: of 20 000 random small loops, 1 928 are kept and none refused or
+changed; `GeoFace3.FromLoops` gives the same faces to the bit on all of them; and 1 500 pairs of boxes with chips and
+slivers at the tolerance, joined, crossed and subtracted at 0.001 and 0.01, give the same bodies to the bit. The strip
+mesh of a face drops pieces by their width already, as the surface mesh does (below).
+
+**FIXED.** `GeoAabb3.GetIntersections` and `GeoObb3.GetIntersections` gave points where `CollidesWith` was false. A segment
+that barely moves across a pair of faces was held within them when it ran no further outside than the point tolerance, on
+each pair on its own, so that one running along X past an edge of the box 10 by 10 by 10, 0.000714 off both faces and
+0.00101 from the box, crossed it twice; a ray, a line without ends and a straight chain went the same way. A face read an
+end of an arc standing within the tolerance of its plane and of its outline as on it, so an arc starting 0.00064 off a
+corner in each of the three directions, 0.0011 from it, crossed it once. Crossings are kept now only where the shape
+comes within the point tolerance of the box, whichever end of a segment stands outside a slab it is held in, so the one
+from (-15, 9.99995, 9.99995) to (1, 10.0009, 10.0009), 0.00119 from the edge, crosses nothing either way round, where it
+crossed at (0, 10.001, 10.001) one way, and none of 200 000 segments near an edge crosses without colliding: among 6 000 shapes grazing a box at the tolerance in each family, the 160
+segments, 177 rays, 180 lines, 117 chains, 1 277 curved chains and 1 916 arcs ending near a corner that crossed without
+colliding (188, 206, 198, 135, 1 269 and 1 963 against an oriented box) cross nothing, and every other answer, triangles,
+polygons, faces, circles, ellipses and splines among them, is the same to the bit.
+
+**FIXED.** `GeoObb3.GetFaces` and `GeoObb3.ToSolid` refused a box at most twice the global point tolerance on some axis as
+having a zero size there, so a plate 0.002 thick had no faces and no body. A side is nought now only when it is nought to
+the rounding of the box's own numbers, a millionth of a millionth of how far it reaches from the origin, and each face is
+its four corners with the normal and area its polygon would have: of 30 000 random boxes, a quarter of them with a side
+from 1E-5 to 1, the 20 817 that had faces have them to the bit, and so do the crossings of an arc through them, and the
+9 183 refused have them now. A thin box reaches every path that goes through `ToSolid` with it, collision, distance,
+crossings and `TrySubtract` among them, where those threw; `GeoObb3.IsDegenerate()` still says it has no size at the global
+point tolerance, as its tolerance says.
+
+**FIXED.** `GeoEdge3.ToArc`, and `Length`, `MidPoint` and everything else that reads an edge in space as its arc, threw
+"The X and Y directions must not be parallel" for any edge with a chord under 0.00316: the frame it is read in was built
+from the chord and the normal across it, each as long as the chord, and the plane they span, their cross product the
+chord squared, was asked of the global vector tolerance. An edge 0.003 long with a bulge of 0.5 is the arc of radius 0.001875
+now, and a short arc moved under a turn rounded to a float, which goes through its ends and its middle, moves: of radius 1
+sweeping 0.002, of radius 0.01 sweeping 0.3, of radius 10 sweeping 0.0003. The frame is read from rounding alone, made
+orthonormal as before: of 40 000 random edges with chords from 1E-4 to 1 000 the 31 332 with chords from 0.00316 up read as
+the same arc to the bit, and the 8 668 shorter, which threw, read as theirs.
+
+The suite gains 61 tests for these seven, 38 of them red before.
+`SurfaceMeshSmallFacesTests.ATriangleOfASmallFace_HasItsNormalInItsAreaVector` pinned the fault itself, a triangle 0.002
+across with no normal; it asserts now that the triangle has area and its normal.
+
 **FIXED.** Two circles whose centres stand no further apart than the point tolerance crossed nowhere, however far apart they drew
 elsewhere. The circle of radius 1 000 about the origin and the one of radius 1 000.0005 about (0.0006, 0), as much as 1.1E-3 apart in
 places, cross at (-833.33324, 552.77094) and (-833.33324, -552.77094), as the splines made of them find, and
@@ -39,7 +129,8 @@ transformations in space and 60 000 in the plane every turn, shift, mirror and e
 and shears beyond the tolerance that came through are refused, 2 287 in space and 6 399 in the plane, and so are 36 slight uneven
 scalings of a tilted circle in space, whose axes came out equally long to 1E-5 but off square by more. An arc keeps its rule: `GeoArc3.TransformBy` is the arc through where its ends
 and its middle land, skewed or not, to the bit as before on 60 000 random arcs, and only an arc of a whole turn, which is the whole
-circle, is refused under a skew as the circle is; `GeoArc2.TransformBy` and the edges of the plane are unchanged. An even scaling of
+circle, is refused under a skew as the circle is; `GeoArc2.TransformBy` and the edges of the plane are unchanged (both have moved
+since, in the entries above). An even scaling of
 about 1E5 or more of a circle in space is still refused, with an `ArgumentException`, since the normal of the plane carried with it
 comes out shorter than the vector tolerance. `GeoSphere3` is unchanged.
 

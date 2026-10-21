@@ -82,7 +82,7 @@ namespace GeometryHelper.Core
         {
             // Two triangles one of which lies clear to one side of the other's plane have no crossing to find, and
             // saying so costs three distances rather than six crossings looked for in vain.
-            bool apart = !first.IsDegenerate(tolerance) && !second.IsDegenerate(tolerance)
+            bool apart = !first.IsDegenerateByArea(tolerance) && !second.IsDegenerateByArea(tolerance)
                 && (Collision3.IsClearOf(first, second, tolerance) || Collision3.IsClearOf(second, first, tolerance));
 
             for (int i = 0; i < 3 && !apart; i++)

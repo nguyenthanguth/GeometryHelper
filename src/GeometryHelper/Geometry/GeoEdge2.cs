@@ -296,7 +296,10 @@ namespace GeometryHelper.Geometry
         /// A bulge is the shape of the arc against its own chord, so moving, turning and scaling evenly
         /// leave it alone, and mirroring changes its sign because the arc then leans the other way. A
         /// transformation that scales the axes differently would make an arc part of an ellipse, and is
-        /// refused rather than answered with an averaged one.
+        /// refused rather than answered with an averaged one. One that keeps both axes equally long but skews
+        /// them gives the edge from where its ends land through where its middle lands, as in space
+        /// (<see cref="GeoEdge3.TransformBy(GeoTransform3)"/>): the edge of bulge 0.5 from (0, 0) to (100, 0)
+        /// under the skew that sends X to (1, 0) and Y to (0.6, 0.8) ends at (100, 0), where it ended 22.05 off.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the transformation would stretch an arc into part of an ellipse.</exception>
@@ -307,13 +310,40 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(transform));
             }
 
+            GeoPoint2 start = transform.Transform(StartPoint);
+            GeoPoint2 end = transform.Transform(EndPoint);
+
             if (!IsArc)
             {
-                return new GeoEdge2(transform.Transform(StartPoint), transform.Transform(EndPoint));
+                return new GeoEdge2(start, end);
             }
 
-            // The arc refuses an uneven scaling on the edge's behalf, and works the new bulge out for it.
-            return new GeoEdge2(ToArc().TransformBy(transform));
+            GeoVector2 alongX = transform.Transform(GeoVector2.XAxis);
+            GeoVector2 alongY = transform.Transform(GeoVector2.YAxis);
+
+            // A turn, a shift, a mirror or an even scaling: the arc refuses nothing and works the new bulge out for it.
+            if (GeoTransform2.KeepsRound(alongX, alongY))
+            {
+                return new GeoEdge2(ToArc().TransformBy(transform));
+            }
+
+            if (Math.Abs(alongX.Length - alongY.Length) > Tolerance.Global.EqualVector)
+            {
+                throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
+            }
+
+            // The middle stands half the chord times the bulge off the chord's middle, to the right of the chord for a
+            // positive bulge: worked out from the chord, so however little the edge bows.
+            GeoVector2 chord = StartPoint.GetVectorTo(EndPoint);
+            GeoVector2 right = new GeoVector2(chord.Y, -chord.X);
+            GeoVector2 toMiddle = chord.Multiply(0.5).Add(right.Multiply(Bulge * 0.5));
+
+            if (!Core.Arc2.TryBulgeThrough(start.GetVectorTo(end), transform.Transform(toMiddle), out double bulge))
+            {
+                throw new InvalidOperationException("Three points on one line have no arc through them.");
+            }
+
+            return new GeoEdge2(start, end, bulge);
         }
 
         /// <summary>

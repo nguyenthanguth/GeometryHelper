@@ -1091,7 +1091,7 @@ namespace GeometryHelper.Core
         {
             GeoTriangle3 triangle = new GeoTriangle3(a.Source, b.Source, c.Source);
 
-            if (surface ? !IsCollapsed(triangle, tolerance) : !triangle.IsDegenerate(tolerance))
+            if (surface ? !IsCollapsed(triangle, tolerance) : !triangle.IsDegenerateByArea(tolerance))
             {
                 result.Add(triangle);
             }
@@ -1102,7 +1102,8 @@ namespace GeometryHelper.Core
         /// can tell.
         /// </summary>
         /// <remarks>
-        /// <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/> reads twice the area, a length squared, against a length. A
+        /// The other meshes read twice the area, a length squared, against a length (see
+        /// <see cref="GeoTriangle3.IsDegenerateByArea(Tolerance)"/>). A
         /// triangle 0.002 by 0.002 has twice the area 4E-6, under the 1E-5 of the default vector tolerance, so it was
         /// called nothing, and a wall that thin is real material: a box with a void 0.002 from its corner has the corner
         /// 0.002 thick left on every side, and the faces of 4E-6 square units there were dropped and left the mesh open

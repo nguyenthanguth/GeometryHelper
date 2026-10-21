@@ -13,7 +13,8 @@ namespace GeometryHelper.Core
     /// as colliding, and so do shapes within the point tolerance of each other: for points and straight shapes in space
     /// the answer is exactly whether <c>Distance3</c> reports no more than the point tolerance for the same pair, with one
     /// stated exception: a triangle with no area touches nothing, whatever its distance, which still reads the gap to the
-    /// segment it is. Two bodies and a plane are not read so (see <c>Distance3</c>). Where
+    /// segment it is. No area here is twice the area within the vector tolerance, not <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/>:
+    /// the triangle 0.002 by 0.002 touches nothing at the default tolerance. Two bodies and a plane are not read so (see <c>Distance3</c>). Where
     /// the shapes meet is <c>Intersection3</c>, and how far apart they are when they do not is
     /// <c>Distance3</c>.
     /// </para>
@@ -203,7 +204,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoTriangle3 triangle1, GeoTriangle3 triangle2, Tolerance tolerance)
         {
-            if (triangle1.IsDegenerate(tolerance) || triangle2.IsDegenerate(tolerance))
+            if (triangle1.IsDegenerateByArea(tolerance) || triangle2.IsDegenerateByArea(tolerance))
             {
                 return false;
             }

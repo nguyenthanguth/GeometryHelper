@@ -71,6 +71,12 @@ namespace GeometryHelper.Geometry
         /// so the loop closes implicitly and no zero-length edge survives. The normal and area are
         /// measured once here rather than on every read: the polygon cannot change afterwards, and the
         /// Newell sum they both come from is a full pass over the vertices.
+        /// <para>
+        /// Collinear means an area within the vector tolerance and no width: twice the area over the span, the longest
+        /// side of three corners or the diagonal of the box of more, within the point tolerance. A square 0.002 by 0.002,
+        /// of 4E-6 square units, is a polygon at the default tolerance, where it was refused; a triangle 0.003 long and
+        /// 0.0006 high is still refused, and one 100 long and 0.0005 high, of 0.025 square units, still kept.
+        /// </para>
         /// </remarks>
         public GeoPolygon3(IEnumerable<GeoPoint3> vertices)
             : this(vertices, Tolerance.Global)
@@ -112,12 +118,10 @@ namespace GeometryHelper.Geometry
             GeoPoint3[] loop = kept.ToArray();
             GeoVector3 areaVector = Newell.GetAreaVector(loop);
 
-            // The length of this vector is the area of the loop, so the threshold it clears is
-            // EqualVector read as an area rather than as a length. That is deliberate but worth knowing:
-            // a loop enclosing less than that is refused however long its edges are, so a sliver a metre
-            // long and a thousandth of a millimetre wide is rejected as collinear, and a genuinely tiny
-            // polygon is rejected along with it. Pass a tighter tolerance where such a polygon is real.
-            if (!areaVector.TryGetNormal(out GeoVector3 normal, tolerance))
+            // The length of this vector is the area of the loop, so the threshold it clears is EqualVector read as an area
+            // rather than as a length. A loop enclosing less than that is kept all the same where it has width, as a
+            // triangle has (GeoTriangle3.IsDegenerate): a polygon 0.002 by 0.002, of 4E-6 square units, is a polygon.
+            if (!areaVector.TryGetNormal(out GeoVector3 normal, tolerance) && !TryGetNormalOfWidth(loop, areaVector, tolerance, out normal))
             {
                 throw new ArgumentException("A polygon must enclose an area; these vertices are collinear.", nameof(vertices));
             }
@@ -173,6 +177,44 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         internal static GeoPolygon3 FromValidated(GeoPoint3[] validatedVertices, GeoVector3 normal, double area)
             => new GeoPolygon3(validatedVertices, normal, area);
+
+        /// <summary>
+        /// Gets the normal of a loop whose area is within the vector tolerance but which has width: twice its area over its
+        /// span, the longest side of three corners or the diagonal of the box of more, beyond the point tolerance, and its
+        /// area vector clear of the rounding of the sums it comes from.
+        /// </summary>
+        private static bool TryGetNormalOfWidth(GeoPoint3[] loop, GeoVector3 areaVector, Tolerance tolerance, out GeoVector3 normal)
+        {
+            normal = GeoVector3.Zero;
+
+            double spanSquared;
+
+            if (loop.Length == 3)
+            {
+                spanSquared = Math.Max(loop[0].GetDistanceSquaredTo(loop[1]), Math.Max(loop[1].GetDistanceSquaredTo(loop[2]), loop[2].GetDistanceSquaredTo(loop[0])));
+            }
+            else
+            {
+                GeoAabb3 box = GeoAabb3.FromPoints(loop);
+                spanSquared = box.Min.GetDistanceSquaredTo(box.Max);
+            }
+
+            double area = areaVector.Length;
+
+            // Written as what the loop has to have, so that one of NaNs has no width.
+            if (!(2.0 * area > tolerance.EqualPoint * Math.Sqrt(spanSquared)) || !(area > WidthRounding * spanSquared) || double.IsInfinity(area))
+            {
+                return false;
+            }
+
+            normal = new GeoVector3(areaVector.X / area, areaVector.Y / area, areaVector.Z / area);
+            return true;
+        }
+
+        /// <summary>
+        /// The share of the span squared within which the area of a loop is the rounding of the sums it comes from.
+        /// </summary>
+        private const double WidthRounding = 1E-15;
 
         /// <summary>
         /// Measures the total boundary length of a closed loop.

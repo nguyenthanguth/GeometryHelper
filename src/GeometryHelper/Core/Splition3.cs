@@ -2877,7 +2877,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoTriangle3 triangle in polygon.Triangulate())
             {
-                if (triangle.IsDegenerate(tolerance))
+                if (triangle.IsDegenerateByArea(tolerance))
                 {
                     continue;
                 }

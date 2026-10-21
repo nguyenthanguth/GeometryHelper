@@ -64,7 +64,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle1, GeoTriangle3 triangle2, Tolerance tolerance)
         {
-            if (triangle1.IsDegenerate(tolerance) || triangle2.IsDegenerate(tolerance))
+            if (triangle1.IsDegenerateByArea(tolerance) || triangle2.IsDegenerateByArea(tolerance))
             {
                 return new GeoPoint3[0];
             }
@@ -153,7 +153,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            if (triangle.IsDegenerate(tolerance))
+            if (triangle.IsDegenerateByArea(tolerance))
             {
                 return new GeoPoint3[0];
             }
@@ -250,7 +250,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
-            if (triangle.IsDegenerate(tolerance))
+            if (triangle.IsDegenerateByArea(tolerance))
             {
                 return new GeoPoint3[0];
             }
@@ -1307,7 +1307,7 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            if (triangle.IsDegenerate(tolerance))
+            if (triangle.IsDegenerateByArea(tolerance))
             {
                 return false;
             }

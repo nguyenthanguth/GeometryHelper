@@ -72,7 +72,7 @@ namespace GeometryHelper.Core
         /// through its middle and collides with nothing.
         /// </remarks>
         public static bool CollidesWith(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance)
-            => !triangle.IsDegenerate(tolerance)
+            => !triangle.IsDegenerateByArea(tolerance)
                 && Gap3.BoxGap(line.StartPoint, line.EndPoint, triangle.GetAabb()) <= Reach(tolerance)
                 && Gap3.Segment(Gap3.Region.Of(triangle), line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
@@ -159,7 +159,7 @@ namespace GeometryHelper.Core
         /// one pointing along -X from there misses it. A triangle with no area touches nothing, and keeps its distance.
         /// </remarks>
         public static bool CollidesWith(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
-            => !triangle.IsDegenerate(tolerance)
+            => !triangle.IsDegenerateByArea(tolerance)
                 && Gap3.Ray(Gap3.Region.Of(triangle), ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
         /// <summary>

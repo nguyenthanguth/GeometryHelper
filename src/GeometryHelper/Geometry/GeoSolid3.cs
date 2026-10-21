@@ -470,13 +470,10 @@ namespace GeometryHelper.Geometry
         /// </para>
         /// <para>
         /// A triangle is left out only when it has no width, its corners on a line within a millionth of the point
-        /// tolerance. One whose area vector, <see cref="GeoTriangle3.GetAreaVector()"/>, is no longer than the vector
-        /// tolerance has <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/> true, and its
-        /// <see cref="GeoTriangle3.Normal"/> and <see cref="GeoTriangle3.GetPlane()"/>, which read
-        /// <see cref="Tolerance.Global"/>, throw: each half of a small face 0.002 by 0.002, 4E-6, is one, where a triangle
-        /// 100 by 0.0008, 0.08, keeps its normal. <see cref="GeoTriangle3.ToFace3(Tolerance)"/> refuses more, a triangle with
-        /// its area within the vector tolerance or two corners within the point tolerance of each other,
-        /// and meshes held such triangles before. Take the normal from <see cref="GeoTriangle3.GetAreaVector()"/>.
+        /// tolerance. Each half of a small face 0.002 by 0.002 has its <see cref="GeoTriangle3.Normal"/> and its
+        /// <see cref="GeoTriangle3.GetPlane()"/>, and reads as a face, where they threw; one thinner than the point tolerance,
+        /// 100 by 0.0008, has <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/> true, its height over its longest side being
+        /// within it, and keeps its normal all the same.
         /// </para>
         /// </remarks>
         public GeoTriangle3[] Triangulate(Tolerance tolerance)

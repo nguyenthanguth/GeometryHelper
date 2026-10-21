@@ -698,7 +698,8 @@ namespace GeometryHelper.Core
             double directionX = fromSecond ? -towardsX : towardsX;
             double directionY = fromSecond ? -towardsY : towardsY;
 
-            double along = (nearRadius * nearRadius - farRadius * farRadius + apart * apart) / (2.0 * apart);
+            // The difference of the squared radii as the product of their difference and their sum, as Intersection2 takes it.
+            double along = ((nearRadius - farRadius) * (nearRadius + farRadius) + apart * apart) / (2.0 * apart);
             double heightSquared = nearRadius * nearRadius - along * along;
 
             if (heightSquared < 0.0)
@@ -894,6 +895,53 @@ namespace GeometryHelper.Core
 
             intersections = kept.ToArray();
             return kept.Count > 0;
+        }
+
+        /// <summary>
+        /// Gets the bulge of the arc from a start through a point to an end, read from its chord, as
+        /// <see cref="Arc3.TryBulgeThrough(GeoVector3, GeoVector3, out double, out GeoVector3)"/> reads it in space.
+        /// </summary>
+        /// <param name="toEnd">From the start to the end.</param>
+        /// <param name="toMiddle">From the start to a point of the arc between its ends.</param>
+        /// <param name="bulge">The bulge: positive where the arc runs counter-clockwise, the point lying to the right of the chord.</param>
+        /// <returns>false when the three points lie on one line to the last digit, so no arc runs through them.</returns>
+        /// <remarks>
+        /// Nothing is measured from the centre: the sag is worked out across the chord, so an arc bowing a trillionth of its
+        /// chord comes out as exactly as a half circle. The point need not be the arc's middle: an arc skewed is answered with
+        /// the arc through where its ends and its middle land.
+        /// </remarks>
+        internal static bool TryBulgeThrough(GeoVector2 toEnd, GeoVector2 toMiddle, out double bulge)
+        {
+            bulge = 0.0;
+
+            double chord = toEnd.Length;
+
+            if (!(chord > 0.0))
+            {
+                return false;
+            }
+
+            GeoVector2 along = toEnd.Multiply(1.0 / chord);
+            GeoVector2 offMiddle = toMiddle.Subtract(toEnd.Multiply(0.5));
+            double ahead = offMiddle.DotProduct(along);
+            double aside = along.CrossProduct(offMiddle);
+            double off = Math.Abs(aside);
+
+            if (!(off > 0.0))
+            {
+                return false;
+            }
+
+            // The centre stands back from the chord's middle, away from the point, by `back`; past a half turn it stands on
+            // the point's side and `back` is negative. The sag on the point's side is the radius less `back`, worked out
+            // without the difference of two near-equal large numbers.
+            double halfSquared = chord * chord * 0.25;
+            double back = (halfSquared - ahead * ahead - off * off) / (2.0 * off);
+            double radius = Math.Sqrt(halfSquared + back * back);
+            double sag = back >= 0.0 ? halfSquared / (radius + back) : radius - back;
+
+            bulge = (aside < 0.0 ? 2.0 : -2.0) * sag / chord;
+            return true;
         }
 
         #endregion

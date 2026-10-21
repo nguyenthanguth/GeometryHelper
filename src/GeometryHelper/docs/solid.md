@@ -155,6 +155,14 @@ box.AxisX.IsPerpendicularTo(box.AxisY);  // true
 box.AxisX.CrossProduct(box.AxisY).IsEqualTo(box.AxisZ); // true
 ```
 
+A box has its six faces, `GetFaces()` and `ToSolid()`, however thin, read from its own numbers rather than against
+the global tolerance: a plate 0.002 by 50 by 30 is a body, where it was refused as having a zero size on some axis,
+and only a side no more than a millionth of a millionth of how far the box reaches from the origin is nought; it reaches
+every query that goes through its solid, though `IsDegenerate()` still calls it flat at the global point tolerance. A box,
+oriented or not, gives crossings only where a shape comes within the point tolerance of it, as `CollidesWith` reads
+it: a segment along X standing 0.000714 off both faces past an edge of the box 10 by 10 by 10, 0.00101 from it, crosses
+nothing, where it was given two points, and so for a ray, a line without ends, a chain and an arc ending near a corner.
+
 ### Solids and openings
 
 A `GeoSolid3` is the set of faces bounding a body. An opening is a whole solid subtracted from it — a duct
@@ -234,12 +242,13 @@ on the rim of an opening the probe never comes near. **A body asked many questio
 meshes the faces as they are; `TriangulateSurface` is the mesh to read as the boundary.
 
 A triangle of the surface mesh is left out only when its corners lie on a line within a millionth of the point
-tolerance; a face 0.002 by 0.002 is its two triangles at the default tolerance. A triangle whose area vector,
-`GetAreaVector()`, twice its area, is no longer than the vector tolerance has `IsDegenerate(tolerance)` true, and its
-`Normal` and `GetPlane()`, which read `Tolerance.Global`, throw: each half of that face, 4E-6, is one, where a triangle
-100 by 0.0008, 0.08, keeps its normal. `ToFace3(tolerance)` refuses more, a triangle with its area within the vector
-tolerance or two corners within the point tolerance of each other, and meshes held such triangles
-before; take the normal of a triangle of the mesh from `GetAreaVector()`. A face thinner than the tolerance is a seam at
+tolerance; a face 0.002 by 0.002 is its two triangles at the default tolerance. A triangle has no area,
+`IsDegenerate(tolerance)`, when its height over its longest side is within the point tolerance, or its corners lie on
+one line to rounding: each half of that face, 0.0014 high, is a triangle, with its `Normal` and its `GetPlane()` and
+read as a face, where they threw; one 100 by 0.0008 has no area at the default tolerance and keeps its normal all the
+same. `Normal` is read from the triangle's own numbers and throws only for corners on a line to rounding. A polygon
+under the vector tolerance in area is kept where it has width in the same way, so a square 0.002 by 0.002 is one; what
+the queries and the meshes read as no area is as it was. A face thinner than the tolerance is a seam at
 it and has no triangle: a slab 100 by 100 and 0.0008 thick, built within 1E-5, is 12 triangles at 1E-5 and 4 at 0.001,
 its four sides gone, and a Debug line in `GeometryHelperLog` says how many faces were left out whole and how much area
 they had; a face meshed in part is not counted.
@@ -455,7 +464,11 @@ and chains and loops of arcs against all of them. Measured at a thousandth:
 Eight things are read otherwise, on purpose:
 
 * **A triangle with no area**, such as (0, 0, 0), (100, 0, 0), (50, 1E-8, 0), touches nothing whatever its distance, which
-  is still its gap, so for it `CollidesWith` is not `DistanceTo <= EqualPoint`.
+  is still its gap, so for it `CollidesWith` is not `DistanceTo <= EqualPoint`. No area here is twice the area within the
+  vector tolerance, the reading the queries have kept, not `GeoTriangle3.IsDegenerate`, which reads the height against the
+  point tolerance: the triangle 0.002 by 0.002 is a triangle to `IsDegenerate` and has no area to the queries at the default
+  tolerance, so its centroid is `OutSide` it and a segment through it does not collide, where its face reads the centroid
+  `OnSide` and the segment touching. Moving the queries to the height is a step of its own.
 * **A body against a body**, or an oriented box against an oriented or an axis-aligned box, is searched through the
   triangles of the two and reads nought when they are within the point tolerance of each other: two solid boxes 0.0004 apart
   are nought apart, and so is an axis-aligned box 0.0004 from an oriented box or a solid, though the line between them
@@ -1730,10 +1743,14 @@ as a ball is read, so that a turn whose numbers are rounded to six places or to 
 the skew that sends X to (1, 0, 0) and Y to (0.6, 0.8, 0), which a circle of radius 100 in the plan came through at
 radius 100, is refused, since it would be an ellipse. The test reads alike at any size, but the plane is carried by its
 normal, which an even scaling of about 1E5 or more makes shorter than the vector tolerance, so such a scaling is refused
-all the same, with an `ArgumentException`. An arc is not refused so: it is the arc through where its two ends and its
-middle land, as it has been, so that skew takes the arc of radius 100 in the plan from 0.5 to 2 radians to an arc of radius
-177.7 through its moved ends and middle; only an arc of a whole turn, which has no ends to go through, is refused as the
-circle is. An ellipse takes every transformation that can be undone, and comes back an ellipse. Seen square onto a
+all the same, with an `ArgumentException`. An arc is not refused so. A turn, a shift, a mirror or an even scaling of its
+plane moves it whole, by its centre and its radius, so an arc of any sweep moves, one a hair short of a whole turn
+among them, which threw; any other transformation that keeps both axes of its plane equally long takes it through where
+its two ends and its middle land, so that skew takes the arc of radius 100 in the plan from 0.5 to 2 radians to an arc
+of radius 177.7 through its moved ends and middle. An arc of a whole turn, which has no ends to go through, is refused as
+the circle is, and one past a half turn whose ends the skew brings within the global point tolerance of each other is
+refused with an `ArgumentException`; under a turn rounded to a float or to six places, which carries a circle, such an arc
+is moved whole as the whole turn is. An ellipse takes every transformation that can be undone, and comes back an ellipse. Seen square onto a
 plane, a circle or an ellipse is an ellipse in that plane:
 
 ```csharp

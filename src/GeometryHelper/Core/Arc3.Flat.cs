@@ -114,7 +114,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoArc3 arc, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            if (triangle.IsDegenerate(tolerance))
+            if (triangle.IsDegenerateByArea(tolerance))
             {
                 return false;
             }

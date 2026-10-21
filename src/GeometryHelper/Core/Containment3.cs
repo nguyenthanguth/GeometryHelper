@@ -118,11 +118,13 @@ namespace GeometryHelper.Core
         /// A triangle is a planar region, so a point counts as inside only when it lies on the carrier
         /// plane as well as within the edges: a point hovering above the middle of a triangle is outside
         /// it. A degenerate triangle has no interior at all and reports every point as outside, including
-        /// points on the sliver itself, because a shape with no area is not a region.
+        /// points on the sliver itself, because a shape with no area is not a region. Degenerate here is twice the
+        /// area within the vector tolerance, not <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/>: the centroid of
+        /// the triangle 0.002 by 0.002 is outside it at the default tolerance.
         /// </remarks>
         public static PointLocation Locate(GeoTriangle3 triangle, GeoPoint3 point, Tolerance tolerance)
         {
-            if (triangle.IsDegenerate(tolerance))
+            if (triangle.IsDegenerateByArea(tolerance))
             {
                 return PointLocation.OutSide;
             }

@@ -250,13 +250,10 @@ namespace GeometryHelper.Geometry
         /// tolerance, where they were once dropped as too small and left a gap in the mesh of the body they closed.
         /// </para>
         /// <para>
-        /// A triangle whose area vector, <see cref="GeoTriangle3.GetAreaVector()"/>, is no longer than the vector tolerance
-        /// has <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/> true, and its <see cref="GeoTriangle3.Normal"/> and
-        /// <see cref="GeoTriangle3.GetPlane()"/>, which read <see cref="Tolerance.Global"/>, throw: each half of a face
-        /// 0.002 by 0.002, 4E-6, is one, where a triangle 100 by 0.0008, 0.08, keeps its normal.
-        /// <see cref="GeoTriangle3.ToFace3(Tolerance)"/> refuses more, a triangle with its area within the vector tolerance
-        /// or two corners within the point tolerance of each other, and meshes held such triangles
-        /// before. Take the normal of a triangle of the mesh from <see cref="GeoTriangle3.GetAreaVector()"/>.
+        /// Each half of a face 0.002 by 0.002 is a triangle with its <see cref="GeoTriangle3.Normal"/> and its
+        /// <see cref="GeoTriangle3.GetPlane()"/>, and reads as a face, where they threw. A triangle of the mesh thinner than
+        /// the point tolerance, one 100 by 0.0008, has <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/> true, its height
+        /// over its longest side being within it, and keeps its normal all the same.
         /// </para>
         /// </remarks>
         public GeoTriangle3[] TriangulateSurface(Tolerance tolerance)

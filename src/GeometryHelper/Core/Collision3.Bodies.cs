@@ -58,7 +58,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
-            if (triangle.IsDegenerate(tolerance))
+            if (triangle.IsDegenerateByArea(tolerance))
             {
                 return false;
             }

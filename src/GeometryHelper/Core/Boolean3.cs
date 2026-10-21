@@ -1560,7 +1560,7 @@ namespace GeometryHelper.Core
             {
                 foreach (GeoTriangle3 triangle in mesh)
                 {
-                    if (triangle.IsDegenerate(tolerance))
+                    if (triangle.IsDegenerateByArea(tolerance))
                     {
                         continue;
                     }

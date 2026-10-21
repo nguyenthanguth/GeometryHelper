@@ -63,7 +63,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            return !triangle.IsDegenerate(tolerance)
+            return !triangle.IsDegenerateByArea(tolerance)
                 && triangle.GetAabb().DistanceTo(polygon.GetAabb()) <= Reach(tolerance)
                 && Gap3.Regions(Gap3.Region.Of(triangle), Gap3.Region.Of(polygon), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
@@ -99,7 +99,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
-            return !triangle.IsDegenerate(tolerance)
+            return !triangle.IsDegenerateByArea(tolerance)
                 && triangle.GetAabb().DistanceTo(face.GetAabb()) <= Reach(tolerance)
                 && Gap3.Regions(Gap3.Region.Of(triangle), Gap3.Region.Of(face), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }

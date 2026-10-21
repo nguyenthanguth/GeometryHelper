@@ -202,10 +202,21 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the six faces of the box as polygons, each wound so its normal points outwards.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when the box is flat on any axis.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the box is flat on any axis: its size there no more than a millionth of a millionth of how far it
+        /// reaches from the origin, the rounding of its own numbers.
+        /// </exception>
+        /// <remarks>
+        /// The size is read from the box's own numbers, not against a tolerance: a box 0.002 by 50 by 30 has its six faces,
+        /// two of them 0.002 by 30, where it was refused as flat at the default point tolerance; so has a box 0.0002 thick. Each
+        /// face is its four corners, with the normal and the area they make.
+        /// </remarks>
         public GeoPolygon3[] GetFaces()
         {
-            if (IsDegenerate())
+            double reach = Math.Max(Math.Abs(Center.X), Math.Max(Math.Abs(Center.Y), Math.Abs(Center.Z))) + ExtentX + ExtentY + ExtentZ;
+            double nought = reach * FlatShare;
+
+            if (!(ExtentX > nought) || !(ExtentY > nought) || !(ExtentZ > nought))
             {
                 throw new InvalidOperationException("A box with a zero size on some axis has no faces to build.");
             }
@@ -214,19 +225,37 @@ namespace GeometryHelper.Geometry
 
             return new[]
             {
-                new GeoPolygon3(c[0], c[3], c[2], c[1]), // bottom, normal along -Z
-                new GeoPolygon3(c[4], c[5], c[6], c[7]), // top, normal along +Z
-                new GeoPolygon3(c[0], c[1], c[5], c[4]), // front, normal along -Y
-                new GeoPolygon3(c[2], c[3], c[7], c[6]), // back, normal along +Y
-                new GeoPolygon3(c[1], c[2], c[6], c[5]), // right, normal along +X
-                new GeoPolygon3(c[3], c[0], c[4], c[7])  // left, normal along -X
+                Face(c[0], c[3], c[2], c[1]), // bottom, normal along -Z
+                Face(c[4], c[5], c[6], c[7]), // top, normal along +Z
+                Face(c[0], c[1], c[5], c[4]), // front, normal along -Y
+                Face(c[2], c[3], c[7], c[6]), // back, normal along +Y
+                Face(c[1], c[2], c[6], c[5]), // right, normal along +X
+                Face(c[3], c[0], c[4], c[7])  // left, normal along -X
             };
+        }
+
+        /// <summary>
+        /// The share of how far a box reaches from the origin that its size on an axis has to exceed for it to have faces.
+        /// </summary>
+        private const double FlatShare = 1E-12;
+
+        /// <summary>
+        /// Gets a face of the box from its four corners, with the normal and the area they make, measured as the polygon's own
+        /// constructor measures them, so that a box it would accept has the very same faces; nothing is refused against a
+        /// tolerance, since the corners of a box are apart and flat by construction.
+        /// </summary>
+        private static GeoPolygon3 Face(params GeoPoint3[] corners)
+        {
+            GeoVector3 areaVector = Newell.GetAreaVector(corners);
+            double length = areaVector.Length;
+
+            return GeoPolygon3.FromValidated(corners, new GeoVector3(areaVector.X / length, areaVector.Y / length, areaVector.Z / length), length);
         }
 
         /// <summary>
         /// Gets this box as a solid bounded by its six faces.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when the box is flat on any axis.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the box is flat on any axis, as <see cref="GetFaces"/> reads it.</exception>
         public GeoSolid3 ToSolid()
         {
             GeoPolygon3[] faces = GetFaces();

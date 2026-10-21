@@ -213,9 +213,9 @@ namespace GeometryHelper.Geometry
         /// Checks whether the triangle has no area, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The test is on twice the area, the cross product of two edges, against the vector tolerance, as
-        /// <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/> tests its area vector. A sliver whose vertices are far apart
-        /// but almost in a row is caught by the same threshold as three coincident points.
+        /// The test is on twice the area, the cross product of two edges, against the vector tolerance, as the queries of a
+        /// triangle in space read its area vector. A sliver whose vertices are far apart but almost in a row is caught by the
+        /// same threshold as three coincident points.
         /// </remarks>
         public bool IsDegenerate(Tolerance tolerance) => !(Math.Abs(Cross) > tolerance.EqualVector);
 

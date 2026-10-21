@@ -117,8 +117,35 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the unit normal of the triangle, following the right-hand rule around A, B, C.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when the triangle is degenerate.</exception>
-        public GeoVector3 Normal => GetAreaVector().Normalize();
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the corners lie on one line to rounding, so that no normal can be formed: never for a triangle
+        /// <see cref="IsDegenerate(Tolerance)"/> does not call degenerate, whatever the tolerance.
+        /// </exception>
+        /// <remarks>
+        /// The normal is read from the triangle's own numbers, not against a tolerance: a triangle 0.002 by 0.002, with twice
+        /// its area 4E-6, has its normal, where it threw under the default vector tolerance.
+        /// </remarks>
+        public GeoVector3 Normal
+        {
+            get
+            {
+                GeoVector3 ab = A.GetVectorTo(B);
+                GeoVector3 ac = A.GetVectorTo(C);
+                GeoVector3 area = ab.CrossProduct(ac);
+                double squared = area.LengthSquared;
+
+                // Against the two sides it is the cross product of, which the longest side squared, as IsDegenerate reads
+                // it, never falls short of: a triangle with area by that has a normal by this.
+                if (!(squared > NormalRounding * NormalRounding * ab.LengthSquared * ac.LengthSquared) || double.IsInfinity(squared))
+                {
+                    throw new InvalidOperationException("A triangle whose corners lie on one line has no normal.");
+                }
+
+                double length = Math.Sqrt(squared);
+
+                return new GeoVector3(area.X / length, area.Y / length, area.Z / length);
+            }
+        }
 
         /// <summary>
         /// Gets the centroid of the triangle.
@@ -268,10 +295,51 @@ namespace GeometryHelper.Geometry
         /// Checks whether the triangle has no area, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// The test is on the area vector rather than on the area, so a sliver whose vertices are far
-        /// apart but almost collinear is caught by the same threshold that catches three coincident points.
+        /// A triangle has no area when its height over its longest side is within the point tolerance, so that it lies within
+        /// the tolerance of that side, a segment; or when its corners lie on one line to rounding, so that it has no normal.
+        /// The test is a length against a length: a triangle 0.002 by 0.002 is a triangle at the default tolerance, and a sliver
+        /// 1 000 long and 0.0004 high is not, where twice the area read against the vector tolerance called the first nothing
+        /// and the second a triangle. The queries of a triangle, <c>CollidesWith</c>, <c>GetIntersections</c> and
+        /// <c>Locate</c> among them, still read no area by twice the area against the vector tolerance, as they did: to them
+        /// the triangle 0.002 by 0.002 has none at the default tolerance, its centroid is outside it and a segment through it
+        /// does not collide.
         /// </remarks>
-        public bool IsDegenerate(Tolerance tolerance) => GetAreaVector().IsZeroLength(tolerance);
+        public bool IsDegenerate(Tolerance tolerance)
+        {
+            double longestSquared = LongestSideSquared();
+            double twiceArea = GetAreaVector().Length;
+
+            // Written as what a triangle needs, so that one of NaNs has no area.
+            return !(twiceArea > tolerance.EqualPoint * Math.Sqrt(longestSquared)) || !IsFormed(twiceArea, longestSquared);
+        }
+
+        /// <summary>
+        /// Checks whether twice the area is within the vector tolerance: the reading of no area that the library's own
+        /// queries and meshing keep, bit for bit, where a triangle with none touches nothing and is left out of a mesh.
+        /// </summary>
+        /// <remarks>
+        /// It reads a length squared against a length, the trap <see cref="IsDegenerate(Tolerance)"/> no longer falls into: a
+        /// triangle 0.002 by 0.002 has no area by it at the default tolerance, and a sliver 1 000 long and 0.0004 high has.
+        /// The paths that read it are pinned to what they answer by it, and moving them is a step of its own.
+        /// </remarks>
+        internal bool IsDegenerateByArea(Tolerance tolerance) => GetAreaVector().IsZeroLength(tolerance);
+
+        /// <summary>
+        /// Gets the square of the longest side.
+        /// </summary>
+        private double LongestSideSquared()
+            => Math.Max(A.GetDistanceSquaredTo(B), Math.Max(B.GetDistanceSquaredTo(C), C.GetDistanceSquaredTo(A)));
+
+        /// <summary>
+        /// Determines whether twice the area stands clear of the rounding of the cross product it comes from, a few parts in
+        /// 1E16 of the longest side squared, so that the area vector has a direction.
+        /// </summary>
+        private static bool IsFormed(double twiceArea, double longestSquared) => twiceArea > NormalRounding * longestSquared;
+
+        /// <summary>
+        /// The share of the longest side squared within which twice the area is the rounding of the cross product.
+        /// </summary>
+        private const double NormalRounding = 1E-15;
 
         #region Barycentric coordinates
 
@@ -282,7 +350,10 @@ namespace GeometryHelper.Geometry
         /// <param name="u">Weight of vertex <see cref="A"/>.</param>
         /// <param name="v">Weight of vertex <see cref="B"/>.</param>
         /// <param name="w">Weight of vertex <see cref="C"/>.</param>
-        /// <returns>false when the triangle is degenerate, in which case all three weights are zero.</returns>
+        /// <returns>
+        /// false when twice the area of the triangle is within the default vector tolerance, the reading the containment of a
+        /// point in it keeps, in which case all three weights are zero.
+        /// </returns>
         /// <remarks>
         /// The point is projected onto the triangle plane first, so a point off the plane gets the
         /// coordinates of its projection. The three weights always sum to one, and all three are
@@ -303,9 +374,9 @@ namespace GeometryHelper.Geometry
             double denominator = d00 * d11 - d01 * d01;
 
             // The denominator is the squared length of the area vector, so it vanishes for exactly the
-            // triangles IsDegenerate reports, and comparing it against zero here would let slivers through
-            // that the rest of the library treats as degenerate.
-            if (Math.Abs(denominator) <= double.Epsilon || IsDegenerate())
+            // triangles IsDegenerateByArea reports, and comparing it against zero here would let slivers through
+            // that the rest of the library treats as having no area.
+            if (Math.Abs(denominator) <= double.Epsilon || IsDegenerateByArea(Tolerance.Global))
             {
                 u = 0.0;
                 v = 0.0;

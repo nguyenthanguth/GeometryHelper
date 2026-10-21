@@ -141,9 +141,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoTriangle3 triangle = small.TriangulateSurface(Tolerance)[0];
 
-            // Thinner than the tolerance, as the guide says: it reads as degenerate and has no Normal, but the area vector is there.
-            Assert.True(triangle.IsDegenerate(Tolerance));
-            Assert.ThrowsAny<Exception>(() => triangle.Normal);
+            // Its height over its longest side, 0.0014, is more than the tolerance: it is a triangle, with its normal.
+            Assert.False(triangle.IsDegenerate(Tolerance));
+            Assert.Equal(GeoVector3.ZAxis, triangle.Normal);
             Assert.Equal(4E-6, triangle.GetAreaVector().Z, 12);
         }
 

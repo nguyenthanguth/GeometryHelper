@@ -118,6 +118,34 @@ namespace GeometryHelper.Geometry
         internal GeoCoordinateSystem3 WithOrigin(GeoPoint3 origin) => new GeoCoordinateSystem3(origin, XAxis, YAxis, ZAxis);
 
         /// <summary>
+        /// The frame of two directions, made orthonormal to the bit as the public constructor makes them, but refused only
+        /// where they span nothing to rounding rather than against the global vector tolerance: two directions a few
+        /// thousandths long have a cross product of a few millionths, which that tolerance reads as nothing.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when either direction has no length, or the two are parallel, to rounding.</exception>
+        internal static GeoCoordinateSystem3 Spanning(GeoPoint3 origin, GeoVector3 xAxis, GeoVector3 yAxis)
+        {
+            double alongX = xAxis.Length;
+            GeoVector3 across = xAxis.CrossProduct(yAxis);
+            double alongZ = across.Length;
+
+            if (!(alongX > 0.0) || double.IsInfinity(alongX))
+            {
+                throw new ArgumentException("A coordinate system needs an X direction of non-zero length.", nameof(xAxis));
+            }
+
+            if (!(alongZ > 0.0) || double.IsInfinity(alongZ))
+            {
+                throw new ArgumentException("The X and Y directions must not be parallel.", nameof(yAxis));
+            }
+
+            var unitX = new GeoVector3(xAxis.X / alongX, xAxis.Y / alongX, xAxis.Z / alongX);
+            var unitZ = new GeoVector3(across.X / alongZ, across.Y / alongZ, across.Z / alongZ);
+
+            return new GeoCoordinateSystem3(origin, unitX, unitZ.CrossProduct(unitX), unitZ);
+        }
+
+        /// <summary>
         /// Gets the XY plane of this coordinate system, oriented along the local Z axis.
         /// </summary>
         public GeoPlane3 GetPlane() => new GeoPlane3(Origin, ZAxis);

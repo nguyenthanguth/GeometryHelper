@@ -611,8 +611,9 @@ trip through a drawing is exact.
 
 `Arc2` holds the operations, and they mirror the ones for a line: `ProjectToArc`, `DistanceTo` (to a
 point, a segment or another arc), `IsPointOn`, `Locate`, `TryIntersectWith` and `GetIntersections`,
-`TrySplitAt`. Moving an arc is `Translate`, `RotateBy` and `TransformBy`; scaling it evenly is fine, and a
-transformation that would make it an ellipse is refused rather than approximated.
+`TrySplitAt`. Moving an arc is `Translate`, `RotateBy` and `TransformBy`; scaling it evenly is fine, a
+scaling uneven between the axes is refused rather than approximated, and a skew gives the arc through where its ends
+and its middle land (see [Moving geometry](#moving-geometry)).
 
 Two circles that stay within the point tolerance of each other all the way round, their centres and their radii no
 more than the tolerance apart put together, are one circle, which meets along its length rather than at points, and
@@ -1476,6 +1477,17 @@ a circle of radius 100 scaled by `Scaling(3, 1)` is the ellipse 300 by 100. An e
 transformation that does not flatten the plane, and stays an ellipse. A rectangle is
 refused the same way when it would come out a parallelogram — transform `rectangle.ToPolygon()` when that
 is what you want.
+
+An arc, and an edge with a bulge, is moved whole by its centre and its radius under a turn, a shift, a mirror or an even
+scaling, to the bit as it was. Under a skew that keeps both axes equally long it is the arc through where its two ends
+and its middle land, as an arc in space is: the skew that sends X to (1, 0) and Y to (0.6, 0.8) takes the arc of radius
+100 about the origin from 0.5 to 2 radians to an arc of radius 66.09 about (52.98, 20.16), where it came out at radius
+100 about the moved centre with its ends 22.7 and 44.6 off, and the edge of bulge 0.5 from (0, 0) to (100, 0) ends at
+(100, 0), where it ended 22.05 off, so a chain of such edges stays joined. An arc of a whole turn is the whole circle and
+is refused under the skew as the circle is, and so, with an `ArgumentException`, is an arc past a half turn whose ends
+the skew brings within the global point tolerance of each other. Under a transformation that carries a circle without
+being an exact turn, a turn whose numbers are rounded to six places, such an arc is moved whole as the whole turn is. An
+uneven scaling is refused as before.
 
 **Mirroring turns shapes round.** A polygon that ran counter-clockwise comes back clockwise, its
 `SignedArea` changes sign and its `Area` does not. `GetDeterminant` says so in advance: it is the factor

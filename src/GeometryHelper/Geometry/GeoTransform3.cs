@@ -727,19 +727,28 @@ namespace GeometryHelper.Geometry
             GeoVector3 movedU = Transform(uAxis);
             GeoVector3 movedV = Transform(vAxis);
 
-            // The rule of the ball, for the two axes of the circle's plane.
-            double stretch = Math.Sqrt((movedU.LengthSquared + movedV.LengthSquared) / 2.0);
-            double slack = Tolerance.Global.EqualVector * stretch * stretch;
-
-            if (!(stretch > 0.0)
-                || Math.Abs(movedU.LengthSquared - stretch * stretch) > slack
-                || Math.Abs(movedV.LengthSquared - stretch * stretch) > slack
-                || Math.Abs(movedU.DotProduct(movedV)) > slack)
+            if (!KeepsCircles(movedU, movedV))
             {
                 throw new InvalidOperationException("This transformation stretches the circle into an ellipse.");
             }
 
             return Carry(circle, movedU.Length);
+        }
+
+        /// <summary>
+        /// Determines whether two axes of a plane, square to each other and of one length, come out of the transformation
+        /// equally long and square to each other, to the default vector tolerance of the square of the stretch: the rule of
+        /// the ball (<see cref="Transform(GeoSphere3)"/>) by which a circle in that plane stays a circle.
+        /// </summary>
+        internal static bool KeepsCircles(GeoVector3 movedU, GeoVector3 movedV)
+        {
+            double stretch = Math.Sqrt((movedU.LengthSquared + movedV.LengthSquared) / 2.0);
+            double slack = Tolerance.Global.EqualVector * stretch * stretch;
+
+            return stretch > 0.0
+                && !(Math.Abs(movedU.LengthSquared - stretch * stretch) > slack)
+                && !(Math.Abs(movedV.LengthSquared - stretch * stretch) > slack)
+                && !(Math.Abs(movedU.DotProduct(movedV)) > slack);
         }
 
         /// <summary>
@@ -761,6 +770,26 @@ namespace GeometryHelper.Geometry
             }
 
             return Carry(circle, alongU);
+        }
+
+        /// <summary>
+        /// Determines whether two axes of a plane, square to each other and of one length, come out of the transformation
+        /// square and of one length again to the rounding of a matrix built from axes, as a turn, a shift, a mirror or an even
+        /// scaling leaves them: whether an arc in that plane can be moved whole, by its centre and its radius.
+        /// </summary>
+        /// <remarks>
+        /// Judged as a share of the squared stretch, as <see cref="GeoTransform2.KeepsRound(GeoVector2, GeoVector2)"/> judges
+        /// it, so alike at any size, and not against a tolerance: this asks what the transformation does to the plane. A
+        /// stretch square to the plane leaves it round; a matrix rounded to six places or to a float does not.
+        /// </remarks>
+        internal static bool KeepsRound(GeoVector3 movedU, GeoVector3 movedV)
+        {
+            double square = (movedU.LengthSquared + movedV.LengthSquared) * 0.5;
+            double slack = GeoTransform2.RoundSlack * square;
+
+            return square > 0.0
+                && Math.Abs(movedU.LengthSquared - movedV.LengthSquared) <= slack
+                && Math.Abs(movedU.DotProduct(movedV)) <= slack;
         }
 
         /// <summary>

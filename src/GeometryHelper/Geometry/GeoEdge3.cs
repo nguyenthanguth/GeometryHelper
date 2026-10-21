@@ -484,11 +484,16 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the frame the bulge is read in: standing on the start point, X along the chord, Z the normal.
         /// </summary>
+        /// <remarks>
+        /// The two directions are the chord and the normal across it, each as long as the chord, so the plane they span
+        /// is read from rounding alone: against the vector tolerance, the square of a chord under 0.00316 was nothing, and
+        /// an edge that short could not be read as an arc.
+        /// </remarks>
         private GeoCoordinateSystem3 Frame()
         {
             GeoVector3 along = StartPoint.GetVectorTo(EndPoint);
 
-            return new GeoCoordinateSystem3(StartPoint, along, Normal.CrossProduct(along));
+            return GeoCoordinateSystem3.Spanning(StartPoint, along, Normal.CrossProduct(along));
         }
         #region Extending and trimming
 
