@@ -46,7 +46,7 @@ namespace GeometryHelper.Core
         /// A triangle wholly inside the body crosses no face and touches it all the same, so where its first corner is
         /// is asked once nothing crosses. A box 100 by 100 by 100 with a corner at the origin is touched by a triangle
         /// lying across it at half its height and by one wholly inside it, and not by one standing 10 clear of its top. A
-        /// triangle with no area touches nothing, and keeps its distance. Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
+        /// triangle with no area is the segment it has collapsed to, and touches as its distance says. Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
         /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
         /// </remarks>
@@ -56,11 +56,6 @@ namespace GeometryHelper.Core
             if (solid == null)
             {
                 throw new ArgumentNullException(nameof(solid));
-            }
-
-            if (triangle.IsDegenerateByArea(tolerance))
-            {
-                return false;
             }
 
             GeoSolid3 material = Material3.Whole(solid, tolerance);

@@ -297,7 +297,41 @@ namespace GeometryHelper.Core
                     Math.Min(PointGap(from), PointGap(to)),
                     Math.Min(PointToSegment(StartPoint, from, to), PointToSegment(EndPoint, from, to)));
 
-                double length = Math.Sqrt(squared);
+                var found = new double[64];
+                var seeds = new double[32];
+
+                if (!Turns(from, to, found, out int count, seeds, out int seedCount, out double lowest, out double highest))
+                {
+                    // The offset from the line does not change along the arc: the segment runs along the axis of its circle.
+                    return best;
+                }
+
+                for (int i = 0; i < count; i++)
+                {
+                    best = Math.Min(best, PointToSegment(At(found[i]), from, to));
+                }
+
+                // A root the slope of the polynomial barely leaves, a double or a triple one, is known only loosely, and a step of
+                // Newton's can carry it away; the distance itself is minimised round it, which cannot lose what was there.
+                for (int i = 0; i < seedCount; i++)
+                {
+                    best = Math.Min(best, NearestRound(from, to, seeds[i], lowest, highest, out _));
+                }
+
+                return best;
+            }
+
+            /// <summary>
+            /// Gets the angles of the arc where its distance from the line of a segment, of some length, turns, and those to be
+            /// minimised round, between the limits of its sweep: false where the distance does not change along the arc.
+            /// </summary>
+            private bool Turns(
+                GeoPoint3 from, GeoPoint3 to, double[] found, out int count, double[] seeds, out int seedCount, out double lowest, out double highest)
+            {
+                double dx = to.X - from.X;
+                double dy = to.Y - from.Y;
+                double dz = to.Z - from.Z;
+                double length = Math.Sqrt(dx * dx + dy * dy + dz * dz);
                 double ex = dx / length;
                 double ey = dy / length;
                 double ez = dz / length;
@@ -329,38 +363,25 @@ namespace GeometryHelper.Core
 
                 double scale = _radius * _radius + _radius * Math.Sqrt(w0x * w0x + w0y * w0y + w0z * w0z);
 
+                lowest = Math.Min(_start, _start + _sweep);
+                highest = Math.Max(_start, _start + _sweep);
+
                 if (Math.Abs(c1) + Math.Abs(s1) + Math.Abs(s2) + Math.Abs(c2) <= 1E-15 * scale)
                 {
-                    // The offset from the line does not change along the arc: the segment runs along the axis of its circle.
-                    return best;
+                    count = 0;
+                    seedCount = 0;
+                    return false;
                 }
 
-                var found = new double[64];
-                double lowest = Math.Min(_start, _start + _sweep);
-                double highest = Math.Max(_start, _start + _sweep);
-                var seeds = new double[32];
-                int count = Stationary(c1, s1, s2, c2, lowest, highest, found, seeds, out int seedCount);
-
-                for (int i = 0; i < count; i++)
-                {
-                    best = Math.Min(best, PointToSegment(At(found[i]), from, to));
-                }
-
-                // A root the slope of the polynomial barely leaves, a double or a triple one, is known only loosely, and a step of
-                // Newton's can carry it away; the distance itself is minimised round it, which cannot lose what was there.
-                for (int i = 0; i < seedCount; i++)
-                {
-                    best = Math.Min(best, NearestRound(from, to, seeds[i], lowest, highest));
-                }
-
-                return best;
+                count = Stationary(c1, s1, s2, c2, lowest, highest, found, seeds, out seedCount);
+                return true;
             }
 
             /// <summary>
             /// Gets the least distance from the points of the arc within a hundredth of a radian of an angle, and between the limits,
-            /// to a segment, by golden section.
+            /// to a segment, by golden section, and the angle it was found at.
             /// </summary>
-            private double NearestRound(GeoPoint3 from, GeoPoint3 to, double centre, double low, double high)
+            private double NearestRound(GeoPoint3 from, GeoPoint3 to, double centre, double low, double high, out double at)
             {
                 double ratio = (Math.Sqrt(5.0) - 1.0) / 2.0;
                 double a = Math.Max(low, centre - 0.01);
@@ -369,7 +390,10 @@ namespace GeometryHelper.Core
                 double x2 = a + ratio * (b - a);
                 double f1 = PointToSegment(At(x1), from, to);
                 double f2 = PointToSegment(At(x2), from, to);
-                double best = Math.Min(Math.Min(f1, f2), PointToSegment(At(centre < a ? a : centre > b ? b : centre), from, to));
+                double x0 = centre < a ? a : centre > b ? b : centre;
+                double best = Math.Min(Math.Min(f1, f2), PointToSegment(At(x0), from, to));
+
+                at = best == f1 ? x1 : best == f2 ? x2 : x0;
 
                 for (int i = 0; i < 70 && b - a > 1E-10; i++)
                 {
@@ -380,6 +404,12 @@ namespace GeometryHelper.Core
                         f2 = f1;
                         x1 = b - ratio * (b - a);
                         f1 = PointToSegment(At(x1), from, to);
+
+                        if (f1 < best)
+                        {
+                            at = x1;
+                        }
+
                         best = Math.Min(best, f1);
                     }
                     else
@@ -389,11 +419,137 @@ namespace GeometryHelper.Core
                         f1 = f2;
                         x2 = a + ratio * (b - a);
                         f2 = PointToSegment(At(x2), from, to);
+
+                        if (f2 < best)
+                        {
+                            at = x2;
+                        }
+
                         best = Math.Min(best, f2);
                     }
                 }
 
                 return best;
+            }
+
+            /// <summary>
+            /// Gets the point of the arc nearest a point: where the arc sweeps past the point's angle about its centre, the point
+            /// of the circle at that angle, and otherwise the nearer end.
+            /// </summary>
+            private GeoPoint3 NearestTo(GeoPoint3 point)
+            {
+                double wx = point.X - _cx;
+                double wy = point.Y - _cy;
+                double wz = point.Z - _cz;
+                double along = wx * _ux + wy * _uy + wz * _uz;
+                double across = wx * _vx + wy * _vy + wz * _vz;
+
+                if (!IsChord && (along != 0.0 || across != 0.0) && (_full || Sweeps(Math.Atan2(across, along))))
+                {
+                    return At(Math.Atan2(across, along));
+                }
+
+                return StartPoint.DistanceTo(point) <= EndPoint.DistanceTo(point) ? StartPoint : EndPoint;
+            }
+
+            /// <summary>
+            /// Gets the point of the arc nearest a flat region: of the places <see cref="GapToRegion(Region, double)"/> reads
+            /// the gap at, the one that stands nearest the region, the first of them where two stand as near.
+            /// </summary>
+            /// <remarks>
+            /// Each place is a point of the arc, and the nearest pair of the two has the arc's end of it among them: an end of the
+            /// arc, the lowest or the highest point over the plane of the region, the point of the arc nearest a corner of the
+            /// region, or a place where the distance from a side of the rim turns. A chord read for the arc is a segment, and its
+            /// places are its ends and the points of it nearest each side.
+            /// </remarks>
+            internal GeoPoint3 NearestToRegion(Region region)
+            {
+                var places = new List<GeoPoint3> { StartPoint, EndPoint };
+
+                if (!IsChord)
+                {
+                    GeoVector3 normal = region.UnitNormal;
+                    GeoPoint3 origin = region.PlaneOrigin;
+                    double a = normal.X * _ux + normal.Y * _uy + normal.Z * _uz;
+                    double b = normal.X * _vx + normal.Y * _vy + normal.Z * _vz;
+                    double h0 = normal.X * (_cx - origin.X) + normal.Y * (_cy - origin.Y) + normal.Z * (_cz - origin.Z);
+                    double amplitude = _radius * Math.Sqrt(a * a + b * b);
+                    double turning = Math.Atan2(b, a);
+
+                    AddIfSwept(places, turning);
+                    AddIfSwept(places, turning + Math.PI);
+
+                    if (amplitude > 0.0 && Math.Abs(h0) <= amplitude)
+                    {
+                        double spread = Math.Acos(-h0 / amplitude);
+
+                        AddIfSwept(places, turning + spread);
+                        AddIfSwept(places, turning - spread);
+                    }
+                }
+
+                var found = new double[64];
+                var seeds = new double[32];
+
+                for (int i = 0; i < region.EdgeCount; i++)
+                {
+                    GeoPoint3 from = region.EdgeFrom(i);
+                    GeoPoint3 to = region.EdgeTo(i);
+
+                    places.Add(NearestTo(from));
+
+                    if (IsChord)
+                    {
+                        double along = Block.NearestAlong(StartPoint, EndPoint, from, to);
+
+                        places.Add(new GeoPoint3(
+                            StartPoint.X + (EndPoint.X - StartPoint.X) * along,
+                            StartPoint.Y + (EndPoint.Y - StartPoint.Y) * along,
+                            StartPoint.Z + (EndPoint.Z - StartPoint.Z) * along));
+                        continue;
+                    }
+
+                    if (!(from.GetDistanceSquaredTo(to) > 0.0)
+                        || !Turns(from, to, found, out int count, seeds, out int seedCount, out double lowest, out double highest))
+                    {
+                        continue;
+                    }
+
+                    for (int k = 0; k < count; k++)
+                    {
+                        places.Add(At(found[k]));
+                    }
+
+                    for (int k = 0; k < seedCount; k++)
+                    {
+                        NearestRound(from, to, seeds[k], lowest, highest, out double at);
+                        places.Add(At(at));
+                    }
+                }
+
+                GeoPoint3 nearest = places[0];
+                double best = region.PointGap(nearest);
+
+                for (int i = 1; i < places.Count; i++)
+                {
+                    double gap = region.PointGap(places[i]);
+
+                    if (gap < best)
+                    {
+                        best = gap;
+                        nearest = places[i];
+                    }
+                }
+
+                return nearest;
+            }
+
+            private void AddIfSwept(List<GeoPoint3> places, double angle)
+            {
+                if (Sweeps(angle))
+                {
+                    places.Add(At(angle));
+                }
             }
 
             /// <summary>

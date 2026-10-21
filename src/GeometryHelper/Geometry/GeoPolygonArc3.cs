@@ -638,6 +638,10 @@ namespace GeometryHelper.Geometry
         /// Applies a transformation to the loop.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the transformation would skew or stretch an arc into part of an ellipse it would land visibly off, as
+        /// <see cref="GeoEdge3.TransformBy(GeoTransform3)"/> refuses it.
+        /// </exception>
         public GeoPolygonArc3 TransformBy(GeoTransform3 transform)
         {
             if (transform == null)

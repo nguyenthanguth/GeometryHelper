@@ -49,9 +49,9 @@ skins as thin as that on what is cut.
 In space, as in the plane, `DistanceTo` is nought only where two shapes truly meet, a rim counting, and otherwise the exact
 gap, however small, and `CollidesWith` is whether that gap is no more than `EqualPoint`: a segment 0.0005 off a square in its
 plane is 0.0005 from it and collides at a thousandth, and one 0.0012 off its corner does not. A shape off a plane by less than
-`EqualPlanar` is not laid flat for its distance; it is as far in space as it is. Eight things are read otherwise, on purpose,
-and [space](solid.md#how-near-is-touching-in-space) gives each with its numbers: a triangle with no area touches nothing,
-though its distance is its gap; `DistanceTo` between two bodies, or an oriented box and an oriented or axis-aligned box, reads
+`EqualPlanar` is not laid flat for its distance; it is as far in space as it is, and a triangle with no area is the segment
+it has collapsed to, touching as its distance says. Seven things are read otherwise, on purpose,
+and [space](solid.md#how-near-is-touching-in-space) gives each with its numbers: `DistanceTo` between two bodies, or an oriented box and an oriented or axis-aligned box, reads
 nought within `EqualPoint` (only `GeoAabb3` against `GeoAabb3` is exact); a plane reads a ray, a chain, a region, a box or a
 body within `EqualPoint` of it as on it, so the plane z = 0 is nought from a square 0.0004 above it; a shape a billionth of a
 millimetre outside a body reads as in it; a segment you give, no longer than `EqualPoint`, is read as its start; a circle

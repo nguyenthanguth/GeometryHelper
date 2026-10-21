@@ -295,16 +295,17 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A bulge is the shape of the arc against its own chord, so moving, turning and scaling evenly
         /// leave it alone, and mirroring changes its sign because the arc then leans the other way. A
-        /// transformation that scales the axes differently makes an arc part of an ellipse, and is
-        /// refused where the arc would land visibly off it rather than answered with an averaged one. One that keeps both axes equally long but skews
-        /// them gives the edge from where its ends land through where its middle lands, as in space
-        /// (<see cref="GeoEdge3.TransformBy(GeoTransform3)"/>): the edge of bulge 0.5 from (0, 0) to (100, 0)
-        /// under the skew that sends X to (1, 0) and Y to (0.6, 0.8) ends at (100, 0), where it ended 22.05 off.
-        /// Where the axes come out of unequal length the edge is moved only where it lands within the global point tolerance
-        /// of where the transformation puts the rest of it, as the arc is (<see cref="GeoArc2.TransformBy(GeoTransform2)"/>).
+        /// transformation that skews the axes or scales them differently makes an arc part of an ellipse: the edge is then the
+        /// edge from where its ends land through where its middle lands, as in space
+        /// (<see cref="GeoEdge3.TransformBy(GeoTransform3)"/>), where that lands within the global point tolerance of where the
+        /// transformation puts the rest of it, as the arc is (<see cref="GeoArc2.TransformBy(GeoTransform2)"/>), and is refused
+        /// otherwise rather than answered with an arc visibly off the ellipse. The edge of bulge 0.5 from (0, 0) to (100, 0)
+        /// under the skew that sends Y to (0.000001, 1) ends at (100, 0); under the one that sends X to (1, 0) and Y to (0.6, 0.8)
+        /// it is refused, the arc through those three points standing far off the ellipse it becomes. An edge 100 long bowing
+        /// by 1E-12 moves under a turn rounded to six places, where it was refused for want of digits.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the transformation would stretch an arc into part of an ellipse.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the transformation would skew or stretch an arc into part of an ellipse it would land visibly off.</exception>
         public GeoEdge2 TransformBy(GeoTransform2 transform)
         {
             if (transform == null)
@@ -342,9 +343,9 @@ namespace GeometryHelper.Geometry
 
             var through = new GeoEdge2(start, end, bulge);
 
-            // Axes of unequal length stretch the arc into part of an ellipse: it stands for it where it lands within the global
-            // point tolerance of where the transformation puts the rest of the edge.
-            if (!GeoTransform2.EquallyLong(alongX, alongY) && !ToArc().LandsWithin(transform, through.ToArc()))
+            // A skew or a stretch makes part of an ellipse of the arc: it stands for it where it lands within the global point
+            // tolerance of where the transformation puts the rest of the edge.
+            if (!ToArc().LandsWithin(transform, through.ToArc()))
             {
                 throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
             }

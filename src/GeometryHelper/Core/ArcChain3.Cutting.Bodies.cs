@@ -536,24 +536,24 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets where an edge crosses an oriented box, the places it is cut at: a straight edge only where it crosses a face,
-        /// since a touch cuts nothing.
+        /// Gets where an edge crosses an oriented box, the places it is cut at: only where it crosses a face, since a touch cuts
+        /// nothing.
         /// </summary>
         private static GeoPoint3[] CutsOf(GeoEdge3 edge, GeoObb3 box, Tolerance tolerance)
-            => edge.IsArc ? edge.ToArc().GetIntersections(box, tolerance) : Intersection3.CrossingsOf(edge.ToLine(), box, tolerance);
+            => edge.IsArc ? Arc3.CutsOf(edge.ToArc(), box, tolerance) : Intersection3.CrossingsOf(edge.ToLine(), box, tolerance);
 
         /// <summary>
-        /// Gets where an edge crosses an axis-aligned box, the places it is cut at: a straight edge only where it crosses a
-        /// face, since a touch cuts nothing.
+        /// Gets where an edge crosses an axis-aligned box, the places it is cut at: only where it crosses a face, since a touch
+        /// cuts nothing.
         /// </summary>
         private static GeoPoint3[] CutsOf(GeoEdge3 edge, GeoAabb3 box, Tolerance tolerance)
         {
-            if (edge.IsArc)
+            if (box.IsEmpty)
             {
-                return edge.ToArc().GetIntersections(box, tolerance);
+                return new GeoPoint3[0];
             }
 
-            return box.IsEmpty ? new GeoPoint3[0] : Intersection3.CrossingsOf(edge.ToLine(), box.ToObb(), tolerance);
+            return edge.IsArc ? Arc3.CutsOf(edge.ToArc(), box.ToObb(), tolerance) : Intersection3.CrossingsOf(edge.ToLine(), box.ToObb(), tolerance);
         }
 
         /// <summary>

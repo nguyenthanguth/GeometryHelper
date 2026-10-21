@@ -380,9 +380,10 @@ namespace GeometryHelper.Geometry
         /// <returns>The transformed arc.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">
-        /// Thrown when the transformation would stretch the arc into part of an ellipse, the two axes coming out of unequal
-        /// length so that the arc would land further than the global point tolerance from where its points are put, or, for an
-        /// arc of a whole turn, would skew or stretch it, as <see cref="GeoTransform2.Transform(GeoCircle2)"/> refuses a circle.
+        /// Thrown when the transformation would skew or stretch the arc into part of an ellipse, so that the arc through where
+        /// its ends and its middle land would land further than the global point tolerance from where its points are put, or,
+        /// for an arc of a whole turn, would skew or stretch it, as <see cref="GeoTransform2.Transform(GeoCircle2)"/> refuses a
+        /// circle.
         /// </exception>
         /// <exception cref="ArgumentException">
         /// Thrown when a skew, a transformation <see cref="GeoTransform2.Transform(GeoCircle2)"/> would refuse for a circle, brings
@@ -392,20 +393,22 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A turn, a shift, a mirror or an even scaling moves the arc whole, by its centre and its radius, so an arc of any
         /// sweep moves; one that turns shapes round, a mirror or a negative scaling, also reverses the way the arc sweeps.
-        /// Any other transformation that keeps both axes equally long is a skew, and the arc is then the arc through where its
-        /// two ends and its middle land, as in space (<see cref="GeoArc3.TransformBy(GeoTransform3)"/>): the skew that sends X
-        /// to (1, 0) and Y to (0.6, 0.8) takes the arc of radius 100 about the origin from 0.5 to 2 radians to an arc of radius
-        /// 66.09 about (52.98, 20.16) through its moved ends and middle, where it came out at radius 100 about the moved centre
-        /// with its ends 22.7 and 44.6 off. An arc of a whole turn has no ends to go through: it is the whole circle, and is
-        /// refused under such a skew, since it would be an ellipse; an arc past a half turn whose ends the skew brings within the
-        /// global point tolerance of each other is refused too. Where the ends come that close under a transformation that
-        /// carries a circle, a turn whose numbers are rounded to six places, the arc is moved whole as the whole turn is: the arc
-        /// of radius 100 sweeping a whole turn less 1E-9 under such a turn moves, where it threw. Where the two axes come out of
-        /// unequal length the arc is part of an ellipse, and the arc through its ends and its middle stands for it only where it
-        /// lands within the global point tolerance of where the transformation puts the rest of it, asked at every sixteenth
-        /// of its sweep, and is refused otherwise: a stretch of 3E-6 along X moves the arc of radius 100 from 0.5 to 2 radians
-        /// at the scale it is drawn, 0.000017 off, and refuses it scaled by 1 000, where it would be 0.017 off. A whole turn,
-        /// or an arc whose ends come together, is read as its circle is (<see cref="GeoTransform2.Transform(GeoCircle2)"/>).
+        /// Any other transformation, a skew or a stretch, makes part of an ellipse of the arc, and the arc through where its two
+        /// ends and its middle land, as in space (<see cref="GeoArc3.TransformBy(GeoTransform3)"/>), stands for it only where it
+        /// lands within the global point tolerance of where the transformation puts the rest of it, asked at every sixteenth of
+        /// its sweep, and is refused otherwise. The skew that sends Y to (0.000001, 1) moves the arc of radius 100 from 0.5 to 2
+        /// radians 0.0000069 off, and refuses it scaled by 1 000, where it would be 0.0069 off; the skew that sends X to (1, 0)
+        /// and Y to (0.6, 0.8) refuses it, the arc of radius 66.09 through its moved ends and middle standing far off the
+        /// ellipse it becomes. A skew that keeps both axes one length is judged as a stretch is: a turn of 0.7529 radians of a stretch of
+        /// 1 + 4.29E-9 and a shear of 9.28E-5, scaled by 55.57, took the arc of radius 9 069.6 to one 9.16 off, and refuses it.
+        /// A stretch of 3E-6 along X moves the arc of radius 100 from 0.5 to 2 radians at the scale it is drawn, 0.000017 off,
+        /// and refuses it scaled by 1 000, where it would be 0.017 off. Each point is read from the moved start across the arc,
+        /// so an arc bowing a hair off its chord is judged as surely as a half circle. An arc of a whole turn has no ends to go
+        /// through: it is the whole circle, and is read as its circle is (<see cref="GeoTransform2.Transform(GeoCircle2)"/>);
+        /// an arc past a half turn whose ends the transformation brings within the global point tolerance of each other is
+        /// refused under a skew too. Where the ends come that close under a transformation that carries a circle, a turn whose
+        /// numbers are rounded to six places, the arc is moved whole as the whole turn is: the arc of radius 100 sweeping a whole
+        /// turn less 1E-9 under such a turn moves, where it threw.
         /// </remarks>
         public GeoArc2 TransformBy(GeoTransform2 transform)
         {
@@ -436,7 +439,7 @@ namespace GeometryHelper.Geometry
 
                 GeoArc2 through = ThroughMoved(transform);
 
-                if (stretched && !LandsWithin(transform, through))
+                if (!LandsWithin(transform, through))
                 {
                     throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
                 }
@@ -459,14 +462,25 @@ namespace GeometryHelper.Geometry
         /// Determines whether this arc, moved to another, lands within the global point tolerance of where a transformation
         /// puts its points, asked at every sixteenth of its sweep.
         /// </summary>
+        /// <remarks>
+        /// Each point is read from the moved start, across the arc, and its distance from the moved circle is worked out from
+        /// there as well, the difference of two squares over their sum, so that an arc bowing a hair off its chord, its radius
+        /// far past the reach of its digits, is read as surely as a half circle: the edge 100 long bowing by 1E-12, of radius
+        /// 2.5E13, read from its centre, stood a few thousandths off where it lands under a turn rounded to six places.
+        /// </remarks>
         internal bool LandsWithin(GeoTransform2 transform, GeoArc2 moved)
         {
             double tolerance = Tolerance.Global.EqualPoint;
+            GeoVector2 toCentre = transform.Transform(StartPoint).GetVectorTo(moved.Center);
+            double radius = toCentre.Length;
 
             // Read off the circle the moved arc lies on, which an arc shorter than the tolerance has as surely as any other.
             for (int i = 1; i < 16; i++)
             {
-                if (Math.Abs(transform.Transform(GetPointAtParameter(i / 16.0)).DistanceTo(moved.Center) - moved.Radius) > tolerance)
+                GeoVector2 across = transform.Transform(Across(StartAngle, SweptAngle * (i / 16.0)));
+                double off = (across.LengthSquared - 2.0 * across.DotProduct(toCentre)) / (across.Subtract(toCentre).Length + radius);
+
+                if (Math.Abs(off) > tolerance)
                 {
                     return false;
                 }

@@ -11,10 +11,10 @@ namespace GeometryHelper.Core
     /// <para>
     /// <c>CollidesWith</c> answers yes or no and says nothing about where. Shapes that merely touch count
     /// as colliding, and so do shapes within the point tolerance of each other: for points and straight shapes in space
-    /// the answer is exactly whether <c>Distance3</c> reports no more than the point tolerance for the same pair, with one
-    /// stated exception: a triangle with no area touches nothing, whatever its distance, which still reads the gap to the
-    /// segment it is. No area here is twice the area within the vector tolerance, not <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/>:
-    /// the triangle 0.002 by 0.002 touches nothing at the default tolerance. Two bodies and a plane are not read so (see <c>Distance3</c>). Where
+    /// the answer is exactly whether <c>Distance3</c> reports no more than the point tolerance for the same pair. A triangle
+    /// with no area, by <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/>, is the segment it has collapsed to and touches what
+    /// comes within the tolerance of it, as its distance says: the triangle 0.003 by 0.003 is a triangle at the default
+    /// tolerance, and the sliver 100 long and 1E-8 high touches a segment through its middle. Two bodies and a plane are not read so (see <c>Distance3</c>). Where
     /// the shapes meet is <c>Intersection3</c>, and how far apart they are when they do not is
     /// <c>Distance3</c>.
     /// </para>
@@ -204,9 +204,12 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoTriangle3 triangle1, GeoTriangle3 triangle2, Tolerance tolerance)
         {
-            if (triangle1.IsDegenerateByArea(tolerance) || triangle2.IsDegenerateByArea(tolerance))
+            // A triangle with no area is the segment it has collapsed to, and has no plane to stand clear of: the pair touch where
+            // the exact gap between them is within the point tolerance.
+            if (triangle1.IsDegenerate(tolerance) || triangle2.IsDegenerate(tolerance))
             {
-                return false;
+                return triangle1.GetAabb().DistanceTo(triangle2.GetAabb()) <= Reach(tolerance)
+                    && Gap3.Regions(Gap3.Region.Of(triangle1), Gap3.Region.Of(triangle2), tolerance.EqualPoint) <= tolerance.EqualPoint;
             }
 
             if (IsClearOf(triangle1, triangle2, tolerance) || IsClearOf(triangle2, triangle1, tolerance))

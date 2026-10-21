@@ -418,10 +418,21 @@ namespace GeometryHelper.Core
         /// Where the rim pierces the triangle, the points of the triangle it goes through, in order along the line the two
         /// planes share; where the triangle lies in the ellipse's plane, the points where the rim cuts one of its three edges,
         /// edge by edge. The triangle (150, 0, -10), (150, 200, -10), (150, 0, 10), standing upright on the line x = 150, is
-        /// pierced by the ellipse 300 by 100 lying in the plan about the origin at (150, 86.603, 0) only.
+        /// pierced by the ellipse 300 by 100 lying in the plan about the origin at (150, 86.603, 0) only. A triangle with no
+        /// area, by <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/>, is crossed where its sides are.
         /// </returns>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoTriangle3 triangle, Tolerance tolerance)
         {
+            // A triangle with no area is the segment it has collapsed to, crossed where its sides are, as an arc reads it.
+            if (triangle.IsDegenerate(tolerance))
+            {
+                var onSides = new List<GeoPoint3>();
+
+                AddCrossingsOfEdges(onSides, ellipse, Intersection3.SidesOfThin(triangle), tolerance);
+
+                return onSides.ToArray();
+            }
+
             GeoPlane3 plane = triangle.GetPlane();
 
             if (!IsCoplanar(ellipse, plane, tolerance))

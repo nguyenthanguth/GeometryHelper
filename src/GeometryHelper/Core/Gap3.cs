@@ -60,7 +60,20 @@ namespace GeometryHelper.Core
         /// of one triangle once does not need to make.
         /// </remarks>
         internal static double PointToTriangle(GeoTriangle3 triangle, GeoPoint3 point)
-            => PointToTriangle(triangle.A, triangle.B, triangle.C, triangle.A.GetVectorTo(triangle.B).CrossProduct(triangle.A.GetVectorTo(triangle.C)), point);
+            => PointToTriangle(triangle.A, triangle.B, triangle.C, PlaneNormal(triangle.A, triangle.B, triangle.C), point);
+
+        /// <summary>
+        /// Gets the area vector of a triangle, or none where its corners lie on one line to rounding, twice its area within a
+        /// few parts in 1E16 of its longest side squared, as <see cref="GeoTriangle3.Normal"/> reads it: the plane such a
+        /// triangle would give is the noise of the cross product, and it is measured as its sides instead.
+        /// </summary>
+        internal static GeoVector3 PlaneNormal(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c)
+        {
+            GeoVector3 normal = a.GetVectorTo(b).CrossProduct(a.GetVectorTo(c));
+            double longest = Math.Max(a.GetDistanceSquaredTo(b), Math.Max(b.GetDistanceSquaredTo(c), c.GetDistanceSquaredTo(a)));
+
+            return GeoTriangle3.IsFormed(normal.Length, longest) ? normal : new GeoVector3(0.0, 0.0, 0.0);
+        }
 
         private static double PointToTriangle(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoVector3 normal, GeoPoint3 point)
         {
@@ -1054,12 +1067,15 @@ namespace GeometryHelper.Core
 
             /// <summary>
             /// Gets the point where a segment touches the box on its own: the point of it nearest the box, and none where it lies
-            /// along the box, level with the face it stands over or running with the edge, to an angle, as a curve lying on a
-            /// surface crosses it nowhere.
+            /// along the box, within a length of the plane of the face it stands over or the line of the edge it runs with all
+            /// along it, as a curve lying on a surface crosses it nowhere.
             /// </summary>
             /// <param name="from">One end of the segment.</param>
             /// <param name="to">The other end.</param>
-            /// <param name="angle">How far off level the segment may run and lie along the box, the vector tolerance.</param>
+            /// <param name="rise">
+            /// How far the segment may stand off the plane of the face or the line of the edge and lie along the box, the planar
+            /// tolerance, as an arc lies in a plane it stands off by no more than that.
+            /// </param>
             /// <param name="point">The point of the touch when the method returns true.</param>
             /// <remarks>
             /// For a segment clear of the box the nearest point is an end, or where it passes nearest an edge of the box: against
@@ -1067,7 +1083,7 @@ namespace GeometryHelper.Core
             /// is then as near (see <see cref="Block"/>). The ends are read in a fixed order, the smaller by its coordinates
             /// first, so the answer is the same whichever way round the segment is given. Near a corner it never lies along.
             /// </remarks>
-            internal bool TryTouchAlone(GeoPoint3 from, GeoPoint3 to, double angle, out GeoPoint3 point)
+            internal bool TryTouchAlone(GeoPoint3 from, GeoPoint3 to, double rise, out GeoPoint3 point)
             {
                 if (Before(to, from))
                 {
@@ -1131,12 +1147,25 @@ namespace GeometryHelper.Core
                     return true;
                 }
 
-                // Level with the face it stands over, or running with the edge, to the vector tolerance, it lies along the box.
-                double across = (beyondX ? dx * dx : 0.0) + (beyondY ? dy * dy : 0.0) + (beyondZ ? dz * dz : 0.0);
+                // Within the planar tolerance of the plane of the face it stands over, or of the line of the edge it runs with, at
+                // both its ends, so all along, it lies along the box, as an arc lies in a plane it stands off by no more than that.
                 int beyond = (beyondX ? 1 : 0) + (beyondY ? 1 : 0) + (beyondZ ? 1 : 0);
-                bool along = (beyond == 1 || beyond == 2) && !(Math.Sqrt(across) > angle * length);
+                bool along = (beyond == 1 || beyond == 2)
+                    && !(OffAlong(p, near, beyondX, beyondY, beyondZ) > rise) && !(OffAlong(q, near, beyondX, beyondY, beyondZ) > rise);
 
                 return !along;
+            }
+
+            /// <summary>
+            /// Gets how far a point stands off the plane of the faces, or the line of the edge, a nearest point stands beyond.
+            /// </summary>
+            private double OffAlong(GeoPoint3 point, GeoPoint3 near, bool beyondX, bool beyondY, bool beyondZ)
+            {
+                double x = beyondX ? (near.X < 0.0 ? -point.X : point.X) - _hx : 0.0;
+                double y = beyondY ? (near.Y < 0.0 ? -point.Y : point.Y) - _hy : 0.0;
+                double z = beyondZ ? (near.Z < 0.0 ? -point.Z : point.Z) - _hz : 0.0;
+
+                return Math.Sqrt(x * x + y * y + z * z);
             }
 
             private static GeoPoint3 At(GeoPoint3 from, GeoPoint3 to, double at)
@@ -1146,7 +1175,7 @@ namespace GeometryHelper.Core
             /// Gets how far along the segment from <paramref name="p"/> to <paramref name="q"/>, from nought to one, the pair
             /// of points it and another segment come nearest at stands.
             /// </summary>
-            private static double NearestAlong(GeoPoint3 p, GeoPoint3 q, GeoPoint3 start, GeoPoint3 end)
+            internal static double NearestAlong(GeoPoint3 p, GeoPoint3 q, GeoPoint3 start, GeoPoint3 end)
             {
                 double d1x = q.X - p.X, d1y = q.Y - p.Y, d1z = q.Z - p.Z;
                 double d2x = end.X - start.X, d2y = end.Y - start.Y, d2z = end.Z - start.Z;
@@ -1220,7 +1249,7 @@ namespace GeometryHelper.Core
                 _a = triangle.A;
                 _b = triangle.B;
                 _c = triangle.C;
-                _normal = _a.GetVectorTo(_b).CrossProduct(_a.GetVectorTo(_c));
+                _normal = PlaneNormal(_a, _b, _c);
                 _box = triangle.GetAabb();
             }
 
@@ -1249,10 +1278,23 @@ namespace GeometryHelper.Core
             internal GeoVector3 UnitNormal => _isTriangle ? _normal.Multiply(1.0 / _normal.Length) : _frame.ZAxis;
 
             /// <summary>
-            /// Gets how far the corners of the region stand off the plane it is read in: nought for a triangle, which is flat, and
-            /// for the corners a polygon or face is read flat past.
+            /// Gets how far the corners of the region stand off the plane it is read in: for a triangle the rounding of its
+            /// normal, which is nothing to speak of for one with an area and up to a tenth for a sliver 100 long and 1E-11 high,
+            /// whose cross product is mostly rounding; for a polygon or face the corners it is read flat past.
             /// </summary>
-            internal double PlaneSlack => _isTriangle ? 0.0 : Offset();
+            internal double PlaneSlack => _isTriangle ? TriangleSlack() : Offset();
+
+            private double TriangleSlack()
+            {
+                double length = _normal.Length;
+
+                if (!(length > 0.0))
+                {
+                    return 0.0;
+                }
+
+                return Math.Max(Math.Abs(_normal.DotProduct(_a.GetVectorTo(_b))), Math.Abs(_normal.DotProduct(_a.GetVectorTo(_c)))) / length;
+            }
 
             /// <summary>Gets a point of the plane the region is read in.</summary>
             internal GeoPoint3 PlaneOrigin => _isTriangle ? _a : _frame.Origin;

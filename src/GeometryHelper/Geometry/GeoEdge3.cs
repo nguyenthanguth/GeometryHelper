@@ -343,13 +343,22 @@ namespace GeometryHelper.Geometry
         /// <param name="transform">The transformation.</param>
         /// <returns>The edge in its new place.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the transformation would skew or stretch an arc into part of an ellipse that the arc through where its
+        /// ends and its middle land would stand further than the global point tolerance off, as the arc is refused
+        /// (<see cref="GeoArc3.TransformBy(GeoTransform3)"/>).
+        /// </exception>
         /// <remarks>
         /// The normal is carried by the transformation as well, so an edge turned about any axis keeps
         /// bulging the way it did. A transformation that mirrors turns the plane over, which is why the
         /// normal is taken from where the ends and the middle of the arc land rather than rotated on its own. One
-        /// that stretches the arc's plane unevenly, which makes part of an ellipse of it, gives the arc through
-        /// where its two ends and its middle land. The middle is worked out across the chord, so an edge 0.01 long
-        /// bowing a thousandth of its chord off it moves as surely as a half circle.
+        /// that skews or stretches the arc's plane, which makes part of an ellipse of it, gives the arc through
+        /// where its two ends and its middle land, where it lands within the global point tolerance of where the
+        /// transformation puts the rest of the edge, and is refused otherwise, as the arc is: the edge of bulge 0.5 from the
+        /// origin to (10, 0, 0) stretched to twice along a diagonal of its plane is refused, where it was moved to an arc that
+        /// stands for no part of the ellipse it becomes, and stretched by a millionth it moves, 8.3E-7 off. The middle is
+        /// worked out across the chord, so an edge 0.01 long bowing a thousandth of its chord off it moves as surely as a half
+        /// circle.
         /// </remarks>
         public GeoEdge3 TransformBy(GeoTransform3 transform)
         {
@@ -379,7 +388,20 @@ namespace GeometryHelper.Geometry
                 throw new InvalidOperationException("Three points on one line have no arc through them.");
             }
 
-            return new GeoEdge3(start, end, bulge, normal);
+            var through = new GeoEdge3(start, end, bulge, normal);
+
+            // A skew or a stretch of the edge's plane makes part of an ellipse of the arc: it stands for it where it lands within
+            // the global point tolerance of where the transformation puts the rest of the edge, as the arc is. The chord and the
+            // side the edge bows to are square axes of its plane.
+            GeoVector3 movedAlong = transform.Transform(chord.Multiply(1.0 / chord.Length));
+            GeoVector3 movedSide = transform.Transform(side);
+
+            if (!GeoTransform3.KeepsRound(movedAlong, movedSide) && !ToArc().LandsWithin(transform, through.ToArc()))
+            {
+                throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
+            }
+
+            return through;
         }
 
         /// <summary>

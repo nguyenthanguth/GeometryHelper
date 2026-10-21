@@ -52,8 +52,8 @@ namespace GeometryHelper.Core
         /// <returns>true when they overlap or touch anywhere; otherwise, false.</returns>
         /// <remarks>
         /// The triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0) touches the square 100 by 100 standing
-        /// upright across it along y = 50; moved up to stand on z = 10 the square misses it. A triangle with no area
-        /// touches nothing, as <see cref="CollidesWith(GeoTriangle3, GeoTriangle3, Tolerance)"/> reads it.
+        /// upright across it along y = 50; moved up to stand on z = 10 the square misses it. A triangle with no area is the
+        /// segment it has collapsed to, as <see cref="CollidesWith(GeoTriangle3, GeoTriangle3, Tolerance)"/> reads it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool CollidesWith(GeoTriangle3 triangle, GeoPolygon3 polygon, Tolerance tolerance)
@@ -63,8 +63,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            return !triangle.IsDegenerateByArea(tolerance)
-                && triangle.GetAabb().DistanceTo(polygon.GetAabb()) <= Reach(tolerance)
+            return triangle.GetAabb().DistanceTo(polygon.GetAabb()) <= Reach(tolerance)
                 && Gap3.Regions(Gap3.Region.Of(triangle), Gap3.Region.Of(polygon), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 
@@ -99,8 +98,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
-            return !triangle.IsDegenerateByArea(tolerance)
-                && triangle.GetAabb().DistanceTo(face.GetAabb()) <= Reach(tolerance)
+            return triangle.GetAabb().DistanceTo(face.GetAabb()) <= Reach(tolerance)
                 && Gap3.Regions(Gap3.Region.Of(triangle), Gap3.Region.Of(face), tolerance.EqualPoint) <= tolerance.EqualPoint;
         }
 

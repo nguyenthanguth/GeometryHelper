@@ -89,6 +89,47 @@ namespace GeometryHelper.Core
             return touches ? found.ToArray() : new GeoPoint3[0];
         }
 
+        /// <summary>
+        /// Gets the point where an arc that crosses nothing of a region touches it on its own, as <c>CollidesWith</c> reads a
+        /// touch: the point of the arc nearest the region, and none where they do not come within the point tolerance of each
+        /// other or the arc lies level over the material, as a curve lying on a surface crosses it nowhere.
+        /// </summary>
+        /// <param name="arc">The arc.</param>
+        /// <param name="plane">The plane of the region, as its crossings read it; none for a triangle with no area, which no arc lies level in.</param>
+        /// <param name="region">The region, read for the gap.</param>
+        /// <param name="box">The box of the region.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        private static GeoPoint3[] TouchAlone(GeoArc3 arc, GeoPlane3? plane, Gap3.Region region, GeoAabb3 box, Tolerance tolerance)
+        {
+            Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+            if (curve.Box.DistanceTo(box) > Collision3.Reach(tolerance) || curve.GapToRegion(region, tolerance.EqualPoint) > tolerance.EqualPoint)
+            {
+                return new GeoPoint3[0];
+            }
+
+            GeoPoint3 nearest = curve.NearestToRegion(region);
+
+            return plane.HasValue && LiesLevelOver(arc, plane.Value, region, nearest, tolerance) ? new GeoPoint3[0] : new[] { nearest };
+        }
+
+        /// <summary>
+        /// Determines whether an arc may come within the point tolerance of what a box holds: no point of it stands further from
+        /// its centre than its radius, so a box further than that and the reach of the tolerance from the centre holds nothing
+        /// it touches. It spares a shape plainly clear of the arc the reading of the arc for its gap.
+        /// </summary>
+        internal static bool MayTouch(GeoArc3 arc, GeoAabb3 box, Tolerance tolerance)
+            => !(box.DistanceTo(arc.Center) - arc.Radius > Collision3.Reach(tolerance));
+
+        /// <summary>
+        /// Determines whether an arc lies level over a region where it comes nearest it: in the region's plane, as
+        /// <see cref="IsCoplanar"/> reads it, rising off it by no more than the planar tolerance anywhere round its circle, its
+        /// nearest point standing over the material. Tilted further, an arc of radius 300 tilted 9E-6 rises 0.0027 off the
+        /// plane round its circle, and touches the material where it dips nearest it.
+        /// </summary>
+        internal static bool LiesLevelOver(GeoArc3 arc, GeoPlane3 plane, Gap3.Region region, GeoPoint3 nearest, Tolerance tolerance)
+            => IsCoplanar(arc, plane, tolerance) && region.Holds(nearest);
+
         #endregion
 
         #region Against a triangle
@@ -108,8 +149,10 @@ namespace GeometryHelper.Core
         /// <returns>
         /// Where the arc pierces the triangle, the points of the face it goes through; where the arc lies in
         /// the triangle's plane, the points where it cuts one of the three edges. None where the arc does not come within
-        /// the point tolerance of the triangle, as <see cref="CollidesWith(GeoArc3, GeoTriangle3, Tolerance)"/> reads it,
-        /// and none for a triangle with no area, which touches nothing.
+        /// the point tolerance of the triangle, as <see cref="CollidesWith(GeoArc3, GeoTriangle3, Tolerance)"/> reads it.
+        /// Where it touches the triangle without crossing it, the point of the arc nearest the triangle, unless the arc lies
+        /// level over it within the tolerance. A triangle with no area is the segment it has collapsed to, crossed where its
+        /// sides are.
         /// </returns>
         /// <remarks>
         /// A point of the arc is read as on the triangle within the point tolerance of its plane and within the tolerance of
@@ -119,12 +162,23 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            if (triangle.IsDegenerateByArea(tolerance))
-            {
-                return new GeoPoint3[0];
-            }
-
             List<GeoPoint3> found;
+
+            // A triangle with no area is the segment it has collapsed to, crossed where its sides are, and touched alone where
+            // it is not: it has no plane for an arc to lie level in.
+            if (triangle.IsDegenerate(tolerance))
+            {
+                found = new List<GeoPoint3>();
+
+                AddCrossingsOfEdges(found, arc, Intersection3.SidesOfThin(triangle), tolerance);
+
+                if (found.Count > 0)
+                {
+                    return WhereTouching(arc, found, Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance);
+                }
+
+                return MayTouch(arc, triangle.GetAabb(), tolerance) ? TouchAlone(arc, null, Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance) : found.ToArray();
+            }
 
             if (!IsCoplanar(arc, triangle.GetPlane(), tolerance))
             {
@@ -137,7 +191,12 @@ namespace GeometryHelper.Core
                 AddCrossingsOfEdges(found, arc, new[] { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) }, tolerance);
             }
 
-            return found.Count == 0 ? found.ToArray() : WhereTouching(arc, found, Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance);
+            if (found.Count > 0)
+            {
+                return WhereTouching(arc, found, Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance);
+            }
+
+            return MayTouch(arc, triangle.GetAabb(), tolerance) ? TouchAlone(arc, triangle.GetPlane(), Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance) : found.ToArray();
         }
 
         /// <summary>
@@ -154,15 +213,11 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The triangle is read filled, and they touch where the exact gap between them is no more than the point tolerance:
         /// an arc lying in the triangle's plane and wholly within it touches, one 0.0005 off its side in the plane
-        /// touches, and one hovering 0.0003 over it touches. A triangle with no area touches nothing.
+        /// touches, and one hovering 0.0003 over it touches. A triangle with no area is the segment it has collapsed to, and
+        /// touches as its distance says.
         /// </remarks>
         public static bool CollidesWith(GeoArc3 arc, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            if (triangle.IsDegenerateByArea(tolerance))
-            {
-                return false;
-            }
-
             Gap3.Curve curve = Gap3.Curve.Of(arc);
 
             return curve.Box.DistanceTo(triangle.GetAabb()) <= Collision3.Reach(tolerance)
@@ -224,7 +279,12 @@ namespace GeometryHelper.Core
 
             List<GeoPoint3> found = CrossingsOf(arc, polygon, tolerance);
 
-            return found.Count == 0 ? found.ToArray() : WhereTouching(arc, found, Gap3.Region.Of(polygon), polygon.GetAabb(), tolerance);
+            if (found.Count > 0)
+            {
+                return WhereTouching(arc, found, Gap3.Region.Of(polygon), polygon.GetAabb(), tolerance);
+            }
+
+            return MayTouch(arc, polygon.GetAabb(), tolerance) ? TouchAlone(arc, polygon.GetPlane(), Gap3.Region.Of(polygon), polygon.GetAabb(), tolerance) : found.ToArray();
         }
 
         /// <summary>
@@ -322,6 +382,27 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoFace3 face, Tolerance tolerance)
+        {
+            if (face == null)
+            {
+                throw new ArgumentNullException(nameof(face));
+            }
+
+            GeoPoint3[] crossings = CutsOf(arc, face, tolerance);
+
+            if (crossings.Length > 0 || !MayTouch(arc, face.GetAabb(), tolerance))
+            {
+                return crossings;
+            }
+
+            return TouchAlone(arc, face.GetPlane(), Gap3.Region.Of(face), face.GetAabb(), tolerance);
+        }
+
+        /// <summary>
+        /// Gets where an arc crosses a face, and nothing where it only touches it: the places the cutting of a curved chain by
+        /// a face cuts at, since a touch cuts nothing.
+        /// </summary>
+        internal static GeoPoint3[] CutsOf(GeoArc3 arc, GeoFace3 face, Tolerance tolerance)
         {
             if (face == null)
             {

@@ -10,8 +10,8 @@ using Xunit;
 namespace GeometryHelper.UnitTest.Solid
 {
     /// <summary>
-    /// The exact gap in space for shapes that are thin, far from the origin, or a hair off flat: a triangle with no area
-    /// touches nothing, a sliver is measured to where it is and not to where its cancelling arithmetic puts it, a point on
+    /// The exact gap in space for shapes that are thin, far from the origin, or a hair off flat: a triangle with no area is
+    /// the segment it has collapsed to and touches as its distance says, a sliver is measured to where it is and not to where its cancelling arithmetic puts it, a point on
     /// the rim of a polygon a few ten-thousandths out of flat is on it, a face far from the origin is flat where it is, and
     /// a collision and a distance never disagree about a pair standing the tolerance apart. The scenes are from a fuzz of
     /// 135 715, judged against a 40-digit oracle; each spec is a shape written as hexadecimal doubles.
@@ -67,7 +67,7 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static bool Collides(dynamic a, dynamic b, Tolerance tolerance) => (bool)a.CollidesWith(b, tolerance);
 
-        #region A triangle with no area touches nothing
+        #region A triangle with no area is the segment it has collapsed to
 
         public static IEnumerable<object[]> Partners() => new[]
         {
@@ -76,13 +76,15 @@ namespace GeometryHelper.UnitTest.Solid
 
         [Theory]
         [MemberData(nameof(Partners))]
-        public void ATriangleWithNoAreaCollidesWithNothing_AndKeepsItsDistance(string partner)
+        public void ATriangleWithNoAreaCollidesAsItsDistanceSays(string partner)
         {
-            // 100 long and 1E-8 wide: its area vector is 5E-7, below the vector tolerance of 1E-5.
+            // 100 long and 1E-8 wide: its height over its longest side is 1E-8, within the point tolerance. It touched
+            // nothing, whatever its distance; since LN4 it is the segment it has collapsed to, and touches what passes
+            // through it, as its distance of nought says.
             var sliver = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(50, 1E-8, 0));
             Assert.True(sliver.IsDegenerate(Tol));
 
-            // Each partner passes through the middle of the sliver, so that anything with an area would collide.
+            // Each partner passes through the middle of the sliver.
             object other;
 
             switch (partner)
@@ -97,8 +99,8 @@ namespace GeometryHelper.UnitTest.Solid
                 default: other = new GeoObb3(new GeoPoint3(50, 0, 0), 20, 10, 10).ToSolid(); break;
             }
 
-            Assert.False(Collides(sliver, other, Tol));
-            Assert.False(Collides(other, sliver, Tol));
+            Assert.True(Collides(sliver, other, Tol));
+            Assert.True(Collides(other, sliver, Tol));
             Assert.Equal(0.0, Distance(sliver, other, Tol), 12);
             Assert.Equal(0.0, Distance(other, sliver, Tol), 12);
         }

@@ -201,7 +201,9 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            return IsCoplanar(ellipse, triangle.GetPlane(), tolerance)
+            // A triangle with no area holds nothing for a rim to lie wholly within.
+            return !triangle.IsDegenerate(tolerance)
+                && IsCoplanar(ellipse, triangle.GetPlane(), tolerance)
                 && Containment3.Contains(triangle, StartOf(ellipse), tolerance);
         }
 

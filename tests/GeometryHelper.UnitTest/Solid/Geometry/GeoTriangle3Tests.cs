@@ -127,14 +127,16 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
-        public void ADegenerateTriangleHoldsNothing()
+        public void ADegenerateTriangleHoldsThePointsOnItAndNoMore()
         {
+            // A triangle with no area is the segment it has collapsed to: it has no inside, and holds the points on it.
             GeoTriangle3 collinear = new GeoTriangle3(
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(1.0, 0.0, 0.0),
                 new GeoPoint3(2.0, 0.0, 0.0));
 
-            Assert.Equal(PointLocation.OutSide, collinear.Locate(new GeoPoint3(1.0, 0.0, 0.0)));
+            Assert.Equal(PointLocation.OnSide, collinear.Locate(new GeoPoint3(1.0, 0.0, 0.0)));
+            Assert.Equal(PointLocation.OutSide, collinear.Locate(new GeoPoint3(1.0, 0.01, 0.0)));
         }
 
         [Fact]

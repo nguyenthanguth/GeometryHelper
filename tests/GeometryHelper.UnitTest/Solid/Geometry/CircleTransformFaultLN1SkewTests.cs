@@ -6,7 +6,8 @@ namespace GeometryHelper.UnitTest.Solid
 {
     /// <summary>
     /// A transformation that keeps the lengths of two axes of a circle's plane but skews them is refused for a whole circle, as
-    /// a scaling uneven between them is; an arc goes through where its ends and its middle land.
+    /// a scaling uneven between them is; an arc goes through where its ends and its middle land where that lands within the
+    /// tolerance of the ellipse it becomes, and is refused otherwise.
     /// </summary>
     /// <remarks>
     /// The circle was taken to stay round when the two axes of its plane came out of the transformation equally long, to
@@ -36,17 +37,13 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
-        public void ASkewThatKeepsBothLengths_TakesAnArcThroughWhereItsEndsAndMiddleLand()
+        public void ASkewThatKeepsBothLengths_IsRefusedForAnArcItWouldLandFarOff()
         {
-            // An arc under a stretch is the arc through where its two ends and its middle land, as it has been; only a whole
-            // circle, which would be an ellipse, is refused.
+            // An arc under a skew is the arc through where its two ends and its middle land only where that lands within the
+            // tolerance of the ellipse it becomes (LN4); this one, of radius 177.7, would stand far off it.
             var arc = new GeoArc3(new GeoPoint3(10, 20, 30), GeoVector3.ZAxis, 100, 0.5, 2.0);
 
-            GeoArc3 moved = arc.TransformBy(Skew);
-
-            Assert.True(moved.StartPoint.DistanceTo(Skew.Transform(arc.StartPoint)) < 1E-9);
-            Assert.True(moved.DistanceTo(Skew.Transform(arc.MidPoint), Tolerance.Default) < 1E-9);
-            Assert.True(moved.EndPoint.DistanceTo(Skew.Transform(arc.EndPoint)) < 1E-9);
+            Assert.Throws<InvalidOperationException>(() => arc.TransformBy(Skew));
         }
 
         [Fact]

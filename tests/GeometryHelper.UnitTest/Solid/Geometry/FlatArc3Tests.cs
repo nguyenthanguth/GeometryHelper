@@ -257,14 +257,27 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
-        public void AnEdgeStretchedAskew_RunsThroughWhereItsEndsAndMiddleLand()
+        public void AnEdgeStretchedAskew_IsRefused()
         {
             // Stretched to twice along a diagonal of its plane, both axes of the plane grow alike to 1.58, but a circle
-            // of radius 10 becomes an ellipse 10 by 20.
+            // of radius 10 becomes an ellipse 10 by 20: no arc through the moved ends and middle stands for it, and since
+            // LN4 the edge is refused as the arc is, where it was moved through those three points.
             GeoTransform3 skew = Stretch(new GeoVector3(-1, 1, 0), 2);
             var edge = new GeoEdge3(GeoPoint3.Origin, new GeoPoint3(10, 0, 0), 0.5, GeoVector3.ZAxis);
 
-            // The moved middle lies on the moved arc, 2.39 short of halfway round it.
+            Assert.Throws<InvalidOperationException>(() => edge.TransformBy(skew));
+            Assert.Throws<InvalidOperationException>(() => edge.ToArc().TransformBy(skew));
+        }
+
+        [Fact]
+        public void AnEdgeStretchedAHairAskew_RunsThroughWhereItsEndsAndMiddleLand()
+        {
+            // Stretched by a millionth along a diagonal of its plane, the edge lands some 8E-7 off the arc through where its
+            // ends and its middle land, inside the tolerance.
+            GeoTransform3 skew = Stretch(new GeoVector3(-1, 1, 0), 1 + 1E-6);
+            var edge = new GeoEdge3(GeoPoint3.Origin, new GeoPoint3(10, 0, 0), 0.5, GeoVector3.ZAxis);
+
+            // The moved middle lies on the moved arc.
             GeoPoint3 middle = skew.Transform(edge.MidPoint);
 
             GeoEdge3 moved = edge.TransformBy(skew);

@@ -67,13 +67,12 @@ namespace GeometryHelper.Core
         /// point tolerance: the segment from (-10, 10, 0) to (110, 10, 0), lying in the plane of the triangle with corners
         /// (0, 0, 0), (100, 0, 0) and (0, 100, 0) and across it, touches it; the one from (60, 60, 0) to (90, 60, 0),
         /// beyond its long side, touches nothing; and the one from (50, -0.0005, 0) to (50, -50, 0), starting 0.0005 off its
-        /// side y = 0, touches it, from either end. A triangle with no area touches nothing, as <see cref="CollidesWith(GeoTriangle3, GeoTriangle3, Tolerance)"/>
-        /// reads it, and keeps its distance: the one with corners (0, 0, 0), (100, 0, 0) and (50, 1E-8, 0) is nought from a segment
-        /// through its middle and collides with nothing.
+        /// side y = 0, touches it, from either end. A triangle with no area is the segment it has collapsed to, and touches as
+        /// its distance says: the one with corners (0, 0, 0), (100, 0, 0) and (50, 1E-8, 0) is nought from a segment through its
+        /// middle and collides with it, where it collided with nothing.
         /// </remarks>
         public static bool CollidesWith(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance)
-            => !triangle.IsDegenerateByArea(tolerance)
-                && Gap3.BoxGap(line.StartPoint, line.EndPoint, triangle.GetAabb()) <= Reach(tolerance)
+            => Gap3.BoxGap(line.StartPoint, line.EndPoint, triangle.GetAabb()) <= Reach(tolerance)
                 && Gap3.Segment(Gap3.Region.Of(triangle), line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
         /// <summary>
@@ -156,11 +155,11 @@ namespace GeometryHelper.Core
         /// tolerance. A ray lying in the plane of the triangle crosses it nowhere, and is read as a segment lying in the
         /// plane as far as the corner farthest from its origin, since past that it only draws away: the ray from
         /// (-10, 10, 0) along X runs into the triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0), and the
-        /// one pointing along -X from there misses it. A triangle with no area touches nothing, and keeps its distance.
+        /// one pointing along -X from there misses it. A triangle with no area is the segment it has collapsed to, and touches as
+        /// its distance says.
         /// </remarks>
         public static bool CollidesWith(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
-            => !triangle.IsDegenerateByArea(tolerance)
-                && Gap3.Ray(Gap3.Region.Of(triangle), ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
+            => Gap3.Ray(Gap3.Region.Of(triangle), ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether a ray runs into a polygon.

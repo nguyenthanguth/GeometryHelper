@@ -169,6 +169,17 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoObb3 box, Tolerance tolerance)
         {
+            GeoPoint3[] crossings = CutsOf(arc, box, tolerance);
+
+            return crossings.Length > 0 || !MayTouch(arc, box.GetAabb(), tolerance) ? crossings : TouchAlone(arc, box, tolerance);
+        }
+
+        /// <summary>
+        /// Gets where an arc crosses the faces of a box, and nothing where it only touches the box: the places the cutting of
+        /// a curved chain by a box cuts at, since a touch cuts nothing.
+        /// </summary>
+        internal static GeoPoint3[] CutsOf(GeoArc3 arc, GeoObb3 box, Tolerance tolerance)
+        {
             var found = new List<GeoPoint3>();
 
             foreach (GeoPolygon3 face in box.GetFaces())
@@ -187,6 +198,57 @@ namespace GeometryHelper.Core
             }
 
             return found.ToArray();
+        }
+
+        /// <summary>
+        /// Gets the point where an arc that crosses no face of a box touches it on its own, as
+        /// <see cref="CollidesWith(GeoArc3, GeoObb3, Tolerance)"/> reads a touch: the point of the arc nearest the box, and none
+        /// where they do not come within the point tolerance of each other, the box holds the arc, or the arc lies level over a
+        /// face, as a curve lying on a surface crosses it nowhere.
+        /// </summary>
+        private static GeoPoint3[] TouchAlone(GeoArc3 arc, GeoObb3 box, Tolerance tolerance)
+        {
+            if (!CollidesWith(arc, box, tolerance))
+            {
+                return new GeoPoint3[0];
+            }
+
+            var block = new Gap3.Block(box);
+            Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+            // Held at an end and crossing no face, it lies wholly in the box.
+            if (block.Holds(curve.StartPoint) || block.Holds(curve.EndPoint))
+            {
+                return new GeoPoint3[0];
+            }
+
+            // The face it comes nearest, the first of two as near.
+            Gap3.Region nearestFace = null;
+            double least = double.MaxValue;
+
+            foreach (Gap3.Region face in block.Faces())
+            {
+                double gap = curve.GapToRegion(face, 0.0);
+
+                if (gap < least)
+                {
+                    least = gap;
+                    nearestFace = face;
+                }
+            }
+
+            if (nearestFace == null)
+            {
+                return new GeoPoint3[0];
+            }
+
+            GeoPoint3 nearest = curve.NearestToRegion(nearestFace);
+
+            // A face of a box thinner than the tolerance may be a segment, with no plane to lie level in.
+            GeoVector3 normal = nearestFace.UnitNormal;
+            bool level = normal.Length > 0.5 && LiesLevelOver(arc, new GeoPlane3(nearestFace.PlaneOrigin, normal), nearestFace, nearest, tolerance);
+
+            return level ? new GeoPoint3[0] : new[] { nearest };
         }
 
         /// <summary>

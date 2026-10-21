@@ -214,7 +214,7 @@ namespace GeometryHelper.UnitTest.Solid
             // None of these is a shape the library can say much about, but every one must return.
             Assert.True(dot.DistanceTo(probe) > 0.0);
             Assert.Equal(0.0, sliver.Area, 12);
-            Assert.Equal(PointLocation.OutSide, sliver.Locate(new GeoPoint3(1.0, 0.0, 0.0)));
+            Assert.Equal(PointLocation.OnSide, sliver.Locate(new GeoPoint3(1.0, 0.0, 0.0)));
             Assert.False(dot.TryIntersectWith(GeoPlane3.XY, out _));
             Assert.True(flatBox.IsDegenerate());
             Assert.Equal(0.0, flatBox.Volume, 12);

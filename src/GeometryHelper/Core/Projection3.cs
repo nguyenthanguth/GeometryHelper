@@ -131,6 +131,13 @@ namespace GeometryHelper.Core
             GeoPoint3 b = triangle.B;
             GeoPoint3 c = triangle.C;
 
+            // Corners on one line to rounding have no interior, and the regions the signs below tell apart are the rounding
+            // of the products: the answer is on an edge.
+            if (Gap3.PlaneNormal(a, b, c).LengthSquared == 0.0)
+            {
+                return ClosestPointOnEdges(triangle, point);
+            }
+
             GeoVector3 ab = a.GetVectorTo(b);
             GeoVector3 ac = a.GetVectorTo(c);
             GeoVector3 ap = a.GetVectorTo(point);

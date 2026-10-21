@@ -117,15 +117,26 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// A triangle is a planar region, so a point counts as inside only when it lies on the carrier
         /// plane as well as within the edges: a point hovering above the middle of a triangle is outside
-        /// it. A degenerate triangle has no interior at all and reports every point as outside, including
-        /// points on the sliver itself, because a shape with no area is not a region. Degenerate here is twice the
-        /// area within the vector tolerance, not <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/>: the centroid of
-        /// the triangle 0.002 by 0.002 is outside it at the default tolerance.
+        /// it. A triangle with no area, by <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/>, has no interior: it is the
+        /// segment it has collapsed to, and a point within the point tolerance of one of its sides is on it, the rest outside.
+        /// The centroid of the triangle 0.003 by 0.003 is on it at the default tolerance, 0.001 from two of its sides, where it
+        /// was outside, and so is the middle of the sliver 100 long and 1E-8 high. The area is read at the tolerance given: at
+        /// 1E-5 the triangle 100 long and 0.0005 high holds (50, 0.0002, 0) inside it, though it has no area at the default.
         /// </remarks>
         public static PointLocation Locate(GeoTriangle3 triangle, GeoPoint3 point, Tolerance tolerance)
         {
-            if (triangle.IsDegenerateByArea(tolerance))
+            // A triangle with no area is the segment it has collapsed to: a point within the point tolerance of a side is on it,
+            // and no point is inside it.
+            if (triangle.IsDegenerate(tolerance))
             {
+                for (int i = 0; i < 3; i++)
+                {
+                    if (Distance3.DistanceTo(triangle.GetEdgeAt(i), point, tolerance) <= tolerance.EqualPoint)
+                    {
+                        return PointLocation.OnSide;
+                    }
+                }
+
                 return PointLocation.OutSide;
             }
 
@@ -145,7 +156,8 @@ namespace GeometryHelper.Core
                 }
             }
 
-            if (!triangle.TryGetBarycentric(point, out double u, out double v, out double w))
+            // Judged as having an area at the tolerance given, not again at the global one.
+            if (!triangle.TryGetBarycentricAsItStands(point, out double u, out double v, out double w))
             {
                 return PointLocation.OutSide;
             }

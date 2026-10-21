@@ -29,8 +29,8 @@ namespace GeometryHelper.Core
     /// along Y, cross at (100, 50, 0) and (50, 100, 0).
     /// </para>
     /// <para>
-    /// A triangle with no area has no plane and no region, and the segment against a triangle has always refused one,
-    /// so it crosses nothing here either.
+    /// A triangle with no area, by <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/>, has no plane to lay a pair out in: it
+    /// is the segment it has collapsed to, and is crossed where its sides are, as the segment against a triangle reads it.
     /// </para>
     /// </remarks>
     public static partial class Intersection3
@@ -59,14 +59,22 @@ namespace GeometryHelper.Core
         /// </returns>
         /// <remarks>
         /// The triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0) and the upright one with corners
-        /// (0, 50, -50), (100, 50, -50) and (0, 50, 50) cross at (50, 50, 0) and (0, 50, 0). A triangle with no area
-        /// crosses nothing, as <see cref="Collision3.CollidesWith(GeoTriangle3, GeoTriangle3, Tolerance)"/> reads it.
+        /// (0, 50, -50), (100, 50, -50) and (0, 50, 50) cross at (50, 50, 0) and (0, 50, 0). A triangle with no area is
+        /// crossed where its sides are: the sliver with corners (0, 0, 0), (100, 0, 0) and (50, 1E-8, 0) crosses the upright
+        /// triangle with corners (50, -10, -10), (50, 10, -10) and (50, 0, 10) at (50, 0, 0).
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle1, GeoTriangle3 triangle2, Tolerance tolerance)
         {
-            if (triangle1.IsDegenerateByArea(tolerance) || triangle2.IsDegenerateByArea(tolerance))
+            var found = new List<GeoPoint3>();
+
+            // A triangle with no area is the segment it has collapsed to, and has no plane to lay the pair out in: where the
+            // sides of either cross the other is the answer.
+            if (triangle1.IsDegenerate(tolerance) || triangle2.IsDegenerate(tolerance))
             {
-                return new GeoPoint3[0];
+                AddCrossings(found, EdgesOf(triangle1), triangle2, tolerance);
+                AddCrossings(found, EdgesOf(triangle2), triangle1, tolerance);
+
+                return found.ToArray();
             }
 
             Flat first = Flat.Of(triangle1);
@@ -82,8 +90,6 @@ namespace GeometryHelper.Core
                 return Lift(frame, Triangle2.GetIntersections(
                     PlanarMap.ProjectToTriangle2(frame, triangle1), PlanarMap.ProjectToTriangle2(frame, triangle2), tolerance));
             }
-
-            var found = new List<GeoPoint3>();
 
             AddCrossings(found, EdgesOf(triangle1), triangle2, tolerance);
             AddCrossings(found, EdgesOf(triangle2), triangle1, tolerance);
@@ -153,9 +159,16 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            if (triangle.IsDegenerateByArea(tolerance))
+            var found = new List<GeoPoint3>();
+
+            // A triangle with no area is the segment it has collapsed to: where its sides cross the polygon, and the polygon's
+            // edges its sides.
+            if (triangle.IsDegenerate(tolerance))
             {
-                return new GeoPoint3[0];
+                AddCrossings(found, EdgesOf(triangle), polygon, tolerance);
+                AddCrossings(found, EdgesOf(polygon), triangle, tolerance);
+
+                return found.ToArray();
             }
 
             Flat first = Flat.Of(triangle);
@@ -174,8 +187,6 @@ namespace GeometryHelper.Core
                     flatPolygon,
                     tolerance));
             }
-
-            var found = new List<GeoPoint3>();
 
             AddCrossings(found, EdgesOf(triangle), polygon, tolerance);
             AddCrossings(found, EdgesOf(polygon), triangle, tolerance);
@@ -250,9 +261,16 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
-            if (triangle.IsDegenerateByArea(tolerance))
+            var found = new List<GeoPoint3>();
+
+            // A triangle with no area is the segment it has collapsed to: where its sides cross the material, and the face's
+            // edges its sides.
+            if (triangle.IsDegenerate(tolerance))
             {
-                return new GeoPoint3[0];
+                AddCrossings(found, EdgesOf(triangle), face, tolerance);
+                AddCrossings(found, EdgesOf(face), triangle, tolerance);
+
+                return found.ToArray();
             }
 
             Flat first = Flat.Of(triangle);
@@ -271,8 +289,6 @@ namespace GeometryHelper.Core
                     flatFace,
                     tolerance));
             }
-
-            var found = new List<GeoPoint3>();
 
             AddCrossings(found, EdgesOf(triangle), face, tolerance);
             AddCrossings(found, EdgesOf(face), triangle, tolerance);
@@ -1307,7 +1323,7 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            if (triangle.IsDegenerateByArea(tolerance))
+            if (triangle.IsDegenerate(tolerance))
             {
                 return false;
             }

@@ -166,9 +166,10 @@ The other way round, a segment, a ray, a line or a chain that touches the box wi
 a face is given the point of it nearest the box: the segment from (5, 10.1, 9.9007) to (5, 9.9007, 10.1), 0.0005 off the
 edge where the faces y = 10 and z = 10 meet, is given (5, 10.00035, 10.00035), where it collided and was given nothing.
 The point is the same whichever way round the shape is given. One lying wholly inside the box collides and crosses
-nothing, as before, and so does one lying along the box within the tolerance, level with the face it stands over or
-running with the edge to the vector tolerance, as the body of the box and an arc in the same place read it, a curve lying
-on a surface crossing it nowhere: the chain 0.0005 over the top face is given no point. A ray starting within the
+nothing, as before, and so does one lying along the box within the tolerance, within the planar tolerance of the plane
+of the face it stands over or the line of the edge it runs with all along, as the body of the box and an arc in the same
+place read it, a curve lying on a surface crossing it nowhere: the chain 0.0005 over the top face is given no point, and
+the segment 800 long from 0.0006 over the top face, tilted 9E-6 and so rising 0.0072, touches it at its low end. A ray starting within the
 tolerance of the box and running away from it touches it at its origin. Cutting a chain by a box cuts only where it
 crosses a face, since a touch cuts nothing.
 
@@ -256,8 +257,9 @@ tolerance; a face 0.002 by 0.002 is its two triangles at the default tolerance. 
 one line to rounding: each half of that face, 0.0014 high, is a triangle, with its `Normal` and its `GetPlane()` and
 read as a face, where they threw; one 100 by 0.0008 has no area at the default tolerance and keeps its normal all the
 same. `Normal` is read from the triangle's own numbers and throws only for corners on a line to rounding. A polygon
-under the vector tolerance in area is kept where it has width in the same way, so a square 0.002 by 0.002 is one; what
-the queries and the meshes read as no area is as it was. A face thinner than the tolerance is a seam at
+under the vector tolerance in area is kept where it has width in the same way, so a square 0.002 by 0.002 is one; the
+meshes read no area as they did, and the queries of a triangle read it by `IsDegenerate` (see
+[how near is touching](#how-near-is-touching-in-space)). A face thinner than the tolerance is a seam at
 it and has no triangle: a slab 100 by 100 and 0.0008 thick, built within 1E-5, is 12 triangles at 1E-5 and 4 at 0.001,
 its four sides gone, and a Debug line in `GeometryHelperLog` says how many faces were left out whole and how much area
 they had; a face meshed in part is not counted.
@@ -469,18 +471,29 @@ and chains and loops of arcs against all of them. Measured at a thousandth:
   its corners, so one thinner than the tolerance, or a few thousandths across, is asked about as surely as any other. No member
   measures the distance from a curve in space to anything but a point; the gap is worked out inside. On .NET Framework 4.8
   an arc against a triangle takes 1.2 microseconds to ask about where they stand far apart and 6.8 where they stand near.
-  An arc or a circle crosses a triangle, a polygon or a face only where it collides with it: an arc starting 0.00107
+  An arc or a circle crosses a triangle, a polygon, a face or a box only where it collides with it: an arc starting 0.00107
   beside a side and 0.0007 over the plane, 0.0013 from the region and running away from it, is given no point, where it
-  was given one, and a triangle with no area, which touches nothing, is crossed nowhere.
+  was given one. One that touches it without crossing, tilted or bowing beside a side in its plane, is given the point of
+  it nearest the shape, as a segment touching a box is: the arc of radius 5 standing upright 0.0006 beside the side of
+  the square 30 by 20 and dipping to 0.0006 over its plane touches it at (15, -0.0006, 0.0006), where it collided and was
+  given nothing. One lying level over the material within the tolerance, rising off its plane by no more than the planar
+  tolerance round its circle, is given none, as a curve lying on a surface crosses it nowhere; tilted further it touches:
+  the arc of radius 300 tilted 9E-6, which rises 0.0027 round its circle, touches the material where it dips to 0.0006
+  over it. Cutting a curved chain by a face or a box still cuts only where it crosses.
 
-Eight things are read otherwise, on purpose:
+A triangle with no area, by `GeoTriangle3.IsDegenerate`, its height over its longest side within the point tolerance,
+such as (0, 0, 0), (100, 0, 0), (50, 1E-8, 0), is the segment it has collapsed to: it touches what comes within the
+tolerance of it, as its distance says, is crossed where its sides are, and holds the points on them, `OnSide`, and none
+inside. The triangle 0.003 by 0.003, which twice its area against the vector tolerance read as having none, is a triangle
+to every query: it holds its centroid, which stands 0.001 from two of its sides and so is `OnSide` at a thousandth, and
+a segment through its middle crosses it. The area is read at the tolerance a query is asked within, so at 1E-5 the
+triangle 100 long and 0.0005 high is a triangle and holds a point in its middle, though `TryGetBarycentric`, which reads
+the global tolerance, gives false for it. A triangle whose corners lie on one line to rounding has no plane at all, as
+`Normal` reads it, and is measured as its sides; a thin one that has a plane is read as standing off it by the rounding
+of its normal.
 
-* **A triangle with no area**, such as (0, 0, 0), (100, 0, 0), (50, 1E-8, 0), touches nothing whatever its distance, which
-  is still its gap, so for it `CollidesWith` is not `DistanceTo <= EqualPoint`. No area here is twice the area within the
-  vector tolerance, the reading the queries have kept, not `GeoTriangle3.IsDegenerate`, which reads the height against the
-  point tolerance: the triangle 0.002 by 0.002 is a triangle to `IsDegenerate` and has no area to the queries at the default
-  tolerance, so its centroid is `OutSide` it and a segment through it does not collide, where its face reads the centroid
-  `OnSide` and the segment touching. Moving the queries to the height is a step of its own.
+Seven things are read otherwise, on purpose:
+
 * **A body against a body**, or an oriented box against an oriented or an axis-aligned box, is searched through the
   triangles of the two and reads nought when they are within the point tolerance of each other: two solid boxes 0.0004 apart
   are nought apart, and so is an axis-aligned box 0.0004 from an oriented box or a solid, though the line between them
@@ -1759,15 +1772,18 @@ it would be 0.065 off, and the skew that sends X to (1, 0, 0) and Y to (0.6, 0.8
 radius 100, is refused, since it would be an ellipse. The plane is carried by its normal, which an even scaling of about 1E5 or more makes shorter than the vector tolerance, so such a scaling is refused
 all the same, with an `ArgumentException`. An arc is not refused so. A turn, a shift, a mirror or an even scaling of its
 plane moves it whole, by its centre and its radius, so an arc of any sweep moves, one a hair short of a whole turn
-among them, which threw; any other transformation that keeps both axes of its plane equally long takes it through where
-its two ends and its middle land, so that skew takes the arc of radius 100 in the plan from 0.5 to 2 radians to an arc
-of radius 177.7 through its moved ends and middle. An arc of a whole turn, which has no ends to go through, is refused as
-the circle is, and one past a half turn whose ends the skew brings within the global point tolerance of each other is
-refused with an `ArgumentException`; under a turn rounded to a float or to six places, which carries a circle, such an arc
-is moved whole as the whole turn is. Where the two axes of its plane come out of unequal length the arc through its ends
-and its middle stands for the ellipse only where it lands within the global point tolerance of where the transformation
-puts the rest of it: a stretch of 3E-6 moves the arc of radius 100 sweeping a whole turn less 1 at the scale it is drawn,
-0.00035 off, and refuses it scaled by 1 000, where it would be 0.35 off, as its circle and a ball are refused. An ellipse takes every transformation that can be undone, and comes back an ellipse. Seen square onto a
+among them, which threw; under any other transformation, a skew or a stretch of its plane, the arc through where its two
+ends and its middle land stands for the ellipse only where it lands within the global point tolerance of where the
+transformation puts the rest of it, and is refused otherwise: a stretch of 3E-6 moves the arc of radius 100 sweeping a
+whole turn less 1 at the scale it is drawn, 0.00035 off, and refuses it scaled by 1 000, where it would be 0.35 off, as
+its circle and a ball are refused, and that skew refuses the arc of radius 100 in the plan from 0.5 to 2 radians, which it
+took to an arc of radius 177.7 far off the ellipse. An edge with a bulge is judged the same way, where it was moved
+through its three points under any map: the edge of bulge 0.5 from the origin to (10, 0, 0) stretched to twice along a
+diagonal of its plane is refused, and stretched by a millionth it moves, 8.3E-7 off. Each point is read from the
+moved start, so an edge 100 long bowing by 1E-12 moves under a turn rounded to six places. An arc of a whole turn, which
+has no ends to go through, is refused as the circle is, and one past a half turn whose ends the skew brings within the
+global point tolerance of each other is refused with an `ArgumentException`; under a turn rounded to a float or to six
+places, which carries a circle, such an arc is moved whole as the whole turn is. An ellipse takes every transformation that can be undone, and comes back an ellipse. Seen square onto a
 plane, a circle or an ellipse is an ellipse in that plane:
 
 ```csharp

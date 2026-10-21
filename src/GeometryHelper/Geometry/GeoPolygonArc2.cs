@@ -519,11 +519,12 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Mirroring turns every arc the other way, so the bulges change sign, and the mirrored vertices
         /// trace the opposite winding, so a loop that ran counter-clockwise comes back clockwise. A
-        /// transformation that scales the axes differently would make an arc part of an ellipse, and is
-        /// refused.
+        /// transformation that skews the axes or scales them differently makes an arc part of an ellipse, and is
+        /// refused where an edge would land further than the global point tolerance off it, as
+        /// <see cref="GeoEdge2.TransformBy(GeoTransform2)"/> reads it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the transformation would stretch an arc into part of an ellipse.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the transformation would skew or stretch an arc into part of an ellipse it would land visibly off.</exception>
         public GeoPolygonArc2 TransformBy(GeoTransform2 transform)
         {
             if (transform == null)

@@ -145,10 +145,13 @@ namespace GeometryHelper.UnitTest.Solid
                 var segment = new GeoLine3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1));
                 bool collides = box.CollidesWith(segment, Default);
 
-                // One lying along the box, level with the top or the side to the vector tolerance, collides and crosses
-                // nothing; any other crosses exactly where it collides.
-                double length = segment.Length;
-                bool along = Math.Min(Math.Abs(y1 - y0), Math.Abs(z1 - z0)) <= 2E-5 * length;
+                // One lying along the box, within the planar tolerance of the plane of the top or the side or of the line of the
+                // edge at both its ends (since LN4, a length and not an angle), collides and crosses nothing; any other crosses
+                // exactly where it collides.
+                double near = Default.EqualPlanar * (1 + 1E-9);
+                bool along = (Math.Abs(z0 - 10) <= near && Math.Abs(z1 - 10) <= near)
+                    || (Math.Abs(y0 - 10) <= near && Math.Abs(y1 - 10) <= near)
+                    || (Math.Sqrt((y0 - 10) * (y0 - 10) + (z0 - 10) * (z0 - 10)) <= near && Math.Sqrt((y1 - 10) * (y1 - 10) + (z1 - 10) * (z1 - 10)) <= near);
                 bool expected = collides && !along;
                 int forward = box.GetIntersections(segment, Default).Length;
 
@@ -161,8 +164,10 @@ namespace GeometryHelper.UnitTest.Solid
                 var ray = new GeoRay3(segment.StartPoint, segment.Direction);
                 var line = new GeoXLine3(segment.StartPoint, segment.Direction);
 
-                Assert.Equal(box.CollidesWith(ray, Default), box.GetIntersections(ray, Default).Length > 0);
-                Assert.Equal(line.CollidesWith(Box, Default), line.GetIntersections(Box, Default).Length > 0);
+                // A ray or a line running on past the box lies along it where it stays within the planar tolerance of it as
+                // far as the box reaches, so it is given points only where it collides.
+                Assert.True(box.GetIntersections(ray, Default).Length == 0 || box.CollidesWith(ray, Default));
+                Assert.True(line.GetIntersections(Box, Default).Length == 0 || line.CollidesWith(Box, Default));
             }
         }
     }

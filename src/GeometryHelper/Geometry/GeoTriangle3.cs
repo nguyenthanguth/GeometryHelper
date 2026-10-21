@@ -300,9 +300,9 @@ namespace GeometryHelper.Geometry
         /// The test is a length against a length: a triangle 0.002 by 0.002 is a triangle at the default tolerance, and a sliver
         /// 1 000 long and 0.0004 high is not, where twice the area read against the vector tolerance called the first nothing
         /// and the second a triangle. The queries of a triangle, <c>CollidesWith</c>, <c>GetIntersections</c> and
-        /// <c>Locate</c> among them, still read no area by twice the area against the vector tolerance, as they did: to them
-        /// the triangle 0.002 by 0.002 has none at the default tolerance, its centroid is outside it and a segment through it
-        /// does not collide.
+        /// <c>Locate</c> among them, read no area by this too: the triangle 0.003 by 0.003 is a triangle to them, holding its
+        /// centroid and crossed by a segment through its middle, and a triangle with none is the segment it has collapsed
+        /// to, touching what comes within the point tolerance of it and crossed where its sides are.
         /// </remarks>
         public bool IsDegenerate(Tolerance tolerance)
         {
@@ -314,13 +314,14 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Checks whether twice the area is within the vector tolerance: the reading of no area that the library's own
-        /// queries and meshing keep, bit for bit, where a triangle with none touches nothing and is left out of a mesh.
+        /// Checks whether twice the area is within the vector tolerance: the reading of no area that the library's meshing,
+        /// booleans and splitting keep, bit for bit, where a triangle with none is left out of a mesh.
         /// </summary>
         /// <remarks>
         /// It reads a length squared against a length, the trap <see cref="IsDegenerate(Tolerance)"/> no longer falls into: a
         /// triangle 0.002 by 0.002 has no area by it at the default tolerance, and a sliver 1 000 long and 0.0004 high has.
-        /// The paths that read it are pinned to what they answer by it, and moving them is a step of its own.
+        /// The queries read <see cref="IsDegenerate(Tolerance)"/>; the paths that still read this are pinned to what they
+        /// answer by it, and moving them is a step of its own.
         /// </remarks>
         internal bool IsDegenerateByArea(Tolerance tolerance) => GetAreaVector().IsZeroLength(tolerance);
 
@@ -334,7 +335,7 @@ namespace GeometryHelper.Geometry
         /// Determines whether twice the area stands clear of the rounding of the cross product it comes from, a few parts in
         /// 1E16 of the longest side squared, so that the area vector has a direction.
         /// </summary>
-        private static bool IsFormed(double twiceArea, double longestSquared) => twiceArea > NormalRounding * longestSquared;
+        internal static bool IsFormed(double twiceArea, double longestSquared) => twiceArea > NormalRounding * longestSquared;
 
         /// <summary>
         /// The share of the longest side squared within which twice the area is the rounding of the cross product.
@@ -351,8 +352,10 @@ namespace GeometryHelper.Geometry
         /// <param name="v">Weight of vertex <see cref="B"/>.</param>
         /// <param name="w">Weight of vertex <see cref="C"/>.</param>
         /// <returns>
-        /// false when twice the area of the triangle is within the default vector tolerance, the reading the containment of a
-        /// point in it keeps, in which case all three weights are zero.
+        /// false when the triangle has no area by <see cref="IsDegenerate(Tolerance)"/> at the global tolerance, its height over
+        /// its longest side within the point tolerance, in which case all three weights are zero: the triangle 100 long and
+        /// 0.0005 high gives false at the default tolerance, where twice its area, 0.05, read against the vector tolerance gave
+        /// true. The containment of a point in a triangle reads it at the tolerance it is asked within instead.
         /// </returns>
         /// <remarks>
         /// The point is projected onto the triangle plane first, so a point off the plane gets the
@@ -360,6 +363,23 @@ namespace GeometryHelper.Geometry
         /// non-negative exactly when the projection falls inside the triangle.
         /// </remarks>
         public bool TryGetBarycentric(GeoPoint3 point, out double u, out double v, out double w)
+        {
+            if (IsDegenerate(Tolerance.Global))
+            {
+                u = 0.0;
+                v = 0.0;
+                w = 0.0;
+                return false;
+            }
+
+            return TryGetBarycentricAsItStands(point, out u, out v, out w);
+        }
+
+        /// <summary>
+        /// Gets the barycentric coordinates of a point without judging whether the triangle has an area, which a caller
+        /// that has judged it at its own tolerance has done: false only where the area vector vanishes to the last digit.
+        /// </summary>
+        internal bool TryGetBarycentricAsItStands(GeoPoint3 point, out double u, out double v, out double w)
         {
             GeoVector3 ab = A.GetVectorTo(B);
             GeoVector3 ac = A.GetVectorTo(C);
@@ -373,10 +393,8 @@ namespace GeometryHelper.Geometry
 
             double denominator = d00 * d11 - d01 * d01;
 
-            // The denominator is the squared length of the area vector, so it vanishes for exactly the
-            // triangles IsDegenerateByArea reports, and comparing it against zero here would let slivers through
-            // that the rest of the library treats as having no area.
-            if (Math.Abs(denominator) <= double.Epsilon || IsDegenerateByArea(Tolerance.Global))
+            // The denominator is the squared length of the area vector, so it vanishes for corners on one line.
+            if (Math.Abs(denominator) <= double.Epsilon)
             {
                 u = 0.0;
                 v = 0.0;

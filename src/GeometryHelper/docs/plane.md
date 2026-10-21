@@ -612,8 +612,9 @@ trip through a drawing is exact.
 `Arc2` holds the operations, and they mirror the ones for a line: `ProjectToArc`, `DistanceTo` (to a
 point, a segment or another arc), `IsPointOn`, `Locate`, `TryIntersectWith` and `GetIntersections`,
 `TrySplitAt`. Moving an arc is `Translate`, `RotateBy` and `TransformBy`; scaling it evenly is fine, a
-scaling uneven between the axes is refused rather than approximated, and a skew gives the arc through where its ends
-and its middle land (see [Moving geometry](#moving-geometry)).
+scaling uneven between the axes or a skew gives the arc through where its ends and its middle land where that lands within
+the point tolerance of the ellipse it becomes, and is refused rather than approximated otherwise (see
+[Moving geometry](#moving-geometry)).
 
 Two circles that stay within the point tolerance of each other all the way round, their centres and their radii no
 more than the tolerance apart put together, are one circle, which meets along its length rather than at points, and
@@ -1483,20 +1484,21 @@ moved under a shear of 5E-6 at the scale it is drawn, its corners 0.00018 off, a
 would be 0.18 off.
 
 An arc, and an edge with a bulge, is moved whole by its centre and its radius under a turn, a shift, a mirror or an even
-scaling, to the bit as it was. Under a skew that keeps both axes equally long it is the arc through where its two ends
-and its middle land, as an arc in space is: the skew that sends X to (1, 0) and Y to (0.6, 0.8) takes the arc of radius
-100 about the origin from 0.5 to 2 radians to an arc of radius 66.09 about (52.98, 20.16), where it came out at radius
-100 about the moved centre with its ends 22.7 and 44.6 off, and the edge of bulge 0.5 from (0, 0) to (100, 0) ends at
-(100, 0), where it ended 22.05 off, so a chain of such edges stays joined. An arc of a whole turn is the whole circle and
-is refused under the skew as the circle is, and so, with an `ArgumentException`, is an arc past a half turn whose ends
+scaling, to the bit as it was. Under any other transformation, a skew or a stretch, the arc is part of an ellipse, and
+the arc through where its two ends and its middle land, as an arc in space is moved, stands for it only where it lands
+within the global point tolerance of where the transformation puts the rest of it, asked at every sixteenth of its
+sweep, and is refused otherwise, as the circle under it is: a stretch of 3E-6 along X moves the arc of radius 100 from
+0.5 to 2 radians at the scale it is drawn, 0.000017 off, and refuses it scaled by 1 000, where it would be 0.017 off; the
+skew that sends Y to (0.000001, 1) moves it 0.0000069 off, the edge of bulge 0.5 from (0, 0) to (100, 0) ending at
+(100, 0), so a chain of such edges stays joined; and the skew that sends X to (1, 0) and Y to (0.6, 0.8) refuses it, the
+arc of radius 66.09 through its moved ends and middle standing far off the ellipse of radii 126.5 and 63.2 its circle
+becomes. A skew that keeps both axes one length is judged as a stretch is: a turn of 0.7529 radians of a stretch of
+1 + 4.29E-9 and a shear of 9.28E-5, scaled by 55.57, took the arc of radius 9 069.6 to one 9.16 off, and refuses it.
+Each point is read from the moved start, across the arc, so an edge 100 long bowing by 1E-12, of radius 2.5E13, moves
+under a turn rounded to six places, where it was refused for want of digits. An arc of a whole turn is the whole circle
+and is refused under a skew as the circle is, and so, with an `ArgumentException`, is an arc past a half turn whose ends
 the skew brings within the global point tolerance of each other. Under a transformation that carries a circle without
 being an exact turn, a turn whose numbers are rounded to six places, such an arc is moved whole as the whole turn is.
-Under a scaling that differs between the axes the arc is part of an ellipse, and the arc through its ends and its middle
-stands for it only where it lands within the global point tolerance of where the transformation puts the rest of it,
-asked at every sixteenth of its sweep: a stretch of 3E-6 along X moves the arc of radius 100 from 0.5 to 2 radians at
-the scale it is drawn, 0.000017 off, and refuses it scaled by 1 000, where it would be 0.017 off, as the circle under it
-is refused. A skew that keeps both lengths is not judged so: its arc is the arc through its ends and its middle, however
-far the rest of the ellipse strays from it.
 
 **Mirroring turns shapes round.** A polygon that ran counter-clockwise comes back clockwise, its
 `SignedArea` changes sign and its `Area` does not. `GetDeterminant` says so in advance: it is the factor

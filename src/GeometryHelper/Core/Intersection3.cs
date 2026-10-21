@@ -370,14 +370,27 @@ namespace GeometryHelper.Core
         /// The crossing is found against the triangle's carrier plane and then tested for containment, so
         /// the edges of the triangle are decided by the same tolerance-aware test that
         /// <c>Containment3.Contains</c> uses. A segment lying in the plane of the triangle is refused for
-        /// the same reason it is refused against a bare plane.
+        /// the same reason it is refused against a bare plane. Whether the triangle has an area is read by
+        /// <see cref="GeoTriangle3.IsDegenerate(Tolerance)"/>: the triangle 0.003 by 0.003 at the origin has, and the segment
+        /// from (0.001, 0.001, -1) to (0.001, 0.001, 1) crosses it at (0.001, 0.001, 0). One with none is the segment it has
+        /// collapsed to within the point tolerance, and is crossed where its sides are, the longest first: the segment from
+        /// (50, 0, -1) to (50, 0, 1) crosses the sliver 100 long and 1E-8 high at (50, 0, 0). Both crossed nothing while twice
+        /// the area was read against the vector tolerance.
         /// </remarks>
         public static bool TryIntersectWith(GeoLine3 line, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance)
         {
             intersection = GeoPoint3.Origin;
 
-            if (triangle.IsDegenerateByArea(tolerance))
+            if (triangle.IsDegenerate(tolerance))
             {
+                foreach (GeoLine3 side in SidesOfThin(triangle))
+                {
+                    if (TryIntersectWith(line, side, out intersection, tolerance))
+                    {
+                        return true;
+                    }
+                }
+
                 return false;
             }
 
@@ -417,8 +430,20 @@ namespace GeometryHelper.Core
         {
             intersection = GeoPoint3.Origin;
 
-            if (triangle.IsDegenerateByArea(tolerance))
+            // A triangle with no area is crossed where its sides are, as a segment crosses it.
+            if (triangle.IsDegenerate(tolerance))
             {
+                foreach (GeoLine3 side in SidesOfThin(triangle))
+                {
+                    GeoPoint3[] onSide = GetIntersections(side, ray, tolerance);
+
+                    if (onSide.Length > 0)
+                    {
+                        intersection = onSide[0];
+                        return true;
+                    }
+                }
+
                 return false;
             }
 
@@ -434,6 +459,28 @@ namespace GeometryHelper.Core
 
             intersection = candidate;
             return true;
+        }
+
+        /// <summary>
+        /// Gets the sides of a triangle with no area, the longest first and then the others in their order round it: the
+        /// longest is the segment the triangle has collapsed to, within the point tolerance of all of it.
+        /// </summary>
+        internal static GeoLine3[] SidesOfThin(GeoTriangle3 triangle)
+        {
+            GeoLine3[] sides = { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) };
+            int longest = 0;
+
+            for (int i = 1; i < 3; i++)
+            {
+                if (sides[i].Length > sides[longest].Length)
+                {
+                    longest = i;
+                }
+            }
+
+            return longest == 0 ? sides
+                : longest == 1 ? new[] { sides[1], sides[0], sides[2] }
+                : new[] { sides[2], sides[0], sides[1] };
         }
 
         #endregion
@@ -639,9 +686,9 @@ namespace GeometryHelper.Core
         /// without reaching the box touches it and crosses no face: it is given the point of it nearest the box, as the
         /// other shapes give a touch. The segment from (5, 10.1, 9.9007) to (5, 9.9007, 10.1) passes 0.0005 off the edge
         /// of that box and is given (5, 10.00035, 10.00035), where it was given nothing and collided. The touch is given only
-        /// where the segment touches the box at one place: one lying along the box within the tolerance, level with the face
-        /// it stands over or running with the edge to the vector tolerance, such as one 0.0005 over the top face and level
-        /// with it, is given none, as the body of the box gives none and an arc in the same place none, a curve lying on a
+        /// where the segment touches the box at one place: one lying along the box within the tolerance, within the planar
+        /// tolerance of the plane of the face it stands over or the line of the edge it runs with all along, such as one 0.0005
+        /// over the top face and level with it, is given none, as the body of the box gives none and an arc in the same place none, a curve lying on a
         /// surface crossing it nowhere. The point is the same whichever way round the segment is given.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoObb3 box, Tolerance tolerance)
@@ -747,11 +794,19 @@ namespace GeometryHelper.Core
                 hits.Add(exitPoint);
             }
 
+            // Held within two slabs it runs outside of, a crossing read off the third stands up to the tolerance off each of
+            // their faces, so further than the tolerance off the edge or the corner between them: it is given the point of the
+            // segment nearest the box instead, as a touch is.
+            if (touching && heldOutside && hits.Count > 0)
+            {
+                hits = NearOnly(line, box, hits, tolerance);
+            }
+
             // Held within a slab it runs outside of, and touching, it crosses no face it is not held by, and still meets the
             // box: it is given the point of it nearest the box, as one held in no slab is.
             if (touching && hits.Count == 0 && heldOutside)
             {
-                return new Gap3.Block(box).TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualVector, out GeoPoint3 alone)
+                return new Gap3.Block(box).TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualPlanar, out GeoPoint3 alone)
                     ? new[] { alone }
                     : new GeoPoint3[0];
             }
@@ -798,9 +853,49 @@ namespace GeometryHelper.Core
             var block = new Gap3.Block(box);
 
             return block.Within(line.StartPoint, line.EndPoint, tolerance, Collision3.Reach(tolerance))
-                && block.TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualVector, out GeoPoint3 alone)
+                && block.TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualPlanar, out GeoPoint3 alone)
                 ? new[] { alone }
                 : new GeoPoint3[0];
+        }
+
+        /// <summary>
+        /// Keeps the crossings that stand within the point tolerance of the box, and gives the point of the segment nearest the
+        /// box for any that stands further, once and in order along the segment.
+        /// </summary>
+        private static List<GeoPoint3> NearOnly(GeoLine3 line, GeoObb3 box, List<GeoPoint3> hits, Tolerance tolerance)
+        {
+            var block = new Gap3.Block(box);
+            var kept = new List<GeoPoint3>(hits.Count);
+            bool far = false;
+
+            foreach (GeoPoint3 hit in hits)
+            {
+                if (block.Distance(hit) > tolerance.EqualPoint)
+                {
+                    far = true;
+                }
+                else
+                {
+                    kept.Add(hit);
+                }
+            }
+
+            if (!far)
+            {
+                return hits;
+            }
+
+            if (block.TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualPlanar, out GeoPoint3 nearest)
+                && !kept.Exists(hit => hit.IsEqualTo(nearest, tolerance)))
+            {
+                // In order along the segment: put before the first crossing that lies further along.
+                double along = Parametrization3.GetDistanceAtPoint(line, nearest);
+                int at = kept.FindIndex(hit => Parametrization3.GetDistanceAtPoint(line, hit) > along);
+
+                kept.Insert(at < 0 ? kept.Count : at, nearest);
+            }
+
+            return kept;
         }
 
         #endregion

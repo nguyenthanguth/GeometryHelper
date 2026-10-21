@@ -392,11 +392,12 @@ namespace GeometryHelper.Geometry
         /// <returns>The transformed chain.</returns>
         /// <remarks>
         /// Mirroring turns every arc the other way, so the bulges change sign; the chain still starts
-        /// where its start point went. A transformation that scales the axes differently would make an arc
-        /// part of an ellipse, and is refused.
+        /// where its start point went. A transformation that skews the axes or scales them differently makes an arc part of
+        /// an ellipse, and is refused where an edge would land further than the global point tolerance off it, as
+        /// <see cref="GeoEdge2.TransformBy(GeoTransform2)"/> reads it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the transformation would stretch an arc into part of an ellipse.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the transformation would skew or stretch an arc into part of an ellipse it would land visibly off.</exception>
         public GeoPolylineArc2 TransformBy(GeoTransform2 transform)
         {
             if (transform == null)

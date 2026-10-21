@@ -683,6 +683,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the transformation would skew or stretch an arc into part of an ellipse it would land visibly off, as
+        /// <see cref="GeoEdge3.TransformBy(GeoTransform3)"/> refuses it.
+        /// </exception>
         /// <remarks>
         /// Every edge is carried across on its own, so a transformation that mirrors turns each arc over
         /// with the rest of the chain rather than leaving it bulging the wrong way.

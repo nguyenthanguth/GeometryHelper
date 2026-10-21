@@ -21,9 +21,10 @@ namespace GeometryHelper.Core
     /// schedule can use.
     /// </para>
     /// <para>
-    /// A cut landing on a corner of the chain breaks it between the two edges rather than inside either, which
-    /// is why the walk asks about the end of each edge separately: splitting at a parameter of nought or one
-    /// is refused, and rightly, since it would leave a piece with nothing in it.
+    /// A cut landing on a corner of the chain, within the point tolerance of it, breaks it between the two edges rather
+    /// than inside either, which is why the walk asks about the end of each edge separately: splitting at a parameter of
+    /// nought or one is refused, and rightly, since it would leave a piece with nothing in it, and so is splitting within
+    /// the tolerance of an end, which would leave a piece shorter than the tolerance.
     /// </para>
     /// </remarks>
     internal static partial class ArcChain3
@@ -47,7 +48,9 @@ namespace GeometryHelper.Core
 
                 foreach (GeoPoint3 cut in cuts)
                 {
-                    if (!edge.IsPointOn(cut, tolerance))
+                    // A cut within the tolerance of a corner is at the corner, and breaks between the edges instead: cut inside the
+                    // edge as well it left a piece shorter than the tolerance, which no chain could be made of.
+                    if (cut.IsEqualTo(edge.StartPoint, tolerance) || cut.IsEqualTo(edge.EndPoint, tolerance) || !edge.IsPointOn(cut, tolerance))
                     {
                         continue;
                     }
@@ -137,6 +140,13 @@ namespace GeometryHelper.Core
 
             return pieces.Length > 1;
         }
+
+        /// <summary>
+        /// Gets where an edge crosses a face, the places it is cut at: only where it crosses the material, since a touch cuts
+        /// nothing.
+        /// </summary>
+        private static GeoPoint3[] CutsOf(GeoEdge3 edge, GeoFace3 face, Tolerance tolerance)
+            => edge.IsArc ? Arc3.CutsOf(edge.ToArc(), face, tolerance) : edge.ToLine().GetIntersections(face, tolerance);
 
         #region By a point and by a distance
 
@@ -261,7 +271,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(chain));
             }
 
-            return TryCut(chain, GetIntersections(chain, cutter, tolerance), tolerance, out pieces);
+            return TryCut(chain, Crossings(chain.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance), tolerance, out pieces);
         }
 
         /// <summary>
@@ -452,7 +462,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(loop));
             }
 
-            return TryCutLoop(loop, GetIntersections(loop, cutter, tolerance), tolerance, out pieces);
+            return TryCutLoop(loop, Crossings(loop.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance), tolerance, out pieces);
         }
 
         /// <summary>

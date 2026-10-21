@@ -6,6 +6,75 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `GeoArc2.TransformBy`, `GeoEdge2.TransformBy`, `GeoArc3.TransformBy` and `GeoEdge3.TransformBy`, and the
+curved chains and loops through them, judge every transformation that is not a turn, a shift, a mirror or an even scaling
+by where the arc lands: the arc through where its ends and its middle land is given only where it lands within the global
+point tolerance of where the transformation puts the rest of it, asked at every sixteenth of its sweep, and an
+`InvalidOperationException` is thrown otherwise, as for a stretch. A skew that keeps both axes equally long was taken
+through the three points unasked, and `GeoEdge3` was never judged at all: a turn of 0.7529 radians of a stretch of
+1 + 4.29E-9 and a shear of 9.28E-5, scaled by 55.57, took the arc of radius 9 069.6 to one 9.16 off, and the skew that
+sends X to (1, 0) and Y to (0.6, 0.8) took the arc of radius 100 to one of radius 66.09 that stands for no part of the
+ellipse its circle becomes; both are refused now, while the skew that sends Y to (0.000001, 1) moves that arc 0.0000069
+off. The landing is read from the moved start, across the arc, so an edge 100 long bowing by 1E-12, of radius 2.5E13,
+moves under a turn rounded to six places, where reading it from its centre refused it for want of digits. Of 20 000
+random arcs and edges under skews, stretches and similar maps, in the plane and in space, those that moved landing further
+than the tolerance off, by 2 049 points along them, are refused: 1 195 arcs and 1 195 edges in the plane, 966 arcs and
+3 165 edges in space; none that moves has moved by a bit, and a turn, a shift, a mirror or an even scaling moves every
+one as before. At most 3 in each family that land up to 1.2E-3 off between the sixteen points asked still move.
+`ArcTransform2FaultLN2SkewTests`, `CircleTransformFaultLN1SkewTests` and `FlatArc3Tests`, which pinned the arcs and the
+edge under those skews to the arc through their three points, are pinned to the refusal and to a slight skew that lands.
+
+**FIXED.** `Arc3.GetIntersections` against a triangle, a polygon, a face or a box, and the circles and curved chains
+through it, gave no point where a tilted arc came within the point tolerance of a side, a rim, a corner or a face without
+crossing it, though it collided: an arc of radius 5 standing upright 0.0006 beside the side of the square 30 by 20 and
+dipping to 0.0006 over its plane, 0.00085 from it. Such an isolated touch is given the point of the arc nearest the shape
+now, as a segment touching a box is, and an arc lying level over the material within the tolerance is given none, as a
+curve lying on a surface crosses it nowhere. Level is a length, not an angle: the arc lies level where it stands off the
+plane by no more than the planar tolerance round its circle, as `IsCoplanar` reads it, so the arc of radius 300 tilted
+9E-6, which rises 0.0027 round its circle, touches the face where it dips to 0.0006 over it. Of 20 000 arcs near the
+sides, rims and corners of each shape, a third of them within 1.4E-4 of flat, 2 786 near the triangle, 2 191 near the
+polygon, 2 473 near the face and 809 near the box that collided and were given no point gain their nearest point: of those
+tilted any way 1 776, 1 137, 1 403 and 354, the rest a hair off flat but not level; the 101 tilted ones near the box that
+are given none lie inside it. Every point found is within the tolerance of both, and no other answer moved; cutting a
+curved chain by a face or a box still cuts only where it crosses, to the bit as before. A segment beside a box reads level
+alike now, within the planar tolerance of the plane of the face or the line of the edge at both its ends, where it read
+the vector tolerance as an angle: of 200 000 segments near the box 10 by 10 by 10, 3 022 short ones lying that close lose
+their touch point and 88 long ones rising further gain one, the segment 800 long tilted 9E-6 over the top of a slab among
+them; cutting by a box is unchanged to the bit.
+
+**FIXED.** A segment held within two slabs of a box it runs outside of was given a crossing read off the third slab that
+stood up to the tolerance off each of the two faces, so up to 0.00106 from the box: 3 of 100 000 segments near the box
+10 by 10 by 10, and 14 rays and 3 chains through them. Such a crossing is the point of the segment nearest the box now,
+within the tolerance of it; nothing else moved, and cutting a segment or a chain by a box is unchanged to the bit.
+
+**CHANGED.** The queries of a triangle, `CollidesWith`, `GetIntersections`, `Locate`, `Contains` and `TryGetBarycentric`
+among them, read no area by `GeoTriangle3.IsDegenerate`, the height over the longest side against the point tolerance,
+where they read twice the area against the vector tolerance, an area against a number with no size: the triangle 0.003 by
+0.003 had no area to them, so a segment through its middle neither collided with it nor crossed it and its centroid was
+outside it. A triangle with no area is the segment it has collapsed to now, rather than touching nothing: it collides with
+what comes within the tolerance of it, by the exact gap its distance has always measured, is crossed where its sides are,
+and holds the points within the tolerance of them, `OnSide`, and none inside. `TryGetBarycentric` gives false for a
+triangle with no area by `IsDegenerate` at the global tolerance, so for the triangle 100 long and 0.0005 high, twice its
+area 0.05, which it gave true for, it gives false; containment and the crossings read the coordinates at the tolerance
+they are asked within, so at 1E-5 that triangle holds a point in its middle and a segment through it crosses it, and a
+body with an edge chamfered 0.0004 across, prepared at 1E-5, holds the points just inside the chamfer. A triangle whose
+corners lie on one line to rounding has no plane at all, as `Normal` reads it, and is measured as its sides: an arc
+passing 9E-16 from the middle of one did not collide with it and was given two points, and a point on a side of another
+stood 0.843 from it. A thin triangle that has a plane stands off it by the rounding of its normal, which the gap of an arc
+reads now. Of 27 000 pairs of a small or thin triangle and a segment, a ray, a polygon, a face, a triangle, a box, a body
+or an arc, 11 137 collided otherwise than their distance said and 3 183 were given points where they did not collide;
+none is now, and no distance moved. An ellipse against such a triangle is answered as its sides too, where it touched
+nothing or threw "no normal". Triangles with area by both readings answer as they did, to the bit. Meshing, booleans and
+splitting keep the reading of the area, as they did. `Collision3ThinShapesTests`, `GeoTriangle3Tests` and `InvariantTests`,
+which pinned a triangle with no area to touching and holding nothing, are pinned to the new reading.
+
+**FIXED.** A curved chain cut within the point tolerance of one of its corners broke there, between the two edges, and was
+cut inside the edge as well, leaving a piece shorter than the tolerance; where the cut stood on the corner to rounding the
+piece had no plane, and `TrySplitBy` threw: 28 of 12 000 chains cut by boxes, faces and bodies, a third of them with a
+corner within 0.0012 of a face. Such a cut breaks the chain at the corner alone now. None throws, and the answers that
+moved, 4 028 cut by an axis-aligned box, 1 031 by an oriented one, 377 by several, 1 427 by a face and 1 108 by a body,
+are every one of them chains cut within the tolerance of a corner, a piece shorter than it gone.
+
 **FIXED.** A circle, an arc, an edge, a ball and a rectangle are moved by a transformation that is not an exact turn, shift,
 mirror or even scaling only where they land within the global point tolerance of where it puts their points, and refused
 otherwise. `GeoArc2.TransformBy`, `GeoEdge2.TransformBy` and `GeoArc3.TransformBy` read the two axes as equally long
@@ -62,8 +131,9 @@ loses or moves one; in 40 straight chains a crossing within the tolerance of a t
 at most 0.92 of the tolerance from it. A segment wholly inside the box still crosses nothing, and cutting a segment, a
 chain or a curved chain by a box cuts where it crosses a face only, to the bit as before. The touch is the same point
 whichever way round the shape is given, and it is given only where the shape touches the box at one place: one lying
-along the box within the tolerance, level with the face it stands over or running with the edge to the vector tolerance,
-such as a chain 0.0005 over the top face, is given none, as the body of the box and an arc in the same place give none.
+along the box within the tolerance, within the planar tolerance of the plane of the face it stands over or the line of
+the edge it runs with all along, such as a chain 0.0005 over the top face, is given none, as the body of the box and an
+arc in the same place give none.
 A segment barely moving across a pair of faces is held
 within them only where both its ends are within the tolerance of them, so no crossing stands further than the tolerance
 from the box (28 crossings of 60 000 segments did) and the answer does not turn on which end comes first. A ray starting
