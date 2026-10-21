@@ -574,24 +574,26 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// <para>
         /// The wall is the band from radius 5 600 to 5 900, 17 degrees long in 9 chords, 3 600 high, rising 1.2 along its
         /// length, so its top leans 0.04 degrees. The girder is the band from radius 5 600.175 to 6 100.175, its ends 20
-        /// inside the wall's, in 7 chords, 900 deep, its top 0.7 under the wall's at its start and rising 3, 0.1 degrees:
+        /// inside the wall's, in 8 chords, 900 deep, its top 0.7 under the wall's at its start and rising 3, 0.1 degrees:
         /// its top crosses the wall's two fifths of the way along, the two 0.06 degrees apart. Its inner side lies 0.175
-        /// outside the wall's at its corners, and the chords, which sag 0.76 on the wall and 1.20 on the girder, cross each
+        /// outside the wall's at its corners, and the chords, which sag 0.76 on the wall and 0.92 on the girder, cross each
         /// other back and forth along the length.
         /// </para>
         /// <para>
-        /// At 4dde2c6, with the boolean within a thousandth, and with a contact of a hundredth, the common part of the wall
-        /// with the girder comes out of 224 faces, not valid and 247 526 short, and the cut of the wall by the girder of
-        /// 1 744 faces, not valid either and 13 552 331 short: the takeoff can only say the overlap could not be worked out.
-        /// The common part is not valid either with the girder's side 0.165 or 0.185 out and its top 0.65 or 0.75 under,
-        /// nine cases in all; with the contact, eight of the nine. So the case does not hang on its numbers.
+        /// Within a thousandth, and with a contact of a hundredth, the common part of the wall with the girder comes out of
+        /// 185 faces, open and 167 short, and the cut of the wall by the girder of 1 788 faces, not valid either and
+        /// 13 989 681 over: the takeoff can only slice the overlap. The common part is not valid either with the girder's
+        /// side 0.165 or 0.185 out and its top 0.65 or 0.75 under, nine cases in all, with the contact or without. So the
+        /// case does not hang on its numbers. The girder was in 7 chords until the booleans read a cell thinner than twice
+        /// the tolerance within a quarter of its thickness: in 7 the common part comes out valid now, 23 short, and the
+        /// case no longer reached the slicing. At 4dde2c6 it was not valid, and 247 526 short.
         /// </para>
         /// <para>
-        /// In 9 and 7 chords only 54 pairs of their faces stand beside each other, too few for the takeoff to send the
-        /// pair straight to slicing, so the boolean is tried and fails. Built in more chords, the same two have many more.
+        /// In 9 and 8 chords too few pairs of their faces stand beside each other for the takeoff to send the pair straight
+        /// to slicing, so the boolean is tried and fails. Built in more chords, the same two have many more.
         /// </para>
         /// </remarks>
-        internal static (CurvedBand Wall, CurvedBand Girder) CurvedWallAndGirder(int wallChords = 9, int girderChords = 7)
+        internal static (CurvedBand Wall, CurvedBand Girder) CurvedWallAndGirder(int wallChords = 9, int girderChords = 8)
         {
             const double radius = 5600.0;
             double span = 17.0 * Math.PI / 180.0, inset = 20.0 / radius;

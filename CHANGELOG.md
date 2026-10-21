@@ -6,6 +6,67 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A union, a common part, a difference and the cutting in of openings cut a void, a chip or a slab thicker
+than the point tolerance and a trillionth of the size of the coordinates, however thin it is, and take no notice of one
+no thicker. A cell of the cut no thicker than twice the tolerance is placed by the middle of its thickness, which lies
+within the tolerance of both its sides, and was read against the other body within the tolerance, on its skin rather
+than in it: a cube of 100 less a box 40 by 30 and 0.0015 thick inside it was the cube, 1.8 cubic millimetres too much,
+the same with a box 0.002 thick, and with such a box as an opening; and a block running 0.0015 into the cube's top
+joined it holding the chip twice, 0.8 too much on 256 000. Such a middle is read within a quarter of the cell's
+thickness now, and a point found further than the tolerance inside its cell within half the tolerance, where the
+tolerance reads it on the other body's skin. The cube less a box 0.0005 thick is the cube, as it was, and a chip, a slab
+or a gap exactly the tolerance thick on a turned body, that thick to a few bits either way, is read as it was. Of 1 650
+booleans of boxes with chips, slabs, voids and openings 0.0001 to 0.5 thick or off a face, cut at 0.001 and at 0.01,
+turned and not, and three cuts one after another, 275 moved, every one a feature thicker than the tolerance and no
+thicker than twice it, or an opening exactly the tolerance off a face (below); none came out open or not valid that was
+not before, and the common parts that are slabs no thicker than twice the tolerance read as enclosing nothing to
+`Validate`, as such slabs always have. Of 2 700 unions, common parts and differences of a cube turned at random with
+chips, slabs and gaps exactly the tolerance thick, none moved. Still as in 12.2.0: of 1 600 unions and differences of a
+column and a beam the tolerance into or clear of it, placed at random, 4 hold a volume outside both readings, by up to
+24 cubic millimetres; and bolt holes stopping exactly the tolerance short of a plate's face leave the skin on some
+placements far from the origin and not on others.
+
+**FIXED.** A body whose opening stood the planar tolerance off a face, to the last bit, came out of the cutting of its
+openings open. The cut read a corner on one side of the opening's plane by its distance, 0.0010000000000000009, and
+within the point tolerance of where its edge crossed the plane by where that crossing was rounded to,
+0.0009999999999976694 off it, and the piece of the face between them lost a corner: a box 100 by 60 by 40 with an
+opening 0.1 across 0.001 off three of its faces came out of `TryCutOpenings` open by 25 faces and 7.66 cubic millimetres
+short. Cutting openings in, a corner is read on a plane now where it stands off it by no more than the planar tolerance
+and a trillionth of the size of the coordinates, so the opening is taken with the outside, closed, at 239 999.998 97. Of
+4 356 openings 0.1 to 1.9 across a hair either side of the tolerance off one to three faces of that box, turned, far
+from the origin and not, 692 came out open and 10 not valid, and none does now, each holding the volume of one reading
+or the other. A union, a common part and a difference read a corner as they did: read so there, a slab exactly the
+tolerance thick in or beside a turned body was on the plane at some corners and off it at others, and of 2 700 such
+results six that were valid came out open or wound two ways.
+
+**FIXED.** `ConvexHull3.Of` and `TryOf` close and hold every point within the tolerance of their triangles, and
+`GeoObb3.Fit` every point, on plates down to a few thousandths thick, and they no longer run out of memory. The hull
+took a point only where it stood further than the tolerance off the plane of a face it saw, and the faces of a plate a
+few thousandths thick meet at its rim so nearly flat that a point 10 off the rim stands within a thousandth of every
+plane; reading which faces a point sees by a test that rounds, it also came out open, wound against itself, or folded
+over itself. Of 300 sets of 40 points on plates 0.002 thick, every hull was open or wound against itself and 185 left a
+point out, by up to 24, and the boxes fitted round 82 left one out, by up to 13. And where the rim a point left was not
+one loop, each further point multiplied the faces: 200 points in a plate 100 by 100 and 0.002 thick ran out of memory,
+as did 500, 120 within a thousandth of a cube's faces, 10 000 in a cube and 3 000 on a sphere, and with them
+`GeoObb3.Fit` and the `Depth` of a clash. The build stops at the first rim that is not one loop, or as soon as it stands
+more triangles than a closed surface on the points taken can have, and a hull that does not close, folds back over
+itself, or leaves a point further than the tolerance outside it is built again with an exact test of sides, from the
+widest tetrahedron the points give, each point left out only where it is within the tolerance of the triangles. Those
+sets take from under a millisecond to an eighth of a second, the whole process in 70 MB at most. Of 9 600 sets on plates
+0.0005 to 10 thick, turned and not, none leaves a point out of its triangles and no box leaves one out; merging the
+triangles of one plane within the tolerance, as before, stands a face up to 0.0011 off a point on 5 of them. A hull that
+closed and held every point is the same to the bit: of 600 sets of 200 points in a cube, on a sphere, on a cylinder,
+near a box's faces, on a lattice with copies a hair off its corners, far from the origin and turned, none moved, and one
+that was open with 2 983 faces is right now. The check costs up to half as long again on sets of 200 points, and up to
+two and a quarter times as long on lattices with copies.
+
+**CHANGED.** `GeoObb3.Fit`, and the `Depth` of a clash read from it, keep of the boxes standing on faces of the hull
+that are as small to rounding the thinnest, their least sides compared first, then the middle and then the longest,
+where they kept the first found; on one face the rectangle is the first of least area found, as before. A prism 40 long
+on a right triangle with legs 18 and 24 was fitted the box 18 by 24 by 40 along its legs, whatever order its corners
+came in, and is fitted the one 14.4 by 30 by 40 along its long side, as large; a block 18 by 24 by 40 meeting a prism on
+its corner's triangle is 14.4 deep, where it was 18. The clash benchmarks are unchanged to the bit.
+
 **CHANGED.** `GeoArc2.TransformBy`, `GeoEdge2.TransformBy`, `GeoArc3.TransformBy` and `GeoEdge3.TransformBy`, and the
 curved chains and loops through them, judge every transformation that is not a turn, a shift, a mirror or an even scaling
 by where the arc lands: the arc through where its ends and its middle land is given only where it lands within the global

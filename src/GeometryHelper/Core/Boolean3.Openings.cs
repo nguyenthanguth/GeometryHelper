@@ -180,9 +180,10 @@ namespace GeometryHelper.Core
                     foreach (GeoSolid3 cell in cells)
                     {
                         // A cell out of the opening's reach is wholly outside it, so none of its planes need
-                        // cut it: that is what keeps a plate with many holes from becoming a grid.
+                        // cut it: that is what keeps a plate with many holes from becoming a grid. A corner is read
+                        // as on a plane within what rounding adds to the tolerance; see Splition3.OnPlaneWithinRounding.
                         if (cell.GetAabb().CollidesWith(reach, tolerance)
-                            && Splition3.TrySplitCell(cell, plane, out GeoSolid3 above, out GeoSolid3 below, tolerance))
+                            && Splition3.TrySplitCell(cell, plane, out GeoSolid3 above, out GeoSolid3 below, Splition3.OnPlaneWithinRounding(cell, tolerance)))
                         {
                             divided.Add(above);
                             divided.Add(below);

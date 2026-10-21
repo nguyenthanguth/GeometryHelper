@@ -1300,6 +1300,39 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the tolerance a body is cut within when an opening is cut into it: the one given, with a corner read as on the
+        /// plane where it stands off it by no more than the planar tolerance and what rounding the body's coordinates can add
+        /// to that.
+        /// </summary>
+        /// <remarks>
+        /// A corner standing off the plane by the tolerance to the last few bits is read on one side of it by its distance and
+        /// within the point tolerance of the point where its edge crosses the plane by where that point was rounded to, and
+        /// the piece of a face between them is then a polygon with those two corners made one: a body 100 by 60 by 40 cut by
+        /// a plane 0.0010000000000000009 inside its floor, an opening's, read every corner of the floor beyond the plane, and
+        /// cut its sides into strips that lost a corner, so that the slab beneath the plane came out open, and the body with
+        /// its opening cut 7.66 cubic millimetres short. A trillionth of the size of the coordinates is far beyond the
+        /// rounding and far within any tolerance. Only the cutting of openings reads a corner so. The cells of a boolean cut
+        /// so read a slab exactly the tolerance thick, in or beside a turned body, as on the plane at some corners and off it
+        /// at others: of 2 700 unions, differences and intersections of such slabs and chips with a cube turned at random,
+        /// six that were valid came out open or wound two ways.
+        /// </remarks>
+        internal static Tolerance OnPlaneWithinRounding(GeoSolid3 solid, Tolerance tolerance)
+            => new Tolerance(tolerance.EqualPoint, tolerance.EqualVector, tolerance.EqualAngleRad, tolerance.EqualPlanar + Rounding(solid));
+
+        /// <summary>
+        /// As much as rounding can move a corner of a body off a plane it lies in: a trillionth of the size of its coordinates.
+        /// </summary>
+        internal static double Rounding(GeoSolid3 solid)
+        {
+            GeoAabb3 box = solid.GetAabb();
+            double reach = Math.Max(
+                Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)), Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y))),
+                Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z)));
+
+            return 1E-12 * (1.0 + reach);
+        }
+
+        /// <summary>
         /// Cuts every face of a body by a plane and caps each half from its own rim.
         /// </summary>
         /// <param name="solid">The body.</param>

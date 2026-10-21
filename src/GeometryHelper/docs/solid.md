@@ -1140,6 +1140,16 @@ default and within its own tolerance, and holds its volume within the tolerance 
 result open within its own tolerance is welded too, where that closes it, and one closed within the default is left
 as it is. `Validate()` shows where a body is open, and why.
 
+**Thinner than the tolerance is nothing; thicker is cut.** A void, a chip or a slab no thicker than the point
+tolerance is within the tolerance of nothing, and a boolean takes no notice of it: a cube of 100 less a box 40 by 30
+and 0.0005 thick inside it is the cube. One thicker than the tolerance and a trillionth of the size of the
+coordinates is cut however thin: less a box 0.0015 thick, the cube holds 999 998.2, the two have that box in common,
+and joined to a block running 0.0015 into its top they hold the chip once. One exactly the tolerance thick on a
+turned body is that thick to a few bits either way, and is read as no thicker. An opening whose face stands the
+tolerance off the body's, to the last bit, is read as touching it, as one a hair nearer is: a box 100 by 60 by 40
+with an opening 0.1 across 0.001 off three of its faces comes out closed, the opening taken with the outside,
+239 999.998 97, where it came out open 7.66 short.
+
 **Parts drawn against each other.** The tolerance says how exact a boolean is; how near two faces of two parts
 have to be to touch is a question of the model. Tekla Structures draws parts against each other a few thousandths
 of a millimetre into or off each other, and cut within a thousandth, a part whose cutter's face stood 0.0049 inside
@@ -1473,8 +1483,21 @@ A body cut into many pieces at once, the blocks, bays or lifts of a grid, is wha
 `ConvexHull3.Of(points)` is the smallest convex body holding some points, closed and with coplanar triangles
 merged, so the hull of a box's corners is the box. `GeoObb3.Fit(points)` stands a box on each face of that hull
 in turn, with the smallest rectangle round the points on that face, and keeps the smallest: exactly the least
-box for a block, a prism, or anything with a flat face to stand on, and close to it otherwise. Points all in one
-plane give a box of no depth.
+box for a block, a prism, or anything with a flat face to stand on, and close to it otherwise. Of the boxes
+standing on faces of the hull that are as small to rounding it keeps the thinnest, its least side first, then
+the middle one, and on one face the first rectangle of least area it finds: a prism 40 long on a right triangle
+with legs 18 and 24 is fitted the box 14.4 by 30 by 40 along its long side, not the one 18 by 24 by 40 along its
+legs. Points all in one plane give a box of no depth.
+
+The hull holds every point within the tolerance of its triangles, and closes, on plates down to a few thousandths
+thick: the faces of such a plate meet at its rim so nearly flat that a point 10 off the rim stands within a
+thousandth of every plane, and a hull that leaves a point out so, does not close, or folds back over itself, is
+built again with an exact test of which side of a face a point stands on. A hull that closes and holds every point
+is kept as it is built. Points all within the tolerance of a plane span no volume; a plate no thicker than twice the
+tolerance lies within it of its middle plane, and its hull is found or not by the plane it starts from. Merging the
+triangles of one plane within the tolerance can stand a face as far again from a point, up to 0.0011 off on plates
+0.002 thick. The work grows with the points and the faces: 10 000 points in a cube take 45 milliseconds, 3 000 on a
+sphere 120.
 
 ```csharp
 GeoObb3 box = GeoObb3.Fit(part.Faces.SelectMany(face => face.Boundary.Vertices));
@@ -2050,10 +2073,12 @@ foreach (var (a, b) in pairs)
 ### How deep a clash runs
 
 `clash.Depth` says how deep two parts run into each other: the least thickness of the region they share, the
-smallest side of the least box round it, and of the deepest region where they share more than one. A bar
-grazing a flange by half a millimetre is half a millimetre deep however long the graze, where its volume grows
-with the length; a bar through a plate is as deep as the thinner of the two. It is measured when first asked
-for. A report that should not count modelling slack can say how deep, or how large, an overlap has to be:
+smallest side of the least box round it, and of the deepest region where they share more than one. A bar grazing
+a flange by half a millimetre is half a millimetre deep however long the graze, where its volume grows with the
+length; a bar through a plate is as deep as the thinner of the two. Of boxes as small standing on faces of the
+hull of a region, the thinnest is read: a block 18 by 24 by 40 meeting a prism on its corner's triangle is 14.4
+deep, the prism's thickness across its long side. It is measured when first asked for. A report that should not
+count modelling slack can say how deep, or how large, an overlap has to be:
 
 ```csharp
 var options = new ClashOptions(clearance: 25.0, minimumDepth: 2.0, minimumVolume: 1000.0);

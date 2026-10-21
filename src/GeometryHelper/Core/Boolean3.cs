@@ -46,6 +46,13 @@ namespace GeometryHelper.Core
     /// result carries the cavity as real geometry rather than as an opening of its own. Two bodies too far
     /// apart to meet are the exception — nothing is cut there, and each keeps the openings it came with.
     /// </para>
+    /// <para>
+    /// A void, a chip or a slab no thicker than the point tolerance is within the tolerance of nothing and changes
+    /// nothing; one thicker than the tolerance and a trillionth of the size of the coordinates is cut however thin: a
+    /// cube of 100 less a box 40 by 30 and 0.0005 thick inside it is the cube, and less one 0.0015 thick holds
+    /// 999 998.2. One exactly the tolerance thick, on a turned body that thick to a few bits either way, is read as no
+    /// thicker.
+    /// </para>
     /// </summary>
     public static partial class Boolean3
     {
@@ -1306,7 +1313,7 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                if (TryGetMidpointUnder(solid, triangle, tolerance, plane, side, out GeoPoint3 candidate) && side * plane.SignedDistanceTo(candidate) > tolerance.EqualPlanar)
+                if (TryGetMidpointUnder(solid, triangle, tolerance, plane, side, out GeoPoint3 candidate, out _) && side * plane.SignedDistanceTo(candidate) > tolerance.EqualPlanar)
                 {
                     point = candidate;
                     return true;
@@ -1405,7 +1412,7 @@ namespace GeometryHelper.Core
 
             for (int c = 0; c < cells.Count; c++)
             {
-                if (IsMaterial(cells[c], owner, tolerance, out _))
+                if (IsMaterial(cells[c], owner, tolerance, out _, out _))
                 {
                     faces.AddRange(cells[c].Faces);
                     Own(owners, offset + c, cells[c].Faces.Count);
@@ -1464,12 +1471,12 @@ namespace GeometryHelper.Core
 
             for (int c = 0; c < cells.Count; c++)
             {
-                if (!IsMaterial(cells[c], owner, tolerance, out GeoPoint3 sample))
+                if (!IsMaterial(cells[c], owner, tolerance, out GeoPoint3 sample, out Tolerance? fine))
                 {
                     continue;
                 }
 
-                bool within = Containment3.Locate(against, sample, tolerance) == PointLocation.Inside;
+                bool within = LocateSample(against, sample, tolerance, fine) == PointLocation.Inside;
                 anyInside |= within;
 
                 if (within == wantInside)
@@ -1495,15 +1502,49 @@ namespace GeometryHelper.Core
         /// and becomes the wall of the cavity — which is why the result needs no openings of its own.
         /// </para>
         /// </remarks>
-        private static bool IsMaterial(GeoSolid3 cell, GeoSolid3 owner, Tolerance tolerance, out GeoPoint3 sample)
+        /// <param name="cell">The cell.</param>
+        /// <param name="owner">The body the cell was cut from.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="sample">A point inside the cell.</param>
+        /// <param name="fine">
+        /// The tolerance the sample is read within where the tolerance given reads it on the skin of another body; null where
+        /// that reading stands. See <see cref="LocateSample"/>.
+        /// </param>
+        private static bool IsMaterial(GeoSolid3 cell, GeoSolid3 owner, Tolerance tolerance, out GeoPoint3 sample, out Tolerance? fine)
         {
+            fine = null;
+
             // A cell thinner than twice the point tolerance has no point further than that from its own skin, so the
             // search finds none in it; it is material all the same, and the middle of its thickness places it. Taken
             // for empty, a sliver a plane left along a face took its share of the body away with it: of two slabs
             // side by side, a difference took thirty-eight thousand cubic millimetres more than the two share.
-            if (!TryGetInteriorPoint(cell, tolerance, out sample) && !TryGetMidpointOfThinBody(cell, tolerance, out sample))
+            // The middle of a cell thicker than the tolerance and thinner than twice it lies within the tolerance of both its
+            // sides, and so of the skin of a body the cell lies within as of one it lies beyond; it is read within a quarter
+            // of its thickness, as it was found. Read within the tolerance, a void 0.0015 thick inside a body, a box taken out
+            // of it, was on the box's skin and not in it, and the difference left the body whole. A cell no thicker than the
+            // tolerance, and what rounding its coordinates can add, is within the tolerance of nothing, and reads as it did:
+            // a chip exactly the tolerance deep on a turned body is that deep to a few bits either way, and read finer in some
+            // of its cells and not in others, it left a difference wound two ways, and took from a column less a beam lying
+            // the tolerance into it 30 cubic millimetres more than the two share. A point found further than the tolerance
+            // inside its cell is read within half of it where the tolerance reads it on the other body's skin: in a void
+            // 0.002 thick it is the tolerance from both sides, more than it to the cell and no more than it to the box.
+            if (TryGetInteriorPoint(cell, tolerance, out sample))
             {
-                return false;
+                double half = tolerance.EqualPoint / 2.0;
+                fine = new Tolerance(half, Math.Min(tolerance.EqualVector, half), tolerance.EqualAngleRad, half);
+            }
+            else
+            {
+                if (!TryGetMidpointOfThinBody(cell, tolerance, out sample, out double depth))
+                {
+                    return false;
+                }
+
+                if (depth > tolerance.EqualPoint + Splition3.Rounding(cell))
+                {
+                    double quarter = depth / 4.0;
+                    fine = new Tolerance(quarter, Math.Min(tolerance.EqualVector, quarter), tolerance.EqualAngleRad, quarter);
+                }
             }
 
             // Every cell was cut from the body, so with nothing carved out of it there is no way for one
@@ -1517,13 +1558,23 @@ namespace GeometryHelper.Core
             // within the tolerance of a face and reads as on it rather than in it.
             foreach (GeoSolid3 opening in owner.Openings)
             {
-                if (Containment3.Locate(opening, sample, tolerance) == PointLocation.Inside)
+                if (LocateSample(opening, sample, tolerance, fine) == PointLocation.Inside)
                 {
                     return false;
                 }
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Locates the point a cell is judged by against another body: within the tolerance, and where that reads it on the
+        /// body's skin, within the finer tolerance the cell's thickness allows, where it has one.
+        /// </summary>
+        private static PointLocation LocateSample(GeoSolid3 body, GeoPoint3 sample, Tolerance tolerance, Tolerance? fine)
+        {
+            PointLocation location = Containment3.Locate(body, sample, tolerance);
+            return location == PointLocation.OnSide && fine.HasValue ? Containment3.Locate(body, sample, fine.Value) : location;
         }
 
         /// <summary>
@@ -1589,16 +1640,17 @@ namespace GeometryHelper.Core
         /// A ray from inside a triangle of a closed skin, run along the inward normal, is in the body from the triangle to
         /// where it next meets the skin, so halfway there it is as deep in the body as that ray goes. The point is checked
         /// all the same, within a tolerance a quarter of that depth: a skin wound the wrong way somewhere sends the ray out
-        /// of the body instead.
+        /// of the body instead. The depth is handed back with the point.
         /// </remarks>
-        internal static bool TryGetMidpointOfThinBody(GeoSolid3 solid, Tolerance tolerance, out GeoPoint3 point)
+        internal static bool TryGetMidpointOfThinBody(GeoSolid3 solid, Tolerance tolerance, out GeoPoint3 point, out double depth)
         {
             point = GeoPoint3.Origin;
+            depth = 0.0;
             int tried = 0;
 
             foreach (GeoTriangle3 triangle in LargestFirst(solid.TriangulateQuietly(tolerance)))
             {
-                if (TryGetMidpointUnder(solid, triangle, tolerance, out point))
+                if (TryGetMidpointUnder(solid, triangle, tolerance, out point, out depth))
                 {
                     return true;
                 }
@@ -1615,16 +1667,17 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Finds the middle of a body's thickness under a triangle of its skin, along the triangle's inward normal.
         /// </summary>
-        private static bool TryGetMidpointUnder(GeoSolid3 solid, GeoTriangle3 triangle, Tolerance tolerance, out GeoPoint3 point)
-            => TryGetMidpointUnder(solid, triangle, tolerance, null, 0.0, out point);
+        private static bool TryGetMidpointUnder(GeoSolid3 solid, GeoTriangle3 triangle, Tolerance tolerance, out GeoPoint3 point, out double depth)
+            => TryGetMidpointUnder(solid, triangle, tolerance, null, 0.0, out point, out depth);
 
         /// <summary>
         /// Finds the middle of a body's thickness under a triangle of its skin, along the triangle's inward normal, as far as
         /// a plane where one is given and the thickness runs across it from the side the triangle is on.
         /// </summary>
-        private static bool TryGetMidpointUnder(GeoSolid3 solid, GeoTriangle3 triangle, Tolerance tolerance, GeoPlane3? plane, double side, out GeoPoint3 point)
+        private static bool TryGetMidpointUnder(GeoSolid3 solid, GeoTriangle3 triangle, Tolerance tolerance, GeoPlane3? plane, double side, out GeoPoint3 point, out double thickness)
         {
             point = GeoPoint3.Origin;
+            thickness = 0.0;
             GeoVector3 area = triangle.GetAreaVector();
 
             if (area.Length <= 0.0)
@@ -1676,6 +1729,7 @@ namespace GeometryHelper.Core
             }
 
             point = candidate;
+            thickness = depth;
             return true;
         }
 

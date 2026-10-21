@@ -139,7 +139,7 @@ namespace GeometryHelper.Core
                 double depth = maxN - minN;
                 double volume = base_.Width * base_.Height * depth;
 
-                if (best == null || volume < least)
+                if (best == null || Smaller(volume, base_.Width, base_.Height, depth, least, best))
                 {
                     least = volume;
                     double cos = Math.Cos(base_.AngleRad);
@@ -153,6 +153,39 @@ namespace GeometryHelper.Core
             }
 
             return best;
+        }
+
+        /// <summary>
+        /// Whether the box standing on one face of the hull is to be taken over the best so far, standing on another: smaller
+        /// beyond rounding, or as large to rounding and thinner, its sides compared least first, then the middle and then the
+        /// longest; the first found where every side ties. Rectangles on one face are not compared so.
+        /// </summary>
+        /// <remarks>
+        /// Two boxes as large are as good a fit, and the thickness a clash reads from the box is its least side: a prism 40
+        /// long on a right triangle with legs 18 and 24 fits a box 18 by 24 by 40 along its legs and one 14.4 by 30 by 40
+        /// along its long side, both 17 280, and the one found first, 18 thick, was taken, though the prism fits in 14.4.
+        /// </remarks>
+        private static bool Smaller(double volume, double width, double height, double depth, double least, GeoObb3 best)
+        {
+            if (Math.Abs(volume - least) > 1E-9 * Math.Max(Math.Abs(volume), Math.Abs(least)))
+            {
+                return volume < least;
+            }
+
+            double[] sides = { width, height, depth };
+            double[] bests = { best.SizeX, best.SizeY, best.SizeZ };
+            Array.Sort(sides);
+            Array.Sort(bests);
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (sides[i] != bests[i])
+                {
+                    return sides[i] < bests[i];
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

@@ -73,8 +73,9 @@ namespace GeometryHelper.Clash
         /// For two bodies it is the least thickness of the region they share, the smallest side of the least box
         /// round it (<see cref="GeoObb3.Fit(IEnumerable{GeoPoint3})"/>), and of the deepest region where they share
         /// more than one: a bar grazing a flange by half a millimetre is half a millimetre deep however long the graze,
-        /// and a bar through a plate as deep as the thinner of the two. For a region of no simple shape it is an
-        /// estimate, a close one.
+        /// and a bar through a plate as deep as the thinner of the two. Of boxes as small standing on faces of the hull of
+        /// a region, the thinnest is read: a block 18 by 24 by 40 meeting a prism on its corner's triangle is 14.4 deep.
+        /// For a region of no simple shape it is an estimate, a close one.
         /// </para>
         /// <para>
         /// For a bar checked by its centre line (<see cref="ClashBar"/>) it is how far the part reaches into the bar,

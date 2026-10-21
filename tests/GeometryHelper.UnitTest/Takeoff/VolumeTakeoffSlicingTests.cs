@@ -95,18 +95,20 @@ namespace GeometryHelper.UnitTest.Takeoff
         [MemberData(nameof(Settings))]
         public void ACurvedWallAndAGirderTheBooleanCannotMeet_TheWallLosesWhatTheyShare_WorkedOutBySlicing(string setting)
         {
-            // The wall, 1 842 210 349.5, priority 1, under the girder, 762 080 321.7, priority 2: the girder keeps the
-            // 449 090 144.2 they share, its depth over their common plan less the 170 322.6 where its top stands above the
-            // wall's. Neither the common part nor the cut is valid, so the overlap is sliced: exact, and no issue. At
-            // 4dde2c6 the wall says the overlap could not be worked out and keeps all of itself.
+            // The wall, 1 842 210 349.5, priority 1, under the girder, 762 131 267.6, priority 2: the girder keeps the
+            // 448 987 984.5 they share, its depth over their common plan less where its top stands above the wall's.
+            // Neither the common part nor the cut is valid, and the pair is not near-coincident, so the boolean is tried and
+            // the overlap is sliced: exact, and no issue. At 4dde2c6 the wall said the overlap could not be worked out and
+            // kept all of itself.
             (CurvedBand wall, CurvedBand girder) = CurvedWallAndGirder();
             VolumeItem[] items = { new VolumeItem(wall.ToSolid(), "wall", 1), new VolumeItem(girder.ToSolid(), "girder", 2) };
             double shared = CurvedOverlap(wall, girder);
             AssertTheBooleanCannotMeet(items[0].Solid, items[1].Solid, Options(setting).Boolean);
 
-            IReadOnlyList<VolumeTakeoffResult> results = RunCountingSlicedPairs(items, Options(setting), out int slicedPairs);
+            IReadOnlyList<VolumeTakeoffResult> results = RunCountingSlicedPairs(items, Options(setting), out int slicedPairs, out int straight);
 
             Assert.Equal(1, slicedPairs);
+            Assert.Equal(0, straight);
             Assert.All(results, result => Assert.True(result.IsExact, string.Join(" / ", result.Issues)));
             AssertTaken(results[0], BandVolume(wall), BandVolume(wall) - shared, (1, shared));
             AssertTaken(results[1], BandVolume(girder), BandVolume(girder));
@@ -117,10 +119,10 @@ namespace GeometryHelper.UnitTest.Takeoff
         public void TheSameWithAColumnThroughBoth_TheSliceLeavesOutWhatTheColumnTookFirst(string setting)
         {
             // A column 1 000 by 400 by 4 000, 1 600 000 000, priority 3, through the middle of both: it takes from the wall
-            // its 432 064 861.1 there and from the girder its 180 022 369.3, both valid common parts. What the wall shares
-            // with the girder, 449 090 144.2, it then shares with the column too where the column stands, 107 956 479.2, which
+            // its 432 064 861.1 there and from the girder its 180 000 000.0, both valid common parts. What the wall shares
+            // with the girder, 448 987 984.5, it then shares with the column too where the column stands, 107 902 814.6, which
             // the column has taken already: the slice of the wall within the girder and outside the column gives the girder
-            // only 341 133 665.0. At 4dde2c6 the girder takes nothing, with an issue.
+            // only 341 085 169.9. At 4dde2c6 the girder took nothing, with an issue.
             (CurvedBand wall, CurvedBand girder) = CurvedWallAndGirder();
             (GeoSolid3 column, double[][] plan) = ColumnAcrossTheCurve();
             VolumeItem[] items =
@@ -147,10 +149,10 @@ namespace GeometryHelper.UnitTest.Takeoff
         public void TheGirderRankedOverTheColumn_TheColumnsPieceLessTheGirder_IsExactToo(string setting)
         {
             // The same three, the girder now ranked first, priority 3, and the column second, priority 2. The wall gives the
-            // girder all they share, 449 090 144.2, by slicing. The column's piece of the wall, 432 064 861.1, a valid body,
+            // girder all they share, 448 987 984.5, by slicing. The column's piece of the wall, 432 064 861.1, a valid body,
             // then has the girder's solid taken out of it, as an overlap with no body is taken out: what is left,
-            // 324 108 381.9, is what the column takes. That cut meets the same warped tops a hair apart that broke the
-            // pair, and at 4dde2c6 it comes out valid and 6.2 over, 3.4E-9 of the wall.
+            // 324 162 046.5, is what the column takes. That cut meets the same warped tops a hair apart that broke the
+            // pair.
             (CurvedBand wall, CurvedBand girder) = CurvedWallAndGirder();
             (GeoSolid3 column, double[][] plan) = ColumnAcrossTheCurve();
             VolumeItem[] items =

@@ -204,8 +204,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TwoBodiesATenthousandthOffTheirPlanes_AreCutPreparedAndMeasuredWithoutAWordAboutTheMesh()
         {
-            // The two blocks, turned together 0.7 radians, have a long sliver of a face between them that is thinner than the
-            // tolerance: the booleans, the preparing of a body and its volume mesh it themselves, and have nothing to say.
+            // The two blocks, turned together 0.7 radians, leave between them a wall 2.3 by 0.001 by 40, exactly the
+            // tolerance thick: the booleans, the preparing of a body and its volume mesh it themselves, and have nothing to
+            // say.
             GeoTransform3 turn = GeoTransform3.RotationAxis(new GeoPoint3(10, 30, 20), new GeoVector3(0.3, -0.2, 1), 0.7);
             GeoSolid3 a = Box(0, 0, 0, 20, 60, 40).TransformBy(turn);
             GeoSolid3 b = Box(17.7, -0.0001, 0, 37.7, -0.0001 + 59.9991, 40).TransformBy(turn);
@@ -224,9 +225,59 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Empty(written);
 
-            // Asked for the mesh itself, the call says what it left out in one line, and says nothing where it left nothing out.
-            Assert.Contains("1 of 8 faces", Assert.Single(Written(() => pierced.TriangulateSurface(Tolerance))));
+            // A face exactly the tolerance from another now reads as touching it, so the wall goes with the opening: the
+            // material is the block 17.7 by 60 by 40 in its six faces, and its mesh leaves nothing out and says nothing. Until
+            // the booleans read the cut that way the wall was kept, and its end, 0.001 by 40, was left out of the mesh.
+            Assert.True(pierced.TryCutOpenings(out GeoSolid3 material, Tolerance));
+            Assert.Equal(6, material.Faces.Count);
+            Assert.Equal(42480.0, material.GetVolume(Tolerance), 3);
+            Assert.True(material.Validate(Tolerance).IsValid);
+            Assert.Empty(Written(() => pierced.TriangulateSurface(Tolerance)));
             Assert.Empty(Written(() => a.TriangulateSurface(Tolerance)));
+        }
+
+        [Fact]
+        public void ABodyTurnedWithAFinThinnerThanTheTolerance_IsCutPreparedAndMeasuredSilently_AndItsMeshSaysWhatItLeftOut()
+        {
+            // The same block with its wall built in, 2.3 by 0.0008 by 40, turned the same: eight faces within 1E-5, the end
+            // of the fin, 0.0008 by 40, thinner than the tolerance. The booleans with the other block, the preparing of the
+            // body and its volume mesh it themselves, and have nothing to say.
+            var within = new Tolerance(1E-5, 1E-5);
+            GeoTransform3 turn = GeoTransform3.RotationAxis(new GeoPoint3(10, 30, 20), new GeoVector3(0.3, -0.2, 1), 0.7);
+            double[][] plan = { new[] { 0.0, 0.0 }, new[] { 17.7, 0.0 }, new[] { 17.7, 59.9992 }, new[] { 20.0, 59.9992 }, new[] { 20.0, 60.0 }, new[] { 0.0, 60.0 } };
+            GeoPoint3 At(int i, double z) => new GeoPoint3(plan[i % 6][0], plan[i % 6][1], z);
+            GeoFace3 Face(params GeoPoint3[] corners) => new GeoFace3(new GeoPolygon3(corners, within), null, within);
+            var faces = new List<GeoFace3>
+            {
+                Face(At(0, 0), At(5, 0), At(4, 0), At(3, 0), At(2, 0), At(1, 0)),
+                Face(At(0, 40), At(1, 40), At(2, 40), At(3, 40), At(4, 40), At(5, 40)),
+            };
+
+            for (int i = 0; i < 6; i++)
+            {
+                faces.Add(Face(At(i, 0), At(i + 1, 0), At(i + 1, 40), At(i, 40)));
+            }
+
+            GeoSolid3 finned = new GeoSolid3(faces).TransformBy(turn);
+            GeoSolid3 b = Box(10, 30, 0, 30, 90, 40).TransformBy(turn);
+
+            List<string> written = Written(() =>
+            {
+                finned.TryUnion(b, out _, Tolerance);
+                finned.TrySubtract(b, out _, Tolerance);
+                finned.TryIntersect(b, out _, Tolerance);
+                finned.GetVolume(Tolerance);
+                new GeometryHelper.Spatial.GeoPreparedSolid3(finned, Tolerance);
+                finned.CollidesWith(b, Tolerance);
+                finned.DistanceTo(b, Tolerance);
+            });
+
+            Assert.Equal(8, finned.Faces.Count);
+            Assert.Empty(written);
+
+            // Asked for the mesh itself, the call says what it left out in one line, and says nothing where it left nothing out.
+            Assert.Contains("1 of 8 faces", Assert.Single(Written(() => finned.TriangulateSurface(Tolerance))));
+            Assert.Empty(Written(() => b.TriangulateSurface(Tolerance)));
         }
 
         [Fact]
