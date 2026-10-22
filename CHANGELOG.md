@@ -6,6 +6,40 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfReader` reads a DXF file into the library's shapes: `Read(path)`, `Read(stream)` and `Parse(text)`, each with
+`DxfReadOptions` (`PlanAs2D`, `ToMillimetres`, `Tolerance`, `KeepGroups`), give a `DxfDocument` of the `Entities` in file
+order, the `Layers`, the `Units` of `$INSUNITS` (the new enum `DxfUnits`), the `Version`, what was `Skipped` by type and the
+`Warnings`, with `OfType<T>()` and `OnLayer(name)`. ASCII files of R12 to R2018 are read, AutoCAD's and the library's:
+POINT, LINE, RAY, XLINE, LWPOLYLINE and POLYLINE (bulges as arcs, R12's VERTEX and SEQEND without handles, the curve of
+a spline-fitted one, a 2D one at its own elevation), 3D POLYLINE, polyface and polygon meshes (a `GeoSolid3` of their
+faces), CIRCLE, ARC, ELLIPSE (a part of one as the spline that is exactly it), SPLINE (by its control points, knots and
+weights, clamped by knot insertion where AutoCAD writes a closed one unclamped, or through its fit points), 3DFACE, SOLID
+and TRACE, in the system of their extrusion's plane where they have one. Shapes are of space unless `PlanAs2D` asks for
+those lying on the floor as shapes of the plane, a mirrored one on the extrusion (0, 0, -1) among them, x turned over as
+ezdxf places it and a mirrored arc clockwise from the start the file gives: a closed LWPOLYLINE of a slot 80 by 20 with bulges of 1 is a `GeoPolygonArc2` of 1 514.159 square units.
+Every number is read as a correctly rounding parser reads it, the same on .NET Framework as on .NET 10, a number of
+300 000 digits in 2.2 ms, so every shape `DxfWriter` writes reads back with every number the file holds to the bit (of
+every one of its 42 overloads of `Add`, and of 4 200 random shapes); the angles of an ARC, the axis of an ELLIPSE and the
+coordinates of a tilted plane come back to the last place or two. TEXT, HATCH and the other types, an entity with no
+shape to it (a LINE of no length, a CIRCLE of no radius, a NaN), and one whose reading throws are counted and the rest
+read; a file cut short, or with a group code that is not a number, is refused with a `FormatException` naming the line.
+The text of a file before R2007 is read in its code page, Windows-1252 the same on either runtime by a table of its own;
+any other code page (1250, 1251, 1253 to 1258, 932, 936, 949, 950) .NET Framework reads, and .NET 10, which has none of
+them without CodePagesEncodingProvider, reads as Latin-1 with a warning to save the drawing as R2007 or later.
+Each `DxfEntity` keeps its `Layer`, `Colour`, `TrueColour`, `Linetype`, `Lineweight`, `Thickness` and `Handle`, and its
+`Groups` (the new `DxfGroup`), every group of it as the file has it, extended data among them. 100 000 entities (34 MB)
+are read in 0.54 s on .NET 10 and 0.90 s on .NET Framework 4.8, the document holding 157 MB, and without the groups in
+0.35 s and 0.58 s, holding 41 MB. Blocks, and the INSERTs that place them, are not read yet, nor paper space: a warning
+counts their entities, and reading blocks comes next. 95 new tests; the suite runs 12 083 of 12 084, one skipped as before.
+
+**NEW.** `DxfWriter.Add(DxfEntity)` writes an entity read back, or one made in code with the new public constructor
+`new DxfEntity(shape, layer, colour, trueColour, linetype, lineweight, thickness)`: its shape by the overload of `Add` for
+it, with its layer, colour, true colour, linetype, lineweight and thickness where it has them, a linetype the table lacks
+added to it by name, the edges a 3DFACE hid hidden again. A drawing read, written and read again has the same shapes and
+the same look, to the bit but for the angles of an arc and the axis of an ellipse; a mirrored arc in space comes back
+running the other way over the same points, and BYBLOCK as ByBlock. The other overloads write the same bytes as before:
+the file of one shape of each hashes the same.
+
 **FIXED.** A closed spline, its first and last control points the same to the bit as the closed flag of a DXF spline reads
 them, has no ends. Its seam was read as an end, where the places a spline gives are its crossings, its touches and where it
 ends near a shape: the line tangent to `GeoSpline2.FromCircle` of radius 100 at 0.003 of a radian was given the seam (100, 0),

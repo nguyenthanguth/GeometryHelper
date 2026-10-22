@@ -137,6 +137,21 @@ namespace GeometryHelper.Geometry
             => new GeoPolygonArc2(starts, bulges, false);
 
         /// <summary>
+        /// Gives a loop of vertices already apart, three or more, and the bulge of each edge, checking nothing.
+        /// </summary>
+        /// <remarks>
+        /// For a reader that has cleaned the vertices within a tolerance of its own: the public constructor would clean
+        /// them again within the global one. The arrays are kept, not copied.
+        /// </remarks>
+        internal static GeoPolygonArc2 FromValidated(GeoPoint2[] vertices, double[] bulges) => new GeoPolygonArc2(vertices, bulges, trusted: true);
+
+        private GeoPolygonArc2(GeoPoint2[] vertices, double[] bulges, bool trusted)
+        {
+            _vertices = vertices;
+            _bulges = bulges;
+        }
+
+        /// <summary>
         /// Builds a loop from the start and bulge of each of its edges, as <see cref="FromEdges"/> does, unless
         /// fewer than three of the starts would be left once those the constructor drops are gone.
         /// </summary>

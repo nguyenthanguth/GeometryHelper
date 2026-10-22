@@ -94,6 +94,9 @@ namespace GeometryHelper.Export
         private readonly Groups _entities = new Groups();
         private readonly List<KeyValuePair<string, int>> _layers = new List<KeyValuePair<string, int>> { new KeyValuePair<string, int>("0", LayerZero) };
         private readonly Dictionary<string, int> _layerIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) { { "0", 0 } };
+        private readonly List<KeyValuePair<string, int>> _linetypes = new List<KeyValuePair<string, int>>();
+        private readonly Dictionary<string, string> _linetypeIndex = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "ByBlock", "ByBlock" }, { "ByLayer", "ByLayer" }, { "Continuous", "Continuous" } };
+        private Style _style;
         private int _nextHandle = FirstHandle;
         private double _minX = double.PositiveInfinity;
         private double _minY = double.PositiveInfinity;
@@ -116,6 +119,7 @@ namespace GeometryHelper.Export
             Check(point, nameof(point));
             Begin("POINT", Layer(layer), "AcDbPoint");
             Place(0, point.X, point.Y, 0.0);
+            Thickness();
             return this;
         }
 
@@ -128,6 +132,7 @@ namespace GeometryHelper.Export
             Check(line.StartPoint, nameof(line));
             Check(line.EndPoint, nameof(line));
             Begin("LINE", Layer(layer), "AcDbLine");
+            Thickness();
             Place(0, line.StartPoint.X, line.StartPoint.Y, 0.0);
             Place(1, line.EndPoint.X, line.EndPoint.Y, 0.0);
             return this;
@@ -291,6 +296,7 @@ namespace GeometryHelper.Export
             }
 
             Begin("ARC", name, "AcDbCircle");
+            Thickness();
             _entities.Point(0, arc.Center.X, arc.Center.Y, 0.0);
             _entities.Real(40, arc.Radius);
             _entities.Str(100, "AcDbArc");
@@ -427,6 +433,7 @@ namespace GeometryHelper.Export
             Check(point, nameof(point));
             Begin("POINT", Layer(layer), "AcDbPoint");
             Place(0, point.X, point.Y, point.Z);
+            Thickness();
             return this;
         }
 
@@ -439,6 +446,7 @@ namespace GeometryHelper.Export
             Check(line.StartPoint, nameof(line));
             Check(line.EndPoint, nameof(line));
             Begin("LINE", Layer(layer), "AcDbLine");
+            Thickness();
             Place(0, line.StartPoint.X, line.StartPoint.Y, line.StartPoint.Z);
             Place(1, line.EndPoint.X, line.EndPoint.Y, line.EndPoint.Z);
             return this;
@@ -1039,6 +1047,208 @@ namespace GeometryHelper.Export
 
         #endregion
 
+        #region Entities read from a file
+
+        /// <summary>
+        /// Adds an entity <see cref="DxfReader"/> read: its shape, written by the overload of Add for it, on its layer, and in
+        /// its colour, true colour, linetype and lineweight and with its thickness, each written only where the entity has one.
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the entity is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when there is no overload of Add for the type of its shape, which it names.</exception>
+        /// <remarks>
+        /// <para>
+        /// A drawing read and written again keeps its shapes and the look of each: a LINE on the layer steel in colour 1,
+        /// DASHED, 0.35 wide and 50 thick is read back as the same segment, to the bit, with the same five. A linetype the
+        /// writer's table does not have is added to it by name, with no pattern, so that AutoCAD opens the file and draws the
+        /// line solid until the drawing is given the linetype's pattern. The thickness is written on the entities that have
+        /// one in DXF, the LINE, POINT, CIRCLE, ARC and LWPOLYLINE, and on no other. The entity is given a handle of its own,
+        /// and its <see cref="DxfEntity.Groups"/> are not written: only what the shape and the five say is.
+        /// </para>
+        /// <para>
+        /// A face of three or four corners with no hole, as a 3DFACE reads, is written as one 3DFACE of its corners again, in
+        /// their order, with the edges the file hid hidden again where the 3DFACE was read whole; any other face, and a body,
+        /// a polyface mesh among them, is written as its triangles at the global tolerance, as <see cref="Add(GeoFace3, string)"/>
+        /// and <see cref="Add(GeoSolid3, string)"/> write them. A <see cref="GeoSphere3"/> needs a chord tolerance, and has no
+        /// overload without one.
+        /// </para>
+        /// <para>
+        /// What is not kept: a circle or an arc in space on an extrusion that points down, as AutoCAD writes a mirrored one,
+        /// is written about its normal turned up, as <see cref="Add(GeoArc3, string)"/> writes every arc, so a mirrored arc
+        /// comes back running the other way, from its end to its start, over the same points; read with
+        /// <see cref="DxfReadOptions.PlanAs2D"/> it is a <see cref="GeoArc2"/> either way. A linetype is written as the table
+        /// spells it, so BYBLOCK comes back ByBlock and CONTINUOUS Continuous. The handle is new, the groups are not written,
+        /// and a mesh comes back as the 3DFACEs of its triangles.
+        /// </para>
+        /// </remarks>
+        public DxfWriter Add(DxfEntity entity)
+        {
+            if (entity == null)
+            {
+                throw new ArgumentNullException(nameof(entity));
+            }
+
+            object shape = entity.Shape;
+
+            if (!Writes(shape))
+            {
+                throw new ArgumentException("A " + (shape == null ? "null shape" : shape.GetType().Name) + " has no overload of Add to write it.", nameof(entity));
+            }
+
+            var style = new Style(entity.Colour, entity.TrueColour, entity.Linetype == null ? null : Linetype(entity.Linetype), entity.Lineweight, entity.Thickness);
+            _style = style.IsEmpty ? null : style;
+
+            try
+            {
+                Write(shape, entity.Layer, entity.HiddenEdges);
+            }
+            finally
+            {
+                _style = null;
+            }
+
+            return this;
+        }
+
+        private static bool Writes(object shape)
+            => shape is GeoPoint2 || shape is GeoLine2 || shape is GeoPolyline2 || shape is GeoPolygon2 || shape is GeoRectangle2 || shape is GeoTriangle2
+            || shape is GeoPolylineArc2 || shape is GeoPolygonArc2 || shape is GeoFace2 || shape is GeoCircle2 || shape is GeoArc2 || shape is GeoEllipse2
+            || shape is GeoRay2 || shape is GeoXLine2 || shape is GeoSpline2 || shape is GeoPoint3 || shape is GeoLine3 || shape is GeoPolyline3
+            || shape is GeoPolygon3 || shape is GeoRay3 || shape is GeoXLine3 || shape is GeoSpline3 || shape is GeoEllipse3 || shape is GeoTriangle3
+            || shape is GeoFace3 || shape is GeoSolid3 || shape is GeoMesh3 || shape is GeoAabb3 || shape is GeoObb3 || shape is GeoArc3
+            || shape is GeoCircle3 || shape is GeoPolylineArc3 || shape is GeoPolygonArc3;
+
+        private void Write(object shape, string layer, int hidden)
+        {
+            switch (shape)
+            {
+                case GeoPoint2 s: Add(s, layer); break;
+                case GeoLine2 s: Add(s, layer); break;
+                case GeoPolyline2 s: Add(s, layer); break;
+                case GeoPolygon2 s: Add(s, layer); break;
+                case GeoRectangle2 s: Add(s, layer); break;
+                case GeoTriangle2 s: Add(s, layer); break;
+                case GeoPolylineArc2 s: Add(s, layer); break;
+                case GeoPolygonArc2 s: Add(s, layer); break;
+                case GeoFace2 s: Add(s, layer); break;
+                case GeoCircle2 s: Add(s, layer); break;
+                case GeoArc2 s: Add(s, layer); break;
+                case GeoEllipse2 s: Add(s, layer); break;
+                case GeoRay2 s: Add(s, layer); break;
+                case GeoXLine2 s: Add(s, layer); break;
+                case GeoSpline2 s: Add(s, layer); break;
+                case GeoPoint3 s: Add(s, layer); break;
+                case GeoLine3 s: Add(s, layer); break;
+                case GeoPolyline3 s: Add(s, layer); break;
+                case GeoPolygon3 s: Add(s, layer); break;
+                case GeoRay3 s: Add(s, layer); break;
+                case GeoXLine3 s: Add(s, layer); break;
+                case GeoSpline3 s: Add(s, layer); break;
+                case GeoEllipse3 s: Add(s, layer); break;
+                case GeoTriangle3 s when hidden != 0:
+                    Check(new[] { s.A, s.B, s.C }, nameof(shape));
+                    Face(Layer(layer), s.A, s.B, s.C, s.C, hidden);
+                    break;
+                case GeoTriangle3 s: Add(s, layer); break;
+                case GeoFace3 s when s.Holes.Count == 0 && s.Boundary.VertexCount <= 4:
+                    IReadOnlyList<GeoPoint3> corners = s.Boundary.Vertices;
+                    Check(corners, nameof(shape));
+                    Face(Layer(layer), corners[0], corners[1], corners[2], corners[corners.Count - 1], corners.Count == 4 ? hidden : 0);
+                    break;
+                case GeoFace3 s: Add(s, layer); break;
+                case GeoSolid3 s: Add(s, layer); break;
+                case GeoMesh3 s: Add(s, layer); break;
+                case GeoAabb3 s: Add(s, layer); break;
+                case GeoObb3 s: Add(s, layer); break;
+                case GeoArc3 s: Add(s, layer); break;
+                case GeoCircle3 s: Add(s, layer); break;
+                case GeoPolylineArc3 s: Add(s, layer); break;
+                case GeoPolygonArc3 s: Add(s, layer); break;
+            }
+        }
+
+        /// <summary>
+        /// Writes the thickness of an entity read from a file, where it has one.
+        /// </summary>
+        private void Thickness()
+        {
+            if (_style != null && _style.Thickness != 0.0)
+            {
+                _entities.Real(39, _style.Thickness);
+            }
+        }
+
+        /// <summary>
+        /// The look of an entity read from a file, written on the entities its shape is written as: the linetype (6), the
+        /// colour (62), the lineweight (370) and the true colour (420), in the order AutoCAD writes them, each where it is
+        /// set, and the thickness (39) where the entity has one.
+        /// </summary>
+        private sealed class Style
+        {
+            private readonly int? _colour;
+            private readonly int? _trueColour;
+            private readonly string _linetype;
+            private readonly int? _lineweight;
+
+            internal Style(int? colour, int? trueColour, string linetype, int? lineweight, double thickness)
+            {
+                _colour = colour;
+                _trueColour = trueColour;
+                _linetype = linetype;
+                _lineweight = lineweight;
+                Thickness = thickness;
+            }
+
+            internal double Thickness { get; }
+
+            internal bool IsEmpty => !_colour.HasValue && !_trueColour.HasValue && _linetype == null && !_lineweight.HasValue && Thickness == 0.0;
+
+            internal void Write(Groups groups)
+            {
+                if (_linetype != null)
+                {
+                    groups.Str(6, _linetype);
+                }
+
+                if (_colour.HasValue)
+                {
+                    groups.Int(62, _colour.Value);
+                }
+
+                if (_lineweight.HasValue)
+                {
+                    groups.Int(370, _lineweight.Value);
+                }
+
+                if (_trueColour.HasValue)
+                {
+                    groups.Int(420, _trueColour.Value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the name a linetype is written under, adding it to the table on first use: a name is cut and cleaned as a
+        /// layer name is, letters of any case the same, and ByBlock, ByLayer and Continuous are the table's own.
+        /// </summary>
+        private string Linetype(string linetype)
+        {
+            string key = LayerKey(linetype);
+
+            if (_linetypeIndex.TryGetValue(key, out string name))
+            {
+                return name;
+            }
+
+            name = Escaped(key);
+            _linetypeIndex.Add(key, name);
+            _linetypes.Add(new KeyValuePair<string, int>(name, _nextHandle++));
+            return name;
+        }
+
+        #endregion
+
         #region The file
 
         /// <summary>
@@ -1171,10 +1381,18 @@ namespace GeometryHelper.Export
             file.Int(78, 0);
             file.Str(0, "ENDTAB");
 
-            Table(file, "LTYPE", LinetypeTable, 3);
+            Table(file, "LTYPE", LinetypeTable, 3 + _linetypes.Count);
             Linetype(file, ByBlock, "ByBlock", string.Empty);
             Linetype(file, ByLayer, "ByLayer", string.Empty);
             Linetype(file, Continuous, "Continuous", "Solid line");
+
+            // The linetypes entities read from another file are on, by name and with no pattern: drawn as a solid line
+            // until the drawing is given theirs.
+            foreach (KeyValuePair<string, int> linetype in _linetypes)
+            {
+                Linetype(file, linetype.Value, linetype.Key, string.Empty);
+            }
+
             file.Str(0, "ENDTAB");
 
             Table(file, "LAYER", LayerTable, _layers.Count);
@@ -1427,6 +1645,12 @@ namespace GeometryHelper.Export
             _entities.Str(100, "AcDbEntity");
             _entities.Str(8, layer);
 
+            // The look of an entity read from another file, on the entity itself and not on its vertices or its end.
+            if (_style != null && owner == ModelSpace)
+            {
+                _style.Write(_entities);
+            }
+
             if (subclass != null)
             {
                 _entities.Str(100, subclass);
@@ -1516,6 +1740,7 @@ namespace GeometryHelper.Export
         private DxfWriter Circle(string layer, double x, double y, double radius)
         {
             Begin("CIRCLE", layer, "AcDbCircle");
+            Thickness();
             Place(0, x, y, 0.0);
             _entities.Real(40, radius);
             Grow(x - radius, y - radius, 0.0);
@@ -1700,6 +1925,7 @@ namespace GeometryHelper.Export
             var ocs = new Ocs(normal);
 
             Begin("CIRCLE", layer, "AcDbCircle");
+            Thickness();
             _entities.Point(0, ocs.X(centre.X, centre.Y, centre.Z), ocs.Y(centre.X, centre.Y, centre.Z), ocs.Z(centre.X, centre.Y, centre.Z));
             _entities.Real(40, radius);
             Extrusion(normal);
@@ -1743,6 +1969,7 @@ namespace GeometryHelper.Export
             GeoPoint3 centre = arc.Center;
 
             Begin("ARC", layer, "AcDbCircle");
+            Thickness();
             _entities.Point(0, ocs.X(centre.X, centre.Y, centre.Z), ocs.Y(centre.X, centre.Y, centre.Z), ocs.Z(centre.X, centre.Y, centre.Z));
             _entities.Real(40, arc.Radius);
             Extrusion(normal);
@@ -1759,6 +1986,7 @@ namespace GeometryHelper.Export
         private DxfWriter Line3(string layer, GeoPoint3 start, GeoPoint3 end)
         {
             Begin("LINE", layer, "AcDbLine");
+            Thickness();
             Place(0, start.X, start.Y, start.Z);
             Place(1, end.X, end.Y, end.Z);
             return this;
@@ -1802,6 +2030,7 @@ namespace GeometryHelper.Export
             _entities.Int(90, count);
             _entities.Int(70, closed ? 1 : 0);
             _entities.Real(38, ocs.Z(first.X, first.Y, first.Z));
+            Thickness();
 
             for (int i = 0; i < count; i++)
             {
@@ -1897,6 +2126,7 @@ namespace GeometryHelper.Export
             Begin("LWPOLYLINE", layer, "AcDbPolyline");
             _entities.Int(90, vertices.Count);
             _entities.Int(70, closed ? 1 : 0);
+            Thickness();
 
             for (int i = 0; i < vertices.Count; i++)
             {

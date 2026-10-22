@@ -311,7 +311,7 @@ What each writer takes:
 | `ObjWriter` | `GeoSolid3`, `GeoFace3`, `GeoPolygon3` (each with a `Tolerance` overload), `GeoTriangle3`, triangles, `GeoMesh3`, `GeoCellGrid3` and `GeoCell3`, `GeoAabb3` and `GeoObb3` (as their 12 triangles), `GeoPoint3` (a dot), `GeoLine3`, `GeoPolyline3`; with a chord tolerance `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoArc3`, `GeoCircle3`, `GeoEllipse3`, `GeoSpline3`, `GeoSphere3` (as the triangles of its surface); `GeoRay3` and `GeoXLine3` with a length |
 | `SvgWriter` | `GeoPoint2`, `GeoLine2`, `GeoArc2`, `GeoEdge2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2` and lists of `GeoTriangle2`, `GeoMesh2`, `GeoFace2`, `GeoRay2`, `GeoXLine2`, `GeoSpline2` (with a chord tolerance, for the splines SVG has no curve for), and `Text` for a label |
 | `Wkt` | `GeoPoint2` and `GeoPoint3`, segments, chains, polygons, `GeoRectangle2`, `GeoTriangle2` and `GeoTriangle3`, `GeoFace2` and `GeoFace3`; lists of points as `MULTIPOINT`, of segments and chains as `MULTILINESTRING`, of `GeoFace2` and `GeoFace3` as `MULTIPOLYGON`; `GeoMesh2` and `GeoMesh3` as `MULTIPOLYGON`; `GeoSolid3` as a `POLYHEDRALSURFACE Z`, and with a chord tolerance `GeoSphere3` as one; with a chord tolerance too the circles, arcs, ellipses, splines and chains and loops with arcs, in the plane and in space; `GeoRay2`, `GeoRay3`, `GeoXLine2` and `GeoXLine3` with a length |
-| `DxfWriter` | in the plane `GeoPoint2`, `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2`, `GeoFace2`, `GeoSpline2` (as a SPLINE); in space `GeoPoint3`, `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoEllipse3`, `GeoSpline3` (as a SPLINE), `GeoPolyline3`, `GeoPolygon3`, `GeoTriangle3`, triangles, `GeoFace3` and `GeoSolid3` (each with a `Tolerance` overload), `GeoMesh3`, `GeoAabb3` and `GeoObb3` (as six faces), `GeoSphere3` (with a chord tolerance, a 3DFACE for each triangle of its surface), and `GeoArc3`, `GeoCircle3`, `GeoPolylineArc3` and `GeoPolygonArc3` as the curves they are (each also with a chord tolerance, for chords); each on a layer |
+| `DxfWriter` | in the plane `GeoPoint2`, `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2`, `GeoFace2`, `GeoSpline2` (as a SPLINE); in space `GeoPoint3`, `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoEllipse3`, `GeoSpline3` (as a SPLINE), `GeoPolyline3`, `GeoPolygon3`, `GeoTriangle3`, triangles, `GeoFace3` and `GeoSolid3` (each with a `Tolerance` overload), `GeoMesh3`, `GeoAabb3` and `GeoObb3` (as six faces), `GeoSphere3` (with a chord tolerance, a 3DFACE for each triangle of its surface), and `GeoArc3`, `GeoCircle3`, `GeoPolylineArc3` and `GeoPolygonArc3` as the curves they are (each also with a chord tolerance, for chords); each on a layer; and a `DxfEntity` `DxfReader` read, with its look (see Reading DXF) |
 
 OBJ and WKT have no curves, so a curve is written through chords and the caller says how far from the curve they may
 stray: a circle of radius 100 at a chord tolerance of 0.1 is 71 chords, none more than 0.1 inside it. The tolerance has
@@ -423,3 +423,133 @@ of radius 25 at 0.1 is 36 where the CIRCLE is one entity. A curve that would nee
 counted whole, is refused with an `ArgumentOutOfRangeException`. A shape holding a number that is not finite is refused
 with an `ArgumentException` and leaves nothing in the file. The file is plain ASCII, with the extents of what was drawn
 in its header and the view opened on them.
+
+## Reading DXF
+
+`DxfReader` reads a DXF file into the library's shapes: what `DxfWriter` writes, and what AutoCAD and the other CAD
+programs write of the same kinds, ASCII files of R12 (AC1009) to R2018 (AC1032). Blocks are not read yet, nor the INSERTs
+that place them: a drawing built of blocks reads as the entities drawn outside them, and a warning counts the rest. Reading
+blocks comes next.
+
+```csharp
+using GeometryHelper.Export;
+
+DxfDocument drawing = DxfReader.Read("plan.dxf", new DxfReadOptions { PlanAs2D = true });
+
+foreach (GeoPolygonArc2 outline in drawing.OfType<GeoPolygonArc2>()) { ... }   // the closed polylines with arcs
+foreach (DxfEntity entity in drawing.OnLayer("steel")) { ... }                 // shape, layer, colour, linetype, handle, groups
+
+DxfDocument text = DxfReader.Parse(dxfText);                                   // or Read(stream)
+```
+
+A `DxfDocument` holds the `Entities` in the order of the file, the `Layers` (those of the layer table in file order,
+then any an entity is on that the table does not list, two names differing only in case being one, as in AutoCAD), the
+`Units` the header gives (`$INSUNITS`, as the `DxfUnits` enum numbers them: `Millimetres` is 4), the `Version`
+(`$ACADVER`, `AC1015` for R2000), what was `Skipped`, counted by type in the order of the type names, and the `Warnings`.
+Each `DxfEntity` has its `Shape`, its `Type` as the file names it, its `Layer`, `Colour` (an AutoCAD colour index from 1
+to 255, null by layer or by block), `TrueColour` (0xRRGGBB, group 420), `Linetype` (group 6, null by layer),
+`Lineweight` (group 370 in hundredths of a millimetre, one of AutoCAD's 0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53,
+60, 70, 80, 90, 100, 106, 120, 140, 158, 200 and 211, null by layer, by block, default or any other number, which a
+warning counts, and refused by the constructor), `Thickness` (group 39,
+nought where none), `Handle` (null in a file of R12) and its `Groups`: every group of its record in the order of the
+file, extended data (1000 to 1071) among them, each value the text the file prints, so that nothing of the entity is
+lost. Of a POLYLINE they run on through its VERTEX records and its SEQEND. `BlockPath` is empty: the blocks are not
+read yet. `KeepGroups = false` leaves the groups out, for a large file: 100 000 entities (34 MB) are held in 41 MB
+without them and 157 MB with them. A `DxfEntity` can also be made in code, of a shape and its look, to be written by
+`DxfWriter.Add(entity)`: `new DxfEntity(plate, "steel", colour: 1)`.
+
+What each entity is read as, shapes of space unless `PlanAs2D` is set and the entity lies on the floor: one in world
+coordinates (POINT, LINE, RAY, XLINE, SPLINE, 3D POLYLINE) where every height of it is nought, whatever its extrusion; one
+in the coordinates of its extrusion's plane (CIRCLE, ARC, LWPOLYLINE, 2D POLYLINE, SOLID, TRACE) and an ELLIPSE where the
+extrusion is (0, 0, 1) or (0, 0, -1) exactly, or not given, and every height nought:
+
+| Entity | Shape | With `PlanAs2D`, on the floor |
+|---|---|---|
+| POINT, LINE, RAY, XLINE | `GeoPoint3`, `GeoLine3`, `GeoRay3`, `GeoXLine3` | `GeoPoint2`, `GeoLine2`, `GeoRay2`, `GeoXLine2` |
+| LWPOLYLINE, POLYLINE of the plane | `GeoPolyline3` or `GeoPolygon3` (closed); `GeoPolylineArc3` or `GeoPolygonArc3` where an edge has a bulge | `GeoPolyline2`, `GeoPolygon2`, `GeoPolylineArc2`, `GeoPolygonArc2` |
+| 3D POLYLINE | `GeoPolyline3` or `GeoPolygon3` | `GeoPolyline2` or `GeoPolygon2` |
+| polyface mesh, polygon mesh | `GeoSolid3` of its faces, closed or not as they are; fewer than four faces, each a `GeoFace3` | the same |
+| CIRCLE, ARC | `GeoCircle3`, `GeoArc3` | `GeoCircle2`, `GeoArc2` |
+| ELLIPSE, whole | `GeoEllipse3` | `GeoEllipse2` |
+| ELLIPSE, a part | `GeoSpline3`, exactly the part | `GeoSpline2` |
+| SPLINE | `GeoSpline3` of its degree, knots, weights and control points; one of fit points alone, the spline `Interpolate` passes through them | `GeoSpline2` |
+| 3DFACE | `GeoTriangle3` of three corners; `GeoFace3` of four in one plane within the planar tolerance; two `GeoTriangle3` cut along the shorter diagonal where they are not | the same |
+| SOLID, TRACE | `GeoPolygon3` of its corners in DXF's order 1, 2, 4, 3 | `GeoPolygon2` |
+
+The coordinates of a CIRCLE, ARC, LWPOLYLINE, 2D POLYLINE, SOLID and TRACE are in the system of their extrusion's plane
+and are taken to the world by the arbitrary axis algorithm, as `DxfWriter` writes them: the CIRCLE at (10, 20, 5) on
+the extrusion (0, 0, -1) is centred at (-10, 20, -5), and an ARC from 0 to 90 degrees on that extrusion runs clockwise
+seen from above, as AutoCAD draws a mirrored arc. On the floor that extrusion turns x over, exactly: with `PlanAs2D` the
+ARC of radius 10 about the origin from 0 to 90 degrees is the clockwise `GeoArc2` from (-10, 0) to (0, 10), from pi - a
+to pi - b, starting where the arc read in space starts; a polyline's bulges are negated and its vertices kept in their
+order; a part of an ELLIPSE and a SPLINE keep the direction of the file; and the points are those ezdxf works out. A 2D POLYLINE stands at its
+own elevation, its group 30, whatever heights its vertices give, or at the first vertex's where it gives none: ezdxf's
+polyline at the elevation 50 is at z = 50, its vertices written at 0. A part of an ELLIPSE is a spline of rational
+quadratic pieces of at most a quarter turn of its eccentric angle, each the stretched image of the arc
+`GeoSpline2.FromArc` makes, so every point of it is on the ellipse to rounding: a quarter of the ellipse 60 by 30 is 3
+control points, three quarters 7. A SPLINE whose knots are not clamped, as AutoCAD writes a closed one, is clamped by
+knot insertion, the same curve over the span its knots give; one of fewer fit points than its degree asks for is read
+at one degree less than its points, and a warning says so. A closed polyline of two vertices with an arc, a circle drawn
+as two half circles, is a loop with its first half circle cut at its middle, so that it has the three vertices a loop
+has: two half circles of radius 10 are a `GeoPolygonArc2` of area 314.159. A closed polyline that encloses no area, or
+in space does not lie in one plane, is a chain that ends on its first vertex, in the plane as in space, and a warning
+says so. Of a POLYLINE fitted with a spline the curve drawn is read and the frame left out. A point or vector group
+missing a part reads it as nought, as the DXF reference has it: the extrusion 210 = 1, 230 = 1 is (0.7071, 0, 0.7071).
+
+Every number is read as the file prints it, the double nearest it, on .NET Framework as on .NET 10, whose parsers do not
+always agree: so a file `DxfWriter` wrote gives back every coordinate, radius, bulge, knot and weight it holds to the bit.
+What the file holds in another form comes back to the last place or two: the angles of an ARC are degrees, an ELLIPSE
+keeps the end of its major axis and the ratio of its radii, and a circle, arc or polyline in a tilted plane its
+coordinates in that plane's system, so an arc of radius 40 on the normal (1, 2, 3) comes back within 1E-11 at its ends.
+A chain or loop with arcs that lies flat at one height can carry a normal a hair off up, (1.6E-19, 0, 1) as the library
+fits its plane; the writer writes that extrusion, and such a chain comes back to the rounding of that plane, within
+1E-12 of its largest coordinate.
+
+TEXT, MTEXT, DIMENSION, HATCH, LEADER, MLEADER, IMAGE, MESH, REGION, 3DSOLID, BODY, ATTDEF, ATTRIB, VIEWPORT, INSERT and
+any other type are not read and are counted in `Skipped`. So is an entity with no shape to it, the reason said once for
+each type in a Debug line of `GeometryHelperLog`: a LINE no longer than the point tolerance, a polyline of fewer than
+two distinct vertices, a CIRCLE or ARC of no radius, an ELLIPSE of no axis, a number that is not a finite number, a
+SPLINE the library does not take (a periodic one among them whose knots cannot be clamped, which a warning names too), a
+3DFACE of fewer than three distinct corners. `DxfReadOptions.Tolerance` (the default tolerance unless set; the global
+one is never read) says what has no shape: a LINE 0.0004 long is left out within the default tolerance and read within
+1E-5. An entity whose reading throws, such as a SPLINE of fit points 1E200 apart, whose system cannot be solved, is left
+out and counted too, the others read, with a warning and one Warn line of `GeometryHelperLog` for each type. A group of
+the look that cannot be read (a colour of 1.0, a true colour past a 32-bit number) is left out, and the entity read
+without it. A number the scaling of `ToMillimetres` takes past the largest double (1E307 metres) leaves its entity out,
+counted as one with a number that is not finite, and such a thickness is left out alone. The entities of the blocks and of paper space are not read, and a warning counts them, a POLYLINE with its
+vertices one. One Info line for each call says how many entities were read and how many skipped, by type.
+
+A file that is not a DXF, or is cut short, is refused with a `FormatException` that names the line: a group code that
+is not a whole number, a code with no value after it, no EOF, a section with no ENDSEC, no ENTITIES section. A binary
+DXF is refused the same way. The text of a file of R2007 or later is UTF-8; that of an older one is UTF-8 where its bytes
+are (a warning says so), else in the code page its header names (`$DWGCODEPAGE`, ANSI_1252 where it names none), read
+the same on either runtime: Windows-1252 by a table of its own, since .NET 10 does not have it, so the layer
+Wand–€Außen reads so on both. Any other code page (1250, 1251, 1253 to 1258, 932, 936, 949, 950) is read as the runtime
+has it: .NET Framework has them all, but .NET 10 has none without CodePagesEncodingProvider, which the library does not
+bring, so there its text is read as Latin-1 and a warning names the code page and says to save the drawing as a DXF of
+R2007 or later, whose text is UTF-8. A name written with the
+escapes of R2000 (`\U+00E9`) is read as its letters. A number is read from its first 19 digits and checked in integers,
+the digits past 800 counting only as whether any is not nought: a number of 300 000 digits takes 2.2 ms on .NET 10.
+
+The numbers are kept as the file has them unless `ToMillimetres` is set, which scales points, radii, elevations,
+thicknesses and the lengths of axes by the unit of the header: a drawing in metres has its numbers times 1 000, one in
+inches times 25.4. Angles, bulges, ratios, weights, knots and directions have no unit and are kept. A file with no unit,
+or one the reference does not list, is not scaled, and a warning says so.
+
+Reading 100 000 entities of eight kinds (34 MB) takes 0.54 s on .NET 10 and 0.90 s on .NET Framework 4.8 with the
+groups, the document holding 157 MB, and 0.35 s and 0.58 s without them, holding 41 MB.
+
+`DxfWriter.Add(entity)` writes an entity read back: its shape by the overload of `Add` for it, on its layer, with its
+colour, true colour, linetype and lineweight after the layer, in the order AutoCAD writes them, and its thickness on the
+LINE, POINT, CIRCLE, ARC and LWPOLYLINE that have one, each only where the entity has it. A drawing read, written and
+read again gives the same shapes and the same look: every number to the bit but the angles of an arc and the axis of an
+ellipse, which go through degrees and the ratio once more. A linetype the writer's table does not have is added to it
+by name, with no pattern, so that AutoCAD opens the file and draws the line solid until the drawing is given the
+linetype's pattern. A face of three or four corners with no hole, as a 3DFACE reads, is one 3DFACE again, the edges the
+file hid hidden again; any other face and a body, a polyface mesh among them, is its triangles at the global tolerance.
+What is not kept: a circle or an arc in space on an extrusion that points down is written about its normal turned up, so
+a mirrored arc comes back running the other way over the same points (with `PlanAs2D` it is a `GeoArc2` either way); a
+linetype is written as the table spells it, so BYBLOCK comes back ByBlock; the entity's `Groups` are not written, and it
+is given a handle of its own. A shape with no overload of `Add`, a `GeoSphere3` among them, which needs a chord
+tolerance, is refused with an `ArgumentException` naming its type. The overloads that were there write the same bytes as
+before.
