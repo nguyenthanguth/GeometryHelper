@@ -270,7 +270,7 @@ namespace GeometryHelper.UnitTest.Export
         }
 
         [Fact]
-        public void TheWarningsCountTheEntitiesOfTheBlocks_AndSayWhenTheFileNamesNoUnit()
+        public void TheBlocksAreRead_AndAWarningSaysWhenTheFileNamesNoUnit()
         {
             string blocks = G(0, "SECTION", 2, "BLOCKS", 0, "BLOCK", 2, "B", 70, 0, 10, "0", 20, "0",
                 0, "POLYLINE", 8, "0", 66, 1, 70, 8, 0, "VERTEX", 8, "0", 10, "0", 20, "0", 30, "0", 0, "VERTEX", 8, "0", 10, "1", 20, "0", 30, "0", 0, "SEQEND", 8, "0",
@@ -279,8 +279,9 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { ToMillimetres = true, Tolerance = Tol });
 
-            Assert.Contains("2 entities of the blocks were not read: the blocks, and the INSERTs that place them, are not read yet.", read.Warnings);
+            Assert.Equal(new[] { "POLYLINE", "LINE" }, Assert.Single(read.Blocks).Entities.Select(e => e.Type).ToArray());
             Assert.Contains(read.Warnings, w => w.StartsWith("The file names no unit", StringComparison.Ordinal));
+            Assert.Single(read.Warnings);
         }
 
         [Fact]

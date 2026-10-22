@@ -427,9 +427,8 @@ in its header and the view opened on them.
 ## Reading DXF
 
 `DxfReader` reads a DXF file into the library's shapes: what `DxfWriter` writes, and what AutoCAD and the other CAD
-programs write of the same kinds, ASCII files of R12 (AC1009) to R2018 (AC1032). Blocks are not read yet, nor the INSERTs
-that place them: a drawing built of blocks reads as the entities drawn outside them, and a warning counts the rest. Reading
-blocks comes next.
+programs write of the same kinds, ASCII files of R12 (AC1009) to R2018 (AC1032). An INSERT is read as the entities of its
+block, placed where it puts them, and the blocks themselves are there too (see Blocks and INSERTs below).
 
 ```csharp
 using GeometryHelper.Export;
@@ -453,8 +452,8 @@ to 255, null by layer or by block), `TrueColour` (0xRRGGBB, group 420), `Linetyp
 warning counts, and refused by the constructor), `Thickness` (group 39,
 nought where none), `Handle` (null in a file of R12) and its `Groups`: every group of its record in the order of the
 file, extended data (1000 to 1071) among them, each value the text the file prints, so that nothing of the entity is
-lost. Of a POLYLINE they run on through its VERTEX records and its SEQEND. `BlockPath` is empty: the blocks are not
-read yet. `KeepGroups = false` leaves the groups out, for a large file: 100 000 entities (34 MB) are held in 41 MB
+lost. Of a POLYLINE they run on through its VERTEX records and its SEQEND. `BlockPath` and `InsertHandles` name the
+blocks and the INSERTs an entity was placed through, empty for an entity of the drawing itself. `KeepGroups = false` leaves the groups out, for a large file: 100 000 entities (34 MB) are held in 41 MB
 without them and 157 MB with them. A `DxfEntity` can also be made in code, of a shape and its look, to be written by
 `DxfWriter.Add(entity)`: `new DxfEntity(plate, "steel", colour: 1)`.
 
@@ -505,8 +504,8 @@ A chain or loop with arcs that lies flat at one height can carry a normal a hair
 fits its plane; the writer writes that extrusion, and such a chain comes back to the rounding of that plane, within
 1E-12 of its largest coordinate.
 
-TEXT, MTEXT, DIMENSION, HATCH, LEADER, MLEADER, IMAGE, MESH, REGION, 3DSOLID, BODY, ATTDEF, ATTRIB, VIEWPORT, INSERT and
-any other type are not read and are counted in `Skipped`. So is an entity with no shape to it, the reason said once for
+TEXT, MTEXT, DIMENSION, HATCH, LEADER, MLEADER, IMAGE, MESH, REGION, 3DSOLID, BODY, ATTDEF, ATTRIB, VIEWPORT and any
+other type are not read and are counted in `Skipped`. So is an entity with no shape to it, the reason said once for
 each type in a Debug line of `GeometryHelperLog`: a LINE no longer than the point tolerance, a polyline of fewer than
 two distinct vertices, a CIRCLE or ARC of no radius, an ELLIPSE of no axis, a number that is not a finite number, a
 SPLINE the library does not take (a periodic one among them whose knots cannot be clamped, which a warning names too), a
@@ -516,7 +515,9 @@ one is never read) says what has no shape: a LINE 0.0004 long is left out within
 out and counted too, the others read, with a warning and one Warn line of `GeometryHelperLog` for each type. A group of
 the look that cannot be read (a colour of 1.0, a true colour past a 32-bit number) is left out, and the entity read
 without it. A number the scaling of `ToMillimetres` takes past the largest double (1E307 metres) leaves its entity out,
-counted as one with a number that is not finite, and such a thickness is left out alone. The entities of the blocks and of paper space are not read, and a warning counts them, a POLYLINE with its
+counted as one with a number that is not finite, and such a thickness is left out alone, and so does a point the
+system of a tilted extrusion takes there: the CIRCLE at y = -1.7E308 and a height of 1.7E308 on the extrusion
+(0.6, 0, 0.8) would be at an x of 2.38E308. The entities of paper space are not read, and a warning counts them, a POLYLINE with its
 vertices one. One Info line for each call says how many entities were read and how many skipped, by type.
 
 A file that is not a DXF, or is cut short, is refused with a `FormatException` that names the line: a group code that
@@ -547,9 +548,101 @@ ellipse, which go through degrees and the ratio once more. A linetype the writer
 by name, with no pattern, so that AutoCAD opens the file and draws the line solid until the drawing is given the
 linetype's pattern. A face of three or four corners with no hole, as a 3DFACE reads, is one 3DFACE again, the edges the
 file hid hidden again; any other face and a body, a polyface mesh among them, is its triangles at the global tolerance.
-What is not kept: a circle or an arc in space on an extrusion that points down is written about its normal turned up, so
-a mirrored arc comes back running the other way over the same points (with `PlanAs2D` it is a `GeoArc2` either way); a
+What is not kept: an ARC runs counter-clockwise about its extrusion and no other way, so a clockwise `GeoArc2`, written
+from its end to its start, comes back counter-clockwise over the same points, with `PlanAs2D` as without, and a circle or
+an arc in space on an extrusion that points down is written about its normal turned up, so a mirrored arc comes back
+running the other way over the same points too; a
 linetype is written as the table spells it, so BYBLOCK comes back ByBlock; the entity's `Groups` are not written, and it
 is given a handle of its own. A shape with no overload of `Add`, a `GeoSphere3` among them, which needs a chord
 tolerance, is refused with an `ArgumentException` naming its type. The overloads that were there write the same bytes as
 before.
+
+### Blocks and INSERTs
+
+The blocks of the file are in `Blocks`, in the order of the file, and each INSERT of the drawing is read as the entities
+of its block, placed where the INSERT puts them, in the order of the block and where the INSERT stands among the
+entities; a file that defines its blocks after its entities reads the same. `ExpandBlocks = false` leaves the INSERTs
+out, counted in `Skipped`, and reads the blocks all the same.
+
+```csharp
+DxfDocument drawing = DxfReader.Read("frame.dxf", new DxfReadOptions { PlanAs2D = true });
+
+foreach (DxfEntity entity in drawing.Entities) { ... }   // the bolts of the block BOLT placed, each with BlockPath "BOLT"
+foreach (DxfBlock block in drawing.Blocks) { ... }        // Name, BasePoint, Flags and its own Entities, unplaced
+```
+
+An INSERT places its block as AutoCAD does: the block's base point taken to the origin, the scales along x, y and z
+(groups 41, 42 and 43, each 1 where not given), the turn about z (50, degrees, exact for a whole number of quarter turns),
+the shift to the insertion point (10, 20, 30, in the system of the INSERT's extrusion), then that system (210). A
+MINSERT's array of 70 columns by 71 rows is placed row after row, each cell shifted by its column times the column
+spacing (44) and its row times the row spacing (45) along the turned axes, not scaled, as ezdxf places it; cells a
+spacing of nought shifts alike are placed once, as ezdxf places them, and an array of more than 1 048 576 cells is not
+placed. An INSERT inside a block is placed within it and the two placements composed, to a depth of 64. An INSERT that
+cannot be placed is counted in `Skipped` and said in a warning, the rest read: one of a block the file does not define
+(the warning names it), of a block inside itself, at once or through others (the warning names the first chain,
+`A > B > A`), one nested deeper than 64, one of an external reference (a block of flag 4, whose drawing is another file),
+one of the block of a layout, and one that would take the entities placed from blocks past `MaxPlacedEntities`. The blocks of the layouts, `*Model_Space` and `*Paper_Space`, are not among the
+`Blocks`, and a warning counts their entities: the drawing is read from its ENTITIES section.
+
+Blocks placed inside blocks multiply: a block of 100 INSERTs of a block of 100 INSERTs of a block of 100 INSERTs of a line
+is a file of 18 KB that places 100 000 000 lines. `DxfReadOptions.MaxPlacedEntities` (2 000 000 by default, above nought)
+bounds the entities placed from blocks in one reading, the drawing's first, in the order of the file, then those of the
+`Blocks` read on their own. An INSERT is placed whole or not at all: how many entities its block places at the most is
+worked out once for each block, through its INSERTs, before any is placed, and an INSERT that would take the count past
+the bound places none, is counted in `Skipped`, and one warning names the bound and how many entities the INSERTs left
+out would have placed. A block inside itself counts nought where it is met again, as it is not placed again there, and a
+size worked out through such a block is worked out again on the way of each INSERT, not kept from another. Whatever the
+working out says, the count of what is placed holds the bound too: an INSERT whose entities would pass it is taken back
+whole, its entities and what its placing counted, and counted with the others left out. That file is read in 1.4 s on .NET 8, holding 340 MB, where it ran out of memory; the one of three
+levels places its 1 000 000 lines in 2.5 s, holding 685 MB with what its blocks read on their own place.
+
+What a placement makes of each shape:
+
+| Shape in the block | Under a turn, an even scaling or a mirror | Under an uneven scaling |
+|---|---|---|
+| POINT, LINE, RAY, XLINE, chain or polygon without arcs, 3D POLYLINE, 3DFACE, SOLID, TRACE, mesh | carried point by point | the same |
+| SPLINE | its control points carried, its knots and weights kept, which is exactly the spline's image | the same |
+| SPLINE of fit points alone | the spline through its points in the block, then carried | the same |
+| ELLIPSE | the ellipse of the images of its semi-axes; a part, the spline that is exactly that part | the same |
+| CIRCLE | a circle, its radius times the scale | the ellipse it becomes |
+| ARC | an arc, running the way its image runs | the spline that is exactly that part of the ellipse |
+| LWPOLYLINE or 2D POLYLINE with arcs | the chain or loop with its bulges, its arcs about the placed normal | a segment for each straight edge and a spline for each arc edge, each an entity with the look and handle of the polyline, in its order |
+
+So every shape placed is the image of the block's shape to the rounding of its numbers: the circle of radius 3 scaled by
+3 along x is the ellipse 9 by 3, and a polyline with two arcs placed so is four entities, a spline, a segment, a spline
+and a segment. A mirror turns an arc over: the ARC of radius 4 about (5, 5) from 30 to 200 degrees, in a block whose
+base point is (2, 1), placed at (-100, 0) with a scale of -1 along x, is the clockwise `GeoArc2` about (-103, 4) from
+(-106.464, 6). A scaling so nearly even that a circle placed whole lands within the point tolerance of
+`DxfReadOptions.Tolerance` of where the scaling puts each of its points keeps the circle, the arc and the chain with arcs
+of the plane it scales so, by the rule of `GeoTransform3.Transform(GeoCircle3)`: the circle of radius 10 scaled by
+1.0000001 along y is the circle of radius 10, and by 1.001 the ellipse 10.01 by 10. A placed entity lies on the floor,
+for `PlanAs2D`, where its placed plane's normal is straight up or down and every height of it nought, so a block drawn
+in the plan and placed turned about z, scaled or mirrored is read as shapes of the plane, and one placed on a tilted
+extrusion as shapes of space. Held against ezdxf 1.4.5 on a drawing of 168 entities placed every way an INSERT places
+them, every point read is within 1E-9 of where ezdxf puts it; ezdxf's own virtual INSERT of a block inside a block is
+wrong under an uneven outer scaling with an inner turn, so there the two matrices ezdxf gives are composed.
+
+An entity of a block on layer 0 is on the layer of the INSERT that placed it, and one whose colour, linetype or
+lineweight is BYBLOCK has the INSERT's, its true colour too where it has none of its own, through every level of
+nesting; BYLAYER stays BYLAYER. In the drawing itself there is no block to take a look from: a colour BYBLOCK is no colour
+and the linetype is named as written. An entity on a layer of its own whose colour or linetype is BYBLOCK, placed by an
+INSERT that is itself BYLAYER, is drawn by AutoCAD in the colour and linetype of the INSERT's layer; the reader gives it no
+colour and no linetype, on its own layer, which reads as that layer's: the entity has no field for a look taken from
+another layer. The thickness is stretched as the placement stretches the extrusion, and turned over where the placed
+extrusion points against the entity's own: 10 is 30 under a scale of 3 along z and -30 under one of -3, and a mirror in x
+leaves it 10. Each entity keeps its own `Handle`, that of the block's entity; `BlockPath` names the
+blocks it was placed through, outermost first (`FRAME`, `BOLT`), and `InsertHandles` the INSERTs, one to each name,
+null for an INSERT of R12, which has no handle, the cells of a MINSERT sharing its handle. An ATTRIB of an INSERT and
+an ATTDEF of a block are text, counted in `Skipped`.
+
+Each of the `Blocks` holds its own entities in its own coordinates, read with the same options, an INSERT inside it
+placed within it, layer 0 and BYBLOCK kept as they are. `Skipped` and the `Warnings` are of the drawing as placed: an
+entity of a block that is not read is counted each time a block places it, so a TEXT in a block placed 100 times counts
+100, and what the blocks read on their own leave out is not counted. Reading 10 000 INSERTs of a block of 50 entities
+(12 lines, 10 circles, 10 arcs, 8 closed polylines with arcs, 5 splines and 5 points; 1.9 MB of text) gives 500 000
+entities in 0.50 s on .NET 10 and 0.55 s on .NET 8, the document holding 157 MB with the groups or without them, since
+the places of one entity of a block share its groups; scaled unevenly, the 820 000 entities they give take 0.96 s and
+1.00 s and 448 MB.
+
+`DxfWriter.Add(entity)` writes a placed entity as it is, in the drawing itself, with its look: the file written has no
+blocks, and reads back as the same shapes, every number to the bit but the angles of an arc and the axis of an ellipse.

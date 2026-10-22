@@ -41,8 +41,9 @@ namespace GeometryHelper.Export
         /// the numbers as the file prints them.
         /// </summary>
         /// <remarks>
-        /// Points, radii, elevations and the lengths of axes are scaled; angles, bulges, ratios, weights, knots and
-        /// directions are not, having no unit. A file in millimetres is read to the bit either way. A file with no unit,
+        /// Points, radii, elevations and the lengths of axes are scaled, and so are the insertion point of an INSERT, the
+        /// base point of a block and the spacings of a MINSERT; angles, bulges, ratios, weights, knots, directions and the
+        /// scales of an INSERT are not, having no unit. A file in millimetres is read to the bit either way. A file with no unit,
         /// or one the DXF reference does not list, is not scaled, and a warning says so.
         /// </remarks>
         public bool ToMillimetres { get; set; }
@@ -58,7 +59,9 @@ namespace GeometryHelper.Export
         /// vertex), that two fit points of a SPLINE are one, and which corners of a polygon, a face or a mesh are one. The
         /// vector tolerance says that a RAY or XLINE has no direction, and, read as an area as a polygon reads it, that a
         /// closed polyline with arcs encloses no area. The planar tolerance says whether the four corners of a 3DFACE, the
-        /// vertices of a closed 3D POLYLINE and the faces of a mesh lie in one plane. It is used for nothing else.
+        /// vertices of a closed 3D POLYLINE and the faces of a mesh lie in one plane. The point tolerance also says whether an
+        /// INSERT's scaling is so nearly even that a circle, an arc or a chain with arcs of its block stays one
+        /// (<see cref="ExpandBlocks"/>). It is used for nothing else.
         /// </para>
         /// <para>
         /// A LINE 0.0004 long is no segment within the default tolerance and is left out; within 1E-5 it is a segment. A
@@ -77,5 +80,67 @@ namespace GeometryHelper.Export
         /// without; the guide gives the numbers.
         /// </remarks>
         public bool KeepGroups { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether each INSERT is read as the entities of its block, placed where it puts them; true by
+        /// default. False leaves the INSERTs out, counted in <see cref="DxfDocument.Skipped"/>: the blocks are read into
+        /// <see cref="DxfDocument.Blocks"/> either way.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// An entity of a block is placed by the INSERT's own system: the block's base point taken to the origin, the scales
+        /// along x, y and z, the turn about z, the insertion point, then the system of the INSERT's extrusion; a MINSERT's
+        /// cells, row after row, each shifted along the turned axes by its column and row spacing, not scaled. An INSERT
+        /// inside a block is placed within it, the two placements composed, to a depth of 64; a block that inserts itself,
+        /// at once or through others, is not placed again, and a warning says so. An entity on layer 0 takes the layer of
+        /// its INSERT, and a colour, linetype or lineweight BYBLOCK the INSERT's.
+        /// </para>
+        /// <para>
+        /// Points, segments, rays, lines without ends, chains and polygons without arcs, faces, meshes and splines are
+        /// carried point by point, a spline by its control points, which any placement carries exactly, and an ELLIPSE by
+        /// the images of its semi-axes. A turn, an even scaling and a mirror place a circle, an arc and a chain with arcs as
+        /// the same shape, the arc running the way its image runs, so a mirrored arc runs the other way round. An uneven
+        /// scaling places a circle as the ellipse it becomes, an arc as the spline that is exactly that part of the ellipse,
+        /// and a chain with arcs as a segment for each straight edge and such a spline for each arc edge, each an entity of
+        /// its own, in the order of the chain: the circle of radius 10 scaled by 3 along x is the
+        /// <see cref="Geometry.GeoEllipse3"/> 30 by 10. A scaling so nearly even that the circle placed whole lands within the
+        /// point tolerance of <see cref="Tolerance"/> of where the scaling puts each of its points keeps it a circle, by the
+        /// rule of <see cref="Geometry.GeoTransform3.Transform(Geometry.GeoCircle3)"/>: the circle of radius 10 scaled by
+        /// 1.0000001 along y is the circle of radius 10, and by 1.001 the ellipse 10.01 by 10.
+        /// </para>
+        /// </remarks>
+        public bool ExpandBlocks { get; set; } = true;
+
+        private int _maxPlacedEntities = 2000000;
+
+        /// <summary>
+        /// Gets or sets whether the size of a block is taken as nought before its INSERT is placed, so that only the count of
+        /// what is placed holds the bound of <see cref="MaxPlacedEntities"/>; for the tests of that count alone.
+        /// </summary>
+        internal bool UnsizedBlocks { get; set; }
+
+        /// <summary>
+        /// Gets or sets how many entities the INSERTs may place from blocks in one reading, counted across the drawing and
+        /// the blocks read for <see cref="DxfDocument.Blocks"/>; 2 000 000 by default.
+        /// </summary>
+        /// <remarks>
+        /// Blocks placed inside blocks multiply: a block of 100 INSERTs of a block of 100 INSERTs of a block of 100 INSERTs of a
+        /// line is a file of 18 KB and 100 000 000 lines. An INSERT is placed whole or not at all: where the entities it would
+        /// place, worked out from its block before any is placed, would take the count past this number, it places none, is
+        /// counted in <see cref="DxfDocument.Skipped"/>, and a warning names the number and how many entities the INSERTs
+        /// left out would have placed. The INSERTs of the drawing are placed first, in the order of the file. Whatever the
+        /// working out says, of blocks that insert each other among them, the count of what is placed holds the bound too: an
+        /// INSERT whose entities would pass it is taken back whole, with what its placing counted.
+        /// </remarks>
+        /// <exception cref="System.ArgumentOutOfRangeException">Thrown when the number set is not above nought.</exception>
+        public int MaxPlacedEntities
+        {
+            get => _maxPlacedEntities;
+            set
+            {
+                Guard.Positive(value, nameof(value), "The number of entities the INSERTs may place has to be above nought.");
+                _maxPlacedEntities = value;
+            }
+        }
     }
 }

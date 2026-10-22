@@ -432,10 +432,10 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Equal(new[] { "LINE", "CIRCLE" }, read.Entities.Select(e => e.Type).ToArray());
-            Assert.Equal(new[] { "ATTRIB", "HATCH", "INSERT", "MTEXT", "TEXT" }, read.Skipped.Keys.ToArray());
+            Assert.Equal(new[] { "LINE", "LINE", "CIRCLE", "CIRCLE" }, read.Entities.Select(e => e.Type).ToArray());
+            Assert.Equal(new[] { "B" }, read.Entities[1].BlockPath.ToArray());
+            Assert.Equal(new[] { "ATTRIB", "HATCH", "MTEXT", "TEXT" }, read.Skipped.Keys.ToArray());
             Assert.Equal(2, read.Skipped["TEXT"]);
-            Assert.Contains(read.Warnings, w => w.StartsWith("2 entities of the blocks", StringComparison.Ordinal));
             Assert.Contains(read.Warnings, w => w.StartsWith("1 entity of paper space", StringComparison.Ordinal));
         }
 

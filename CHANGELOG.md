@@ -29,8 +29,33 @@ them without CodePagesEncodingProvider, reads as Latin-1 with a warning to save 
 Each `DxfEntity` keeps its `Layer`, `Colour`, `TrueColour`, `Linetype`, `Lineweight`, `Thickness` and `Handle`, and its
 `Groups` (the new `DxfGroup`), every group of it as the file has it, extended data among them. 100 000 entities (34 MB)
 are read in 0.54 s on .NET 10 and 0.90 s on .NET Framework 4.8, the document holding 157 MB, and without the groups in
-0.35 s and 0.58 s, holding 41 MB. Blocks, and the INSERTs that place them, are not read yet, nor paper space: a warning
-counts their entities, and reading blocks comes next. 95 new tests; the suite runs 12 083 of 12 084, one skipped as before.
+0.35 s and 0.58 s, holding 41 MB. Paper space is not read: a warning counts its entities. 95 new tests; the suite runs
+12 083 of 12 084, one skipped as before.
+
+**NEW.** `DxfReader` reads blocks and the INSERTs that place them. Each INSERT is read as the entities of its block, placed
+where it puts them, in the order of the block and where the INSERT stands: a MINSERT's array row by row, an INSERT inside a
+block within it, to a depth of 64. `DxfReadOptions.ExpandBlocks` (true by default) turns it off, and `DxfDocument.Blocks`,
+of the new `DxfBlock` (`Name`, `BasePoint`, `Flags`, `Entities`), holds the blocks in their own coordinates either way. A
+turn, an even scaling and a mirror place each shape as the same shape, a mirrored arc running the other way round; an
+uneven scaling places a circle as the ellipse it becomes, an arc as the spline that is exactly that part of it, and a
+polyline with arcs as its edges, a segment or such a spline each: the circle of radius 3 scaled by 3 along x is the
+ellipse 9 by 3, and a scaling even within the point tolerance (1.0000001) keeps the circle of radius 10 a circle.
+Splines, ellipses, polylines without arcs, faces and meshes are carried exactly by any placement, a mirrored body still
+facing outwards. An entity on layer 0 takes the INSERT's layer, and one BYBLOCK its colour, true colour, linetype and
+lineweight, through every level; `DxfEntity.BlockPath` names the blocks an entity was placed through, and the new
+`DxfEntity.InsertHandles` the INSERTs. An INSERT of a block inside itself, of one the file does not define, of an external
+reference or a MINSERT of more than 1 048 576 cells is counted and said in a warning, the rest read; the blocks of the
+layouts are not read. The new `DxfReadOptions.MaxPlacedEntities` (2 000 000 by default) bounds what INSERTs place from
+blocks in one reading, an INSERT placed whole or not at all by the size of its block worked out first: the file of 18 KB
+whose blocks nest four levels of 100 INSERTs, 100 000 000 lines, is read in 1.4 s, where it ran out of memory, and an
+INSERT that would place more than its block was worked out to is taken back whole, so the bound holds for blocks that
+insert each other too. Held against ezdxf 1.4.5 on 168 entities placed every way, every point is within 1E-9 of where
+ezdxf puts it (ezdxf's own INSERT nested in a block is wrong under an uneven outer scaling with an inner turn, and there
+the reference composes its matrices), and of 57 600 entities placed by random INSERTs every one lies within 1E-9 of its
+size of the block's shape carried by a matrix worked out apart, but for 3 circles and arcs a scaling within the point
+tolerance of even keeps round, 9E-4 off. 10 000 INSERTs of a block of 50 entities give 500 000 entities in 0.50 s on
+.NET 10, the document holding 157 MB. A point the system of a tilted extrusion takes past the largest double leaves its
+entity out, counted as not finite, where it gave infinite coordinates. 37 new tests; the suite runs 12 120 of 12 121, one skipped as before.
 
 **NEW.** `DxfWriter.Add(DxfEntity)` writes an entity read back, or one made in code with the new public constructor
 `new DxfEntity(shape, layer, colour, trueColour, linetype, lineweight, thickness)`: its shape by the overload of `Add` for

@@ -19,9 +19,12 @@ namespace GeometryHelper.Export
     /// space; a polyface or polygon mesh as a body of its faces; a CIRCLE, ARC and whole ELLIPSE as themselves; a part of an
     /// ELLIPSE and a SPLINE as a spline, exactly; a 3DFACE as a triangle or a face, and a SOLID or TRACE as a polygon.
     /// Entities of space are read as shapes of space unless <see cref="DxfReadOptions.PlanAs2D"/> asks for those lying on
-    /// the floor as shapes of the plane. TEXT, MTEXT, DIMENSION, HATCH, INSERT and the other types are left out and counted
-    /// in <see cref="DxfDocument.Skipped"/>, and so is an entity with no shape to it, a LINE of no length among them; the
-    /// entities of the blocks and of paper space are not read, and a warning counts them.
+    /// the floor as shapes of the plane. An INSERT is read as the entities of its block, each placed where the INSERT puts
+    /// it, with the look it takes from the INSERT and the names of the blocks it was placed through
+    /// (<see cref="DxfReadOptions.ExpandBlocks"/>); the blocks themselves are in <see cref="DxfDocument.Blocks"/>. TEXT,
+    /// MTEXT, DIMENSION, HATCH and the other types are left out and counted in <see cref="DxfDocument.Skipped"/>, and so is
+    /// an entity with no shape to it, a LINE of no length among them; the entities of paper space are not read, and a
+    /// warning counts them.
     /// </para>
     /// <para>
     /// Every number is read as the file prints it, the double nearest it on either runtime, so a file the library wrote
@@ -435,6 +438,7 @@ namespace GeometryHelper.Export
             private int[] _codes = new int[16];
             private string[] _values = new string[16];
             private double[] _numbers;
+            private string _unreadable;
             private IReadOnlyList<DxfGroup> _groups;
 
             internal Record(string type, int line)
@@ -551,9 +555,20 @@ namespace GeometryHelper.Export
             /// <summary>
             /// Reads every real of the record, and says which group, if any, holds a number that is not one: NaN, an
             /// infinity, a word. The groups of 10 to 59, 110 to 149 and 210 to 239 are reals, and those of 60 to 99, 170 to
-            /// 179, 270 to 289, 370 to 379 and 420 to 429 whole numbers.
+            /// 179, 270 to 289, 370 to 379 and 420 to 429 whole numbers. Read once: a record of a block is read again for
+            /// every INSERT that places it.
             /// </summary>
             internal string Unreadable()
+            {
+                if (_numbers == null)
+                {
+                    _unreadable = ReadNumbers();
+                }
+
+                return _unreadable;
+            }
+
+            private string ReadNumbers()
             {
                 _numbers = new double[Count];
 
@@ -595,6 +610,8 @@ namespace GeometryHelper.Export
 
         private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 
+        private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
+
         #endregion
 
         /// <summary>
@@ -606,6 +623,7 @@ namespace GeometryHelper.Export
             private readonly bool _toMillimetres;
             private readonly Tolerance _tolerance;
             private readonly bool _keepGroups;
+            private readonly bool _expandBlocks;
             private readonly Dictionary<string, string> _interned = new Dictionary<string, string>(StringComparer.Ordinal);
             private readonly List<DxfEntity> _entities = new List<DxfEntity>();
             private readonly List<string> _layers = new List<string>();
@@ -616,7 +634,6 @@ namespace GeometryHelper.Export
             private string _version;
             private int _unitCode = -1;
             private double _scale = 1.0;
-            private int _blockEntities;
             private int _paperEntities;
 
             internal Reading(DxfReadOptions options)
@@ -625,6 +642,10 @@ namespace GeometryHelper.Export
                 _toMillimetres = options.ToMillimetres;
                 _tolerance = options.Tolerance;
                 _keepGroups = options.KeepGroups;
+                _expandBlocks = options.ExpandBlocks;
+                _budget = new Budget(options.MaxPlacedEntities);
+                _unsized = options.UnsizedBlocks;
+                _into = _entities;
             }
 
             internal DxfDocument Run(string text, string source, List<string> decoding)
@@ -722,6 +743,10 @@ namespace GeometryHelper.Export
                         {
                             EndOfEntities();
                         }
+                        else if (section == "BLOCKS")
+                        {
+                            EndOfBlock();
+                        }
 
                         section = null;
                         continue;
@@ -789,10 +814,7 @@ namespace GeometryHelper.Export
                 }
                 else if (section == "BLOCKS")
                 {
-                    if (record.Type != "BLOCK" && record.Type != "ENDBLK" && record.Type != "VERTEX" && record.Type != "SEQEND")
-                    {
-                        _blockEntities++;
-                    }
+                    BlockRecord(record);
                 }
                 else if (section == "ENTITIES")
                 {
@@ -822,6 +844,13 @@ namespace GeometryHelper.Export
 
             private DxfDocument Finish(string source)
             {
+                if (_scale == 1.0 && _toMillimetres && _unitCode >= 0)
+                {
+                    _scale = Factor(_unitCode);
+                }
+
+                int placed = ExpandPending();
+                DxfBlock[] blocks = ReadBlocks();
                 DxfUnits units = Units(out bool listed);
 
                 if (_version != null && (string.CompareOrdinal(_version, "AC1009") < 0 || string.CompareOrdinal(_version, "AC1032") > 0))
@@ -836,8 +865,8 @@ namespace GeometryHelper.Export
                         : "The file gives the unit " + Number(_unitCode) + ", which the DXF reference does not list, so its numbers were kept as they are and not scaled to millimetres.");
                 }
 
-                Warn(_blockEntities, " entity of the blocks was not read: the blocks, and the INSERTs that place them, are not read yet.", " entities of the blocks were not read: the blocks, and the INSERTs that place them, are not read yet.");
                 Warn(_paperEntities, " entity of paper space was not read: the reader reads model space.", " entities of paper space were not read: the reader reads model space.");
+                BlockWarnings();
                 EntityWarnings();
 
                 int skipped = 0;
@@ -861,9 +890,9 @@ namespace GeometryHelper.Export
                     GeometryHelperLog.Debug("DxfReader: " + Number(_skipped[type.Key]) + " " + type.Key + " not read: " + why + ".");
                 }
 
-                GeometryHelperLog.Info("DxfReader: " + Number(_entities.Count) + " entities read from " + source + ", " + Number(skipped) + " skipped" + (detail.Length > 0 ? detail.Append(')').ToString() : string.Empty) + ", " + Number(_warnings.Count) + " warnings.");
+                GeometryHelperLog.Info("DxfReader: " + Number(_into.Count) + " entities read from " + source + (placed > 0 ? ", " + Number(placed) + " of them placed by INSERTs" : string.Empty) + ", " + Number(skipped) + " skipped" + (detail.Length > 0 ? detail.Append(')').ToString() : string.Empty) + ", " + Number(_warnings.Count) + " warnings.");
 
-                return new DxfDocument(_entities.ToArray(), _layers.ToArray(), units, _version, new ReadOnlyDictionary<string, int>(new SortedDictionary<string, int>(_skipped, StringComparer.Ordinal)), _warnings.ToArray());
+                return new DxfDocument(_into.ToArray(), _layers.ToArray(), blocks, units, _version, new ReadOnlyDictionary<string, int>(new SortedDictionary<string, int>(_skipped, StringComparer.Ordinal)), _warnings.ToArray());
             }
 
             /// <summary>

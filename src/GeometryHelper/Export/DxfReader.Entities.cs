@@ -15,8 +15,7 @@ namespace GeometryHelper.Export
 
             private static readonly IReadOnlyList<DxfGroup> NoGroups = Array.AsReadOnly(new DxfGroup[0]);
             private readonly SortedDictionary<string, Failure> _failures = new SortedDictionary<string, Failure>(StringComparer.Ordinal);
-            private Record _polyline;
-            private List<Record> _vertices;
+            private Gathering _drawing;
             private int _fitSplines;
             private int _periodicSplines;
             private int _openedLoops;
@@ -29,44 +28,120 @@ namespace GeometryHelper.Export
             #region The entities in turn
 
             /// <summary>
-            /// Takes an entity of the drawing. A POLYLINE gathers the VERTEX records after it up to its SEQEND, and is read
-            /// when they are all in.
+            /// Takes a record of the drawing, read as soon as it is whole: a POLYLINE once its vertices are in.
             /// </summary>
             private void Entity(Record r)
             {
-                if (_polyline != null)
+                if (_drawing == null)
                 {
-                    if (r.Type == "VERTEX")
-                    {
-                        _vertices.Add(r);
-                        return;
-                    }
-
-                    bool end = r.Type == "SEQEND";
-                    FinishPolyline(end ? r : null);
-
-                    if (end)
-                    {
-                        return;
-                    }
+                    _drawing = new Gathering(item => Item(item, false));
                 }
 
+                _drawing.Add(r);
+            }
+
+            /// <summary>
+            /// The records of a section taken whole: a POLYLINE gathers the VERTEX records after it up to its SEQEND, which
+            /// it is handed on with, and any other record is handed on as it comes.
+            /// </summary>
+            private sealed class Gathering
+            {
+                private readonly Action<Record> _take;
+                private Record _polyline;
+                private List<Record> _vertices;
+
+                internal Gathering(Action<Record> take)
+                {
+                    _take = take;
+                }
+
+                internal void Add(Record r)
+                {
+                    if (_polyline != null)
+                    {
+                        if (r.Type == "VERTEX")
+                        {
+                            _vertices.Add(r);
+                            return;
+                        }
+
+                        bool end = r.Type == "SEQEND";
+                        Close(end ? r : null);
+
+                        if (end)
+                        {
+                            return;
+                        }
+                    }
+
+                    if (r.Type == "POLYLINE")
+                    {
+                        _polyline = r;
+                        _vertices = new List<Record>();
+                        return;
+                    }
+
+                    // A VERTEX or SEQEND belongs to a POLYLINE, and a SEQEND also ends the attributes of an INSERT.
+                    if (r.Type == "VERTEX" || r.Type == "SEQEND")
+                    {
+                        return;
+                    }
+
+                    _take(r);
+                }
+
+                /// <summary>Hands on the POLYLINE gathered, if any, its groups running on through its vertices and its SEQEND.</summary>
+                internal void Close(Record end = null)
+                {
+                    if (_polyline == null)
+                    {
+                        return;
+                    }
+
+                    var following = new List<Record>(_vertices);
+
+                    if (end != null)
+                    {
+                        following.Add(end);
+                    }
+
+                    Record polyline = _polyline;
+                    polyline.Following = following;
+                    _polyline = null;
+                    _vertices = null;
+                    _take(polyline);
+                }
+            }
+
+            /// <summary>
+            /// Reads a whole record: of the drawing, where one in paper space is counted and an INSERT kept to be placed once
+            /// the blocks are all in, or of a block being placed.
+            /// </summary>
+            private void Item(Record r, bool inBlock)
+            {
                 if (r.Type == "POLYLINE")
                 {
-                    _polyline = r;
-                    _vertices = new List<Record>();
+                    ReadPolylineRecord(r, inBlock);
                     return;
                 }
 
-                // A VERTEX or SEQEND belongs to a POLYLINE, and a SEQEND also ends the attributes of an INSERT.
-                if (r.Type == "VERTEX" || r.Type == "SEQEND")
-                {
-                    return;
-                }
-
-                if (r.Int(67, 0) == 1)
+                if (!inBlock && r.Int(67, 0) == 1)
                 {
                     _paperEntities++;
+                    return;
+                }
+
+                if (r.Type == "INSERT")
+                {
+                    if (inBlock)
+                    {
+                        Expand(r);
+                    }
+                    else
+                    {
+                        _pending.Add(new KeyValuePair<int, Record>(_into.Count, r));
+                    }
+
                     return;
                 }
 
@@ -116,34 +191,16 @@ namespace GeometryHelper.Export
                 });
             }
 
-            private void EndOfEntities()
-            {
-                if (_polyline != null)
-                {
-                    FinishPolyline(null);
-                }
-            }
+            private void EndOfEntities() => _drawing?.Close();
 
             /// <summary>
-            /// Reads the POLYLINE gathered with its vertices, its groups running on through theirs and those of its SEQEND.
+            /// Reads a POLYLINE gathered with its vertices, its groups running on through theirs and those of its SEQEND.
             /// </summary>
-            private void FinishPolyline(Record end)
+            private void ReadPolylineRecord(Record r, bool inBlock)
             {
-                Record r = _polyline;
-                List<Record> vertices = _vertices;
-                _polyline = null;
-                _vertices = null;
+                List<Record> vertices = r.Following.FindAll(v => v.Type == "VERTEX");
 
-                var following = new List<Record>(vertices);
-
-                if (end != null)
-                {
-                    following.Add(end);
-                }
-
-                r.Following = following;
-
-                if (r.Int(67, 0) == 1)
+                if (!inBlock && r.Int(67, 0) == 1)
                 {
                     _paperEntities++;
                     return;
@@ -205,7 +262,7 @@ namespace GeometryHelper.Export
             /// </summary>
             private void Guarded(Record r, Action read)
             {
-                int before = _entities.Count;
+                int before = _into.Count;
 
                 try
                 {
@@ -213,12 +270,12 @@ namespace GeometryHelper.Export
                 }
                 catch (NotFinite)
                 {
-                    _entities.RemoveRange(before, _entities.Count - before);
+                    _into.RemoveRange(before, _into.Count - before);
                     Skip(r.Type, NotFiniteReason);
                 }
-                catch (Exception e) when (!(e is OutOfMemoryException))
+                catch (Exception e) when (!(e is OutOfMemoryException) && !(e is PastTheBound))
                 {
-                    _entities.RemoveRange(before, _entities.Count - before);
+                    _into.RemoveRange(before, _into.Count - before);
                     Skip(r.Type, "that could not be read");
 
                     if (!_failures.TryGetValue(r.Type, out Failure failure))
@@ -232,9 +289,51 @@ namespace GeometryHelper.Export
             }
 
             /// <summary>
-            /// Adds the shape of an entity, on the layer, in the colour and with the handle the record gives.
+            /// Adds the shape of an entity, on the layer, in the colour and with the handle the record gives, those of the
+            /// INSERTs that place it where it takes them, with the names of their blocks.
             /// </summary>
             private void Add(Record r, object shape, int hiddenEdges = 0)
+            {
+                Look look = LookOf(r);
+                double thickness = look.Thickness;
+
+                // The thickness stands along the extrusion, and is stretched as the placement stretches that; it is turned over
+                // where the placed extrusion points against the entity's own, as a mirror along z leaves it.
+                if (thickness != 0.0 && _place != null)
+                {
+                    GeoVector3 own = Extrusion(r);
+                    GeoVector3 carried = _place.Linear(own);
+                    double placed = thickness * carried.Length * (carried.DotProduct(own) < 0.0 ? -1.0 : 1.0);
+
+                    if (double.IsNaN(placed) || double.IsInfinity(placed))
+                    {
+                        _badLook++;
+                        thickness = 0.0;
+                    }
+                    else
+                    {
+                        thickness = placed;
+                    }
+                }
+
+                string handle = r.Text(5)?.Trim();
+                IReadOnlyList<DxfGroup> groups = _keepGroups ? r.Groups() : NoGroups;
+
+                // Whatever the size worked out for its block, an INSERT places no more than the bound leaves.
+                if (_approved && _into.Count - _treeStart >= _budget.Left)
+                {
+                    throw new PastTheBound();
+                }
+
+                _into.Add(new DxfEntity(shape, r.Type, look.Layer, look.Colour, string.IsNullOrEmpty(handle) ? null : handle, look.Linetype, look.Lineweight, look.TrueColour, thickness, groups, hiddenEdges, _path, _handles));
+            }
+
+            /// <summary>
+            /// The look of a record: its layer, colour, true colour, linetype, lineweight and thickness. Inside a block being
+            /// placed, layer 0 is the INSERT's layer, and a colour, linetype or lineweight BYBLOCK the INSERT's, its true colour
+            /// with its colour where the record gives none of its own; BYLAYER stays BYLAYER.
+            /// </summary>
+            private Look LookOf(Record r)
             {
                 string layer = Decode((r.Text(8) ?? string.Empty).Trim());
                 layer = LayerName(layer.Length == 0 ? "0" : layer);
@@ -244,12 +343,15 @@ namespace GeometryHelper.Export
                 int? lineweight = null;
                 int? trueColour = null;
                 double thickness = 0.0;
+                bool colourByBlock = false;
+                bool weightByBlock = false;
 
                 if (r.Has(62))
                 {
                     if (r.TryInt(62, out int index))
                     {
                         colour = index >= 1 && index <= 255 ? index : (int?)null;
+                        colourByBlock = index == 0;
                     }
                     else
                     {
@@ -262,6 +364,7 @@ namespace GeometryHelper.Export
                     if (r.TryInt(370, out int weight) && (weight < 0 || DxfEntity.IsLineweight(weight)))
                     {
                         lineweight = weight >= 0 ? weight : (int?)null;
+                        weightByBlock = weight == -2;
                     }
                     else
                     {
@@ -302,10 +405,59 @@ namespace GeometryHelper.Export
                     linetype = null;
                 }
 
-                string handle = r.Text(5)?.Trim();
-                IReadOnlyList<DxfGroup> groups = _keepGroups ? r.Groups() : NoGroups;
+                if (_inherit.HasValue)
+                {
+                    Look inherit = _inherit.Value;
 
-                _entities.Add(new DxfEntity(shape, r.Type, layer, colour, string.IsNullOrEmpty(handle) ? null : handle, linetype, lineweight, trueColour, thickness, groups, hiddenEdges));
+                    if (layer == "0")
+                    {
+                        layer = inherit.Layer;
+                    }
+
+                    if (colourByBlock)
+                    {
+                        colour = inherit.Colour;
+                        trueColour = trueColour ?? inherit.TrueColour;
+                    }
+
+                    if (linetype != null && string.Equals(linetype, "BYBLOCK", StringComparison.OrdinalIgnoreCase))
+                    {
+                        linetype = inherit.Linetype;
+                    }
+
+                    if (weightByBlock)
+                    {
+                        lineweight = inherit.Lineweight;
+                    }
+                }
+
+                return new Look(layer, colour, trueColour, linetype, lineweight, thickness);
+            }
+
+            /// <summary>The look of an entity, or of an INSERT that its block's entities take theirs from.</summary>
+            private readonly struct Look
+            {
+                internal Look(string layer, int? colour, int? trueColour, string linetype, int? lineweight, double thickness)
+                {
+                    Layer = layer;
+                    Colour = colour;
+                    TrueColour = trueColour;
+                    Linetype = linetype;
+                    Lineweight = lineweight;
+                    Thickness = thickness;
+                }
+
+                internal string Layer { get; }
+
+                internal int? Colour { get; }
+
+                internal int? TrueColour { get; }
+
+                internal string Linetype { get; }
+
+                internal int? Lineweight { get; }
+
+                internal double Thickness { get; }
             }
 
             #endregion
@@ -445,13 +597,38 @@ namespace GeometryHelper.Export
                 /// <summary>Whether the system is the world's, the extrusion being (0, 0, 1) exactly.</summary>
                 internal bool IsWorld => _world;
 
+                /// <summary>The x axis of the system in the world, (1, 0, 0) where it is the world's.</summary>
+                internal GeoVector3 U => new GeoVector3(_ux, _uy, _uz);
+
+                /// <summary>The y axis of the system in the world, (0, 1, 0) where it is the world's.</summary>
+                internal GeoVector3 V => new GeoVector3(_vx, _vy, _vz);
+
+                /// <summary>
+                /// The point of the system in the world. One the turn takes past the largest double, a coordinate of 1.7E308
+                /// on a tilted extrusion, leaves its entity out as one with a number that is not finite.
+                /// </summary>
                 internal GeoPoint3 World(double x, double y, double z)
-                    => _world
-                        ? new GeoPoint3(x, y, z)
-                        : new GeoPoint3(_ux * x + _vx * y + Normal.X * z, _uy * x + _vy * y + Normal.Y * z, _uz * x + _vz * y + Normal.Z * z);
+                {
+                    if (_world)
+                    {
+                        return new GeoPoint3(x, y, z);
+                    }
+
+                    var p = new GeoPoint3(_ux * x + _vx * y + Normal.X * z, _uy * x + _vy * y + Normal.Y * z, _uz * x + _vz * y + Normal.Z * z);
+
+                    if (!IsFinite(p))
+                    {
+                        throw new NotFinite();
+                    }
+
+                    return p;
+                }
 
                 internal GeoPoint3 World(GeoPoint3 p) => World(p.X, p.Y, p.Z);
             }
+
+            private static bool IsFinite(GeoPoint3 p)
+                => !double.IsNaN(p.X) && !double.IsInfinity(p.X) && !double.IsNaN(p.Y) && !double.IsInfinity(p.Y) && !double.IsNaN(p.Z) && !double.IsInfinity(p.Z);
 
             private static bool IsDown(GeoVector3 normal) => normal.X == 0.0 && normal.Y == 0.0 && normal.Z == -1.0;
 
@@ -499,6 +676,7 @@ namespace GeometryHelper.Export
                     return;
                 }
 
+                point = Place(point);
                 Add(r, FlatInWorld(new[] { point }) ? (object)Plan(point) : point);
             }
 
@@ -509,6 +687,9 @@ namespace GeometryHelper.Export
                     Skip(r.Type, Incomplete);
                     return;
                 }
+
+                start = Place(start);
+                end = Place(end);
 
                 if (start.IsEqualTo(end, _tolerance))
                 {
@@ -542,6 +723,21 @@ namespace GeometryHelper.Export
                 GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? direction : new GeoVector3(direction.X / length, direction.Y / length, direction.Z / length);
                 bool ray = r.Type == "RAY";
 
+                if (_place != null)
+                {
+                    origin = _place.Apply(origin);
+                    GeoVector3 placed = _place.Linear(unit);
+                    double placedLength = placed.Length;
+
+                    if (!(placedLength > 0.0) || double.IsInfinity(placedLength))
+                    {
+                        Skip(r.Type, Flattened);
+                        return;
+                    }
+
+                    unit = Math.Abs(placedLength - 1.0) <= 1E-12 ? placed : new GeoVector3(placed.X / placedLength, placed.Y / placedLength, placed.Z / placedLength);
+                }
+
                 if (_planAs2D && origin.Z == 0.0 && unit.Z == 0.0)
                 {
                     var flat = new GeoVector2(unit.X, unit.Y);
@@ -571,6 +767,12 @@ namespace GeometryHelper.Export
                 }
 
                 var ocs = new Ocs(Extrusion(r));
+
+                if (_place != null)
+                {
+                    PlacedCircle(r, new Frame(ocs, _place), centre, radius);
+                    return;
+                }
 
                 if (FlatInPlane(ocs.Normal, new[] { centre }))
                 {
@@ -606,6 +808,12 @@ namespace GeometryHelper.Export
                 double start = startDegrees * Math.PI / 180.0;
                 double end = endDegrees * Math.PI / 180.0;
                 var ocs = new Ocs(Extrusion(r));
+
+                if (_place != null)
+                {
+                    PlacedArc(r, new Frame(ocs, _place), centre, radius, startDegrees, endDegrees);
+                    return;
+                }
 
                 // On the floor seen from below an angle a of the system is the world's pi - a, and counter-clockwise about
                 // down is clockwise about up: the arc runs clockwise from pi - start to pi - end, from the start the file
@@ -673,6 +881,12 @@ namespace GeometryHelper.Export
 
                 try
                 {
+                    if (_place != null)
+                    {
+                        PlacedEllipse(r, centre, normal, axis, major, minor, from, span, whole);
+                        return;
+                    }
+
                     if (whole)
                     {
                         Add(r, flat
@@ -697,7 +911,17 @@ namespace GeometryHelper.Export
             /// </summary>
             private static object EllipticalArc(GeoPoint3 centre, GeoVector3 normal, GeoVector3 axis, double major, double minor, double from, double span, bool flat)
             {
-                // The axes of the ellipse: the major laid into the plane, and the extrusion crossed with it.
+                EllipseAxes(normal, axis, major, out GeoVector3 u, out GeoVector3 w);
+                return ArcPieces(centre, u, w, major, minor, from, span, flat);
+            }
+
+            /// <summary>
+            /// The axes of an ellipse of unit length: the major laid into the plane of the extrusion, and the extrusion crossed
+            /// with it.
+            /// </summary>
+            /// <exception cref="ArgumentException">Thrown when the major axis runs along the extrusion.</exception>
+            private static void EllipseAxes(GeoVector3 normal, GeoVector3 axis, double major, out GeoVector3 u, out GeoVector3 w)
+            {
                 GeoVector3 inPlane = axis.Subtract(normal.Multiply(axis.DotProduct(normal)));
                 double left = inPlane.Length;
 
@@ -706,9 +930,18 @@ namespace GeometryHelper.Export
                     throw new ArgumentException("The major axis runs along the extrusion.");
                 }
 
-                var u = new GeoVector3(inPlane.X / left, inPlane.Y / left, inPlane.Z / left);
-                GeoVector3 w = normal.CrossProduct(u);
+                u = new GeoVector3(inPlane.X / left, inPlane.Y / left, inPlane.Z / left);
+                w = normal.CrossProduct(u);
+            }
 
+            /// <summary>
+            /// The spline that is exactly the curve centre + a cos t u + b sin t w for t from an angle over a span, u and w
+            /// any two vectors that span a plane: rational quadratic pieces of at most a quarter of a turn of t, each the image
+            /// of a piece of a circle under the map that takes the circle's axes to a u and b w, so each is exactly its piece,
+            /// to rounding.
+            /// </summary>
+            private static object ArcPieces(GeoPoint3 centre, GeoVector3 u, GeoVector3 w, double major, double minor, double from, double span, bool flat)
+            {
                 int pieces = Math.Max(1, (int)Math.Ceiling(span / (Math.PI * 0.5) - 1E-9));
                 double step = span / pieces;
                 int dim = flat ? 2 : 3;
@@ -804,6 +1037,12 @@ namespace GeometryHelper.Export
                     return;
                 }
 
+                // A spline is carried by any affine map by carrying its control points, its knots and weights kept.
+                if (_place != null)
+                {
+                    points = points.ConvertAll(_place.Apply);
+                }
+
                 List<double> given = weights.Count > 0 ? weights : null;
 
                 if (!TryClamped(degree, points, knots, given, out List<GeoPoint3> clampedPoints, out List<double> clampedKnots, out List<double> clampedWeights))
@@ -846,7 +1085,8 @@ namespace GeometryHelper.Export
             /// </summary>
             private void ReadFitSpline(Record r, List<GeoPoint3> fit, int degree, bool tangents, GeoVector3 startTangent, GeoVector3 endTangent)
             {
-                bool flat = FlatInWorld(fit) && (!tangents || (startTangent.Z == 0.0 && endTangent.Z == 0.0));
+                // Inside a block the spline is passed through the points where the block has them, and then placed.
+                bool flat = _place == null && FlatInWorld(fit) && (!tangents || (startTangent.Z == 0.0 && endTangent.Z == 0.0));
                 int distinct = 0;
 
                 for (int i = 0; i < fit.Count; i++)
@@ -879,6 +1119,12 @@ namespace GeometryHelper.Export
                         spline = tangents
                             ? GeoSpline3.Interpolate(fit, startTangent, endTangent, degree, _tolerance)
                             : GeoSpline3.Interpolate(fit, degree, _tolerance);
+                    }
+
+                    if (_place != null && !TryPlaceSpline((GeoSpline3)spline, out spline))
+                    {
+                        Skip(r.Type, Flattened);
+                        return;
                     }
 
                     _fitSplines++;
@@ -1121,6 +1367,11 @@ namespace GeometryHelper.Export
 
                 if (threeD)
                 {
+                    if (_place != null)
+                    {
+                        points = points.ConvertAll(_place.Apply);
+                    }
+
                     Chain(r, points, bulges, (flags & 1) != 0, FlatInWorld(points), new GeoVector3(0.0, 0.0, 1.0));
                     return;
                 }
@@ -1141,6 +1392,12 @@ namespace GeometryHelper.Export
             /// </summary>
             private void InPlane(Record r, Ocs ocs, List<GeoPoint3> points, List<double> bulges, bool closed)
             {
+                if (_place != null)
+                {
+                    PlacedInPlane(r, new Frame(ocs, _place), points, bulges, closed);
+                    return;
+                }
+
                 bool flat = FlatInPlane(ocs.Normal, points);
 
                 if (!ocs.IsWorld)
@@ -1369,7 +1626,7 @@ namespace GeometryHelper.Export
                 {
                     if ((v.Int(70, 0) & 64) != 0 && TryPoint(v, 0, out GeoPoint3 p))
                     {
-                        points.Add(p);
+                        points.Add(Place(p));
                     }
                 }
 
@@ -1438,7 +1695,7 @@ namespace GeometryHelper.Export
                 {
                     if (TryPoint(v, 0, out GeoPoint3 p))
                     {
-                        points.Add(p);
+                        points.Add(Place(p));
                     }
                 }
 
@@ -1466,7 +1723,9 @@ namespace GeometryHelper.Export
             }
 
             /// <summary>
-            /// The faces of a mesh as one body, or, fewer than the four a body needs, each as an entity of its own.
+            /// The faces of a mesh as one body, or, fewer than the four a body needs, each as an entity of its own. A mesh a
+            /// placement mirrors has the corners of each face taken in the other order, so that a body that faces outwards in
+            /// its block faces outwards where it is placed.
             /// </summary>
             private void Mesh(Record r, List<GeoPoint3[]> loops)
             {
@@ -1474,6 +1733,11 @@ namespace GeometryHelper.Export
 
                 foreach (GeoPoint3[] loop in loops)
                 {
+                    if (_place != null && _place.Mirrors)
+                    {
+                        Array.Reverse(loop);
+                    }
+
                     GeoFace3[] made = GeoFace3.FromLoops(loop, null, _tolerance);
 
                     if (made.Length == 0)
@@ -1522,6 +1786,16 @@ namespace GeometryHelper.Export
                 }
 
                 GeoPoint3 d = TryPoint(r, 3, out GeoPoint3 fourth) ? fourth : c;
+
+                if (_place != null)
+                {
+                    bool third = SameBits(c, d);
+                    a = _place.Apply(a);
+                    b = _place.Apply(b);
+                    c = _place.Apply(c);
+                    d = third ? c : _place.Apply(d);
+                }
+
                 var corners = new List<GeoPoint3> { a, b, c, d };
 
                 for (int i = corners.Count - 1; i >= 1; i--)
@@ -1610,13 +1884,24 @@ namespace GeometryHelper.Export
                 corners.Add(Height(r, 2, p3));
 
                 var ocs = new Ocs(Extrusion(r));
-                bool flat = FlatInPlane(ocs.Normal, corners);
+                bool flat;
 
-                if (!ocs.IsWorld)
+                if (_place != null)
                 {
-                    for (int i = 0; i < corners.Count; i++)
+                    var frame = new Frame(ocs, _place);
+                    corners = corners.ConvertAll(frame.World);
+                    flat = _planAs2D && frame.OnFloor && corners.TrueForAll(p => p.Z == 0.0);
+                }
+                else
+                {
+                    flat = FlatInPlane(ocs.Normal, corners);
+
+                    if (!ocs.IsWorld)
                     {
-                        corners[i] = ocs.World(corners[i]);
+                        for (int i = 0; i < corners.Count; i++)
+                        {
+                            corners[i] = ocs.World(corners[i]);
+                        }
                     }
                 }
 

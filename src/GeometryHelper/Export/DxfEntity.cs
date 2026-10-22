@@ -74,9 +74,10 @@ namespace GeometryHelper.Export
             Thickness = thickness;
             Groups = NoGroups;
             BlockPath = NoBlocks;
+            InsertHandles = NoBlocks;
         }
 
-        internal DxfEntity(object shape, string type, string layer, int? colour, string handle, string linetype, int? lineweight, int? trueColour, double thickness, IReadOnlyList<DxfGroup> groups, int hiddenEdges = 0)
+        internal DxfEntity(object shape, string type, string layer, int? colour, string handle, string linetype, int? lineweight, int? trueColour, double thickness, IReadOnlyList<DxfGroup> groups, int hiddenEdges = 0, IReadOnlyList<string> blockPath = null, IReadOnlyList<string> insertHandles = null)
         {
             Shape = shape;
             Type = type;
@@ -88,7 +89,8 @@ namespace GeometryHelper.Export
             TrueColour = trueColour;
             Thickness = thickness;
             Groups = groups;
-            BlockPath = NoBlocks;
+            BlockPath = blockPath ?? NoBlocks;
+            InsertHandles = insertHandles ?? NoBlocks;
             HiddenEdges = hiddenEdges;
         }
 
@@ -112,12 +114,14 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the layer the entity is on (group 8), as <see cref="DxfDocument.Layers"/> names it; 0 where the file gives none.
+        /// An entity of a block drawn on layer 0 is on the layer of the INSERT that placed it.
         /// </summary>
         public string Layer { get; }
 
         /// <summary>
         /// Gets the colour of the entity (group 62), an AutoCAD colour index from 1 to 255; null where it takes the colour of
-        /// its layer (256) or of its block (0), or the file gives none.
+        /// its layer (256), or the file gives none. An entity of a block whose colour is BYBLOCK (0) has the colour of the
+        /// INSERT that placed it, and its true colour where it has none of its own; one of the drawing itself has none.
         /// </summary>
         public int? Colour { get; }
 
@@ -129,21 +133,25 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the name of the linetype of the entity (group 6), such as <c>DASHED</c>, <c>Continuous</c> or <c>ByBlock</c>;
-        /// null where it takes the linetype of its layer, BYLAYER, written or not.
+        /// null where it takes the linetype of its layer, BYLAYER, written or not. An entity of a block whose linetype is
+        /// BYBLOCK has the linetype of the INSERT that placed it.
         /// </summary>
         public string Linetype { get; }
 
         /// <summary>
         /// Gets the lineweight of the entity (group 370) in hundredths of a millimetre, one of AutoCAD's 0 to 211: 25 is a line
         /// 0.25 wide. Null where the file gives none, or one of the three the DXF reference gives as numbers below nought (-1
-        /// by layer, -2 by block and -3 the default), or a number not among AutoCAD's, which a warning counts.
+        /// by layer, -2 by block and -3 the default), or a number not among AutoCAD's, which a warning counts. An entity of a
+        /// block whose lineweight is by block has the lineweight of the INSERT that placed it.
         /// </summary>
         public int? Lineweight { get; }
 
         /// <summary>
         /// Gets the thickness of the entity (group 39), how far it stands up along its extrusion, scaled to millimetres
         /// where <see cref="DxfReadOptions.ToMillimetres"/> asks; nought where the file gives none. The shape is of the
-        /// entity itself and does not stand up by it.
+        /// entity itself and does not stand up by it. Of an entity placed by an INSERT it is stretched as the INSERT stretches
+        /// the extrusion, and turned over where the placed extrusion points against the entity's own: 10 is 30 under a scale
+        /// of 3 along z, and -30 under one of -3.
         /// </summary>
         public double Thickness { get; }
 
@@ -173,9 +181,21 @@ namespace GeometryHelper.Export
         public IReadOnlyList<DxfGroup> Groups { get; }
 
         /// <summary>
-        /// Gets the names of the blocks the entity was placed through, outermost first; empty for an entity of the drawing
-        /// itself, which is every entity read now, the blocks not being read.
+        /// Gets the names of the blocks the entity was placed through, outermost first, each as its definition writes it:
+        /// <c>FRAME</c>, <c>BOLT</c> for a circle of the block BOLT inserted in the block FRAME inserted in the drawing. Empty
+        /// for an entity of the drawing itself, and for one made in code.
         /// </summary>
+        /// <remarks>
+        /// The entity's <see cref="Handle"/> is its own, in the block; two INSERTs of one block give entities of one handle
+        /// and one path, told apart by <see cref="InsertHandles"/>.
+        /// </remarks>
         public IReadOnlyList<string> BlockPath { get; }
+
+        /// <summary>
+        /// Gets the handles of the INSERTs the entity was placed through, outermost first, one to each name of
+        /// <see cref="BlockPath"/>: the first is the handle of the INSERT in the drawing. An INSERT without a handle, as in
+        /// a file of R12, gives null; the cells of one MINSERT share its handle. Empty for an entity of the drawing itself.
+        /// </summary>
+        public IReadOnlyList<string> InsertHandles { get; }
     }
 }

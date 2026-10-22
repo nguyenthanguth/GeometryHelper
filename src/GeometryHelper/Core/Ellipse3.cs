@@ -712,7 +712,7 @@ namespace GeometryHelper.Core
         /// Gets the ellipse drawn by two conjugate semi-axes lying in the plane of a normal: the images of the major and the
         /// minor semi-axis under a map of the plane, read in a square frame of the new plane by <see cref="Ellipse2"/>.
         /// </summary>
-        private static GeoEllipse3 FromSemiAxes(GeoPoint3 center, GeoVector3 normal, GeoVector3 along, GeoVector3 across, double area)
+        internal static GeoEllipse3 FromSemiAxes(GeoPoint3 center, GeoVector3 normal, GeoVector3 along, GeoVector3 across, double area)
         {
             GeoVector3 first = normal.GetPerpendicularVector();
             GeoVector3 second = normal.CrossProduct(first);

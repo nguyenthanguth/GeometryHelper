@@ -15,11 +15,12 @@ namespace GeometryHelper.Export
     {
         private readonly DxfEntity[] _entities;
 
-        internal DxfDocument(DxfEntity[] entities, string[] layers, DxfUnits units, string version, IReadOnlyDictionary<string, int> skipped, string[] warnings)
+        internal DxfDocument(DxfEntity[] entities, string[] layers, DxfBlock[] blocks, DxfUnits units, string version, IReadOnlyDictionary<string, int> skipped, string[] warnings)
         {
             _entities = entities;
             Entities = Array.AsReadOnly(entities);
             Layers = Array.AsReadOnly(layers);
+            Blocks = Array.AsReadOnly(blocks);
             Units = units;
             Version = version;
             Skipped = skipped;
@@ -27,8 +28,10 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// Gets the entities read, each with its shape, in the order of the file. One entity of the file can give more than
-        /// one: a 3DFACE whose four corners are not in one plane is two triangles, both with its handle.
+        /// Gets the entities read, each with its shape, in the order of the file, an INSERT's where the INSERT stands: the
+        /// entities of its block placed, in the order of the block. One entity of the file can give more than one: a 3DFACE
+        /// whose four corners are not in one plane is two triangles, both with its handle, and a block of 50 entities placed
+        /// by 10 000 INSERTs is 500 000.
         /// </summary>
         public IReadOnlyList<DxfEntity> Entities { get; }
 
@@ -38,6 +41,13 @@ namespace GeometryHelper.Export
         /// in AutoCAD, named as first written.
         /// </summary>
         public IReadOnlyList<string> Layers { get; }
+
+        /// <summary>
+        /// Gets the blocks the file defines, in the order of the file, each with its own entities in its own coordinates;
+        /// the INSERTs of the drawing are read in <see cref="Entities"/> as the entities they place. The blocks of the
+        /// layouts, <c>*Model_Space</c> and <c>*Paper_Space</c>, are not among them.
+        /// </summary>
+        public IReadOnlyList<DxfBlock> Blocks { get; }
 
         /// <summary>
         /// Gets the unit the file says its drawing is in (<c>$INSUNITS</c>): <see cref="DxfUnits.Millimetres"/> for a file
@@ -53,14 +63,16 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets, for each type of entity some of which were not read, how many were not, in the order of the names of the
-        /// types: the entities of the types that are not read at all (TEXT, INSERT, HATCH and the like) and those that have
-        /// no shape to them, such as a LINE of no length or a CIRCLE of no radius.
+        /// types: the entities of the types that are not read at all (TEXT, HATCH, ATTRIB and the like) and those that have
+        /// no shape to them, such as a LINE of no length or a CIRCLE of no radius, each time a block places it; and the
+        /// INSERTs that place nothing, of a block the file does not define or of one inside itself among them.
         /// </summary>
         public IReadOnlyDictionary<string, int> Skipped { get; }
 
         /// <summary>
         /// Gets what the reader has to say about the file, each a sentence: a part of it that is not read, such as the
-        /// entities of its blocks, or one read otherwise than it might be, such as a spline given by its fit points alone.
+        /// entities of paper space or an INSERT of a block the file does not define, or one read otherwise than it might be,
+        /// such as a spline given by its fit points alone.
         /// </summary>
         public IReadOnlyList<string> Warnings { get; }
 
