@@ -896,7 +896,9 @@ namespace GeometryHelper.Core
         /// The one point of <see cref="TryIntersectWith(GeoRay3, GeoTriangle3, out GeoPoint3, Tolerance)"/>, or nothing:
         /// the segment's reading with the far end taken away, where it stands within the point tolerance of both and the two
         /// touch. A ray that touches within the point tolerance without crossing is given the point of it nearest, and a ray
-        /// lying level over the material, within the planar tolerance of the triangle's plane as far as it reaches past it, none.
+        /// lying level over the material, the part of it over the triangle within the planar tolerance of the triangle's plane at both
+        /// its ends, none, where it starts within that tolerance and runs level with the plane within the vector tolerance or meets it
+        /// within the point tolerance of its origin; any other crossing is given.
         /// </returns>
         /// <remarks>
         /// A ray from (20, 20, 10) pointing straight down crosses the triangle with corners (0, 0, 0), (100, 0, 0) and
@@ -924,7 +926,9 @@ namespace GeometryHelper.Core
         /// The one point of <see cref="TryIntersectWith(GeoRay3, GeoPolygon3, out GeoPoint3, Tolerance)"/>, or nothing:
         /// the segment's reading with the far end taken away, where it stands within the point tolerance of both and the two
         /// touch. A ray that touches within the point tolerance without crossing is given the point of it nearest, and a ray
-        /// lying level over the material, within the planar tolerance of the polygon's plane as far as it reaches past it, none.
+        /// lying level over the material, the part of it over the polygon within the planar tolerance of the polygon's plane at both
+        /// its ends, none, where it starts within that tolerance and runs level with the plane within the vector tolerance or meets it
+        /// within the point tolerance of its origin; any other crossing is given.
         /// </returns>
         /// <remarks>
         /// A ray from (20, 20, 10) pointing straight down crosses the square 100 by 100 in the floor with a corner at the
@@ -953,7 +957,9 @@ namespace GeometryHelper.Core
         /// The one point of <see cref="TryIntersectWith(GeoRay3, GeoFace3, out GeoPoint3, Tolerance)"/>, or nothing:
         /// the segment's reading with the far end taken away, where it stands within the point tolerance of both and the two
         /// touch. A ray that touches within the point tolerance without crossing is given the point of it nearest, and a ray
-        /// lying level over the material, within the planar tolerance of the face's plane as far as it reaches past it, none.
+        /// lying level over the material, the part of it over the face within the planar tolerance of the face's plane at both its
+        /// ends, none, where it starts within that tolerance and runs level with the plane within the vector tolerance or meets it
+        /// within the point tolerance of its origin; any other crossing is given.
         /// </returns>
         /// <remarks>
         /// A ray from (50, 50, 10) pointing straight down passes through the hole 40 by 40 in the middle of the square

@@ -1743,12 +1743,25 @@ namespace GeometryHelper.Core
                     }
                 }
 
+                int side = SideNearest(nearest);
+
+                return side >= 0
+                    && !AtCorner(nearest, EdgeFrom(side), EdgeTo(side))
+                    && !(OffLine(from, EdgeFrom(side), EdgeTo(side)) > rise)
+                    && !(OffLine(to, EdgeFrom(side), EdgeTo(side)) > rise);
+            }
+
+            /// <summary>
+            /// Gets the side of the rim a point stands nearest, the first of those as near; -1 for a region with none.
+            /// </summary>
+            private int SideNearest(GeoPoint3 point)
+            {
                 int side = -1;
                 double best = double.MaxValue;
 
                 for (int i = 0; i < EdgeCount; i++)
                 {
-                    double gap = PointToSegment(nearest, EdgeFrom(i), EdgeTo(i));
+                    double gap = PointToSegment(point, EdgeFrom(i), EdgeTo(i));
 
                     if (gap < best)
                     {
@@ -1757,10 +1770,86 @@ namespace GeometryHelper.Core
                     }
                 }
 
-                return side >= 0
-                    && !AtCorner(nearest, EdgeFrom(side), EdgeTo(side))
-                    && !(OffLine(from, EdgeFrom(side), EdgeTo(side)) > rise)
-                    && !(OffLine(to, EdgeFrom(side), EdgeTo(side)) > rise);
+                return side;
+            }
+
+            /// <summary>
+            /// Gets the part of a long straight piece, a ray or a line without ends cut to reach past the region, that stands over the
+            /// region: from the first to the last place its shadow on the plane the region is read in crosses the rim; or, where the
+            /// shadow misses the region, the part beside the side of the rim its point nearest the region stands nearest, from where
+            /// the one end of that side stands square to it to where the other does. A ray or a line is read level by the ends of this
+            /// part (<see cref="LiesLevel"/>), as a segment is by its own.
+            /// </summary>
+            /// <param name="from">One end of the piece.</param>
+            /// <param name="to">The other end.</param>
+            /// <param name="nearest">The point of the piece nearest the region (<see cref="Nearest"/>).</param>
+            /// <param name="flat">Whether the region has a plane: a triangle with no area has none, and is read by its sides only.</param>
+            /// <param name="shortest">How long the part must be to lie along anything: shorter, the piece only passes a corner or runs away from the rim.</param>
+            /// <param name="start">The start of the part.</param>
+            /// <param name="end">The end of the part.</param>
+            /// <returns>false where the part is no longer than <paramref name="shortest"/>.</returns>
+            internal bool TryGetPartOver(GeoPoint3 from, GeoPoint3 to, GeoPoint3 nearest, bool flat, double shortest, out GeoPoint3 start, out GeoPoint3 end)
+            {
+                GeoVector3 along = from.GetVectorTo(to);
+                double low = double.PositiveInfinity;
+                double high = double.NegativeInfinity;
+
+                if (flat)
+                {
+                    GeoVector3 normal = UnitNormal;
+                    GeoVector3 shadow = along.Subtract(normal.Multiply(normal.DotProduct(along)));
+                    double squared = shadow.LengthSquared;
+                    GeoVector3 across = normal.CrossProduct(shadow);
+
+                    for (int i = 0; i < EdgeCount && squared > 0.0; i++)
+                    {
+                        GeoPoint3 a = EdgeFrom(i);
+                        GeoPoint3 b = EdgeTo(i);
+                        double sa = across.DotProduct(from.GetVectorTo(a));
+                        double sb = across.DotProduct(from.GetVectorTo(b));
+
+                        if ((sa > 0.0 && sb > 0.0) || (sa < 0.0 && sb < 0.0))
+                        {
+                            continue;
+                        }
+
+                        // A side along the shadow is crossed all along it: both its ends count.
+                        double share = sa == sb ? 0.0 : sa / (sa - sb);
+
+                        for (int k = 0; k < (sa == sb ? 2 : 1); k++)
+                        {
+                            double s = sa == sb ? k : share;
+                            var crossing = new GeoPoint3(a.X + s * (b.X - a.X), a.Y + s * (b.Y - a.Y), a.Z + s * (b.Z - a.Z));
+                            double t = shadow.DotProduct(from.GetVectorTo(crossing)) / squared;
+                            low = Math.Min(low, t);
+                            high = Math.Max(high, t);
+                        }
+                    }
+                }
+
+                if (!(low <= high) || high < 0.0 || low > 1.0)
+                {
+                    // Beside the region: the part beside the side it stands nearest.
+                    int side = SideNearest(nearest);
+                    double length = along.LengthSquared;
+                    low = 0.0;
+                    high = 1.0;
+
+                    if (side >= 0 && length > 0.0)
+                    {
+                        double first = along.DotProduct(from.GetVectorTo(EdgeFrom(side))) / length;
+                        double second = along.DotProduct(from.GetVectorTo(EdgeTo(side))) / length;
+                        low = Math.Min(first, second);
+                        high = Math.Max(first, second);
+                    }
+                }
+
+                low = Math.Max(0.0, Math.Min(1.0, low));
+                high = Math.Max(low, Math.Min(1.0, high));
+                start = new GeoPoint3(from.X + low * along.X, from.Y + low * along.Y, from.Z + low * along.Z);
+                end = new GeoPoint3(from.X + high * along.X, from.Y + high * along.Y, from.Z + high * along.Z);
+
+                return start.DistanceTo(end) > shortest;
             }
 
             /// <summary>

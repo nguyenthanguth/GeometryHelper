@@ -99,15 +99,20 @@ namespace GeometryHelper.UnitTest.Plane
             // Radius 1000 about the origin, and 1000.00002 about (1E-4, 0): the second is 2E-5 outside the first at the top and bottom,
             // 1.2E-4 inside it at the left and 8E-5 outside at the right, so they cross where 1E-4 cos(angle) is -2E-5, at (-200, +-979.7959),
             // at an angle of 1E-7. They are within the tolerance of each other all round and the offset goes 8E-5 and 1.2E-4 to either side.
+            // At a thousandth they are one circle, as the circles' own rule reads them, and cross nowhere; at a hundred-thousandth they
+            // are two, and cross twice.
             GeoSpline2 a = GeoSpline2.FromCircle(new GeoCircle2(P(0, 0), 1000));
             GeoSpline2 b = GeoSpline2.FromCircle(new GeoCircle2(P(1E-4, 0), 1000.00002));
+            var fine = new Tolerance(1E-5, 1E-7);
 
-            GeoPoint2[] places = a.GetIntersections(b, Strict);
+            Assert.Empty(a.GetIntersections(b, Strict));
+
+            GeoPoint2[] places = a.GetIntersections(b, fine);
 
             Assert.Equal(2, places.Length);
             Assert.Contains(places, p => p.DistanceTo(P(-200, 979.795897)) <= 1E-3);
             Assert.Contains(places, p => p.DistanceTo(P(-200, -979.795897)) <= 1E-3);
-            Assert.Equal(places.OrderBy(p => p.Y), b.GetIntersections(a, Strict).OrderBy(p => p.Y));
+            Assert.Equal(places.OrderBy(p => p.Y), b.GetIntersections(a, fine).OrderBy(p => p.Y));
             Assert.Equal(0.0, a.DistanceTo(b, Strict));
         }
         #endregion

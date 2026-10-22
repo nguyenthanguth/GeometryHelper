@@ -21,8 +21,10 @@ namespace GeometryHelper.Geometry
         /// of least area on that face: the smallest box of all for a block, a prism, or anything with a flat face
         /// to stand on, and close to it otherwise. Of the boxes standing on faces of the hull that are as small to
         /// rounding, the thinnest, its least side compared first, then the middle one: a prism 40 long on a right triangle
-        /// with legs 18 and 24 is given the box 14.4 by 30 by 40, not the one 18 by 24 by 40. On one face the rectangle is
-        /// the first of least area found, as before. Points all in one plane give a box of no depth.
+        /// with legs 18 and 24 is given the box 14.4 by 30 by 40, not the one 18 by 24 by 40. Two rectangles on one face as
+        /// large are compared so too, so a body is given one box however it is turned: the tetrahedron on (0, 0, 0),
+        /// (24, 0, 0), (0, 18, 0) and (0, 0, 40) is given 13.548779 by 27.340984 by 46.647615, where turned it was given
+        /// 13.548779 by 30 by 42.513057. Points all in one plane give a box of no depth.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
         /// <exception cref="ArgumentException">Thrown when there are no points.</exception>

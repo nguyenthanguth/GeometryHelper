@@ -1243,7 +1243,8 @@ nought for each control point and the largest no more than 1E12 times the smalle
 right: a ratio of 1E16 comes out 1E-7 short and one of 1E20 two fifths short), and control points that are not all one point.
 `IsRational` says whether any weight is other than one; a plain B-spline stores no weight and is worked on exactly its own numbers.
 A closed spline is a clamped one whose first and last control points coincide, `IsClosed()`; it is not periodic, and has no smooth
-join at the end.
+join at the end. Asked about other shapes, one whose first and last control points are the same to the bit, as the closed flag of a DXF
+spline reads it, has no ends: its seam is a point of it like any other, where it comes in along its last span and goes on along its first.
 
 **It is made four ways.** `new GeoSpline2(degree, points, knots, weights)` takes the numbers. `FromControlPoints(degree, points)`
 spaces the knots evenly over [0, 1]: seven points of degree 3 have the knots 0, 0, 0, 0, 1/4, 1/2, 3/4, 1, 1, 1, 1.
@@ -1358,7 +1359,11 @@ twice, for the spline as for the `GeoCircle2`. A line tangent to a circle of rad
 segments (a polyline of 10 000 segments, 100 000 out): a million out the numbers are 1.2E-10 apart and the two are within a snap, 1E-7,
 of each other for 0.014 either side of the touch, where the places are the crossings of the rounding, up to three, all within that
 hundredth of a millimetre. Of the edges of a polygon, chain or loop, each is asked in turn and a place that another edge is nearer to is
-not one of the shape.
+not one of the shape. A closed spline has no end to come near: the line tangent to the circle spline of radius 100 at 0.003 of a radian
+touches it once, as it does the `GeoCircle2`, where the seam at (100, 0), 4.5E-4 off the line, was given too as an end. A least
+that curves up too little to rise a snap a thousandth of the size of the spline along it is one only where the distance falls neither
+way, as in space: the cubic y = x³ / 100 turned by 0.7 of a radian a hundred thousand out was given its inflection, 0.0001 under the
+line y = 0.0001, besides the crossing at x = 0.21544, and is given the crossing alone.
 
 **Two crossings a hair apart.** Two curves that cross twice a hair apart run side by side between the crossings, and the nearest points of
 two straight parts there are the middle, a greatest of the distance, with no slope for Newton's method to go by; a crossing at a few
@@ -1375,14 +1380,15 @@ crosses it nowhere, and no point is given along the stretch: the corner (0, 0), 
 (-50, 0) to (150, 0) at (100, 0), where it leaves it, and its first span is not a crossing, as a polyline's is not. A spline and its own
 copy cross nowhere and are nought apart. Against an ellipse or another spline the same is so where each stays within the point
 tolerance of the other, and the first keeps its distance level, changing by no more than half of it, for a quarter of the size of the
-smaller of the two: two circles of radius 1 000 and 1 000.0005 are 0.0005 apart all round, collide, give no place, and are 0.0005 apart for
+smaller of the two, the size being how far its control points reach from the first, which is the same however the pair is turned (the
+span along the axes was, and 14 of 60 copies of a spline moved a few ten-thousandths gave a place more or fewer turned by 0.7 of a radian;
+7 still do, by where the stretches along them end): two circles of radius 1 000 and 1 000.0005 are 0.0005 apart all round, collide, give no place, and are 0.0005 apart for
 `DistanceTo` (not nought: it never reads the tolerance), where at a tolerance of 1E-4 they do not collide and are as far apart. Both are
 looked at: a stretch that one curve leaves by more than the tolerance, a dart of a millimetre of a polyline 2E-4 off a line that goes out a
 unit and back, is cut out of the stretch, which is cut in two there, and the crossings at the dart's two edges, (506.0002, 0) and
 (507.9998, 0), are given from either side, where they were lost. A crossing inside a stretch is given too, where the offset of the one
 from the other changes sign and goes more than a hundredth of the tolerance, 1E-5, to each side: a line and one that goes from 2E-4 under it
-to 2E-4 over it cross at (500, 0) in 1 000, and two circles of radius 1 000 and 1 000.00002 with their centres 1E-4 apart cross at
-(-200, +-979.8) at an angle of 1E-7. A change of sign by less is the rounding of curves that are the same to a hundred-millionth. A
+to 2E-4 over it cross at (500, 0) in 1 000. A change of sign by less is the rounding of curves that are the same to a hundred-millionth. A
 sine of 21 fit points and a copy moved 0.0005 up are along each other and cross nowhere, where 15 101 places came before, after 22 seconds,
 and none comes now in a few milliseconds. The fit through 37 points of a quarter circle against `GeoArc2` of the same arc, which is
 solved exactly, gives its true crossings, 72 of them, the fit being the arc to rounding only in the places it was made to pass through,
@@ -1396,7 +1402,33 @@ polynomial in Bernstein form, and the places the span crosses it are its roots, 
 coefficients change sign, to rounding; its critical points give the touches and the nearest approach, and the ends of the segment
 and of the spline are measured too. A ray or a line without ends is cut to the stretch the spline's hull can reach. Against a circle,
 an arc or an ellipse the quadratic form of the curve laid into the span is a polynomial of twice the degree, solved the same way; an
-ellipse is also a rational spline of four spans, so its nearest approach is found as for a spline. Against another spline both are cut
+ellipse is also a rational spline of four spans, so its nearest approach is found as for a spline. A span that is itself an arc of a
+circle, as every span of `FromArc` and `FromCircle` is (a rational quadratic whose two outer control points stand as far from the middle
+one, to a millionth of a millionth of the size of the numbers, its middle weight the cosine of half its turn), meets a circle, an arc, or
+such a span of another spline in closed form, as the two circles meet by the rule of `GeoCircle2`: at their crossings, or their touch,
+where both arcs hold it, and where the two circles are one circle to that rule, within the tolerance of each other all round, along
+each other over what both arcs cover and the tolerance past it, which gives no place, the ends of the arcs in it included. For the
+distance the two are measured as they are: the crossings where they truly cross, and otherwise the points on the line through the
+centres. A span's circle is read from its control points, whose rounding, taken at the size of the radius since an arc is made from
+its centre, reaches the centre times four times the square of the radius over the chord, and the closed form is taken only where that
+leaves the centre within a hundredth of the tolerance of the true one for the places, and within a snap for the distance: a quarter
+turn of radius 100 000 is read to 1E-10, while a flat arc of radius 1 000 000 and chord 300, read to no better than 2.3E-4, or of radius
+10 000 000 and chord 1 000 a hundred thousand out, off by 0.6, is cut as any other span, where the circles read so gave one to four
+places the arcs do not have. A flat arc so cut can still answer otherwise than the arcs against an arc of nearly its circle, as it
+did, a known limit: of 1 200 random pairs of arcs of radius 100 to 100 000 000 moved and grown less than the tolerance, 383 do, where
+838 did; the spline of radius 1 000 000 and chord 300 is given two places against the arc of its circle 0.0002 larger, which the arcs
+do not have.
+Two circle splines nearly about one centre are as near as the digits tell for a long way round, and cut into parts they paired
+every part of the one with hundreds of the other's: of radius 100 000 and 100 000.0005 with their centres 0.01 apart they ran through
+two million pairs in 16 s and gave no crossing, and were 4.8E-5 apart though they cross; they cross now at (-4 999.995, +-99 874.922), as
+the circles do, and are nought apart, each in a third of a millisecond, and so at radius 10 000 and 1 000. Of 200 circle splines moved a
+few ten-thousandths to a hundredth, 142 answered otherwise than the circles against the circle they were moved from and 128 against its
+spline, and of 300 such random pairs none do. A join of the spans within a snap of a very shallow crossing can still be given as a
+place of its own, a known limit: the circle splines of radius 100 000 about the origin and of radius √(0.003² + 100 000²) about
+(0.003, 0) cross at (0, 100 000) and (0, -100 000), joins of the first one's spans, and give four places where the circles give two.
+Two circles of radius 1 000 and 1 000.00002 with their centres
+1E-4 apart are one circle at the default tolerance, as the `GeoCircle2` reads them, and cross at (-200, +-979.8), at an angle of 1E-7, at a
+tolerance of a hundred-thousandth. Against another spline both are cut
 in halves while their hulls are near enough to matter, until each part is straight to a thousandth and the two cannot run the same way,
 or to a billionth where two parts could cross twice, and Newton's method on the two curves, then on the distance along the first,
 brings the nearest pair to rounding. For the nearest approach the parts are taken nearest bound first, whichever pieces they are of, so
@@ -1411,14 +1443,14 @@ pairs: when it runs out, the curve is first looked at at 128 points and the leas
 so that the best found is near the truth, and the answer is that best. What is promised then is that the answer is the distance of a real
 pair of points and the truth lies between it and the nearest bound left, which one Debug line gives with it; the answer is usually far
 nearer the truth than the bound is. So the circles of radius 100 000 and 100 000.0005, the second with its centre moved 2E-4 toward 45
-degrees, are 0.00029999998 apart, where 0.0003 is exact, with 0.000296 the bound left, in 0.15 s, and the depth-first cutting gave
-0.000518, at the wrong place. Short of the budget a crossing is never passed over for a nearer approach found first, since a part that
+degrees, were 0.00029999998 apart when cut, where 0.0003 is exact, with 0.000296 the bound left, in 0.15 s, and the depth-first cutting gave
+0.000518, at the wrong place; met as circles they are 0.00029999998 apart in 0.3 ms. Short of the budget a crossing is never passed over for a nearer approach found first, since a part that
 could hold a meeting is bounded at nought and comes out before any that cannot, so where the curves meet the distance is nought, exactly,
-and they collide; past it a meeting not yet found is not in the answer, a known limit: the circle splines of radius 10 000
-and 10 000.0005, the second with its centre moved 0.001, cross twice, and their distance reads 6.3E-7, not nought. The places are cut to a budget of two million pairs, and a stretch
-that is not level, or hugs at a distance that makes every part of the one a near match for hundreds of the other, could reach it, and one Debug line is logged when one does. Two near-concentric circle splines that cross are
-such a case, a known limit: of radius 100 000 and 100 000.0005 with centres 0.01 apart they reach it after 24 s and their two crossings,
-which `GeoCircle2` gives, are not given; of radius 10 000 they take 14 to 18 s and are found, of radius 1 000 about 2 s. Two splines a hair apart and side by side for 6 000 take 0.15 s for
+and they collide; past it a meeting not yet found is not in the answer. The places are cut to a budget of two million pairs, and a stretch
+that is not level, or hugs at a distance that makes every part of the one a near match for hundreds of the other, could reach it, and one
+Debug line is logged when one does. Two parts that cannot meet are measured once both are no larger than the tolerance, straight or not,
+as in space: round a cusp a part is straight only when it is a millionth of the curve, and a tight spline of degree four and its copy
+moved 0.00074, where the stretch along them ends short of the cusp, would be cut into two million pairs there, 26 s, and take 0.3 s. Two splines a hair apart and side by side for 6 000 take 0.15 s for
 `DistanceTo`. A polyline, polygon, rectangle, triangle, face, chain or loop is its edges, each asked in turn, and an edge farther than the
 best found is passed over; the few places that are asked whether another edge is nearer, and the neighbours that are asked whether they
 are one near touch, are looked up in a grid of the edges' boxes, so that a million edges across a cubic take 2.2 s and 80 000

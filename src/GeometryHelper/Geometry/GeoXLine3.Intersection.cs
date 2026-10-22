@@ -71,8 +71,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// Read over the stretch of the line that reaches past the triangle, as <see cref="GeoLine3.GetIntersections(GeoTriangle3, Tolerance)"/>
-        /// reads a segment: the crossing, or where it only touches, the point of it nearest, and none where it lies level over
-        /// the material or along the rim.
+        /// reads a segment: the crossing, or where it only touches, the point of it nearest, and, where that stretch climbs no more
+        /// than the planar tolerance and so crosses nowhere, none where it lies level over
+        /// the material or along the rim, read by the ends of the part of it over the triangle as a segment is by its own: the line
+        /// 0.0009 over the triangle and rising 1E-6 lies level over it, though a millimetre past it, where it was cut, it stands higher.
         /// </remarks>
         public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) => Intersection3.GetIntersections(this, triangle, tolerance);
 
@@ -87,8 +89,9 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// Read over the stretch of the line that reaches past the polygon, as <see cref="GeoLine3.GetIntersections(GeoPolygon3, Tolerance)"/>
-        /// reads a segment: the crossing, or where it only touches, the point of it nearest, and none where it lies level over
-        /// the material or along the rim.
+        /// reads a segment: the crossing, or where it only touches, the point of it nearest, and, where that stretch climbs no more
+        /// than the planar tolerance and so crosses nowhere, none where it lies level over
+        /// the material or along the rim, read by the ends of the part of it over the polygon as a segment is by its own.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) => Intersection3.GetIntersections(this, polygon, tolerance);
@@ -104,8 +107,9 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// Read over the stretch of the line that reaches past the face, as <see cref="GeoLine3.GetIntersections(GeoFace3, Tolerance)"/>
-        /// reads a segment: the crossing, or where it only touches, the point of it nearest, and none where it lies level over
-        /// the material or along the rim.
+        /// reads a segment: the crossing, or where it only touches, the point of it nearest, and, where that stretch climbs no more
+        /// than the planar tolerance and so crosses nowhere, none where it lies level over
+        /// the material or along the rim, read by the ends of the part of it over the face as a segment is by its own.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) => Intersection3.GetIntersections(this, face, tolerance);

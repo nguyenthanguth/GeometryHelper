@@ -488,11 +488,26 @@ and chains and loops of arcs against all of them. Measured at a thousandth:
   given its origin. One that touches without crossing is given the point of it nearest the region: the segment from
   (-5.0004, 4.9996, 0.0004) to (4.9996, -5.0004, 0.0004), passing 0.0007 off the corner at the origin of the triangle
   (0, 0, 0), (100, 0, 0), (0, 100, 0), is given (-0.0004, -0.0004, 0.0004), where it collided and was given nothing, and
-  so a ray, a line and a chain, whose corner touching it is given. One lying level over the material, within the planar
-  tolerance of the region's plane at both its ends, running in over the rim among them, is given none, and so is one lying
-  along a side of the rim within that of the side's line, as a segment lying along an edge of a box is; a line without ends
-  is read over the stretch of it that reaches past the region. Cutting a curved chain by a face still cuts only where it
-  crosses.
+  so a ray, a line and a chain, whose corner touching it is given. One with no crossing of the plane to give, lying level
+  over the material within the planar tolerance of the region's plane at both its ends, running in over the rim among
+  them, is given none, and so is one lying along a side of the rim within that of the side's line, as a segment lying
+  along an edge of a box is. A segment has no crossing where it climbs no more than the planar tolerance from end to
+  end, and is read level by its own two ends. A line without ends has none where the segment it is cut to, a millimetre
+  past the region, climbs no more than that. A ray has none where it starts within the planar tolerance of the plane and
+  runs level with it within the vector tolerance, or reaches it within the point tolerance of its origin, as one rising
+  off it does. Such a ray or line is read by the two ends of the part of it over the region, from where its shadow on the
+  region's plane first crosses the rim to where it last does, or beside the side it runs along, and not by where it was
+  cut past the region: the ray from 0.0004 over the triangle rising 1E-6 was given its origin, the one from 1E-12 under it
+  (10.000001, 20, 0), and the line without ends 0.0009 over the square rising 1E-6 the point over its rim. Every other
+  crossing is given: the ray from 0.0009 under the triangle rising 1.5E-5 crosses it 60 along, though the part of it over
+  the triangle runs from 0.0009 under to 0.0003 over. A ray and a segment along it can answer otherwise, each read by its
+  own ends: from 0.0004 over the square rising 1E-5 the ray stands 0.0013 over the far rim and touches the square at its
+  origin, where a segment 40 long along it gives nothing; and from 0.0003 over the triangle dipping 9E-6, level within the
+  vector tolerance, the ray and the line along it give nothing, where a segment 150 long gives the crossing (38.333, 20, 0)
+  and one 70 long nothing. A part no longer than the point tolerance, of one that only passes a corner or runs
+  away from the rim, lies along nothing, and the touch is given. Against a box a ray is read as the segment from its
+  origin past the box, and a line as the segment past it both ways, as before. Cutting a curved chain by a face still
+  cuts only where it crosses.
 
 A triangle with no area, by `GeoTriangle3.IsDegenerate`, its height over its longest side within the point tolerance,
 such as (0, 0, 0), (100, 0, 0), (50, 1E-8, 0), is the segment it has collapsed to: it touches what comes within the
@@ -1549,9 +1564,13 @@ merged, so the hull of a box's corners is the box. `GeoObb3.Fit(points)` stands 
 in turn, with the smallest rectangle round the points on that face, and keeps the smallest: exactly the least
 box for a block, a prism, or anything with a flat face to stand on, and close to it otherwise. Of the boxes
 standing on faces of the hull that are as small to rounding it keeps the thinnest, its least side first, then
-the middle one, and on one face the first rectangle of least area it finds: a prism 40 long on a right triangle
-with legs 18 and 24 is fitted the box 14.4 by 30 by 40 along its long side, not the one 18 by 24 by 40 along its
-legs. Points all in one plane give a box of no depth.
+the middle one, and so of two rectangles on one face: a prism 40 long on a right triangle with legs 18 and 24 is
+fitted the box 14.4 by 30 by 40 along its long side, not the one 18 by 24 by 40 along its legs, and the
+tetrahedron on (0, 0, 0), (24, 0, 0), (0, 18, 0) and (0, 0, 40) the box 13.548779 by 27.340984 by 46.647615 however
+it is turned, where turned it was given the one 13.548779 by 30 by 42.513057 as large, found first on its long face.
+Of boxes that tie to rounding the one kept can have its axes named otherwise than before for the same hull: the prism is
+14.4 by 30 by 40 still, but its `SizeX`, `SizeY` and `SizeZ` read 30, 14.4 and 40 where they read 30, 40 and 14.4.
+Points all in one plane give a box of no depth.
 
 The hull holds every point within the tolerance of its triangles, and closes, on plates down to a few thousandths
 thick: the faces of such a plate meet at its rim so nearly flat that a point 10 off the rim stands within a
@@ -1559,8 +1578,10 @@ thousandth of every plane, and a hull that leaves a point out so, does not close
 built again with an exact test of which side of a face a point stands on. A hull that closes and holds every point
 is kept as it is built. Points all within the tolerance of a plane span no volume; a plate no thicker than twice the
 tolerance lies within it of its middle plane, and its hull is found or not by the plane it starts from. Merging the
-triangles of one plane within the tolerance can stand a face as far again from a point, up to 0.0011 off on plates
-0.002 thick. The work grows with the points and the faces: 10 000 points in a cube take 45 milliseconds, 3 000 on a
+triangles of one plane within the tolerance can stand a face as far again from a point: up to 1.08E-3 off on 5 of
+1 000 plates 100 by 100 and from 0.002 to 1 thick. Every point is held within the tolerance of the merged hull: where
+one is not, the triangles are merged again within a tenth of the planar tolerance, then a hundredth, and left as they
+are where that does not hold it either; a hull that holds every point merged is kept as it was, to the bit. The work grows with the points and the faces: 10 000 points in a cube take 45 milliseconds, 3 000 on a
 sphere 120.
 
 ```csharp
@@ -1986,7 +2007,9 @@ the sixth power) and lower nowhere on the way. A least that curves up is one onl
 the line y = 0.0001 stops at its inflection and goes on falling, which is no place, and the line crosses it once, at x = 0.21544. Places no further
 apart than the point tolerance are one place, as are two near touches next to each other along the spline within ten times that with no point
 between them farther from the shape than at either by more than four snaps (a snap is 1E-13 of the size of the numbers); two crossings are one place
-only when they are within the tolerance of each other, and a least of the distance beside a crossing does not join two.
+only when they are within the tolerance of each other, and a least of the distance beside a crossing does not join two. A closed spline, its first and
+last control points the same to the bit, has no ends, as in the plane: a line 0.0002 off the plane of a circle spline of radius 100, tangent to it
+0.003 of a radian past its seam, touches it once, where the seam was given too.
 
 **How each pair is solved.** Against a segment, a ray or a line without ends the part of a span's offset that stands square to the line is taken
 as two signed polynomials in Bernstein form, along two directions square to the line: the span meets the line where both are nought, and a span in
@@ -2007,13 +2030,17 @@ carries into the numbers it is made of: two splines in one plane, either tilted 
 **Two curves in one plane, and two that share none.** Two splines that lie in one plane, every control point of both within a snap of it, are
 worked out in that plane as two splines of the plane are, and the points found are put back in space, so they give the plane's answers: the sign
 of the offset of one from the other tells two curves a hair apart that cross twice, two circles of radius 1 000 and 1 000.00002 with their centres
-1E-4 apart cross at an angle of 1E-7 in two places in any plane, and a polyline spline through (0, 0), (100, 0), (100, 100), (200, 150), (150, 300)
+1E-4 apart cross at an angle of 1E-7 in two places in any plane at a tolerance of a hundred-thousandth (and are one circle at the default one, as
+in the plane), and a polyline spline through (0, 0), (100, 0), (100, 100), (200, 150), (150, 300)
 and its copy moved (0.0003, 0.0004) along its plane, which lie along each other within the tolerance all the way, cross at the three corners,
 (100, 0.0004), (100.0003, 100.00015) and (199.99993, 150.00021). In a plane square to an axis the answers are the plane's to the bit; a tilted plane
 is laid flat by two directions of its own, and its answers are those of the plane turned, which for two curves that run a hair from each other the
-plane itself gives a place more or fewer for (nine of thirty such copies, turned by 0.7 radians in the plane). An arc, a circle, an ellipse, an edge
-or a chain of edges in the plane of a spline is laid flat with it the same way for the places: a circle spline of radius 100 moved (0.0003, 0.0005)
-along its plane crosses its circle three times and an arc of it from 0.3 to 4 radians twice, in space as in the plane. Two curves that share no
+plane itself can give a place more or fewer for (7 of 60 such copies, turned by 0.7 radians in the plane). An arc, a circle, an ellipse, an edge,
+a chain of edges, a segment, a ray or a line without ends in the plane of a spline is laid flat with it the same way for the places: a circle spline
+of radius 100 moved (0.0003, 0.0005) along its plane is one circle with its circle and with an arc of it, as in the plane, and a segment along the
+first side of a polyline spline, 1.15E-6 off it and turned by 7E-8 of a radian, is given the one place the plane gives, where it was given the spline's
+start besides; the plane's answer is to the bit in a plane square to an axis, and to a millionth in a tilted one along so slight a crossing. A spline,
+a segment and a line nearly on one line lie in no plane the digits can tell, and are measured in space. Two curves that share no
 plane can still cross, as a helix crosses a straight spline along its cylinder once a turn. Inside a stretch where they lie along each other, a
 place is a least of the distance where the two would cross if brought into one plane: seen along the gap at the least, the first stands on one
 side of the second just before it and on the other just after, clear by a hundredth of the tolerance before it goes back. Lifted 0.0002 off the
@@ -2031,8 +2058,9 @@ nearest pairs until a step gains less than a snap.
 
 **Limits, and what is not offered.** The cutting for the nearest approach of two curves is bounded as it is in the plane (past 40 000 pairs of
 parts the answer is the best of the real pairs found, with the nearest bound left in a Debug line), as is the cutting for the places (two million
-pairs); two circle splines of radius 100 000 and 100 000.0005 with centres 2E-4 apart are 0.0003 apart that way, in about 0.15 s, and near-concentric
-ones that cross can still exhaust the budget as in the plane. An arc, a circle, an ellipse or another spline is worked out as a pair of splines
+pairs); two circle splines in one plane are met in closed form as the circles are, as in the plane (of radius 100 000 and 100 000.0005 with
+centres 2E-4 apart they are 0.0003 apart in a third of a millisecond, and with centres 0.01 apart cross twice), and two that share no plane are
+cut, and near-concentric ones can exhaust the budget. An arc, a circle, an ellipse or another spline is worked out as a pair of splines
 and costs that (the arch 300 long against a circle takes about 3 ms for the distance and the crossings, against a ball a few microseconds);
 a polygon or a face of many corners is asked, for each place that stands over its box, one pass over its corners, after the box has ruled out the rest. A line meeting a circle in a chord whose depth is under a snap, a line cutting the
 circle of radius 1 000 in a chord of 0.02 a hundred thousand out (the depth is 5E-8, the snap 3E-8), meets it to the digits all along the chord, and

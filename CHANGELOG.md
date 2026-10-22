@@ -6,6 +6,106 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A closed spline, its first and last control points the same to the bit as the closed flag of a DXF spline reads
+them, has no ends. Its seam was read as an end, where the places a spline gives are its crossings, its touches and where it
+ends near a shape: the line tangent to `GeoSpline2.FromCircle` of radius 100 at 0.003 of a radian was given the seam (100, 0),
+4.5E-4 off it, besides the touch, where the `GeoCircle2` gives the touch alone, and so at 0.001 and -0.003 of a radian. The seam
+is a point of the spline like any other now, coming in along its last span and going on along its first, for the places, the
+touches and the leasts of the distance, in the plane and in space. In the plane this moves the answers that had the seam of a
+closed spline within the tolerance of a shape and no place there: of 120 random splines, half of them closed, against the 15
+shapes of the plane at three tolerances, the one answer of a circle spline whose seam stood within a hundredth of a rectangle,
+which loses its seam.
+
+**FIXED.** A spline made of arcs of circles meets a circle, an arc, an edge or loop of them, or another such spline, as the circles
+meet. Two circle splines nearly about one centre were cut into parts until a budget of two million pairs ran out: of radius
+100 000 and 100 000.0005 with their centres 0.01 apart they took 16 seconds and gave no crossing, and their distance read 4.8E-5,
+though they cross at (-4 999.995, 99 874.922) and (-4 999.995, -99 874.922). A span that is an arc of a circle to rounding, as every
+span of `FromArc` and `FromCircle` is, now meets the partner's arc in closed form by the rule of `GeoCircle2.GetIntersections`,
+one circle included, where the circle read from its control points is known well enough: its centre and radius within a hundredth of
+the tolerance of the true circle's for the places, and within a snap for the distance. The rounding of the control points, taken at
+the size of the radius since an arc is made from its centre, reaches the centre times four times the square of the radius over the
+chord, so a quarter turn of radius 100 000 is read to 1E-10 and met so, and a flat arc, of radius 10 000 000 and chord 1 000 a hundred
+thousand out (its centre off by 0.6 when measured) or of radius 1 000 000 and chord 300 (off by 2.3E-4), is cut as before; read that
+far off, the circles' rule gave such an arc against nearly its own circle one to four places the arcs do not have. Those two
+near-concentric splines cross where the circles do, and are nought apart, in a third of a millisecond each. And a circle spline moved
+a few ten-thousandths to a hundredth at random answered otherwise than the two circles against the circle it was moved from (142 of
+200, the seam among them) and against the spline of that circle (128 of 200, missed and doubled crossings); none of 300 such random
+pairs does now, from either side. Of 1 600 random pairs of arcs of nearly one circle, moved and grown less than the tolerance, as
+splines against the arc and against its spline from either side, of radius 5 to 2 005 none answers otherwise than the arcs where 326
+of 400 did, and of radius 100 to 100 000 000 a flat one cut as before still can: 383 of 1 200, where 838 did, and none that did not.
+A join of the spans within a snap of a very shallow crossing can
+still be given as a place of its own: the circle splines of radius 100 000 about the origin and of radius √(0.003² + 100 000²) about
+(0.003, 0), which cross at (0, 100 000) and (0, -100 000), joins of the first one's spans, give four places where the circles give two
+(parked). What moved in the plane, of 36 600 answers of random splines against every shape at three tolerances: the places
+and the shortest segments of circle and arc splines against arcs, circles, edges, chains and loops of arcs and other arc splines,
+the places by up to 4E-9, the distances by up to 1.8E-12, and the ends of the shortest segments by up to 2.4E-5 along the curves,
+where two circles' distance is level to rounding; and the places of a circle spline and its copy moved
+less than the tolerance, which were the crossings of the two curves and are none now, the two being one circle, as the `GeoCircle2`
+says of the circles. Two circle splines of radius 1 000 and 1 000.00002 with their centres 1E-4 apart, within 1.2E-4 of each other
+all round, were given two crossings at an angle of 1E-7 at a tolerance of a thousandth and none at a hundred-thousandth; they are
+one circle at a thousandth now, as the circles are, and cross at (-200, 979.8) and (-200, -979.8) at a hundred-thousandth, where the
+circles do. The circle splines of radius 10 000 and 10 000.0005 with their centres 0.001 apart took 12.5 s for their two crossings
+and of radius 1 000 with centres 0.01 apart 0.4 s; each takes a third of a millisecond now. In space two circle splines in one plane
+are laid in it and answer the same; two that share no plane are cut as before.
+
+**CHANGED.** The stretches two splines of the plane lie along each other for are measured as they are in space: a quarter of how
+far the control points of the smaller reach from its first, which is the same however the pair is turned, and not a quarter of
+its span along the axes, which is not. Of 60 random splines and their copies moved a few ten-thousandths, 14 gave a place more or
+fewer turned by 0.7 of a radian, and 7 do now, by where the stretches along them end. The places of near copies in the plane move
+for it: of 166 copies of 83 random splines that are not arcs, moved 4E-4 or turned and moved (3E-4, -2E-4), 6 give a place more or
+fewer where a stretch now ends elsewhere, one gives another place, and 107 give their places moved by up to 2.4E-7, the crossings
+inside a stretch bisected from looks spaced by the new size. Two parts of curves that cannot meet
+are measured once both are no larger than the tolerance in the plane as in space, straight or not, so that a spline and its copy
+within the tolerance round a cusp are not cut into millions of pairs: a tight spline of degree four and its copy moved 0.00074 take
+0.3 s, which the stretch measured so would have cut for 26 s. And a least of the distance that curves up too little is one only where
+the distance falls neither way, as in space: the cubic y = x³ / 100 turned 0.7 of a radian a hundred thousand out was given its
+inflection, 1E-4 under the line y = 0.0001, besides the crossing.
+
+**FIXED.** A segment, a ray or a line without ends lying in the plane of a spline in space is laid in that plane with it for
+`GetIntersections`, as an arc, a circle, an ellipse, an edge or a chain of edges is, so the places are the plane's: a segment along
+the first side of a polyline spline, 1.15E-6 off it and turned by 7E-8 of a radian, was given the spline's start besides the one
+place the plane gives, and 96 of 5 400 such segments, rays and lines near tangent to random splines in three planes answered
+otherwise than the plane; 17 do now, all of them a straight spline and a line nearly on one line, which lie in no plane the
+digits can tell. The distance and the shortest segment are not changed.
+
+**FIXED.** The hull of points holds every one of them within the point tolerance, its faces merged. The triangles of one plane
+merged within the tolerance could stand a face as far again from a point: 5 of 1 000 plates 100 by 100 and from 0.002 to 1 thick
+left a point up to 1.08E-3 outside the hull they were built from. Where a point stands further out than the tolerance, the
+triangles are merged again within a tenth of the planar tolerance, then a hundredth, and kept as they are where that does not hold
+it either; a hull that holds every point merged is the same to the bit, as are 559 of 560 hulls of 14 kinds of cloud.
+
+**FIXED.** `GeoObb3.Fit` weighs two rectangles on one face of the hull as large as it weighs two boxes on two faces: its least
+side first, then the middle one, then the longest. The tetrahedron on (0, 0, 0), (24, 0, 0), (0, 18, 0) and (0, 0, 40) was fitted
+13.548779 by 27.340984 by 46.647615 as it is and 13.548779 by 30 by 42.513057 turned, as large, the rectangle found first on its long
+face; it is fitted the first however it is turned, as each of 10 shapes turned 12 ways is now fitted one box, where the tetrahedron
+and another were fitted three. A box as large and as thin that tied was found otherwise, its sides the same to rounding, so that
+for a hull that did not change the box can come back with its axes named otherwise, `SizeX`, `SizeY` and `SizeZ` in another order:
+the prism 40 long on the right triangle with legs 18 and 24 is still fitted 14.4 by 30 by 40, as 30, 14.4 and 40 along its axes where
+it was 30, 40 and 14.4.
+
+**CHANGED.** A ray or a line without ends that lies level over a triangle, a polygon or a face, and crosses its plane nowhere
+apart from rounding, meets it nowhere. Each is read so only where it has no crossing of the plane to give. A segment has none
+where it climbs no more than the planar tolerance from one end to the other, and is then read level by its own two ends, both
+within the planar tolerance of the shape's plane, as before. A line without ends has none where the segment it is cut to, a
+millimetre past the shape, climbs no more than that. A ray has none where it starts within the planar tolerance of the plane and
+either runs level with it within the vector tolerance or reaches it within the point tolerance of its origin, as one rising off
+the plane does. Such a ray or line is read by the two ends of the part of it over the shape, from where its shadow on the shape's
+plane first crosses the rim to where it last does, or, beside the shape, by the part of it beside the side of the rim it runs
+along, and not by where it was cut past the shape. Every other crossing is given as before: the ray from 0.0009 under the
+triangle (0, 0, 0), (100, 0, 0), (0, 100, 0) rising 1.5E-5 crosses it 60 along, though both ends of the part of it over the
+triangle lie within the planar tolerance. A ray starting within the planar tolerance was given its origin, which its crossing reads
+as where it touches when it rises, or a crossing a hair ahead of it as the rounding of the origin fell, though the segment along it
+was given nothing: from 0.0004 over that triangle rising 1E-6, or from 1E-12 under it, (10.000001, 20, 0). A line without ends
+was read level by where it was cut, so that 0.0009 over a square and rising 1E-6 it was given the point over the square's rim. A
+part no longer than the point tolerance, of one that passes a corner or runs away from the rim, lies along nothing, and the touch
+is given. A ray and a segment along it can still answer otherwise, each read by its own ends: from 0.0004 over the square and
+rising 1E-5, the ray stands 0.0013 over the far rim and touches the square at its origin, where a segment 40 long gives nothing;
+and a ray level with the plane within the vector tolerance that dips through it over the shape gives nothing, as the line without
+ends along it does, where a segment along it long enough to climb more than the planar tolerance gives the crossing: from 0.0003
+over the triangle and dipping 9E-6, the ray gave (38.333, 20, 0), and a segment 150 long still does, one 70 long nothing. Of 6 000 rays and lines near level over these
+shapes at two tolerances, 2 474 answers moved, each from points to none, and no collision moved; segments are not changed.
+Against a box a ray and a line are read as before, as the segment from the origin past the box.
+
 **FIXED.** The weld that closes what a boolean gives within the default tolerance keeps every face on its plane where it
 can. It made the corners within the tolerance of each other one, each group at the corner of it that moved the volume
 least, and put a corner on another face's edge where it stood within the tolerance of it; a corner so moved off the plane

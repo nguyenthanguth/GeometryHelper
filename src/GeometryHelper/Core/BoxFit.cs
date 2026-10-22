@@ -16,7 +16,13 @@ namespace GeometryHelper.Core
     /// </remarks>
     internal static class BoxFit
     {
-        internal static GeoRectangle2 Rectangle(IEnumerable<GeoPoint2> points, Tolerance tolerance)
+        internal static GeoRectangle2 Rectangle(IEnumerable<GeoPoint2> points, Tolerance tolerance) => Rectangle(points, tolerance, null);
+
+        /// <summary>
+        /// Gets the rectangle of least area round points, the first found of any as small, and, where a list is given for them, every
+        /// rectangle tried, one along each edge of their hull, that is as small to rounding, in the order tried.
+        /// </summary>
+        private static GeoRectangle2 Rectangle(IEnumerable<GeoPoint2> points, Tolerance tolerance, List<GeoRectangle2> tried)
         {
             if (points == null)
             {
@@ -49,40 +55,74 @@ namespace GeometryHelper.Core
 
             GeoRectangle2 best = default;
             double least = double.PositiveInfinity;
+            var areas = tried != null ? new double[directions.Count] : null;
 
-            foreach (GeoVector2 direction in directions)
+            for (int i = 0; i < directions.Count; i++)
             {
-                double length = direction.Length;
-                GeoVector2 along = length > 0.0 ? direction.Multiply(1.0 / length) : new GeoVector2(1.0, 0.0);
-                var across = new GeoVector2(-along.Y, along.X);
-                double minS = double.PositiveInfinity, maxS = double.NegativeInfinity;
-                double minT = double.PositiveInfinity, maxT = double.NegativeInfinity;
+                double area = Spans(corners, directions[i], out GeoVector2 along, out GeoVector2 across, out double minS, out double maxS, out double minT, out double maxT);
 
-                foreach (GeoPoint2 corner in corners)
+                if (areas != null)
                 {
-                    double s = corner.X * along.X + corner.Y * along.Y;
-                    double t = corner.X * across.X + corner.Y * across.Y;
-
-                    minS = Math.Min(minS, s);
-                    maxS = Math.Max(maxS, s);
-                    minT = Math.Min(minT, t);
-                    maxT = Math.Max(maxT, t);
+                    areas[i] = area;
                 }
-
-                double area = (maxS - minS) * (maxT - minT);
 
                 if (area < least || double.IsPositiveInfinity(least))
                 {
                     least = area;
-                    double s0 = (minS + maxS) * 0.5;
-                    double t0 = (minT + maxT) * 0.5;
-                    var centre = new GeoPoint2(along.X * s0 + across.X * t0, along.Y * s0 + across.Y * t0);
+                    best = Around(along, across, minS, maxS, minT, maxT);
+                }
+            }
 
-                    best = new GeoRectangle2(centre, maxS - minS, maxT - minT, Math.Atan2(along.Y, along.X));
+            // Those as small as the least to rounding, which the box weighs by their sides; any larger loses to the least.
+            for (int i = 0; areas != null && i < directions.Count; i++)
+            {
+                if (!(Math.Abs(areas[i] - least) > 1E-9 * Math.Max(Math.Abs(areas[i]), Math.Abs(least))))
+                {
+                    Spans(corners, directions[i], out GeoVector2 along, out GeoVector2 across, out double minS, out double maxS, out double minT, out double maxT);
+                    tried.Add(Around(along, across, minS, maxS, minT, maxT));
                 }
             }
 
             return best;
+        }
+
+        /// <summary>
+        /// Gets the area of the rectangle round some corners along a direction, and how far they reach along it and across it.
+        /// </summary>
+        private static double Spans(IReadOnlyList<GeoPoint2> corners, GeoVector2 direction, out GeoVector2 along, out GeoVector2 across, out double minS, out double maxS, out double minT, out double maxT)
+        {
+            double length = direction.Length;
+            along = length > 0.0 ? direction.Multiply(1.0 / length) : new GeoVector2(1.0, 0.0);
+            across = new GeoVector2(-along.Y, along.X);
+            minS = double.PositiveInfinity;
+            maxS = double.NegativeInfinity;
+            minT = double.PositiveInfinity;
+            maxT = double.NegativeInfinity;
+
+            foreach (GeoPoint2 corner in corners)
+            {
+                double s = corner.X * along.X + corner.Y * along.Y;
+                double t = corner.X * across.X + corner.Y * across.Y;
+
+                minS = Math.Min(minS, s);
+                maxS = Math.Max(maxS, s);
+                minT = Math.Min(minT, t);
+                maxT = Math.Max(maxT, t);
+            }
+
+            return (maxS - minS) * (maxT - minT);
+        }
+
+        /// <summary>
+        /// Gets the rectangle a direction and the reach of some corners along it and across it make.
+        /// </summary>
+        private static GeoRectangle2 Around(GeoVector2 along, GeoVector2 across, double minS, double maxS, double minT, double maxT)
+        {
+            double s0 = (minS + maxS) * 0.5;
+            double t0 = (minT + maxT) * 0.5;
+            var centre = new GeoPoint2(along.X * s0 + across.X * t0, along.Y * s0 + across.Y * t0);
+
+            return new GeoRectangle2(centre, maxS - minS, maxT - minT, Math.Atan2(along.Y, along.X));
         }
 
         internal static GeoObb3 Box(IEnumerable<GeoPoint3> points, Tolerance tolerance)
@@ -118,6 +158,7 @@ namespace GeometryHelper.Core
 
             GeoObb3 best = null;
             double least = double.PositiveInfinity;
+            var tried = new List<GeoRectangle2>();
 
             foreach (GeoVector3 normal in normals)
             {
@@ -135,20 +176,27 @@ namespace GeometryHelper.Core
                     maxN = Math.Max(maxN, n);
                 }
 
-                GeoRectangle2 base_ = Rectangle(flat, tolerance);
+                // Every rectangle on the face, each along an edge of its hull, is a box to compare: two on one face as large tie
+                // as two on two faces do.
+                tried.Clear();
+                Rectangle(flat, tolerance, tried);
                 double depth = maxN - minN;
-                double volume = base_.Width * base_.Height * depth;
 
-                if (best == null || Smaller(volume, base_.Width, base_.Height, depth, least, best))
+                foreach (GeoRectangle2 base_ in tried)
                 {
-                    least = volume;
-                    double cos = Math.Cos(base_.AngleRad);
-                    double sin = Math.Sin(base_.AngleRad);
-                    GeoVector3 axisX = u.Multiply(cos).Add(v.Multiply(sin));
-                    GeoVector3 axisY = u.Multiply(-sin).Add(v.Multiply(cos));
-                    GeoVector3 centre = u.Multiply(base_.Center.X).Add(v.Multiply(base_.Center.Y)).Add(normal.Multiply((minN + maxN) * 0.5));
+                    double volume = base_.Width * base_.Height * depth;
 
-                    best = new GeoObb3(new GeoPoint3(centre.X, centre.Y, centre.Z), base_.Width, base_.Height, depth, axisX, axisY);
+                    if (best == null || Smaller(volume, base_.Width, base_.Height, depth, least, best))
+                    {
+                        least = volume;
+                        double cos = Math.Cos(base_.AngleRad);
+                        double sin = Math.Sin(base_.AngleRad);
+                        GeoVector3 axisX = u.Multiply(cos).Add(v.Multiply(sin));
+                        GeoVector3 axisY = u.Multiply(-sin).Add(v.Multiply(cos));
+                        GeoVector3 centre = u.Multiply(base_.Center.X).Add(v.Multiply(base_.Center.Y)).Add(normal.Multiply((minN + maxN) * 0.5));
+
+                        best = new GeoObb3(new GeoPoint3(centre.X, centre.Y, centre.Z), base_.Width, base_.Height, depth, axisX, axisY);
+                    }
                 }
             }
 
@@ -156,14 +204,17 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Whether the box standing on one face of the hull is to be taken over the best so far, standing on another: smaller
-        /// beyond rounding, or as large to rounding and thinner, its sides compared least first, then the middle and then the
-        /// longest; the first found where every side ties. Rectangles on one face are not compared so.
+        /// Whether the box standing on a face of the hull is to be taken over the best so far, standing on the same face or another:
+        /// smaller beyond rounding, or as large to rounding and thinner, its sides compared least first, then the middle and then the
+        /// longest; the first found where every side ties.
         /// </summary>
         /// <remarks>
         /// Two boxes as large are as good a fit, and the thickness a clash reads from the box is its least side: a prism 40
         /// long on a right triangle with legs 18 and 24 fits a box 18 by 24 by 40 along its legs and one 14.4 by 30 by 40
         /// along its long side, both 17 280, and the one found first, 18 thick, was taken, though the prism fits in 14.4.
+        /// Two rectangles on one face as large are compared so too, and a body fits the same box however it is turned: the
+        /// tetrahedron on (0, 0, 0), (24, 0, 0), (0, 18, 0) and (0, 0, 40) fits 13.548779 by 27.340984 by 46.647615, where
+        /// turned it was given 13.548779 by 30 by 42.513057, as large, the one of the two on its long face found first.
         /// </remarks>
         private static bool Smaller(double volume, double width, double height, double depth, double least, GeoObb3 best)
         {

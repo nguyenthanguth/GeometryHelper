@@ -379,6 +379,67 @@ namespace GeometryHelper.Internal.Nurbs
         /// </summary>
         internal double Clamp(double t) => t <= Start ? Start : t >= End ? End : t;
 
+        private int _closed = -1;
+
+        /// <summary>
+        /// Gets whether the curve ends where it starts: its first and last control points the same to the bit, as the closed flag of a
+        /// DXF spline reads it and as the circle of <see cref="Geometry.GeoSpline2.FromCircle"/> is made. A closed curve has no ends: its
+        /// seam is a point of it like any other, where it comes in along its last piece and goes on along its first.
+        /// </summary>
+        internal bool IsClosed
+        {
+            get
+            {
+                if (_closed < 0)
+                {
+                    bool closed = Count > 1;
+                    int last = (Count - 1) * Dim;
+
+                    for (int k = 0; k < Dim && closed; k++)
+                    {
+                        closed = Points[k].Equals(Points[last + k]);
+                    }
+
+                    _closed = closed ? 1 : 0;
+                }
+
+                return _closed == 1;
+            }
+        }
+
+        /// <summary>
+        /// Puts a parameter inside the domain of the curve, round the seam of a closed curve: a step past its end goes on from its start,
+        /// and one back past its start goes on back from its end. Clamped, as <see cref="Clamp"/>, for a curve that is not closed.
+        /// </summary>
+        internal double Around(double t)
+        {
+            if (!IsClosed || (t >= Start && t <= End))
+            {
+                return Clamp(t);
+            }
+
+            double span = End - Start;
+            double share = (t - Start) % span;
+
+            return Clamp(share < 0.0 ? End + share : Start + share);
+        }
+
+        /// <summary>
+        /// Gets the knot value a look from a place goes from, one way along the curve: the place itself, but for the seam of a closed
+        /// curve, which is looked back from at its end and on from at its start, so that the look goes round it.
+        /// </summary>
+        /// <param name="knot">The knot value of the place.</param>
+        /// <param name="side">-1 to look back along the curve, 1 to look on.</param>
+        internal double AcrossSeam(double knot, int side)
+        {
+            if (!IsClosed)
+            {
+                return knot;
+            }
+
+            return side < 0 && knot <= Start ? End : side > 0 && knot >= End ? Start : knot;
+        }
+
         /// <summary>
         /// Gets the knot value at a share of the domain, from 0 for the first knot to 1 for the last, which are the first and
         /// last knot to the last bit.

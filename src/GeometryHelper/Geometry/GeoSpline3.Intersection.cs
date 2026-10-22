@@ -37,8 +37,10 @@ namespace GeometryHelper.Geometry
     /// so where the two stay within the point tolerance of each other, level, for a quarter of the size of the smaller; see
     /// <see cref="DistanceTo(GeoSpline3)"/>. A crossing inside such a stretch is still a place: two splines in one plane, to the snap, are
     /// worked out in that plane, where the offset of the one from the other has a sign, and give the places the plane gives; an arc, a circle,
-    /// an ellipse, an edge or a chain of edges in the plane of the spline is laid flat with it the same way, so a circle spline of radius 100
-    /// moved (0.0003, 0.0005) along its plane crosses its circle three times, as in the plane. Two curves that share no plane can still cross,
+    /// an ellipse, an edge, a chain of edges, a segment, a ray or a line without ends in the plane of the spline is laid flat with it the same
+    /// way, so a circle spline of radius 100 moved (0.0003, 0.0005) along its plane is one circle with its circle, as in the plane, and a segment
+    /// along the first side of a polyline spline, 1.15E-6 off it, is given the one place the plane gives. A closed spline, its first and last
+    /// control points the same to the bit, has no ends, as in the plane. Two curves that share no plane can still cross,
     /// as a helix crosses a straight spline along its cylinder once a turn, and inside a stretch along each other a place is a least of the
     /// distance where the two would cross if brought into one plane: a polyline spline and its copy moved 0.0005 along its plane cross at three
     /// corners, and lifted 0.0002 off the plane as well they come nearest, 0.0002 apart, at the same three.

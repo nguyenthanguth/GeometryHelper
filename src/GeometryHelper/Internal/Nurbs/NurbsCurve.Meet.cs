@@ -250,8 +250,8 @@ namespace GeometryHelper.Internal.Nurbs
         /// Gets the derivatives of the curve at a knot value from each side: the point, then the first and second derivative.
         /// </summary>
         /// <param name="knot">The knot value.</param>
-        /// <param name="left">From the span before it; the same as the right where the curve is smooth there, and not to be used at the start.</param>
-        /// <param name="right">From the span after it; from the span before at the end.</param>
+        /// <param name="left">From the span before it; the same as the right where the curve is smooth there, and not to be used at the start but of a closed curve, where it is from its last span.</param>
+        /// <param name="right">From the span after it; from the span before at the end, but of a closed curve, where it is from its first span.</param>
         private void Sides(double knot, out double[][] left, out double[][] right)
         {
             right = Derivatives(knot, 2);
@@ -259,6 +259,19 @@ namespace GeometryHelper.Internal.Nurbs
 
             if (!(knot > Start && knot < End))
             {
+                // The seam of a closed curve: it comes in along its last span and goes on along its first.
+                if (IsClosed)
+                {
+                    if (knot <= Start)
+                    {
+                        left = Derivatives(End, 2);
+                    }
+                    else
+                    {
+                        right = Derivatives(Start, 2);
+                    }
+                }
+
                 return;
             }
 
@@ -309,9 +322,10 @@ namespace GeometryHelper.Internal.Nurbs
                 return true;
             }
 
+            // A closed curve has no ends: at its seam it goes on either way.
             Sides(contact.Knot, out double[][] left, out double[][] right);
-            bool hasLeft = contact.Knot > Start;
-            bool hasRight = contact.Knot < End;
+            bool hasLeft = contact.Knot > Start || IsClosed;
+            bool hasRight = contact.Knot < End || IsClosed;
             double[][] along = hasRight ? right : left;
             double speed = Math.Sqrt(along[1][0] * along[1][0] + along[1][1] * along[1][1] + Z(along[1]) * Z(along[1]));
             double speedLeft = Math.Sqrt(left[1][0] * left[1][0] + left[1][1] * left[1][1] + Z(left[1]) * Z(left[1]));
@@ -345,19 +359,20 @@ namespace GeometryHelper.Internal.Nurbs
             // Level, the distance is at its least only if it curves up: a distance that is the same all along, as for two curves side
             // by side, is at its least nowhere. In space a curve that runs parallel to its partner for a moment, a ring over a line that
             // is tangent to it and a thousandth above its plane, has a distance of the fourth order about its least, which no second
-            // derivative shows; it is told from a level one by looking either way along the curve (<see cref="RisesBothWays"/>). In space a
-            // least that curves up is one only if the distance falls neither way along the curve: a curve whose offset from a line stops at
-            // an inflection, as a cubic's does across the line through its inflection, has a curvature of the distance there that changes
-            // sign, and a root found a hair to one side of it reads as one that curves up.
+            // derivative shows; it is told from a level one by looking either way along the curve (<see cref="RisesBothWays"/>). A least that
+            // curves up too little is one only if the distance falls neither way along the curve, in the plane as in space: a curve whose
+            // offset from a line stops at an inflection, as a cubic's does across the line through its inflection, has a curvature of the
+            // distance there that changes sign, and a root found a hair to one side of it reads as one that curves up, as the cubic
+            // y = x³ / 100 turned by 0.7 of a radian a hundred thousand out did against the line 0.0001 over its inflection.
             if (Math.Abs(slopeAlong) <= foot.Slack)
             {
-                return (curvatureAlong > flat && (Dim == 2 || !weak || !FallsEitherWay(contact, hunt))) || (Dim == 3 && !contact.From.InPlaneAt(this, contact.Knot) && RisesBothWays(contact, hunt));
+                return (curvatureAlong > flat && (!weak || !FallsEitherWay(contact, hunt))) || (Dim == 3 && !contact.From.InPlaneAt(this, contact.Knot) && RisesBothWays(contact, hunt));
             }
 
             // On a slope: a minimum within the reach, if the distance curves up; or a meeting within the reach, going the way it
             // falls, which is the crossing of a curve at an angle, where the distance is a V and the roots of the polynomials it is
             // found by are found to a few snaps and not to the last digit.
-            return (curvatureAlong > flat && Math.Abs(slopeAlong) <= curvatureAlong * hunt.Reach && (Dim == 2 || !weak || !FallsEitherWay(contact, hunt))) || foot.G <= Math.Abs(slopeAlong) * hunt.Reach;
+            return (curvatureAlong > flat && Math.Abs(slopeAlong) <= curvatureAlong * hunt.Reach && (!weak || !FallsEitherWay(contact, hunt))) || foot.G <= Math.Abs(slopeAlong) * hunt.Reach;
         }
 
         /// <summary>
@@ -380,16 +395,18 @@ namespace GeometryHelper.Internal.Nurbs
 
             var point = new double[Dim];
             BezierPieces pieces = Pieces;
-            int piece = PieceAt(contact.Knot, out bool atStart);
 
             for (int side = -1; side <= 1; side += 2)
             {
+                // Round the seam of a closed curve, from its other end.
+                double from = AcrossSeam(contact.Knot, side);
+                int piece = PieceAt(from, out bool atStart);
                 int own = side < 0 && atStart && piece > 0 ? piece - 1 : piece;
                 double bound = side < 0 ? pieces.From[own] : pieces.To[own];
-                double far = contact.Knot + side * 1E-2 * Extent / speed;
+                double far = from + side * 1E-2 * Extent / speed;
                 far = side < 0 ? Math.Max(far, bound) : Math.Min(far, bound);
 
-                if (far != contact.Knot)
+                if (far != from)
                 {
                     PointAt(far, point);
 
@@ -403,9 +420,9 @@ namespace GeometryHelper.Internal.Nurbs
 
                 for (int ladder = 0; ladder < 11; ladder++, share *= 0.5)
                 {
-                    double knot = Clamp(contact.Knot + side * share * Extent / speed);
+                    double knot = Around(from + side * share * Extent / speed);
 
-                    if (knot == contact.Knot)
+                    if (knot == from)
                     {
                         break;
                     }
@@ -690,12 +707,13 @@ namespace GeometryHelper.Internal.Nurbs
             for (int side = -1; side <= 1; side += 2)
             {
                 double share = 1E-3;
+                double from = AcrossSeam(contact.Knot, side);
 
                 for (int ladder = 0; ladder < 4; ladder++, share *= 0.1)
                 {
-                    double knot = Clamp(contact.Knot + side * share * Extent / speed);
+                    double knot = Around(from + side * share * Extent / speed);
 
-                    if (knot == contact.Knot)
+                    if (knot == from)
                     {
                         return false;
                     }
@@ -703,7 +721,7 @@ namespace GeometryHelper.Internal.Nurbs
                     PointAt(knot, point);
                     double gap = contact.From.Gap(point[0], point[1], Dim == 3 ? point[2] : 0.0, out _, out _, out _, out _);
 
-                    if (gap < contact.Gap - fall || (ladder == 0 && !(gap > contact.Gap + band) && !RisesFurther(contact, hunt, side, speed, band, fall, point)))
+                    if (gap < contact.Gap - fall || (ladder == 0 && !(gap > contact.Gap + band) && !RisesFurther(contact, from, side, speed, band, fall, point)))
                     {
                         return false;
                     }
@@ -720,10 +738,10 @@ namespace GeometryHelper.Internal.Nurbs
         /// size along and 6E-6 a hundredth along. The piece bounds it, so that a stretch where the distance is level does not take the
         /// rise of the piece beyond it for its own.
         /// </summary>
-        private bool RisesFurther(Contact contact, Hunt hunt, int side, double speed, double band, double fall, double[] point)
+        private bool RisesFurther(Contact contact, double from, int side, double speed, double band, double fall, double[] point)
         {
             BezierPieces pieces = Pieces;
-            int piece = PieceAt(contact.Knot, out bool atStart);
+            int piece = PieceAt(from, out bool atStart);
 
             if (side < 0 && atStart && piece > 0)
             {
@@ -734,10 +752,10 @@ namespace GeometryHelper.Internal.Nurbs
 
             for (double share = 1E-2; share <= 0.11; share *= 10.0)
             {
-                double knot = contact.Knot + side * share * Extent / speed;
+                double knot = from + side * share * Extent / speed;
                 knot = side < 0 ? Math.Max(knot, bound) : Math.Min(knot, bound);
 
-                if (knot == contact.Knot)
+                if (knot == from)
                 {
                     return false;
                 }
@@ -778,9 +796,10 @@ namespace GeometryHelper.Internal.Nurbs
 
             for (int side = -1; side <= 1; side += 2)
             {
-                double knot = Clamp(contact.Knot + side * step);
+                double from = AcrossSeam(contact.Knot, side);
+                double knot = Around(from + side * step);
 
-                if (knot == contact.Knot)
+                if (knot == from)
                 {
                     continue;
                 }
@@ -854,7 +873,7 @@ namespace GeometryHelper.Internal.Nurbs
                 {
                     kept.Add(contact);
                 }
-                else if (IsMinimum(contact, hunt))
+                else if (contact.Least || IsMinimum(contact, hunt))
                 {
                     pending.Add(contact);
                 }

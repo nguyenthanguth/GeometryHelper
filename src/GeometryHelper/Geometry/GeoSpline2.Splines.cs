@@ -23,10 +23,19 @@ namespace GeometryHelper.Geometry
     /// meet, a part is left when the hulls show no meeting in it within the point tolerance. The distance is exact to rounding where
     /// Newton's method settles, which it does wherever the curves cross or the nearest points are not parallel, and otherwise right
     /// to that hair. A crossing at any angle, however shallow, is found by the offset of the one curve from the other along its
-    /// normal, which changes sign where they cross: two circles of radius 1 000 and 1 000.00002 with their centres 1E-4 apart cross at
-    /// (-200, 979.8) and (-200, -979.8) at an angle of 1E-7, and a line 40 long that cuts a circle spline of radius 1 000 in a chord
-    /// of 0.004 meets it twice, as the <see cref="GeoCircle2"/> does. Two meetings are one place only when they are within the
-    /// point tolerance of each other.
+    /// normal, which changes sign where they cross: a line 40 long that cuts a circle spline of radius 1 000 in a chord of 0.004
+    /// meets it twice, as the <see cref="GeoCircle2"/> does. Two meetings are one place only when they are within the point
+    /// tolerance of each other.
+    /// </para>
+    /// <para>
+    /// Two spans that are both arcs of circles, as the spans of <see cref="FromArc(GeoArc2)"/> and <see cref="FromCircle(GeoCircle2)"/>
+    /// are, are met in closed form, as the two circles meet by the rule of <see cref="GeoCircle2.GetIntersections(GeoCircle2, Tolerance)"/>,
+    /// and measured as they are for the distance, where their circles, read from their control points, are known within a hundredth
+    /// of the tolerance, and a snap for the distance; flat arcs are cut as any spans are. Two circle splines nearly about one centre were cut into millions of pairs: of radius
+    /// 100 000 and 100 000.0005 with their centres 0.01 apart they took 16 s, gave no crossing and were 4.8E-5 apart; they cross at
+    /// (-4 999.995, 99 874.922) and (-4 999.995, -99 874.922), as the circles do, and are nought apart, in a third of a millisecond. Two
+    /// circles of radius 1 000 and 1 000.00002 with their centres 1E-4 apart are one circle at a tolerance of a thousandth, as the circles
+    /// read them, and give no place, and at a tolerance of a hundred-thousandth cross at (-200, 979.8) and (-200, -979.8) at an angle of 1E-7.
     /// </para>
     /// <para>
     /// Where two splines stay within the point tolerance of each other, and level (their distance changing by no more than half the
@@ -44,12 +53,12 @@ namespace GeometryHelper.Geometry
     /// bounded: past 40 000 pairs of parts in one question, the curves are looked at at 128 points and the least of them brought to the
     /// real curves, and the answer is the best found. What is promised then is that it is the distance of a real pair of points, so
     /// the truth lies between it and the nearest bound left, and one Debug line gives both (<see cref="GeometryHelperLog"/>); a
-    /// meeting not yet found is not in the answer. Two circles of radius 100 000 and 100 000.0005, the second with its centre
-    /// moved 2E-4 toward 45 degrees, are 0.00029999998 apart that way (0.0003 exact, 0.000296 the bound left), in 0.15 s. Short of
+    /// meeting not yet found is not in the answer. Two splines a hair apart and side by side for 6 000 take 0.15 s. Short of
     /// the budget a crossing is never passed over for a nearer approach found first. The cutting for the places is bounded at two million pairs
     /// and logs one Debug line past it; nothing built in the tests reaches it, and two splines that stay within the tolerance of
     /// each other for a long stretch and are not level there, or hug each other for less than a quarter of the size at a distance
-    /// that makes every part of the one a near match for hundreds of the other, could.
+    /// that makes every part of the one a near match for hundreds of the other, could. The size is how far the control points of the
+    /// smaller reach from its first, the same however the two are turned.
     /// </para>
     /// </remarks>
     public sealed partial class GeoSpline2

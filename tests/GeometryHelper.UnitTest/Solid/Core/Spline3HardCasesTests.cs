@@ -236,11 +236,15 @@ namespace GeometryHelper.UnitTest.Solid
             // Radius 1 000 and 1 000.00002 with centres 1E-4 apart cross at (-200, +-979.8) at an angle of 1E-7. A million out a snap is 2E-7,
             // two units either side of a crossing at that angle, and the rounding gives places in them.
             GeoCoordinateSystem3 frame = Frame(name);
+            // At a thousandth they are one circle, as the circles' own rule reads them; at a hundred-thousandth they cross.
             GeoSpline3 first = Ring(frame, 0, 0, 1000);
             GeoSpline3 second = Ring(frame, 1E-4, 0, 1000.00002);
+            var fine = new Tolerance(1E-5, 1E-7);
 
-            GeoPoint3[] places = first.GetIntersections(second, Strict);
-            GeoPoint3[] back = second.GetIntersections(first, Strict);
+            Assert.Empty(first.GetIntersections(second, Strict));
+
+            GeoPoint3[] places = first.GetIntersections(second, fine);
+            GeoPoint3[] back = second.GetIntersections(first, fine);
 
             Assert.Equal(2, places.Length);
             Assert.Equal(places.Length, back.Length);

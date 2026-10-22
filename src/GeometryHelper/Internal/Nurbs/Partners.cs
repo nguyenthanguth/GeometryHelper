@@ -46,6 +46,12 @@ namespace GeometryHelper.Internal.Nurbs
         /// </summary>
         internal bool Dip;
 
+        /// <summary>
+        /// Whether it is known to be the place a near touch is, not being a meeting: worked out in closed form, as where two arcs of
+        /// circles within the reach of each other come nearest, so that the distance there need not be tried.
+        /// </summary>
+        internal bool Least;
+
         /// <summary>The partner it was found against, which can measure the curve's distance to it elsewhere.</summary>
         internal Partner From;
     }
@@ -998,6 +1004,23 @@ namespace GeometryHelper.Internal.Nurbs
             x = index == 0 ? _sx : _ex;
             y = index == 0 ? _sy : _ey;
             z = 0.0;
+        }
+
+        /// <summary>
+        /// Offers the places of a piece: a piece that is itself an arc of a circle, its circle read to rounding, meets this one as the
+        /// circles meet, in closed form (<see cref="ArcPairs"/>); any other by the roots of the form.
+        /// </summary>
+        internal override void PieceCandidates(NurbsCurve curve, BezierPieces pieces, int piece, Hunt hunt)
+        {
+            var circle = new PieceArc { Cx = Cx, Cy = Cy, Radius = _radius, Start = _start, Sweep = _sweep, Whole = _whole };
+
+            if (curve.TryGetArc(piece, out PieceArc arc) && ArcPairs.Exact(arc, circle, hunt))
+            {
+                ArcPairs.Meet(curve, piece, arc, circle, this, hunt);
+                return;
+            }
+
+            base.PieceCandidates(curve, pieces, piece, hunt);
         }
     }
 }

@@ -28,7 +28,10 @@ namespace GeometryHelper.Core
     /// against itself, 185 left a point out, by up to 24, and none does now; and 200 points in a plate 100 by 100 and 0.002
     /// thick ran the faster build out of memory, as 10 000 in a cube and 3 000 on a sphere did, and take from under a
     /// millisecond to an eighth of a second now. Merging the triangles within the tolerance can stand a face as far again
-    /// from a point: up to 0.0011 off on those plates, a tenth of the tolerance past it.
+    /// from a point: 5 of 1 000 plates 100 by 100 and from 0.002 to 1 thick left a point up to 1.08E-3 outside the merged
+    /// hull. Where a point stands further than the tolerance outside it, the triangles are merged again within a tenth of
+    /// the planar tolerance, then a hundredth, and kept as they are where that does not hold it either, so every point is
+    /// within the tolerance of the hull given; a merged hull that holds every point is kept as it was, to the bit.
     /// </para>
     /// <para>
     /// The work is quadratic in the worst case: 10 000 points in a cube take 45 milliseconds, 3 000 on a sphere 120,
@@ -123,6 +126,7 @@ namespace GeometryHelper.Core
             bool broken = false;
             double rounding = Rounding(p);
             var below = new bool[p.Count];
+            var depth = new double[p.Count];
 
             for (int k = 0; k < p.Count; k++)
             {
@@ -160,6 +164,7 @@ namespace GeometryHelper.Core
                 {
                     // Below every plane of the hull so far, so within what its corners span; see HoldsEveryPoint.
                     below[k] = highest <= rounding;
+                    depth[k] = highest;
                     continue;
                 }
 
@@ -225,13 +230,110 @@ namespace GeometryHelper.Core
                 }
 
                 faces = exact ?? faces;
+                depth = null;
             }
 
             // Merged no more loosely than the points were taken on: a point left out lies within the point tolerance
             // of the triangles, and triangles merged within a wider planar one could lay the face that far past it,
             // so that the hull no longer held a point it was built from.
-            hull = Merge3.CoplanarFaces(new GeoSolid3(Triangles(faces, p)), Boolean3.ForWork(tolerance));
+            var triangles = new GeoSolid3(Triangles(faces, p));
+            hull = Merge3.CoplanarFaces(triangles, Boolean3.ForWork(tolerance));
+
+            // Merged within the tolerance, a face can still stand past a point by up to the tolerance again: merged within a tenth
+            // and a hundredth of it where it does, and left as its triangles, which hold every point, where that does not do.
+            for (int step = 0; step < 3 && !HoldsWithin(hull, p, depth, eps); step++)
+            {
+                double planar = Boolean3.ForWork(tolerance).EqualPlanar * (step == 0 ? 0.1 : 0.01);
+                hull = step < 2 ? Merge3.CoplanarFaces(triangles, new Tolerance(eps, tolerance.EqualVector, tolerance.EqualAngleRad, planar)) : triangles;
+            }
+
             return true;
+        }
+
+        /// <summary>
+        /// Whether every point stands within the point tolerance of a hull: a corner of a face of it is on it, one left out of the build
+        /// further than three tolerances below every plane of the hull it was asked of is inside it (the hull only grew, and merging moves
+        /// a face no further than the tolerance), one below the plane of every face is in it, and any other is measured to the faces it
+        /// stands above or within the tolerance below, a point outside a convex body being nearest it on a face it stands above.
+        /// </summary>
+        /// <param name="hull">The hull, its faces merged.</param>
+        /// <param name="p">The points.</param>
+        /// <param name="depth">For each point left out by the build kept, how far above every plane of the hull it was asked of it stood, nought for the others; null where the hull was built again.</param>
+        /// <param name="eps">The point tolerance.</param>
+        private static bool HoldsWithin(GeoSolid3 hull, List<GeoPoint3> p, double[] depth, double eps)
+        {
+            IReadOnlyList<GeoFace3> faces = hull.Faces;
+            var planes = new double[6 * faces.Count];
+            var regions = new Gap3.Region[faces.Count];
+            var corners = new HashSet<GeoPoint3>();
+
+            for (int i = 0; i < faces.Count; i++)
+            {
+                GeoPolygon3 boundary = faces[i].Boundary;
+                GeoVector3 normal = boundary.Normal;
+                GeoPoint3 on = boundary.Vertices[0];
+                planes[6 * i] = normal.X;
+                planes[6 * i + 1] = normal.Y;
+                planes[6 * i + 2] = normal.Z;
+                planes[6 * i + 3] = on.X;
+                planes[6 * i + 4] = on.Y;
+                planes[6 * i + 5] = on.Z;
+
+                foreach (GeoPoint3 corner in boundary.Vertices)
+                {
+                    corners.Add(corner);
+                }
+            }
+
+            for (int k = 0; k < p.Count; k++)
+            {
+                GeoPoint3 point = p[k];
+
+                if ((depth != null && depth[k] < -3.0 * eps) || corners.Contains(point))
+                {
+                    continue;
+                }
+
+                bool above = false;
+
+                for (int i = 0; i < faces.Count && !above; i++)
+                {
+                    above = HeightOver(planes, i, point) > 0.0;
+                }
+
+                if (!above)
+                {
+                    continue;
+                }
+
+                double nearest = double.PositiveInfinity;
+
+                for (int i = 0; i < faces.Count && nearest > eps; i++)
+                {
+                    if (HeightOver(planes, i, point) > -eps)
+                    {
+                        Gap3.Region region = regions[i] ?? (regions[i] = Gap3.Region.Of(faces[i]));
+                        nearest = Math.Min(nearest, region.PointGap(point));
+                    }
+                }
+
+                if (nearest > eps)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// How far a point stands above the plane of a face, given by its unit normal and a corner, six numbers a face.
+        /// </summary>
+        private static double HeightOver(double[] planes, int face, GeoPoint3 point)
+        {
+            int at = 6 * face;
+
+            return planes[at] * (point.X - planes[at + 3]) + planes[at + 1] * (point.Y - planes[at + 4]) + planes[at + 2] * (point.Z - planes[at + 5]);
         }
 
         /// <summary>

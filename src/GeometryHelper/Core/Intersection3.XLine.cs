@@ -73,19 +73,21 @@ namespace GeometryHelper.Core
             return TryIntersectWith(xline, plane, out GeoPoint3 crossing, tolerance) ? new[] { crossing } : new GeoPoint3[0];
         }
 
+        // A line lying level over a flat shape is read so by the part of it over the shape, as a segment lying there is, and not by where
+        // it was cut past the shape.
         internal static GeoPoint3[] GetIntersections(GeoXLine3 xline, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            return Meeting(XLine3.CutPast(xline, triangle, tolerance), triangle, true, tolerance);
+            return Meeting(XLine3.CutPast(xline, triangle, tolerance), triangle, true, tolerance, true);
         }
 
         internal static GeoPoint3[] GetIntersections(GeoXLine3 xline, GeoPolygon3 polygon, Tolerance tolerance)
         {
-            return Meeting(XLine3.CutPast(xline, polygon, tolerance), polygon, true, tolerance);
+            return Meeting(XLine3.CutPast(xline, polygon, tolerance), polygon, true, tolerance, true);
         }
 
         internal static GeoPoint3[] GetIntersections(GeoXLine3 xline, GeoFace3 face, Tolerance tolerance)
         {
-            return Meeting(XLine3.CutPast(xline, face, tolerance), face, true, tolerance);
+            return Meeting(XLine3.CutPast(xline, face, tolerance), face, true, tolerance, true);
         }
 
         internal static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoXLine3 xline, Tolerance tolerance)

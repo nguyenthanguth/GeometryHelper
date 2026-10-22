@@ -19,7 +19,17 @@ namespace GeometryHelper.Geometry
     /// meets it twice. The spline of a circle of radius 100 about the origin, from <see cref="FromCircle(GeoCircle2)"/>, crosses
     /// the line along X through the origin at (100, 0) and (-100, 0), in that order, and at (100, 0) again where it ends, which is
     /// the same place as its start and is not given twice, and a line tangent to a circle touches it once (a million from the
-    /// origin, where the numbers are 1.2E-10 apart, up to three places within a hundredth of a millimetre).
+    /// origin, where the numbers are 1.2E-10 apart, up to three places within a hundredth of a millimetre). A closed spline, its
+    /// first and last control points the same to the bit, has no ends: its seam is a point of it like any other, and the line
+    /// tangent to the circle spline 0.003 of a radian past it, 4.5E-4 from the seam, touches it once.
+    /// </para>
+    /// <para>
+    /// A span of the spline that is an arc of a circle, as each span of <see cref="FromArc(GeoArc2)"/> and
+    /// <see cref="FromCircle(GeoCircle2)"/> is, meets a circle, an arc or such a span of another spline as the circles meet, by the rule
+    /// of <see cref="GeoCircle2.GetIntersections(GeoCircle2, Tolerance)"/>: where the two arcs hold the circles' crossings or touch, and
+    /// nowhere where the two circles are one circle, within the point tolerance of each other all round. That is so where the span's
+    /// circle, read from its control points, is known within a hundredth of the tolerance; a flat arc, of radius 1 000 000 and chord
+    /// 300, whose centre is read to no better than 2.3E-4, is met as any other span is.
     /// </para>
     /// <para>
     /// Where the spline lies along the shape for a length, to rounding, no place is given along the stretch. Against an ellipse or

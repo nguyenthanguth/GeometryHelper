@@ -232,10 +232,26 @@ namespace GeometryHelper.Core
             return shape;
         }
 
+        /// <summary>
+        /// Gets a direction of space lying in a plane as the direction of the plane it is.
+        /// </summary>
+        private static GeoVector2 Flat(FlatFrame frame, GeoVector3 direction)
+        {
+            frame.ToPlane(direction.X, direction.Y, direction.Z, out double x, out double y);
+
+            return new GeoVector2(x, y);
+        }
+
+        /// <summary>
+        /// Gets the spline laid in a plane it lies in, as the plane's own spline, which a ray or a line without ends is cut to the reach of.
+        /// </summary>
+        private static GeoSpline2 Flat(FlatFrame frame, GeoSpline3 spline) => new GeoSpline2(spline.Curve.LaidFlat(frame, spline.Curve.Scale));
+
         internal static SplineShape3 Of(GeoSpline3 spline, GeoLine3 line)
         {
             var shape = new SplineShape3();
             shape.Parts.Add(Segment(line.StartPoint, line.EndPoint));
+            shape.InPlane = frame => Spline2.Of(null, new GeoLine2(Flat(frame, line.StartPoint), Flat(frame, line.EndPoint))).Parts;
 
             return shape;
         }
@@ -244,6 +260,7 @@ namespace GeometryHelper.Core
         {
             var shape = new SplineShape3();
             shape.Parts.Add(Ray(spline, ray));
+            shape.InPlane = frame => Spline2.Of(Flat(frame, spline), new GeoRay2(Flat(frame, ray.Origin), Flat(frame, ray.Direction))).Parts;
 
             return shape;
         }
@@ -252,6 +269,7 @@ namespace GeometryHelper.Core
         {
             var shape = new SplineShape3();
             shape.Parts.Add(Endless(spline, xline));
+            shape.InPlane = frame => Spline2.Of(Flat(frame, spline), new GeoXLine2(Flat(frame, xline.Origin), Flat(frame, xline.Direction))).Parts;
 
             return shape;
         }

@@ -126,7 +126,8 @@ namespace GeometryHelper.Internal.Nurbs
             return true;
         }
 
-        internal override bool IsFree(double other) => other > Curve.Start && other < Curve.End;
+        // A closed curve has no ends: its nearest point moves on round the seam.
+        internal override bool IsFree(double other) => Curve.IsClosed || (other > Curve.Start && other < Curve.End);
 
         internal override void GetBox(out double minX, out double minY, out double minZ, out double maxX, out double maxY, out double maxZ)
         {
@@ -224,15 +225,61 @@ namespace GeometryHelper.Internal.Nurbs
             var visit = new PieceVisit { A = a.Pieces, B = b.Pieces, Hunt = hunt, Found = new List<PiecePair>() };
             a.Index.Pairs(b.Index, ref visit);
             visit.Found.Sort((x, y) => x.Bound != y.Bound ? x.Bound.CompareTo(y.Bound) : x.First != y.First ? x.First.CompareTo(y.First) : x.Second.CompareTo(y.Second));
+            List<PiecePair> found = MeetArcs(a, b, visit.Found, hunt);
             int pairs = 0;
             _inSpace = hunt.Reach > 0.0 && a.Dim == 3 && !NurbsCurve.InOnePlane(a, b, out _);
 
             if (hunt.Reach > 0.0)
             {
-                FindRuns(a, b, visit.Found, hunt);
+                FindRuns(a, b, found, hunt);
             }
 
-            Refine(a, b, visit.Found, hunt, ref pairs);
+            Refine(a, b, found, hunt, ref pairs);
+        }
+
+        /// <summary>
+        /// Meets the pairs of pieces that are both arcs of circles in closed form, as the circles meet (<see cref="ArcPairs"/>), with the
+        /// joins of the second curve's pieces, where it may turn a corner; and gives the other pairs, to be cut, in their order.
+        /// </summary>
+        private List<PiecePair> MeetArcs(NurbsCurve a, NurbsCurve b, List<PiecePair> found, Hunt hunt)
+        {
+            List<PiecePair> rest = null;
+            bool[] joined = null;
+            var point = new double[a.Dim];
+
+            for (int i = 0; i < found.Count; i++)
+            {
+                PiecePair pair = found[i];
+
+                if (!a.TryGetArc(pair.First, out PieceArc first) || !b.TryGetArc(pair.Second, out PieceArc second) || !ArcPairs.Exact(first, second, hunt))
+                {
+                    rest?.Add(pair);
+                    continue;
+                }
+
+                if (rest == null)
+                {
+                    rest = found.GetRange(0, i);
+                    joined = new bool[b.Pieces.Count];
+                }
+
+                if (!(pair.Bound <= hunt.Cutoff) || (Along != null && Along.Coincident(a, pair.First)))
+                {
+                    continue;
+                }
+
+                ArcPairs.Meet(a, pair.First, first, second, this, hunt);
+
+                if (!joined[pair.Second])
+                {
+                    joined[pair.Second] = true;
+                    double join = b.Pieces.From[pair.Second];
+                    b.PointAt(join, point);
+                    Pair(a, b, a.ClosestParameter(point, out _), join, hunt);
+                }
+            }
+
+            return rest ?? found;
         }
 
         /// <summary>
@@ -272,7 +319,7 @@ namespace GeometryHelper.Internal.Nurbs
 
             candidates.Sort();
             BezierPieces pieces = a.Pieces;
-            double smaller = a.Dim == 3 ? Math.Min(Spread(a), Spread(b)) : Math.Min(a.Extent, b.Extent);
+            double smaller = Math.Min(Spread(a), Spread(b));
             double stretch = 0.25 * smaller;
             double step = stretch / 16.0;
             // In space a stretch need only stay within the reach: the leasts of the distance in it are places only where the two would
@@ -393,21 +440,23 @@ namespace GeometryHelper.Internal.Nurbs
         }
 
         /// <summary>
-        /// Gets the size of a curve in space the stretches along are measured by, the same however the curve is turned: the furthest any
-        /// control point is from the first. The span along the axes, which the plane goes by, changes as the curve is turned, by as much as
-        /// the square root of two for a square turned an eighth of a turn, and with it the stretches looked at and where they end, so that a
-        /// pair answered in the floor gave a place more or fewer in a tilted plane.
+        /// Gets the size of a curve the stretches along are measured by, the same however the curve is turned: the furthest any control
+        /// point is from the first. The span along the axes changes as the curve is turned, by as much as the square root of two for a
+        /// square turned an eighth of a turn, and with it the stretches looked at and where they end, so that a pair answered in the floor
+        /// gave a place more or fewer in a tilted plane, and in the plane 14 of 60 copies of a spline moved by a few ten-thousandths gave a
+        /// place more or fewer turned by 0.7 of a radian.
         /// </summary>
         private static double Spread(NurbsCurve curve)
         {
             double[] points = curve.Points;
+            int dim = curve.Dim;
             double furthest = 0.0;
 
-            for (int i = 3; i < points.Length; i += 3)
+            for (int i = dim; i < points.Length; i += dim)
             {
                 double dx = points[i] - points[0];
                 double dy = points[i + 1] - points[1];
-                double dz = points[i + 2] - points[2];
+                double dz = dim == 3 ? points[i + 2] - points[2] : 0.0;
                 furthest = Math.Max(furthest, dx * dx + dy * dy + dz * dz);
             }
 
@@ -1034,12 +1083,13 @@ namespace GeometryHelper.Internal.Nurbs
                 // they are cut until they are straight to a billionth. When places are wanted, two straight parts that cannot meet (the bound
                 // between them is more than the snap) have a crossing in neither, and a near touch within the reach has Newton's method to
                 // find it: they are measured once they are small beside the reach, not cut to a billionth, which for two curves a hair
-                // under the reach apart would pair every part with hundreds of the other's. In space two parts that cannot meet are measured
-                // once both are no larger than the reach, straight or not: two places in them would be one, and round a cusp, where a part is
-                // straight only when it is a millionth of the curve, two curves within the reach of each other would pair every such part of
-                // the one with every such part of the other.
+                // under the reach apart would pair every part with hundreds of the other's. Two parts that cannot meet are measured once both
+                // are no larger than the reach, straight or not, in the plane as in space: two places in them would be one, and round a cusp,
+                // where a part is straight only when it is a millionth of the curve, two curves within the reach of each other would pair every
+                // such part of the one with every such part of the other; a tight degree-four spline and its copy moved 0.00074 took two
+                // million pairs and 26 s in the plane where the stretch along them ended short of the cusp, and take 0.3 s.
                 bool apartForGood = !hunt.OnlyNearest && task.Bound > hunt.Snap
-                    && ((x.Flat && y.Flat && x.Diagonal <= 30.0 * hunt.Reach && y.Diagonal <= 30.0 * hunt.Reach) || (a.Dim == 3 && x.Diagonal <= hunt.Reach && y.Diagonal <= hunt.Reach));
+                    && ((x.Flat && y.Flat && x.Diagonal <= 30.0 * hunt.Reach && y.Diagonal <= 30.0 * hunt.Reach) || (x.Diagonal <= hunt.Reach && y.Diagonal <= hunt.Reach));
 
                 if (task.Depth >= MostDepth || (x.Fine && y.Fine) || (x.Flat && y.Flat && x.Apart(y)) || apartForGood)
                 {
@@ -1290,12 +1340,13 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 int sign = 0;
                 bool clear = false;
+                double from = a.AcrossSeam(knot, side);
 
                 for (double step = 1E-3 * hunt.Reach; step <= 2.0 * a.Extent && !clear; step *= 2.0)
                 {
-                    double further = a.Clamp(knot + side * step / speed);
+                    double further = a.Around(from + side * step / speed);
 
-                    if (further == knot)
+                    if (further == from)
                     {
                         break;
                     }
@@ -1341,7 +1392,7 @@ namespace GeometryHelper.Internal.Nurbs
                         clear = Math.Abs(offset) > flank;
                     }
 
-                    if (further == a.Start || further == a.End)
+                    if (!a.IsClosed && (further == a.Start || further == a.End))
                     {
                         break;
                     }
@@ -1381,9 +1432,10 @@ namespace GeometryHelper.Internal.Nurbs
 
             for (int side = -1; side <= 1; side += 2)
             {
-                double other = a.Clamp(knot + side * step);
+                double from = a.AcrossSeam(knot, side);
+                double other = a.Around(from + side * step);
 
-                if (other == knot)
+                if (other == from)
                 {
                     continue;
                 }
