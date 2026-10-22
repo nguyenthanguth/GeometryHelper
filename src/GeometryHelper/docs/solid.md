@@ -1153,6 +1153,19 @@ default and within its own tolerance, and holds its volume within the tolerance 
 result open within its own tolerance is welded too, where that closes it, and one closed within the default is left
 as it is. `Validate()` shows where a body is open, and why.
 
+A weld that would take a corner off the plane of a face it is a corner of keeps the face on its plane instead, where
+that closes: the face keeps its corner, a face beside it moving the corner along its own plane keeps it as well, and
+the step a few thousandths across left between them is closed by a face of its own. A column 300 by 300 joined, within
+a hundredth, to a beam 383 wide and 366 high whose end stands 0.008 clear of the column's face had the parts of the
+end beyond the column tilted into wedges, 999.8 cubic millimetres over the two where filling the gap holds 878; it
+holds the two and the gap filled now. A box less a cube in its corner had its side, 4 000 square millimetres, taken
+off flat by a corner of the top 0.0099 from its edge, and fanned it held 6.5 too little; the sliver between them is a
+face of its own now. The weld is made as before where the steps do not close as strips a few tolerances wide, where a
+face it builds runs back over itself or two of its faces lie over each other in one plane, where keeping the faces on
+their planes would move the volume further than tilting them, and where the tilt is not worth it: no face tilted by more
+than a hundredth of the tolerance, or the tilt moving the volume by no more than a tenth of the tolerance times the
+area of the faces it tilts.
+
 **Closed as `Validate` reads it, or not made.** `IsClosed()` matches the ends of the edges first, made one within the
 tolerance, and calls two copies of an edge about the tolerance apart one edge, where `Validate()`, matching them along a
 line, reads two, each open. A boolean of two closed bodies takes what it makes as closed only where `Validate` reads it
@@ -1166,9 +1179,12 @@ only where its volume adds up: a union holds the two less their common part, a d
 part, a common part the two less their union, the other worked out by the same boolean at the same tolerance, within the
 tolerance times the area of the common part's skin and what the weld moved. The union of a box 100 by 60 by 40 and a
 cube 1.25 across standing out through three of its faces a hair more than the tolerance came out open and, closed, held
-240 001.2065, the cube counted whole, where the two less their common part hold 240 000.0032, and is not worked out; two
-cubes of 100 side by side 0.01 apart, turned, closed across the gap at a tolerance of a hundredth into a body of 2 000
-000, where the two share nothing at the tolerance and hold 1 999 900, and are not worked out either. What a weld closes
+240 001.2065, the cube counted whole, where the two less their common part hold 240 000.0032, and is not worked out. A
+union of two bodies lying face to face within the tolerance of each other and apart, welded closed, is taken where it
+holds the two and the gap filled over where their faces lie against each other. Two cubes of 100 side by side 0.01
+apart, turned, closed across the gap at a tolerance of a hundredth into a body of 2 000 000, the two, 1 999 900, and
+the gap, 0.01 by 10 000 square millimetres. What two bodies exactly the tolerance apart join into still depends on where
+they lie: turned another way, the two cubes hold 1 999 933.3, part of the gap. What a weld closes
 from a body that adds up is taken, and can hold a volume between the readings of a feature exactly the tolerance thick:
 the union of a cube of 100 and a block 120 by 120 by 50 running 0.001 into its top holds 1 720 012.73, the two with
 nothing in common at the tolerance being 1 720 014.4 and the cube and the block beyond it 1 720 004.4. A result that
@@ -1178,12 +1194,22 @@ of the tolerance off one to three of their faces, turned or not, far from the or
 cube cut and the cube taken with the outside, and 6 are reported as not worked out. No result closed to both moved, by a
 bit, across 40 000 differences, unions, common parts and cuttings of openings of those boxes.
 
+Where both bodies would be cut by every plane of both, and that costs far more than cutting one of them did, which gave
+a result that came out open, that result is sealed first and taken where it closes and adds up. A beam 2 000 by 200 by
+300 less a bar 16 across bent through a right angle in forty steps, its end 0.001 short of the beam's floor, cut by the
+664 planes of both, ran for minutes into tens of thousands of cells; it takes under a second now.
+
 **Thinner than the tolerance is nothing; thicker is cut.** A void, a chip or a slab no thicker than the point
 tolerance is within the tolerance of nothing, and a boolean takes no notice of it: a cube of 100 less a box 40 by 30
 and 0.0005 thick inside it is the cube. One thicker than the tolerance and a trillionth of the size of the
-coordinates is cut however thin: less a box 0.0015 thick, the cube holds 999 998.2, the two have that box in common,
-and joined to a block running 0.0015 into its top they hold the chip once. One exactly the tolerance thick on a
-turned body is that thick to a few bits either way, and is read as no thicker. An opening whose face stands the
+coordinates of the two bodies is cut however thin: less a box 0.0015 thick, the cube holds 999 998.2, the two have that
+box in common, and joined to a block running 0.0015 into its top they hold the chip once. One exactly the tolerance
+thick on a turned body is that thick to a few bits either way, and is read as no thicker. The trillionth is of the two
+bodies' coordinates, whichever is cut, so the common part and both differences read a chip one way, and each
+difference and the common part add up to the body it was taken from: a chip 0.0010000001 deep at the corner of a turned
+cube of 100 and one as deep along its edge are both read as no thicker than a tolerance of 0.001, where the corner was
+cut. A union of the two holds anything from the two less such a chip to the two, the seam where they meet read part
+way. An opening whose face stands the
 tolerance off the body's, to the last bit, is read as touching it, as one a hair nearer is: a box 100 by 60 by 40
 with an opening 0.1 across 0.001 off three of its faces comes out closed, the opening taken with the outside,
 239 999.998 97, where it came out open 7.66 short.

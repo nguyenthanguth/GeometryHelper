@@ -6,6 +6,72 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The weld that closes what a boolean gives within the default tolerance keeps every face on its plane where it
+can. It made the corners within the tolerance of each other one, each group at the corner of it that moved the volume
+least, and put a corner on another face's edge where it stood within the tolerance of it; a corner so moved off the plane
+of a face it was a corner of tilted the face, or took it off flat, by up to the tolerance. A column 300 by 300 joined,
+within a hundredth, to a beam 383 wide and 366 high whose end stood 0.008 clear of the column's face had the two strips of
+the end beyond the column tilted into wedges, and the union held 999.8 cubic millimetres more than the two, where filling
+the gap holds 878; and a box 100 by 60 by 40 less a cube 0.89 across the tolerance inside three of its faces had a corner
+of its top 0.0099 from the edge put on its side, 4 000 square millimetres taken off flat, and held 6.5 less than the box
+less the cube. A face now keeps its corner where the weld would move it off the face's plane, a face beside it moving the
+corner along its own plane keeps it too, and the step a few thousandths across left between them is closed by a face of
+its own. That weld is taken where every step is a strip within four tolerances of its longest edge, no face it builds runs
+back over itself and no two of its faces lie over each other in one plane, what comes of it closes wound alike,
+and it moves the volume less than tilting the faces does; and it is tried only where the tilt is worth it, the faces
+tilted by more than a hundredth of the tolerance and the tilt moving the volume by more than a tenth of the tolerance times
+their area. Otherwise the weld is made as before. The union is the two and the gap filled, to a millionth, and the box less
+the cube 239 999.28. Of 1 600 unions and differences of a column and a beam the tolerance into or clear of it at 0.01,
+placed at random, 62 held a volume outside both readings and 39 do now, as they did; of 8 000 differences of boxes less
+such cubes, 170 were valid outside the readings, by up to 22.6, and 7 are between them now; of 5 400 unions, common parts
+and differences of a cube turned at random with chips, slabs and gaps exactly the tolerance thick, 4 unions valid below the
+readings are between them. Of 10 000 unions and differences of an I-beam framing into a column, 74 moved, none out of
+the readings and two into them, and none of 12 000 results of I-beams, plates and bolt holes on a column moved.
+
+The weld that keeps the faces on their planes, as first made, folded some bodies `Validate` passes: a union of a cube of
+100 and another tilted 0.0099 off its face, at a tolerance of a hundredth, closed a step lying on the first cube's top,
+facing down over it, with 100 000 square millimetres of surface where the union has 99 998.02 and two faces running back
+over themselves; 4 of 896 unions of bodies the tolerance apart and 38 of 12 000 results of I-beams came out so. And a
+column and a beam framing 0.002 into its flange, the beam's flange beyond the flange's edge, closed two steps 0.002 by 16
+lying on the side of the column's flange facing the other way, which the check, at a millionth, read as lying in another
+plane and so as not over it; 18 of 10 000 results of I-beams came out so. Any two faces of that weld lying over each
+other in one plane, within the planar tolerance and either way round, or that cannot be told apart, turn it down now.
+Faces lying over each other in one plane, either way round, are in as many results as before and no more: 5 of 896
+unions of bodies the tolerance apart, 55 of 10 000 results of I-beams and 157 of 600 cuts of openings.
+
+**FIXED.** A beam less a bent bar no longer runs for minutes. Cut one body, the bar's way, the difference came out open by
+the bar's end, 0.001 off the beam's floor, holding what it should; cut by every plane of both, 664 planes, it ran into tens
+of thousands of cells and most of a gigabyte in half a minute. Where cutting both by every plane of both would take more
+than twice the planes and sixteen of the cut that gave an open result, that result is sealed first and taken where it
+closes as `Validate` reads it and adds up against the common part; otherwise both are cut as before. The beam 2 000 by 200 by 300 less the bar 16 across
+bent through a right angle in forty steps holds 119 941 219.82 in a seventh of a second after its common part, 0.7 cold;
+the 69 other bars of the run are the same to the bit.
+
+**CHANGED.** A union of two bodies lying face to face within the tolerance of each other and apart, which came out open on
+the way and was welded closed, is taken where it holds the two and the gap filled over where their faces lie against each
+other. Checked against the two less their common part only, such a union was not worked out: two cubes of 100 side by side
+0.01 apart, turned, joined within a hundredth, closed across the gap at 2 000 000, the two being 1 999 900 and the gap
+100; it is taken now. A union that holds neither is not worked out, as before, and one that closed as it came is taken as
+it was. So what two bodies exactly the tolerance apart join into still depends on where they lie: the two cubes 0.01
+apart, not turned or far from the origin, hold 2 000 000, the two and the gap; turned another way, 1 999 933.3, part of
+the gap; turned and far, 1 999 950; and at 0.001 one placement turned is still not worked out. Of 5 400 unions, common
+parts and differences of a cube turned at random with chips, slabs and gaps exactly the tolerance thick, 94 unions were
+not worked out and 11 are; 79 of the 81 cubes the tolerance apart are joined across the gap, and no union that was made
+moved for it.
+
+**CHANGED.** A boolean reads a void, a chip or a slab as thicker than the tolerance by a trillionth of the size of the
+coordinates of the two bodies, whichever it cuts, where it read it by those of the corners of each cell. A chip 0.0010000001
+deep at the corner of a turned cube of 100 was cut while one as deep along its edge was not, and of a chip 1.17E-10 deeper
+than a tolerance of 0.01 at a corner the common part, cutting the block, was cut and the difference, cutting the cube, was
+not, so that the two held it twice between them. The common part and both differences read such a chip one way now, cut
+or nothing in each, so each difference and the common part add up to the body it was taken from: of 400 chips at depths
+across that band, at corners, along edges and inside a face, one read two ways, and none does. A union is not held to
+that: where the chip is nothing to the common part, the union holds anything from the two less the chip to the two, the
+seam where they meet read part way, and of 400 chips a tolerance deep to a part in 1E-8 either way, 182 unions hold less
+than the two with nothing in common, by up to the chip, 12 cubic millimetres, and 11 hold another volume the other way
+round, as 183 and 11 did. The corner chip 0.0010000001 deep is read as no thicker than the tolerance, as the edge chip is; a
+feature further past the tolerance than the band is cut as before.
+
 **CHANGED.** A segment, a ray, a line without ends or a straight chain against a triangle, a polygon or a face is given
 a point where it touches the region within the point tolerance without crossing it, as an arc and a box are: the point
 of it nearest the region. `GetIntersections` of `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoPolyline3` and `GeoEdge3`, and

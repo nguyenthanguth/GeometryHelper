@@ -54,10 +54,17 @@ namespace GeometryHelper.Core
     /// </para>
     /// <para>
     /// A void, a chip or a slab no thicker than the point tolerance is within the tolerance of nothing and changes
-    /// nothing; one thicker than the tolerance and a trillionth of the size of the coordinates is cut however thin: a
-    /// cube of 100 less a box 40 by 30 and 0.0005 thick inside it is the cube, and less one 0.0015 thick holds
-    /// 999 998.2. One exactly the tolerance thick, on a turned body that thick to a few bits either way, is read as no
-    /// thicker.
+    /// nothing; one thicker than the tolerance and a trillionth of the size of the coordinates of the two bodies is cut
+    /// however thin: a cube of 100 less a box 40 by 30 and 0.0005 thick inside it is the cube, and less one 0.0015 thick
+    /// holds 999 998.2. One exactly the tolerance thick, on a turned body that thick to a few bits either way, is read as
+    /// no thicker, the same way by the common part and both differences; a union of the two can hold anything from the two
+    /// less it to the two.
+    /// </para>
+    /// <para>
+    /// A union of two bodies lying face to face within the tolerance of each other and apart, welded closed, is taken where
+    /// it holds the two and the gap filled: two cubes of 100 side by side 0.01 apart, turned, joined within a hundredth, hold
+    /// 2 000 000. What two bodies exactly the tolerance apart join into still depends on where they lie: turned another way
+    /// the two cubes hold 1 999 933.3, part of the gap.
     /// </para>
     /// </summary>
     public static partial class Boolean3
@@ -169,10 +176,12 @@ namespace GeometryHelper.Core
 
             // One body cut, beyond the other, and the other whole.
             GeoSolid3 openCut = null;
+            int fewest = 0;
+            bool sealedOnce = false;
 
             if (TryCutOpenings(first, out GeoSolid3 a, tolerance) && TryCutOpenings(second, out GeoSolid3 b, tolerance))
             {
-                bool? found = CombineCuttingOne(a, b, true, tolerance, out result, out _);
+                bool? found = CombineCuttingOne(a, b, true, tolerance, out result, out _, out fewest);
 
                 // A union one body cut gave of a volume no union can have is worked out by cutting both instead.
                 if (result != null && Implausible("union", result, a, b, tolerance) is string why)
@@ -193,12 +202,19 @@ namespace GeometryHelper.Core
 
                     GeometryHelperLog.Debug("Boolean3: cutting one body, the union came out open to Validate; both are cut by every plane of both instead.");
                     open = result;
+                    sealedOnce = true;
                 }
 
                 openCut = result;
             }
 
             List<GeoPlane3> planes = SharedPlanes(first, second, tolerance);
+
+            // Sealed once already where it came out open after sealing, it is not sealed again.
+            if (!sealedOnce && IsHeavy(planes, fewest, openCut) && TakesOpenCut("union", openCut, first, second, tolerance, path, out result))
+            {
+                return true;
+            }
 
             List<GeoFace3> kept = new List<GeoFace3>();
             var owners = new List<int>();
@@ -565,10 +581,12 @@ namespace GeometryHelper.Core
 
             // One body cut: the subject beyond the tool, or the subject whole less the tool within it.
             GeoSolid3 openCut = null;
+            int fewest = 0;
+            bool sealedOnce = false;
 
             if (TryCutOpenings(subject, out GeoSolid3 a, tolerance) && TryCutOpenings(tool, out GeoSolid3 b, tolerance))
             {
-                bool? found = CombineCuttingOne(a, b, false, tolerance, out result, out bool untouched);
+                bool? found = CombineCuttingOne(a, b, false, tolerance, out result, out bool untouched, out fewest);
 
                 if (untouched)
                 {
@@ -597,12 +615,19 @@ namespace GeometryHelper.Core
 
                     GeometryHelperLog.Debug("Boolean3: cutting one body, the difference came out open to Validate; both are cut by every plane of both instead.");
                     open = result;
+                    sealedOnce = true;
                 }
 
                 openCut = result;
             }
 
             List<GeoPlane3> planes = SharedPlanes(subject, tool, tolerance);
+
+            // Sealed once already where it came out open after sealing, it is not sealed again.
+            if (!sealedOnce && IsHeavy(planes, fewest, openCut) && TakesOpenCut("difference", openCut, subject, tool, tolerance, path, out result))
+            {
+                return true;
+            }
 
             var stuck = new List<GeoPlane3>();
             List<GeoSolid3> cells = SplitIntoCells(subject, planes, tolerance, out bool clean, stuck);
@@ -764,6 +789,15 @@ namespace GeometryHelper.Core
                     return true;
                 }
 
+                // A union of two bodies lying face to face a gap within the tolerance apart joins them across it: welded
+                // closed, it holds the two and the gap filled over where they face each other.
+                double bridged = operation == "union" ? Bridged(first, second, tolerance) : 0.0;
+
+                if (bridged > 0.0 && Math.Abs(v - (expected + bridged)) <= bound)
+                {
+                    return true;
+                }
+
                 unworkable = $"it came out open on the way, and holds {v:R} where the two less their {against} hold {expected:R}, within {bound:R}";
             }
             else
@@ -775,6 +809,61 @@ namespace GeometryHelper.Core
             open = open ?? result;
             result = null;
             return false;
+        }
+
+        /// <summary>
+        /// Gets the volume a union fills bridging two bodies that lie face to face within the tolerance of each other and
+        /// apart: over each patch where a face of one lies against a face of the other, its area times how far the two
+        /// stand apart over it; nought where either carries openings.
+        /// </summary>
+        /// <remarks>
+        /// Two cubes of 100, the second's face 0.001 clear of the first's, joined within a thousandth, came out open by the
+        /// gap round the face and, welded closed, held 2 000 000: the two, 1 999 990, and the gap, 0.001 by 10 000 square
+        /// millimetres. Checked against the two less their common part only, it was not taken.
+        /// </remarks>
+        private static double Bridged(GeoSolid3 first, GeoSolid3 second, Tolerance tolerance)
+        {
+            if (first.Openings.Count > 0 || second.Openings.Count > 0)
+            {
+                return 0.0;
+            }
+
+            double bridged = 0.0;
+            GeoAabb3 secondBox = second.GetAabb();
+
+            // A gap exactly the tolerance wide is that wide to a few bits either way.
+            Tolerance gap = Splition3.OnPlaneWithinRounding(first, Splition3.OnPlaneWithinRounding(second, tolerance));
+
+            foreach (GeoFace3 face in first.Faces)
+            {
+                GeoAabb3 faceBox = face.GetAabb();
+
+                if (!faceBox.CollidesWith(secondBox, tolerance))
+                {
+                    continue;
+                }
+
+                GeoVector3 normal = face.Boundary.Normal;
+                GeoPlane3 plane = face.GetPlane();
+
+                foreach (GeoFace3 other in second.Faces)
+                {
+                    if (normal.DotProduct(other.Boundary.Normal) >= 0.0 || !faceBox.CollidesWith(other.GetAabb(), tolerance) || !LiesIn(plane, other, gap))
+                    {
+                        continue;
+                    }
+
+                    // The patch lies on this face's plane, and the other's stands off it outwards where the two are apart.
+                    GeoPlane3 across = other.GetPlane();
+
+                    foreach (GeoFace3 patch in Intersect(face, other, gap))
+                    {
+                        bridged += patch.Area * Math.Max(0.0, across.SignedDistanceTo(patch.Centroid));
+                    }
+                }
+            }
+
+            return bridged;
         }
 
         /// <summary>
@@ -900,6 +989,57 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Whether cutting both bodies by every plane of both costs far more than cutting one of them did, where that gave a
+        /// result that came out open: more planes than twice those near the body fewer come near, and sixteen, as
+        /// <see cref="CombineCuttingOne"/> reads the other way round as too dear.
+        /// </summary>
+        private static bool IsHeavy(List<GeoPlane3> planes, int fewest, GeoSolid3 openCut)
+            => openCut != null && planes.Count > 2 * fewest + 16;
+
+        /// <summary>
+        /// Takes the open result of cutting one body, sealed, where cutting both by every plane of both would cost far more
+        /// (<see cref="IsHeavy"/>): only where it holds a volume the operation can give, closes as
+        /// <see cref="GeoSolid3.Validate(Tolerance)"/> reads it sealed, and adds up against the common part, or the union for a
+        /// common part (<see cref="AddsUp"/>); false otherwise, for the boolean to cut both as it did.
+        /// </summary>
+        /// <remarks>
+        /// A beam 2 000 by 200 by 300 less a bar 16 across bent through a right angle in forty steps, its end 0.001 short of
+        /// the beam's floor, came out open cut the bar's way, holding what it should to a hundredth, and cut by the 664
+        /// planes of both ran for minutes into tens of thousands of cells; the bar's end, the tolerance off the floor,
+        /// sealed onto it, the difference takes 119 941 220 cubic millimetres in under a second.
+        /// </remarks>
+        private static bool TakesOpenCut(string operation, GeoSolid3 openCut, GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, OpenPath path, out GeoSolid3 result)
+        {
+            result = null;
+
+            if (Implausible(operation, openCut, first, second, tolerance) != null)
+            {
+                return false;
+            }
+
+            bool taken = path.Taken;
+            GeoSolid3 sealedCut = Weld3.Sealed(openCut, tolerance);
+
+            if (ClosesOrSeals(operation, ref sealedCut, first, second, tolerance, path) && Shells3.Closes(sealedCut, tolerance))
+            {
+                // It came out open on the way, so its volume is checked whether the weld closed it or not.
+                path.Taken = true;
+                GeoSolid3 none = null;
+
+                if (AddsUp(operation, ref sealedCut, first, second, tolerance, path, out _, ref none))
+                {
+                    GeometryHelperLog.Debug($"Boolean3: cutting one body, the {operation} came out open, and sealed it adds up; both are not cut by every plane of both, which would cost far more.");
+                    result = sealedCut;
+                    return true;
+                }
+            }
+
+            path.Taken = taken;
+            path.Moved = 0.0;
+            return false;
+        }
+
+        /// <summary>
         /// Joins two bodies without openings, or takes the second out of the first, cutting one of them only.
         /// </summary>
         /// <param name="a">The first body; for a difference, the one material is taken from.</param>
@@ -912,6 +1052,7 @@ namespace GeometryHelper.Core
         /// nothing from the first, and <paramref name="result"/> is left null for the caller to hand the first back as
         /// it came.
         /// </param>
+        /// <param name="fewest">How many planes of the other come near the body fewer come near, of the two.</param>
         /// <returns>
         /// Whether anything is left, as the public methods report it; null when neither body could be cut cleanly, or
         /// two closed bodies came out open whichever was cut, for the caller to cut both by every plane of both
@@ -932,13 +1073,14 @@ namespace GeometryHelper.Core
         /// smaller a few thousandths off its own faces, came back twenty thousand cubic millimetres larger than it was.
         /// </para>
         /// </remarks>
-        private static bool? CombineCuttingOne(GeoSolid3 a, GeoSolid3 b, bool union, Tolerance tolerance, out GeoSolid3 result, out bool untouched)
+        private static bool? CombineCuttingOne(GeoSolid3 a, GeoSolid3 b, bool union, Tolerance tolerance, out GeoSolid3 result, out bool untouched, out int fewest)
         {
             result = null;
             untouched = false;
 
             List<GeoPlane3> cuttingA = PlanesNear(b, a.GetAabb(), tolerance);
             List<GeoPlane3> cuttingB = PlanesNear(a, b.GetAabb(), tolerance);
+            fewest = Math.Min(cuttingA.Count, cuttingB.Count);
 
             // A difference cuts the body material is taken from first where that costs about the same: its cells beyond
             // the other are the result as they are, where the body taken away cut leaves the other whole, its faces less
@@ -1667,10 +1809,11 @@ namespace GeometryHelper.Core
         private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, Tolerance tolerance, List<int> owners = null, int offset = 0)
         {
             List<GeoFace3> faces = new List<GeoFace3>();
+            double rounding = Splition3.Rounding(owner);
 
             for (int c = 0; c < cells.Count; c++)
             {
-                if (IsMaterial(cells[c], owner, tolerance, out _, out _))
+                if (IsMaterial(cells[c], owner, tolerance, rounding, out _, out _))
                 {
                     faces.AddRange(cells[c].Faces);
                     Own(owners, offset + c, cells[c].Faces.Count);
@@ -1727,9 +1870,12 @@ namespace GeometryHelper.Core
             List<GeoFace3> faces = new List<GeoFace3>();
             anyInside = false;
 
+            // The rounding of both bodies, whichever is cut: a chip is the same chip to every operation of the two.
+            double rounding = Math.Max(Splition3.Rounding(owner), Splition3.Rounding(against));
+
             for (int c = 0; c < cells.Count; c++)
             {
-                if (!IsMaterial(cells[c], owner, tolerance, out GeoPoint3 sample, out Tolerance? fine))
+                if (!IsMaterial(cells[c], owner, tolerance, rounding, out GeoPoint3 sample, out Tolerance? fine))
                 {
                     continue;
                 }
@@ -1763,12 +1909,16 @@ namespace GeometryHelper.Core
         /// <param name="cell">The cell.</param>
         /// <param name="owner">The body the cell was cut from.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <param name="rounding">
+        /// What rounding the coordinates of the bodies of the operation can add to the tolerance (<see cref="Splition3.Rounding"/>):
+        /// a cell no thicker than the two together is within the tolerance of nothing.
+        /// </param>
         /// <param name="sample">A point inside the cell.</param>
         /// <param name="fine">
         /// The tolerance the sample is read within where the tolerance given reads it on the skin of another body; null where
         /// that reading stands. See <see cref="LocateSample"/>.
         /// </param>
-        private static bool IsMaterial(GeoSolid3 cell, GeoSolid3 owner, Tolerance tolerance, out GeoPoint3 sample, out Tolerance? fine)
+        private static bool IsMaterial(GeoSolid3 cell, GeoSolid3 owner, Tolerance tolerance, double rounding, out GeoPoint3 sample, out Tolerance? fine)
         {
             fine = null;
 
@@ -1780,12 +1930,16 @@ namespace GeometryHelper.Core
             // sides, and so of the skin of a body the cell lies within as of one it lies beyond; it is read within a quarter
             // of its thickness, as it was found. Read within the tolerance, a void 0.0015 thick inside a body, a box taken out
             // of it, was on the box's skin and not in it, and the difference left the body whole. A cell no thicker than the
-            // tolerance, and what rounding its coordinates can add, is within the tolerance of nothing, and reads as it did:
-            // a chip exactly the tolerance deep on a turned body is that deep to a few bits either way, and read finer in some
-            // of its cells and not in others, it left a difference wound two ways, and took from a column less a beam lying
-            // the tolerance into it 30 cubic millimetres more than the two share. A point found further than the tolerance
-            // inside its cell is read within half of it where the tolerance reads it on the other body's skin: in a void
-            // 0.002 thick it is the tolerance from both sides, more than it to the cell and no more than it to the box.
+            // tolerance, and what rounding the coordinates of the two bodies can add, is within the tolerance of nothing, and
+            // reads as it did: a chip exactly the tolerance deep on a turned body is that deep to a few bits either way, and
+            // read finer in some of its cells and not in others, it left a difference wound two ways, and took from a column
+            // less a beam lying the tolerance into it 30 cubic millimetres more than the two share. Read by the rounding of
+            // each cell's own corners, a chip 0.0010000001 deep at the corner of a turned cube was cut while one as deep along
+            // its edge was not, and of another chip the common part was cut where the difference was not, each from cells of
+            // its own body: the rounding is the bodies', so that a chip reads one way to every operation. A point found further
+            // than the tolerance inside its cell is read within half of it where the tolerance reads it on the other body's
+            // skin: in a void 0.002 thick it is the tolerance from both sides, more than it to the cell and no more than it to
+            // the box.
             if (TryGetInteriorPoint(cell, tolerance, out sample))
             {
                 double half = tolerance.EqualPoint / 2.0;
@@ -1798,7 +1952,7 @@ namespace GeometryHelper.Core
                     return false;
                 }
 
-                if (depth > tolerance.EqualPoint + Splition3.Rounding(cell))
+                if (depth > tolerance.EqualPoint + rounding)
                 {
                     double quarter = depth / 4.0;
                     fine = new Tolerance(quarter, Math.Min(tolerance.EqualVector, quarter), tolerance.EqualAngleRad, quarter);

@@ -71,10 +71,10 @@ namespace GeometryHelper.UnitTest.Solid
             => new GeoObb3(new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), x1 - x0, y1 - y0, z1 - z0).ToSolid();
 
         [Fact]
-        public void TwoCubesTheToleranceApartTurned_AreJoinedAsTheTwoLessTheirCommonPartOrNotMade()
+        public void TwoCubesTheToleranceApartTurned_AreJoinedAcrossTheGapOrNotMade()
         {
-            // At a tolerance of a hundredth the two share nothing, so a union holds the two, 1 999 900; bridging the gap, 2 000
-            // 000, adds up to no reading of the two less their common part, and is not taken.
+            // At a tolerance of a hundredth the two share nothing and lie face to face the tolerance apart: welded closed, the
+            // union holds the two, 1 999 900, and the gap filled, 0.01 by 10 000, 2 000 000.
             var tolerance = new Tolerance(0.01, 1E-5, 1E-5, 0.01);
             GeoTransform3 turn = GeoTransform3.RotationAxis(new GeoPoint3(39.68698174678114, 0, 0), new GeoVector3(0.10283012017739479, 0.3881510584094334, -0.20000974417338602), 3.4686874055623482);
             GeoSolid3 a = Box(0, 0, 0, 100, 100, 100).TransformBy(turn);
@@ -83,7 +83,7 @@ namespace GeometryHelper.UnitTest.Solid
             if (a.TryUnion(b, out GeoSolid3 union, tolerance, out BooleanOutcome outcome))
             {
                 Assert.True(union.Validate(tolerance).IsValid, union.Validate(tolerance).ToString());
-                Assert.Equal(1999900.0, union.GetVolume(tolerance), 4);
+                Assert.Equal(2000000.0, union.GetVolume(tolerance), 4);
             }
             else
             {

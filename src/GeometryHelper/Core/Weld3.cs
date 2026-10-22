@@ -174,6 +174,14 @@ namespace GeometryHelper.Core
                 }
             }
 
+            // The rings as they came, for a weld that keeps every face on its plane; see OnTheirPlanes.
+            var given = new List<List<int>>[faces.Count];
+
+            for (int f = 0; f < faces.Count; f++)
+            {
+                given[f] = new List<List<int>>(rings[f]);
+            }
+
             int[] to = Representatives(points, corners, reach);
             int[] wider = null;
 
@@ -247,6 +255,49 @@ namespace GeometryHelper.Core
                 return false;
             }
 
+            double bound = asValidated ? Swept(points, corners, to, wider, reach) : wide * solid.GrossSurfaceArea;
+            double rounding = Splition3.Rounding(solid);
+
+            // A weld that takes a corner off the plane of a face it is a corner of tilts the face, and moves the volume by
+            // the wedge it sweeps; one keeping every face on its plane, the steps between closed by faces of their own, is
+            // taken first where it closes wound alike and moves the volume less. Only where the tilt is worth it: faces tilted
+            // by more than a hundredth of the tolerance, and the weld moving the volume by more than a tenth of the tolerance
+            // times their area. The flange of a column 4 000 long, tilted at a corner where a beam met it, moved a union by 4
+            // to 370 cubic millimetres, a thirtieth of that or less, and is welded as before; kept on its plane, the flange of
+            // one with a beam framing a fifth of the tolerance into it moved the volume by 14.2 where tilting it moved it by
+            // 3.7. The strips of a beam's end, 30 000 square millimetres, moved a union by 707, and a box's side, 4 000, a
+            // difference by 6.5.
+            double tilted = TiltedArea(faces, rings, points, Math.Max(rounding, 0.01 * reach));
+            double tilting = tilted > 0.0 ? Math.Abs(new GeoSolid3(built).GetSignedVolume() - solid.GetSignedVolume()) : 0.0;
+
+            if (tilting > 0.1 * reach * tilted)
+            {
+                List<GeoFace3> flat = OnTheirPlanes(faces, given, points, corners, to, wider, rounding, wide, pieces);
+
+                if (flat != null && Shells3.ClosesAlike(flat, fine) && Accept(solid, flat, work, fine, asValidated, bound, out welded, out shift)
+                    && shift <= tilting + 1E-9 * Math.Abs(solid.GetSignedVolume()))
+                {
+                    return true;
+                }
+            }
+
+            return Accept(solid, built, work, fine, asValidated, bound, out welded, out shift);
+        }
+
+        /// <summary>
+        /// Takes the faces a weld built where they close within the tolerance and within the finer one, as
+        /// <see cref="Shells3.Closes"/> reads it where asked to, and move the volume no further than the bound.
+        /// </summary>
+        private static bool Accept(GeoSolid3 solid, List<GeoFace3> built, Tolerance work, Tolerance fine, bool asValidated, double bound, out GeoSolid3 welded, out double shift)
+        {
+            welded = null;
+            shift = 0.0;
+
+            if (built == null || built.Count < 4)
+            {
+                return false;
+            }
+
             var candidate = new GeoSolid3(built, solid.Openings);
 
             if (asValidated
@@ -258,7 +309,6 @@ namespace GeometryHelper.Core
 
             double before = solid.GetSignedVolume();
             double after = candidate.GetSignedVolume();
-            double bound = asValidated ? Swept(points, corners, to, wider, reach) : wide * solid.GrossSurfaceArea;
 
             if (Math.Abs(after - before) > bound + 1E-9 * Math.Abs(before))
             {
@@ -268,6 +318,603 @@ namespace GeometryHelper.Core
             shift = Math.Abs(after - before);
             welded = candidate;
             return true;
+        }
+
+        /// <summary>
+        /// Gets the area of the faces a weld tilts: those it puts a corner on standing off the face's plane further than
+        /// its own corners do by more than the least given, a corner moved off it or one put on its edge from off it.
+        /// </summary>
+        private static double TiltedArea(IReadOnlyList<GeoFace3> faces, List<List<int>>[] rings, List<GeoPoint3> points, double least)
+        {
+            double area = 0.0;
+
+            for (int f = 0; f < faces.Count; f++)
+            {
+                if (Unchanged(faces[f], rings[f], points))
+                {
+                    continue;
+                }
+
+                GeoPlane3 plane = faces[f].GetPlane();
+                double own = OffPlane(plane, faces[f].Boundary.Vertices);
+
+                foreach (GeoPolygon3 hole in faces[f].Holes)
+                {
+                    own = Math.Max(own, OffPlane(plane, hole.Vertices));
+                }
+
+                double tilt = 0.0;
+
+                foreach (List<int> ring in rings[f])
+                {
+                    foreach (int id in ring)
+                    {
+                        tilt = Math.Max(tilt, Math.Abs(plane.SignedDistanceTo(points[id])) - own);
+                    }
+                }
+
+                if (tilt > least)
+                {
+                    area += faces[f].Area;
+                }
+            }
+
+            return area;
+        }
+
+        private static double OffPlane(GeoPlane3 plane, IReadOnlyList<GeoPoint3> corners)
+        {
+            double off = 0.0;
+
+            foreach (GeoPoint3 corner in corners)
+            {
+                off = Math.Max(off, Math.Abs(plane.SignedDistanceTo(corner)));
+            }
+
+            return off;
+        }
+
+        /// <summary>
+        /// Gets the faces of a weld that moves no corner off the plane of a face it is a corner of; null where the steps it
+        /// leaves do not close.
+        /// </summary>
+        /// <param name="faces">The faces of the body.</param>
+        /// <param name="given">The rings of each face, on the positions of its corners, as they came.</param>
+        /// <param name="points">Every distinct corner.</param>
+        /// <param name="corners">The triangle each makes on each ring it is a corner of, as an area vector.</param>
+        /// <param name="to">Where each corner is welded to.</param>
+        /// <param name="wider">Where each welded corner is welded to next, or null.</param>
+        /// <param name="rounding">How far off a plane a corner stands by rounding alone.</param>
+        /// <param name="wide">How far apart corners are taken together; a step is no wider across than <see cref="LoopAssembly.Bridge"/> times it.</param>
+        /// <param name="pieces">The tolerance the faces are built within, as the weld builds them.</param>
+        /// <remarks>
+        /// <para>
+        /// A face keeps a corner where it would be moved off its plane, and takes the corner it is welded to where that lies
+        /// on it; where a face moves a corner along its plane and a face beside it, sharing an edge at that corner, keeps it,
+        /// the one takes both, the corner it keeps between, so the two meet on their edge as they did. What is left open
+        /// between the corners kept and the corners moved to is a step a few thousandths across, closed by a face of its
+        /// own; a corner is put on an edge only where it lies on the edge's line.
+        /// </para>
+        /// <para>
+        /// A column 300 by 300 joined to a beam 383 wide and 366 high whose end stood 0.008 clear of the column's face, at a
+        /// tolerance of a hundredth, welded with the beam's end corners on the column's face: the parts of the end beyond
+        /// the column, two strips 41.6 wide, were tilted into wedges, and the union held 999.8 cubic millimetres more than
+        /// the two, where filling the gap holds 878. Kept on their plane, with a face 0.008 wide closing each side of the
+        /// gap, it holds the two and the gap filled. And a box less a cube in its corner had a corner of its top 0.0099 in
+        /// from the edge put on the edge of its side, which took the side 4 000 square millimetres off flat, fanned, 6.5
+        /// cubic millimetres short; the sliver between the top's corner and the side's edge is closed by a face of its own.
+        /// </para>
+        /// </remarks>
+        private static List<GeoFace3> OnTheirPlanes(IReadOnlyList<GeoFace3> faces, List<List<int>>[] given, List<GeoPoint3> points, List<List<GeoVector3>> corners, int[] to, int[] wider, double rounding, double wide, Tolerance pieces)
+        {
+            int count = faces.Count;
+            var normals = new GeoVector3[count];
+            var runBy = new Dictionary<long, List<int>>(PackedKeys.Instance);
+
+            // Corners within rounding of each other are one corner: two faces meeting at a corner each hold their own copy
+            // of it, a few bits apart.
+            int[] same = Representatives(points, corners, rounding);
+            var held = new List<List<int>>[count];
+
+            for (int f = 0; f < count; f++)
+            {
+                normals[f] = faces[f].Normal;
+                held[f] = new List<List<int>>(given[f].Count);
+
+                foreach (List<int> ring in given[f])
+                {
+                    held[f].Add(Collapse(ring, same, out _));
+                }
+
+                foreach (List<int> ring in held[f])
+                {
+                    for (int i = 0; i < ring.Count; i++)
+                    {
+                        long key = Key(ring[i], ring[(i + 1) % ring.Count]);
+
+                        if (!runBy.TryGetValue(key, out List<int> by))
+                        {
+                            by = new List<int>(2);
+                            runBy.Add(key, by);
+                        }
+
+                        if (by.Count == 0 || by[by.Count - 1] != f)
+                        {
+                            by.Add(f);
+                        }
+                    }
+                }
+            }
+
+            int Final(int id) => wider == null ? to[id] : wider[to[id]];
+
+            // Whether a face keeps a corner, which its weld would take off the face's plane.
+            bool Keeps(int f, int id)
+            {
+                int at = Final(id);
+                return at != id && Math.Abs(points[id].GetVectorTo(points[at]).DotProduct(normals[f])) > rounding;
+            }
+
+            // Whether another face running an edge keeps a corner of it.
+            bool KeptBeside(long edge, int f, int id)
+            {
+                if (runBy.TryGetValue(edge, out List<int> by))
+                {
+                    foreach (int g in by)
+                    {
+                        if (g != f && Keeps(g, id))
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            var rings = new List<List<int>>[count];
+
+            for (int f = 0; f < count; f++)
+            {
+                rings[f] = new List<List<int>>(held[f].Count);
+
+                foreach (List<int> ring in held[f])
+                {
+                    var placed = new List<int>(ring.Count + 4);
+                    int n = ring.Count;
+
+                    for (int i = 0; i < n; i++)
+                    {
+                        int id = ring[i];
+                        int at = Final(id);
+
+                        if (at == id || Keeps(f, id))
+                        {
+                            Place(placed, id);
+                            continue;
+                        }
+
+                        int previous = ring[(i + n - 1) % n], next = ring[(i + 1) % n];
+                        bool before = KeptBeside(Key(previous, id), f, id);
+                        bool after = KeptBeside(Key(id, next), f, id);
+
+                        // Keeping the corner beside the one moved to, along the edge they would share, would run back over
+                        // that edge: the face keeps its corner instead.
+                        if (before && after || before && Between(points[at], points[previous], points[id], rounding)
+                            || after && Between(points[at], points[id], points[next], rounding))
+                        {
+                            Place(placed, id);
+                            continue;
+                        }
+
+                        if (before)
+                        {
+                            Place(placed, id);
+                        }
+
+                        Place(placed, at);
+
+                        if (after)
+                        {
+                            Place(placed, id);
+                        }
+                    }
+
+                    while (placed.Count > 1 && placed[placed.Count - 1] == placed[0])
+                    {
+                        placed.RemoveAt(placed.Count - 1);
+                    }
+
+                    rings[f].Add(placed);
+                }
+            }
+
+            PutCornersOnEdges(rings, points, rounding);
+
+            if (!TryCloseSteps(rings, points, wide, out List<List<int>> steps))
+            {
+                return null;
+            }
+
+            // Built as the weld builds its faces, but with no corner taken for its neighbour: a step's corners stand within
+            // the tolerance of each other.
+            var exact = new Tolerance(rounding, pieces.EqualVector, pieces.EqualAngleRad, pieces.EqualPlanar);
+            var built = new List<GeoFace3>(count + steps.Count);
+            var asCame = new List<bool>(count + steps.Count);
+
+            for (int f = 0; f < count; f++)
+            {
+                List<List<int>> faceRings = rings[f];
+
+                if (Unchanged(faces[f], faceRings, points))
+                {
+                    built.Add(faces[f]);
+                    asCame.Add(true);
+                    continue;
+                }
+
+                if (faceRings[0].Count < 3)
+                {
+                    continue;
+                }
+
+                var holes = new List<IEnumerable<GeoPoint3>>();
+
+                for (int r = 1; r < faceRings.Count; r++)
+                {
+                    if (faceRings[r].Count >= 3)
+                    {
+                        holes.Add(Corners(faceRings[r], points));
+                    }
+                }
+
+                foreach (GeoFace3 face in Loops3.ToFaces(Corners(faceRings[0], points), holes, exact))
+                {
+                    built.Add(face);
+                    asCame.Add(false);
+                }
+            }
+
+            int kept = built.Count;
+
+            foreach (List<int> step in steps)
+            {
+                built.AddRange(Loops3.ToFaces(Corners(step, points), null, exact));
+            }
+
+            // A face that runs back over itself, or two faces lying over each other in one plane, either way round, fold the
+            // surface over itself or cover it twice: closed to every reading and counting the area they share twice. The weld
+            // is made as before then. A union of a cube of 100 and another tilted 0.0099 off its face, at a tolerance of a
+            // hundredth, came out with a step lying on the first cube's top, 100 000 square millimetres of surface where it
+            // has 99 998.02; and a column and a beam framing 0.002 into its flange, the beam's flange beyond the column's edge,
+            // with two steps 0.002 by 16 lying on the side of the column's flange.
+            var fine = new Tolerance(Math.Max(1E-7, 10.0 * rounding), Math.Min(pieces.EqualVector, 1E-9), pieces.EqualAngleRad, Math.Max(1E-7, 10.0 * rounding));
+            var flat = new Tolerance(fine.EqualPoint, fine.EqualVector, pieces.EqualAngleRad, Math.Max(fine.EqualPlanar, pieces.EqualPlanar));
+            var boxes = new GeoAabb3[built.Count];
+            var planes = new GeoPlane3[built.Count];
+
+            for (int k = 0; k < built.Count; k++)
+            {
+                if ((k >= kept || !asCame[k]) && !IsSimple(built[k], fine))
+                {
+                    return null;
+                }
+
+                boxes[k] = built[k].GetAabb();
+                planes[k] = built[k].GetPlane();
+            }
+
+            for (int k = 0; k < built.Count; k++)
+            {
+                for (int g = k + 1; g < built.Count; g++)
+                {
+                    // Faces of the body as they came are not this weld's to answer for, between themselves.
+                    if (k < kept && asCame[k] && g < kept && asCame[g])
+                    {
+                        continue;
+                    }
+
+                    if (Math.Abs(built[g].Normal.DotProduct(built[k].Normal)) < 1.0 - 1E-6 || !boxes[g].CollidesWith(boxes[k], flat)
+                        || OffPlane(planes[g], built[k].Boundary.Vertices) > flat.EqualPlanar
+                        || OffPlane(planes[k], built[g].Boundary.Vertices) > flat.EqualPlanar)
+                    {
+                        continue;
+                    }
+
+                    if (!(Overlap(built[k], built[g], flat) <= wide * wide))
+                    {
+                        return null;
+                    }
+                }
+            }
+
+            return built;
+        }
+
+        /// <summary>
+        /// Gets the area two faces lying in one plane within the planar tolerance both cover, the second laid into the
+        /// first's plane; not a number where it cannot be worked out, which is read as an overlap.
+        /// </summary>
+        private static double Overlap(GeoFace3 face, GeoFace3 other, Tolerance flat)
+        {
+            double area = 0.0;
+
+            try
+            {
+                foreach (GeoFace3 piece in Boolean3.Intersect(face, other, flat))
+                {
+                    area += piece.Area;
+                }
+            }
+            catch (Exception exception) when (Boolean3.IsUnworkable(exception))
+            {
+                return double.NaN;
+            }
+
+            return area;
+        }
+
+        /// <summary>
+        /// Whether a face's boundary and holes are each simple, no edge crossing or running back over another.
+        /// </summary>
+        private static bool IsSimple(GeoFace3 face, Tolerance fine)
+        {
+            if (!face.Boundary.IsSimple(fine))
+            {
+                return false;
+            }
+
+            foreach (GeoPolygon3 hole in face.Holes)
+            {
+                if (!hole.IsSimple(fine))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Whether a point lies on the segment between two others, within rounding of its line and between its ends.
+        /// </summary>
+        private static bool Between(GeoPoint3 point, GeoPoint3 start, GeoPoint3 end, double rounding)
+        {
+            GeoVector3 along = start.GetVectorTo(end);
+            double length = along.Length;
+
+            if (!(length > 0.0))
+            {
+                return false;
+            }
+
+            GeoVector3 unit = along.Divide(length);
+            GeoVector3 offset = start.GetVectorTo(point);
+            double at = offset.DotProduct(unit);
+
+            return at > 0.0 && at < length && offset.Subtract(unit.Multiply(at)).Length <= rounding;
+        }
+
+        private static void Place(List<int> ring, int id)
+        {
+            if (ring.Count == 0 || ring[ring.Count - 1] != id)
+            {
+                ring.Add(id);
+            }
+        }
+
+        /// <summary>
+        /// Gets the loops of corners closing the edges rings run more often one way than the other, each from its end back
+        /// to its start; false where they do not all make steps (<see cref="Step"/>).
+        /// </summary>
+        private static bool TryCloseSteps(List<List<int>>[] rings, List<GeoPoint3> points, double wide, out List<List<int>> steps)
+        {
+            steps = new List<List<int>>();
+            var runs = new Dictionary<long, int>(PackedKeys.Instance);
+
+            foreach (List<List<int>> faceRings in rings)
+            {
+                foreach (List<int> ring in faceRings)
+                {
+                    for (int i = 0; i < ring.Count; i++)
+                    {
+                        int from = ring[i];
+                        int next = ring[(i + 1) % ring.Count];
+
+                        if (from != next)
+                        {
+                            long run = ((long)from << 32) | (uint)next;
+                            runs[run] = (runs.TryGetValue(run, out int seen) ? seen : 0) + 1;
+                        }
+                    }
+                }
+            }
+
+            var open = new List<(int From, int To)>();
+
+            foreach (KeyValuePair<long, int> run in runs)
+            {
+                int from = (int)(run.Key >> 32);
+                int next = (int)(run.Key & 0xFFFFFFFFL);
+                int back = runs.TryGetValue(((long)next << 32) | (uint)from, out int seen) ? seen : 0;
+
+                for (int extra = run.Value - back; extra > 0; extra--)
+                {
+                    open.Add((next, from));
+                }
+            }
+
+            if (open.Count == 0)
+            {
+                return true;
+            }
+
+            open.Sort();
+            var leaving = new Dictionary<int, List<int>>(open.Count);
+
+            for (int e = 0; e < open.Count; e++)
+            {
+                if (!leaving.TryGetValue(open[e].From, out List<int> ways))
+                {
+                    ways = new List<int>(1);
+                    leaving.Add(open[e].From, ways);
+                }
+
+                ways.Add(e);
+            }
+
+            // Each loop is walked edge by edge from the first edge left; where a corner has more than one way on, the ways
+            // are tried in turn, and a loop is kept only where it is a step: two steps meeting at a corner are two loops,
+            // and a walk round both is no strip. The tries are bounded.
+            var used = new bool[open.Count];
+            int budget = 16 * open.Count + 256;
+
+            for (int e = 0; e < open.Count; e++)
+            {
+                if (used[e])
+                {
+                    continue;
+                }
+
+                int start = open[e].From;
+                var path = new List<int> { e };
+                var cursors = new List<int> { 0 };
+                var on = new HashSet<int> { start };
+                used[e] = true;
+                List<int> loop = null;
+
+                while (path.Count > 0)
+                {
+                    if (--budget < 0)
+                    {
+                        return false;
+                    }
+
+                    int at = open[path[path.Count - 1]].To;
+
+                    if (at == start)
+                    {
+                        var corners = new List<int>(path.Count);
+
+                        foreach (int walked in path)
+                        {
+                            corners.Add(open[walked].From);
+                        }
+
+                        int step = Step(corners, points, wide);
+
+                        if (step >= 0)
+                        {
+                            loop = step > 0 ? corners : new List<int>();
+                            break;
+                        }
+                    }
+                    else if (leaving.TryGetValue(at, out List<int> ways) && !on.Contains(at))
+                    {
+                        int cursor = cursors[cursors.Count - 1];
+
+                        while (cursor < ways.Count && used[ways[cursor]])
+                        {
+                            cursor++;
+                        }
+
+                        cursors[cursors.Count - 1] = cursor + 1;
+
+                        if (cursor < ways.Count)
+                        {
+                            used[ways[cursor]] = true;
+                            on.Add(at);
+                            path.Add(ways[cursor]);
+                            cursors.Add(0);
+                            continue;
+                        }
+                    }
+
+                    // Back one edge: nothing on from here closes a step.
+                    int last = path[path.Count - 1];
+
+                    if (path.Count == 1)
+                    {
+                        break;
+                    }
+
+                    used[last] = false;
+                    path.RemoveAt(path.Count - 1);
+                    cursors.RemoveAt(cursors.Count - 1);
+                    on.Remove(open[last].From);
+                }
+
+                if (loop == null)
+                {
+                    return false;
+                }
+
+                if (loop.Count > 0)
+                {
+                    steps.Add(loop);
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Whether a loop of corners is a step a weld closes by a face: 1 where it is a strip along its longest edge, every
+        /// corner within <see cref="LoopAssembly.Bridge"/> times the reach of that edge's line; 0 where it encloses no area,
+        /// an edge run beside two that make it up, passed over; -1 otherwise. A loop folded back on itself encloses next to
+        /// no area however far it runs, and is no step.
+        /// </summary>
+        private static int Step(List<int> loop, List<GeoPoint3> points, double wide)
+        {
+            if (loop.Count < 3)
+            {
+                return -1;
+            }
+
+            GeoVector3 area = new GeoVector3(0.0, 0.0, 0.0);
+            int longest = 0;
+            double longestLength = -1.0;
+            GeoPoint3 first = points[loop[0]];
+
+            for (int i = 0; i < loop.Count; i++)
+            {
+                GeoPoint3 a = points[loop[i]];
+                GeoPoint3 b = points[loop[(i + 1) % loop.Count]];
+                area = area.Add(first.GetVectorTo(a).CrossProduct(first.GetVectorTo(b)));
+                double length = a.DistanceTo(b);
+
+                if (length > longestLength)
+                {
+                    longest = i;
+                    longestLength = length;
+                }
+            }
+
+            if (0.5 * area.Length <= wide * wide)
+            {
+                return 0;
+            }
+
+            if (!(longestLength > 0.0))
+            {
+                return -1;
+            }
+
+            GeoPoint3 from = points[loop[longest]];
+            GeoVector3 along = from.GetVectorTo(points[loop[(longest + 1) % loop.Count]]).Divide(longestLength);
+            double across = LoopAssembly.Bridge * wide;
+
+            foreach (int id in loop)
+            {
+                GeoVector3 offset = from.GetVectorTo(points[id]);
+
+                if (offset.Subtract(along.Multiply(offset.DotProduct(along))).Length > across)
+                {
+                    return -1;
+                }
+            }
+
+            return 1;
         }
 
         /// <summary>
