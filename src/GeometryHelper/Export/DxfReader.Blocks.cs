@@ -35,6 +35,7 @@ namespace GeometryHelper.Export
             private int _layoutEntities;
             private int _hugeArrays;
             private readonly Budget _budget;
+            private readonly Sizing _sizing;
             private readonly bool _forBlocks;
             private readonly bool _unsized;
             private bool _approved;
@@ -60,6 +61,7 @@ namespace GeometryHelper.Export
                 _scale = drawing._scale;
                 _unitCode = drawing._unitCode;
                 _budget = drawing._budget;
+                _sizing = drawing._sizing;
                 _unsized = drawing._unsized;
                 _forBlocks = true;
                 _into = _entities;
@@ -99,6 +101,19 @@ namespace GeometryHelper.Export
                 /// At most how many entities the block places, its INSERTs counted through; -1 until worked out, -2 while it is.
                 /// </summary>
                 internal long Size { get; set; } = -1;
+
+                /// <summary>
+                /// The size worked out for an INSERT of the block where the walk met a block inside itself and <see cref="Size"/>
+                /// was not kept; -1 until worked out. It holds for every INSERT of the block, the walk being the same each time.
+                /// </summary>
+                internal long RootSize { get; set; } = -1;
+
+                /// <summary>
+                /// How many sizes of blocks had been kept when the walk that worked out <see cref="RootSize"/> began, where it was
+                /// stopped at the bound on the blocks worked out; -1 where it was not. A size so stopped holds while that count
+                /// stands: a size kept since, by that walk itself or another, could shorten the walk and is not reused.
+                /// </summary>
+                internal long StoppedAt { get; set; } = -1;
 
                 /// <summary>Whether the block is that of a layout, model space or a sheet of paper space, which no INSERT places.</summary>
                 internal bool IsLayout { get; }
@@ -667,14 +682,31 @@ namespace GeometryHelper.Export
             /// be two triangles, as many as its vertices for a polyline, which may be its edges, and for an INSERT its cells times
             /// its block's; nought for one that is not placed. A block met again while it is being worked out is inside itself
             /// there and is not placed again, so it counts nought; but that nought holds only on the way it was met by, so a size
-            /// worked out through it is worked out again each time, and only one that met no such block is kept. Past 1 000 000
-            /// blocks worked out for one INSERT, its size is taken as the largest long, and it is not placed. The sums stop at the
+            /// worked out through it is worked out again each time, and only one that met no such block is kept. The size worked
+            /// out from the block of an INSERT is kept for its other INSERTs even so: the blocks counted nought on that walk are
+            /// those being placed when it is, which refuse them too. Past 1 000 000 blocks worked out for one INSERT, its size is
+            /// taken as the largest long, and it is not placed; that holds for its other INSERTs while no size of a block has been
+            /// kept since that walk began, the walk's own among them, as a size kept could shorten the walk. The sums stop at the
             /// largest long.
             /// </summary>
             private long SizeOf(Block block)
             {
+                if (block.RootSize >= 0 && (block.StoppedAt < 0 || block.StoppedAt == _sizing.Kept))
+                {
+                    return block.RootSize;
+                }
+
                 _sizeWork = 0;
-                return SizeOf(block, out _);
+                long keptBefore = _sizing.Kept;
+                long size = SizeOf(block, out bool met);
+
+                if (met)
+                {
+                    block.RootSize = size;
+                    block.StoppedAt = _sizeWork > _sizing.Most ? keptBefore : -1;
+                }
+
+                return size;
             }
 
             private long SizeOf(Block block, out bool met)
@@ -692,7 +724,9 @@ namespace GeometryHelper.Export
                     return 0;
                 }
 
-                if (++_sizeWork > 1000000)
+                _sizing.Worked++;
+
+                if (++_sizeWork > _sizing.Most)
                 {
                     met = true;
                     return long.MaxValue;
@@ -707,6 +741,7 @@ namespace GeometryHelper.Export
                 }
 
                 block.Size = met ? -1 : size;
+                _sizing.Kept += met ? 0 : 1;
                 return size;
             }
 
@@ -757,6 +792,25 @@ namespace GeometryHelper.Export
                     default:
                         return 0;
                 }
+            }
+
+            /// <summary>
+            /// The working out of the sizes of blocks in a reading, shared by the drawing and the blocks read on their own: at
+            /// most how many blocks are worked out for one INSERT, and how many have been in all.
+            /// </summary>
+            private sealed class Sizing
+            {
+                internal Sizing(int most)
+                {
+                    Most = most;
+                }
+
+                internal int Most { get; }
+
+                internal long Worked { get; set; }
+
+                /// <summary>How many sizes of blocks have been kept, which only ever grows.</summary>
+                internal long Kept { get; set; }
             }
 
             private static long Plus(long a, long b) => a > long.MaxValue - b ? long.MaxValue : a + b;

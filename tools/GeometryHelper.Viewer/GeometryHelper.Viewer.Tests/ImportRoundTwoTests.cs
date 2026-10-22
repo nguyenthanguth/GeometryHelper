@@ -152,12 +152,14 @@ namespace GeometryHelper.Viewer.Tests
                 + good;
             Scene scene = ReadDxf(entities);
 
-            Assert.Equal("GeoPoint3", Assert.Single(scene.Items).Kind);
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("a LWPOLYLINE with a number that cannot be read ('abc' in group 10)"));
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("a CIRCLE with a number that cannot be read"));
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("a LINE with a number that cannot be read ('x' in group 11)"));
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("a VERTEX with a number that cannot be read ('1.2.3' in group 20)"));
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("a ARC with a number that cannot be read ('red' in group 62)"));
+            // A colour that cannot be read is of the look, not the shape: the ARC is read without it, and said.
+            Assert.Equal(new[] { "GeoArc2", "GeoPoint2" }, scene.Items.Select(i => i.Kind).ToArray());
+            Assert.Null(scene.Items[0].Color);
+            Assert.Contains(scene.LoadWarnings, w => w.Contains("1 LWPOLYLINE entity(ies) are not read"));
+            Assert.Contains(scene.LoadWarnings, w => w.Contains("1 CIRCLE entity(ies) are not read"));
+            Assert.Contains(scene.LoadWarnings, w => w.Contains("1 LINE entity(ies) are not read"));
+            Assert.Contains(scene.LoadWarnings, w => w.Contains("1 POLYLINE entity(ies) are not read"));
+            Assert.Contains(scene.LoadWarnings, w => w.Contains("1 group of the colour, lineweight, true colour or thickness of an entity could not be read"));
         }
 
         #endregion
@@ -165,13 +167,14 @@ namespace GeometryHelper.Viewer.Tests
         #region DXF polylines in an extrusion
 
         [Fact]
-        public void ATwoDimensionalPolylineInAnExtrusion_IsTakenToTheWorld()
+        public void ATwoDimensionalPolylineInAnExtrusion_IsTakenToTheWorld_OnTheFloorAsAChainOfThePlane()
         {
             string polyline = G(0, "POLYLINE", 8, "0", 70, 0, 210, 0, 220, 0, 230, -1) + G(0, "VERTEX", 10, 1, 20, 2) + G(0, "VERTEX", 10, 3, 20, 4) + G(0, "SEQEND");
             SceneItem item = Imp.Only(ReadDxf(polyline));
 
-            Assert.Equal("GeoPolyline3", item.Kind);
-            Imp.SameBits(new[] { -1.0, 2, 0, -3, 4, 0 }, Imp.Of(item));
+            // The extrusion straight down turns x over and keeps the chain on the floor.
+            Assert.Equal("GeoPolyline2", item.Kind);
+            Imp.SameBits(new[] { -1.0, 2, -3, 4 }, Imp.Of(item));
         }
 
         [Fact]
@@ -183,8 +186,9 @@ namespace GeometryHelper.Viewer.Tests
 
             Assert.Equal("GeoPolygonArc3", item.Kind);
 
-            // The elevation is along the extrusion: z = 5 in the object's coordinates is z = -5 in the world.
-            Imp.SameBits(new[] { -1.0, 2, -5, -3, 4, -5, -5, 1, -5, 0.5, 0, 0, 0, 0, -1, 0, 0, -1, 0, 0, -1 }, Imp.Of(item));
+            // The elevation is along the extrusion: z = 5 in the object's coordinates is z = -5 in the world. Only the arc edge has a
+            // normal; the straight edges have none.
+            Imp.SameBits(new[] { -1.0, 2, -5, -3, 4, -5, -5, 1, -5, 0.5, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0 }, Imp.Of(item));
         }
 
         [Fact]

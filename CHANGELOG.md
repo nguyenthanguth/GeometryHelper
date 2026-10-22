@@ -49,13 +49,15 @@ layouts are not read. The new `DxfReadOptions.MaxPlacedEntities` (2 000 000 by d
 blocks in one reading, an INSERT placed whole or not at all by the size of its block worked out first: the file of 18 KB
 whose blocks nest four levels of 100 INSERTs, 100 000 000 lines, is read in 1.4 s, where it ran out of memory, and an
 INSERT that would place more than its block was worked out to is taken back whole, so the bound holds for blocks that
-insert each other too. Held against ezdxf 1.4.5 on 168 entities placed every way, every point is within 1E-9 of where
+insert each other too. A block in a ring of blocks that insert one another is worked out once for all its INSERTs:
+1 000 INSERTs of one in a ring of 26, each inserting the next twice, a file of 43 KB, are refused in 1.4 s on .NET 10,
+where each worked out a million blocks and the file took 35 s. Held against ezdxf 1.4.5 on 168 entities placed every way, every point is within 1E-9 of where
 ezdxf puts it (ezdxf's own INSERT nested in a block is wrong under an uneven outer scaling with an inner turn, and there
 the reference composes its matrices), and of 57 600 entities placed by random INSERTs every one lies within 1E-9 of its
 size of the block's shape carried by a matrix worked out apart, but for 3 circles and arcs a scaling within the point
 tolerance of even keeps round, 9E-4 off. 10 000 INSERTs of a block of 50 entities give 500 000 entities in 0.50 s on
 .NET 10, the document holding 157 MB. A point the system of a tilted extrusion takes past the largest double leaves its
-entity out, counted as not finite, where it gave infinite coordinates. 37 new tests; the suite runs 12 120 of 12 121, one skipped as before.
+entity out, counted as not finite, where it gave infinite coordinates. 39 new tests; the suite runs 12 122 of 12 123, one skipped as before.
 
 **NEW.** `DxfWriter.Add(DxfEntity)` writes an entity read back, or one made in code with the new public constructor
 `new DxfEntity(shape, layer, colour, trueColour, linetype, lineweight, thickness)`: its shape by the overload of `Add` for
@@ -64,6 +66,9 @@ added to it by name, the edges a 3DFACE hid hidden again. A drawing read, writte
 the same look, to the bit but for the angles of an arc and the axis of an ellipse; a mirrored arc in space comes back
 running the other way over the same points, and BYBLOCK as ByBlock. The other overloads write the same bytes as before:
 the file of one shape of each hashes the same.
+
+**CHANGED.** The viewer opens a DXF with `DxfReader`, its own parser gone: it shows what the library reads, blocks placed,
+but decodes the file itself, as UTF-8 or else Latin-1, so a letter a file before R2007 keeps in its code page can differ.
 
 **FIXED.** A closed spline, its first and last control points the same to the bit as the closed flag of a DXF spline reads
 them, has no ends. Its seam was read as an end, where the places a spline gives are its crossings, its touches and where it

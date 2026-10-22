@@ -645,6 +645,7 @@ namespace GeometryHelper.Export
                 _expandBlocks = options.ExpandBlocks;
                 _budget = new Budget(options.MaxPlacedEntities);
                 _unsized = options.UnsizedBlocks;
+                _sizing = new Sizing(options.MostSizedBlocks);
                 _into = _entities;
             }
 
@@ -892,7 +893,10 @@ namespace GeometryHelper.Export
 
                 GeometryHelperLog.Info("DxfReader: " + Number(_into.Count) + " entities read from " + source + (placed > 0 ? ", " + Number(placed) + " of them placed by INSERTs" : string.Empty) + ", " + Number(skipped) + " skipped" + (detail.Length > 0 ? detail.Append(')').ToString() : string.Empty) + ", " + Number(_warnings.Count) + " warnings.");
 
-                return new DxfDocument(_into.ToArray(), _layers.ToArray(), blocks, units, _version, new ReadOnlyDictionary<string, int>(new SortedDictionary<string, int>(_skipped, StringComparer.Ordinal)), _warnings.ToArray());
+                return new DxfDocument(_into.ToArray(), _layers.ToArray(), blocks, units, _version, new ReadOnlyDictionary<string, int>(new SortedDictionary<string, int>(_skipped, StringComparer.Ordinal)), _warnings.ToArray())
+                {
+                    SizedBlocks = _sizing.Worked,
+                };
             }
 
             /// <summary>

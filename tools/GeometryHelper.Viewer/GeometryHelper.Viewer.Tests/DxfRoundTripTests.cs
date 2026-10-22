@@ -8,7 +8,8 @@ using Xunit;
 namespace GeometryHelper.Viewer.Tests
 {
     /// <summary>
-    /// What DxfWriter writes, read back by the viewer. Points, segments, chains, polygons, circles and rays come back to the bit; an ARC and an ELLIPSE
+    /// What DxfWriter writes, read back by the viewer through the library's DxfReader, a shape lying on the floor as the shape of the plane it is.
+    /// Points, segments, chains, polygons, circles and rays come back to the bit; an ARC and an ELLIPSE
     /// are kept in the file as degrees and as an end point and a ratio, and come back to a few parts in 1E-14. A shape in space is a mesh of 3DFACEs where
     /// it has a surface, and its triangles come back to the bit.
     /// </summary>
@@ -24,13 +25,13 @@ namespace GeometryHelper.Viewer.Tests
         private static double[] Flatten(IEnumerable<GeoPoint3> points) => points.SelectMany(Imp.P3).ToArray();
 
         [Fact]
-        public void APointInThePlane_IsAPointAtZeroHeight_ToTheBit()
+        public void APointInThePlane_IsAPointInThePlane_ToTheBit()
         {
             var point = (GeoPoint2)SampleShapes.Make("GeoPoint2", 1);
             SceneItem item = Imp.Only(Read(new DxfWriter().Add(point)));
 
-            Assert.Equal("GeoPoint3", item.Kind);
-            Imp.SameBits(Imp.Flat(point), Imp.Of(item));
+            Assert.Equal("GeoPoint2", item.Kind);
+            Imp.SameBits(Imp.P2(point), Imp.Of(item));
         }
 
         [Fact]
@@ -41,7 +42,7 @@ namespace GeometryHelper.Viewer.Tests
         }
 
         [Fact]
-        public void ASegment_IsALine_ToTheBit()
+        public void ASegment_IsALineOfItsOwnKind_ToTheBit()
         {
             var flat = (GeoLine2)SampleShapes.Make("GeoLine2", 2);
             var solid = (GeoLine3)SampleShapes.Make("GeoLine3", 2);
@@ -49,14 +50,14 @@ namespace GeometryHelper.Viewer.Tests
             SceneItem a = Imp.Only(Read(new DxfWriter().Add(flat)));
             SceneItem b = Imp.Only(Read(new DxfWriter().Add(solid)));
 
-            Assert.Equal("GeoLine3", a.Kind);
+            Assert.Equal("GeoLine2", a.Kind);
             Assert.Equal("GeoLine3", b.Kind);
-            Imp.SameBits(Imp.Flat(flat.StartPoint).Concat(Imp.Flat(flat.EndPoint)).ToList(), Imp.Of(a));
+            Imp.SameBits(Imp.Of(flat), Imp.Of(a));
             Imp.SameBits(Imp.Of(solid), Imp.Of(b));
         }
 
         [Fact]
-        public void ARay_IsARay_ToTheBit()
+        public void ARay_IsARayOfItsOwnKind_ToTheBit()
         {
             var flat = (GeoRay2)SampleShapes.Make("GeoRay2", 3);
             var solid = (GeoRay3)SampleShapes.Make("GeoRay3", 3);
@@ -64,9 +65,9 @@ namespace GeometryHelper.Viewer.Tests
             SceneItem a = Imp.Only(Read(new DxfWriter().Add(flat)));
             SceneItem b = Imp.Only(Read(new DxfWriter().Add(solid)));
 
-            Assert.Equal("GeoRay3", a.Kind);
+            Assert.Equal("GeoRay2", a.Kind);
             Assert.Equal("GeoRay3", b.Kind);
-            Imp.SameBits(new[] { flat.Origin.X, flat.Origin.Y, 0.0, flat.Direction.X, flat.Direction.Y, 0.0 }, Imp.Of(a));
+            Imp.SameBits(Imp.Of(flat), Imp.Of(a));
             Imp.SameBits(Imp.Of(solid), Imp.Of(b));
         }
 
@@ -443,7 +444,8 @@ namespace GeometryHelper.Viewer.Tests
             Scene scene = Read(new DxfWriter().Add(bar, Tol, "bar"));
 
             Assert.Empty(scene.LoadWarnings);
-            Assert.Equal(new[] { "GeoLine3", "GeoArc3", "GeoLine3", "GeoArc3", "GeoLine3" }, scene.Items.Select(i => i.Kind).ToArray());
+            // The first edge lies on the floor, and is read as the segment of the plane it is.
+            Assert.Equal(new[] { "GeoLine2", "GeoArc3", "GeoLine3", "GeoArc3", "GeoLine3" }, scene.Items.Select(i => i.Kind).ToArray());
 
             List<GeoEdge3> edges = bar.GetEdges().ToList();
 
@@ -451,7 +453,12 @@ namespace GeometryHelper.Viewer.Tests
             {
                 object shape = GeometryDecoder.Decode(scene.Items[i]);
 
-                if (shape is GeoLine3 line)
+                if (shape is GeoLine2 floor)
+                {
+                    Assert.Equal(edges[i].StartPoint, new GeoPoint3(floor.StartPoint.X, floor.StartPoint.Y, 0.0));
+                    Assert.Equal(edges[i].EndPoint, new GeoPoint3(floor.EndPoint.X, floor.EndPoint.Y, 0.0));
+                }
+                else if (shape is GeoLine3 line)
                 {
                     Assert.Equal(edges[i].StartPoint, line.StartPoint);
                     Assert.Equal(edges[i].EndPoint, line.EndPoint);

@@ -591,10 +591,15 @@ bounds the entities placed from blocks in one reading, the drawing's first, in t
 worked out once for each block, through its INSERTs, before any is placed, and an INSERT that would take the count past
 the bound places none, is counted in `Skipped`, and one warning names the bound and how many entities the INSERTs left
 out would have placed. A block inside itself counts nought where it is met again, as it is not placed again there, and a
-size worked out through such a block is worked out again on the way of each INSERT, not kept from another. Whatever the
+size worked out through such a block is worked out again for each INSERT met inside another block, but kept for every
+INSERT of the block the working out started from. Whatever the
 working out says, the count of what is placed holds the bound too: an INSERT whose entities would pass it is taken back
 whole, its entities and what its placing counted, and counted with the others left out. That file is read in 1.4 s on .NET 8, holding 340 MB, where it ran out of memory; the one of three
-levels places its 1 000 000 lines in 2.5 s, holding 685 MB with what its blocks read on their own place.
+levels places its 1 000 000 lines in 2.5 s, holding 685 MB with what its blocks read on their own place. Working out
+stops at 1 000 000 blocks: the INSERT is refused, and so are the other INSERTs of the same block without working it out
+again, until the size of a block is kept after that working out began, which could make it shorter. 1 000 INSERTs of a
+block in a ring of 26 blocks, each inserting the next twice, a file of 43 KB, are read in 1.4 s on .NET 10, where they
+took 35 s.
 
 What a placement makes of each shape:
 

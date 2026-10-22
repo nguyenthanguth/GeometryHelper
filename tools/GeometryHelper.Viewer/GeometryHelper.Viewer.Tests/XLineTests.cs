@@ -225,7 +225,7 @@ namespace GeometryHelper.Viewer.Tests
         }
 
         [Fact]
-        public void AnXLineOfADxfFile_IsALineInSpace_ToTheBit_AndIsNotLeftOutWithAWarning()
+        public void AnXLineOfADxfFile_IsALineOfItsOwnKind_ToTheBit_AndIsNotLeftOutWithAWarning()
         {
             var flat = (GeoXLine2)SampleShapes.Make("GeoXLine2", 3);
             var solid = (GeoXLine3)SampleShapes.Make("GeoXLine3", 3);
@@ -233,10 +233,11 @@ namespace GeometryHelper.Viewer.Tests
             Scene a = Read(new DxfWriter().Add(flat, "lines"));
             Scene b = Read(new DxfWriter().Add(solid, "lines"));
 
-            Assert.Equal("GeoXLine3", Assert.Single(a.Items).Kind);
+            // The XLINE of the plane lies on the floor, and is read as the line of the plane it is.
+            Assert.Equal("GeoXLine2", Assert.Single(a.Items).Kind);
             Assert.Equal("GeoXLine3", Assert.Single(b.Items).Kind);
             Assert.Equal("lines", a.Items[0].Layer);
-            Imp.SameBits(new[] { flat.Origin.X, flat.Origin.Y, 0.0, flat.Direction.X, flat.Direction.Y, 0.0 }, Imp.Of(a.Items[0]));
+            Imp.SameBits(Imp.Of(flat), Imp.Of(a.Items[0]));
             Imp.SameBits(Imp.Of(solid), Imp.Of(b.Items[0]));
             Assert.Empty(a.LoadWarnings);
             Assert.Empty(b.LoadWarnings);
@@ -249,7 +250,7 @@ namespace GeometryHelper.Viewer.Tests
                 .Add(new GeoRay3(new GeoPoint3(0, 0, 0), GeoVector3.XAxis))
                 .Add(new GeoXLine3(new GeoPoint3(0, 0, 0), GeoVector3.YAxis)));
 
-            Assert.Equal(new[] { "GeoRay3", "GeoXLine3" }, scene.Items.Select(i => i.Kind).ToArray());
+            Assert.Equal(new[] { "GeoRay2", "GeoXLine2" }, scene.Items.Select(i => i.Kind).ToArray());
         }
     }
 }

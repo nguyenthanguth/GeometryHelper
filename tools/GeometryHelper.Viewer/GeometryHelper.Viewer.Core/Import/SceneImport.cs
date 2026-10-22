@@ -14,8 +14,12 @@ namespace GeometryHelper.Viewer
     /// <remarks>
     /// <para>
     /// The numbers are read as the file prints them, to the bit where the format keeps a double whole (OBJ, DXF and WKT as the library writes
-    /// them; SVG prints six places and comes back to within five ten-millionths). A shape is kept as the numbers that were read, with no library
-    /// constructor between, so a polygon of two points or a face a hair off flat is drawn as the file has it.
+    /// them; SVG prints six places and comes back to within five ten-millionths). A shape of an OBJ, a WKT or an SVG is kept as the numbers that were
+    /// read, with no library constructor between, so a polygon of two points or a face a hair off flat is drawn as the file has it. A DXF is read by
+    /// the library's <c>DxfReader</c>, so its shapes are those the library reads: a shape lying on the floor as the shape of the plane it is, each
+    /// INSERT as the entities of its block placed where it puts them, and an entity with no shape to it left out and counted. The text of a file is
+    /// decoded here, as UTF-8 or else Latin-1, and not by <c>DxfReader.Read</c>, which reads a DXF before R2007 in the code page its header names, so
+    /// a letter such a file keeps in its code page (0x80 to 0x9F of Windows-1252, or any letter of another code page) can come out otherwise.
     /// </para>
     /// <para>
     /// What a file cannot say, it does not: an OBJ has no polygon and no solid, only faces and lines, so a body comes back as a mesh

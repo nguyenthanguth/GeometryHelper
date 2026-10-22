@@ -120,6 +120,12 @@ namespace GeometryHelper.Export
         internal bool UnsizedBlocks { get; set; }
 
         /// <summary>
+        /// Gets or sets how many blocks are worked out for the size of one INSERT before it is taken as too large to place;
+        /// 1 000 000, and smaller for the tests of that bound alone.
+        /// </summary>
+        internal int MostSizedBlocks { get; set; } = 1000000;
+
+        /// <summary>
         /// Gets or sets how many entities the INSERTs may place from blocks in one reading, counted across the drawing and
         /// the blocks read for <see cref="DxfDocument.Blocks"/>; 2 000 000 by default.
         /// </summary>

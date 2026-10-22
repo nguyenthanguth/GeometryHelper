@@ -196,7 +196,7 @@ namespace GeometryHelper.Viewer.Tests
             Scene scene = SceneImport.ReadText(text, "dxf");
 
             Assert.Empty(scene.Items);
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("a polygon mesh of 100000 by 100000"));
+            Assert.Equal(new[] { "DXF: 1 POLYLINE entity(ies) are not read, as the library's DxfReader counts them; a warning above gives the reason where it has one" }, scene.LoadWarnings.ToArray());
         }
     }
 }

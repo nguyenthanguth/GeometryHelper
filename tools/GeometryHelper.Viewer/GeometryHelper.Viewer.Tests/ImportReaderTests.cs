@@ -136,15 +136,18 @@ namespace GeometryHelper.Viewer.Tests
         }
 
         [Fact]
-        public void PaperSpace_AndBlocks_AreLeftOutAndSaid()
+        public void PaperSpace_IsLeftOutAndSaid_AndABlockIsDrawnWhereAnInsertPlacesIt()
         {
-            string entities = G(0, "POINT", 10, 1, 20, 2, 67, 1) + G(0, "POINT", 10, 3, 20, 4);
-            string blocks = G(0, "BLOCK", 2, "B") + G(0, "LINE", 10, 0, 20, 0, 11, 1, 21, 1) + G(0, "ENDBLK");
+            string entities = G(0, "POINT", 10, 1, 20, 2, 67, 1) + G(0, "POINT", 10, 3, 20, 4) + G(0, "INSERT", 8, "doors", 2, "B", 10, 10, 20, 20);
+            string blocks = G(0, "BLOCK", 2, "B") + G(0, "LINE", 8, "0", 10, 0, 20, 0, 11, 1, 21, 1) + G(0, "ENDBLK");
             Scene scene = ReadDxf(Dxf(entities, string.Empty, blocks));
 
-            Assert.Single(scene.Items);
-            HasWarning(scene, "1 entity(ies) in paper space");
-            HasWarning(scene, "1 entity(ies) in the BLOCKS section");
+            // The line of the block is placed by the INSERT, on its layer, and named by the block it came through.
+            Assert.Equal(new[] { "GeoPoint2", "GeoLine2" }, scene.Items.Select(i => i.Kind).ToArray());
+            Assert.Equal("doors", scene.Items[1].Layer);
+            Assert.Equal("B", scene.Items[1].Name);
+            Imp.SameBits(new[] { 10.0, 20, 11, 21 }, Imp.Of(scene.Items[1]));
+            Assert.Equal(new[] { "DXF: 1 entity of paper space was not read: the reader reads model space." }, scene.LoadWarnings.ToArray());
         }
 
         [Fact]
@@ -153,8 +156,8 @@ namespace GeometryHelper.Viewer.Tests
             Scene scene = ReadDxf(Dxf(G(0, "LINE", 10, 1) + G(0, "CIRCLE", 10, 1, 20, 2)));
 
             Assert.Empty(scene.Items);
-            HasWarning(scene, "a LINE without its coordinates");
-            HasWarning(scene, "a CIRCLE without its coordinates");
+            HasWarning(scene, "1 LINE entity(ies) are not read");
+            HasWarning(scene, "1 CIRCLE entity(ies) are not read");
         }
 
         [Fact]
@@ -172,7 +175,7 @@ namespace GeometryHelper.Viewer.Tests
         }
 
         [Fact]
-        public void APolyfaceMesh_IsAMesh_WithTheFacesItNames()
+        public void APolyfaceMeshOfFewerThanFourFaces_IsItsFaces_WithTheCornersTheyName()
         {
             string polyline = G(0, "POLYLINE", 8, "pf", 66, 1, 70, 64, 71, 4, 72, 2);
             string vertices = string.Concat(new[] { new[] { 0.0, 0.0 }, new[] { 1.0, 0.0 }, new[] { 1.0, 1.0 }, new[] { 0.0, 1.0 } }
@@ -180,15 +183,16 @@ namespace GeometryHelper.Viewer.Tests
             string faces = G(0, "VERTEX", 8, "pf", 10, 0, 20, 0, 30, 0, 70, 128, 71, 1, 72, 2, 73, -3, 74, 0)
                 + G(0, "VERTEX", 8, "pf", 10, 0, 20, 0, 30, 0, 70, 128, 71, 1, 72, 3, 73, 4, 74, 0);
             Scene scene = ReadDxf(Dxf(polyline + vertices + faces + G(0, "SEQEND")));
-            SceneItem item = Imp.Only(scene);
 
-            Assert.Equal("GeoMesh3", item.Kind);
-            Assert.Equal(4, Imp.MeshPoints(item).Length);
-            Assert.Equal(new[] { 3, 3 }, Imp.MeshFaces(item).Select(f => f.Length).ToArray());
+            // A body has four faces at least, so the library gives the two as faces of their own.
+            Assert.Equal(new[] { "GeoFace3", "GeoFace3" }, scene.Items.Select(i => i.Kind).ToArray());
+            Assert.Equal(Imp.Key(new Vec3(0, 0, 0), new Vec3(1, 0, 0), new Vec3(1, 1, 0)), Imp.Key(((GeoFace3)scene.Items[0].ToGeometry()).Boundary.Vertices));
+            Assert.Equal(Imp.Key(new Vec3(0, 0, 0), new Vec3(1, 1, 0), new Vec3(0, 1, 0)), Imp.Key(((GeoFace3)scene.Items[1].ToGeometry()).Boundary.Vertices));
+            HasWarning(scene, "1 mesh of fewer than four faces was read as its faces");
         }
 
         [Fact]
-        public void APolygonMesh_IsAGridOfQuads()
+        public void APolygonMesh_IsABodyOfItsCells_ACellOutOfFlatBeingTwoTriangles()
         {
             string polyline = G(0, "POLYLINE", 8, "pm", 66, 1, 70, 16, 71, 3, 72, 3);
             var vertices = new StringBuilder();
@@ -203,8 +207,11 @@ namespace GeometryHelper.Viewer.Tests
 
             SceneItem item = Imp.Only(ReadDxf(Dxf(polyline + vertices + G(0, "SEQEND"))));
 
-            Assert.Equal(9, Imp.MeshPoints(item).Length);
-            Assert.Equal(4, Imp.MeshFaces(item).Count);
+            // The four cells of z = x y are each twisted out of flat, so the body has the two triangles of each.
+            Assert.Equal("GeoSolid3", item.Kind);
+            var body = (GeoSolid3)item.ToGeometry();
+            Assert.Equal(8, body.Faces.Count);
+            Assert.All(body.Faces.SelectMany(f => f.Boundary.Vertices), p => Assert.Equal(p.X * p.Y, p.Z));
         }
 
         [Fact]
@@ -259,16 +266,20 @@ namespace GeometryHelper.Viewer.Tests
         }
 
         [Fact]
-        public void AnArcOfAnEllipse_IsLeftOutAndSaid_AndAWholeOneIsNot()
+        public void AnArcOfAnEllipse_IsTheSplineThatIsExactlyIt_AndAWholeOneIsAnEllipse()
         {
             string whole = G(0, "ELLIPSE", 8, "a", 10, 0, 20, 0, 30, 0, 11, 10, 21, 0, 31, 0, 210, 0, 220, 0, 230, 1, 40, 0.5, 41, 0, 42, Math.PI * 2.0);
             string part = G(0, "ELLIPSE", 8, "a", 10, 0, 20, 0, 30, 0, 11, 10, 21, 0, 31, 0, 210, 0, 220, 0, 230, 1, 40, 0.5, 41, 0, 42, 3.0);
             Scene scene = ReadDxf(Dxf(whole + part));
-            SceneItem item = Assert.Single(scene.Items);
 
-            Assert.Equal("GeoEllipse2", item.Kind);
-            Imp.SameBits(new[] { 0.0, 0, 1, 0, 10, 5 }, Imp.Of(item));
-            HasWarning(scene, "only an arc of an ellipse");
+            Assert.Empty(scene.LoadWarnings);
+            Assert.Equal(new[] { "GeoEllipse2", "GeoSpline2" }, scene.Items.Select(i => i.Kind).ToArray());
+            Imp.SameBits(new[] { 0.0, 0, 1, 0, 10, 5 }, Imp.Of(scene.Items[0]));
+
+            // The part runs from 0 to 3 radians of the ellipse 10 by 5.
+            var arc = (GeoSpline2)scene.Items[1].ToGeometry();
+            Assert.Equal(new GeoPoint2(10, 0), arc.StartPoint);
+            Assert.True(arc.EndPoint.DistanceTo(new GeoPoint2(10 * Math.Cos(3.0), 5 * Math.Sin(3.0))) < 1E-12);
         }
 
         [Fact]
@@ -281,6 +292,60 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal("45\u00B0 \u00E9", scene.Items[0].Data.GetProperty("text").GetString());
             Assert.Equal(3.5, scene.Items[0].Data.GetProperty("height").GetDouble());
             Assert.Equal("first\nsecond", scene.Items[1].Data.GetProperty("text").GetString());
+        }
+
+        [Fact]
+        public void AFileWithAByteOrderMark_KeepsItsLabelsAndTheColoursOfItsLayerTable()
+        {
+            string tables = G(0, "TABLE", 2, "LAYER", 70, 1) + Layer("red", 62, 1) + G(0, "ENDTAB");
+            string entities = G(0, "TEXT", 8, "red", 10, 1, 20, 2, 30, 0, 40, 2.5, 1, "note");
+            Scene scene = SceneImport.ReadText("\uFEFF" + Dxf(entities, tables), "dxf");
+
+            SceneItem label = Imp.Only(scene);
+            Assert.Equal(SceneKinds.Text, label.Kind);
+            Assert.Equal("note", label.Data.GetProperty("text").GetString());
+            Assert.Equal("#FF0000", scene.FindLayer("red").Color);
+        }
+
+        [Fact]
+        public void LabelsOnLayersThatDifferOnlyInCase_AreOnOneLayer_TheFirstSpelling()
+        {
+            string entities = G(0, "TEXT", 8, "T1", 10, 1, 20, 2, 1, "a") + G(0, "TEXT", 8, "t1", 10, 3, 20, 4, 1, "b");
+            Scene scene = ReadDxf(Dxf(entities));
+
+            Assert.Empty(scene.LoadWarnings);
+            Assert.Equal(new[] { "T1", "T1" }, scene.Items.Select(i => i.Layer).ToArray());
+            Assert.Equal(new[] { "T1" }, scene.Layers.Select(l => l.Name).ToArray());
+        }
+
+        [Fact]
+        public void AnInsertOfABlockTheFileDoesNotDefine_IsSaidByTheLibrarysWarning_AndCounted()
+        {
+            Scene scene = ReadDxf(Dxf(G(0, "INSERT", 8, "0", 2, "NOPE", 10, 0, 20, 0) + G(0, "POINT", 10, 1, 20, 2)));
+
+            Assert.Equal("GeoPoint2", Assert.Single(scene.Items).Kind);
+            Assert.Equal(
+                new[]
+                {
+                    "DXF: 1 INSERT names a block the file does not define and was left out: NOPE.",
+                    "DXF: 1 INSERT entity(ies) are not read, as the library's DxfReader counts them; a warning above gives the reason where it has one",
+                },
+                scene.LoadWarnings.ToArray());
+        }
+
+        [Fact]
+        public void InsertsTheLibraryLeavesOutWithoutAWarningOfItsOwn_AreCountedAndSaid()
+        {
+            // An INSERT of the block of a layout, and one whose scale cannot be read: the library counts them in Skipped alone.
+            string blocks = G(0, "BLOCK", 2, "*Model_Space", 70, 0, 10, 0, 20, 0, 30, 0) + G(0, "ENDBLK")
+                + G(0, "BLOCK", 2, "B", 70, 0, 10, 0, 20, 0, 30, 0) + G(0, "LINE", 8, "0", 10, 0, 20, 0, 11, 1, 21, 1) + G(0, "ENDBLK");
+            string entities = G(0, "INSERT", 8, "0", 2, "*Model_Space", 10, 0, 20, 0)
+                + G(0, "INSERT", 8, "0", 2, "B", 10, 0, 20, 0, 41, "abc")
+                + G(0, "POINT", 10, 1, 20, 2);
+            Scene scene = ReadDxf(Dxf(entities, string.Empty, blocks));
+
+            Assert.Equal("GeoPoint2", Assert.Single(scene.Items).Kind);
+            Assert.Equal(new[] { "DXF: 2 INSERT entity(ies) are not read, as the library's DxfReader counts them; a warning above gives the reason where it has one" }, scene.LoadWarnings.ToArray());
         }
 
         [Fact]
@@ -312,13 +377,12 @@ namespace GeometryHelper.Viewer.Tests
         }
 
         [Fact]
-        public void ADxfThatEndsInTheMiddle_KeepsWhatWasRead_AndSaysWhereItStopped()
+        public void ADxfThatEndsInTheMiddle_IsRefused_WithTheLineWhereItStopped()
         {
             string text = Dxf(G(0, "POINT", 10, 1, 20, 2) + G(0, "POINT", 10, 3, 20, 4)).Replace("0\nENDSEC\n0\nEOF\n", "garbage\n");
-            Scene scene = ReadDxf(text);
 
-            Assert.Equal(2, scene.Items.Count);
-            HasWarning(scene, "reading stopped");
+            FormatException e = Assert.Throws<FormatException>(() => ReadDxf(text));
+            Assert.Contains("line 29", e.Message);
         }
 
         #endregion

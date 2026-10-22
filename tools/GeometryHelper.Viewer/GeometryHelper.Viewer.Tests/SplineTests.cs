@@ -379,17 +379,21 @@ namespace GeometryHelper.Viewer.Tests
             => SceneImport.ReadText(G(0, "SECTION", 2, "ENTITIES") + entities + G(0, "ENDSEC", 0, "EOF"), "dxf");
 
         [Fact]
-        public void ASplineGivenByItsFitPointsAlone_IsLeftOutAndSaid()
+        public void ASplineGivenByItsFitPointsAlone_IsTheSplineThroughThem_AndSaid()
         {
+            // The library passes a spline through the fit points, of one degree less than the file asks where there are too few of them.
             string fit = G(0, "SPLINE", 8, "0", 100, "AcDbSpline", 70, 8, 71, 3, 72, 0, 73, 0, 74, 3, 11, 0, 21, 0, 31, 0, 11, 50, 21, 40, 31, 0, 11, 100, 21, 0, 31, 0);
             Scene scene = ReadEntities(fit + G(0, "POINT", 10, 1, 20, 2));
 
-            Assert.Equal("GeoPoint3", Assert.Single(scene.Items).Kind);
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("a SPLINE given by its 3 fit point(s) alone was left out"));
+            Assert.Equal(new[] { "GeoSpline2", "GeoPoint2" }, scene.Items.Select(i => i.Kind).ToArray());
+            var spline = (GeoSpline2)scene.Items[0].ToGeometry();
+            Assert.Equal(new GeoPoint2(0, 0), spline.StartPoint);
+            Assert.Equal(new GeoPoint2(100, 0), spline.EndPoint);
+            Assert.Contains(scene.LoadWarnings, w => w.Contains("1 SPLINE given by its fit points alone was read as the spline GeoSpline.Interpolate passes through them"));
         }
 
         [Fact]
-        public void APeriodicSpline_TheLibraryDoesNotTake_IsLeftOutAndSaid()
+        public void APeriodicSpline_IsReadClamped_OnTheSameCurve()
         {
             // A closed periodic cubic of AutoCAD's: its knots run evenly past both ends, not clamped.
             var groups = new List<object> { 0, "SPLINE", 8, "0", 100, "AcDbSpline", 70, 11, 71, 3, 72, 10, 73, 6, 74, 0 };
@@ -406,8 +410,12 @@ namespace GeometryHelper.Viewer.Tests
 
             Scene scene = ReadEntities(G(groups.ToArray()));
 
-            Assert.Empty(scene.Items);
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("a SPLINE the library does not take was left out (it is periodic"));
+            // The library clamps its knots to the part of it AutoCAD draws, knot 0 to knot 3, which runs from (P0 + 4 P1 + P2) / 6 to
+            // (P3 + 4 P4 + P5) / 6, as a uniform cubic does.
+            var spline = (GeoSpline2)Imp.Only(scene).ToGeometry();
+            Assert.Equal(new[] { 0.0, 0, 0, 0, 1, 2, 3, 3, 3, 3 }, spline.Knots.ToArray());
+            Assert.True(spline.StartPoint.DistanceTo(new GeoPoint2(500.0 / 6.0, 100.0 / 6.0)) < 1E-9);
+            Assert.True(spline.EndPoint.DistanceTo(new GeoPoint2(100.0 / 6.0, 100.0 / 6.0)) < 1E-9);
         }
 
         [Fact]
@@ -417,7 +425,7 @@ namespace GeometryHelper.Viewer.Tests
             Scene scene = ReadEntities(few);
 
             Assert.Empty(scene.Items);
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("a SPLINE of 3 control points with 2 weights was left out"));
+            Assert.Contains(scene.LoadWarnings, w => w.Contains("1 SPLINE was not read: its degree, knots, weights or fit points do not make a spline the library takes"));
         }
     }
 }

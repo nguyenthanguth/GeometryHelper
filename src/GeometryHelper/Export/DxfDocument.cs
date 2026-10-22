@@ -28,6 +28,12 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
+        /// Gets how many blocks the reading worked out, in all, for the sizes of the INSERTs it placed or left out; for the
+        /// tests of that work alone.
+        /// </summary>
+        internal long SizedBlocks { get; set; }
+
+        /// <summary>
         /// Gets the entities read, each with its shape, in the order of the file, an INSERT's where the INSERT stands: the
         /// entities of its block placed, in the order of the block. One entity of the file can give more than one: a 3DFACE
         /// whose four corners are not in one plane is two triangles, both with its handle, and a block of 50 entities placed
