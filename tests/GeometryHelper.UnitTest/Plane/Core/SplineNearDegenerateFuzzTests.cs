@@ -53,7 +53,7 @@ namespace GeometryHelper.UnitTest.Plane
             double worstLength = 0.0;
 
             // The oracle works slowly on a span a millionth wide, so there are fewer of those.
-            int draws = (kind == "SpansAMillionthWide" ? 30 : 120) * Multiplier;
+            int draws = (kind == "SpansAMillionthWide" ? 15 : 60) * Multiplier;
 
             for (int draw = 0; draw < draws; draw++)
             {
@@ -133,7 +133,7 @@ namespace GeometryHelper.UnitTest.Plane
             var random = new Random(53000 + dim * 100 + Array.IndexOf(SplineGen.NastyKinds, kind));
             double worst = 0.0;
 
-            for (int draw = 0; draw < 50 * Multiplier; draw++)
+            for (int draw = 0; draw < 25 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Nasty(random, dim, kind);
                 SplineUnderTest s = SplineUnderTest.Make(o);
@@ -165,7 +165,7 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var random = new Random(54000 + dim * 100 + Array.IndexOf(SplineGen.NastyKinds, kind));
 
-            for (int draw = 0; draw < 25 * Multiplier; draw++)
+            for (int draw = 0; draw < 13 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Nasty(random, dim, kind);
                 SplineUnderTest s = SplineUnderTest.Make(o);

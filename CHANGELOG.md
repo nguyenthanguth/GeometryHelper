@@ -4,6 +4,38 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**CHANGED.** `GeoObb3.Fit` is many times faster on a hull of thousands of faces. The box on each face of the hull was fitted
+round every copy of every corner of every face: 3 000 points on a sphere make 6 000 faces and 18 000 copies, sorted on each
+face, and took 7.7 seconds on .NET 10 and 15.2 on .NET Framework. Each corner is taken once now, and a face is passed over where no
+box on it can be as small as one already found, the least rectangle on it bounded from below by calipers round the corners on the
+rim the hull shows along its normal: 8 of the 6 000 faces are fitted, in 0.40 and 0.54 seconds. The bound is still worked out on
+every face from all the hull, so the time grows faster than the points: 6 000 take 1.8 seconds and 12 000 6.7 on .NET 10. The box
+is the same to the bit, on 3 122 sets of points from cubes, plates and lattices with copies to spheres and ellipsoids, at three
+tolerances, on both runtimes.
+
+**CHANGED.** The booleans, offsets and meshes of the plane no longer slow with the square of the corners of a shape on one line.
+Clipper2, which resolves them, put each local minimum of a scanline into its list of edges by walking the list from its head,
+looked through the whole list for the other side of a maximum that ends on a horizontal, and tried every pair of horizontals on a
+line against each other: a zigzag of 100 000 vertices, its 50 000 minima on one line, took 5.9 seconds to unite, and a comb of
+25 000 teeth 7.4. They take 0.11 and 0.09 seconds (0.08 and 0.09 on .NET Framework), with the same paths to the point: of 19 200
+runs of every operation and fill rule over random, degenerate, comb and zigzag sets, open paths and polytrees among them, none
+moves, nor of 14 400 with the new ways forced on wherever they could be taken.
+
+**CHANGED.** Offsetting a polygon, a face or a chain in a plane in space no longer slows with the square of its edges where they
+run along the first axis of the frame it is offset in. The region solver swept the edges along that axis, where the teeth of a
+comb all overlap: a comb of 4 000 teeth running along it took 4.7 seconds to offset by 0.5. Where a sweep across the axis tries
+fewer than half as many pairs it is swept so now, finding the same crossings and trying them in the same order: 0.14 seconds (0.08
+on .NET Framework), and of 1 680 offsets of combs both ways, slotted plates, zigzag strips, serpentines and random loops, none moves
+by a bit, nor with the sweep across forced on everywhere.
+
+**CHANGED.** Cutting a face into many pieces, closing the halves of a cut body and merging the faces of one plane no longer try
+every loop against every other for which lies inside which. A comb face of 5 000 teeth cut across them took 1.2 seconds (about 7
+on .NET Framework) for its 5 001 pieces, 25 million tests; a loop is asked of another now only where its first corner lies in the
+other's box, grown by the tolerances, and the cut takes 0.05 seconds (0.02). Of 400 cuts and merges of combs, plates with grids of
+holes and bodies nested three deep, none moves by a bit, nor with the boxes asked of every set of loops however few.
+
 ## 12.3.0
 
 **NEW.** `DxfReader` reads a DXF file into the library's shapes: `Read(path)`, `Read(stream)` and `Parse(text)`, each with

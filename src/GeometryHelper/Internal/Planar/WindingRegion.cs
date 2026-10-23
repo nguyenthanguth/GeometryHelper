@@ -65,6 +65,9 @@ namespace GeometryHelper.Internal.Planar
     {
         private const int MaxSplitPasses = 8;
 
+        // The edges up to which the crossings are swept along X without counting whether Y would try fewer pairs.
+        private const int SweepChoiceEdges = 256;
+
         private readonly List<GeoPoint2> _from = new List<GeoPoint2>();
         private readonly List<GeoPoint2> _to = new List<GeoPoint2>();
         private readonly List<int> _flags = new List<int>();
@@ -202,34 +205,44 @@ namespace GeometryHelper.Internal.Planar
             bool any = false;
             List<int> active = new List<int>();
 
-            foreach (int i in order)
+            // A sweep along X tries every pair whose X runs overlap, which along teeth running in X is every pair; where
+            // a sweep along Y would try fewer than half as many, the same pairs are found so and tried in the same order.
+            // Counting the pairs costs two sorts, more than a sweep of a few hundred edges, which is left along X.
+            if (count > SweepChoiceEdges && IsFinite(minX, maxX, minY, maxY) && PairsAlong(minY, maxY, snap) < PairsAlong(minX, maxX, snap) / 2)
             {
-                double left = minX[i] - snap;
-                int kept = 0;
-
-                for (int r = 0; r < active.Count; r++)
+                any = TestPairsFoundAlongY(edges, store, snap, splits, order, minX, maxX, minY, maxY);
+            }
+            else
+            {
+                foreach (int i in order)
                 {
-                    int j = active[r];
+                    double left = minX[i] - snap;
+                    int kept = 0;
 
-                    if (maxX[j] >= left)
+                    for (int r = 0; r < active.Count; r++)
                     {
-                        active[kept++] = j;
-                    }
-                }
+                        int j = active[r];
 
-                active.RemoveRange(kept, active.Count - kept);
-
-                foreach (int j in active)
-                {
-                    if (maxY[j] < minY[i] - snap || minY[j] > maxY[i] + snap)
-                    {
-                        continue;
+                        if (maxX[j] >= left)
+                        {
+                            active[kept++] = j;
+                        }
                     }
 
-                    any |= TestPair(edges, i, j, store, snap, splits);
-                }
+                    active.RemoveRange(kept, active.Count - kept);
 
-                active.Add(i);
+                    foreach (int j in active)
+                    {
+                        if (maxY[j] < minY[i] - snap || minY[j] > maxY[i] + snap)
+                        {
+                            continue;
+                        }
+
+                        any |= TestPair(edges, i, j, store, snap, splits);
+                    }
+
+                    active.Add(i);
+                }
             }
 
             if (!any)
@@ -285,6 +298,148 @@ namespace GeometryHelper.Internal.Planar
             edges.Clear();
             edges.AddRange(rebuilt);
             return true;
+        }
+
+        /// <summary>
+        /// Tries the pairs the sweep along X tries, found by a sweep along Y, in the order the sweep along X tries them.
+        /// Returns whether anything was split.
+        /// </summary>
+        /// <remarks>
+        /// The sweep along X tries each edge, in the order of its least X, against every earlier one whose X run reaches
+        /// within the snap distance of its own and whose Y run does so too, the earlier ones in the order they came. A
+        /// sweep along Y over runs grown by a little more than the snap distance finds every such pair and some more; the
+        /// pair is then read as the sweep along X reads it, the later edge first, through the same two tests, and the pairs
+        /// that pass are tried sorted by the places of their two edges in that order. Trying a pair adds the point where
+        /// the two cross to the points, and which points merge depends on the order they come in, so the order is kept
+        /// as it was, to the pair. An offset of a comb of 4 000 teeth running along the frame's X, in a plane in space,
+        /// spent 4.8 of its 4.9 seconds sweeping along X.
+        /// </remarks>
+        private static bool TestPairsFoundAlongY(List<WorkEdge> edges, VertexStore store, double snap, List<int>[] splits, int[] order, double[] minX, double[] maxX, double[] minY, double[] maxY)
+        {
+            int count = order.Length;
+            int[] place = new int[count];
+            double size = 0.0;
+
+            for (int k = 0; k < count; k++)
+            {
+                place[order[k]] = k;
+                size = Math.Max(size, Math.Max(Math.Max(Math.Abs(minX[k]), Math.Abs(maxX[k])), Math.Max(Math.Abs(minY[k]), Math.Abs(maxY[k]))));
+            }
+
+            int[] byY = new int[count];
+
+            for (int k = 0; k < count; k++)
+            {
+                byY[k] = k;
+            }
+
+            Array.Sort((double[])minY.Clone(), byY);
+
+            double reach = 2.0 * snap + 1E-12 * (1.0 + size);
+            List<int> active = new List<int>();
+            List<long> pairs = new List<long>();
+
+            foreach (int p in byY)
+            {
+                double floor = minY[p] - reach;
+                int kept = 0;
+
+                for (int r = 0; r < active.Count; r++)
+                {
+                    if (maxY[active[r]] >= floor)
+                    {
+                        active[kept++] = active[r];
+                    }
+                }
+
+                active.RemoveRange(kept, active.Count - kept);
+
+                foreach (int q in active)
+                {
+                    int i = place[p] > place[q] ? p : q;
+                    int j = i == p ? q : p;
+                    double left = minX[i] - snap;
+
+                    if (maxX[j] >= left && !(maxY[j] < minY[i] - snap || minY[j] > maxY[i] + snap))
+                    {
+                        pairs.Add(((long)place[i] << 32) | (uint)place[j]);
+                    }
+                }
+
+                active.Add(p);
+            }
+
+            long[] sorted = pairs.ToArray();
+            Array.Sort(sorted);
+            bool any = false;
+
+            foreach (long pair in sorted)
+            {
+                any |= TestPair(edges, order[(int)(pair >> 32)], order[(int)(pair & 0xFFFFFFFFL)], store, snap, splits);
+            }
+
+            return any;
+        }
+
+        /// <summary>
+        /// About twice the number of pairs of runs, each from a low end to a high one, that come within the snap distance
+        /// of each other along an axis: for each run, how many low ends lie along it.
+        /// </summary>
+        private static long PairsAlong(double[] low, double[] high, double snap)
+        {
+            double[] sorted = (double[])low.Clone();
+            Array.Sort(sorted);
+            long pairs = 0;
+
+            for (int i = 0; i < low.Length; i++)
+            {
+                pairs += UpperBound(sorted, high[i] + snap) - UpperBound(sorted, low[i] - snap);
+            }
+
+            return pairs;
+        }
+
+        /// <summary>
+        /// Whether every end of every run is a number of finite size, which the sweep along Y needs to find every pair.
+        /// </summary>
+        private static bool IsFinite(params double[][] ends)
+        {
+            foreach (double[] values in ends)
+            {
+                foreach (double value in values)
+                {
+                    if (double.IsNaN(value) || double.IsInfinity(value))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// The first place in a sorted array holding a value larger than a given one.
+        /// </summary>
+        private static int UpperBound(double[] sorted, double value)
+        {
+            int low = 0, high = sorted.Length;
+
+            while (low < high)
+            {
+                int middle = low + (high - low) / 2;
+
+                if (sorted[middle] <= value)
+                {
+                    low = middle + 1;
+                }
+                else
+                {
+                    high = middle;
+                }
+            }
+
+            return low;
         }
 
         /// <summary>

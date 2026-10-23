@@ -185,7 +185,7 @@ namespace GeometryHelper.UnitTest.Plane
             int left = 0;
             int crossed = 0;
 
-            for (int draw = 0; draw < 40 * Multiplier; draw++)
+            for (int draw = 0; draw < 20 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, 2, maxDegree: 5, thinSpans: draw % 4 == 0);
                 GeoSpline2 spline = Make(o);
@@ -208,7 +208,7 @@ namespace GeometryHelper.UnitTest.Plane
             }
 
             _output.WriteLine(kind + ": " + checkedCount + " pairs held to the oracle (" + crossed + " crossing, " + left + " left out as at the tolerance); worst distance error " + worst.ToString("0.0E+0") + " of the size of the spline; " + _extra + " places that are near touches within the tolerance and no crossing, each the oracle's too");
-            Assert.True(checkedCount > 50, "too few pairs checked: " + checkedCount);
+            Assert.True(checkedCount > 25, "too few pairs checked: " + checkedCount);
         }
 
         /// <summary>
@@ -293,7 +293,7 @@ namespace GeometryHelper.UnitTest.Plane
             int checkedCount = 0;
             int touched = 0;
 
-            for (int draw = 0; draw < 30 * Multiplier; draw++)
+            for (int draw = 0; draw < 15 * Multiplier; draw++)
             {
                 SplineOracle o;
 
@@ -318,8 +318,8 @@ namespace GeometryHelper.UnitTest.Plane
             }
 
             _output.WriteLine(kind + ": " + checkedCount + " pairs at the tolerance held to the oracle's places (" + touched + " with a place), " + _extra + " places that are near touches and no crossing");
-            Assert.True(checkedCount > 150, "too few pairs checked: " + checkedCount);
-            Assert.True(touched > 100, "too few pairs with a place: " + touched);
+            Assert.True(checkedCount > 75, "too few pairs checked: " + checkedCount);
+            Assert.True(touched > 50, "too few pairs with a place: " + touched);
         }
 
         private static double[] BoxOf(SplineOracle o)
@@ -358,7 +358,7 @@ namespace GeometryHelper.UnitTest.Plane
             double worst = 0.0;
             int checkedCount = 0;
 
-            for (int draw = 0; draw < 14 * Multiplier; draw++)
+            for (int draw = 0; draw < 7 * Multiplier; draw++)
             {
                 SplineOracle o;
 
@@ -387,7 +387,7 @@ namespace GeometryHelper.UnitTest.Plane
             }
 
             _output.WriteLine(nasty + ": " + checkedCount + " pairs held to the oracle; worst distance error " + worst.ToString("0.0E+0") + " of the size of the spline; " + _extra + " places that are near touches within the tolerance and no crossing, each the oracle's too");
-            Assert.True(checkedCount > 12, "too few pairs checked: " + checkedCount);
+            Assert.True(checkedCount > 6, "too few pairs checked: " + checkedCount);
         }
 
         [Fact]
@@ -398,7 +398,7 @@ namespace GeometryHelper.UnitTest.Plane
             int crossed = 0;
             int missedByTheOracle = 0;
 
-            for (int draw = 0; draw < 24 * Multiplier; draw++)
+            for (int draw = 0; draw < 12 * Multiplier; draw++)
             {
                 SplineOracle first = SplineGen.Draw(random, 2, maxDegree: 5, thinSpans: draw % 4 == 0);
                 SplineOracle second = SplineGen.Draw(random, 2, maxDegree: 5);

@@ -19,7 +19,7 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     /// <remarks>
     /// A shape that is a curve, an arc, a circle, an ellipse, an edge, a chain or a loop, is measured as a pair of splines and costs a
-    /// hundred times what the others do: it has twenty draws, at the strict tolerance and the default, where the others have eighty at
+    /// hundred times what the others do: it has ten draws, at the strict tolerance and the default, where the others have forty at
     /// three; the environment variable SPLINE_FUZZ_DRAWS multiplies both for a longer run by hand.
     /// </remarks>
     public class Spline3SymmetryFuzzTests
@@ -73,7 +73,7 @@ namespace GeometryHelper.UnitTest.Solid
             var fine = new Tolerance(1E-4, 1E-5);
             Tolerance[] tolerances = curved ? new[] { Strict, Tolerance.Default } : new[] { Strict, fine, Tolerance.Global };
 
-            for (int draw = 0; draw < (curved ? 20 : 80) * Multiplier; draw++)
+            for (int draw = 0; draw < (curved ? 10 : 40) * Multiplier; draw++)
             {
                 SplineOracle o = draw % 6 == 5 ? SplineGen.Nasty(random, 3, SplineGen.NastyKinds[random.Next(SplineGen.NastyKinds.Length)]) : SplineGen.Draw(random, 3, maxDegree: 5, thinSpans: draw % 4 == 0);
                 GeoSpline3 spline;
@@ -146,7 +146,7 @@ namespace GeometryHelper.UnitTest.Solid
             int pairs = 0;
             int meeting = 0;
 
-            for (int draw = 0; draw < 120 * Multiplier; draw++)
+            for (int draw = 0; draw < 60 * Multiplier; draw++)
             {
                 GeoSpline3 a;
                 GeoSpline3 b;

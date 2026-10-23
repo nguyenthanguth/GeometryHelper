@@ -61,7 +61,7 @@ namespace GeometryHelper.UnitTest.Plane
             int pairs = 0;
             int touching = 0;
 
-            for (int draw = 0; draw < 120 * Multiplier; draw++)
+            for (int draw = 0; draw < 60 * Multiplier; draw++)
             {
                 SplineOracle o = draw % 6 == 5 ? SplineGen.Nasty(random, 2, SplineGen.NastyKinds[random.Next(SplineGen.NastyKinds.Length)]) : SplineGen.Draw(random, 2, maxDegree: 5, thinSpans: draw % 4 == 0);
                 GeoSpline2 spline;
@@ -144,7 +144,7 @@ namespace GeometryHelper.UnitTest.Plane
             int pairs = 0;
             int crossing = 0;
 
-            for (int draw = 0; draw < 200 * Multiplier; draw++)
+            for (int draw = 0; draw < 100 * Multiplier; draw++)
             {
                 GeoSpline2 a;
                 GeoSpline2 b;

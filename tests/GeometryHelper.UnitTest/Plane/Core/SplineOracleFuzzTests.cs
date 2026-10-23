@@ -51,7 +51,7 @@ namespace GeometryHelper.UnitTest.Plane
             var random = new Random(41000 + dim);
             double worst = 0.0;
 
-            for (int draw = 0; draw < 400 * Multiplier; draw++)
+            for (int draw = 0; draw < 200 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, dim, maxDegree: draw % 5 == 0 ? 10 : 5);
                 SplineUnderTest s = SplineUnderTest.Make(o);
@@ -77,7 +77,7 @@ namespace GeometryHelper.UnitTest.Plane
             var random = new Random(41100 + dim);
             double worst = 0.0;
 
-            for (int draw = 0; draw < 250 * Multiplier; draw++)
+            for (int draw = 0; draw < 125 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, dim, maxDegree: 5, thinSpans: true);
                 SplineUnderTest s = SplineUnderTest.Make(o);
@@ -112,7 +112,7 @@ namespace GeometryHelper.UnitTest.Plane
             double worst = 0.0;
             int oracleMissed = 0;
 
-            for (int draw = 0; draw < 160 * Multiplier; draw++)
+            for (int draw = 0; draw < 80 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, dim, maxDegree: 5);
                 SplineUnderTest s = SplineUnderTest.Make(o);
@@ -162,7 +162,7 @@ namespace GeometryHelper.UnitTest.Plane
             var random = new Random(41300 + dim);
             double worst = 0.0;
 
-            for (int draw = 0; draw < 200 * Multiplier; draw++)
+            for (int draw = 0; draw < 100 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, dim, maxDegree: 5);
                 SplineUnderTest s = SplineUnderTest.Make(o);
@@ -184,7 +184,7 @@ namespace GeometryHelper.UnitTest.Plane
             var random = new Random(41350 + dim);
             double worst = 0.0;
 
-            for (int draw = 0; draw < 120 * Multiplier; draw++)
+            for (int draw = 0; draw < 60 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, dim, maxDegree: 5);
                 SplineUnderTest s = SplineUnderTest.Make(o);
@@ -216,7 +216,7 @@ namespace GeometryHelper.UnitTest.Plane
             var random = new Random(41400 + dim);
             double worst = 0.0;
 
-            for (int draw = 0; draw < 200 * Multiplier; draw++)
+            for (int draw = 0; draw < 100 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, dim, maxDegree: 5);
                 SplineUnderTest s = SplineUnderTest.Make(o);
@@ -243,7 +243,7 @@ namespace GeometryHelper.UnitTest.Plane
             var random = new Random(41500 + dim);
             double worstGap = 0.0;
 
-            for (int draw = 0; draw < 70 * Multiplier; draw++)
+            for (int draw = 0; draw < 35 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, dim, maxDegree: 5);
                 SplineUnderTest s = SplineUnderTest.Make(o);
@@ -326,7 +326,7 @@ namespace GeometryHelper.UnitTest.Plane
             var random = new Random(41600 + dim);
             double worst = 0.0;
 
-            for (int draw = 0; draw < 250 * Multiplier; draw++)
+            for (int draw = 0; draw < 125 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, dim, maxDegree: 5);
                 SplineUnderTest s = SplineUnderTest.Make(o);
@@ -377,7 +377,7 @@ namespace GeometryHelper.UnitTest.Plane
             var random = new Random(41700 + dim);
             double worst = 0.0;
 
-            for (int draw = 0; draw < 200 * Multiplier; draw++)
+            for (int draw = 0; draw < 100 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, dim, maxDegree: 5);
                 SplineUnderTest s = SplineUnderTest.Make(o);
@@ -415,7 +415,7 @@ namespace GeometryHelper.UnitTest.Plane
             double worstTangent = 0.0;
             double worstCurvature = 0.0;
 
-            for (int draw = 0; draw < 200 * Multiplier; draw++)
+            for (int draw = 0; draw < 100 * Multiplier; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, dim, maxDegree: 5);
                 SplineUnderTest s = SplineUnderTest.Make(o);

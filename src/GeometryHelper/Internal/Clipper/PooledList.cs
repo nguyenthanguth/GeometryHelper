@@ -25,6 +25,9 @@ namespace GeometryHelper.Clipper
                 poolVtx.flags = flags;
                 poolVtx.prev = prev;
                 poolVtx.next = null;
+                poolVtx.topOf = null;
+                poolVtx.topOf2 = null;
+                poolVtx.topOfMore = false;
             }
             _size++;
             return poolVtx;

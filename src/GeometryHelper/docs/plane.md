@@ -514,7 +514,7 @@ GeoFace2[] slab = Boolean2.Subtract(outline, openings);
 GeoFace2[] floor = Boolean2.Union(tiles);
 ```
 
-Region operations, the booleans and the offsets alike, are resolved by [Clipper2](https://github.com/AngusJohnson/Clipper2), which this package carries compiled in. It works on integers, so an answer never depends on rounding luck; the library lays the shapes out in a frame at the first of them before rounding, and gives every vertex of the answer its full precision back afterwards, so a square offset by 2 ends exactly on 2. Vertices closer than the point tolerance are merged, and slivers thinner than it are dropped.
+Region operations, the booleans and the offsets alike, are resolved by [Clipper2](https://github.com/AngusJohnson/Clipper2), which this package carries compiled in. It works on integers, so an answer never depends on rounding luck; the library lays the shapes out in a frame at the first of them before rounding, and gives every vertex of the answer its full precision back afterwards, so a square offset by 2 ends exactly on 2. Vertices closer than the point tolerance are merged, and slivers thinner than it are dropped. Many corners on one line, the points of a zigzag or the teeth of a comb, cost no more than as many anywhere else: a zigzag of 100 000 vertices is united in 0.11 seconds and a comb of 25 000 teeth in 0.09, where Clipper2 as it comes takes 5.9 and 7.4, with the same answer to the point.
 
 ## Triangles and meshes
 
@@ -1456,12 +1456,12 @@ best found is passed over; the few places that are asked whether another edge is
 are one near touch, are looked up in a grid of the edges' boxes, so that a million edges across a cubic take 2.2 s and 80 000
 across it 0.3 s.
 
-Checked against oracles that share no code with the library: on every run 40 random splines of degrees one to five, with repeated and
-thin knots and weights for one in two, against four shapes of each of the 14 kinds, 2 240 pairs, each held to the oracle's places (the
-crossings and the near touches within the tolerance, in count and in position); 330 pairs each of a spline with a line, a circle and
-an ellipse that touches its tangent, from a ten-thousandth to three thousandths either side; 14 splines of each of 7 nasty kinds (a
+Checked against oracles that share no code with the library: on every run 20 random splines of degrees one to five, with repeated and
+thin knots and weights for one in two, against four shapes of each of the 14 kinds, 1 120 pairs, each held to the oracle's places (the
+crossings and the near touches within the tolerance, in count and in position); 165 pairs each of a spline with a line, a circle and
+an ellipse that touches its tangent, from a ten-thousandth to three thousandths either side; 7 splines of each of 7 nasty kinds (a
 million from the origin, control points repeated, all on one line, spans a millionth wide, degree up to ten, weights a thousandfold apart,
-a cusp) against 7 kinds of shape; 24 pairs of two splines; every query from both sides, at three tolerances, for 5 040 pairs, to the
+a cusp) against 7 kinds of shape; 12 pairs of two splines; every query from both sides, at three tolerances, for 2 520 pairs, to the
 bit; and 45 hand cases, and 39 more, at a hundred thousand and a million from the origin, with splines of up to eighty thousand spans and
 curves that cross twice a hair apart. The worst distance error was 1.6E-15 of the size of the spline, and 6.4E-9 of it a million from the
 origin. A run of four times the draws, which the environment variable SPLINE_FUZZ_DRAWS asks for, once found a distance 5.8E-6 too great,

@@ -986,6 +986,10 @@ tube.TrySplitBy(GeoPlane3.XY.Offset(5), out GeoSolid3 upper, out GeoSolid3 lower
 // each half is closed, and its cap is one face carrying one hole
 ```
 
+Which loop lies inside which is asked only of loops whose boxes meet, so many pieces cost little more than
+a few: a comb face of 5 000 teeth cut across them comes back in its 5 001 pieces in 0.05 seconds, where
+asking every pair took 1.2.
+
 Two consequences worth knowing. A cut can leave one half as **several disconnected shells** — a plane
 across both arms of a U leaves two bodies above it — and they come back as one `GeoSolid3`, which measures
 and answers containment correctly because each shell is closed and wound outwards. And a plane passing
@@ -1107,7 +1111,9 @@ make cut away and comes back in pieces when a turn cuts it clean through.
 The planar work happens in a frame built on the region's own plane, through the same corner construction
 the plane library uses, so a plate lying at an angle offsets exactly as its plan view would. The loops
 themselves are resolved by the library's own winding-number solver, where the plane half hands that
-part to Clipper2. The test suite checks the two against each other.
+part to Clipper2. The test suite checks the two against each other. The solver finds where edges cross by
+sweeping them along the axis of the frame they overlap least along, so a comb of 4 000 teeth whose teeth
+run along the frame's first axis is offset in 0.14 seconds, where sweeping along the teeth took 4.7.
 
 ### Combining bodies
 
@@ -1582,7 +1588,9 @@ triangles of one plane within the tolerance can stand a face as far again from a
 1 000 plates 100 by 100 and from 0.002 to 1 thick. Every point is held within the tolerance of the merged hull: where
 one is not, the triangles are merged again within a tenth of the planar tolerance, then a hundredth, and left as they
 are where that does not hold it either; a hull that holds every point merged is kept as it was, to the bit. The work grows with the points and the faces: 10 000 points in a cube take 45 milliseconds, 3 000 on a
-sphere 120.
+sphere 120. Fitting the box round those 3 000 takes 0.4 seconds: each corner of the hull is taken once, and a
+face is passed over where no box on it can be as small as one found already, so 8 of the hull's 6 000 faces
+are fitted.
 
 ```csharp
 GeoObb3 box = GeoObb3.Fit(part.Faces.SelectMany(face => face.Boundary.Vertices));

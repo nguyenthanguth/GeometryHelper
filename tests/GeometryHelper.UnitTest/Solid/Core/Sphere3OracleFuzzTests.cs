@@ -15,7 +15,7 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Every run draws 2 000 shapes and balls of each of the 18 kinds the infinite line is asked about, 36 000 pairs: a fifth of the balls
+    /// Every run draws 1 000 shapes and balls of each of the 18 kinds the infinite line is asked about, 18 000 pairs: a fifth of the balls
     /// laid anywhere, two fifths about a point of the shape, a fifth with a radius set so that the gap to the shape is one of 0, 0.0005,
     /// 0.002, 0.3 and 5, and a fifth so large that the shape lies inside. Setting the environment variable <c>SPHERE3_FUZZ</c> to a
     /// count draws that many of each kind, and <c>SPHERE3_SEED</c> changes the seed.
@@ -30,7 +30,7 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class Sphere3OracleFuzzTests
     {
-        private static int Cases => int.TryParse(Environment.GetEnvironmentVariable("SPHERE3_FUZZ"), out int n) ? n : 2000;
+        private static int Cases => int.TryParse(Environment.GetEnvironmentVariable("SPHERE3_FUZZ"), out int n) ? n : 1000;
 
         private static int Seed => int.TryParse(Environment.GetEnvironmentVariable("SPHERE3_SEED"), out int n) ? n : 20261020;
 

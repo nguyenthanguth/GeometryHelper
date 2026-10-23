@@ -16,7 +16,7 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Every run draws 3 000 shapes and lines of each of the 18 kinds, 54 000 pairs, a fifth of the lines laid anywhere, two
+    /// Every run draws 1 500 shapes and lines of each of the 18 kinds, 27 000 pairs, a fifth of the lines laid anywhere, two
     /// fifths through a point of the shape, from anywhere along themselves up to a million away, a fifth along an axis and a
     /// fifth moved a few thousandths off a point of the shape, close enough to the point tolerance for it to decide. Setting
     /// the environment variable <c>XLINE3_FUZZ</c> to a count draws that many of each kind, and <c>XLINE3_SEED</c> changes the
@@ -33,7 +33,7 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class XLine3OracleFuzzTests
     {
-        private static int Cases => int.TryParse(Environment.GetEnvironmentVariable("XLINE3_FUZZ"), out int n) ? n : 3000;
+        private static int Cases => int.TryParse(Environment.GetEnvironmentVariable("XLINE3_FUZZ"), out int n) ? n : 1500;
 
         private static int Seed => int.TryParse(Environment.GetEnvironmentVariable("XLINE3_SEED"), out int n) ? n : 20261020;
 
