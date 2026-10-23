@@ -201,13 +201,15 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A segment meets a plane at a single point, and this is that point wrapped so that it reads
         /// like every other crossing. It is what lets a <see cref="GeoEdge3"/> be handed on as
-        /// whichever of a segment or an arc it is, since an arc can meet one twice.
+        /// whichever of a segment or an arc it is, since an arc can meet one twice. Where the segment only
+        /// touches the plane, as <see cref="CollidesWith(GeoPlane3, Tolerance)"/> reads a touch, the point is
+        /// the one of it nearest the plane, as a triangle and a polygon give one: the segment from (-50, 0, 0.5)
+        /// to (50, 0, 0.0005) touches the plane z = 0 at its end. A segment lying in the plane, both ends within
+        /// the planar tolerance of it, meets it along its length and names no place.
         /// </remarks>
         public GeoPoint3[] GetIntersections(GeoPlane3 plane, Tolerance tolerance)
         {
-            return Intersection3.TryIntersectWith(this, plane, out GeoPoint3 crossing, tolerance)
-                ? new[] { crossing }
-                : new GeoPoint3[0];
+            return Intersection3.Meeting(this, plane, tolerance, out _);
         }
 
         /// <summary>

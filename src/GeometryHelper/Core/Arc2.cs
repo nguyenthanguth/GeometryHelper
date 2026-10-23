@@ -619,7 +619,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// How much of the reach of an arc's centre and radius the arc may bow by and be read as its chord.
         /// </summary>
-        private const double FlatFraction = 2.5E-16;
+        internal const double FlatFraction = 2.5E-16;
 
         /// <summary>
         /// Determines whether a segment truly meets an arc, with no tolerance: where the segment crosses or touches

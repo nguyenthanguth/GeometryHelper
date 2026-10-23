@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Core
@@ -32,7 +33,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Crossings(chain.GetEdges(), edge => edge.GetIntersections(plane, tolerance), tolerance);
+            return CrossingsOfPlane(chain.GetEdges(), plane, tolerance);
         }
 
         /// <summary>
@@ -419,7 +420,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Crossings(loop.GetEdges(), edge => edge.GetIntersections(plane, tolerance), tolerance);
+            return CrossingsOfPlane(loop.GetEdges(), plane, tolerance);
         }
 
         /// <summary>
@@ -787,5 +788,29 @@ namespace GeometryHelper.Core
             return Touches(loop.GetEdges(), edge => edge.CollidesWith(circle, tolerance));
         }
 
+        /// <summary>
+        /// Gathers where each edge of a chain meets a plane, naming each place once and keeping a crossing over the touch of a
+        /// straight edge ending within the planar tolerance of the plane.
+        /// </summary>
+        private static GeoPoint3[] CrossingsOfPlane(IEnumerable<GeoEdge3> edges, GeoPlane3 plane, Tolerance tolerance)
+        {
+            var found = new List<GeoPoint3>();
+            var touches = new List<bool>();
+
+            foreach (GeoEdge3 edge in edges)
+            {
+                bool touch = false;
+                GeoPoint3[] points = edge.IsArc
+                    ? edge.ToArc().GetIntersections(plane, tolerance)
+                    : Intersection3.Meeting(edge.ToLine(), plane, tolerance, out touch);
+
+                foreach (GeoPoint3 point in points)
+                {
+                    Arc3.AddOnce(found, touches, point, touch, tolerance);
+                }
+            }
+
+            return found.ToArray();
+        }
     }
 }

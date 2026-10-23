@@ -176,7 +176,57 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets a value indicating whether the edge curves.
         /// </summary>
-        public bool IsArc => Bulge != 0.0;
+        /// <remarks>
+        /// An edge that bows less off its chord than the centre of its arc can be placed to is read as its chord, and does not
+        /// curve: its sag no more than 2.5 parts in 1E16 of how far the centre and the radius reach from the origin, as
+        /// <see cref="GeoEdge2.IsArc"/> reads one in the plane. The edge from (0, 0, 0) to (100, 0, 0) with a bulge of 1E-12
+        /// bows 5E-11 on a radius of 2.5E13; it is the segment, and measures, cuts and flattens as one. Read so, its middle and
+        /// its length are the chord's, off the true arc's by no more than its sag, which is less than the rounding of the arc's
+        /// centre; split, its pieces are straight, their bulge nought, and <see cref="Export.DxfWriter"/> writes it as its
+        /// chord, with no bulge. The reading follows the reach of the edge from the origin, so moving or turning an edge near
+        /// the threshold can change it.
+        /// </remarks>
+        public bool IsArc => Bulge != 0.0 && (BowsPlainly() || !ReadsAsChord());
+
+        /// <summary>
+        /// Determines whether the edge, carrying a bulge, bows plainly more than the centre of its arc can be placed to,
+        /// settled with neither a root nor a division.
+        /// </summary>
+        /// <remarks>
+        /// The chord measured along the axes, l, is no less than the chord c and no more than c times the root of 3, so the
+        /// sag, c |b| / 2, is no less than 0.28 |b| l. The centre stands within the radius, c (1 + b²) / 4|b|, of the chord's
+        /// middle, so the reach is no more than that middle's plus three radii, and up to a half turn no more than the middle's
+        /// plus 1.5 l / |b|. Past a half turn the sag is more than half the chord, and plain.
+        /// </remarks>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private bool BowsPlainly()
+        {
+            double magnitude = Math.Abs(Bulge);
+            double along = Math.Abs(EndPoint.X - StartPoint.X) + Math.Abs(EndPoint.Y - StartPoint.Y) + Math.Abs(EndPoint.Z - StartPoint.Z);
+            double middle = Math.Abs(StartPoint.X + EndPoint.X) + Math.Abs(StartPoint.Y + EndPoint.Y) + Math.Abs(StartPoint.Z + EndPoint.Z);
+
+            return !(magnitude <= 1.0)
+                || magnitude * magnitude * along * 0.28 > (magnitude * middle * 0.5 + 1.5 * along) * Arc2.FlatFraction;
+        }
+
+        /// <summary>
+        /// Determines whether the edge, carrying a bulge of no more than one, bows so little that its chord is read for it: its
+        /// sag no more than 2.5 parts in 1E16 of how far the centre and the radius of its arc reach from the origin.
+        /// </summary>
+        private bool ReadsAsChord()
+        {
+            double chord = StartPoint.DistanceTo(EndPoint);
+
+            if (!(chord > 0.0))
+            {
+                return false;
+            }
+
+            GeoArc3 arc = ToArc();
+            GeoPoint3 centre = arc.Center;
+
+            return Arc2.IsFlat(Math.Abs(Bulge) * chord * 0.5, new GeoPoint2(centre.X, Math.Abs(centre.Y) + Math.Abs(centre.Z)), arc.Radius);
+        }
 
         /// <summary>
         /// Gets the length of the edge, measured along the arc where it curves.
@@ -205,18 +255,20 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the edge as an arc in space.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when the edge is straight, so there is no arc to give.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the edge is straight, its bulge nought, so there is no arc to give.</exception>
         /// <remarks>
         /// The bulge is read in the plane the normal names: the chord is laid along the X axis of a frame
         /// standing on the start point, the arc is built there exactly as it would be in the plane, and its
         /// circle is lifted back. So a curve in space and the same curve laid flat come out with the same
         /// radius and the same swept angle, and an edge 0.01 long bowing a thousandth of its chord off it is
         /// as much an arc as a half circle. The arc runs counter-clockwise round its own normal, which points
-        /// against the edge's where the bulge is negative.
+        /// against the edge's where the bulge is negative. An edge that bows so little it is read as its chord (see
+        /// <see cref="IsArc"/>) still gives the arc its bulge describes, to a caller who asks for that arc; the edge's own
+        /// members, and every query, read it as the segment.
         /// </remarks>
         public GeoArc3 ToArc()
         {
-            if (!IsArc)
+            if (Bulge == 0.0)
             {
                 throw new InvalidOperationException("This edge is a straight segment, so there is no arc to give.");
             }
@@ -370,7 +422,7 @@ namespace GeometryHelper.Geometry
             GeoPoint3 start = transform.Transform(StartPoint);
             GeoPoint3 end = transform.Transform(EndPoint);
 
-            if (!IsArc)
+            if (Bulge == 0.0)
             {
                 return new GeoEdge3(start, end);
             }

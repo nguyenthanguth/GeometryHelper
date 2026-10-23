@@ -752,7 +752,7 @@ namespace GeometryHelper.Geometry
 
             for (int i = 0; i < EdgeCount; i++)
             {
-                if (_bulges[i] != 0.0)
+                if (_bulges[i] != 0.0 && GetEdgeAt(i).IsArc)
                 {
                     arcs++;
                 }

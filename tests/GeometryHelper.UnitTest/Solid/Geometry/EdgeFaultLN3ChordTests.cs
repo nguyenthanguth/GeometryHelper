@@ -114,14 +114,18 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
-        public void APieceSplitOffAHairFromTheEnd_IsAnArc()
+        public void APieceSplitOffAHairFromTheEnd_IsAnEdge()
         {
             var edge = new GeoEdge3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), 0.5, GeoVector3.ZAxis);
 
             Assert.True(edge.TrySplitAtParameter(1.0 - 1E-8, out GeoEdge3 first, out GeoEdge3 second));
             Assert.Equal(edge.EndPoint, second.EndPoint);
             Assert.Equal(first.EndPoint, second.StartPoint);
-            Assert.True(second.IsArc);
+
+            // Its 1.16E-6 of chord bows 2.7E-15, less than its corners 100 from the origin are known to, so it keeps its bulge
+            // and is read as its chord.
+            Assert.NotEqual(0.0, second.Bulge);
+            Assert.False(second.IsArc);
         }
     }
 }

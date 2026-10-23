@@ -120,12 +120,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="line">The segment.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance)
-        {
-            return Intersection3.TryIntersectWith(line, this, out GeoPoint3 crossing, tolerance)
-                ? new[] { crossing }
-                : new GeoPoint3[0];
-        }
+        /// <remarks>
+        /// The same points as <see cref="GeoLine3.GetIntersections(GeoPlane3, Tolerance)"/>, the point of a touch among them.
+        /// </remarks>
+        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => line.GetIntersections(this, tolerance);
 
         /// <summary>
         /// Gets every point where an edge crosses this plane.

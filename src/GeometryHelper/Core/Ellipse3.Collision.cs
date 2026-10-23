@@ -165,7 +165,7 @@ namespace GeometryHelper.Core
         /// </returns>
         public static bool CollidesWith(GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
         {
-            if (IsCoplanar(ellipse, other.GetPlane(), tolerance)
+            if (InOnePlane(ref ellipse, ref other, tolerance)
                 && Ellipse2.IsEqualTo(Flat(ellipse), LayOut(ellipse, other), tolerance))
             {
                 return OnRim(ellipse, StartOf(other), tolerance) || OnRim(other, StartOf(ellipse), tolerance);

@@ -37,7 +37,25 @@ namespace GeometryHelper.Core
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoPlane3 plane, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => segment.GetIntersections(plane, tolerance), tolerance);
+        {
+            RequireChain(polyline, nameof(polyline));
+
+            var found = new List<GeoPoint3>();
+            var touches = new List<bool>();
+
+            for (int i = 0; i < polyline.EdgeCount; i++)
+            {
+                GeoPoint3[] points = Meeting(polyline.GetEdgeAt(i), plane, tolerance, out bool touch);
+
+                foreach (GeoPoint3 point in points)
+                {
+                    // Two segments share a vertex, so a place there is found by both; a crossing is kept over a touch.
+                    Arc3.AddOnce(found, touches, point, touch, tolerance);
+                }
+            }
+
+            return found.ToArray();
+        }
 
         /// <summary>
         /// Tries to find where a straight chain crosses a plane.

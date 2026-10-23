@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Core
@@ -36,7 +37,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(chain));
             }
 
-            return Crossings(chain.GetEdges(), edge => edge.GetIntersections(line, tolerance), tolerance);
+            return Meetings(chain.GetEdges(), false, edge => Meeting(edge, line, tolerance), tolerance);
         }
 
         /// <summary>
@@ -102,7 +103,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(chain));
             }
 
-            return Crossings(chain.GetEdges(), edge => edge.GetIntersections(ray, tolerance), tolerance);
+            return Meetings(chain.GetEdges(), false, edge => Meeting(edge, ray, tolerance), tolerance);
         }
 
         /// <summary>
@@ -168,7 +169,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(loop));
             }
 
-            return Crossings(loop.GetEdges(), edge => edge.GetIntersections(line, tolerance), tolerance);
+            return Meetings(loop.GetEdges(), true, edge => Meeting(edge, line, tolerance), tolerance);
         }
 
         /// <summary>
@@ -234,7 +235,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(loop));
             }
 
-            return Crossings(loop.GetEdges(), edge => edge.GetIntersections(ray, tolerance), tolerance);
+            return Meetings(loop.GetEdges(), true, edge => Meeting(edge, ray, tolerance), tolerance);
         }
 
         /// <summary>
@@ -278,6 +279,114 @@ namespace GeometryHelper.Core
             intersections = GetIntersections(loop, ray, tolerance);
 
             return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Gets where an edge meets a segment, and whether the point given is the point of a touch rather than a crossing.
+        /// </summary>
+        private static (GeoPoint3[] Points, bool Touch) Meeting(GeoEdge3 edge, GeoLine3 line, Tolerance tolerance)
+        {
+            if (!edge.IsArc)
+            {
+                return (edge.ToLine().GetIntersections(line, tolerance), false);
+            }
+
+            GeoPoint3[] points = Arc3.GetIntersections(edge.ToArc(), line, tolerance, out bool touch);
+            return (points, touch);
+        }
+
+        /// <summary>
+        /// Gets where an edge meets a ray, and whether the point given is the point of a touch rather than a crossing.
+        /// </summary>
+        private static (GeoPoint3[] Points, bool Touch) Meeting(GeoEdge3 edge, GeoRay3 ray, Tolerance tolerance)
+        {
+            if (!edge.IsArc)
+            {
+                return (edge.ToLine().GetIntersections(ray, tolerance), false);
+            }
+
+            GeoPoint3[] points = Arc3.GetIntersections(edge.ToArc(), ray, tolerance, out bool touch);
+            return (points, touch);
+        }
+
+        /// <summary>
+        /// Gets where the edges of a chain or a loop meet a straight piece, each place named once: two points within the point
+        /// tolerance of each other are one place, and so are two the edges either side of a corner give, both within the point
+        /// tolerance of the corner. Of two so taken for one, a crossing is kept over the point of a touch, and otherwise the
+        /// first.
+        /// </summary>
+        /// <param name="edges">The edges, in order.</param>
+        /// <param name="closed">Whether the last edge runs back into the first, as a loop's does.</param>
+        /// <param name="of">Where an edge meets the piece, and whether that is a touch.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A segment passing a chain beside the corner where an arc meets a straight leg was given a place on each of them,
+        /// 0.001 apart at a tolerance of a thousandth, both within it of the corner: one meeting named twice. Places further
+        /// from the corner are kept however close the two legs run: a segment crossing both legs of a hairpin 0.0009 across,
+        /// at 50 from its tip, crosses them 0.043 apart, and is given both.
+        /// </remarks>
+        private static GeoPoint3[] Meetings(IEnumerable<GeoEdge3> edges, bool closed, Func<GeoEdge3, (GeoPoint3[] Points, bool Touch)> of, Tolerance tolerance)
+        {
+            var list = new List<GeoEdge3>(edges);
+            var found = new List<GeoPoint3>();
+            var touches = new List<bool>();
+            var owners = new List<int>();
+
+            for (int k = 0; k < list.Count; k++)
+            {
+                (GeoPoint3[] points, bool touch) = of(list[k]);
+
+                foreach (GeoPoint3 point in points)
+                {
+                    int same = Named(found, owners, list, k, closed, point, tolerance);
+
+                    if (same < 0)
+                    {
+                        found.Add(point);
+                        touches.Add(touch);
+                        owners.Add(k);
+                    }
+                    else if (touches[same] && !touch)
+                    {
+                        found[same] = point;
+                        touches[same] = false;
+                        owners[same] = k;
+                    }
+                }
+            }
+
+            return found.ToArray();
+        }
+
+        /// <summary>
+        /// Gets the place already named that a point an edge gives is: in the same place within the point tolerance, or, with
+        /// both within it of the corner the edge shares with the edge before it, given by that edge; -1 where it is none.
+        /// </summary>
+        private static int Named(List<GeoPoint3> found, List<int> owners, List<GeoEdge3> edges, int edge, bool closed, GeoPoint3 point, Tolerance tolerance)
+        {
+            for (int i = 0; i < found.Count; i++)
+            {
+                if (found[i].IsEqualTo(point, tolerance))
+                {
+                    return i;
+                }
+
+                int other = owners[i];
+                bool before = other == edge - 1;
+                bool around = closed && edge == edges.Count - 1 && other == 0 && edges.Count > 2;
+
+                if (before || around)
+                {
+                    GeoPoint3 corner = before ? edges[edge].StartPoint : edges[0].StartPoint;
+
+                    if (corner.IsEqualTo(point, tolerance) && corner.IsEqualTo(found[i], tolerance))
+                    {
+                        return i;
+                    }
+                }
+            }
+
+            return -1;
         }
     }
 }

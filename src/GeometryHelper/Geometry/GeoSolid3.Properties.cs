@@ -219,7 +219,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         private MaterialCut CutMaterial(Tolerance tolerance)
         {
-            if (Boolean3.TryCutOpenings(this, _openings, out GeoSolid3 material, tolerance, out Exception failure))
+            if (Boolean3.TryCutOpeningsAtOnce(this, _openings, out GeoSolid3 material, tolerance, out Exception failure))
             {
                 // Faces that did not close leave no closed material to look for.
                 if (material.IsClosed(tolerance) || !IsClosed(tolerance))

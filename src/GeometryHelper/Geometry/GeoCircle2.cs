@@ -245,8 +245,6 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// To stretch it into one, a scaling uneven between the axes or a shear, transform <see cref="GeoEllipse2.FromCircle(GeoCircle2)"/> instead.
         /// </remarks>
-        /// <summary>
-        /// </summary>
         /// <param name="transform">The transformation to apply.</param>
         /// <returns>The transformed circle.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

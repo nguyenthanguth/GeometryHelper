@@ -551,9 +551,7 @@ namespace GeometryHelper.Geometry
         /// </para>
         /// </remarks>
         public GeoTriangle3[] TriangulateSurface(Tolerance tolerance)
-            => Boolean3.TryCutOpenings(this, out GeoSolid3 material, tolerance)
-                ? material.Triangulate(tolerance)
-                : new GeoTriangle3[0];
+            => Boolean3.MaterialToRead(this, Openings, tolerance)?.Triangulate(tolerance) ?? new GeoTriangle3[0];
 
         /// <summary>
         /// Cuts the body into cells as the options say, along the world's axes, using the default tolerance.
@@ -608,7 +606,10 @@ namespace GeometryHelper.Geometry
         /// The body with its openings cut in, or this body when it has none; null when the method returns false.
         /// </param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true when some material is left; false when the openings take all of it.</returns>
+        /// <returns>
+        /// true when some material is left; false when the openings take all of it, or when the cut cannot be worked out,
+        /// or will not close, which is logged.
+        /// </returns>
         /// <remarks>
         /// <para>
         /// Every question this library asks of a body takes its openings into account already. Cutting them in
@@ -618,8 +619,13 @@ namespace GeometryHelper.Geometry
         /// The body keeps only the cut its measures take, <see cref="GetVolume(Tolerance)"/> and the rest.
         /// </para>
         /// <para>
-        /// The answer is the material <see cref="GetVolume(Tolerance)"/> measures where the openings can all be cut in
-        /// at once: an opening drawn past a face, as a through hole usually is, takes off only what lies in the body.
+        /// The answer is the body's material, closed as <see cref="Validate(Tolerance)"/> reads it where the body and its
+        /// openings are: an opening drawn past a face, as a through hole usually is, takes off only what lies in the body.
+        /// The openings are cut in at once; where that leaves the material open it is welded within the tolerance, or
+        /// failing that the openings are taken out one at a time, as <see cref="GetVolume(Tolerance)"/> takes them out. A
+        /// welded cut can hold a little more or less than <see cref="GetVolume(Tolerance)"/> measures, no more than the
+        /// tolerance times the area of the openings: a plate 300 by 200 by 12 with twelve blind holes ending 0.011 under
+        /// its top, turned and far from the origin, cut within a hundredth, holds 0.028 cubic millimetres more.
         /// </para>
         /// </remarks>
         public bool TryCutOpenings(out GeoSolid3 material, Tolerance tolerance) => Boolean3.TryCutOpenings(this, out material, tolerance);

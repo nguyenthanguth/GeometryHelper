@@ -51,8 +51,17 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// true when some material is left; false when the openings take all of it, which is an outcome and not
-        /// an error, as it is for the booleans.
+        /// an error, as it is for the booleans, or when the cut cannot be worked out, which is logged.
         /// </returns>
+        /// <remarks>
+        /// The material of a closed body with closed openings is closed as <see cref="GeoSolid3.Validate(Tolerance)"/> reads
+        /// it, as a boolean's is, or not given. Where cutting the openings in at once leaves it open, it is welded within the
+        /// tolerance, and where that does not close it the openings are taken out one at a time by a difference, which tries
+        /// more ways of cutting and keeps only what closes; where one will not come out so, the method returns false. A plate
+        /// 300 by 200 by 12 with two blind holes ending 0.015 under its top, turned and far from the origin, came out of the
+        /// cut within a hundredth open by four edges 0.015 long; the holes are taken out one at a time, and it closes, holding
+        /// 711 120.61 as <see cref="GeoSolid3.GetVolume(Tolerance)"/> measures it.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
         public static bool TryCutOpenings(GeoSolid3 solid, out GeoSolid3 material, Tolerance tolerance)
         {
@@ -93,9 +102,122 @@ namespace GeometryHelper.Core
         /// <param name="openings">The openings to cut; the others are not carried over.</param>
         /// <param name="material">The body with those openings cut into it; null when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <param name="failure">What was thrown where the cut could not be worked out, or why it would not close; null otherwise.</param>
+        /// <returns>
+        /// true when some material is left, closed as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it where the body and
+        /// the openings are; false when the openings take all of it, or the cut cannot be worked out so.
+        /// </returns>
+        internal static bool TryCutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out Exception failure)
+            => TryCutOpenings(solid, openings, out material, tolerance, out failure, out _);
+
+        /// <summary>
+        /// Cuts some of a body's openings into it as <see cref="TryCutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, out Exception)"/>
+        /// does, handing back too what cutting them in at once gave where no closed material could be had.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="openings">The openings to cut; the others are not carried over.</param>
+        /// <param name="material">The body with those openings cut into it; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="failure">What was thrown where the cut could not be worked out, or why it would not close; null otherwise.</param>
+        /// <param name="open">What cutting the openings in at once gave, open, where it was left for no closed material; null otherwise.</param>
+        private static bool TryCutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out Exception failure, out GeoSolid3 open)
+        {
+            open = null;
+
+            if (!TryCutOpeningsAtOnce(solid, openings, out material, tolerance, out failure))
+            {
+                return false;
+            }
+
+            GeoSolid3 atOnce = material;
+
+            try
+            {
+                if (ClosesOrTakesOut(solid, openings, ref material, tolerance, out failure))
+                {
+                    return true;
+                }
+            }
+            catch (Exception exception) when (IsUnworkable(exception))
+            {
+                failure = exception;
+                material = null;
+            }
+
+            if (failure != null)
+            {
+                open = atOnce;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets the material a query or a writer reads of a body for some of its openings: the material
+        /// <see cref="TryCutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, out Exception)"/> gives, and
+        /// where no closed material can be had, what cutting the openings in at once gave, open, as it was read before, with a
+        /// warning.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="openings">The openings to cut.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>The material; null where the openings take all of it, or the cut cannot be worked out at all, which is logged.</returns>
+        internal static GeoSolid3 MaterialToRead(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance)
+        {
+            if (TryCutOpenings(solid, openings, out GeoSolid3 material, tolerance, out Exception failure, out GeoSolid3 open))
+            {
+                return material;
+            }
+
+            if (open != null)
+            {
+                GeometryHelperLog.Warn("Boolean3: the openings could not be cut in closed; the material cut in at once, open, is read instead.", failure);
+                return open;
+            }
+
+            if (failure != null)
+            {
+                Unworkable("cut of openings", failure, out _);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Cuts every opening of a body into it at once, as a boolean reads its operands, whether what comes of it closes or
+        /// not; a cut that cannot be worked out is logged.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="material">The body with its openings cut in, or the body itself when it has none; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>true when some material is left; otherwise, or when the cut cannot be worked out, false.</returns>
+        /// <remarks>
+        /// A boolean closes what it gives itself, and cuts both bodies by every plane of both where cutting one does not, so
+        /// it takes the cut as it comes: handed a plate whose twelve openings the tolerance inside its faces were taken out
+        /// one at a time, the union of the plate and a box at its corner went that way and came out wound two ways,
+        /// 718 137.69 where it holds 722 622.74.
+        /// </remarks>
+        internal static bool TryCutOpeningsAtOnce(GeoSolid3 solid, out GeoSolid3 material, Tolerance tolerance)
+        {
+            if (TryCutOpeningsAtOnce(solid, solid.Openings, out material, tolerance, out Exception failure))
+            {
+                return true;
+            }
+
+            return failure != null && Unworkable("cut of openings", failure, out material);
+        }
+
+        /// <summary>
+        /// Cuts some of a body's openings into it at once, whether what comes of it closes or not, handing back a cut that
+        /// cannot be worked out rather than warning of it.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="openings">The openings to cut; the others are not carried over.</param>
+        /// <param name="material">The body with those openings cut into it; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance.</param>
         /// <param name="failure">What was thrown where the cut could not be worked out; null otherwise.</param>
         /// <returns>true when some material is left; false when the openings take all of it, or the cut cannot be worked out.</returns>
-        internal static bool TryCutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out Exception failure)
+        internal static bool TryCutOpeningsAtOnce(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out Exception failure)
         {
             failure = null;
 
@@ -202,6 +324,98 @@ namespace GeometryHelper.Core
             List<GeoFace3> faces = FacesOfCells(OnePieceEach(cells, tolerance), owner, tolerance, owners);
             return TryGlue(faces, owners, tolerance, out material);
         }
+
+        /// <summary>
+        /// Takes the material of a body with its openings cut in at once where it closes as <see cref="GeoSolid3.Validate(Tolerance)"/>
+        /// reads it, or where the body or an opening does not; otherwise welds it within the tolerance, and where that does not
+        /// close it takes the openings out of the body one at a time by a difference, as a boolean closes what it gives.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="openings">The openings cut.</param>
+        /// <param name="material">What cutting them in at once gave; what is taken, or null where none is.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="failure">Why no closed material could be had; null otherwise.</param>
+        /// <returns>false where the openings take all of the material, or no closed material could be had.</returns>
+        /// <remarks>
+        /// The weld is taken only where it moves the volume no further than moving the corners it moves by the tolerance can
+        /// (<see cref="Weld3.SealedAsValidated"/>), and leaves no more than the body and no less than the body less every
+        /// opening whole, each within the tolerance times the openings' area.
+        /// </remarks>
+        private static bool ClosesOrTakesOut(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, ref GeoSolid3 material, Tolerance tolerance, out Exception failure)
+        {
+            failure = null;
+            Tolerance work = ForWork(tolerance);
+
+            if (openings.Count == 0 || Shells3.Closes(material, work) || !Shells3.Closes(solid, work))
+            {
+                return true;
+            }
+
+            double gross = Math.Abs(solid.GrossVolume);
+            double taken = 0.0;
+            double skin = 0.0;
+
+            foreach (GeoSolid3 opening in openings)
+            {
+                if (!Shells3.Closes(opening, work))
+                {
+                    return true;
+                }
+
+                taken += Math.Abs(opening.GrossVolume);
+                skin += opening.GrossSurfaceArea;
+            }
+
+            GeoSolid3 welded = Weld3.SealedAsValidated(material, work, out _);
+            double slack = work.EqualPoint * skin + 1E-9 * (gross + taken);
+            double volume = welded.GrossVolume;
+
+            if (Shells3.Closes(welded, work) && volume <= gross + slack && volume >= gross - taken - slack)
+            {
+                ClosedByWeld++;
+                material = welded;
+                return true;
+            }
+
+            GeometryHelperLog.Debug("Boolean3: cutting the openings in at once left the material open to Validate, and a weld did not close it; they are taken out one at a time.");
+            TakenOutOneAtATime++;
+            GeoSolid3 remaining = new GeoSolid3(solid.Faces);
+
+            foreach (GeoSolid3 opening in openings)
+            {
+                if (TryTakeOut(remaining, opening, out GeoSolid3 left, tolerance, out Exception failed))
+                {
+                    remaining = left;
+                }
+                else
+                {
+                    // Not coming out closed; or taking all that is left, where the cut at once left material, which the two
+                    // cannot both be, and is not believed.
+                    failure = failed != null
+                        ? new InvalidOperationException("Cutting the openings in left the material open, and an opening could not be taken out of it closed.", failed)
+                        : new InvalidOperationException("Cutting the openings in left the material open, and taken out one at a time an opening took all that was left of it.");
+                    material = null;
+                    return false;
+                }
+            }
+
+            material = remaining;
+            return true;
+        }
+
+        /// <summary>
+        /// A test hook: how many cuts of openings on this thread came out open and were welded closed, so that a test can say
+        /// which way a cut went. Nothing in the library reads it.
+        /// </summary>
+        [ThreadStatic]
+        internal static int ClosedByWeld;
+
+        /// <summary>
+        /// A test hook: how many cuts of openings on this thread came out open, would not weld closed, and had their openings
+        /// taken out one at a time, so that a test can say which way a cut went. Nothing in the library reads it.
+        /// </summary>
+        [ThreadStatic]
+        internal static int TakenOutOneAtATime;
 
         #endregion
     }

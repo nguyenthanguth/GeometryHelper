@@ -179,7 +179,7 @@ namespace GeometryHelper.Core
             int fewest = 0;
             bool sealedOnce = false;
 
-            if (TryCutOpenings(first, out GeoSolid3 a, tolerance) && TryCutOpenings(second, out GeoSolid3 b, tolerance))
+            if (TryCutOpeningsAtOnce(first, out GeoSolid3 a, tolerance) && TryCutOpeningsAtOnce(second, out GeoSolid3 b, tolerance))
             {
                 bool? found = CombineCuttingOne(a, b, true, tolerance, out result, out _, out fewest);
 
@@ -584,7 +584,7 @@ namespace GeometryHelper.Core
             int fewest = 0;
             bool sealedOnce = false;
 
-            if (TryCutOpenings(subject, out GeoSolid3 a, tolerance) && TryCutOpenings(tool, out GeoSolid3 b, tolerance))
+            if (TryCutOpeningsAtOnce(subject, out GeoSolid3 a, tolerance) && TryCutOpeningsAtOnce(tool, out GeoSolid3 b, tolerance))
             {
                 bool? found = CombineCuttingOne(a, b, false, tolerance, out result, out bool untouched, out fewest);
 

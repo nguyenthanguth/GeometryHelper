@@ -607,7 +607,13 @@ GeoArc2 fromCad = GeoArc2.FromBulge(start, end, 0.5);
 The **bulge** is the tangent of a quarter of the swept angle, the number AutoCAD stores against each
 vertex of a polyline: zero is straight, `1` is a half turn counter-clockwise, and the sign says which way
 it goes. It is a property of an arc here, not a type of its own — `arc.Bulge` reads it back, and the round
-trip through a drawing is exact.
+trip through a drawing is exact. The centre stands off the middle of the chord by c (1 - b²) / 4b, for a chord c
+and a bulge b, and the radius is c (1 + b²) / 4|b|. Past a bulge of a half both are worked out so, as they stand,
+where reading the centre from the radius cancels: the chord of 200 000 with a bulge of 1 - 1E-8 has its centre 0.001
+off the chord, where it was put on the chord and the end of the arc 0.002 off. Up to a half the centre is read from
+the radius, which keeps the ends of a nearly straight arc on its circle to the last digit. An arc past a half moves in
+its last bits: its end lands within a few parts in 1E16 of how far it reaches from the origin, a hair further than
+before on a third of them and nearer on the rest.
 
 `Arc2` holds the operations, and they mirror the ones for a line: `ProjectToArc`, `DistanceTo` (to a
 point, a segment or another arc), `IsPointOn`, `Locate`, `TryIntersectWith` and `GetIntersections`,
@@ -653,6 +659,18 @@ bulged.ToArc();      // the arc it draws
 bulged.GetChord();   // the segment across it, whether or not it bulges
 bulged.ToLine();     // throws: this edge is an arc
 ```
+
+An edge that bows less off its chord than the centre of its arc can be placed to, its sag no more than 2.5 parts in
+1E16 of how far the centre and the radius reach from the origin, is a straight segment too, and measures, cuts and
+flattens as one: the edge from (0, 0) to (100, 0) with a bulge of 1E-12, on a radius of 2.5E13, has `IsArc` false and
+its middle at (50, 0), where its arc put the middle at (50.002, 0). It keeps its bulge, moves with it, and `ToArc`
+still gives the arc of its bulge to whoever asks for that arc. A bulge of 1E-7 over the same chord, bowing 5E-6, is an arc.
+Read as its chord, an edge's middle, its length and the area it bounds are the chord's, off the true arc's by no more
+than its sag, which is less than the rounding of the arc's centre: of edges near the threshold the worst middle stood
+7.34E-5 off the true arc's, the edge 9 609.5 long with a bulge of -1.53E-8, and the most any stood further off than its
+arc put it before was 4.9E-5; a square 8 614 across, 74 million square units, came out 0.334 short. Split, its pieces are straight,
+their bulge nought; `HasArcs` counts it as no arc. The reading follows how far the edge reaches from the origin along
+the axes, so moving or turning an edge close to the threshold can change it.
 
 `GeoPolylineArc2` is an open chain of those, and `GeoPolygonArc2` the closed loop, laid out the way a
 drawing holds them: vertices, with the bulge of the edge *leaving* each one.

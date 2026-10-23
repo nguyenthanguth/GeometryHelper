@@ -433,6 +433,93 @@ namespace GeometryHelper.Core
             }
 
             /// <summary>
+            /// Gets the point of the arc nearest a segment a caller gave, a segment no longer than the point tolerance read as its
+            /// start where it does not truly meet the arc, as <see cref="GapToCallersSegment"/> reads it.
+            /// </summary>
+            internal GeoPoint3 NearestToCallersSegment(GeoPoint3 from, GeoPoint3 to, Tolerance tolerance)
+            {
+                if (from.GetDistanceSquaredTo(to) <= tolerance.EqualPoint * tolerance.EqualPoint)
+                {
+                    double rounding = 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z))));
+
+                    if (GapToSegment(from, to) > rounding)
+                    {
+                        return NearestTo(from);
+                    }
+                }
+
+                return NearestToSegment(from, to);
+            }
+
+            /// <summary>
+            /// Gets the point of the arc nearest a ray: the point nearest the ray as far as the arc's farthest point, as
+            /// <see cref="GapToRay"/> reads it.
+            /// </summary>
+            internal GeoPoint3 NearestToRay(GeoRay3 ray)
+            {
+                double reach = ray.Origin.DistanceTo(Centre) + _radius;
+
+                return NearestToSegment(ray.Origin, Parametrization3.GetPointAtDistance(ray, reach));
+            }
+
+            /// <summary>
+            /// Gets the point of the arc nearest a segment: of the places <see cref="GapToSegment"/> reads the gap at, the one that
+            /// stands nearest the segment, the first of them where two stand as near.
+            /// </summary>
+            /// <remarks>
+            /// The places are the ends of the arc, the points of it nearest the ends of the segment, and the places where its
+            /// distance from the line of the segment turns. A chord read for the arc is a segment, and its place is the point of
+            /// it nearest the other.
+            /// </remarks>
+            private GeoPoint3 NearestToSegment(GeoPoint3 from, GeoPoint3 to)
+            {
+                if (IsChord)
+                {
+                    double along = Block.NearestAlong(StartPoint, EndPoint, from, to);
+
+                    return new GeoPoint3(
+                        StartPoint.X + (EndPoint.X - StartPoint.X) * along,
+                        StartPoint.Y + (EndPoint.Y - StartPoint.Y) * along,
+                        StartPoint.Z + (EndPoint.Z - StartPoint.Z) * along);
+                }
+
+                var places = new List<GeoPoint3> { StartPoint, EndPoint, NearestTo(from), NearestTo(to) };
+                var found = new double[64];
+                var seeds = new double[32];
+
+                if (from.GetDistanceSquaredTo(to) > 0.0
+                    && Turns(from, to, found, out int count, seeds, out int seedCount, out double lowest, out double highest))
+                {
+                    for (int k = 0; k < count; k++)
+                    {
+                        places.Add(At(found[k]));
+                    }
+
+                    for (int k = 0; k < seedCount; k++)
+                    {
+                        NearestRound(from, to, seeds[k], lowest, highest, out double at);
+                        places.Add(At(at));
+                    }
+                }
+
+                GeoPoint3 nearest = places[0];
+                double best = PointToSegment(nearest, from, to);
+
+                for (int i = 1; i < places.Count; i++)
+                {
+                    double gap = PointToSegment(places[i], from, to);
+
+                    if (gap < best)
+                    {
+                        best = gap;
+                        nearest = places[i];
+                    }
+                }
+
+                return nearest;
+            }
+
+            /// <summary>
             /// Gets the point of the arc nearest a point: where the arc sweeps past the point's angle about its centre, the point
             /// of the circle at that angle, and otherwise the nearer end.
             /// </summary>

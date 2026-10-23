@@ -250,7 +250,12 @@ A question about touching or crossing cuts only the openings the probe can reach
 with twenty holes costs one cut. A question about distance cuts them all, because the nearest material can sit
 on the rim of an opening the probe never comes near. **A body asked many questions is prepared once** with
 `Prepare()` — see [A body asked many questions](#a-body-asked-many-questions) — or cut once with
-`TryCutOpenings` and the result asked instead: the same answers, the cutting paid once. `Triangulate` still
+`TryCutOpenings` and the result asked instead: the same answers, the cutting paid once. The material of a closed
+body with closed openings comes back closed as `Validate` reads it, as a boolean's does, or not at all: where cutting
+the openings in at once leaves a crack, it is welded within the tolerance, and where that does not close it the
+openings are taken out one at a time by a difference. A plate 300 by 200 by 12 with twelve blind holes ending 0.011
+under its top, turned and far from the origin, came back open at a hundredth for 15 of 30 turnings; every one closes
+now, within 0.03 cubic millimetres of what `GetVolume` measures. `Triangulate` still
 meshes the faces as they are; `TriangulateSurface` is the mesh to read as the boundary.
 
 A triangle of the surface mesh is left out only when its corners lie on a line within a millionth of the point
@@ -481,7 +486,21 @@ and chains and loops of arcs against all of them. Measured at a thousandth:
   given nothing. One lying level over the material within the tolerance, rising off its plane by no more than the planar
   tolerance round its circle, is given none, as a curve lying on a surface crosses it nowhere; tilted further it touches:
   the arc of radius 300 tilted 9E-6, which rises 0.0027 round its circle, touches the material where it dips to 0.0006
-  over it. Cutting a curved chain by a face or a box still cuts only where it crosses.
+  over it. Cutting a curved chain by a face or a box still cuts only where it crosses. A segment, a ray or a line that
+  touches an arc, a circle, a curved edge or a curved chain without crossing it, piercing its plane a hair beside the
+  rim, is given the point of the curve nearest it: the segment from (0, 50.0006, 1) to (0, 50.0006, -1) touches the
+  circle of radius 50 about the origin at (0, 50, 0), where it collided and was given nothing. Of 20 000 segments
+  piercing the plane of an arc from 1E-7 to 0.002 beside its rim, asked of the arc, its circle and its edge, 4 676 times
+  one collided and was given no point; none does now. A chain names each place once: two points within the point
+  tolerance of each other are one place, and so are two that the edges either side of a corner give where both lie
+  within the point tolerance of the corner, a crossing kept over the point of a touch and otherwise the first. Places
+  further from a corner are kept however close the legs run: a segment crossing both legs of a hairpin 0.0009 across at
+  50 from its tip is given both crossings, 0.043 apart.
+* **A segment against a plane** that ends within the planar tolerance of it, without crossing it, touches it at that
+  end and is given it, as a triangle or a polygon in the plane gives it: the segment from (-50, 0, 0.5) to
+  (50, 0, 0.0005) touches the plane z = 0 at its end, where it collided and was given nothing. One lying in the plane,
+  longer than the point tolerance and both its ends within the planar tolerance of it, meets it along its length and
+  names no place. The plane asked about the segment, or about an edge that is one, gives the same points.
 * **Segments, rays, lines and chains against a triangle, a polygon or a face** are read alike. The crossing is given
   where it stands within the point tolerance of both and the two touch: a ray starting 0.00076 under the plane of a plate
   and beside the rim of its hole, 0.00113 from the material and running away from it, is given nothing, where it was
@@ -1650,16 +1669,23 @@ bulged.GetChord();  // the segment across it
 bulged.GetPlane();  // the plane it bulges in
 ```
 
-Any bulge but nought is an arc, however little it bows: an edge 0.01 long with a bulge of a thousandth stands
-0.000005 off its chord, well inside the point tolerance, and is measured, cut, moved and asked about as the arc
-it is. Its `GeoArc3` is built from its circle, and a move is the arc through where its two ends and its middle
-land, that middle worked out across the chord; neither is refused for three points lying within a tolerance of
-one line. A move that stretches the arc's plane unevenly makes part of an ellipse of it, and the arc through
-those three points stands for it, as it always has. An arc is kept as its centre and radius, so it places its
-points within a few times its radius times 1E-16 of where they are: 0.00001 for an edge 100 long with a bulge of
-a billionth, of radius 2.5E10. However short the chord, the edge is an arc: only two ends that are one point to the
-last digit are refused, as an edge in the plane refuses only a chord of nought, so an edge 1E-6 long is built, read and
-moved, and a piece split off an arc a hair from its end is one.
+Any bulge but nought is an arc, however little it bows, until it bows less than its arc can place its points to:
+an edge 0.01 long with a bulge of a thousandth stands 0.000005 off its chord, well inside the point tolerance, and
+is measured, cut, moved and asked about as the arc it is. Its `GeoArc3` is built from its circle, and a move is the
+arc through where its two ends and its middle land, that middle worked out across the chord; neither is refused for
+three points lying within a tolerance of one line. A move that stretches the arc's plane unevenly makes part of an
+ellipse of it, and the arc through those three points stands for it, as it always has. An arc is kept as its centre
+and radius, so it places its points within a few times its radius times 1E-16 of where they are, and an edge whose sag
+is no more than 2.5 parts in 1E16 of how far its centre and its radius reach from the origin is its chord, `IsArc`
+false, and measures, cuts and flattens as the segment, keeping its bulge: the edge 100 long with a bulge of a
+billionth, of radius 2.5E10, whose arc placed its points 0.00001 off, and the one with a bulge of 1E-12, whose middle
+stood 0.008 off, are segments, and one with a bulge of 1E-7 is an arc. Read so, an edge's middle and length are the
+chord's, off the true arc's by no more than its sag, which is less than the rounding of the arc's centre; split, its
+pieces are straight, their bulge nought; `DxfWriter` writes it as its chord, with no bulge; and the reading follows how
+far the edge reaches from the origin along the axes, so moving or turning an edge close to the threshold can change it.
+However short the chord, an edge is built: only two ends that are one point to the last digit are refused, as an edge
+in the plane refuses only a chord of nought, so an edge 1E-6 long is built, read and moved, and a piece split off an
+arc a hair from its end is an edge, read as its chord where it bows less than its centre can be placed to.
 
 ### A bar is a chain with a bend at every corner
 
@@ -1865,7 +1891,11 @@ Crossings and collisions are asked of the rim, as they are of a circle's, agains
 space is asked about and another ellipse besides: planes, segments, rays, arcs, circles, triangles,
 polygons, faces, bodies, both boxes, edges and the arc chains. A shape lying in the ellipse's plane is laid
 out and answered by the plane ellipse; anything else meets the rim on the line the two planes share. A
-segment through the middle of the disc neither crosses nor touches it, as it does not touch a circle's rim.
+segment through the middle of the disc neither crosses nor touches it, as it does not touch a circle's rim. Two
+ellipses are read in one plane where either lies within the planar tolerance of the other's plane, whichever is asked
+first: the ellipse 192 by 32 in the plan and one 496 by 46 tilted 3E-6 radians, their rims within 0.0003 of each
+other at four places, collided asked one way round and not the other; of 4 000 such pairs tilted 1E-7 to 1E-3
+radians, 339 answered by the order they were asked in, and none does now.
 
 ```csharp
 ellipse.GetIntersections(new GeoPlane3(new GeoPoint3(150, 0, 0), GeoVector3.XAxis));

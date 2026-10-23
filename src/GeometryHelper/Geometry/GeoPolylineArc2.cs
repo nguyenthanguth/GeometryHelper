@@ -220,7 +220,8 @@ namespace GeometryHelper.Geometry
         public int EdgeCount => _vertices.Length - 1;
 
         /// <summary>
-        /// Gets a value indicating whether any edge of the chain is an arc.
+        /// Gets a value indicating whether any edge of the chain is an arc, as <see cref="GeoEdge2.IsArc"/> reads it: an edge
+        /// that bows less than the centre of its arc can be placed to is its chord, and no arc.
         /// </summary>
         public bool HasArcs
         {
@@ -228,7 +229,7 @@ namespace GeometryHelper.Geometry
             {
                 for (int i = 0; i < EdgeCount; i++)
                 {
-                    if (_bulges[i] != 0.0)
+                    if (_bulges[i] != 0.0 && GetEdgeAt(i).IsArc)
                     {
                         return true;
                     }

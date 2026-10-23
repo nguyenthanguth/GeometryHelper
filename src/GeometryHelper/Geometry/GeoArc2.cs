@@ -163,7 +163,9 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A bulge of one is a half turn, and the sign says which way it goes. A bulge of zero would be a
         /// straight segment rather than an arc, which is why it is refused here: a chain stores that as an
-        /// edge with no bulge instead.
+        /// edge with no bulge instead. The centre stands off the middle of the chord by c (1 - b²) / 4b and the
+        /// radius is c (1 + b²) / 4|b|, worked out so that neither cancels: the chord of 200 000 with a bulge of
+        /// 1 - 1E-8 has its centre 0.001 off the chord.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the bulge is zero or not a number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the two points are the same, so there is no chord to bulge.</exception>
@@ -183,17 +185,30 @@ namespace GeometryHelper.Geometry
             }
 
             double sweep = 4.0 * Math.Atan(bulge);
-            double radius = Math.Abs(chordLength / (2.0 * Math.Sin(sweep * 0.5)));
+            double magnitude = Math.Abs(bulge);
+            double radius;
+            double apothem;
 
-            // The centre sits off the middle of the chord, on the side the bulge leans away from.
-            double apothem = Math.Sqrt(Math.Max(0.0, radius * radius - chordLength * chordLength * 0.25));
-            GeoVector2 unit = chord.Multiply(1.0 / chordLength);
-            GeoVector2 toCenter = new GeoVector2(-unit.Y, unit.X).Multiply(Math.Abs(sweep) > Math.PI ? -apothem : apothem);
-
-            if (sweep < 0.0)
+            // The centre sits off the middle of the chord, to the left of it, by c (1 - b²) / 4b: on the side the bulge leans
+            // away from up to a half turn, and past it on the side it leans to. Up to a bulge of a half the root of r² - c²/4
+            // gives it within a few roundings and keeps the ends on the circle to the last digit, which an arc bowing a
+            // ten-millionth of its chord, of radius 2.5E8, needs to cross another where it does. Past that it cancels: a chord
+            // of 200 000 with a bulge of 1 - 1E-8 put the centre on the chord, 0.001 off where it is. There the centre and the
+            // radius, c (1 + b²) / 4|b|, are worked out as they stand; the radius as the chord over twice the sine of half the
+            // sweep cancelled near a whole turn, where that sine is the rounding of the sweep away from nought.
+            if (magnitude <= 0.5)
             {
-                toCenter = toCenter.Multiply(-1.0);
+                radius = Math.Abs(chordLength / (2.0 * Math.Sin(sweep * 0.5)));
+                apothem = Math.Sqrt(Math.Max(0.0, radius * radius - chordLength * chordLength * 0.25)) * Math.Sign(bulge);
             }
+            else
+            {
+                radius = chordLength * (1.0 / magnitude + magnitude) * 0.25;
+                apothem = chordLength * (1.0 - bulge) * ((1.0 + bulge) / (4.0 * bulge));
+            }
+
+            GeoVector2 unit = chord.Multiply(1.0 / chordLength);
+            GeoVector2 toCenter = new GeoVector2(-unit.Y, unit.X).Multiply(apothem);
 
             GeoPoint2 middleOfChord = new GeoPoint2((start.X + end.X) * 0.5, (start.Y + end.Y) * 0.5);
             GeoPoint2 center = middleOfChord.Add(toCenter);

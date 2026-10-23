@@ -348,7 +348,10 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where the rims of two ellipses in space cross, within a tolerance.
         /// </summary>
-        /// <param name="ellipse">The first ellipse, whose plane and centre order the points.</param>
+        /// <param name="ellipse">
+        /// The first ellipse, whose plane and centre order the points; the other's, where only the other lies within the planar
+        /// tolerance of this one's plane, so that the two are read in one plane whichever is asked first.
+        /// </param>
         /// <param name="other">The other ellipse.</param>
         /// <param name="tolerance">The tolerance: rims that come within its point tolerance of each other touch, and two crossings no further apart than twice it are one.</param>
         /// <returns>
@@ -358,7 +361,7 @@ namespace GeometryHelper.Core
         /// </returns>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
         {
-            if (IsCoplanar(ellipse, other.GetPlane(), tolerance))
+            if (InOnePlane(ref ellipse, ref other, tolerance))
             {
                 GeoPoint2[] points = Ellipse2.GetIntersections(Flat(ellipse), LayOut(ellipse, other), tolerance);
 
@@ -842,6 +845,35 @@ namespace GeometryHelper.Core
         #endregion
 
         #region Crossing helpers
+
+        /// <summary>
+        /// Determines whether two ellipses are read in one plane, the first within the planar tolerance of the second's, and
+        /// puts first the one that lies so where only the second does, so that the pair is read the same whichever is asked
+        /// first.
+        /// </summary>
+        /// <remarks>
+        /// The rim of the larger one may stand off the smaller one's plane by more than the tolerance where the smaller one
+        /// lies within it of the larger one's: an ellipse 192 by 32 in the plan, and one 496 by 46 tilted 3E-6 radians about
+        /// a centre 0.0002 under it, their rims crossing within 0.0003 of each other, collided asked the one way, at four
+        /// places, and not at all asked the other.
+        /// </remarks>
+        internal static bool InOnePlane(ref GeoEllipse3 ellipse, ref GeoEllipse3 other, Tolerance tolerance)
+        {
+            if (IsCoplanar(ellipse, other.GetPlane(), tolerance))
+            {
+                return true;
+            }
+
+            if (!IsCoplanar(other, ellipse.GetPlane(), tolerance))
+            {
+                return false;
+            }
+
+            GeoEllipse3 swap = ellipse;
+            ellipse = other;
+            other = swap;
+            return true;
+        }
 
         /// <summary>
         /// Determines whether a plane is the very plane the ellipse lies in.

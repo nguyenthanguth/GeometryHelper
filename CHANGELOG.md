@@ -126,6 +126,92 @@ on .NET Framework) for its 5 001 pieces, 25 million tests; a loop is asked of an
 other's box, grown by the tolerances, and the cut takes 0.05 seconds (0.02). Of 400 cuts and merges of combs, plates with grids of
 holes and bodies nested three deep, none moves by a bit, nor with the boxes asked of every set of loops however few.
 
+**FIXED.** `TryCutOpenings` gives the material of a closed body with closed openings closed as `Validate` reads it, as a
+boolean gives its result, or returns `false`, logged. Cut in at once, it was handed back open: a plate 300 by 200 by 12
+with two blind holes ending 0.015 under its top, turned and far from the origin, came out open at a hundredth by four
+edges 0.015 long round the top of a hole, and the same plate with twelve such holes, of 30 turnings, came out open for
+15 with the holes 0.011 under the top, 9 at 0.015 and at 0.02 and 8 at 0.05, one of them 0.4 cubic millimetres over.
+Where the cut at once leaves it open, it is welded within the tolerance where that closes it and moves its volume no
+further than moving its corners by the tolerance can, and otherwise the openings are taken out one at a time by a
+difference, as `GetVolume` takes them out: all 120 close now, within 0.03 cubic millimetres of what `GetVolume`
+measures, and a cut that closed is the same to the bit. The writers, the meshes, the cells and the queries that cut a
+body's openings near what they ask about take that material; where none closed can be had, `DxfWriter.Add`,
+`TriangulateSurface` and the queries read the material cut in at once, open, as they did, with a warning, and an opening
+that taken out one at a time would leave nothing where the cut at once left material is not believed, and warned of. The
+booleans and `GetVolume` cut as they did. A cut that closed takes 2 to 5 % longer for the check (1.0 seconds a plate on
+.NET 10), and one that came out open 6 to 21 % longer.
+
+**FIXED.** A segment, a ray or a line without ends that pierces the plane of an arc, a circle, a curved edge or a curved
+chain within the point tolerance of the rim without crossing it is given the point of the curve nearest it, as a straight
+edge and a triangle give the point of a touch: the segment from (0, 50.0006, 1) to (0, 50.0006, -1) collided with the
+circle of radius 50 about the origin and was given no point, and touches it at (0, 50, 0). Of 20 000 segments through the
+plane of an arc in space from 1E-7 to 0.002 beside its rim, asked of the arc, its circle and its edge, 4 676 times one
+collided and was given nothing, and 1 178 times a ray along one; none does now, and the segment gives the same points
+asked from either side. An arc of radius 1E10 to 1E14 a few million from the origin is read as surely. A crossing an
+arc, a circle or an edge gave before is the same to the bit. A chain names each place once: two points within the point
+tolerance of each other were one place before, and now so are two that the edges either side of a corner give where
+both lie within the point tolerance of the corner; of two so taken for one, a crossing is kept over the point of a touch,
+and otherwise the first. Of 4 881 segments beside or through the corner of an arc and a straight leg, 3 that were given
+two places about 0.001 apart at the corner are given one; places further from a corner are kept however close the two
+legs run, as both crossings of a hairpin 0.0009 across, 0.043 apart at 50 from its tip. A point a chain gives where it
+only touches stands within the tolerance of both; of 20 000 random pierces no point given before moved further than
+the 0.00105 of those 3 merges at the corner, and 2 that touched at a corner just over the tolerance from a crossing are
+given both. A
+segment that misses is asked whether it touches only where it reaches the tolerance of the
+circle's plane and sphere at once: 100 000 random segments against arcs take 36.4 milliseconds on .NET 10, the median
+of six runs, where they took 27.9, and as many rays 41.1, where they took 27.2.
+
+**FIXED.** Two ellipses in space nearly in one plane are read the same whichever is asked first. Read in one plane only
+where the first lay within the planar tolerance of the second's, the ellipse 192 by 32 in the plan and one 496 by 46
+tilted 3E-6 radians, their rims 0.00027 apart at four places, collided at four places asked one way round and not at
+all the other. They are read in one plane now where either lies within the tolerance of the other's: of 4 000 such pairs
+tilted 1E-7 to 1E-3 radians, 339 answered by the order, and none does. A pair read in one plane either way, or in
+neither, is answered as before to the bit; a pair in neither is asked both ways round whether it is, and 2 000 such pairs
+take 4.6 milliseconds on .NET 10, the median of three runs, where they took 3.9.
+
+**FIXED.** `GeoArc2.FromBulge`, past a bulge of a half, puts the centre off the middle of the chord by c (1 - b²) / 4b
+and gives the radius as c (1 + b²) / 4|b|, each worked out as it stands. The centre, worked out from the radius as the
+root of r² - c²/4, cancelled near a half turn: the chord of 200 000 with a bulge of 1 - 1E-8 had its centre on the chord,
+0.001 from where it is, and the arc ended 0.002 off its end; it is 5E-12 from it, and the end 1.6E-11. The radius, the
+chord over twice the sine of half the sweep, cancelled near a whole turn. Up to a half the two are worked out as before,
+to the bit, which keeps the ends of a nearly straight arc on its circle. Every arc built from such a bulge in the plane or
+in space, and every curved edge, chain and loop read as arcs, moves in its last bits. Against exact rational arithmetic,
+of 20 000 arcs over chords from 0.01 to 10 000 long up to 100 000 from the origin, with bulges from 1E-6 to 1E4, the
+10 887 past a half moved: the worst centre came from 8.3E-10 of how far the centre and the radius reach from the origin
+to 3.1E-16, the worst end from 1.7E-9 to 7.2E-16, and the worst radius from 1.1E-12 of itself to 3.6E-16; the 316
+centres and 1 053 radii that moved further moved by no more than 1.5E-16 and 2.6E-16, the rounding of the numbers. The
+ends move too: in a second run, 3 720 of the 9 650 ends past a half landed further from their vertex than before, by
+no more than 5.2E-16 of the reach, and the rest nearer or the same.
+
+**FIXED.** A segment ending within the planar tolerance of a plane without crossing it touches it at that end and is
+given it, as a triangle or a polygon in the plane gives it: the segment from (-50, 0, 0.5) to (50, 0, 0.0005) collided
+with the plane z = 0 and was given no point. One lying in the plane within its planar tolerance at both ends, longer than
+the point tolerance, names no place, as before. Of 20 000 segments with an end within 0.002 of a plane, 4 499 collided
+and were given nothing, and none is now. The plane asked about the segment or its edge gives the touch too: of 20 000
+such segments, 3 371 collided asked from the plane's side and were given no point, and none is now. Straight chains, and
+the straight sides of curved ones, take the touch of a side too; where a side's touch and the next side's crossing are
+one place, the crossing is kept, as before. A segment the crossing
+misses has its ends read against the plane: 200 000 random segments take 3.0 milliseconds on .NET 10, the median of three
+runs, where they took 2.4.
+
+**CHANGED.** An edge that bows less off its chord than the centre of its arc can be placed to is its chord: its sag no
+more than 2.5 parts in 1E16 of how far the centre and the radius reach from the origin, the rule the distances of the
+plane already read it by. `GeoEdge2.IsArc` and `GeoEdge3.IsArc` are false for it, and it measures, cuts and flattens as
+the segment, keeping its bulge, and `ToArc` still gives the arc of its bulge to whoever asks for it. The edge from
+(0, 0) to (100, 0) with a bulge of 1E-12 put its middle at (50.002, 0), and in space at (50.008, 0, 0); it is at (50, 0).
+Near the origin the edges with a bulge under about 1.6E-8 are read so; a bulge of 1E-7 over a chord of 100, bowing 5E-6,
+is an arc. Read as its chord, an edge's middle, length and the area it bounds are the chord's, off the true arc's by no
+more than its sag, which is less than the rounding of the arc's centre: of edges near the threshold the worst middle stood
+7.34E-5 off the true arc's, the edge 9 609.5 long with a bulge of -1.53E-8, and the most any stood further off than its
+arc put it before was 4.9E-5; a square 8 614 across, 74 million square units, came out 0.334 short. Split, its pieces are
+straight, their bulge nought;
+`HasArcs` of `GeoPolylineArc2` and `GeoPolygonArc2`, and the count of curved edges the chains and loops in space print,
+leave it out; `DxfWriter` writes an edge in space so read as its chord, with no bulge. The reading follows how far the
+edge reaches from the origin along the axes, so moving or turning an edge close to the threshold can change it. `IsArc`
+settles nearly every edge by sums along the axes, without placing its arc, in 1.4 nanoseconds on .NET 10, the median of
+three runs of 20 million, where it compared the bulge with nought in 0.44; the area and the distances of a loop of 4 000
+curved edges take 4 to 9 % longer for it.
+
 ## 12.3.0
 
 **NEW.** `DxfReader` reads a DXF file into the library's shapes: `Read(path)`, `Read(stream)` and `Parse(text)`, each with

@@ -646,8 +646,6 @@ namespace GeometryHelper.Geometry
         /// Applies a transformation to this rectangle.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the transformation would turn the rectangle into a parallelogram.</exception>
-        /// <summary>
-        /// </summary>
         /// <param name="transform">The transformation to apply.</param>
         /// <returns>The transformed rectangle.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

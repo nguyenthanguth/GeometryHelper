@@ -70,9 +70,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return Boolean3.TryCutOpenings(solid, chosen, out GeoSolid3 material, tolerance)
-                ? material
-                : new GeoSolid3(solid.Faces);
+            return Boolean3.MaterialToRead(solid, chosen, tolerance) ?? new GeoSolid3(solid.Faces);
         }
 
         /// <summary>

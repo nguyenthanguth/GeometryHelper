@@ -667,7 +667,9 @@ namespace GeometryHelper.Core
                     return best;
                 }
 
-                if (!Boolean3.TryCutOpenings(solid, chosen, out GeoSolid3 material, tolerance))
+                GeoSolid3 material = Boolean3.MaterialToRead(solid, chosen, tolerance);
+
+                if (material == null)
                 {
                     return ProjectToFaces(solid.Faces, point, tolerance);
                 }

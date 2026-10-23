@@ -666,7 +666,9 @@ namespace GeometryHelper.Export
             // The sides of the material with the openings cut in, each cut into triangles as GeoSolid3.TriangulateSurface does.
             var sides = new List<GeoTriangle3[]>();
 
-            if (Boolean3.TryCutOpenings(solid, out GeoSolid3 material, tolerance))
+            GeoSolid3 material = Boolean3.MaterialToRead(solid, solid.Openings, tolerance);
+
+            if (material != null)
             {
                 foreach (GeoFace3 side in material.Faces)
                 {

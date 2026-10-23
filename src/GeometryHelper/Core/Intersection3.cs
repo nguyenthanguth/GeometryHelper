@@ -240,6 +240,55 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets where a segment meets a plane, as <see cref="GeoLine3.GetIntersections(GeoPlane3, Tolerance)"/> gives it, and
+        /// whether the point given is that of a touch rather than a crossing.
+        /// </summary>
+        internal static GeoPoint3[] Meeting(GeoLine3 line, GeoPlane3 plane, Tolerance tolerance, out bool touch)
+        {
+            touch = false;
+
+            if (TryIntersectWith(line, plane, out GeoPoint3 crossing, tolerance))
+            {
+                return new[] { crossing };
+            }
+
+            GeoPoint3[] touching = Touching(line, plane, tolerance);
+            touch = touching.Length > 0;
+            return touching;
+        }
+
+        /// <summary>
+        /// Gets where a segment the crossing test refuses touches a plane, as
+        /// <see cref="Collision3.CollidesWith(GeoLine3, GeoPlane3, Tolerance)"/> reads a touch: the point of it nearest the plane,
+        /// where its ends stand either side of it or one of them within the planar tolerance of it; none where it touches
+        /// nothing, or lies in the plane, longer than the point tolerance and both ends within the planar tolerance of it.
+        /// </summary>
+        internal static GeoPoint3[] Touching(GeoLine3 line, GeoPlane3 plane, Tolerance tolerance)
+        {
+            double atStart = plane.SignedDistanceTo(line.StartPoint);
+            double atEnd = plane.SignedDistanceTo(line.EndPoint);
+            bool startOn = Math.Abs(atStart) <= tolerance.EqualPlanar;
+            bool endOn = Math.Abs(atEnd) <= tolerance.EqualPlanar;
+
+            if (startOn && endOn && line.Length > tolerance.EqualPoint)
+            {
+                return new GeoPoint3[0];
+            }
+
+            if ((atStart < 0.0 && atEnd > 0.0) || (atStart > 0.0 && atEnd < 0.0))
+            {
+                return new[] { line.StartPoint.Add(line.StartPoint.GetVectorTo(line.EndPoint).Multiply(atStart / (atStart - atEnd))) };
+            }
+
+            if (startOn || endOn)
+            {
+                return new[] { Math.Abs(atStart) <= Math.Abs(atEnd) ? line.StartPoint : line.EndPoint };
+            }
+
+            return new GeoPoint3[0];
+        }
+
+        /// <summary>
         /// Tries to find the point where a ray crosses a plane, using the default tolerance.
         /// </summary>
         public static bool TryIntersectWith(GeoRay3 ray, GeoPlane3 plane, out GeoPoint3 intersection)
