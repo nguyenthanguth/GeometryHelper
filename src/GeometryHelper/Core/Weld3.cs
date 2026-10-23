@@ -75,6 +75,12 @@ namespace GeometryHelper.Core
                 return welded;
             }
 
+            // No tolerance welds nothing, and widening nought stays nought.
+            if (!(work.EqualPoint > 0.0))
+            {
+                return solid;
+            }
+
             // The corners of the edges still left unpaired then, and those only, within twice the tolerance, and then four
             // times, as far as a sliver is bridged; see the remarks on the class.
             for (double wide = 2.0 * work.EqualPoint; wide <= LoopAssembly.Bridge * work.EqualPoint; wide *= 2.0)
@@ -109,7 +115,8 @@ namespace GeometryHelper.Core
         {
             moved = 0.0;
 
-            if (solid == null || Shells3.Closes(solid, work))
+            // No tolerance welds nothing, and widening nought stays nought.
+            if (solid == null || !(work.EqualPoint > 0.0) || Shells3.Closes(solid, work))
             {
                 return solid;
             }

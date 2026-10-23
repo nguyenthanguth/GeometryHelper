@@ -464,9 +464,10 @@ namespace GeometryHelper.Geometry
         /// </para>
         /// <para>
         /// A face thinner than the tolerance is a seam at it and has no triangles: a slab 100 by 100 and 0.0008 thick,
-        /// built within 1E-5, is 12 triangles at 1E-5 but 4 at 0.001, its four sides gone. The mesh is then open, and a
-        /// Debug line in <see cref="GeometryHelperLog"/> says how many faces were left out whole and how much area they
-        /// had; a face meshed in part is not counted.
+        /// built within 1E-5, is 12 triangles at 1E-5 but 4 at 0.001, its four sides gone, and a Debug line in
+        /// <see cref="GeometryHelperLog"/> says how many faces were left out whole and how much area they had; a face meshed
+        /// in part is not counted. The mesh is then open edge by edge but closed within the tolerance: the top and the
+        /// bottom meet along every edge where the sides were.
         /// </para>
         /// <para>
         /// A triangle is left out only when it has no width, its corners on a line within a millionth of the point
@@ -547,7 +548,8 @@ namespace GeometryHelper.Geometry
         /// triangle's normal from <see cref="GeoTriangle3.GetAreaVector()"/>, not <see cref="GeoTriangle3.Normal"/>; see
         /// <see cref="Triangulate(Tolerance)"/> for which. A face thinner than
         /// the tolerance is left out whole, and a Debug line in <see cref="GeometryHelperLog"/> says so; see
-        /// <see cref="Triangulate(Tolerance)"/>.
+        /// <see cref="Triangulate(Tolerance)"/>. The mesh is then open edge by edge but closed within the tolerance: a slab
+        /// thinner than the tolerance has its top and bottom meet along every edge where its sides were.
         /// </para>
         /// </remarks>
         public GeoTriangle3[] TriangulateSurface(Tolerance tolerance)
@@ -808,7 +810,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The body may be concave and its faces may carry holes. Openings are carried into whichever
-        /// half they fall in, and one straddling the plane is cut along with the body.
+        /// half they fall in, and one straddling the plane is cut along with the body. A body that closes as
+        /// <see cref="Validate(Tolerance)"/> reads it comes apart into two halves that close so too, or the method returns
+        /// false: a hull 20 across cut 0.0011 inside a face, at the default tolerance, gives a slab of 0.022 cubic
+        /// millimetres, closed.
         /// </remarks>
         public bool TrySplitBy(GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below) => Splition3.TrySplitBy(this, cutter, out above, out below);
 
@@ -817,7 +822,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The body may be concave and its faces may carry holes. Openings are carried into whichever
-        /// half they fall in, and one straddling the plane is cut along with the body.
+        /// half they fall in, and one straddling the plane is cut along with the body. A body that closes as
+        /// <see cref="Validate(Tolerance)"/> reads it comes apart into two halves that close so too, or the method returns
+        /// false: a hull 20 across cut 0.0011 inside a face, at the default tolerance, gives a slab of 0.022 cubic
+        /// millimetres, closed.
         /// </remarks>
         public bool TrySplitBy(GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out above, out below, tolerance);
 

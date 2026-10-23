@@ -141,6 +141,29 @@ that taken out one at a time would leave nothing where the cut at once left mate
 booleans and `GetVolume` cut as they did. A cut that closed takes 2 to 5 % longer for the check (1.0 seconds a plate on
 .NET 10), and one that came out open 6 to 21 % longer.
 
+**FIXED.** `GeoSolid3.TrySplitBy` with a plane parts a body that closes as `Validate` reads it into two halves that close
+so too, or returns `false`. A plane a hair over the tolerance inside a face, and all but parallel to it, cuts off a slab
+little thicker than the tolerance, every edge down its sides about the tolerance long, and the slab came out open: a hull
+of 14 points 20 across, far from the origin, cut 0.0011 inside a face gave one of 0.022 cubic millimetres open by an edge
+0.0011 long. Of 3 000 such hulls cut up to 0.002 off a face and tilted 1E-6 to 1E-2 off it, 842 were split and 79 gave a
+half open to `Validate`, 36 of them open to `IsClosed` too. Where a half comes out open the body is cut again within a
+tenth of the tolerance, and then a hundredth, and the halves are taken where both close and hold the body within the
+tolerance times the section; failing that, what is open is welded closed within the tolerance and taken on the same
+terms, as far again as the weld moved it. Of the 79, 78 are cut again at a tenth and one at a hundredth, and none is
+welded or refused: the halves of 77 add up to the body within 1E-8 cubic millimetres and of the other two within 0.00025,
+where welded first they were up to 0.045 off. None of 20 000 such hulls gives an open half where 493 did, nor of 5 000
+at a tolerance of 0.01, where 142 did, or of 1E-4, where 106 did, and in none of them is a weld needed. A split whose
+halves closed is the same to the bit, and so are 8 000 other splits of hulls, turned boxes and an L-shaped prism with a
+hole and an opening, 4 000 at 0.01 and 2 000 at no tolerance. The check makes a split that closed about a third slower:
+0.16 milliseconds a hull of 14 points on .NET 10, the least of ten runs and the median of three such sweeps, where it
+took 0.115; a split that came out open takes 0.49 where it took 0.28. With no tolerance the halves come back as cut. A
+split whose halves neither a finer cut nor a weld closes is refused, where its open halves were given before: of 4 000
+cuts near a face of boxes whose faces carry their own copies of the corners a hair apart, 12, their slabs 5 to 45 % off.
+
+**FIXED.** A boolean, or the closing of a cut, given a tolerance of nought for points ran for ever where what it made
+came out open: welding within twice, then four times, nought never ended. Nought welds nothing now, and the body comes
+back as made: a difference of two boxes at no tolerance that ran for ever, 3 of 33 pairs, returns.
+
 **FIXED.** A segment, a ray or a line without ends that pierces the plane of an arc, a circle, a curved edge or a curved
 chain within the point tolerance of the rim without crossing it is given the point of the curve nearest it, as a straight
 edge and a triangle give the point of a touch: the segment from (0, 50.0006, 1) to (0, 50.0006, -1) collided with the
