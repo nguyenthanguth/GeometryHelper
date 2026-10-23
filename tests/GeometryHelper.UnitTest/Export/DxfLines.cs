@@ -7,7 +7,7 @@ namespace GeometryHelper.UnitTest.Export
     /// DXF files written by hand in the tests, in the style AutoCAD writes them: each group code padded to three places on
     /// its own line, its value on the next.
     /// </summary>
-    internal static class DxfText
+    internal static class DxfLines
     {
         /// <summary>The groups of a record: a code, a value, a code, a value, and so on.</summary>
         internal static string G(params object[] pairs)

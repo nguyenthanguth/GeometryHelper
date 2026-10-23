@@ -120,8 +120,8 @@ namespace GeometryHelper.Export
         internal bool UnsizedBlocks { get; set; }
 
         /// <summary>
-        /// Gets or sets how many blocks are worked out for the size of one INSERT before it is taken as too large to place;
-        /// 1 000 000, and smaller for the tests of that bound alone.
+        /// Gets or sets how many blocks are worked out, in all, for the sizes of the INSERTs of one reading, the drawing's and
+        /// those of the blocks read on their own; 1 000 000, and smaller for the tests of that bound alone.
         /// </summary>
         internal int MostSizedBlocks { get; set; } = 1000000;
 

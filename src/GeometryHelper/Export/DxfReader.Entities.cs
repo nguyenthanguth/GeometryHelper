@@ -159,6 +159,8 @@ namespace GeometryHelper.Export
                     case "3DFACE":
                     case "SOLID":
                     case "TRACE":
+                    case "TEXT":
+                    case "MTEXT":
                         break;
 
                     default:
@@ -186,6 +188,8 @@ namespace GeometryHelper.Export
                         case "SPLINE": ReadSpline(r); break;
                         case "LWPOLYLINE": ReadLightweight(r); break;
                         case "3DFACE": ReadFace(r); break;
+                        case "TEXT":
+                        case "MTEXT": ReadText(r); break;
                         default: ReadSolid(r); break;
                     }
                 });

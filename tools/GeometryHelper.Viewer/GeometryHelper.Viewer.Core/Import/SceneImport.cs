@@ -17,9 +17,10 @@ namespace GeometryHelper.Viewer
     /// them; SVG prints six places and comes back to within five ten-millionths). A shape of an OBJ, a WKT or an SVG is kept as the numbers that were
     /// read, with no library constructor between, so a polygon of two points or a face a hair off flat is drawn as the file has it. A DXF is read by
     /// the library's <c>DxfReader</c>, so its shapes are those the library reads: a shape lying on the floor as the shape of the plane it is, each
-    /// INSERT as the entities of its block placed where it puts them, and an entity with no shape to it left out and counted. The text of a file is
-    /// decoded here, as UTF-8 or else Latin-1, and not by <c>DxfReader.Read</c>, which reads a DXF before R2007 in the code page its header names, so
-    /// a letter such a file keeps in its code page (0x80 to 0x9F of Windows-1252, or any letter of another code page) can come out otherwise.
+    /// INSERT as the entities of its block placed where it puts them, a TEXT or an MTEXT as a label, and an entity with no shape to it left out and
+    /// counted. A DXF file is handed to <c>DxfReader.Read</c> as its bytes, which decodes them as the library does: UTF-8 from R2007, and before that
+    /// the code page the header names, so the layer St€l of a file of R2000 in Windows-1252 is St€l; the viewer gives the runtime the code pages of
+    /// Windows, so one in Windows-1250 or any other is read in it too.
     /// </para>
     /// <para>
     /// What a file cannot say, it does not: an OBJ has no polygon and no solid, only faces and lines, so a body comes back as a mesh
@@ -32,6 +33,15 @@ namespace GeometryHelper.Viewer
     public static class SceneImport
     {
         private static readonly string[] _extensions = { ".obj", ".dxf", ".wkt", ".svg" };
+
+        /// <summary>
+        /// Gives the runtime the code pages of Windows, once, before any file is read: .NET 8 has Unicode, ASCII and Latin-1
+        /// alone, and a DXF before R2007 is written in the code page its header names, Windows-1250 to 1258 and the Asian ones.
+        /// </summary>
+        static SceneImport()
+        {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        }
 
         /// <summary>
         /// Gets the extensions of the files that can be opened, with their dots, in lower case.
@@ -72,8 +82,16 @@ namespace GeometryHelper.Viewer
                 throw new FormatException("The viewer opens " + string.Join(", ", _extensions) + " files; '" + Path.GetFileName(path) + "' is not one.");
             }
 
+            if (format == ".dxf")
+            {
+                using (FileStream stream = File.OpenRead(path))
+                {
+                    return DxfReader.Read(stream, Path.GetFileName(path), cancel);
+                }
+            }
+
             byte[] bytes = File.ReadAllBytes(path);
-            return ReadText(Decode(bytes, format == ".dxf"), format, Path.GetFileName(path), cancel);
+            return ReadText(Decode(bytes), format, Path.GetFileName(path), cancel);
         }
 
         /// <summary>
@@ -109,18 +127,13 @@ namespace GeometryHelper.Viewer
         }
 
         /// <summary>
-        /// Decodes the bytes of a file: UTF-8 where they are (with or without the mark), and for a DXF that is not, the Western code page that
-        /// the R2000 files CAD programs write are in.
+        /// Decodes the bytes of a file: UTF-8, with or without the mark.
         /// </summary>
-        private static string Decode(byte[] bytes, bool dxf)
+        private static string Decode(byte[] bytes)
         {
             try
             {
                 return new UTF8Encoding(false, true).GetString(bytes).TrimStart('﻿');
-            }
-            catch (DecoderFallbackException) when (dxf)
-            {
-                return Encoding.GetEncoding("iso-8859-1").GetString(bytes);
             }
             catch (DecoderFallbackException)
             {

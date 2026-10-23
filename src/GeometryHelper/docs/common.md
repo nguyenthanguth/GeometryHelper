@@ -311,7 +311,7 @@ What each writer takes:
 | `ObjWriter` | `GeoSolid3`, `GeoFace3`, `GeoPolygon3` (each with a `Tolerance` overload), `GeoTriangle3`, triangles, `GeoMesh3`, `GeoCellGrid3` and `GeoCell3`, `GeoAabb3` and `GeoObb3` (as their 12 triangles), `GeoPoint3` (a dot), `GeoLine3`, `GeoPolyline3`; with a chord tolerance `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoArc3`, `GeoCircle3`, `GeoEllipse3`, `GeoSpline3`, `GeoSphere3` (as the triangles of its surface); `GeoRay3` and `GeoXLine3` with a length |
 | `SvgWriter` | `GeoPoint2`, `GeoLine2`, `GeoArc2`, `GeoEdge2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2` and lists of `GeoTriangle2`, `GeoMesh2`, `GeoFace2`, `GeoRay2`, `GeoXLine2`, `GeoSpline2` (with a chord tolerance, for the splines SVG has no curve for), and `Text` for a label |
 | `Wkt` | `GeoPoint2` and `GeoPoint3`, segments, chains, polygons, `GeoRectangle2`, `GeoTriangle2` and `GeoTriangle3`, `GeoFace2` and `GeoFace3`; lists of points as `MULTIPOINT`, of segments and chains as `MULTILINESTRING`, of `GeoFace2` and `GeoFace3` as `MULTIPOLYGON`; `GeoMesh2` and `GeoMesh3` as `MULTIPOLYGON`; `GeoSolid3` as a `POLYHEDRALSURFACE Z`, and with a chord tolerance `GeoSphere3` as one; with a chord tolerance too the circles, arcs, ellipses, splines and chains and loops with arcs, in the plane and in space; `GeoRay2`, `GeoRay3`, `GeoXLine2` and `GeoXLine3` with a length |
-| `DxfWriter` | in the plane `GeoPoint2`, `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2`, `GeoFace2`, `GeoSpline2` (as a SPLINE); in space `GeoPoint3`, `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoEllipse3`, `GeoSpline3` (as a SPLINE), `GeoPolyline3`, `GeoPolygon3`, `GeoTriangle3`, triangles, `GeoFace3` and `GeoSolid3` (each with a `Tolerance` overload), `GeoMesh3`, `GeoAabb3` and `GeoObb3` (as six faces), `GeoSphere3` (with a chord tolerance, a 3DFACE for each triangle of its surface), and `GeoArc3`, `GeoCircle3`, `GeoPolylineArc3` and `GeoPolygonArc3` as the curves they are (each also with a chord tolerance, for chords); each on a layer; and a `DxfEntity` `DxfReader` read, with its look (see Reading DXF) |
+| `DxfWriter` | in the plane `GeoPoint2`, `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2`, `GeoFace2`, `GeoSpline2` (as a SPLINE); in space `GeoPoint3`, `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoEllipse3`, `GeoSpline3` (as a SPLINE), `GeoPolyline3`, `GeoPolygon3`, `GeoTriangle3`, triangles, `GeoFace3` and `GeoSolid3` (each with a `Tolerance` overload), `GeoMesh3`, `GeoAabb3` and `GeoObb3` (as six faces), `GeoSphere3` (with a chord tolerance, a 3DFACE for each triangle of its surface), and `GeoArc3`, `GeoCircle3`, `GeoPolylineArc3` and `GeoPolygonArc3` as the curves they are (each also with a chord tolerance, for chords); a `DxfText` as a TEXT or an MTEXT; each on a layer; and a `DxfEntity` `DxfReader` read, with its look (see Reading DXF) |
 
 OBJ and WKT have no curves, so a curve is written through chords and the caller says how far from the curve they may
 stray: a circle of radius 100 at a chord tolerance of 0.1 is 71 chords, none more than 0.1 inside it. The tolerance has
@@ -428,7 +428,8 @@ in its header and the view opened on them.
 
 `DxfReader` reads a DXF file into the library's shapes: what `DxfWriter` writes, and what AutoCAD and the other CAD
 programs write of the same kinds, ASCII files of R12 (AC1009) to R2018 (AC1032). An INSERT is read as the entities of its
-block, placed where it puts them, and the blocks themselves are there too (see Blocks and INSERTs below).
+block, placed where it puts them, and the blocks themselves are there too (see Blocks and INSERTs below); a TEXT and an MTEXT
+are read as a `DxfText` (see Texts), and the layer table into `LayerTable` (see The layer table).
 
 ```csharp
 using GeometryHelper.Export;
@@ -443,6 +444,7 @@ DxfDocument text = DxfReader.Parse(dxfText);                                   /
 
 A `DxfDocument` holds the `Entities` in the order of the file, the `Layers` (those of the layer table in file order,
 then any an entity is on that the table does not list, two names differing only in case being one, as in AutoCAD), the
+`LayerTable` with the colour and state of each layer of the table, the
 `Units` the header gives (`$INSUNITS`, as the `DxfUnits` enum numbers them: `Millimetres` is 4), the `Version`
 (`$ACADVER`, `AC1015` for R2000), what was `Skipped`, counted by type in the order of the type names, and the `Warnings`.
 Each `DxfEntity` has its `Shape`, its `Type` as the file names it, its `Layer`, `Colour` (an AutoCAD colour index from 1
@@ -474,6 +476,7 @@ extrusion is (0, 0, 1) or (0, 0, -1) exactly, or not given, and every height nou
 | SPLINE | `GeoSpline3` of its degree, knots, weights and control points; one of fit points alone, the spline `Interpolate` passes through them | `GeoSpline2` |
 | 3DFACE | `GeoTriangle3` of three corners; `GeoFace3` of four in one plane within the planar tolerance; two `GeoTriangle3` cut along the shorter diagonal where they are not | the same |
 | SOLID, TRACE | `GeoPolygon3` of its corners in DXF's order 1, 2, 4, 3 | `GeoPolygon2` |
+| TEXT, MTEXT | `DxfText`: where it stands, its normal, height, rotation and words | the same |
 
 The coordinates of a CIRCLE, ARC, LWPOLYLINE, 2D POLYLINE, SOLID and TRACE are in the system of their extrusion's plane
 and are taken to the world by the arbitrary axis algorithm, as `DxfWriter` writes them: the CIRCLE at (10, 20, 5) on
@@ -504,12 +507,12 @@ A chain or loop with arcs that lies flat at one height can carry a normal a hair
 fits its plane; the writer writes that extrusion, and such a chain comes back to the rounding of that plane, within
 1E-12 of its largest coordinate.
 
-TEXT, MTEXT, DIMENSION, HATCH, LEADER, MLEADER, IMAGE, MESH, REGION, 3DSOLID, BODY, ATTDEF, ATTRIB, VIEWPORT and any
-other type are not read and are counted in `Skipped`. So is an entity with no shape to it, the reason said once for
-each type in a Debug line of `GeometryHelperLog`: a LINE no longer than the point tolerance, a polyline of fewer than
-two distinct vertices, a CIRCLE or ARC of no radius, an ELLIPSE of no axis, a number that is not a finite number, a
-SPLINE the library does not take (a periodic one among them whose knots cannot be clamped, which a warning names too), a
-3DFACE of fewer than three distinct corners. `DxfReadOptions.Tolerance` (the default tolerance unless set; the global
+DIMENSION, HATCH, LEADER, MLEADER, IMAGE, MESH, REGION, 3DSOLID, BODY, ATTDEF, ATTRIB, VIEWPORT and any other type are
+not read and are counted in `Skipped`. So is an entity with no shape to it, the reason said once for each type in a Debug
+line of `GeometryHelperLog`: a LINE no longer than the point tolerance, a polyline of fewer than two distinct vertices, a
+CIRCLE or ARC of no radius, an ELLIPSE of no axis, a TEXT or MTEXT of no height, or with none given, a number that is not
+a finite number, a SPLINE the library does not take (a periodic one among them whose knots cannot be clamped, which a
+warning names too), a 3DFACE of fewer than three distinct corners. `DxfReadOptions.Tolerance` (the default tolerance unless set; the global
 one is never read) says what has no shape: a LINE 0.0004 long is left out within the default tolerance and read within
 1E-5. An entity whose reading throws, such as a SPLINE of fit points 1E200 apart, whose system cannot be solved, is left
 out and counted too, the others read, with a warning and one Warn line of `GeometryHelperLog` for each type. A group of
@@ -526,9 +529,12 @@ DXF is refused the same way. The text of a file of R2007 or later is UTF-8; that
 are (a warning says so), else in the code page its header names (`$DWGCODEPAGE`, ANSI_1252 where it names none), read
 the same on either runtime: Windows-1252 by a table of its own, since .NET 10 does not have it, so the layer
 Wand–€Außen reads so on both. Any other code page (1250, 1251, 1253 to 1258, 932, 936, 949, 950) is read as the runtime
-has it: .NET Framework has them all, but .NET 10 has none without CodePagesEncodingProvider, which the library does not
+has it: .NET Framework has them all, but .NET (Core) has none without CodePagesEncodingProvider, which the library does not
 bring, so there its text is read as Latin-1 and a warning names the code page and says to save the drawing as a DXF of
-R2007 or later, whose text is UTF-8. A name written with the
+R2007 or later, whose text is UTF-8; a program that calls
+`Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)` once, from the package System.Text.Encoding.CodePages, has
+them all, as the viewer does. A file of R2007 or later whose bytes are not all UTF-8 is read with the replacement
+character U+FFFD for each that is not, and a warning says so. A name written with the
 escapes of R2000 (`\U+00E9`) is read as its letters. A number is read from its first 19 digits and checked in integers,
 the digits past 800 counting only as whether any is not nought: a number of 300 000 digits takes 2.2 ms on .NET 10.
 
@@ -557,6 +563,80 @@ is given a handle of its own. A shape with no overload of `Add`, a `GeoSphere3` 
 tolerance, is refused with an `ArgumentException` naming its type. The overloads that were there write the same bytes as
 before.
 
+### Texts
+
+A TEXT and an MTEXT are each a `DxfText`, with `PlanAs2D` as without, a text having no twin of the plane:
+
+```csharp
+foreach (DxfText label in drawing.OfType<DxfText>()) { ... }   // Position, Normal, Height, Rotation, Value, IsMultiline, WidthFactor, Width
+```
+
+A TEXT stands in the system of its extrusion's plane, taken to the world as a CIRCLE is: at its first alignment point
+(group 10) where it is aligned left on its baseline (72 and 73 nought, or not given) or aligned or fitted between its two
+points (72 3 or 5 with 73 nought), which run from the first to the second, as ezdxf places them, so the aligned TEXT from
+(0, 0) to (100, 0) stands at (0, 0, 0); and at its second (11) where it is aligned any other way, centred, right, in the
+middle or by its top or bottom, as AutoCAD places it from that point. Its `Rotation` is its group 50 in degrees made
+radians, counter-clockwise about its `Normal` from the x axis of the normal's own system, and its `WidthFactor` its group
+41, 1 where it gives none. An MTEXT stands at its insertion point (10) in world
+coordinates, whichever corner its attachment names; its rotation is that of its direction (11) in the system of its
+extrusion, or its group 50 in degrees where it has no direction (degrees, as AutoCAD writes it, though the DXF reference
+says radians), its `Width` the width its paragraphs wrap at (41, nought for none), and its `WidthFactor` 1. Every
+`Rotation` is brought into a turn, from nought up to but not including 2 pi, on every path, a text made in code too: a TEXT
+turned -90 degrees is turned 3 pi / 2. A TEXT at (3, 4, 5) on the extrusion (0, 0, -1) stands at (-3, 4, -5), its normal
+(0, 0, -1): it reads mirrored seen from above.
+
+`Value` holds the words. A TEXT's are as written; an MTEXT's with its formatting taken out: `\P` is a new paragraph, a
+line feed in `Value`, `\N`, a new column, a space, `\~` a space, the codes that end in a semicolon (font, height, colour,
+width, tracking, slant, stacking, paragraph) go with their arguments, `\L`, `\O` and `\K` go alone, `\\`, `\{` and `\}`
+are the characters, a stack `\S1/2;` is 1/2, and the braces that group are taken off, so `{\fArial|b1;Bold}\Pline` is
+`Bold` and `line` on two lines; a code with no semicolon after it is kept as written, as ezdxf keeps it, `\M+1A4A1` among
+them. The pieces of 250 characters an MTEXT is written in (group 3) run on into its last (1). In both, the special
+characters are read from the left as AutoCAD reads them: %%c, %%d and %%p, in either case, are the diameter, degree and
+plus-minus signs, so `%%c20 at 45%%d` is `⌀20 at 45°`, %%% is a per cent sign, so `50%%%d` is `50%d`, and %%nnn, three
+digits, the character of that code, `%%065` an A; %%u, %%o and any other are kept as written. A letter written as an
+escape, `\U+00E9`, is the letter, as in a name, and so is the text `\U+0041` written in the words, which reads as an A: the
+file cannot tell the two apart. A control character in AutoCAD's caret form is the character, `^J` a line feed, `^M` a
+carriage return and `^I` a tab, and `^` followed by a space a caret. A TEXT is one line, so a line feed in its words,
+however written, is a space, and a carriage return is left out of either kind: `a^Jb` is `a b` in a TEXT and `a` and `b`
+on two lines in an MTEXT.
+
+Placed by an INSERT, a text is carried by the x and y axes of its own frame: it stands where its point lands, faces the
+normal those carried axes span, made unit, and is turned to the carried x axis in the system of that normal; its height is
+stretched as the y axis is, and a TEXT's width factor as the x axis is against the y axis, an MTEXT's width as the x axis.
+A text in a block scaled by 3 along x and 2 along y is twice as tall and, a TEXT, one and a half times as wide for its
+height. A mirror turns the normal over, as AutoCAD writes the text of a mirrored block: a TEXT reading along x from (1, 0)
+in a block placed with a scale of -1 along x stands at (-1, 0, 0), its normal (0, 0, -1) and its rotation nought, so that
+it reads along -x, mirrored, as the block shows it. Where a placement shears a text, which neither entity can hold, the
+reader keeps the length of the carried y axis as the height; ezdxf leans the text by an oblique angle and takes the height
+square to the baseline, smaller by the cosine of that angle. Held against ezdxf 1.4.5 on 81 texts placed every way an
+INSERT places them, every position is within 1E-9 of ezdxf's, every normal within 1E-12, and every rotation within 1E-9.
+A text counts one entity towards `MaxPlacedEntities`, and one flattened by its INSERT onto a line is counted in `Skipped`.
+
+`DxfWriter.Add(text, layer)` writes a `DxfText`, read or made with its constructor, as a TEXT, aligned left on its
+baseline and turned by its group 50 in degrees, or an MTEXT, attached at its top left and turned by the direction it
+reads along (11) in world coordinates, in the text style Standard, its letters beyond ASCII as escapes, a control character
+in caret form (a tab `^I`) and a caret as `^` and a space, and an MTEXT's backslashes, braces and paragraphs as the codes
+that keep them, no piece of it ending on a caret; `Add(entity)` writes one with its look. Read back, a text is the same:
+its words, height, width factor, width and normal to the bit, its position too where the normal is (0, 0, 1) or
+(0, 0, -1) or the text an MTEXT, a TEXT on a tilted normal to the rounding of its plane's system (within 1E-13 at 30 mm),
+and its rotation to the last place, through degrees or a direction. What is not kept: the alignment and attachment of a
+text read from a file, which is written where it stands, and a %%c, %%d, %%p, %%% or %%nnn or the text `\U+0041` in the
+words, which comes back as the character it stands for. ezdxf recovers and audits such a file with no error.
+
+### The layer table
+
+`LayerTable` holds the layers of the layer table in its order, each a `DxfLayer`: its `Name`, its `Colour` (the AutoCAD
+colour index, 1 to 255, whether the layer is on or off; null where the table gives none or one outside that range), its
+`TrueColour` (group 420), `Linetype` (6) and `Lineweight` (370, null for the default -3), and whether it `IsOff` (the
+table writes the colour of a layer turned off below nought), `IsFrozen` (flag 1 of group 70), `IsLocked` (flag 4) and
+`IsPlotted` (group 290, true where the table does not say). A record whose name an earlier one has in another case is left
+out, the first kept, as `Layers` keeps its spelling; a layer only an entity names is in `Layers` and not in the table.
+`GetLayer(name)` finds a layer of the table by its name in either case, and gives null where the table has none:
+
+```csharp
+DxfLayer steel = drawing.GetLayer("STEEL");   // the layer Steel of the table: Colour 1, IsOff false, Linetype DASHED
+```
+
 ### Blocks and INSERTs
 
 The blocks of the file are in `Blocks`, in the order of the file, and each INSERT of the drawing is read as the entities
@@ -577,8 +657,10 @@ the shift to the insertion point (10, 20, 30, in the system of the INSERT's extr
 MINSERT's array of 70 columns by 71 rows is placed row after row, each cell shifted by its column times the column
 spacing (44) and its row times the row spacing (45) along the turned axes, not scaled, as ezdxf places it; cells a
 spacing of nought shifts alike are placed once, as ezdxf places them, and an array of more than 1 048 576 cells is not
-placed. An INSERT inside a block is placed within it and the two placements composed, to a depth of 64. An INSERT that
-cannot be placed is counted in `Skipped` and said in a warning, the rest read: one of a block the file does not define
+placed. A MINSERT is an INSERT in the file, its type INSERT and its subclass AcDbMInsertBlock, so one left out is counted
+in `Skipped` under INSERT, as the file names it; the warning for an array too large to place calls it a MINSERT. An
+INSERT inside a block is placed within it and the two placements composed, to a depth of 64. An INSERT that cannot be
+placed is counted in `Skipped` and said in a warning, the rest read: one of a block the file does not define
 (the warning names it), of a block inside itself, at once or through others (the warning names the first chain,
 `A > B > A`), one nested deeper than 64, one of an external reference (a block of flag 4, whose drawing is another file),
 one of the block of a layout, and one that would take the entities placed from blocks past `MaxPlacedEntities`. The blocks of the layouts, `*Model_Space` and `*Paper_Space`, are not among the
@@ -596,10 +678,14 @@ INSERT of the block the working out started from. Whatever the
 working out says, the count of what is placed holds the bound too: an INSERT whose entities would pass it is taken back
 whole, its entities and what its placing counted, and counted with the others left out. That file is read in 1.4 s on .NET 8, holding 340 MB, where it ran out of memory; the one of three
 levels places its 1 000 000 lines in 2.5 s, holding 685 MB with what its blocks read on their own place. Working out
-stops at 1 000 000 blocks: the INSERT is refused, and so are the other INSERTs of the same block without working it out
-again, until the size of a block is kept after that working out began, which could make it shorter. 1 000 INSERTs of a
-block in a ring of 26 blocks, each inserting the next twice, a file of 43 KB, are read in 1.4 s on .NET 10, where they
-took 35 s.
+stops at 1 000 000 blocks in all, for the whole reading, the drawing's INSERTs and those of the blocks read on their own
+together: once they are spent, an INSERT whose size would need one more block worked out is refused, counted in `Skipped`
+and said in a warning of its own, and so are the other INSERTs of the same block, without working it out again; a size
+worked out before still places its INSERTs, that of a block that met no block inside itself and that worked out for the
+INSERTs of a block from which a walk began, whether it met one or not. A file that works out fewer
+reads as it did. 1 000 INSERTs of a block in a ring of 26 blocks, each inserting the next twice, a file of 43 KB, are read
+in 1.4 s on .NET 10, where they took 35 s, and a ring of 1 000 blocks each inserted by the drawing, each a root of its own
+working out, a file of 174 KB, in 0.19 s, where it took 47 s when the bound was one for each INSERT.
 
 What a placement makes of each shape:
 
@@ -612,6 +698,7 @@ What a placement makes of each shape:
 | CIRCLE | a circle, its radius times the scale | the ellipse it becomes |
 | ARC | an arc, running the way its image runs | the spline that is exactly that part of the ellipse |
 | LWPOLYLINE or 2D POLYLINE with arcs | the chain or loop with its bulges, its arcs about the placed normal | a segment for each straight edge and a spline for each arc edge, each an entity with the look and handle of the polyline, in its order |
+| TEXT, MTEXT | the text carried by its axes, a mirror turning its normal over | the same, its height and width factor stretched by its axes |
 
 So every shape placed is the image of the block's shape to the rounding of its numbers: the circle of radius 3 scaled by
 3 along x is the ellipse 9 by 3, and a polyline with two arcs placed so is four entities, a spline, a segment, a spline
@@ -642,7 +729,7 @@ an ATTDEF of a block are text, counted in `Skipped`.
 
 Each of the `Blocks` holds its own entities in its own coordinates, read with the same options, an INSERT inside it
 placed within it, layer 0 and BYBLOCK kept as they are. `Skipped` and the `Warnings` are of the drawing as placed: an
-entity of a block that is not read is counted each time a block places it, so a TEXT in a block placed 100 times counts
+entity of a block that is not read is counted each time a block places it, so a HATCH in a block placed 100 times counts
 100, and what the blocks read on their own leave out is not counted. Reading 10 000 INSERTs of a block of 50 entities
 (12 lines, 10 circles, 10 arcs, 8 closed polylines with arcs, 5 splines and 5 points; 1.9 MB of text) gives 500 000
 entities in 0.50 s on .NET 10 and 0.55 s on .NET 8, the document holding 157 MB with the groups or without them, since

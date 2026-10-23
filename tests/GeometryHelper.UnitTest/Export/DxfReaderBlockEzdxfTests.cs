@@ -4,7 +4,7 @@ using System.Linq;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 using Xunit;
-using static GeometryHelper.UnitTest.Export.DxfText;
+using static GeometryHelper.UnitTest.Export.DxfLines;
 
 namespace GeometryHelper.UnitTest.Export
 {

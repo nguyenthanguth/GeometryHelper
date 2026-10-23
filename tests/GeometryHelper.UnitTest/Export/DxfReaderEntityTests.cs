@@ -6,7 +6,7 @@ using System.Text;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 using Xunit;
-using static GeometryHelper.UnitTest.Export.DxfText;
+using static GeometryHelper.UnitTest.Export.DxfLines;
 
 namespace GeometryHelper.UnitTest.Export
 {
@@ -421,7 +421,7 @@ namespace GeometryHelper.UnitTest.Export
             string text = File("AC1015", 4, G(0, "SECTION", 2, "BLOCKS", 0, "BLOCK", 2, "B", 70, 0, 10, "0", 20, "0", 30, "0", 0, "LINE", 8, "0", 10, "0", 20, "0", 11, "5", 21, "0", 0, "CIRCLE", 8, "0", 10, "0", 20, "0", 40, "1", 0, "ENDBLK", 0, "ENDSEC"), G(
                 0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "2.5", 1, "Hello",
                 0, "LINE", 8, "0", 10, "0", 20, "0", 11, "1", 21, "0",
-                0, "MTEXT", 8, "0", 10, "0", 20, "0", 1, "A\\Pb",
+                0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "2.5", 1, "A\\Pb",
                 0, "INSERT", 8, "0", 66, 1, 2, "B", 10, "0", 20, "0",
                 0, "ATTRIB", 8, "0", 10, "0", 20, "0", 1, "v", 2, "TAG",
                 0, "SEQEND", 8, "0",
@@ -432,10 +432,11 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Equal(new[] { "LINE", "LINE", "CIRCLE", "CIRCLE" }, read.Entities.Select(e => e.Type).ToArray());
-            Assert.Equal(new[] { "B" }, read.Entities[1].BlockPath.ToArray());
-            Assert.Equal(new[] { "ATTRIB", "HATCH", "MTEXT", "TEXT" }, read.Skipped.Keys.ToArray());
-            Assert.Equal(2, read.Skipped["TEXT"]);
+            // TEXT and MTEXT are read since the reader reads texts; ATTRIB and HATCH are still counted.
+            Assert.Equal(new[] { "TEXT", "LINE", "MTEXT", "LINE", "CIRCLE", "TEXT", "CIRCLE" }, read.Entities.Select(e => e.Type).ToArray());
+            Assert.Equal(new[] { "B" }, read.Entities[3].BlockPath.ToArray());
+            Assert.Equal(new[] { "ATTRIB", "HATCH" }, read.Skipped.Keys.ToArray());
+            Assert.Equal(1, read.Skipped["ATTRIB"]);
             Assert.Contains(read.Warnings, w => w.StartsWith("1 entity of paper space", StringComparison.Ordinal));
         }
 

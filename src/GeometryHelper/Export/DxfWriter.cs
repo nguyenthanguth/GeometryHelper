@@ -1047,6 +1047,149 @@ namespace GeometryHelper.Export
 
         #endregion
 
+        #region Texts
+
+        /// <summary>
+        /// Adds a text: a TEXT of one line, or an MTEXT where it is multiline, in the plane of its normal.
+        /// </summary>
+        /// <param name="text">The text, read by <see cref="DxfReader"/> or made in code.</param>
+        /// <param name="layer">The layer; layer 0 when none is given.</param>
+        /// <returns>This writer, for adding the next shape.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the text is null.</exception>
+        /// <remarks>
+        /// <para>
+        /// A TEXT is written aligned left on its baseline, its position in the system of its normal's plane, with its height,
+        /// its rotation in degrees and its width factor, in the text style Standard. An MTEXT is written at its position in
+        /// world coordinates, attached at its top left, with its height, its width where it has one and the direction it reads
+        /// along in world coordinates, its words in pieces of 250 characters, a line feed written as a new paragraph (\P) and
+        /// a backslash and a brace as the codes that keep them. A letter beyond ASCII is written as its escape, \U+00E9 for an
+        /// e acute, and a control character in AutoCAD's caret form, a tab as ^I, with a caret written ^ and a space, as
+        /// AutoCAD reads them.
+        /// </para>
+        /// <para>
+        /// <see cref="DxfReader"/> reads it back as the same text: its words, its height, its width factor and width and its
+        /// normal to the bit, and its position too where the normal is (0, 0, 1) or (0, 0, -1) or the text an MTEXT; a TEXT on a
+        /// tilted normal comes back to the rounding of its plane's system, and the rotation to the last place or two, going
+        /// through degrees or a direction. A %%c, %%d, %%p, %%% or %%nnn in the words comes back as the character it stands for,
+        /// and so does the text <c>\U+0041</c> in them, and the alignment and the attachment a text had in the file it was read
+        /// from are not kept: it is written where it stands.
+        /// </para>
+        /// </remarks>
+        public DxfWriter Add(DxfText text, string layer = null)
+        {
+            if (text == null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            string name = Layer(layer);
+            GeoPoint3 at = text.Position;
+            GeoVector3 normal = text.Normal;
+
+            if (text.IsMultiline)
+            {
+                Begin("MTEXT", name, "AcDbMText");
+                Place(0, at.X, at.Y, at.Z);
+                _entities.Real(40, text.Height);
+
+                if (text.Width > 0.0)
+                {
+                    _entities.Real(41, text.Width);
+                }
+
+                _entities.Int(71, 1);
+                string words = Words(text.Value, true);
+                int from = 0;
+
+                // A piece does not end between a caret and the character it goes with.
+                while (words.Length - from > 250)
+                {
+                    int piece = words[from + 249] == '^' ? 249 : 250;
+                    _entities.Str(3, words.Substring(from, piece));
+                    from += piece;
+                }
+
+                _entities.Str(1, words.Substring(from));
+                Extrusion(normal);
+
+                if (text.Rotation != 0.0)
+                {
+                    // The direction it reads along, in world coordinates: the x axis of its plane's system turned by the rotation.
+                    var plane = new Ocs(normal);
+                    double cos = Math.Cos(text.Rotation);
+                    double sin = Math.Sin(text.Rotation);
+                    _entities.Triple(11, plane.UX * cos + plane.VX * sin, plane.UY * cos + plane.VY * sin, plane.UZ * cos + plane.VZ * sin);
+                }
+
+                return this;
+            }
+
+            var ocs = new Ocs(normal);
+
+            Begin("TEXT", name, "AcDbText");
+            Thickness();
+            _entities.Point(0, ocs.X(at.X, at.Y, at.Z), ocs.Y(at.X, at.Y, at.Z), ocs.Z(at.X, at.Y, at.Z));
+            Grow(at);
+            _entities.Real(40, text.Height);
+            _entities.Str(1, Words(text.Value, false));
+
+            if (text.Rotation != 0.0)
+            {
+                _entities.Real(50, Degrees(text.Rotation));
+            }
+
+            if (text.WidthFactor != 1.0)
+            {
+                _entities.Real(41, text.WidthFactor);
+            }
+
+            Extrusion(normal);
+            _entities.Str(100, "AcDbText");
+            return this;
+        }
+
+        /// <summary>
+        /// The words of a text as its group values hold them: a letter beyond ASCII as its escape, a control character in
+        /// AutoCAD's caret form and a caret as ^ and a space; of an MTEXT, a backslash and the braces as the codes that keep
+        /// them and a line feed as a new paragraph.
+        /// </summary>
+        private static string Words(string value, bool multiline)
+        {
+            var words = new StringBuilder(value.Length);
+
+            foreach (char c in value)
+            {
+                if (multiline && (c == '\\' || c == '{' || c == '}'))
+                {
+                    words.Append('\\').Append(c);
+                }
+                else if (multiline && c == '\n')
+                {
+                    words.Append("\\P");
+                }
+                else if (c == '^')
+                {
+                    words.Append("^ ");
+                }
+                else if (c < ' ')
+                {
+                    words.Append('^').Append((char)(c + 64));
+                }
+                else if (c > 126)
+                {
+                    words.Append("\\U+").Append(((int)c).ToString("X4", Invariant));
+                }
+                else
+                {
+                    words.Append(c);
+                }
+            }
+
+            return words.ToString();
+        }
+
+        #endregion
+
         #region Entities read from a file
 
         /// <summary>
@@ -1063,7 +1206,8 @@ namespace GeometryHelper.Export
         /// DASHED, 0.35 wide and 50 thick is read back as the same segment, to the bit, with the same five. A linetype the
         /// writer's table does not have is added to it by name, with no pattern, so that AutoCAD opens the file and draws the
         /// line solid until the drawing is given the linetype's pattern. The thickness is written on the entities that have
-        /// one in DXF, the LINE, POINT, CIRCLE, ARC and LWPOLYLINE, and on no other. The entity is given a handle of its own,
+        /// one in DXF, the LINE, POINT, CIRCLE, ARC, LWPOLYLINE and TEXT, and on no other. A text is written as a TEXT or an
+        /// MTEXT, as <see cref="Add(DxfText, string)"/> writes it. The entity is given a handle of its own,
         /// and its <see cref="DxfEntity.Groups"/> are not written: only what the shape and the five say is.
         /// </para>
         /// <para>
@@ -1117,7 +1261,7 @@ namespace GeometryHelper.Export
             || shape is GeoRay2 || shape is GeoXLine2 || shape is GeoSpline2 || shape is GeoPoint3 || shape is GeoLine3 || shape is GeoPolyline3
             || shape is GeoPolygon3 || shape is GeoRay3 || shape is GeoXLine3 || shape is GeoSpline3 || shape is GeoEllipse3 || shape is GeoTriangle3
             || shape is GeoFace3 || shape is GeoSolid3 || shape is GeoMesh3 || shape is GeoAabb3 || shape is GeoObb3 || shape is GeoArc3
-            || shape is GeoCircle3 || shape is GeoPolylineArc3 || shape is GeoPolygonArc3;
+            || shape is GeoCircle3 || shape is GeoPolylineArc3 || shape is GeoPolygonArc3 || shape is DxfText;
 
         private void Write(object shape, string layer, int hidden)
         {
@@ -1165,6 +1309,7 @@ namespace GeometryHelper.Export
                 case GeoCircle3 s: Add(s, layer); break;
                 case GeoPolylineArc3 s: Add(s, layer); break;
                 case GeoPolygonArc3 s: Add(s, layer); break;
+                case DxfText s: Add(s, layer); break;
             }
         }
 
@@ -1887,6 +2032,20 @@ namespace GeometryHelper.Export
 
             /// <summary>The coordinate along the extrusion.</summary>
             public double Z(double x, double y, double z) => x * _nx + y * _ny + z * _nz;
+
+            /// <summary>The x axis of the system in the world: its x, y and z.</summary>
+            public double UX => _ux;
+
+            public double UY => _uy;
+
+            public double UZ => _uz;
+
+            /// <summary>The y axis of the system in the world: its x, y and z.</summary>
+            public double VX => _vx;
+
+            public double VY => _vy;
+
+            public double VZ => _vz;
         }
 
         /// <summary>

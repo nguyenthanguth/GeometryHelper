@@ -207,19 +207,8 @@ namespace GeometryHelper.Viewer.Tests
 
         #region MTEXT
 
-        [Theory]
-        [InlineData("a\\Pb", "a\nb")]
-        [InlineData("\\Lunder\\lline", "underline")]
-        [InlineData("\\Ostrike\\o and \\Kk\\k", "strike and k")]
-        [InlineData("{\\fArial|b1;first}\\Psecond", "first\nsecond")]
-        [InlineData("\\H2.5x;tall \\C1;red \\W0.8;wide \\T2;spaced \\Q15;slant", "tall red wide spaced slant")]
-        [InlineData("\\pxi-3,l3;item", "item")]
-        [InlineData("1\\~2", "1 2")]
-        [InlineData("\\\\ \\{ \\}", "\\ { }")]
-        [InlineData("\\S1/2; and \\S3^4;", "1/2 and 3/4")]
-        [InlineData("x\\U+00E9", "x\\U+00E9")]
-        [InlineData("a\\", "a\\")]
-        public void TheFormattingOfAnMText_GoesWithoutTakingAnyWordWithIt(string markup, string expected) => Assert.Equal(expected, DxfReader.PlainMText(markup));
+        // The rules that take the formatting out of an MTEXT moved into the library with its reading of MTEXT; their cases are
+        // DxfReaderTextTests.TheFormattingOfAnMText_GoesWithoutTakingAnyWordWithIt.
 
         [Fact]
         public void AnMText_IsTheWordsInItsLines_AndItsEscapesAreDecoded()

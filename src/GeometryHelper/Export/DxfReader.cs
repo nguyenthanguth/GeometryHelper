@@ -17,12 +17,13 @@ namespace GeometryHelper.Export
     /// POINT, LINE, RAY and XLINE as the point, segment, ray and line without ends they are; a LWPOLYLINE and a POLYLINE of
     /// the plane as a chain or a polygon, with arcs where an edge has a bulge; a 3D POLYLINE as a chain or a polygon in
     /// space; a polyface or polygon mesh as a body of its faces; a CIRCLE, ARC and whole ELLIPSE as themselves; a part of an
-    /// ELLIPSE and a SPLINE as a spline, exactly; a 3DFACE as a triangle or a face, and a SOLID or TRACE as a polygon.
-    /// Entities of space are read as shapes of space unless <see cref="DxfReadOptions.PlanAs2D"/> asks for those lying on
-    /// the floor as shapes of the plane. An INSERT is read as the entities of its block, each placed where the INSERT puts
-    /// it, with the look it takes from the INSERT and the names of the blocks it was placed through
-    /// (<see cref="DxfReadOptions.ExpandBlocks"/>); the blocks themselves are in <see cref="DxfDocument.Blocks"/>. TEXT,
-    /// MTEXT, DIMENSION, HATCH and the other types are left out and counted in <see cref="DxfDocument.Skipped"/>, and so is
+    /// ELLIPSE and a SPLINE as a spline, exactly; a 3DFACE as a triangle or a face, a SOLID or TRACE as a polygon, and a
+    /// TEXT and an MTEXT as a <see cref="DxfText"/>. Entities of space are read as shapes of space unless
+    /// <see cref="DxfReadOptions.PlanAs2D"/> asks for those lying on the floor as shapes of the plane. An INSERT is read as
+    /// the entities of its block, each placed where the INSERT puts it, with the look it takes from the INSERT and the names
+    /// of the blocks it was placed through (<see cref="DxfReadOptions.ExpandBlocks"/>); the blocks themselves are in
+    /// <see cref="DxfDocument.Blocks"/>, and the layers of the layer table in <see cref="DxfDocument.LayerTable"/>.
+    /// DIMENSION, HATCH, ATTRIB and the other types are left out and counted in <see cref="DxfDocument.Skipped"/>, and so is
     /// an entity with no shape to it, a LINE of no length among them; the entities of paper space are not read, and a
     /// warning counts them.
     /// </para>
@@ -57,8 +58,11 @@ namespace GeometryHelper.Export
         /// <exception cref="IOException">Thrown when the file cannot be read.</exception>
         /// <remarks>
         /// The text of a file from R2007 on is UTF-8; that of an older one is in the code page its header names
-        /// (<c>$DWGCODEPAGE</c>, ANSI_1252 when it names none), where the runtime has it. Letters beyond ASCII written as
-        /// escapes, <c>\U+00E9</c> for an e acute as <see cref="DxfWriter"/> writes them, are read as the letters.
+        /// (<c>$DWGCODEPAGE</c>, ANSI_1252 when it names none), where the runtime has it: Windows-1252 always, and the others
+        /// on .NET Framework, or on .NET (Core) once the caller has registered <c>CodePagesEncodingProvider.Instance</c> with
+        /// <see cref="Encoding.RegisterProvider(EncodingProvider)"/>; without it such a file is read as Latin-1 with a warning.
+        /// Letters beyond ASCII written as escapes, <c>\U+00E9</c> for an e acute as <see cref="DxfWriter"/> writes them, are
+        /// read as the letters.
         /// </remarks>
         public static DxfDocument Read(string path, DxfReadOptions options = null)
         {
@@ -67,7 +71,8 @@ namespace GeometryHelper.Export
                 throw new ArgumentNullException(nameof(path));
             }
 
-            return FromBytes(File.ReadAllBytes(path), options, "'" + Path.GetFileName(path) + "'");
+            byte[] bytes = File.ReadAllBytes(path);
+            return FromBytes(bytes, bytes.Length, options, "'" + Path.GetFileName(path) + "'");
         }
 
         /// <summary>
@@ -86,10 +91,13 @@ namespace GeometryHelper.Export
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            using (var copy = new MemoryStream())
+            // Sized to what is left of a stream that can say, so that the copy is made once and read where it lies.
+            int left = stream.CanSeek ? (int)Math.Min(int.MaxValue, Math.Max(0L, stream.Length - stream.Position)) : 0;
+
+            using (var copy = new MemoryStream(left))
             {
                 stream.CopyTo(copy);
-                return FromBytes(copy.ToArray(), options, "a stream");
+                return FromBytes(copy.GetBuffer(), (int)copy.Length, options, "a stream");
             }
         }
 
@@ -113,29 +121,30 @@ namespace GeometryHelper.Export
 
         #region Decoding
 
-        private static DxfDocument FromBytes(byte[] bytes, DxfReadOptions options, string source)
+        /// <summary>A file's text from the first length bytes of an array, decoded.</summary>
+        private static DxfDocument FromBytes(byte[] bytes, int length, DxfReadOptions options, string source)
         {
-            if (StartsWith(bytes, 0, BinaryMark))
+            if (StartsWith(bytes, length, BinaryMark))
             {
                 throw Binary();
             }
 
-            bool marked = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
+            bool marked = length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
             int start = marked ? 3 : 0;
             bool ascii = true;
 
-            for (int i = start; i < bytes.Length && ascii; i++)
+            for (int i = start; i < length && ascii; i++)
             {
                 ascii = bytes[i] < 0x80;
             }
 
-            string latin = Latin1.GetString(bytes, start, bytes.Length - start);
+            string latin = Latin1.GetString(bytes, start, length - start);
             var warnings = new List<string>();
             string text = latin;
 
             if (!ascii)
             {
-                text = Decode(bytes, start, marked, latin, warnings);
+                text = Decode(bytes, start, length, marked, latin, warnings);
             }
 
             return new Reading(options ?? new DxfReadOptions()).Run(text, source, warnings);
@@ -149,18 +158,26 @@ namespace GeometryHelper.Export
         /// almost never is, said in a warning; else the code page of its header, Windows-1252 by a table of its own, since
         /// .NET 10 does not have it, and any other where the runtime has it, Latin-1 where it does not, said in a warning.
         /// </summary>
-        private static string Decode(byte[] bytes, int start, bool marked, string latin, List<string> warnings)
+        private static string Decode(byte[] bytes, int start, int length, bool marked, string latin, List<string> warnings)
         {
             Header(latin, out string version, out string codePage);
 
             if (marked || string.CompareOrdinal(version ?? string.Empty, "AC1021") >= 0)
             {
-                return Encoding.UTF8.GetString(bytes, start, bytes.Length - start);
+                try
+                {
+                    return new UTF8Encoding(false, true).GetString(bytes, start, length - start);
+                }
+                catch (DecoderFallbackException)
+                {
+                    warnings.Add("The file is of R2007 or later" + (marked ? ", or marked as UTF-8," : string.Empty) + " so its text is UTF-8, but some of its bytes are not: each was read as the replacement character U+FFFD.");
+                    return Encoding.UTF8.GetString(bytes, start, length - start);
+                }
             }
 
             try
             {
-                string utf8 = new UTF8Encoding(false, true).GetString(bytes, start, bytes.Length - start);
+                string utf8 = new UTF8Encoding(false, true).GetString(bytes, start, length - start);
                 warnings.Add("The file is of a version before R2007, whose text is in a code page, but its text is UTF-8 and was read as such.");
                 return utf8;
             }
@@ -178,7 +195,7 @@ namespace GeometryHelper.Export
 
             try
             {
-                return Encoding.GetEncoding(number).GetString(bytes, start, bytes.Length - start);
+                return Encoding.GetEncoding(number).GetString(bytes, start, length - start);
             }
             catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
             {
@@ -289,16 +306,17 @@ namespace GeometryHelper.Export
             }
         }
 
-        private static bool StartsWith(byte[] bytes, int start, byte[] mark)
+        /// <summary>Whether the first length bytes of an array begin with a mark.</summary>
+        private static bool StartsWith(byte[] bytes, int length, byte[] mark)
         {
-            if (bytes.Length - start < mark.Length)
+            if (length < mark.Length)
             {
                 return false;
             }
 
             for (int i = 0; i < mark.Length; i++)
             {
-                if (bytes[start + i] != mark[i])
+                if (bytes[i] != mark[i])
                 {
                     return false;
                 }
@@ -504,6 +522,9 @@ namespace GeometryHelper.Export
             }
 
             internal int CodeAt(int index) => _codes[index];
+
+            /// <summary>The value at an index, as the file prints it.</summary>
+            internal string ValueAt(int index) => _values[index];
 
             /// <summary>The real at an index, read by <see cref="Unreadable"/>.</summary>
             internal double NumberAt(int index) => _numbers[index];
@@ -805,12 +826,7 @@ namespace GeometryHelper.Export
                 {
                     if (record.Type == "LAYER")
                     {
-                        string name = Decode((record.Text(2) ?? string.Empty).Trim());
-
-                        if (name.Length > 0)
-                        {
-                            LayerName(name);
-                        }
+                        TableLayer(record);
                     }
                 }
                 else if (section == "BLOCKS")
@@ -893,7 +909,7 @@ namespace GeometryHelper.Export
 
                 GeometryHelperLog.Info("DxfReader: " + Number(_into.Count) + " entities read from " + source + (placed > 0 ? ", " + Number(placed) + " of them placed by INSERTs" : string.Empty) + ", " + Number(skipped) + " skipped" + (detail.Length > 0 ? detail.Append(')').ToString() : string.Empty) + ", " + Number(_warnings.Count) + " warnings.");
 
-                return new DxfDocument(_into.ToArray(), _layers.ToArray(), blocks, units, _version, new ReadOnlyDictionary<string, int>(new SortedDictionary<string, int>(_skipped, StringComparer.Ordinal)), _warnings.ToArray())
+                return new DxfDocument(_into.ToArray(), _layers.ToArray(), _layerTable.ToArray(), blocks, units, _version, new ReadOnlyDictionary<string, int>(new SortedDictionary<string, int>(_skipped, StringComparer.Ordinal)), _warnings.ToArray())
                 {
                     SizedBlocks = _sizing.Worked,
                 };

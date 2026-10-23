@@ -310,12 +310,41 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void LabelsOnLayersThatDifferOnlyInCase_AreOnOneLayer_TheFirstSpelling()
         {
-            string entities = G(0, "TEXT", 8, "T1", 10, 1, 20, 2, 1, "a") + G(0, "TEXT", 8, "t1", 10, 3, 20, 4, 1, "b");
+            // The library reads a TEXT with its height, as a CIRCLE with its radius: one without is counted as not read.
+            string entities = G(0, "TEXT", 8, "T1", 10, 1, 20, 2, 40, 2.5, 1, "a") + G(0, "TEXT", 8, "t1", 10, 3, 20, 4, 40, 2.5, 1, "b");
             Scene scene = ReadDxf(Dxf(entities));
 
             Assert.Empty(scene.LoadWarnings);
             Assert.Equal(new[] { "T1", "T1" }, scene.Items.Select(i => i.Layer).ToArray());
             Assert.Equal(new[] { "T1" }, scene.Layers.Select(l => l.Name).ToArray());
+        }
+
+        [Fact]
+        public void ATextInsideABlock_IsALabelWhereTheInsertPlacesIt_OnTheInsertsLayer()
+        {
+            string blocks = G(0, "BLOCK", 2, "TAG", 70, 0, 10, 0, 20, 0, 30, 0) + G(0, "TEXT", 8, "0", 10, 1, 20, 2, 30, 0, 40, 2.5, 1, "D1") + G(0, "ENDBLK");
+            Scene scene = ReadDxf(Dxf(G(0, "INSERT", 8, "doors", 2, "TAG", 10, 10, 20, 20, 41, 2, 42, 2, 43, 2), string.Empty, blocks));
+
+            SceneItem label = Imp.Only(scene);
+            Assert.Equal(SceneKinds.Text, label.Kind);
+            Assert.Equal("doors", label.Layer);
+            Assert.Equal("TAG", label.Name);
+            Assert.Equal("D1", label.Data.GetProperty("text").GetString());
+            Assert.Equal(5.0, label.Data.GetProperty("height").GetDouble());
+            Imp.SameBits(new[] { 12.0, 24, 0 }, label.Data.GetProperty("at").EnumerateArray().Select(c => c.GetDouble()).ToArray());
+            Assert.Empty(scene.LoadWarnings);
+        }
+
+        [Fact]
+        public void TheLabels_AreAmongTheOtherItemsInTheOrderOfTheFile_AndAJustifiedTextStandsAtItsAlignmentPoint()
+        {
+            string entities = G(0, "TEXT", 8, "a", 10, 0, 20, 0, 40, 2, 1, "first", 72, 1, 11, 5, 21, 6)
+                + G(0, "POINT", 8, "a", 10, 1, 20, 2)
+                + G(0, "MTEXT", 8, "a", 10, 3, 20, 4, 40, 2, 1, "second");
+            Scene scene = ReadDxf(Dxf(entities));
+
+            Assert.Equal(new[] { SceneKinds.Text, "GeoPoint2", SceneKinds.Text }, scene.Items.Select(i => i.Kind).ToArray());
+            Imp.SameBits(new[] { 5.0, 6, 0 }, scene.Items[0].Data.GetProperty("at").EnumerateArray().Select(c => c.GetDouble()).ToArray());
         }
 
         [Fact]
@@ -709,6 +738,47 @@ namespace GeometryHelper.Viewer.Tests
 
                 Assert.Equal("Fa\u00E7ade", Imp.Only(SceneImport.ReadFile(path)).Layer);
                 Assert.Equal("Fa\u00E7ade", Imp.Only(SceneImport.ReadFile(marked)).Layer);
+            }
+        }
+
+        [Fact]
+        public void ADxfBeforeR2007_IsReadInTheCodePageItsHeaderNames_ByTheLibrary()
+        {
+            using (var folder = new TempFolder())
+            {
+                // 0x80 is the euro sign in Windows-1252, where Latin-1 has a control character.
+                string header = G(0, "SECTION", 2, "HEADER", 9, "$ACADVER", 1, "AC1015", 9, "$DWGCODEPAGE", 3, "ANSI_1252", 0, "ENDSEC");
+                byte[] text = Encoding.ASCII.GetBytes(header + Dxf(G(0, "POINT", 8, "St#l", 10, 1, 20, 2)));
+                int at = Array.IndexOf(text, (byte)'#');
+                text[at] = 0x80;
+                string path = folder.Combine("steel.dxf");
+                File.WriteAllBytes(path, text);
+
+                Scene scene = SceneImport.ReadFile(path);
+
+                Assert.Equal("St€l", Imp.Only(scene).Layer);
+                Assert.Equal(new[] { "St€l" }, scene.Layers.Select(l => l.Name).ToArray());
+            }
+        }
+
+        [Fact]
+        public void ADxfInACentralEuropeanCodePage_IsReadInIt_TheViewerHavingTheCodePagesOfWindows()
+        {
+            using (var folder = new TempFolder())
+            {
+                // Windows-1250 has ü at 0xFC and the euro sign at 0x80, which .NET 8 does not have without its code pages.
+                string header = G(0, "SECTION", 2, "HEADER", 9, "$ACADVER", 1, "AC1015", 9, "$DWGCODEPAGE", 3, "ANSI_1250", 0, "ENDSEC");
+                byte[] text = Encoding.ASCII.GetBytes(header + Dxf(G(0, "POINT", 8, "gr#n $", 10, 1, 20, 2)));
+                int u = Array.IndexOf(text, (byte)'#');
+                text[u] = 0xFC;
+                text[Array.IndexOf(text, (byte)'$', u)] = 0x80;
+                string path = folder.Combine("green.dxf");
+                File.WriteAllBytes(path, text);
+
+                Scene scene = SceneImport.ReadFile(path);
+
+                Assert.Equal("grün €", Imp.Only(scene).Layer);
+                Assert.Empty(scene.LoadWarnings);
             }
         }
 

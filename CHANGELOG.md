@@ -6,6 +6,57 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfReader` reads TEXT and MTEXT, which it counted in `Skipped`, as the new `DxfText`: its `Position`, `Normal`,
+`Height`, `Rotation`, `Value`, `IsMultiline`, `WidthFactor` and `Width`, the same with `PlanAs2D` as without. A TEXT
+stands in the system of its extrusion's plane, at its first alignment point where it is aligned left on its baseline or
+aligned or fitted between its two points, the aligned TEXT from (0, 0) to (100, 0) at (0, 0, 0), and at its second where it
+is aligned any other way; an MTEXT at its insertion point in the world, turned by its direction, or by its group 50 in
+degrees where it has none; the rotation is from nought up to 2 pi. The words of a TEXT have %%c, %%d and %%p made the signs,
+`%%c20 at 45%%d` being `⌀20 at 45°`, %%% a per cent sign and %%nnn the character of its code, and an MTEXT's have their
+formatting taken out and their paragraphs a line feed apart, `{\fArial|b1;Bold}\Pline` being `Bold` and `line`, a new
+column `\N` a space and a code with no semicolon after it kept as written; control characters in caret form (`^J`, `^I`)
+are the characters, and a TEXT keeps to one line, a line feed in it a space. Placed by an INSERT, a text is carried by its axes, its height stretched
+with the y axis and a TEXT's width factor with the x axis against it, so the text of a block scaled by 3 along x and 2 along
+y is twice as tall and one and a half times as wide for its height; a mirror turns its normal over, as AutoCAD writes the
+text of a mirrored block. Held against ezdxf 1.4.5 on 81 texts placed every way an INSERT places them, every position is within
+1E-9 of ezdxf's and every normal within 1E-12. A TEXT or MTEXT with no height is counted in `Skipped`, and a text counts
+towards `MaxPlacedEntities`. ATTRIB and ATTDEF are still counted, not read. 100 000 texts (16 MB) are read in 0.15 s on
+.NET 10. 72 new tests; the suite runs 12 199 of 12 200, one skipped as before.
+
+**NEW.** `DxfDocument.LayerTable` holds the layers of the layer table as the new `DxfLayer`, in the order of the table:
+`Colour`, `TrueColour`, `Linetype`, `Lineweight`, and whether each `IsOff`, `IsFrozen`, `IsLocked` and `IsPlotted`; a name
+spelled again in another case is the first layer, as `Layers` keeps it. `DxfDocument.GetLayer(name)` finds one in either
+case, null where the table has none. The layer steel in red, turned off, which the table writes as the colour -1, is
+`Colour` 1 and `IsOff` true. `Layers` is as it was.
+
+**NEW.** `DxfWriter.Add(DxfText, layer)` writes a text as a TEXT or an MTEXT, and `Add(DxfEntity)` a text read with its
+look; `DxfText` has a public constructor for a text made in code. An MTEXT is turned by the direction it reads along, and a
+control character is written in caret form. Read back, a text has its words, height, width factor, width and normal to the
+bit, its position too but for a TEXT on a tilted normal, which comes back within 1E-13 at 30 mm,
+and its rotation to the last place, through degrees; ezdxf recovers and audits the file with no error. Every earlier
+overload writes the same bytes: the file of one shape of each hashes the same.
+
+**CHANGED.** `DxfReader` reads a file of R2007 or later whose bytes are not all UTF-8 with a warning, each such byte the
+replacement character U+FFFD as before, and reads a stream that can seek into one buffer of its length.
+
+**CHANGED.** The bound of 1 000 000 blocks `DxfReader` works out for the sizes of INSERTs is one for the whole reading, the
+drawing's INSERTs and those of the blocks read for `Blocks` together, where it was one for each INSERT, so a ring of blocks
+each a root of its own cost a million blocks for every root: a ring of 1 000 blocks, each inserted by the drawing, a file
+of 174 KB, took 47 s on .NET 10 and takes 0.19 s, and one of 200 9.5 s and 0.18 s. Once the bound is spent, an INSERT
+whose size would need another block worked out is refused with a warning of its own, where it was counted with those past
+`MaxPlacedEntities`; a size worked out before still places its INSERTs. A reading that works out fewer blocks is as it was
+to the bit: 29 files of the earlier rounds under 8 sets of options, the 5 with texts but for their texts, and 15 000
+random block graphs. Of the 4 that reach the bound, the two size bombs differ in the new warning alone; in the file where
+a second INSERT of a block was placed, by working it out again, after the first had been refused, both are refused now;
+and in one whose walks each stayed under the bound, 47 INSERTs of the blocks read for `Blocks` are refused.
+
+**CHANGED.** The viewer reads TEXT, MTEXT and the layer table through `DxfReader`, and hands a DXF file to `DxfReader.Read`
+as its bytes, so a file before R2007 is read in the code page its header names: the layer St€l of a file of R2000 in
+Windows-1252 is St€l, where it was read as Latin-1, and the viewer gives the runtime the code pages of Windows, so the
+layer grün € of one in Windows-1250 is grün € too. Its own pass over the file is gone. A text inside a block is drawn
+where its INSERT places it, the labels are among the other items in the order of the file, and a TEXT aligned otherwise
+than left on its baseline stands at its alignment point.
+
 **CHANGED.** `GeoObb3.Fit` is many times faster on a hull of thousands of faces. The box on each face of the hull was fitted
 round every copy of every corner of every face: 3 000 points on a sphere make 6 000 faces and 18 000 copies, sorted on each
 face, and took 7.7 seconds on .NET 10 and 15.2 on .NET Framework. Each corner is taken once now, and a face is passed over where no

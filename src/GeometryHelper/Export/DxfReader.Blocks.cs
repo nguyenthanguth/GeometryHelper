@@ -40,7 +40,7 @@ namespace GeometryHelper.Export
             private readonly bool _unsized;
             private bool _approved;
             private int _treeStart;
-            private int _sizeWork;
+            private bool _stopped;
 
             /// <summary>
             /// A reading of the blocks of a drawing on their own, for <see cref="DxfDocument.Blocks"/>: the options, the layers,
@@ -103,17 +103,15 @@ namespace GeometryHelper.Export
                 internal long Size { get; set; } = -1;
 
                 /// <summary>
-                /// The size worked out for an INSERT of the block where the walk met a block inside itself and <see cref="Size"/>
-                /// was not kept; -1 until worked out. It holds for every INSERT of the block, the walk being the same each time.
+                /// The size worked out for an INSERT of the block where the walk met a block inside itself, or was stopped at the
+                /// bound on the blocks a reading works out, and <see cref="Size"/> was not kept; -1 until worked out. It holds for
+                /// every INSERT of the block: the walk is the same each time, and one stopped would stop again, the bound being
+                /// spent.
                 /// </summary>
                 internal long RootSize { get; set; } = -1;
 
-                /// <summary>
-                /// How many sizes of blocks had been kept when the walk that worked out <see cref="RootSize"/> began, where it was
-                /// stopped at the bound on the blocks worked out; -1 where it was not. A size so stopped holds while that count
-                /// stands: a size kept since, by that walk itself or another, could shorten the walk and is not reused.
-                /// </summary>
-                internal long StoppedAt { get; set; } = -1;
+                /// <summary>Whether <see cref="RootSize"/> is that of a walk stopped at the bound, the size not known.</summary>
+                internal bool RootStopped { get; set; }
 
                 /// <summary>Whether the block is that of a layout, model space or a sheet of paper space, which no INSERT places.</summary>
                 internal bool IsLayout { get; }
@@ -391,7 +389,15 @@ namespace GeometryHelper.Export
                     // An INSERT placed inside one already let through is counted in it.
                     if (counts)
                     {
-                        long need = _unsized ? 0 : Times(CellCount(insert), SizeOf(block));
+                        bool stopped = false;
+                        long need = _unsized ? 0 : Times(CellCount(insert), RootSizeOf(block, out stopped));
+
+                        if (need > _budget.Left && stopped)
+                        {
+                            Skip(insert.Type, "whose size was not worked out, the reading having worked out as many blocks as it works out");
+                            _sizing.Refuse(_forBlocks);
+                            return;
+                        }
 
                         if (need > _budget.Left)
                         {
@@ -684,28 +690,28 @@ namespace GeometryHelper.Export
             /// there and is not placed again, so it counts nought; but that nought holds only on the way it was met by, so a size
             /// worked out through it is worked out again each time, and only one that met no such block is kept. The size worked
             /// out from the block of an INSERT is kept for its other INSERTs even so: the blocks counted nought on that walk are
-            /// those being placed when it is, which refuse them too. Past 1 000 000 blocks worked out for one INSERT, its size is
-            /// taken as the largest long, and it is not placed; that holds for its other INSERTs while no size of a block has been
-            /// kept since that walk began, the walk's own among them, as a size kept could shorten the walk. The sums stop at the
-            /// largest long.
+            /// those being placed when it is, which refuse them too. Once 1 000 000 blocks have been worked out in the reading,
+            /// in all, no more is: a size that needs one more is taken as the largest long and said to be stopped, and its INSERT
+            /// is not placed, nor the other INSERTs of its block, whose walk would stop again. The sums stop at the largest long.
             /// </summary>
-            private long SizeOf(Block block)
+            private long RootSizeOf(Block block, out bool stopped)
             {
-                if (block.RootSize >= 0 && (block.StoppedAt < 0 || block.StoppedAt == _sizing.Kept))
+                if (block.RootSize >= 0)
                 {
+                    stopped = block.RootStopped;
                     return block.RootSize;
                 }
 
-                _sizeWork = 0;
-                long keptBefore = _sizing.Kept;
+                _stopped = false;
                 long size = SizeOf(block, out bool met);
 
                 if (met)
                 {
                     block.RootSize = size;
-                    block.StoppedAt = _sizeWork > _sizing.Most ? keptBefore : -1;
+                    block.RootStopped = _stopped;
                 }
 
+                stopped = _stopped;
                 return size;
             }
 
@@ -724,14 +730,14 @@ namespace GeometryHelper.Export
                     return 0;
                 }
 
-                _sizing.Worked++;
-
-                if (++_sizeWork > _sizing.Most)
+                if (_sizing.Worked >= _sizing.Most)
                 {
+                    _stopped = true;
                     met = true;
                     return long.MaxValue;
                 }
 
+                _sizing.Worked++;
                 block.Size = -2;
                 long size = 0;
 
@@ -741,7 +747,6 @@ namespace GeometryHelper.Export
                 }
 
                 block.Size = met ? -1 : size;
-                _sizing.Kept += met ? 0 : 1;
                 return size;
             }
 
@@ -759,6 +764,8 @@ namespace GeometryHelper.Export
                     case "SPLINE":
                     case "SOLID":
                     case "TRACE":
+                    case "TEXT":
+                    case "MTEXT":
                         return 1;
 
                     case "3DFACE":
@@ -796,7 +803,7 @@ namespace GeometryHelper.Export
 
             /// <summary>
             /// The working out of the sizes of blocks in a reading, shared by the drawing and the blocks read on their own: at
-            /// most how many blocks are worked out for one INSERT, and how many have been in all.
+            /// most how many blocks are worked out in the reading, how many have been, and the INSERTs left out for it.
             /// </summary>
             private sealed class Sizing
             {
@@ -809,8 +816,15 @@ namespace GeometryHelper.Export
 
                 internal long Worked { get; set; }
 
-                /// <summary>How many sizes of blocks have been kept, which only ever grows.</summary>
-                internal long Kept { get; set; }
+                internal int Refused { get; private set; }
+
+                internal int RefusedInBlocks { get; private set; }
+
+                internal void Refuse(bool inBlocks)
+                {
+                    Refused++;
+                    RefusedInBlocks += inBlocks ? 1 : 0;
+                }
             }
 
             private static long Plus(long a, long b) => a > long.MaxValue - b ? long.MaxValue : a + b;
@@ -944,6 +958,13 @@ namespace GeometryHelper.Export
                     string inBlocks = _budget.RefusedInBlocks > 0 ? ", " + Number(_budget.RefusedInBlocks) + " of them inside the blocks read for Blocks" : string.Empty;
 
                     _warnings.Add(Number(_budget.Refused) + (_budget.Refused == 1 ? " INSERT was" : " INSERTs were") + " not placed" + inBlocks + ": the entities placed from blocks would have passed DxfReadOptions.MaxPlacedEntities, " + Number(_budget.Most) + ", had they placed the " + wanted + " more they would have taken.");
+                }
+
+                if (_sizing.Refused > 0)
+                {
+                    string inBlocks = _sizing.RefusedInBlocks > 0 ? ", " + Number(_sizing.RefusedInBlocks) + " of them inside the blocks read for Blocks" : string.Empty;
+
+                    _warnings.Add(Number(_sizing.Refused) + (_sizing.Refused == 1 ? " INSERT was" : " INSERTs were") + " not placed" + inBlocks + ": the reading had worked out the sizes of " + Number(_sizing.Most) + " blocks, as many as it works out, and not yet what " + (_sizing.Refused == 1 ? "its block places" : "their blocks place") + ", so " + (_sizing.Refused == 1 ? "it" : "they") + " could not be held to DxfReadOptions.MaxPlacedEntities.");
                 }
                 Warn(_xrefInserts, " INSERT of an external reference was not placed: the drawing it refers to is another file, which is not read.", " INSERTs of external references were not placed: the drawings they refer to are other files, which are not read.");
                 Warn(_layoutEntities, " entity of the blocks of the layouts (*Model_Space, *Paper_Space) was not read: the drawing is read from its ENTITIES section.", " entities of the blocks of the layouts (*Model_Space, *Paper_Space) were not read: the drawing is read from its ENTITIES section.");

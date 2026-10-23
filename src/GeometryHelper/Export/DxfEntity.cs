@@ -102,7 +102,8 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the shape: a <see cref="Geometry.GeoLine3"/> for a LINE, a <see cref="Geometry.GeoPolylineArc2"/> for a
-        /// LWPOLYLINE with bulges read with <see cref="DxfReadOptions.PlanAs2D"/>, and so on; the guide lists them all.
+        /// LWPOLYLINE with bulges read with <see cref="DxfReadOptions.PlanAs2D"/>, a <see cref="DxfText"/> for a TEXT or an
+        /// MTEXT, and so on; the guide lists them all.
         /// </summary>
         public object Shape { get; }
 
@@ -174,8 +175,8 @@ namespace GeometryHelper.Export
         /// The reader takes from them the layer (8), the handle (5), the colour (62 and 420), the linetype (6), the
         /// lineweight (370), the thickness (39), paper space (67) and the groups of the shape: the points (10 to 13 with
         /// 20 to 23 and 30 to 33), the extrusion (210, 220, 230), the sizes, angles, bulges and elevation (38 to 51), the
-        /// flags and counts (70 to 74), and the knots, weights and points of a spline. Any other group is here and nowhere
-        /// else. <see cref="DxfWriter.Add(DxfEntity)"/> does not write them.
+        /// flags and counts (70 to 74), the knots, weights and points of a spline, and the words of a text (1 and 3). Any
+        /// other group is here and nowhere else. <see cref="DxfWriter.Add(DxfEntity)"/> does not write them.
         /// </para>
         /// </remarks>
         public IReadOnlyList<DxfGroup> Groups { get; }

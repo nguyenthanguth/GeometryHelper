@@ -14,12 +14,24 @@ namespace GeometryHelper.Export
     public sealed class DxfDocument
     {
         private readonly DxfEntity[] _entities;
+        private readonly Dictionary<string, DxfLayer> _layerNames = new Dictionary<string, DxfLayer>(StringComparer.OrdinalIgnoreCase);
 
-        internal DxfDocument(DxfEntity[] entities, string[] layers, DxfBlock[] blocks, DxfUnits units, string version, IReadOnlyDictionary<string, int> skipped, string[] warnings)
+        internal DxfDocument(DxfEntity[] entities, string[] layers, DxfLayer[] layerTable, DxfBlock[] blocks, DxfUnits units, string version, IReadOnlyDictionary<string, int> skipped, string[] warnings)
         {
             _entities = entities;
+
+            // The table's names differ by more than case already; the first is kept all the same.
+            foreach (DxfLayer layer in layerTable)
+            {
+                if (!_layerNames.ContainsKey(layer.Name))
+                {
+                    _layerNames.Add(layer.Name, layer);
+                }
+            }
+
             Entities = Array.AsReadOnly(entities);
             Layers = Array.AsReadOnly(layers);
+            LayerTable = Array.AsReadOnly(layerTable);
             Blocks = Array.AsReadOnly(blocks);
             Units = units;
             Version = version;
@@ -49,6 +61,14 @@ namespace GeometryHelper.Export
         public IReadOnlyList<string> Layers { get; }
 
         /// <summary>
+        /// Gets the layers of the layer table, in the order of the table, each with its colour, linetype and lineweight and
+        /// whether it is off, frozen, locked and plotted. A record of a name that an earlier one differs from only in case is
+        /// left out, the first kept, as <see cref="Layers"/> keeps the first spelling; a layer an entity is on that the table
+        /// does not list is in <see cref="Layers"/> and not here.
+        /// </summary>
+        public IReadOnlyList<DxfLayer> LayerTable { get; }
+
+        /// <summary>
         /// Gets the blocks the file defines, in the order of the file, each with its own entities in its own coordinates;
         /// the INSERTs of the drawing are read in <see cref="Entities"/> as the entities they place. The blocks of the
         /// layouts, <c>*Model_Space</c> and <c>*Paper_Space</c>, are not among them.
@@ -69,8 +89,9 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets, for each type of entity some of which were not read, how many were not, in the order of the names of the
-        /// types: the entities of the types that are not read at all (TEXT, HATCH, ATTRIB and the like) and those that have
-        /// no shape to them, such as a LINE of no length or a CIRCLE of no radius, each time a block places it; and the
+        /// types: the entities of the types that are not read at all (HATCH, DIMENSION, ATTRIB and the like) and those that
+        /// have no shape to them, such as a LINE of no length, a CIRCLE of no radius or a TEXT of no height, each time a block
+        /// places it; and the
         /// INSERTs that place nothing, of a block the file does not define or of one inside itself among them.
         /// </summary>
         public IReadOnlyDictionary<string, int> Skipped { get; }
@@ -107,6 +128,23 @@ namespace GeometryHelper.Export
             }
 
             return entities;
+        }
+
+        /// <summary>
+        /// Gets a layer of the layer table by its name.
+        /// </summary>
+        /// <param name="name">The name of the layer. Names are compared as AutoCAD compares them, letters of either case the
+        /// same, so <c>Steel</c> finds the layer <c>STEEL</c>.</param>
+        /// <returns>The layer of the table of that name; null where the table has none, as for a layer only an entity names.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
+        public DxfLayer GetLayer(string name)
+        {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            return _layerNames.TryGetValue(name, out DxfLayer layer) ? layer : null;
         }
 
         /// <summary>

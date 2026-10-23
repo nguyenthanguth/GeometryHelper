@@ -4,7 +4,7 @@ using System.Text;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 using Xunit;
-using static GeometryHelper.UnitTest.Export.DxfText;
+using static GeometryHelper.UnitTest.Export.DxfLines;
 
 namespace GeometryHelper.UnitTest.Export
 {
@@ -182,14 +182,15 @@ namespace GeometryHelper.UnitTest.Export
         [Fact]
         public void InsertsOfABlockTooLargeToWorkOut_AreRefusedAfterOneWorkingOut_NotOneEach()
         {
-            // Each INSERT of X0 would work out the 1 000 blocks the bound allows and be refused: the refusal is kept for the
-            // INSERTs after the first, so that ten times as many INSERTs are no more work, and are read as they were.
+            // The first INSERT of X0 works out the 1 000 blocks the bound allows and is refused: the refusal is kept for the
+            // INSERTs after the first, so that ten times as many INSERTs are no more work, and are read as they were. Since the
+            // bound became one for the whole reading, the refusal has a warning of its own.
             var options = new DxfReadOptions { Tolerance = Tol, KeepGroups = false, MostSizedBlocks = 1000 };
             DxfDocument few = DxfReader.Parse(Ring(25, 20), options);
             DxfDocument many = DxfReader.Parse(Ring(25, 200), options);
 
             Assert.Equal(few.SizedBlocks, many.SizedBlocks);
-            Assert.True(few.SizedBlocks <= 26 * 1100, "worked out " + few.SizedBlocks + " blocks");
+            Assert.True(few.SizedBlocks <= 1000, "worked out " + few.SizedBlocks + " blocks");
 
             foreach ((DxfDocument read, int inserts) in new[] { (few, 20), (many, 200) })
             {
@@ -197,17 +198,18 @@ namespace GeometryHelper.UnitTest.Export
                 Assert.Equal(new[] { "INSERT" }, read.Skipped.Keys.ToArray());
                 Assert.Equal(inserts, read.Skipped["INSERT"]);
                 Assert.All(read.Blocks, b => Assert.Equal("LINE", Assert.Single(b.Entities).Type));
-                Assert.Contains((inserts + 51) + " INSERTs were not placed, 51 of them inside the blocks read for Blocks: the entities placed from blocks would have passed DxfReadOptions.MaxPlacedEntities, 2000000, had they placed the more than 9223372036854775807 more they would have taken.", read.Warnings);
+                Assert.Contains((inserts + 51) + " INSERTs were not placed, 51 of them inside the blocks read for Blocks: the reading had worked out the sizes of 1000 blocks, as many as it works out, and not yet what their blocks place, so they could not be held to DxfReadOptions.MaxPlacedEntities.", read.Warnings);
+                Assert.DoesNotContain(read.Warnings, w => w.Contains("had they placed"));
             }
         }
 
         [Fact]
-        public void AnInsertRefusedWhileItsWorkingOutKeptSizes_DoesNotRefuseTheNext_WhichWorksItOutAgain()
+        public void AnInsertStoppedAtTheBound_SpendsItForTheReading_SoTheNextIsRefusedWithoutWorkingOut_AndKeptSizesStillPlace()
         {
             // R inserts the chain A1 > ... > A5, which ends in a line, and C, which inserts R. Under a bound of 6 blocks the first
-            // INSERT of R works out R and the five of the chain, keeping their sizes, and is stopped at C; the second finds the
-            // chain kept, works R out in three blocks and is placed, the INSERT of R inside its C refused as R inside itself. Read on
-            // its own, C places R and its line.
+            // INSERT of R works out R and the five of the chain, keeping their sizes, and is stopped at C. The bound is one for
+            // the reading, so the second INSERT of R, which would need R and C again, is refused without working out. Read on
+            // their own, R places its INSERT of A1, whose size was kept, and not that of C; C does not place R.
             string chain = string.Concat(Enumerable.Range(1, 5).Select(i => G(0, "BLOCK", 8, "0", 2, "A" + i, 70, 0, 10, "0", 20, "0", 30, "0")
                 + (i < 5 ? G(0, "INSERT", 8, "0", 2, "A" + (i + 1), 10, "0", 20, "0") : G(0, "LINE", 8, "0", 10, "0", 20, "0", 11, "1", 21, "1"))
                 + G(0, "ENDBLK", 8, "0")));
@@ -219,11 +221,13 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tol, KeepGroups = false, MostSizedBlocks = 6 });
 
-            Assert.Equal(new[] { "R", "A1", "A2", "A3", "A4", "A5" }, Assert.Single(read.Entities).BlockPath.ToArray());
+            Assert.Empty(read.Entities);
+            Assert.Equal(6, read.SizedBlocks);
             Assert.Equal(2, read.Skipped["INSERT"]);
-            Assert.Contains(read.Warnings, w => w.StartsWith("1 INSERT was not placed: ", StringComparison.Ordinal));
-            Assert.Contains(read.Warnings, w => w.StartsWith("1 INSERT of a block inside itself", StringComparison.Ordinal));
-            Assert.Single(read.Blocks.Single(b => b.Name == "C").Entities);
+            Assert.Contains("4 INSERTs were not placed, 2 of them inside the blocks read for Blocks: the reading had worked out the sizes of 6 blocks, as many as it works out, and not yet what their blocks place, so they could not be held to DxfReadOptions.MaxPlacedEntities.", read.Warnings);
+            Assert.DoesNotContain(read.Warnings, w => w.Contains("inside itself"));
+            Assert.Equal(new[] { "A1", "A2", "A3", "A4", "A5" }, Assert.Single(read.Blocks.Single(b => b.Name == "R").Entities).BlockPath.ToArray());
+            Assert.Empty(read.Blocks.Single(b => b.Name == "C").Entities);
         }
 
         private static string WithBlock(string blocks, string entities) => File("AC1015", 4, G(0, "SECTION", 2, "BLOCKS") + blocks + G(0, "ENDSEC"), entities);

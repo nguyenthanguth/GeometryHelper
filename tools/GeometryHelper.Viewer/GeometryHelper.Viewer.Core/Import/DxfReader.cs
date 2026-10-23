@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
@@ -12,86 +12,23 @@ namespace GeometryHelper.Viewer
     /// <summary>
     /// Reads a DXF with the library's <see cref="Export.DxfReader"/>, which gives every entity it reads as the library's shape, and makes the scene of
     /// them: a shape lying on the floor as the shape of the plane it is (<see cref="DxfReadOptions.PlanAs2D"/>), each INSERT as the entities of its
-    /// block placed where it puts them, on their layers, in their colours, an entity placed through blocks named by them. The 3DFACEs of a layer are
-    /// welded into meshes, one for each body. The library leaves out TEXT and MTEXT, and gives neither the colours of the layer table nor which of its
-    /// layers are hidden; a pass of its own over the file's groups reads those, and no other entity. What the library leaves out is counted and said.
+    /// block placed where it puts them, on their layers, in their colours, an entity placed through blocks named by them, and a TEXT or an MTEXT as a
+    /// label at the point it stands on. The layers take their colours, and are hidden where they are off or frozen, from the library's layer table. The
+    /// 3DFACEs of a layer are welded into meshes, one for each body. What the library leaves out is counted and said.
     /// </summary>
     internal sealed class DxfReader
     {
-        private static readonly Regex Escape = new Regex(@"\\U\+([0-9A-Fa-f]{4})", RegexOptions.CultureInvariant);
-
         private readonly ImportBuilder _b;
         private readonly CancellationToken _cancel;
-        private readonly Dictionary<string, LayerInfo> _layers = new Dictionary<string, LayerInfo>(StringComparer.OrdinalIgnoreCase);
-        private readonly List<Label> _labels = new List<Label>();
+        private readonly DxfDocument _document;
         private readonly List<FaceSet> _faceSets = new List<FaceSet>();
         private readonly Dictionary<string, FaceSet> _faceSetIndex = new Dictionary<string, FaceSet>(StringComparer.Ordinal);
 
-        private DxfReader(ImportBuilder builder, CancellationToken cancel)
+        private DxfReader(ImportBuilder builder, CancellationToken cancel, DxfDocument document)
         {
             _b = builder;
             _cancel = cancel;
-        }
-
-        private sealed class LayerInfo
-        {
-            internal string Color;
-            internal bool Visible = true;
-        }
-
-        /// <summary>
-        /// A record of the layer table or a label of the drawing: the groups after its 0.
-        /// </summary>
-        private sealed class Record
-        {
-            internal string Type;
-            internal readonly List<KeyValuePair<int, string>> Groups = new List<KeyValuePair<int, string>>();
-
-            internal string Text(int code)
-            {
-                foreach (KeyValuePair<int, string> g in Groups)
-                {
-                    if (g.Key == code)
-                    {
-                        return g.Value;
-                    }
-                }
-
-                return null;
-            }
-
-            /// <summary>
-            /// The real of the first group of a code; false where there is none, or it is no number.
-            /// </summary>
-            internal bool TryReal(int code, out double value)
-            {
-                value = 0.0;
-                string text = Text(code);
-                return text != null && ImportNumber.TryParse(text.Trim(), out value);
-            }
-
-            internal bool TryInt(int code, out int value)
-            {
-                value = 0;
-                string text = Text(code);
-                return text != null && int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-            }
-
-            internal int Int(int code, int fallback) => TryInt(code, out int v) ? v : fallback;
-        }
-
-        /// <summary>
-        /// A TEXT or an MTEXT of model space, as the scene draws it.
-        /// </summary>
-        private sealed class Label
-        {
-            internal string Type;
-            internal string Layer;
-            internal string Color;
-            internal string Handle;
-            internal Vec3 At;
-            internal string Text;
-            internal double Height;
+            _document = document;
         }
 
         /// <summary>
@@ -104,31 +41,65 @@ namespace GeometryHelper.Viewer
             internal readonly MeshWelder Weld = new MeshWelder();
         }
 
+        /// <summary>
+        /// Reads the text of a DXF, decoded already.
+        /// </summary>
         internal static Scene Read(string text, string title, CancellationToken cancel)
         {
             cancel.ThrowIfCancellationRequested();
             var b = new ImportBuilder(title);
-            DxfDocument document = Export.DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, ExpandBlocks = true, KeepGroups = false, Tolerance = b.Scene.Tolerance });
-            var reader = new DxfReader(b, cancel);
-            reader.ReadTableAndLabels(text, document);
-            reader.Take(document);
+            return Take(b, Export.DxfReader.Parse(text, Options(b)), cancel);
+        }
+
+        /// <summary>
+        /// Reads a DXF file from its bytes, which the library decodes: UTF-8 from R2007, and before that the code page the header names.
+        /// </summary>
+        internal static Scene Read(Stream stream, string title, CancellationToken cancel)
+        {
+            cancel.ThrowIfCancellationRequested();
+            var b = new ImportBuilder(title);
+            return Take(b, Export.DxfReader.Read(stream, Options(b)), cancel);
+        }
+
+        private static DxfReadOptions Options(ImportBuilder b)
+            => new DxfReadOptions { PlanAs2D = true, ExpandBlocks = true, KeepGroups = false, Tolerance = b.Scene.Tolerance };
+
+        private static Scene Take(ImportBuilder b, DxfDocument document, CancellationToken cancel)
+        {
+            new DxfReader(b, cancel, document).Take();
             return b.Finish();
         }
 
-        private void Take(DxfDocument document)
+        private void Take()
         {
-            for (int i = 0; i < document.Entities.Count; i++)
+            foreach (DxfLayer layer in _document.LayerTable)
+            {
+                if (layer.IsOff || layer.IsFrozen)
+                {
+                    _b.Warn("DXF: the layer '" + layer.Name + "' is " + (layer.IsFrozen ? "frozen" : "turned off") + " in the file and is hidden; tick it in the scene tree to see it");
+                }
+            }
+
+            for (int i = 0; i < _document.Entities.Count; i++)
             {
                 if ((i & 1023) == 0)
                 {
                     _cancel.ThrowIfCancellationRequested();
                 }
 
-                DxfEntity e = document.Entities[i];
+                DxfEntity e = _document.Entities[i];
+                string name = e.BlockPath.Count > 0 ? string.Join(" > ", e.BlockPath) : null;
 
                 if (e.Type == "3DFACE")
                 {
                     AddFace(e);
+                    continue;
+                }
+
+                if (e.Shape is DxfText label)
+                {
+                    GeoPoint3 at = label.Position;
+                    Emit(SceneKinds.Text, ImportData.Text(new Vec3(at.X, at.Y, at.Z), label.Value, label.Height), e.Type, e.Layer, ItemColour(e), e.Handle, name);
                     continue;
                 }
 
@@ -140,309 +111,24 @@ namespace GeometryHelper.Viewer
                     continue;
                 }
 
-                Emit(kind, GeometryEncoder.Encode(e.Shape), e.Type, e.Layer, ItemColour(e), e.Handle, e.BlockPath.Count > 0 ? string.Join(" > ", e.BlockPath) : null);
-            }
-
-            var drawn = new Dictionary<string, int>(StringComparer.Ordinal);
-
-            foreach (Label label in _labels)
-            {
-                Emit(SceneKinds.Text, ImportData.Text(label.At, label.Text, label.Height), label.Type, label.Layer, label.Color, label.Handle, null);
-                drawn.TryGetValue(label.Type, out int count);
-                drawn[label.Type] = count + 1;
+                Emit(kind, GeometryEncoder.Encode(e.Shape), e.Type, e.Layer, ItemColour(e), e.Handle, name);
             }
 
             EmitFaceSets();
 
-            foreach (string warning in document.Warnings)
+            foreach (string warning in _document.Warnings)
             {
                 _b.Warn("DXF: " + warning);
             }
 
             // Every type is counted, INSERT too: the library gives a warning of its own for some of what it leaves out, not for all.
-            foreach (KeyValuePair<string, int> skipped in document.Skipped)
+            foreach (KeyValuePair<string, int> skipped in _document.Skipped)
             {
-                drawn.TryGetValue(skipped.Key, out int labels);
-                int left = skipped.Value - labels;
-
-                if (left > 0)
-                {
-                    _b.Warn("DXF: " + left.ToString(CultureInfo.InvariantCulture) + " " + skipped.Key + " entity(ies) are not read, as the library's DxfReader counts them; a warning above gives the reason where it has one");
-                }
+                _b.Warn("DXF: " + skipped.Value.ToString(CultureInfo.InvariantCulture) + " " + skipped.Key + " entity(ies) are not read, as the library's DxfReader counts them; a warning above gives the reason where it has one");
             }
         }
-
-        #region The layer table and the labels
-
-        /// <summary>
-        /// Reads, from the pairs of lines of the file, a group code and its value, the two things the library's reader does not give: the layers of the
-        /// layer table with their colours and whether they are shown, and the TEXT and MTEXT of model space. The library has read the file already, so
-        /// its sections are whole; no other record is looked at.
-        /// </summary>
-        private void ReadTableAndLabels(string text, DxfDocument document)
-        {
-            var known = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (string layer in document.Layers)
-            {
-                known[layer] = layer;
-            }
-
-            // A byte order mark before the first group code is no part of it, as the library's Parse reads it.
-            string[] lines = (text.Length > 0 && text[0] == '\uFEFF' ? text.Substring(1) : text).Split('\n');
-            Record current = null;
-            string section = null;
-            string currentSection = null;
-            bool expectSection = false;
-
-            for (int i = 0; i + 1 < lines.Length; i += 2)
-            {
-                if ((i & 8191) == 0)
-                {
-                    _cancel.ThrowIfCancellationRequested();
-                }
-
-                if (!int.TryParse(lines[i].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int code))
-                {
-                    break;
-                }
-
-                string value = lines[i + 1].TrimEnd('\r');
-
-                if (code == 0)
-                {
-                    Done(current, currentSection, known);
-                    current = null;
-                    string word = value.Trim();
-
-                    if (word == "EOF")
-                    {
-                        break;
-                    }
-
-                    if (word == "SECTION")
-                    {
-                        expectSection = true;
-                    }
-                    else if (word == "ENDSEC")
-                    {
-                        section = null;
-                    }
-                    else if ((section == "TABLES" && word == "LAYER") || (section == "ENTITIES" && (word == "TEXT" || word == "MTEXT")))
-                    {
-                        current = new Record { Type = word };
-                        currentSection = section;
-                    }
-                }
-                else if (expectSection)
-                {
-                    expectSection = false;
-                    section = code == 2 ? value.Trim() : null;
-                }
-                else
-                {
-                    current?.Groups.Add(new KeyValuePair<int, string>(code, value));
-                }
-            }
-
-            Done(current, currentSection, known);
-        }
-
-        private void Done(Record r, string section, Dictionary<string, string> known)
-        {
-            if (r == null)
-            {
-                return;
-            }
-
-            if (section == "TABLES")
-            {
-                ReadLayer(r);
-            }
-            else
-            {
-                ReadLabel(r, known);
-            }
-        }
-
-        private static string DecodeName(string name)
-            => Escape.Replace(name, m => ((char)int.Parse(m.Groups[1].Value, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture)).ToString());
-
-        private void ReadLayer(Record r)
-        {
-            string name = DecodeName((r.Text(2) ?? string.Empty).Trim());
-
-            if (name.Length == 0)
-            {
-                return;
-            }
-
-            int colour = r.Int(62, 7);
-            bool frozen = (r.Int(70, 0) & 1) != 0;
-            var info = new LayerInfo { Color = TrueColour(r) ?? AciColour(colour == int.MinValue ? 0 : Math.Abs(colour)), Visible = colour >= 0 && !frozen };
-
-            if (!info.Visible)
-            {
-                _b.Warn("DXF: the layer '" + name + "' is " + (frozen ? "frozen" : "turned off") + " in the file and is hidden; tick it in the scene tree to see it");
-            }
-
-            _layers[name] = info;
-        }
-
-        /// <summary>
-        /// Reads a TEXT or an MTEXT of model space at its insertion point as the file gives it, with its height; one with no insertion point that can be
-        /// read, or a height that cannot, is left out, and counted with what the library left out.
-        /// </summary>
-        private void ReadLabel(Record r, Dictionary<string, string> known)
-        {
-            if (r.Int(67, 0) == 1 || !r.TryReal(10, out double x) || !r.TryReal(20, out double y))
-            {
-                return;
-            }
-
-            double z = 0.0;
-            double height = 0.0;
-
-            if ((r.Text(30) != null && !r.TryReal(30, out z)) || (r.Text(40) != null && !r.TryReal(40, out height)))
-            {
-                return;
-            }
-
-            string text;
-
-            if (r.Type == "MTEXT")
-            {
-                // The text comes in pieces of 250 characters (3) and a last one (1), with formatting codes in it.
-                text = string.Concat(r.Groups.Where(g => g.Key == 3).Select(g => g.Value)) + (r.Text(1) ?? string.Empty);
-                text = PlainMText(text);
-            }
-            else
-            {
-                text = r.Text(1) ?? string.Empty;
-            }
-
-            string layer = DecodeName((r.Text(8) ?? "0").Trim());
-            layer = layer.Length == 0 ? "0" : layer;
-
-            _labels.Add(new Label
-            {
-                Type = r.Type,
-                Layer = Spelled(known, layer),
-                Color = TrueColour(r) ?? (r.TryInt(62, out int aci) ? AciColour(aci) : null),
-                Handle = r.Text(5)?.Trim(),
-                At = new Vec3(x, y, z),
-                Text = DecodeName(text).Replace("%%d", "\u00B0").Replace("%%p", "\u00B1").Replace("%%c", "\u2300"),
-                Height = height,
-            });
-        }
-
-        /// <summary>
-        /// The name a layer is known by: the first spelling met, the library's for a layer it read, two that differ only in case being one.
-        /// </summary>
-        private static string Spelled(Dictionary<string, string> known, string layer)
-        {
-            if (!known.TryGetValue(layer, out string spelled))
-            {
-                spelled = layer;
-                known.Add(layer, layer);
-            }
-
-            return spelled;
-        }
-
-        /// <summary>
-        /// The words of an MTEXT without its formatting: <c>\P</c> is a new line, the codes that end in a semicolon (font, height, colour, width, stacking,
-        /// paragraph and the rest) go with their arguments, those that stand alone (<c>\L</c>, <c>\l</c>, <c>\O</c>, <c>\o</c>, <c>\K</c>, <c>\k</c>) go alone, <c>\~</c> is
-        /// a space, <c>\\</c>, <c>\{</c> and <c>\}</c> are the character, a stack <c>\S1/2;</c> is read as 1/2, a <c>\U+</c> escape is left for the decoding that follows, and
-        /// the braces that group are taken off. No word is eaten with a code.
-        /// </summary>
-        internal static string PlainMText(string text)
-        {
-            var plain = new System.Text.StringBuilder(text.Length);
-
-            for (int i = 0; i < text.Length; i++)
-            {
-                char c = text[i];
-
-                if (c == '{' || c == '}')
-                {
-                    continue;
-                }
-
-                if (c != '\\' || i + 1 >= text.Length)
-                {
-                    plain.Append(c);
-                    continue;
-                }
-
-                char code = text[++i];
-
-                switch (code)
-                {
-                    case 'P':
-                    case 'X':
-                        plain.Append('\n');
-                        break;
-
-                    case '~':
-                        plain.Append(' ');
-                        break;
-
-                    case '\\':
-                    case '{':
-                    case '}':
-                        plain.Append(code);
-                        break;
-
-                    case 'L':
-                    case 'l':
-                    case 'O':
-                    case 'o':
-                    case 'K':
-                    case 'k':
-                        break;
-
-                    case 'U':
-                        // \U+00E9 is a character, decoded afterwards with the other escapes of a name.
-                        plain.Append('\\').Append('U');
-                        break;
-
-                    case 'S':
-                    {
-                        int end = text.IndexOf(';', i);
-                        string stack = end < 0 ? text.Substring(i + 1) : text.Substring(i + 1, end - i - 1);
-                        plain.Append(stack.Replace('^', '/').Replace('#', '/'));
-                        i = end < 0 ? text.Length : end;
-                        break;
-                    }
-
-                    default:
-                        if (char.IsLetter(code))
-                        {
-                            // A code with arguments: they run to the semicolon.
-                            int end = text.IndexOf(';', i);
-                            i = end < 0 ? text.Length : end;
-                        }
-                        else
-                        {
-                            plain.Append(code);
-                        }
-
-                        break;
-                }
-            }
-
-            return plain.ToString();
-        }
-
-        #endregion
 
         #region Layers and colours
-
-        /// <summary>
-        /// The colour of a true-colour group (420), as #RRGGBB, or null.
-        /// </summary>
-        private static string TrueColour(Record r) => r.TryInt(420, out int rgb) ? Hex(rgb) : null;
 
         private static string Hex(int rgb)
             => "#" + ((rgb >> 16) & 255).ToString("X2", CultureInfo.InvariantCulture) + ((rgb >> 8) & 255).ToString("X2", CultureInfo.InvariantCulture) + (rgb & 255).ToString("X2", CultureInfo.InvariantCulture);
@@ -555,9 +241,11 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            if (_layers.TryGetValue(layer, out LayerInfo info))
+            DxfLayer info = _document.GetLayer(layer);
+
+            if (info != null)
             {
-                _b.Layer(layer, info.Color, info.Visible);
+                _b.Layer(layer, info.TrueColour.HasValue ? Hex(info.TrueColour.Value) : AciColour(info.Colour ?? 0), !info.IsOff && !info.IsFrozen);
             }
             else
             {
