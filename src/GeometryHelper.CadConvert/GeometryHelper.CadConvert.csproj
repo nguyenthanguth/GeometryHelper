@@ -20,7 +20,12 @@
     <PackageReleaseNotes>
       Converts geometry between AutoCAD and GeometryHelper, both ways: points, vectors, line segments
       and Line entities, polylines and polygons with the arcs their bulges draw, arcs, circles,
-      ellipses, and Extents2d/Extents3d as rectangles.
+      ellipses, rays, xlines, splines, and Extents2d/Extents3d as rectangles.
+
+      RAYS, LINES AND SPLINES (12.3.0)
+      - RayConvert and XlineConvert read the Ray and Xline entities as GeoRay3 and GeoXLine3 and write them
+        back; SplineConvert reads a Spline as GeoSpline3, or as GeoSpline2 where it lies in plan
+        (TryToGeoSpline2 reports false instead of throwing), and ToAcadSpline writes either back.
 
       ELLIPSES (12.1.0)
       - The Ellipse entity converts both ways: ToGeoEllipse3 reads it in its own plane, ToGeoEllipse2

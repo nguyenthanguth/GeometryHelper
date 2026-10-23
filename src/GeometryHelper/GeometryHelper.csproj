@@ -14,49 +14,68 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 12.2.0
+      NEW IN 12.3.0
 
-      NEW, the ray in the plane
-      - GeoRay2, an origin and a direction it runs along for ever, the counterpart of GeoRay3. It is asked what a
-        segment is asked, against every shape in the plane, and every shape that takes a GeoLine2 takes a GeoRay2 back.
-        PlanarMap.ProjectToRay2/ToRay3, GeoBvh2.GetIntersections and GeoTransform2 take it too.
+      NEW, reading DXF
+      - DxfReader reads an ASCII DXF of R12 to R2018 into the library's shapes: Read(path), Read(stream) and
+        Parse(text) give a DxfDocument of the Entities in file order, the Layers, the Units, the Version, what was
+        Skipped by type and the Warnings. Lines, arcs, circles, ellipses, polylines with their bulges, splines,
+        rays, xlines, points, 3D faces, solids and meshes are read, in 3D by default or, with
+        DxfReadOptions.PlanAs2D, as the 2D shapes where they lie on the floor; ToMillimetres scales by INSUNITS.
+      - Each DxfEntity keeps its Layer, Colour, TrueColour, Linetype, Lineweight, Thickness, Handle and, with
+        KeepGroups, every group of it, extended data among them. DxfWriter.Add(DxfEntity) writes one back with
+        its look, and a public constructor makes one in code.
+      - Blocks and the INSERTs and MINSERTs that place them are read: each shape placed exactly by turns, even
+        and uneven scalings and mirrors (a circle under an uneven scaling is the ellipse it becomes, an arc the
+        exact spline), layer 0 and BYBLOCK taken from the INSERT, BlockPath and InsertHandles naming where it
+        came from, DxfDocument.Blocks holding the blocks in their own coordinates. MaxPlacedEntities (2 000 000
+        by default) bounds a file whose blocks multiply: 18 KB nesting 100 000 000 lines is read in 1.4 s.
+      - Checked against ezdxf: every placed point within 1E-9 of where ezdxf puts it.
 
-      FIXED, collisions in the plane read by the tolerance everywhere
-      - Two shapes in the plane collide exactly where they come within the point tolerance of each other: they cross,
-        one holds the other, or their boundaries pass within EqualPoint. Segments and rays against open curves, curved
-        loops, polygons, rectangles, triangles and faces, and every pair of curves, now read so; distances still give
-        the gap, and are nought only where the shapes truly cross or overlap.
-      - Two segments no longer collide, nor measure nought, where a crossing lies up to the tolerance past their ends:
-        corners 0.00156 apart at 1E-3 are apart. TryIntersectWith still places such a crossing.
-      - A segment inside a circle's tangent band gets its true crossings; a curved loop near a chord of a bowed edge is
-        read by its true boundary; nearly flat arcs keep their crossings whichever is asked first; tolerance forms read
-        the tolerance passed all the way down.
-      - Label placement no longer puts a label within the tolerance of a line or region kept clear.
+      NEW, shapes
+      - GeoSpline2 and GeoSpline3, the NURBS curve in the plane and in space, with the five queries about every
+        other shape from either side, transformations and flattening by a chord tolerance; written by DxfWriter
+        as a SPLINE and by SvgWriter, and read from AutoCAD and IFC.
+      - GeoXLine2 and GeoXLine3, the infinite line, and GeoSphere3, the solid ball, each with the queries of
+        their dimension; the ball is written by ObjWriter, DxfWriter and Wkt as its triangles and read from IFC.
+      - DxfWriter writes arcs and circles in space as an ARC and a CIRCLE in their own plane, not as chords;
+        ObjWriter, SvgWriter and Wkt take the shapes they left out.
 
-      FIXED, fillets and chamfers
-      - A fillet is the arc on the inside of the corner and never runs past it: no more cusps where the radius was
-        small against the tolerance. A corner that does not turn is left alone.
-      - A fillet or chamfer taking an edge whole, give or take the tolerance, meets its neighbour instead of throwing;
-        a chain's end points never move. Corner3, and the Tekla bars and ties built through it, no longer throw on tiny
-        bends.
-      - A curved chain that drops a repeated vertex keeps the bulge of the edge that still has a length.
+      FIXED, booleans and bodies
+      - A union, a common part and a difference of two closed bodies give a body closed as Validate reads it,
+        or say NotWorkedOut; welds keep faces on their planes; voids, chips and slabs thicker than the tolerance
+        are cut; an opening the tolerance off a face is cut in closed; a beam less a bent bar no longer runs for
+        minutes.
+      - ConvexHull3 and ConvexHull2 hold every point within the tolerance; GeoObb3.Fit keeps the least box;
+        Clash3.Find gives the same answer whichever part is listed first.
 
-      FIXED, offsets
-      - Curved offsets keep what stands exactly the distance from the shape: folds are cut where they come nearer,
-        closing corners are no longer bridged, an arc whose radius runs out is gone round at its two ends, holes are
-        kept however their pieces meet, and the answer no longer depends on the start vertex or direction.
-      - Curved offsets join corners as the straight ones do: a chamfer at the distance, a miter squared off at the
-        limit. They no longer throw at a coarse tolerance.
-      - A straight polyline's offset is its band's edge with no fragments past a sharp corner or lying on the
-        polyline, and its pieces are ordered in near-linear time: 10 000 vertices in 0.57 s where it took 36 s.
-      - A flat chain in space that encloses no area has its plane; round joins keep within OffsetOptions.ArcTolerance.
+      FIXED, transformations and round shapes
+      - Circles, arcs, edges, balls and rectangles moved by a map that is not a turn, shift or even scaling are
+        refused where the moved shape would land off its true image by more than the point tolerance, and moved
+        exactly where it would not; a plane is carried under even scalings of 1E5 and more.
+      - Two circles within the point tolerance of each other everywhere are one circle; arcs a hair short of a
+        whole turn, nearly flat arcs and edges with short chords are read and moved without throwing.
+
+      FIXED, queries
+      - Segments, rays, lines and chains against boxes, triangles, polygons and faces give a touch point where
+        they touch alone, and no point where CollidesWith is false; arcs against them likewise.
+      - Distances in the plane and in space are nought only where shapes truly meet, are exact near arcs, ellipse
+        and face rims, and are the same whichever is asked first.
+      - Curved offsets of loops that cross themselves or close slots give the right loops; point tests of loops
+        of arcs answer right; flattening keeps the chord tolerance at any sweep.
+      - ObjWriter, Wkt and DxfWriter print the same doubles on .NET Framework as on .NET.
 
       CHANGED
-      - Offsetting in a plane in space no longer slows with the square of its edges where neighbouring points are
-        counted: 100 000 vertices in 1.0 s where it took 15.9 s. Results are unchanged.
-      - Reading a near miss as a collision measures a distance where only a crossing was looked for: such pairs, and
-        curved offsets of shapes with a few edges, take up to about twice as long; curved offsets of large shapes are
-        many times faster.
+      - A union of two bodies lying face to face within the tolerance and apart, which came out open, now says
+        NotWorkedOut; GeoObb3.IsDegenerate and Validate's NoVolume read against the point tolerance.
+      - Arcs and edges moved by an equal-length skew are judged by where they land (InvalidOperationException
+        when off); triangles with no area to the tolerance have no plane in their queries.
+      - Rays and lines level over a flat shape get their crossing only within the vector tolerance; splines
+        lying along each other are measured as they are in space.
+      - Validate, IsClosed, SplitShells, hulls and face triangulation no longer slow with the square of their
+        size; results of booleans and volumes move towards the exact ones, by up to the rounding.
+
+      Nothing public is removed: a reflection diff against 12.2.0 finds 0 members removed and 1 959 added.
 
       Details in CHANGELOG.md.
 

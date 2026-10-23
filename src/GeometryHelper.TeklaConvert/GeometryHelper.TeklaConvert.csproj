@@ -29,6 +29,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 12.3.0
+      - GeometryHelper.TeklaConvert is released at 12.3.0 with GeometryHelper, which adds DxfReader, GeoSpline2/3,
+        GeoXLine2/3 and GeoSphere3 and fixes booleans, transformations and queries; nothing in TeklaConvert changes.
+
       NEW IN 12.2.0
       - GeometryHelper.TeklaConvert is released at 12.2.0 with GeometryHelper, which adds GeoRay2, reads every collision in
         the plane by the tolerance, and fixes fillets, chamfers and offsets; nothing in TeklaConvert changes.
