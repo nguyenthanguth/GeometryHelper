@@ -235,7 +235,7 @@ namespace GeometryHelper.Export
                 });
             }
 
-            private void EntityWarnings()
+            private void EntityWarnings(bool log = true)
             {
                 Warn(_fitSplines, " SPLINE given by its fit points alone was read as the spline GeoSpline.Interpolate passes through them, its parameters by chord length, which can differ from the curve the CAD program draws.", " SPLINEs given by their fit points alone were read as the splines GeoSpline.Interpolate passes through them, their parameters by chord length, which can differ from the curves the CAD program draws.");
                 Warn(_loweredFitSplines, " SPLINE had fewer fit points than its degree asks for and was read at one degree less than its points, two points being a straight line.", " SPLINEs had fewer fit points than their degree asks for and were read at one degree less than their points, two points being a straight line.");
@@ -249,7 +249,12 @@ namespace GeometryHelper.Export
                 foreach (KeyValuePair<string, Failure> failed in _failures)
                 {
                     _warnings.Add(Number(failed.Value.Count) + " " + failed.Key + (failed.Value.Count == 1 ? " could not be read and was" : " could not be read and were") + " left out: " + failed.Value.First.GetType().Name + ", " + failed.Value.First.Message);
-                    GeometryHelperLog.Warn("DxfReader: " + Number(failed.Value.Count) + " " + failed.Key + (failed.Value.Count == 1 ? " could not be read and was left out." : " could not be read and were left out."), failed.Value.First);
+
+                    // A placing for DxfFile logs its own line, once the placing is done.
+                    if (log)
+                    {
+                        GeometryHelperLog.Warn("DxfReader: " + Number(failed.Value.Count) + " " + failed.Key + (failed.Value.Count == 1 ? " could not be read and was left out." : " could not be read and were left out."), failed.Value.First);
+                    }
                 }
             }
 

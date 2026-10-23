@@ -54,7 +54,7 @@ namespace GeometryHelper.Export
         /// <param name="options">How to read it; null reads it with the defaults of <see cref="DxfReadOptions"/>.</param>
         /// <returns>The entities of the file and what it says of itself.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
-        /// <exception cref="FormatException">Thrown when the file is not a DXF, is binary, or is cut short; the message names the line.</exception>
+        /// <exception cref="FormatException">Thrown when the file is not a DXF, is binary, or is cut short, the message naming the line; or when its header names a code page that does not read each byte of ASCII as itself, such as UTF-16 or ISO-2022, the message naming the page.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be read.</exception>
         /// <remarks>
         /// The text of a file from R2007 on is UTF-8; that of an older one is in the code page its header names
@@ -82,7 +82,7 @@ namespace GeometryHelper.Export
         /// <param name="options">How to read it; null reads it with the defaults of <see cref="DxfReadOptions"/>.</param>
         /// <returns>The entities of the file and what it says of itself.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the stream is null.</exception>
-        /// <exception cref="FormatException">Thrown when the file is not a DXF, is binary, or is cut short; the message names the line.</exception>
+        /// <exception cref="FormatException">Thrown when the file is not a DXF, is binary, or is cut short, the message naming the line; or when its header names a code page that does not read each byte of ASCII as itself, such as UTF-16 or ISO-2022, the message naming the page.</exception>
         /// <remarks>The text is decoded as <see cref="Read(string, DxfReadOptions)"/> decodes a file's.</remarks>
         public static DxfDocument Read(Stream stream, DxfReadOptions options = null)
         {
@@ -129,23 +129,9 @@ namespace GeometryHelper.Export
                 throw Binary();
             }
 
-            bool marked = length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
-            int start = marked ? 3 : 0;
-            bool ascii = true;
-
-            for (int i = start; i < length && ascii; i++)
-            {
-                ascii = bytes[i] < 0x80;
-            }
-
-            string latin = Latin1.GetString(bytes, start, length - start);
             var warnings = new List<string>();
-            string text = latin;
-
-            if (!ascii)
-            {
-                text = Decode(bytes, start, length, marked, latin, warnings);
-            }
+            TextDecoding decoding = TextDecoding.Of(bytes, length, warnings);
+            string text = decoding.GetString(bytes, decoding.Start, length - decoding.Start);
 
             return new Reading(options ?? new DxfReadOptions()).Run(text, source, warnings);
         }
@@ -153,54 +139,209 @@ namespace GeometryHelper.Export
         private static readonly Encoding Latin1 = Encoding.GetEncoding("iso-8859-1");
 
         /// <summary>
-        /// The text of a file with bytes beyond ASCII in it, the same on either runtime: UTF-8 where it has the mark or is of
-        /// R2007 or later; else UTF-8 where its bytes are UTF-8, which a text in a code page with a letter beyond ASCII in it
-        /// almost never is, said in a warning; else the code page of its header, Windows-1252 by a table of its own, since
-        /// .NET 10 does not have it, and any other where the runtime has it, Latin-1 where it does not, said in a warning.
+        /// How the bytes of a file are read as text, chosen once for the whole file: Latin-1 for a file all ASCII, after the
+        /// mark of UTF-8 where it has one. A line reads the same alone as within the whole, as AutoCAD reads a file line by
+        /// line: a file in a code page of letters of more than one byte, such as 932, is split into its lines at the byte 0x0A
+        /// before it is read, so that a byte that opens a letter at the end of a line does not take the line feed after it; in
+        /// any other the line feed is the one byte 0x0A already.
         /// </summary>
-        private static string Decode(byte[] bytes, int start, int length, bool marked, string latin, List<string> warnings)
+        internal sealed class TextDecoding
         {
-            Header(latin, out string version, out string codePage);
+            private static readonly UTF8Encoding StrictUtf8 = new UTF8Encoding(false, true);
 
-            if (marked || string.CompareOrdinal(version ?? string.Empty, "AC1021") >= 0)
+
+            private readonly Encoding _encoding;
+            private readonly bool _windows1252;
+            private readonly bool _byLine;
+
+            private TextDecoding(int start, Encoding encoding, bool windows1252, string codePage, bool byLine = false)
+            {
+                Start = start;
+                _encoding = encoding;
+                _windows1252 = windows1252;
+                CodePage = codePage;
+                _byLine = byLine;
+            }
+
+            /// <summary>Where the text begins: after the three bytes of the mark of UTF-8 where the file has it, else at 0.</summary>
+            internal int Start { get; }
+
+            /// <summary>
+            /// The code page the text was read in, where the file's bytes beyond ASCII asked for one: <c>UTF-8</c>,
+            /// <c>ANSI_1252</c>, <c>ANSI_932</c> and so on, or <c>ISO-8859-1</c> where the runtime has not the page the
+            /// header names; null for a file all ASCII, which reads the same in any of them.
+            /// </summary>
+            internal string CodePage { get; }
+
+            /// <summary>
+            /// The code page a file's text is in: the one it was read in, or for a file all ASCII, which reads the same in any,
+            /// the one its letters beyond ASCII would be read in: UTF-8 where it has the mark or is of R2007 or later, else
+            /// that its header names, as <c>ANSI_</c> and its number, ANSI_1252 where it names none.
+            /// </summary>
+            internal string CodePageFor(string version, string named)
+            {
+                if (CodePage != null)
+                {
+                    return CodePage;
+                }
+
+                return Start > 0 || string.CompareOrdinal(version ?? string.Empty, "AC1021") >= 0 ? "UTF-8" : "ANSI_" + Number(CodePageNumber(named));
+            }
+
+            /// <summary>
+            /// The decoding of a file, the same on either runtime: UTF-8 where it has the mark or is of R2007 or later; else
+            /// UTF-8 where its bytes are UTF-8, which a text in a code page with a letter beyond ASCII in it almost never is,
+            /// said in a warning; else the code page of its header, Windows-1252 by a table of its own, since .NET 10 does not
+            /// have it, and any other where the runtime has it, Latin-1 where it does not, said in a warning.
+            /// </summary>
+            internal static TextDecoding Of(byte[] bytes, int length, List<string> warnings)
+            {
+                bool marked = length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
+                int start = marked ? 3 : 0;
+                bool ascii = true;
+
+                for (int i = start; i < length && ascii; i++)
+                {
+                    ascii = bytes[i] < 0x80;
+                }
+
+                if (ascii)
+                {
+                    return new TextDecoding(start, Latin1, false, null);
+                }
+
+                string latin = Latin1.GetString(bytes, start, length - start);
+                Header(latin, out string version, out string codePage);
+
+                if (marked || string.CompareOrdinal(version ?? string.Empty, "AC1021") >= 0)
+                {
+                    if (IsUtf8(bytes, start, length))
+                    {
+                        return new TextDecoding(start, StrictUtf8, false, "UTF-8");
+                    }
+
+                    warnings.Add("The file is of R2007 or later" + (marked ? ", or marked as UTF-8," : string.Empty) + " so its text is UTF-8, but some of its bytes are not: each was read as the replacement character U+FFFD.");
+                    return new TextDecoding(start, Encoding.UTF8, false, "UTF-8");
+                }
+
+                if (IsUtf8(bytes, start, length))
+                {
+                    warnings.Add("The file is of a version before R2007, whose text is in a code page, but its text is UTF-8 and was read as such.");
+                    return new TextDecoding(start, StrictUtf8, false, "UTF-8");
+                }
+
+                int number = CodePageNumber(codePage);
+
+                if (number == 1252)
+                {
+                    return new TextDecoding(start, Latin1, true, "ANSI_1252");
+                }
+
+                Encoding page;
+
+                try
+                {
+                    page = Encoding.GetEncoding(number);
+                }
+                catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
+                {
+                    warnings.Add("The file is in the code page " + (codePage ?? "ANSI_1252") + " (" + Number(number) + "), which this runtime does not have, so its text was read as Latin-1 and a letter beyond ASCII in a name may be another; save the drawing as a DXF of R2007 or later, whose text is UTF-8, to read it right.");
+                    return new TextDecoding(start, Latin1, false, "ISO-8859-1");
+                }
+
+                // A DXF is written in ASCII, its group codes and the words of its structure, each byte its letter wherever it
+                // stands: a page that reads one otherwise, alone, is not one a DXF can be in. UTF-16 (1200, 1201) and EBCDIC
+                // (37) read the letters as others, and ISO-2022 (50220 to 50229), HZ (52936) and UTF-7 (65000) read an escape,
+                // a shift or a sign as a change of state, which they leave out of the text.
+                if (!WritesAscii(page))
+                {
+                    throw new FormatException("This is not a DXF that can be read: its header names the code page " + codePage + " (" + Number(number) + "), which does not read each byte of ASCII alone as itself, as the group codes of a DXF are read.");
+                }
+
+                return new TextDecoding(start, page, false, "ANSI_" + Number(number), !page.IsSingleByte);
+            }
+
+            /// <summary>
+            /// The text of a part of the bytes, split into its lines at the byte 0x0A in a code page that has letters of more
+            /// than one byte, each line read alone without the carriage return that ends it.
+            /// </summary>
+            internal string GetString(byte[] bytes, int index, int count)
+            {
+                if (_byLine)
+                {
+                    return ByLine(bytes, index, count);
+                }
+
+                string text = _encoding.GetString(bytes, index, count);
+                return _windows1252 ? Windows1252(text) : text;
+            }
+
+            private string ByLine(byte[] bytes, int index, int count)
+            {
+                int end = index + count;
+
+                if (Array.IndexOf(bytes, (byte)'\n', index, count) < 0 && Array.IndexOf(bytes, (byte)'\r', index, count) < 0)
+                {
+                    return _encoding.GetString(bytes, index, count);
+                }
+
+                var text = new StringBuilder(count);
+                int at = index;
+
+                while (at < end)
+                {
+                    int feed = Array.IndexOf(bytes, (byte)'\n', at, end - at);
+                    int stop = feed < 0 ? end : feed;
+                    bool cr = stop > at && bytes[stop - 1] == '\r';
+                    text.Append(_encoding.GetString(bytes, at, (cr ? stop - 1 : stop) - at));
+
+                    if (cr)
+                    {
+                        text.Append('\r');
+                    }
+
+                    if (feed < 0)
+                    {
+                        break;
+                    }
+
+                    text.Append('\n');
+                    at = feed + 1;
+                }
+
+                return text.ToString();
+            }
+
+            /// <summary>Whether a code page reads each byte of ASCII, 0x00 to 0x7F, alone, as that letter.</summary>
+            private static bool WritesAscii(Encoding page)
+            {
+                var one = new byte[1];
+
+                for (int b = 0; b < 0x80; b++)
+                {
+                    one[0] = (byte)b;
+                    string read = page.GetString(one);
+
+                    if (read.Length != 1 || read[0] != (char)b)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            private static bool IsUtf8(byte[] bytes, int start, int length)
             {
                 try
                 {
-                    return new UTF8Encoding(false, true).GetString(bytes, start, length - start);
+                    StrictUtf8.GetCharCount(bytes, start, length - start);
+                    return true;
                 }
                 catch (DecoderFallbackException)
                 {
-                    warnings.Add("The file is of R2007 or later" + (marked ? ", or marked as UTF-8," : string.Empty) + " so its text is UTF-8, but some of its bytes are not: each was read as the replacement character U+FFFD.");
-                    return Encoding.UTF8.GetString(bytes, start, length - start);
+                    return false;
                 }
-            }
-
-            try
-            {
-                string utf8 = new UTF8Encoding(false, true).GetString(bytes, start, length - start);
-                warnings.Add("The file is of a version before R2007, whose text is in a code page, but its text is UTF-8 and was read as such.");
-                return utf8;
-            }
-            catch (DecoderFallbackException)
-            {
-                // Not UTF-8: the code page it names.
-            }
-
-            int number = CodePageNumber(codePage);
-
-            if (number == 1252)
-            {
-                return Windows1252(latin);
-            }
-
-            try
-            {
-                return Encoding.GetEncoding(number).GetString(bytes, start, length - start);
-            }
-            catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
-            {
-                warnings.Add("The file is in the code page " + (codePage ?? "ANSI_1252") + " (" + Number(number) + "), which this runtime does not have, so its text was read as Latin-1 and a letter beyond ASCII in a name may be another; save the drawing as a DXF of R2007 or later, whose text is UTF-8, to read it right.");
-                return latin;
             }
         }
 
@@ -451,7 +592,7 @@ namespace GeometryHelper.Export
         /// One record of the file: an entity, a table entry, a block's own header; the groups after its 0, with the reals
         /// among them read once.
         /// </summary>
-        private sealed class Record
+        internal sealed class Record
         {
             private int[] _codes = new int[16];
             private string[] _values = new string[16];

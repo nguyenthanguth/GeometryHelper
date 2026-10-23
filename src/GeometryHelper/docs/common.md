@@ -534,7 +534,13 @@ bring, so there its text is read as Latin-1 and a warning names the code page an
 R2007 or later, whose text is UTF-8; a program that calls
 `Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)` once, from the package System.Text.Encoding.CodePages, has
 them all, as the viewer does. A file of R2007 or later whose bytes are not all UTF-8 is read with the replacement
-character U+FFFD for each that is not, and a warning says so. A name written with the
+character U+FFFD for each that is not, and a warning says so. A file is read line by line, as AutoCAD reads it: in a
+code page of letters of more than one byte (932, 936, 949, 950, 54936 and the like) a byte that opens a letter at the
+end of a line does not take the line feed after it; and a file with letters beyond ASCII whose header names a code page
+that does not read each byte of ASCII alone as itself, UTF-16 (1200, 1201), EBCDIC (37), ISO-2022 (50220 to 50229), HZ
+(52936) or UTF-7, which read an escape, a shift or a sign as a change of state and leave it out, or one of the national
+7-bit pages (20105 to 20108, 20261, 20269) or x-mac-thai (10021), which read a few signs of ASCII as other letters, is
+refused with a `FormatException` that names the code page and no line; AutoCAD writes none of them. A name written with the
 escapes of R2000 (`\U+00E9`) is read as its letters. A number is read from its first 19 digits and checked in integers,
 the digits past 800 counting only as whether any is not nought: a number of 300 000 digits takes 2.2 ms on .NET 10.
 
@@ -738,3 +744,99 @@ the places of one entity of a block share its groups; scaled unevenly, the 820 0
 
 `DxfWriter.Add(entity)` writes a placed entity as it is, in the drawing itself, with its look: the file written has no
 blocks, and reads back as the same shapes, every number to the bit but the angles of an arc and the axis of an ellipse.
+
+## Editing a DXF file
+
+`DxfFile` opens a DXF file to save it again with nothing lost. It keeps every byte of the file and reads what the file
+holds from them when asked for: opened and saved with nothing changed, a file is written back byte for byte. This
+release opens, reads and saves; changing what a file holds comes in the next. `DxfReader` stays the faster way to read a
+drawing into shapes alone.
+
+```csharp
+using GeometryHelper.Export;
+
+DxfFile file = DxfFile.Open("plan.dxf");                 // or Open(stream), Parse(text)
+
+foreach (DxfItem item in file.ModelSpace) { ... }       // Type, Handle, Layer, Colour, Groups, Shape, Shapes
+DxfFileBlock bolt = file.Blocks["BOLT"];                // Name, BasePoint, Flags, Items
+file.Save("copy.dxf");                                  // the same bytes; or Save(stream)
+```
+
+What is kept is everything: the version, R12 (AC1009) to R2018 (AC1032); the line ends, a carriage return and a line
+feed, a line feed alone, or both in one file; the group codes padded to three places or not, a tab or a space after one;
+spaces after a value; the mark of UTF-8 or none; the text in the code page of a file before R2007 and in UTF-8 after,
+byte for byte, a byte the runtime cannot read among them; comments (999); the sections, tables and objects the library
+does not read (CLASSES, OBJECTS, ACDSDATA, LAYOUT, DICTIONARY, XRECORD); the entities it does not read (HATCH, DIMENSION,
+LEADER, MULTILEADER, IMAGE, MESH, VIEWPORT, ACAD_PROXY_ENTITY); extended data, reactors and extension dictionaries; and
+whatever follows the EOF. A file `DxfReader` refuses is refused the same way, with the same message: a binary DXF, one
+cut short, one with no EOF, one whose header names a code page that does not read each byte of ASCII as itself. The two
+read a file line by line alike, as AutoCAD does: in a code page of letters of more than one byte, such as 932, a byte that
+opens a letter at the end of a line does not take the line feed after it. `ToText()` gives the text as the reader reads it
+from the bytes, the mark of UTF-8 left out. `Parse(text)` keeps a text as the bytes of UTF-8, a byte order mark at its
+start as the mark, which `ToText()` leaves out as it leaves out that of a file: that is what a file of R2007 or later
+holds, and a file
+all ASCII, as `DxfWriter` writes it, is the same in any code page; a file before R2007 with letters beyond ASCII is best
+opened from its bytes, which are kept as they are.
+
+What the file holds is read when it is first asked for, so a large file opens fast. `Version` is the header's
+`$ACADVER`, as `DxfDocument.Version` gives it. `CodePage` is the page the text is read in: `UTF-8` for a file of R2007 or
+later, one with the mark of UTF-8, and one before R2007 whose bytes are UTF-8; else the page the header names
+(`$DWGCODEPAGE`) as `ANSI_` and its number, `ANSI_1252` where it names none; and `ISO-8859-1` where the runtime has not
+the page it names, which `Warnings` says, with what else was said of the text, such as a file before R2007 whose text is
+UTF-8. `Header` holds each variable of the header by name, in the order of the names, with the groups after its group 9
+as the file has them: `$INSUNITS` is the one group 70 of value `4` for millimetres, and `$INSBASE` the groups 10, 20 and
+30; a variable named twice is as last given, as the reader reads the version and the code page. `ModelSpace` and
+`PaperSpace` hold the entities of the ENTITIES section in the order of the file, those whose group 67 is 1 in paper
+space: those of the layout last shown. The entities of the other layouts are in their blocks, `*Paper_Space0` and so on.
+`Blocks` holds each block by name, letters of either case the same, in the order of the names, as a `DxfFileBlock` of its
+`Name`, its `BasePoint` and `Flags` as `DxfDocument.Blocks` reads them, and its `Items` between its BLOCK and its ENDBLK;
+the blocks of the layouts are among them, and a block defined again under a name already defined is kept in the file and
+left out here, the first kept, as the reader keeps it. `LayerTable` is the layer table as `DxfDocument.LayerTable` reads
+it. A POLYLINE is one entity with its VERTEX records and its SEQEND, and an INSERT one with its ATTRIB records and
+theirs, as AutoCAD keeps them together.
+
+Each entity is a `DxfItem`. Its `Type` is the type the file names, and its `Handle` the handle with the spaces around it
+taken off. Its look is as the record writes it, so that it can be written back as it was: `Layer` the group 8 as written,
+spaces and escapes kept, null where the record has none; `Colour` the group 62, 0 for BYBLOCK and 256 for BYLAYER, below
+nought for a colour turned off; `TrueColour` the group 420 with whatever lies above its 24 bits; `Linetype` the group 6,
+BYLAYER and ByBlock among them; `Lineweight` the group 370, -1 by layer, -2 by block and -3 the default; each null where
+the record gives none, and `Thickness` (39) nought. That is the file's word, where `DxfEntity` reads its meaning: a colour
+BYBLOCK is no colour there, and a layer is named as the layer table spells it. Nothing is taken from a block: a LINE of a
+block on layer 0 is on layer 0. `Groups` holds every group of the record, a comment left out, running on through a
+POLYLINE's vertices and an INSERT's attributes as `DxfEntity.Groups` does.
+
+`Shapes` is what `DxfReader` reads of the entity with its default options, read the first time it is asked for and kept,
+the same list from every thread: shapes of space in the coordinates of the file, `PlanAs2D` and `ToMillimetres` not
+applying, and `Tolerance.Default` saying which entities have no shape. Nearly every entity is one shape, which `Shape`
+gives: a LINE its `GeoLine3`. The reader reads two of a 3DFACE whose four corners are not in one plane, the triangles it
+is cut into, and each face of a polyface mesh of fewer than the four a body needs; there `Shape` is null, as it is for a
+type the reader does not read and an entity it reads no shape of, a LINE of no length among them, whose `Shapes` is
+empty. An entity of paper space is read as one of model space is. `Shape` is what the next release lets be set.
+
+An INSERT's shape is a `DxfInsert`: its `BlockName`, its `Position` in world coordinates, its `Normal`, its `Rotation`
+in radians from nought up to 2 pi, its `ScaleX`, `ScaleY` and `ScaleZ`, and the `Columns`, `Rows`, `ColumnSpacing` and
+`RowSpacing` of a MINSERT's array, each as the file gives it or 1 and 0 where it gives none. ezdxf's INSERT of FRAME at
+(200, 0) on the extrusion (0, 0.6, 0.8), turned -90 degrees, is at (-200, 0, 0) in the world and turned 3 pi / 2, and one
+at (10, 20, 5) on the extrusion (0, 0, -1) is at (-10, 20, -5). `GetPlacedEntities()` places it as the reader places it
+in `DxfDocument.Entities`, and an INSERT inside a block within that block, as `DxfDocument.Blocks` holds it; it gives
+nothing for an INSERT the reader does not place, and `GetPlacedEntities(out warnings)` says why, and what of its block
+was left out: `1 HATCH not placed: 1 of a type that is not read.` Each call is a placing of its own and gives the same
+whatever was placed before it: it is held to `MaxPlacedEntities` (2 000 000) on its own, and its layers are spelled as the
+layer table spells them, then as the entities of the drawing do, then as its own placed entities first do. Where a layer
+the table does not list is spelled in more than one case in the file, a placed entity may carry another of those
+spellings than the reader gives it, the reader taking the first it meets in its own order: the drawing, its INSERTs in
+turn, then the blocks one by one. The 1 000 000 blocks worked out for the sizes are for all the calls on one file
+together, as they are for one reading. A call that leaves something out logs one line of its own, Debug, or Warn where
+an entity threw.
+
+Held against the reader on the 252 files the reader's tests read and on 46 others, ezdxf's of R12 to R2018 with HATCH,
+DIMENSION, MTEXT, layouts, extended data, blocks, groups and images among them, each as written, with every line ended by
+a carriage return and a line feed, by a line feed alone, by both, with a mark of UTF-8, and with letters of a code page or
+of UTF-8 in their layer names, and on 4 000 of them with one to three lines dropped, doubled, swapped or bent: every file
+the reader reads is saved byte for byte, every one it refuses is refused with its message, every shape is the reader's
+to the bit, entity for entity, and every INSERT places what the reader places but where the reader's bound is reached,
+which it is for 6 of them; every INSERT of ezdxf's files stands within 4E-16 of where ezdxf reads it. On .NET 10,
+100 000 entities of eight kinds that `DxfWriter` wrote (16.6 MB) open in 29 ms and save in 2 ms, held in 18 MB; listing
+them takes 25 ms more, reading the look of each 35 ms and the shapes of each 0.23 s, held in 60 MB in all, where
+`DxfReader` reads them in 0.25 s into 89 MB with their groups and 0.16 s into 32 MB without. ezdxf's drawing of R2018
+repeated to 100 000 entities (36 MB) opens in 63 ms, held in 38 MB.

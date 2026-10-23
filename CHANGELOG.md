@@ -6,6 +6,45 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfFile` opens a DXF file to save it again with nothing lost, the first step to editing one without AutoCAD:
+`DxfFile.Open(path)`, `Open(stream)` and `Parse(text)`, then `Save(path)`, `Save(stream)` or `ToText()`. Opened and saved
+with nothing changed, a file is written back byte for byte: its version from R12 to R2018, its line ends, padding,
+comments and mark of UTF-8, its code page, and every section, table, object and entity, the HATCH, DIMENSION, LAYOUT and
+extended data the library does not read among them. What it holds is read from its bytes when first asked for:
+`Version`, `CodePage` (the page its text is read in), `Warnings` (what was said of reading it), the `Header` variables by
+name, `ModelSpace`, `PaperSpace`, the `Blocks` by name, each a new `DxfFileBlock` of its `Name`, `BasePoint`, `Flags` and
+`Items`, and the `LayerTable`. Each entity is a new `DxfItem` with its type, its look as its record writes it (a colour
+BYBLOCK is 0 and BYLAYER 256, a lineweight by layer -1, a layer spelled as written), every group, and its `Shapes`: what
+`DxfReader` reads of it with its default options, read once, one shape for nearly every entity, which `Shape` gives, two
+triangles for a 3DFACE out of flat, none for a type the reader does not read. An INSERT's shape is the new `DxfInsert`,
+its block, position, normal, turn, scales and array as the file gives them, which `GetPlacedEntities()` places as the
+reader places it, the same whichever INSERT is placed first, and `GetPlacedEntities(out warnings)` says what it left out.
+A file the reader refuses is refused with its message, one with no EOF among them. Held against the reader on the 252
+files its tests read and 46 others, ezdxf's of R12 to R2018 among them, each with its lines ended three ways, with a mark
+of UTF-8 and with letters of a code page or of UTF-8, and on 4 000 of them with lines dropped, doubled, swapped or bent:
+every file is saved byte for byte, every refusal has the reader's message, and every shape and every entity an INSERT
+places is the reader's to the bit. 100 000 entities that `DxfWriter` wrote (16.6 MB) open in 29 ms on .NET 10 and save in
+2 ms, held in 18 MB; reading the look of each takes 35 ms and their shapes 0.23 s more, where `DxfReader` reads them in
+0.25 s. 36 new tests; the suite runs 12 235 of 12 236, one skipped as before.
+
+**CHANGED.** `DxfReader` reads a file in a code page of letters of more than one byte (932, 936, 949, 950, 54936, 51932,
+1361 and every other the runtime has) line by line, as AutoCAD reads it: a byte that opens a letter at the end of a line no
+longer takes the line feed after it, which made the line after it part of the value, and no state of the page runs on from
+one line into the next. The TEXT whose words end in the byte 0x82 before the line feed, in a file of R2000 in the page 932,
+followed by a line that is no group code, was read with that line in its words and is refused now naming the line, as
+`DxfFile` refuses it; and a file whose lines that took the line feed put out of step, refused before, is read, the TEXT's
+words ending in the replacement of the lone byte. A file with letters beyond ASCII whose header names a code page that does
+not read each byte of ASCII alone as itself is refused with one message that names the page and no line: UTF-16 (1200,
+1201) and EBCDIC (37), which read the letters as others and were refused naming whatever line their reading made of the
+bytes, and ISO-2022 (50220 to 50229), HZ (52936) and UTF-7, which read an escape, a shift or a sign as a change of state and
+left it out, so that the code line ` 10` with ESC ( B after it was read as 10. The national 7-bit pages (IA5 German,
+Swedish and Norwegian, 20105 to 20108), T.61 (20261), ISO 6937 (20269) and x-mac-thai (10021), which read a few signs of
+ASCII as other letters, are refused too where the file has letters beyond ASCII; AutoCAD writes none of them. Every other file
+reads as it did, to the bit: 298 files, those the reader's tests read and 46 others, in up to 9 forms each (with a mark of
+UTF-8, CRLF, and letters of Windows-1252, 1250, 932 and UTF-8) under 4 sets of options, with the code pages of Windows
+registered and without, 10 616 readings each way; 46 of them under 8 sets of options from their text; and 3 000 random
+block graphs. A file in the page 932 is read 0.04 s slower in 0.3 s, a file in any other as fast as before.
+
 **NEW.** `DxfReader` reads TEXT and MTEXT, which it counted in `Skipped`, as the new `DxfText`: its `Position`, `Normal`,
 `Height`, `Rotation`, `Value`, `IsMultiline`, `WidthFactor` and `Width`, the same with `PlanAs2D` as without. A TEXT
 stands in the system of its extrusion's plane, at its first alignment point where it is aligned left on its baseline or
