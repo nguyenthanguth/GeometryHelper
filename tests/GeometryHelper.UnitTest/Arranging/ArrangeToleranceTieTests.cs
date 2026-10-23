@@ -8,9 +8,9 @@ using Xunit;
 namespace GeometryHelper.UnitTest.Arranging
 {
     /// <summary>
-    /// Of two places as open, the one found first. Clearances up to the global point tolerance count as equal, so the exact
-    /// distances do not tell two places apart by the last digits of a clearance of the same true size. The scene's gaps of
-    /// 0.0002 are within the global tolerance of 0.001 that these tests run at.
+    /// Of two places as open, the one found first. Clearances up to the point tolerance of the options count as nought,
+    /// and clearances beyond it that differ by no more than a thousandth of it count as equal, so the exact distances do
+    /// not tell two places apart by the last digits of a clearance of the same true size, wherever the scene lies.
     /// </summary>
     public class ArrangeToleranceTieTests
     {
@@ -59,6 +59,52 @@ namespace GeometryHelper.UnitTest.Arranging
             GeoVector2 home = Place(0.0);
             GeoVector2 moved = Place(shift);
 
+            Assert.Equal(home.X, moved.X, 6);
+            Assert.Equal(home.Y, moved.Y, 6);
+        }
+
+        /// <summary>
+        /// A label 40 by 10 hung 5 off a leader 60 long along X, between a line 0.5 over the first row above and one
+        /// 0.5 and a hundred-millionth under the first row below, at the default tolerance, the whole scene moved by the
+        /// given amounts.
+        /// </summary>
+        private static GeoVector2 PlaceBetweenLines(double dx, double dy)
+        {
+            double d = 1E-8;
+            var leader = new GeoLine2(dx, dy, dx + 60, dy);
+            var item = new ArrangeItem
+            {
+                Leader = leader,
+                Box = new GeoRectangle2(leader.MidPoint, 40, 10),
+                Offset = 5,
+                BlockLines = new List<GeoLine2>
+                {
+                    new GeoLine2(dx - 20, dy + 15.5, dx + 80, dy + 15.5),
+                    new GeoLine2(dx - 20, dy - 15.5 - d, dx + 80, dy - 15.5 - d)
+                }
+            };
+
+            var options = new ArrangeOptions { Tolerance = Tolerance.Default };
+
+            return Arranger.Run(new List<ArrangeItem> { item }, options).Single().Translation;
+        }
+
+        [Theory]
+        [InlineData(1E4, 0.0)]
+        [InlineData(1E5, 0.0)]
+        [InlineData(1E6, 0.0)]
+        [InlineData(1E4, 1E4)]
+        [InlineData(1E5, 1E5)]
+        [InlineData(1E6, 1E6)]
+        public void ALabelBetweenClearancesAHundredMillionthApart_TakesThePlaceTriedFirstWhereverTheSceneLies(double dx, double dy)
+        {
+            // Above is tried first and 0.5 clear; below is 0.5 and a hundred-millionth clear, within a thousandth of the
+            // tolerance of above. A band that grew with the distance from the origin sent the label below near the origin
+            // and above a hundred thousand off it.
+            GeoVector2 home = PlaceBetweenLines(0.0, 0.0);
+            GeoVector2 moved = PlaceBetweenLines(dx, dy);
+
+            Assert.True(home.Y > 0.0, $"{home}");
             Assert.Equal(home.X, moved.X, 6);
             Assert.Equal(home.Y, moved.Y, 6);
         }

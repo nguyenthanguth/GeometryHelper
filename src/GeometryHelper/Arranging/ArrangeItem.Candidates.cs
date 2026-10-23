@@ -160,7 +160,7 @@ namespace GeometryHelper.Arranging
 
             // STEP 2: Determine directional axis (unit GeoVector2) along the leader.
             // This axis points in the direction where the label can slide longitudinally.
-            if (!Leader.Direction.TryGetNormal(out GeoVector2 direction))
+            if (!Leader.Direction.TryGetNormal(out GeoVector2 direction, options.Tolerance))
             {
                 return false;
             }

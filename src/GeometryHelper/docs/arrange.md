@@ -178,6 +178,12 @@ overlaps the next and the beam; after `Arranger.Run` all nine are `Placed`, each
   keep the order they were given in.
 - **Look-ahead** — a label is tried at its candidates in turn until `LookAheadCandidates` of them, 3 unless set, are
   found clear, and takes the one that stands furthest from everything near it; of two as open, the one found first.
+  Clearances up to the point tolerance of the options count as nought: at a tolerance of a thousandth, places 0.0004
+  and 0.0007 clear are as open, and at a ten-thousandth the second is the more open. Clearances that differ by no more
+  than a thousandth of the tolerance are as open too, so which of two places as open a label takes does not follow
+  where the scene lies: at a thousandth, places 0.5 and 0.50000001 clear go to the one tried first, at the origin as a
+  million off it. The candidates themselves are worked out from the coordinates as they stand, and a scene moved far
+  off can give a label a candidate more or fewer.
   The gap one side asks for beyond the gap of the other is not counted as room: a label 20 off above its leader and
   300 below it, keeping clear of its own leader, stands 20 clear of it in the first row above and 300 in the first
   row below, and counted as measured, the side below, the one it is to keep further off, would win whenever places
@@ -217,7 +223,7 @@ the blocks of every item, and a block given to many items is tested once.
 | `PlaceMostConstrainedFirst` | true | Place labels with fewer options first |
 | `PlaceFromInsideOut` | true | Prioritize labels close to the area centroid |
 | `LookAheadCandidates` | 3 | Number of free positions considered before selection |
-| `Tolerance` | `Tolerance.Global` | Tolerance for geometric comparisons; `Tolerance.Global` as it stands when the options are made |
+| `Tolerance` | `Tolerance.Global` | Tolerance for geometric comparisons, clearances included; `Tolerance.Global` as it stands when the options are made, and only then |
 
 Default values are in millimeters, matching conventional structural drawings.
 

@@ -2249,8 +2249,12 @@ deep, its centre line 50 inside the footing and 132.8 inside the column. It is f
 and within the chord tolerance on the bends (a thousandth of the radius unless given), with no body built and no
 boolean run, and the same prepared parts can be checked against bars and bodies alike. What bodies measure as a
 volume, a bar measures as a depth and a length: `Overlaps` stays empty and `Volume` nought, so `minimumVolume`
-does not apply to it, while `minimumDepth` does. Three things read differently from the same bar built with
-`GeoSolid3.Pipe`:
+does not apply to it, while `minimumDepth` does. A centre line lying along a face, within the tolerance of it, runs
+inside for as long as it lies there, half the bar being in the material: a bar of radius 8 and 800 long laid on the
+top of a box, half its length over it, is the radius deep and 400 inside. So is one laid along an edge of the box, a
+quarter of it in the material. One drifting off the face runs inside only until it leaves the tolerance: a bar over a
+box 1 000 long, from 0.0012 over the top to 0.0006 over it across 1 500, comes within a thousandth of the top 500
+along and is 700 inside, up to the end of the box. Three things read differently from the same bar built with `GeoSolid3.Pipe`:
 
 - **The ends are rounded.** A ball rolled along the centre line reaches a radius past each end, where the bar
   ends flat, so a part up to a radius beyond an end is found to clash: the check errs on the side of reporting.

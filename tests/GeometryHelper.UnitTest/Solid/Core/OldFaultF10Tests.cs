@@ -92,10 +92,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         [Fact]
-        public void ABarDippingIntoAPlateFromTheBand_IsInsideFromWhereItCrossesTheTop()
+        public void ABarDippingIntoAPlateFromTheBand_CountsItsRunWithinTheToleranceOfTheTopAsInside()
         {
             // A plate 1000 by 100 by 10 with its top in z = 10, and a bar along x from 0.0004 over the top dipping at half
             // a degree, 400 long: it crosses the top 0.0004 / sin 0.5 degrees, about 0.0458, along, and stays inside after.
+            // The first 0.0458 lies within the tolerance of the top, and a centre line within the tolerance of a face
+            // counts as inside, as the depth already reads it: the whole 400 is inside.
             var plate = Box(0, 0, 0, 1000, 100, 10);
             double angle = 0.5 * Math.PI / 180.0;
             GeoPoint3 from = Pt(10, 50, 10.0004);
@@ -104,7 +106,27 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             ClashResult clash = Clash3.Find(new[] { bar }, new[] { plate }, ClashOptions.Default, Tol).Single();
 
-            Assert.Equal(400 - 0.0004 / Math.Sin(angle), clash.LengthInside, 6);
+            Assert.Equal(400.0, clash.LengthInside, 6);
+        }
+
+        [Fact]
+        public void ABarDippingFromJustOverAPlate_IsPlacedAtTheMiddleOfItsRunFromWhereItEntersTheBand()
+        {
+            // The same plate, and a bar 400 long dipping at 0.05 degrees from 0.0009 over the top: its first 1.031 lies
+            // within the tolerance over the top and counts as inside, so the place given, the middle of the longest
+            // piece inside, is half that run further on than the middle of the 400 from the bar's start, 210.5156 along
+            // X. Before F10 the piece was taken from the bar's start as it stands and its middle stood at 209.99992.
+            var plate = Box(0, 0, 0, 1000, 100, 10);
+            double angle = 0.05 * Math.PI / 180.0;
+            GeoPoint3 from = Pt(10, 50, 10.0009);
+            GeoPoint3 to = from.Add(new GeoVector3(Math.Cos(angle), 0, -Math.Sin(angle)).Multiply(400));
+            var bar = new ClashBar(new GeoPolyline3(from, to), 8.0);
+
+            ClashResult clash = Clash3.Find(new[] { bar }, new[] { plate }, ClashOptions.Default, Tol).Single();
+
+            Assert.Equal(400.0, clash.LengthInside, 3);
+            double expected = 10 + (0.0009 / Math.Sin(angle) + 400) / 2 * Math.Cos(angle);
+            Assert.True(Math.Abs(clash.Location.X - expected) <= Tol.EqualPoint, clash.Location.X.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
         }
     }
 }

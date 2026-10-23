@@ -19,6 +19,12 @@ namespace GeometryHelper.UnitTest.Arranging
     /// The hashes were taken from a build of 5eea18b, the 6.2.0 release, of its greedy placement, the one of its five
     /// algorithms kept. The scenes keep to what later fixes left alone on purpose: caps that do not bind and one list
     /// of regions shared by every item. They run at the default tolerance 6.2.0 had, a ten-thousandth.
+    /// <para>
+    /// The hash of the results was taken again when ties among places stopped depending on where the scene lies: of two
+    /// clearances within a thousandth of the point tolerance of each other, the place tried first wins. The place taken
+    /// moved in 20 decisions of these scenes, every one between clearances within 9.7E-13 of each other, where no
+    /// placement is nearer the truth than the other. The candidates are as 6.2.0 gave them.
+    /// </para>
     /// </remarks>
     public class ArrangeCompatibilityTests : ArrangeTestKit
     {
@@ -26,7 +32,7 @@ namespace GeometryHelper.UnitTest.Arranging
 
         private const string CandidatesOf620 = "bb1ebe4fae6b325b8c65ebd6d1ff4f7de447164b16afce6614d790aee4ffcd42";
 
-        private const string ResultsOf620 = "e68c9f75633e5fdefeba3cc8b9b4e97c5822079a6fd2962035fd8e7855649cd5";
+        private const string ResultsOf620 = "3af58b0e80104c2fd2208366eb3240ae48af23acff4bbcd79e650a002816be41";
 
         [Fact]
         public void TheCandidates_AreThoseOf620()

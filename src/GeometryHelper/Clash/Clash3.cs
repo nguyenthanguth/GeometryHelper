@@ -229,9 +229,10 @@ namespace GeometryHelper.Clash
         /// <para>
         /// What a clash between bodies measures as a volume, a bar measures as a depth and a length: how far the part
         /// reaches into the bar (<see cref="ClashResult.Depth"/>) and how much of the centre line runs inside it
-        /// (<see cref="ClashResult.LengthInside"/>). No body is built, so <see cref="ClashResult.Overlaps"/> is empty
-        /// and <see cref="ClashResult.Volume"/> nought, and <see cref="ClashOptions.MinimumVolume"/> does not apply;
-        /// <see cref="ClashOptions.MinimumDepth"/> does. The gap of a bar too near a part runs from the bar's surface.
+        /// (<see cref="ClashResult.LengthInside"/>), lying along a face within the tolerance of it counting as inside.
+        /// No body is built, so <see cref="ClashResult.Overlaps"/> is empty and <see cref="ClashResult.Volume"/> nought,
+        /// and <see cref="ClashOptions.MinimumVolume"/> does not apply; <see cref="ClashOptions.MinimumDepth"/> does. The
+        /// gap of a bar too near a part runs from the bar's surface.
         /// </para>
         /// <para>
         /// The ends are read rounded (see <see cref="ClashBar"/>), so right at an end a part up to a radius beyond it
@@ -297,9 +298,12 @@ namespace GeometryHelper.Clash
 
                 // Where the centre line runs inside the part: each chord cut where it crosses the surface, and each piece
                 // judged by its middle. A chord whose box, grown by the reach, misses the part's box is neither inside nor
-                // near it.
+                // near it. A piece lying on the surface, within the tolerance of a face, runs inside as well, half the bar
+                // being in the material, but is not measured for depth or place: its depth is the radius, as the nearest
+                // approach below reads it.
                 var inside = new List<(GeoPoint3 From, GeoPoint3 To)>();
                 double lengthInside = 0.0;
+                double lengthOnSurface = 0.0;
 
                 for (int k = 0; k + 1 < axis.Length; k++)
                 {
@@ -335,18 +339,26 @@ namespace GeometryHelper.Clash
                         }
 
                         GeoPoint3 middle = ray.GetPointAtDistance((stops[s] + stops[s + 1]) * 0.5);
+                        PointLocation location = part.Locate(middle, tolerance);
 
-                        if (part.Locate(middle, tolerance) == PointLocation.Inside)
+                        if (location == PointLocation.Inside)
                         {
                             inside.Add((ray.GetPointAtDistance(stops[s]), ray.GetPointAtDistance(stops[s + 1])));
                             lengthInside += stops[s + 1] - stops[s];
+                        }
+                        else if (location == PointLocation.OnSide)
+                        {
+                            // Only as far as it stays within the tolerance: a centre line drifting off a face leaves it
+                            // short of the piece's ends.
+                            double middleAt = (stops[s] + stops[s + 1]) * 0.5;
+                            lengthOnSurface += LastWithin(ray, middleAt, stops[s + 1], part, tolerance) - LastWithin(ray, middleAt, stops[s], part, tolerance);
                         }
                     }
                 }
 
                 if (lengthInside > tolerance.EqualPoint)
                 {
-                    return Graded(ClashResult.BarHard(i, j, LongestMiddle(inside), DepthWithin(inside, part, radius, tolerance), lengthInside), options, false);
+                    return Graded(ClashResult.BarHard(i, j, LongestMiddle(inside), DepthWithin(inside, part, radius, tolerance), lengthInside + lengthOnSurface), options, false);
                 }
 
                 // The centre line stays outside: its nearest approach to the surface, measured a piece at a time, each
@@ -399,7 +411,7 @@ namespace GeometryHelper.Clash
                 if (distance < radius - tolerance.EqualPoint)
                 {
                     // The part reaches into the bar: from its nearest point, inside the bar, out to the bar's surface.
-                    return Graded(ClashResult.BarHard(i, j, Midway(onPart, onBar), radius - distance, 0.0), options, false);
+                    return Graded(ClashResult.BarHard(i, j, Midway(onPart, onBar), radius - distance, lengthOnSurface), options, false);
                 }
 
                 if (distance <= radius + tolerance.EqualPoint)
@@ -478,6 +490,38 @@ namespace GeometryHelper.Clash
             }
 
             return Midway(longest.From, longest.To);
+        }
+
+        /// <summary>
+        /// How far along a ray a centre line lying on the surface of a part stays within the tolerance of it, going from a
+        /// place where it does toward an end: the end itself where that is within the tolerance too, and otherwise the
+        /// place it leaves, found by halving to a millionth of the tolerance. A bar drifting from 0.0006 to 0.0012 off a
+        /// face over 1 500 leaves the tolerance of a thousandth 500 from where it is 0.0012 off.
+        /// </summary>
+        private static double LastWithin(GeoRay3 ray, double within, double end, GeoPreparedSolid3 part, Tolerance tolerance)
+        {
+            if (part.Locate(ray.GetPointAtDistance(end), tolerance) != PointLocation.OutSide)
+            {
+                return end;
+            }
+
+            double outside = end;
+
+            for (int n = 0; n < 64 && Math.Abs(outside - within) > 1E-6 * tolerance.EqualPoint; n++)
+            {
+                double halfway = (within + outside) * 0.5;
+
+                if (part.Locate(ray.GetPointAtDistance(halfway), tolerance) != PointLocation.OutSide)
+                {
+                    within = halfway;
+                }
+                else
+                {
+                    outside = halfway;
+                }
+            }
+
+            return within;
         }
 
         private static GeoPoint3 Along(GeoPoint3 from, GeoPoint3 to, double fraction)

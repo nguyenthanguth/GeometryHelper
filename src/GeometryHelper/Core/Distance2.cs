@@ -259,7 +259,13 @@ namespace GeometryHelper.Core
         /// (150, 150) is 0.0012 from the square from the origin to (100, 100), and the same segment run the other way is
         /// the same.
         /// </returns>
-        public static double DistanceTo(GeoRectangle2 rect, GeoLine2 line)
+        public static double DistanceTo(GeoRectangle2 rect, GeoLine2 line) => DistanceTo(rect, line, Tolerance.Global);
+
+        /// <summary>
+        /// Calculates the shortest boundary distance from a rectangle to a line segment, a segment no longer than the
+        /// tolerance read as its start point where it does not cross a side.
+        /// </summary>
+        internal static double DistanceTo(GeoRectangle2 rect, GeoLine2 line, Tolerance tolerance)
         {
             if (Collision2.Meets(rect, line))
             {
@@ -271,7 +277,7 @@ namespace GeometryHelper.Core
 
             foreach (var re in rectEdges)
             {
-                double d = DistanceToSide(re, line, Tolerance.Global);
+                double d = DistanceToSide(re, line, tolerance);
                 if (d < minDistance) minDistance = d;
             }
 

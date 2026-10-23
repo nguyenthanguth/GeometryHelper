@@ -88,19 +88,23 @@ namespace GeometryHelper.Arranging
                 // own leader is often among what it keeps clear of, and then each place in the first row of a side is
                 // that side's gap clear of it: counted as measured, the side with the wider gap, the one the label is to
                 // keep further off, always won. Where both sides have the same gap, nothing is taken off.
-                double measured = PlacementHeuristics.MeasureClearance(nearby, moved);
+                double measured = PlacementHeuristics.MeasureClearance(nearby, moved, options.Tolerance);
 
-                // Clearances up to the global point tolerance count as equal, as they did when the distances to the obstacles
-                // read nought within it, so the last digits of an exact clearance do not pick the place. The measure reads the
-                // global tolerance, and so does this.
-                if (measured <= Tolerance.Global.EqualPoint)
+                // Clearances up to the point tolerance of the options count as equal, as they did when the distances to the
+                // obstacles read nought within it, so the last digits of an exact clearance do not pick the place.
+                if (measured <= options.Tolerance.EqualPoint)
                 {
                     measured = 0.0;
                 }
 
                 double clearance = measured - candidate.Surplus;
 
-                if (clearance > bestClearance)
+                // Nor do the last digits of a clearance beyond the tolerance: a place is more open than the best so far only
+                // by more than a thousandth of the point tolerance, a millionth at the default, well beyond the rounding of
+                // measuring it a million from the origin, so that where two places are as open, the one tried first wins
+                // wherever the scene lies. Two places 0.0002 clear of what they keep clear of, at a tolerance of a
+                // ten-thousandth, measured 0.00019999999999953388 and 0.00019999999994979589 with the scene 900 along X.
+                if (clearance > bestClearance + options.Tolerance.EqualPoint * 1E-3)
                 {
                     bestClearance = clearance;
                     chosen = translation;

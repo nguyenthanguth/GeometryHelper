@@ -100,7 +100,9 @@ namespace GeometryHelper.Clash
         /// </summary>
         /// <remarks>
         /// A bar through a plate runs inside it for the plate's thickness, or more if it crosses at a slant; a bar cast
-        /// along a flange, for as long as it runs in the steel.
+        /// along a flange, for as long as it runs in the steel; a bar whose centre line lies along a face, within the
+        /// tolerance of it, for as long as it lies there, half of it being in the material: 400 for a bar 800 long laid
+        /// on the top of a box with half its length over it.
         /// </remarks>
         public double LengthInside { get; private set; }
 

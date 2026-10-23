@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
+using GeometryHelper.Core;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Arranging
@@ -186,7 +187,11 @@ namespace GeometryHelper.Arranging
         /// <summary>
         /// Calculates the minimum boundary-to-boundary distance from the label to all surrounding obstacles when there is no collision.
         /// </summary>
-        internal static double MeasureClearance(List<Obstacle> obstacles, GeoRectangle2 moved)
+        /// <remarks>
+        /// Measured exactly, but for a line kept clear of that is no longer than the point tolerance, read as its start
+        /// point: the tolerance is the options', not the global one.
+        /// </remarks>
+        internal static double MeasureClearance(List<Obstacle> obstacles, GeoRectangle2 moved, Tolerance tolerance)
         {
             double best = double.MaxValue;
 
@@ -203,7 +208,7 @@ namespace GeometryHelper.Arranging
                         distance = moved.DistanceTo(obstacle.Polygon);
                         break;
                     case ObstacleType.Line:
-                        distance = moved.DistanceTo(obstacle.Line);
+                        distance = Distance2.DistanceTo(moved, obstacle.Line, tolerance);
                         break;
                 }
 

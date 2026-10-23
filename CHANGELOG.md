@@ -235,6 +235,36 @@ settles nearly every edge by sums along the axes, without placing its arc, in 1.
 three runs of 20 million, where it compared the bulge with nought in 0.44; the area and the distances of a loop of 4 000
 curved edges take 4 to 9 % longer for it.
 
+**FIXED.** `Arranger.Run` reads the tolerance of its options throughout, never `Tolerance.Global` as it stands at the
+time: clearances up to the options' point tolerance count as nought when the most open of the free places is chosen,
+and the direction of a leader, the region a placed label leaves for the second pass and a block line shorter than the
+tolerance are read by it too. A label 0.0004 clear of a line above it and 0.0008 clear of one below, run at a tolerance
+of a ten-thousandth with the global one at a thousandth, went above, both clearances counted as nought by the global
+tolerance; it goes below, the more open place. Where the options' tolerance is the global one, as `ArrangeOptions` makes
+it unless set, this alone moves no label.
+
+**CHANGED.** Where a label's free places are as open to within a thousandth of the point tolerance of the options, a
+millionth at the default, the place tried first wins, so which of two places as open a label takes no longer depends on
+where the scene lies: of two places 4.0000000000000036 and 4.0000000000004521 clear, tried in that order, the second won
+by its last digits, and the first wins; so does the first of places 0.5 and 0.50000001 clear, at the origin as a million
+off it. The place taken moved in 74 decisions of the golden scenes, 20 in the scenes of 6.2.0 and 54 in the clusters of
+3a2da08, whose hashes were taken again, every one between clearances within 1.82E-12 of each other; a scene of
+clearances of 0.0002 at a ten-thousandth now places alike wherever it lies. The candidates a label is tried at are
+worked out from its coordinates as before, and a scene moved far off can still give a label a candidate more or fewer.
+The approved signatures of the benchmarks stay as they were. As fast as before.
+
+**FIXED.** A bar checked by its centre line (`ClashBar`) that lies along a face of a part, within the tolerance of it,
+runs inside the part for as long as it lies there, half the bar being in the material: a bar of radius 8 and 800 long
+laid on the top of a box 1 000 by 200 by 100, half its length over it, was found the radius deep with nought of its
+centre line inside, and is 400 inside. Its depth and its place are as before. One drifting off the face runs inside only
+until it leaves the tolerance: a bar over that box from 0.0012 over the top to 0.0006 over it across 1 500 is 700
+inside, from where it comes within a thousandth of the top to the end of the box. A bar dipping into a plate from within
+the tolerance over its top counts the run within the tolerance too: 400 for one 400 long dipping at half a degree from
+0.0004 over, where it counted 399.954 from where it crosses the top. A bar laid along an edge of a part counts so too, a
+quarter of it in the material. Of 1 198 clashes of 1 760 bars with 96 parts, the 400 of bars laid along a face of their
+part 0, 0.0003 or 0.0008 off it moved, each in its length inside alone, which on the parts without openings is the bar
+clipped to the face to within 8E-13; none of the others moved, those 0.002 off among them. As fast as before.
+
 ## 12.3.0
 
 **NEW.** `DxfReader` reads a DXF file into the library's shapes: `Read(path)`, `Read(stream)` and `Parse(text)`, each with

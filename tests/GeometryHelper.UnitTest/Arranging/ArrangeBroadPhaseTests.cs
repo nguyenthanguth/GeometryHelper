@@ -18,7 +18,10 @@ namespace GeometryHelper.UnitTest.Arranging
     /// </summary>
     /// <remarks>
     /// The hashes and the translations were taken from a build of 3a2da08, the last to go over every obstacle for every
-    /// label.
+    /// label. The hash of the clusters was taken again when ties among places stopped depending on where the scene lies:
+    /// of two clearances within a thousandth of the point tolerance of each other, the place tried first wins. The place
+    /// taken moved in 54 decisions of the clusters, every one between clearances within 1.82E-12 of each other; the other
+    /// scenes had none.
     /// </remarks>
     public class ArrangeBroadPhaseTests : ArrangeTestKit
     {
@@ -26,7 +29,7 @@ namespace GeometryHelper.UnitTest.Arranging
 
         [Theory]
         [InlineData("sparse", "6e3f42769b87b2e904374164c21ee3496830b14d4c384126ea79719fe46a5e19")]
-        [InlineData("clusters", "852a0f2e283132a74a5d37ed630d93f1eddeeae9852d76015bd471296c398c3d")]
+        [InlineData("clusters", "717e67b2765b8ecd321da323ea53014d8a20477205912faae23e28867c044ed2")]
         [InlineData("huge regions", "523d1cc09e6a5e1a72adfc7372a869739b1c37749913a5a9bf237dfb4df21205")]
         public void EveryScene_UnderEveryOptionSet_GivesWhat3a2da08Gave(string scene, string expected)
         {

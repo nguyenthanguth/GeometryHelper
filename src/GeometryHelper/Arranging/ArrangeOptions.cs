@@ -91,6 +91,13 @@ namespace GeometryHelper.Arranging
         /// A place that comes within the point tolerance of a region or a line kept clear of collides with it, though
         /// their boxes do not overlap: at a tolerance of a thousandth, a label whose place ends half a thousandth below a
         /// line is not put there. Two labels are judged on their boxes as they stand.
+        /// <para>
+        /// Of the free places a label is weighed at, the most open wins, and clearances up to the point tolerance count as
+        /// nought, so two places 0.0004 and 0.0007 off what they keep clear of are as open at a tolerance of a thousandth,
+        /// and the one tried first wins. Clearances beyond it that differ by no more than a thousandth of it are as open
+        /// too: places 0.5 and 0.50000001 clear at a thousandth. A run reads this tolerance throughout, never
+        /// <see cref="GeometryHelper.Tolerance.Global"/> as it stands at the time.
+        /// </para>
         /// </remarks>
         public Tolerance Tolerance { get; set; } = Tolerance.Global;
     }

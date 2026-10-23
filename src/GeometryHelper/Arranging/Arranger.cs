@@ -118,7 +118,7 @@ namespace GeometryHelper.Arranging
             var settled = new List<GeoPolygon2>();
             for (int i = 0; i < items.Count; i++)
             {
-                if (items[i] != null && placed[i] && TryGetRegion(items[i].Box.Translate(translations[i]), out GeoPolygon2 region))
+                if (items[i] != null && placed[i] && TryGetRegion(items[i].Box.Translate(translations[i]), options.Tolerance, out GeoPolygon2 region))
                 {
                     settled.Add(region);
                 }
@@ -167,23 +167,24 @@ namespace GeometryHelper.Arranging
         /// <returns>
         /// False for a box two of whose corners run together, which makes no region: one moved so far off that the
         /// numbers no longer tell its corners apart, as a gap as wide as a number goes takes it, or one smaller than
-        /// the global tolerance of points. Judging the final layout still sees it.
+        /// the point tolerance of the options. Judging the final layout still sees it.
         /// </returns>
-        private static bool TryGetRegion(GeoRectangle2 box, out GeoPolygon2 region)
+        private static bool TryGetRegion(GeoRectangle2 box, Tolerance tolerance, out GeoPolygon2 region)
         {
             GeoPoint2[] corners = box.GetVertices();
             for (int i = 0; i < corners.Length; i++)
             {
                 // A polygon drops each corner that falls on the one before it, the first coming after the last: a box
                 // that loses one is no box.
-                if (corners[i].IsEqualTo(corners[(i + 1) % corners.Length]))
+                if (corners[i].IsEqualTo(corners[(i + 1) % corners.Length], tolerance))
                 {
                     region = null;
                     return false;
                 }
             }
 
-            region = new GeoPolygon2(corners);
+            // Its four corners as they are: the public constructor would judge them again by the global tolerance.
+            region = new GeoPolygon2(corners, corners.Length);
             return true;
         }
 
