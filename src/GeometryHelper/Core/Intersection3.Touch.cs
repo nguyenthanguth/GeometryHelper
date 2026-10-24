@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Core
@@ -34,7 +35,7 @@ namespace GeometryHelper.Core
 
             return Clear(line, box, crossed, tolerance)
                 ? new GeoPoint3[0]
-                : Meeting(line, Gap3.Region.Of(triangle), box, triangle, crossed, false, crossing, readShortAsPoint, tolerance, endless);
+                : Meeting(line, Gap3.Region.Of(triangle), box, triangle, crossed, crossing, readShortAsPoint, tolerance, endless);
         }
 
         /// <summary>
@@ -54,7 +55,7 @@ namespace GeometryHelper.Core
 
             return Clear(line, box, crossed, tolerance)
                 ? new GeoPoint3[0]
-                : Meeting(line, Gap3.Region.Of(polygon), box, null, crossed, false, crossing, readShortAsPoint, tolerance, endless);
+                : Meeting(line, Gap3.Region.Of(polygon), box, null, crossed, crossing, readShortAsPoint, tolerance, endless);
         }
 
         /// <summary>
@@ -74,83 +75,127 @@ namespace GeometryHelper.Core
 
             return Clear(line, box, crossed, tolerance)
                 ? new GeoPoint3[0]
-                : Meeting(line, Gap3.Region.Of(face), box, null, crossed, false, crossing, readShortAsPoint, tolerance, endless);
+                : Meeting(line, Gap3.Region.Of(face), box, null, crossed, crossing, readShortAsPoint, tolerance, endless);
         }
 
         /// <summary>
         /// Gets where a ray meets a triangle, as a list: the crossing, or the point of a touch, the ray read as far as the
         /// corner of the triangle farthest from its origin, as <see cref="Collision3.CollidesWith(GeoRay3, GeoTriangle3, Tolerance)"/>
-        /// reads it.
+        /// reads it, and only where the line without ends along it meets it (see <see cref="AsItsLine"/>).
         /// </summary>
         internal static GeoPoint3[] Meeting(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            bool crossed = TryIntersectWith(ray, triangle, out GeoPoint3 crossing, tolerance);
             bool flat = !triangle.IsDegenerate(tolerance);
-            bool pierces = crossed && flat && OnPlaneAndPiece(crossing, triangle.GetPlane(), ray);
-            bool nearPlane = crossed && flat && NearPlane(ray, triangle.GetPlane(), crossing, tolerance);
+            bool crossed = TryIntersectWith(ray, triangle, out GeoPoint3 crossing, tolerance);
+            GeoPoint3[] own = crossed && flat && OnPlaneAndPiece(crossing, triangle.GetPlane(), ray)
+                ? new[] { crossing }
+                : Meeting(ray, Gap3.Region.Of(triangle), triangle, crossed, crossing, tolerance);
 
-            if (pierces && !nearPlane)
-            {
-                return new[] { crossing };
-            }
-
-            return Meeting(ray, Gap3.Region.Of(triangle), triangle, crossed, pierces, nearPlane, crossing, tolerance);
+            return AsItsLine(ray, GetIntersections(new GeoXLine3(ray.Origin, ray.Direction), triangle, tolerance), own, Gap3.Region.Of(triangle), flat, tolerance);
         }
 
         /// <summary>
-        /// Gets where a ray meets a polygon, as a list: the crossing, or the point of a touch.
+        /// Gets where a ray meets a polygon, as a list: the crossing, or the point of a touch, only where the line without ends
+        /// along it meets it (see <see cref="AsItsLine"/>).
         /// </summary>
         internal static GeoPoint3[] Meeting(GeoRay3 ray, GeoPolygon3 polygon, Tolerance tolerance)
         {
             bool crossed = TryIntersectWith(ray, polygon, out GeoPoint3 crossing, tolerance);
-            bool pierces = crossed && OnPlaneAndPiece(crossing, polygon.GetPlane(), ray);
-            bool nearPlane = crossed && NearPlane(ray, polygon.GetPlane(), crossing, tolerance);
+            GeoPoint3[] own = crossed && OnPlaneAndPiece(crossing, polygon.GetPlane(), ray)
+                ? new[] { crossing }
+                : Meeting(ray, Gap3.Region.Of(polygon), null, crossed, crossing, tolerance);
 
-            if (pierces && !nearPlane)
-            {
-                return new[] { crossing };
-            }
-
-            return Meeting(ray, Gap3.Region.Of(polygon), null, crossed, pierces, nearPlane, crossing, tolerance);
+            return AsItsLine(ray, GetIntersections(new GeoXLine3(ray.Origin, ray.Direction), polygon, tolerance), own, Gap3.Region.Of(polygon), true, tolerance);
         }
 
         /// <summary>
-        /// Gets where a ray meets the material of a face, as a list: the crossing, or the point of a touch.
+        /// Gets where a ray meets the material of a face, as a list: the crossing, or the point of a touch, only where the line
+        /// without ends along it meets it (see <see cref="AsItsLine"/>).
         /// </summary>
         internal static GeoPoint3[] Meeting(GeoRay3 ray, GeoFace3 face, Tolerance tolerance)
         {
             bool crossed = TryIntersectWith(ray, face, out GeoPoint3 crossing, tolerance);
-            bool pierces = crossed && OnPlaneAndPiece(crossing, face.GetPlane(), ray);
-            bool nearPlane = crossed && NearPlane(ray, face.GetPlane(), crossing, tolerance);
+            GeoPoint3[] own = crossed && OnPlaneAndPiece(crossing, face.GetPlane(), ray)
+                ? new[] { crossing }
+                : Meeting(ray, Gap3.Region.Of(face), null, crossed, crossing, tolerance);
 
-            if (pierces && !nearPlane)
-            {
-                return new[] { crossing };
-            }
-
-            return Meeting(ray, Gap3.Region.Of(face), null, crossed, pierces, nearPlane, crossing, tolerance);
+            return AsItsLine(ray, GetIntersections(new GeoXLine3(ray.Origin, ray.Direction), face, tolerance), own, Gap3.Region.Of(face), true, tolerance);
         }
 
         /// <summary>
-        /// Determines whether a ray starting within the planar tolerance of a region's plane has a crossing that is no crossing: the
-        /// ray level with the plane within the vector tolerance, its crossing read as a touch at its origin or a hair ahead of it as
-        /// the rounding of the origin falls, or its crossing within the point tolerance of its origin, as one rising off the plane is
-        /// given. A ray from 0.0009 under the plane rising 1.5E-5 crosses it 60 along, and is given that crossing.
+        /// Reads a ray as the line without ends along it is read, by how far that line climbs across the region, and keeps what
+        /// it meets at the origin or ahead of it: a ray meets the region only where its line does. Where the ray's own reading,
+        /// by its crossing of the plane and the part of it over the region, gives a point within the point tolerance of the
+        /// line's, that point is given, so a ray the two read alike, as one crossing the plane at a slant, is given what it
+        /// always was. Where the line meets the region only behind the origin, or lies level over it only behind the origin,
+        /// the ray running away from it, and the origin itself touches the region, the ray is given its origin, the one place
+        /// of that meeting it holds.
         /// </summary>
-        private static bool NearPlane(GeoRay3 ray, GeoPlane3 plane, GeoPoint3 crossing, Tolerance tolerance)
-            => !(System.Math.Abs(plane.SignedDistanceTo(ray.Origin)) > tolerance.EqualPlanar)
-                && (!(System.Math.Abs(ray.Direction.DotProduct(plane.Normal)) > tolerance.EqualVector) || !(crossing.DistanceTo(ray.Origin) > tolerance.EqualPoint));
+        /// <remarks>
+        /// A ray from 0.0005 over a square 100 by 100 in the floor, falling 1E-5 for each unit along it, climbs 0.001 across the
+        /// square, more than the planar tolerance of a thousandth, and is given its crossing 50 along, as its line is; one from
+        /// 0.0002 over it falling 4E-6 climbs 0.0004, lies level over the square as its line does, and is given nothing. One
+        /// rising a hundredth from 0.0005 under the square crosses the floor 0.05 behind its origin, and is given its origin;
+        /// so is one 0.0003 over the floor and 0.0006 beside the rim of a triangle running away from it, whose line lies level
+        /// over the triangle behind it.
+        /// </remarks>
+        private static GeoPoint3[] AsItsLine(GeoRay3 ray, GeoPoint3[] onLine, GeoPoint3[] own, Gap3.Region region, bool flat, Tolerance tolerance)
+        {
+            GeoPoint3 origin = ray.Origin;
+            double rounding = 1E-12 * (1.0 + System.Math.Max(System.Math.Abs(origin.X), System.Math.Max(System.Math.Abs(origin.Y), System.Math.Abs(origin.Z))));
+            var ahead = new List<GeoPoint3>(onLine.Length);
+
+            foreach (GeoPoint3 point in onLine)
+            {
+                if (origin.GetVectorTo(point).DotProduct(ray.Direction) < -rounding)
+                {
+                    continue;
+                }
+
+                GeoPoint3 given = point;
+
+                foreach (GeoPoint3 mine in own)
+                {
+                    if (!(mine.DistanceTo(point) > tolerance.EqualPoint))
+                    {
+                        given = mine;
+                        break;
+                    }
+                }
+
+                ahead.Add(given);
+            }
+
+            if (ahead.Count == 0 && own.Length > 0 && (onLine.Length > 0 || RunsAway(ray, region, flat, tolerance)))
+            {
+                foreach (GeoPoint3 mine in own)
+                {
+                    if (!(mine.DistanceTo(origin) > tolerance.EqualPoint))
+                    {
+                        ahead.Add(mine);
+                    }
+                }
+            }
+
+            return ahead.ToArray();
+        }
+
+        /// <summary>
+        /// Determines whether the part of a ray over a region is no longer than the point tolerance: it only passes a corner or
+        /// runs away from the rim.
+        /// </summary>
+        private static bool RunsAway(GeoRay3 ray, Gap3.Region region, bool flat, Tolerance tolerance)
+        {
+            GeoPoint3 end = Parametrization3.GetPointAtDistance(ray, region.Reach(ray.Origin));
+
+            return !region.TryGetPartOver(ray.Origin, end, region.Nearest(ray.Origin, end), flat, tolerance.EqualPoint, out _, out _);
+        }
 
         /// <summary>
         /// Gets where a ray meets a region, read as far as the corner of the region farthest from its origin, past which it
         /// only draws away from it; one plainly clear of the region's box as far as the box's farthest corner is not read.
         /// </summary>
-        /// <remarks>
-        /// A ray starting within the planar tolerance of the region's plane, level with it within the vector tolerance or crossing it
-        /// within the point tolerance of its origin, is read by the part of it over the region: where that lies level over the region it
-        /// meets it nowhere, whatever its crossing.
-        /// </remarks>
-        private static GeoPoint3[] Meeting(GeoRay3 ray, Gap3.Region region, GeoTriangle3? triangle, bool crossed, bool pierces, bool nearPlane, GeoPoint3 crossing, Tolerance tolerance)
+        private static GeoPoint3[] Meeting(GeoRay3 ray, Gap3.Region region, GeoTriangle3? triangle, bool crossed, GeoPoint3 crossing, Tolerance tolerance)
         {
             GeoAabb3 box = region.Box;
 
@@ -171,7 +216,7 @@ namespace GeometryHelper.Core
 
             var line = new GeoLine3(ray.Origin, Parametrization3.GetPointAtDistance(ray, region.Reach(ray.Origin)));
 
-            return Meeting(line, region, box, triangle, crossed, pierces, crossing, false, tolerance, true, nearPlane);
+            return Meeting(line, region, box, triangle, crossed, crossing, false, tolerance, true);
         }
 
         /// <summary>
@@ -226,7 +271,6 @@ namespace GeometryHelper.Core
         /// sides only.
         /// </param>
         /// <param name="crossed">Whether a crossing was found.</param>
-        /// <param name="pierces">Whether the crossing lies on the region's plane and on the piece, to rounding, for a ray starting within the planar tolerance of the plane (any other piercing having been given).</param>
         /// <param name="crossing">The crossing, where one was found.</param>
         /// <param name="readShortAsPoint">Whether a piece no longer than the point tolerance is read as its start.</param>
         /// <param name="tolerance">The tolerance.</param>
@@ -235,33 +279,14 @@ namespace GeometryHelper.Core
         /// region does, by the ends of the part of it over the region (<see cref="Gap3.Region.TryGetPartOver"/>), not by where it was cut, so
         /// that the line without ends 0.0009 over a polygon and rising 1E-6, cut a millimetre past it, lies level over it.
         /// </param>
-        /// <param name="nearPlane">
-        /// Whether the piece is a ray starting within the planar tolerance of the region's plane and given a crossing that is none: level
-        /// with the plane within the vector tolerance, or crossing it within the point tolerance of its origin, as its crossing reads a
-        /// ray rising off the plane. Where the ray lies level over the region it meets it nowhere: the ray from 0.0004 over a triangle
-        /// rising 1E-6, and the one from the plane itself or 1E-12 under it.
-        /// </param>
         private static GeoPoint3[] Meeting(
-            GeoLine3 line, Gap3.Region region, GeoAabb3 box, GeoTriangle3? triangle, bool crossed, bool pierces, GeoPoint3 crossing, bool readShortAsPoint, Tolerance tolerance,
-            bool endless = false, bool nearPlane = false)
+            GeoLine3 line, Gap3.Region region, GeoAabb3 box, GeoTriangle3? triangle, bool crossed, GeoPoint3 crossing, bool readShortAsPoint, Tolerance tolerance,
+            bool endless = false)
         {
             GeoPoint3 from = line.StartPoint;
             GeoPoint3 to = line.EndPoint;
             double near = tolerance.EqualPoint;
             bool flat = triangle == null || !triangle.Value.IsDegenerate(tolerance);
-
-            if (nearPlane)
-            {
-                if (Touches(region, box, from, to, readShortAsPoint, tolerance) && LiesLevelOver(region, from, to, region.Nearest(from, to), flat, tolerance))
-                {
-                    return new GeoPoint3[0];
-                }
-
-                if (pierces)
-                {
-                    return new[] { crossing };
-                }
-            }
 
             if (crossed)
             {

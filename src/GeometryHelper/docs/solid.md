@@ -512,9 +512,13 @@ and chains and loops of arcs against all of them. Measured at a thousandth:
   them, is given none, and so is one lying along a side of the rim within that of the side's line, as a segment lying
   along an edge of a box is. A segment has no crossing where it climbs no more than the planar tolerance from end to
   end, and is read level by its own two ends. A line without ends has none where the segment it is cut to, a millimetre
-  past the region, climbs no more than that. A ray has none where it starts within the planar tolerance of the plane and
-  runs level with it within the vector tolerance, or reaches it within the point tolerance of its origin, as one rising
-  off it does. Such a ray or line is read by the two ends of the part of it over the region, from where its shadow on the
+  past the region, climbs no more than that. A ray is read as the line without ends along it is, and given what that
+  line meets at its origin or ahead of it: the ray from 0.0005 over a square 100 by 100, falling 1E-5 for each unit
+  along it, climbs 0.001 across the square and is given its crossing 50 along, as its line is, where it was given
+  nothing; the one from 0.0002 over it falling 4E-6 climbs 0.0004 and is given nothing, as its line is; and one a
+  hundred-millionth or so off the plane and level to rounding is given nothing however near it starts. Where the line
+  meets the region only behind the origin, or lies level over it only behind a ray running away from it, a ray whose
+  origin touches the region is given its origin. Such a ray or line is read by the two ends of the part of it over the region, from where its shadow on the
   region's plane first crosses the rim to where it last does, or beside the side it runs along, and not by where it was
   cut past the region: the ray from 0.0004 over the triangle rising 1E-6 was given its origin, the one from 1E-12 under it
   (10.000001, 20, 0), and the line without ends 0.0009 over the square rising 1E-6 the point over its rim. Every other
@@ -2257,7 +2261,14 @@ inside for as long as it lies there, half the bar being in the material: a bar o
 top of a box, half its length over it, is the radius deep and 400 inside. So is one laid along an edge of the box, a
 quarter of it in the material. One drifting off the face runs inside only until it leaves the tolerance: a bar over a
 box 1 000 long, from 0.0012 over the top to 0.0006 over it across 1 500, comes within a thousandth of the top 500
-along and is 700 inside, up to the end of the box. Three things read differently from the same bar built with `GeoSolid3.Pipe`:
+along and is 700 inside, up to the end of the box. Every stretch within the tolerance of the surface counts, wherever
+it lies along the bar, and nothing between: from 0.0007 over the top of a box 250 before its edge to 0.0015 over it
+1 000 along, a bar is 125 inside, from the edge to where it leaves the tolerance, where it read nought; dipping 0.0005
+into the side of a box between two places 0.003 off it 200 apart, it is 85.71 inside, where it read 28.57; and rising
+1E-5 for each unit from 0.0006 over a top that steps up 0.004 further on, it is within the tolerance over the top for
+40 and over the step for 100, and is 140 inside, where it read nought. A stretch no longer than ten times the
+tolerance at a crossing of a face, as a centre line crossing it at a slant steeper than about 6 degrees passes, is
+left out: such a bar is measured to the crossing, as before. Three things read differently from the same bar built with `GeoSolid3.Pipe`:
 
 - **The ends are rounded.** A ball rolled along the centre line reaches a radius past each end, where the bar
   ends flat, so a part up to a radius beyond an end is found to clash: the check errs on the side of reporting.

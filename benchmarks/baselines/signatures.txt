@@ -1,12 +1,12 @@
 # The result signatures approved for the benchmark cases: a name, a space, the SHA-256 of its result.
 # Written by --approve. What each case signs: benchmarks/GeometryHelper.Benchmarks/Scenarios.
-# Last approved on b39accacf79cb28e44085797aeb4cf2d70b5d1dd with changes, .NET Framework 4.8.9310.0, X64.
-Arrange.Dense 61943396d24892f4e031dbba7566f01f35f3c45ee435484d46b6817ee8a38ff8
+# Last approved on b7f643722ab8e186444677897a8e821e50872bc5 with changes, .NET Framework 4.8.9310.0, X64.
+Arrange.Dense a8147571a6388bce56e951dd0dc2cb7760c13da51760eff53c9ff3ed8f0ad953
 Arrange.Sparse.100 f5369fa2a0cb3d90f98d5a033d850e2af6f25d3f081316401938cba195334bc7
 Arrange.Sparse.1000 c33f5f8ba1fb0b52632bbf0e1af020e8c75953e56c3d056e5fe0f934ac32b0f2
 Arrange.Sparse.500 a95b0e8c7361bc44fa17c405f7d462615766ebba9e207a878a201839e946ce0d
 Arrange.Sparse.5000 671097631a73fb12072f3f6d9d32749a03c704a0591c7cefe3e4ef647151e483
-Arrange.StaticBlocks 39d28ab0208a654bbda27424e543c5cdbed69633b3f071a931000f445346e5b9
+Arrange.StaticBlocks fe29530f4184b69ae50bf3f38b03748f8112347e726cbab4f294a35214945401
 Clash.AxisTrap.Bars.X b44c900330085f79da3d410cc2ac8bda5337acd5639d48f483c7909230a9fa5d
 Clash.AxisTrap.Bars.Y f09149ee85a549d81fc5ce3a6cbc272635c1a44683c328d4f5c6209e7e1a6e8e
 Clash.AxisTrap.Bars.Z 2dd0d04dfd4b986d2e9e986d60b3e4f577763869f674b56cc6d2928d7001718e

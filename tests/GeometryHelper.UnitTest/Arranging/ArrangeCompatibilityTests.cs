@@ -23,16 +23,22 @@ namespace GeometryHelper.UnitTest.Arranging
     /// The hash of the results was taken again when ties among places stopped depending on where the scene lies: of two
     /// clearances within a thousandth of the point tolerance of each other, the place tried first wins. The place taken
     /// moved in 20 decisions of these scenes, every one between clearances within 9.7E-13 of each other, where no
-    /// placement is nearer the truth than the other. The candidates are as 6.2.0 gave them.
+    /// placement is nearer the truth than the other.
+    /// </para>
+    /// <para>
+    /// Both hashes were taken again when the slides along a leader stopped being stepped off one by one: the last slide,
+    /// at the reach of the label itself, came and went with the rounding of the sum, and is now always tried. The 60 of
+    /// the 192 candidate lists that had lost it gained it, two places to a row, and every other place stands where it
+    /// stood, to within 1.5E-11; the results moved in the last digits only, by 1.82E-12 at most.
     /// </para>
     /// </remarks>
     public class ArrangeCompatibilityTests : ArrangeTestKit
     {
         private static readonly Tolerance ToleranceOf620 = new Tolerance(1E-4, 1E-4, Tolerance.DefaultEqualAngleRad, 1E-4);
 
-        private const string CandidatesOf620 = "bb1ebe4fae6b325b8c65ebd6d1ff4f7de447164b16afce6614d790aee4ffcd42";
+        private const string CandidatesOf620 = "4fe5a272fb975c29e83629334124ba60ab0d3453e1048c77028fdf675d551e61";
 
-        private const string ResultsOf620 = "3af58b0e80104c2fd2208366eb3240ae48af23acff4bbcd79e650a002816be41";
+        private const string ResultsOf620 = "6a8a2af2c67e959a160516572ae05738396688892e6b1ad3e12499fb4a5d7eeb";
 
         [Fact]
         public void TheCandidates_AreThoseOf620()

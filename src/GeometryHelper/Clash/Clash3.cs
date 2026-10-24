@@ -229,7 +229,9 @@ namespace GeometryHelper.Clash
         /// <para>
         /// What a clash between bodies measures as a volume, a bar measures as a depth and a length: how far the part
         /// reaches into the bar (<see cref="ClashResult.Depth"/>) and how much of the centre line runs inside it
-        /// (<see cref="ClashResult.LengthInside"/>), lying along a face within the tolerance of it counting as inside.
+        /// (<see cref="ClashResult.LengthInside"/>), lying along a face within the tolerance of it counting as inside, and
+        /// so does every other stretch within the tolerance of the surface, but the short one beside a crossing of a face at
+        /// a slant steeper than about 6 degrees.
         /// No body is built, so <see cref="ClashResult.Overlaps"/> is empty and <see cref="ClashResult.Volume"/> nought,
         /// and <see cref="ClashOptions.MinimumVolume"/> does not apply; <see cref="ClashOptions.MinimumDepth"/> does. The
         /// gap of a bar too near a part runs from the bar's surface.
@@ -346,12 +348,12 @@ namespace GeometryHelper.Clash
                             inside.Add((ray.GetPointAtDistance(stops[s]), ray.GetPointAtDistance(stops[s + 1])));
                             lengthInside += stops[s + 1] - stops[s];
                         }
-                        else if (location == PointLocation.OnSide)
+                        else
                         {
-                            // Only as far as it stays within the tolerance: a centre line drifting off a face leaves it
-                            // short of the piece's ends.
-                            double middleAt = (stops[s] + stops[s + 1]) * 0.5;
-                            lengthOnSurface += LastWithin(ray, middleAt, stops[s + 1], part, tolerance) - LastWithin(ray, middleAt, stops[s], part, tolerance);
+                            // On the surface or off it at its middle, the piece may still lie within the tolerance of a face
+                            // for some of its length: lying along a face, drifting off one, or crossing one at a shallow
+                            // slant. Only as far as it stays within the tolerance.
+                            lengthOnSurface += LengthWithin(ray, stops[s], stops[s + 1], location == PointLocation.OutSide, part, tolerance);
                         }
                     }
                 }
@@ -493,35 +495,177 @@ namespace GeometryHelper.Clash
         }
 
         /// <summary>
-        /// How far along a ray a centre line lying on the surface of a part stays within the tolerance of it, going from a
-        /// place where it does toward an end: the end itself where that is within the tolerance too, and otherwise the
-        /// place it leaves, found by halving to a millionth of the tolerance. A bar drifting from 0.0006 to 0.0012 off a
-        /// face over 1 500 leaves the tolerance of a thousandth 500 from where it is 0.0012 off.
+        /// How much of a piece of a centre line whose middle does not run inside a part runs inside it or within the
+        /// tolerance of its surface: the run within the point tolerance of each triangle near the piece, put together, and
+        /// what lies between them in the material deeper than the tolerance. Of a piece off the surface at its middle, a
+        /// run at an end no longer than ten times the tolerance is left out, as the band a centre line crossing a face at a
+        /// slant steeper than about 6 degrees passes outside the crossing: such a bar is measured to the crossing alone.
         /// </summary>
-        private static double LastWithin(GeoRay3 ray, double within, double end, GeoPreparedSolid3 part, Tolerance tolerance)
+        /// <remarks>
+        /// The gap from a point moving along a line to a triangle grows no smaller on either side of where it is least,
+        /// so the run within the tolerance of one triangle is a single stretch, found by halving to a millionth of the
+        /// tolerance; put together over the triangles, they are the places within the tolerance of the surface, however
+        /// often the centre line leaves the tolerance and comes back. A bar starting 250 before the edge of a top, 0.0007
+        /// over it, and rising to 0.0015 over it 1 000 along lies within the tolerance of a thousandth from the edge to
+        /// 125 past it.
+        /// </remarks>
+        private static double LengthWithin(GeoRay3 ray, double from, double to, bool offAtMiddle, GeoPreparedSolid3 part, Tolerance tolerance)
         {
-            if (part.Locate(ray.GetPointAtDistance(end), tolerance) != PointLocation.OutSide)
+            double middle = (from + to) * 0.5;
+            double least = 10.0 * tolerance.EqualPoint;
+            var runs = new List<(double Start, double End)>();
+
+            foreach (GeoTriangle3 triangle in part.Index.TrianglesNear(ray.GetPointAtDistance(from), ray.GetPointAtDistance(to), tolerance.EqualPoint))
             {
-                return end;
-            }
-
-            double outside = end;
-
-            for (int n = 0; n < 64 && Math.Abs(outside - within) > 1E-6 * tolerance.EqualPoint; n++)
-            {
-                double halfway = (within + outside) * 0.5;
-
-                if (part.Locate(ray.GetPointAtDistance(halfway), tolerance) != PointLocation.OutSide)
+                if (TryGetRunWithin(ray, from, to, triangle, tolerance, out double start, out double end))
                 {
-                    within = halfway;
-                }
-                else
-                {
-                    outside = halfway;
+                    runs.Add((start, end));
                 }
             }
 
-            return within;
+            runs.Sort((a, b) => a.Start != b.Start ? a.Start.CompareTo(b.Start) : a.End.CompareTo(b.End));
+
+            double length = 0.0;
+            double reached = from;
+            int i = 0;
+
+            while (i < runs.Count)
+            {
+                double start = runs[i].Start;
+                double end = runs[i].End;
+
+                for (i++; i < runs.Count && !(runs[i].Start > end); i++)
+                {
+                    end = Math.Max(end, runs[i].End);
+                }
+
+                length += Deeper(reached, start);
+                reached = end;
+
+                bool atEnd = !(start > from) || !(end < to);
+                bool holdsMiddle = !(start > middle) && !(end < middle);
+
+                if (offAtMiddle && atEnd && !holdsMiddle && !(end - start > least))
+                {
+                    continue;
+                }
+
+                length += end - start;
+            }
+
+            if (runs.Count > 0)
+            {
+                length += Deeper(reached, to);
+            }
+
+            return length;
+
+            // A stretch between the runs, or between a run and an end of the piece, is off the tolerance of the surface:
+            // it runs inside too where it lies in the material deeper than that, as a centre line dipping in from within
+            // the tolerance of a face does.
+            double Deeper(double a, double b)
+                => b - a > tolerance.EqualPoint && part.Locate(ray.GetPointAtDistance((a + b) * 0.5), tolerance) == PointLocation.Inside ? b - a : 0.0;
+        }
+
+        /// <summary>
+        /// Tries to find the stretch of a piece of a ray within the point tolerance of a triangle: none where the piece
+        /// comes no nearer it than that.
+        /// </summary>
+        private static bool TryGetRunWithin(GeoRay3 ray, double from, double to, GeoTriangle3 triangle, Tolerance tolerance, out double start, out double end)
+        {
+            double near = tolerance.EqualPoint;
+            bool fromWithin = !(Gap(from) > near);
+            bool toWithin = !(Gap(to) > near);
+            double within = fromWithin ? from : to;
+
+            if (!fromWithin && !toWithin)
+            {
+                // The least gap, by golden section: the first place found within the tolerance will do.
+                const double golden = 0.38196601125010515;
+                double low = from;
+                double high = to;
+                double first = low + golden * (high - low);
+                double second = high - golden * (high - low);
+                double atFirst = Gap(first);
+                double atSecond = Gap(second);
+                bool found = false;
+
+                for (int n = 0; n < 100; n++)
+                {
+                    if (!(atFirst > near))
+                    {
+                        within = first;
+                        found = true;
+                        break;
+                    }
+
+                    if (!(atSecond > near))
+                    {
+                        within = second;
+                        found = true;
+                        break;
+                    }
+
+                    if (!(high - low > 1E-6 * near))
+                    {
+                        break;
+                    }
+
+                    if (atFirst < atSecond)
+                    {
+                        high = second;
+                        second = first;
+                        atSecond = atFirst;
+                        first = low + golden * (high - low);
+                        atFirst = Gap(first);
+                    }
+                    else
+                    {
+                        low = first;
+                        first = second;
+                        atFirst = atSecond;
+                        second = high - golden * (high - low);
+                        atSecond = Gap(second);
+                    }
+                }
+
+                if (!found)
+                {
+                    start = 0.0;
+                    end = 0.0;
+                    return false;
+                }
+            }
+
+            start = fromWithin ? from : Edge(within, from);
+            end = toWithin ? to : Edge(within, to);
+            return true;
+
+            double Gap(double at)
+            {
+                GeoPoint3 point = ray.GetPointAtDistance(at);
+                return Projection3.ProjectToTriangle(triangle, point).DistanceTo(point);
+            }
+
+            // Where the gap reaches the tolerance, between a place within it and one beyond it.
+            double Edge(double inside, double outside)
+            {
+                for (int n = 0; n < 64 && Math.Abs(outside - inside) > 1E-6 * near; n++)
+                {
+                    double halfway = (inside + outside) * 0.5;
+
+                    if (!(Gap(halfway) > near))
+                    {
+                        inside = halfway;
+                    }
+                    else
+                    {
+                        outside = halfway;
+                    }
+                }
+
+                return inside;
+            }
         }
 
         private static GeoPoint3 Along(GeoPoint3 from, GeoPoint3 to, double fraction)

@@ -533,6 +533,52 @@ namespace GeometryHelper.Spatial
         }
 
         /// <summary>
+        /// Gets the triangles whose boxes come within a reach of the box of a segment, in the order the tree holds them.
+        /// </summary>
+        internal List<GeoTriangle3> TrianglesNear(GeoPoint3 from, GeoPoint3 to, double reach)
+        {
+            var near = new List<GeoTriangle3>();
+
+            if (_rootCount == 0)
+            {
+                return near;
+            }
+
+            Stack<int> pending = new Stack<int>();
+            pending.Push(0);
+
+            while (pending.Count > 0)
+            {
+                Node node = _nodes[pending.Pop()];
+
+                if (Gap3.BoxGap(from, to, node.Bounds) > reach)
+                {
+                    continue;
+                }
+
+                if (node.Left < 0)
+                {
+                    for (int i = node.Start; i < node.Start + node.Count; i++)
+                    {
+                        GeoTriangle3 triangle = _triangles[_order[i]];
+
+                        if (!(Gap3.BoxGap(from, to, triangle.GetAabb()) > reach))
+                        {
+                            near.Add(triangle);
+                        }
+                    }
+
+                    continue;
+                }
+
+                pending.Push(node.Right);
+                pending.Push(node.Left);
+            }
+
+            return near;
+        }
+
+        /// <summary>
         /// Calculates the shortest distance from the mesh to a point, using the default tolerance.
         /// </summary>
         public double DistanceTo(GeoPoint3 point) => DistanceTo(point, Tolerance.Global);

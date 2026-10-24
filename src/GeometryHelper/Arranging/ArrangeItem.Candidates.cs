@@ -75,7 +75,8 @@ namespace GeometryHelper.Arranging
                 yield break;
             }
 
-            double step = layout.SlideStep;
+            double step = layout.GetSlideStep(options.Tolerance);
+            long slides = layout.GetSlideCount(options.Tolerance);
             // The rows of each side, none on a side the label is kept off.
             int positiveLevels = layout.PositiveOpen ? options.PerpendicularLevels : 0;
             int negativeLevels = layout.NegativeOpen ? options.PerpendicularLevels : 0;
@@ -114,8 +115,9 @@ namespace GeometryHelper.Arranging
                     yield return new Candidate(layout.Anchor + up, positiveSurplus);
                     yield return new Candidate(layout.Anchor + down, negativeSurplus);
 
-                    for (double shift = step; shift <= layout.MaximumShift; shift += step)
+                    for (long slide = 1; slide <= slides; slide++)
                     {
+                        double shift = slide * step;
                         yield return new Candidate(layout.Anchor + up - layout.Direction * shift, positiveSurplus);
                         yield return new Candidate(layout.Anchor + down - layout.Direction * shift, negativeSurplus);
                         yield return new Candidate(layout.Anchor + up + layout.Direction * shift, positiveSurplus);
@@ -131,8 +133,9 @@ namespace GeometryHelper.Arranging
                     // A row on its own: straight across, then a step back and a step forward in turn.
                     yield return new Candidate(layout.Anchor + across, surplus);
 
-                    for (double shift = step; shift <= layout.MaximumShift; shift += step)
+                    for (long slide = 1; slide <= slides; slide++)
                     {
+                        double shift = slide * step;
                         yield return new Candidate(layout.Anchor + across - layout.Direction * shift, surplus);
                         yield return new Candidate(layout.Anchor + across + layout.Direction * shift, surplus);
                     }
@@ -177,11 +180,12 @@ namespace GeometryHelper.Arranging
 
             // STEP 3: Measure label bounding box in the new local coordinate system.
             // Iterate through 4 vertices of the label rectangle (which can be rotated at an arbitrary angle)
+            GeoPoint2 anchor = Leader.MidPoint;
             var vertices = Box.GetVertices();
             for (int i = 0; i < vertices.Length; i++)
             {
-                // Transform vertex coordinates into a GeoVector2 from origin (0,0)
-                GeoVector2 offset = new GeoPoint2(0.0, 0.0).GetVectorTo(vertices[i]);
+                // The vertex from the anchor, not from the origin, so that the label measures the same wherever the scene lies
+                GeoVector2 offset = anchor.GetVectorTo(vertices[i]);
 
                 // Project vertex onto the longitudinal path axis (dot product)
                 double along = offset.DotProduct(direction);
@@ -219,7 +223,7 @@ namespace GeometryHelper.Arranging
 
             // STEP 5: Set up the complete Layout structure
             layout = new Layout(
-                Leader.MidPoint, // Anchor point (midpoint of the leader)
+                anchor,           // Anchor point (midpoint of the leader)
                 direction,        // Local longitudinal axis
                 perpendicular,    // Local perpendicular axis
                 height,           // Actual label height along perpendicular axis

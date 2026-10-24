@@ -21,7 +21,11 @@ namespace GeometryHelper.UnitTest.Arranging
     /// label. The hash of the clusters was taken again when ties among places stopped depending on where the scene lies:
     /// of two clearances within a thousandth of the point tolerance of each other, the place tried first wins. The place
     /// taken moved in 54 decisions of the clusters, every one between clearances within 1.82E-12 of each other; the other
-    /// scenes had none.
+    /// scenes had none. The hashes of the clusters and the huge regions were taken again when the last slide along a
+    /// leader, at the reach of the label, came to be tried always, not as the rounding of a sum of steps fell: nine labels
+    /// of the clusters moved, three to a place only that slide gives, one whose first three free places now hold such a
+    /// place and end before the one it took, and five after a label that moved, and the rest by no more than 1.86E-12;
+    /// the sparse scene did not move.
     /// </remarks>
     public class ArrangeBroadPhaseTests : ArrangeTestKit
     {
@@ -29,8 +33,8 @@ namespace GeometryHelper.UnitTest.Arranging
 
         [Theory]
         [InlineData("sparse", "6e3f42769b87b2e904374164c21ee3496830b14d4c384126ea79719fe46a5e19")]
-        [InlineData("clusters", "717e67b2765b8ecd321da323ea53014d8a20477205912faae23e28867c044ed2")]
-        [InlineData("huge regions", "523d1cc09e6a5e1a72adfc7372a869739b1c37749913a5a9bf237dfb4df21205")]
+        [InlineData("clusters", "4b7c443c2e1d998a3e3bcdb122f5fd050d653a151231511ee6fb1663ca971852")]
+        [InlineData("huge regions", "5d10eb807ffc0b8b3d914b2294ad634e5e450af15f9f395edb009ba75344530d")]
         public void EveryScene_UnderEveryOptionSet_GivesWhat3a2da08Gave(string scene, string expected)
         {
             List<ArrangeItem> items = Scene(scene);

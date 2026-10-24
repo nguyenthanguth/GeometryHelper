@@ -408,6 +408,70 @@ quarter of it in the material. Of 1 198 clashes of 1 760 bars with 96 parts, the
 part 0, 0.0003 or 0.0008 off it moved, each in its length inside alone, which on the parts without openings is the bar
 clipped to the face to within 8E-13; none of the others moved, those 0.002 off among them. As fast as before.
 
+**FIXED.** A bar checked by its centre line (`ClashBar`) counts in `LengthInside` every stretch of its centre line
+within the tolerance of the part's surface, and none off it, however often it leaves the tolerance and comes back. The
+stretches are found triangle by triangle: the gap from a point moving along a line to a triangle shrinks to where it is
+least and then grows, so the stretch within the tolerance of each triangle is one run, its ends found by halving, and
+the runs put together are where the centre line is within the tolerance; a stretch between them lying in the material
+deeper than the tolerance counts too. A piece of the centre line whose middle stood off the part counted none of its
+run within the tolerance, and one whose middle lay on the surface counted from its middle as far as its ends lay within
+the tolerance, whatever lay between: a bar from 0.0007 over the top of a box 250 before its edge to 0.0015 over it 1 000
+along read nought and is 125 inside; one dipping 0.0005 into the side of a box between two places 0.003 off it 200
+apart read 28.57 and is 85.71; one rising 1E-5 for each unit from 0.0006 over a top that steps up 0.004 further on,
+within the tolerance for 40 over the top and 100 over the step, read nought and is 140; one along the flange of an angle
+from 0.0017 to 0.0007 over it, through its leg, read 318.67, the stretch off the tolerance between the leg and where it
+comes within it counted, and is 188.68. A run no longer than ten times the tolerance at an end of a piece whose middle
+stands off the part is left out, so a bar crossing a face at a slant steeper than about 6 degrees is measured to the
+crossing as before: one square through a plate 10 thick is 10 inside, not 10.002. Against an oracle of the signed
+distance, sampled every 0.002: of 24 000 bars drawn along and across the faces of a box, a comb, a plate with two slots
+and an angle, at the origin, a million off and turned, 157 counted more than the length within the tolerance by more
+than 0.02, by up to 270, and 4 378 less; none now counts more and one less, by 0.0207, the runs beside two slanting
+crossings left out. Of 6 000 bars over four parts, 2 058 counted less by more than 0.02, by up to 225; one does, by
+0.0201. Depth and kind are as they were for all 30 000, and a bar not within the tolerance of the surface anywhere is
+as it was to the bit. The benchmarks of bars are as fast as before; the 6 000 bars, two in three of them grazing a face,
+take 1.7 times as long on .NET 10, each triangle near a piece of centre line searched.
+
+**FIXED.** A ray meeting a triangle, a polygon or a face is read as the line without ends along it is, by how far that
+line climbs across the shape, and given what the line meets at the ray's origin or ahead of it. A ray starting within
+the planar tolerance of the shape's plane and level with it within the vector tolerance was read by the part of it over
+the shape and given nothing where its line crosses: the ray from 0.0005 over a square 100 by 100, falling 1E-5 for each
+unit along it, climbs 0.001 across the square and is given its crossing 50 along, as its line is. One that climbs less
+lies level over the shape and is given nothing, as its line is: the ray from 0.0002 over the square falling 4E-6, and
+those a hundred-millionth or so off the plane falling 1E-10, however near they start. Where the line meets the shape
+only behind the origin, or lies level over it only behind a ray running away from it, a ray whose origin touches the
+shape is given its origin, as before. Of 20 000 rays drawn over a triangle, the 954 that crossed it level within the
+vector tolerance and got nothing where a segment 3 000 along them got the crossing, 923 get it, and 31, whose line climbs
+no more than the planar tolerance across the triangle, lie level over it as their line does. Of 120 000 rays drawn near
+level over a triangle, a square and a face with a hole, in the floor and turned and moved out, 1 575 answers moved:
+1 527 to agree with the segment 3 000 along the ray, 746 of them level within the vector tolerance and 781 steeper rays
+starting within the planar tolerance that were given nothing where their origin touches the shape or they cross it, and
+48 to give nothing where their line meets nothing and the segment gives a point. Of 20 000 more rays drawn near level
+over the three shapes and 40 000 over a square, none is given a point its line is not, but its origin as above. A ray
+takes about 1.5 times as long to meet a triangle, a polygon or a face, read both as a ray and as its line.
+
+**CHANGED.** `ArrangeItem.GetPlacePoints` and `Arranger.Run` try a label at the same places, moved, wherever the scene
+lies. The slides along a leader were stepped off by adding a step to the last, up to the reach of the label, so whether
+the last slide, at the reach itself, was tried came and went with the rounding of the sum, and of where the scene lay:
+in 236 of 1 618 tries of a label of the golden scenes moved 900 or 100 000 along X its count of places changed, a label
+on a leader 60 long having 234 places at the origin and 246 900 along. The slides are now counted,
+twenty each way where a step is a twentieth of the reach, the last at the reach itself, and the label is measured from
+the middle of its leader rather than from the origin. A label tried at 234 places is tried at 246, the two places of
+each row at the full reach added at the end of that row; no place is taken away, and every other stands where it stood
+to within 1.5E-11. Of the golden scenes, 60 of the 192 candidate lists of 6.2.0 and 1 533 of the 6 129 lists of the
+scenes run gained their last slide; the results of 6.2.0 moved in their last digits only, by 1.82E-12 at most, and nine
+labels of the clusters of 3a2da08 moved: three to a place at the full reach, one whose first three free places now hold
+such a place and end before the one it took, and five after a label that moved. Their hashes were taken again. Of the
+benchmarks, `Arrange.Dense` moved six labels by 2.8E-14 at most, the last digits of a slide counted rather than added
+up, and `Arrange.StaticBlocks` two labels, each to a place at the full reach that it had lost, one from (-115, 0) to
+(-35, 94) and one from (78.85, 11) to (83, 11); their signatures were approved again. A reach within the point
+tolerance of 2 counts as 2 in choosing between steps of a twentieth of it and steps of the label's height: a label 1 by
+0.4 on a leader 2.5 long, turned to it, reaches 2 each way and had 246 places at the origin and 66 moved by (196 017.7,
+18 214.2), the reach a hair under 2 there; it has 246 at both. Moved by 900, 100 000 or a million along X or both ways,
+the golden scenes place every label alike, where 10 of their 41 runs placed up to six labels differently. Which of two
+places nearly as open a label takes can still follow the rounding of where the scene lies: of the 400 labels of the
+benchmark `Arrange.Dense`, one goes to candidate 57 at the origin and to candidate 61 moved 900 along X, as before. As
+fast as before, within the noise of the benchmarks.
+
 ## 12.3.0
 
 **NEW.** `DxfReader` reads a DXF file into the library's shapes: `Read(path)`, `Read(stream)` and `Parse(text)`, each with

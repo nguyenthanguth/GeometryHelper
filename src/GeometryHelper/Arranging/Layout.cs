@@ -55,15 +55,38 @@ namespace GeometryHelper.Arranging
         /// <summary>
         /// Gets how far each slide along the leader steps: a twentieth of <see cref="MaximumShift"/>, or the height of
         /// the label where that comes to less than 0.1, so that a reach of next to nothing cannot step by next to nothing.
+        /// A reach within the point tolerance of 2 counts as 2, so a reach of 2 that rounding takes a hair under it, where
+        /// the scene lies far from the origin, steps by a twentieth as it does at the origin.
         /// </summary>
-        internal double SlideStep
+        /// <param name="tolerance">The tolerance of the options.</param>
+        internal double GetSlideStep(Tolerance tolerance)
+            => StepsByHeight(tolerance) ? Height : MaximumShift / 20.0;
+
+        /// <summary>
+        /// Gets how many steps of <see cref="GetSlideStep(Tolerance)"/> a row slides each way: twenty where the step is a
+        /// twentieth of <see cref="MaximumShift"/>, the last reaching it, and otherwise as many as reach no further than it,
+        /// within the point tolerance. Counted rather than stepped off one by one, so that the last slide does not come or
+        /// go with the rounding of where the scene lies: a leader 60 long whose label slides 30 each way does so 20 times,
+        /// at the origin as a million off it.
+        /// </summary>
+        /// <param name="tolerance">The tolerance of the options.</param>
+        internal long GetSlideCount(Tolerance tolerance)
         {
-            get
+            if (!StepsByHeight(tolerance))
             {
-                double step = MaximumShift / 20.0;
-                return step < 0.1 ? Height : step;
+                return 20;
             }
+
+            double count = System.Math.Floor((MaximumShift + tolerance.EqualPoint) / Height);
+
+            // A label of no height steps by nothing, and goes on until the cap on candidates stops it.
+            return !(count < long.MaxValue) ? long.MaxValue : count < 0.0 ? 0 : (long)count;
         }
+
+        /// <summary>
+        /// Whether a twentieth of the reach, within the point tolerance, comes to less than 0.1.
+        /// </summary>
+        private bool StepsByHeight(Tolerance tolerance) => (MaximumShift + tolerance.EqualPoint) / 20.0 < 0.1;
 
         /// <summary>
         /// Gets how far from the leader the centre of a row lies: the first row of its side, then the height of the label

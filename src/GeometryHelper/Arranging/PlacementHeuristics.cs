@@ -177,7 +177,7 @@ namespace GeometryHelper.Arranging
 
             // Each level has a row on each open side, each row a middle position plus 2 for each longitudinal shift
             // step, and no more than the cap in all.
-            long shiftsPerLevel = (long)Math.Floor(layout.MaximumShift / layout.SlideStep);
+            long shiftsPerLevel = Math.Min(layout.GetSlideCount(options.Tolerance), Math.Max(0, options.MaximumCandidates));
             long sides = (layout.PositiveOpen ? 1L : 0L) + (layout.NegativeOpen ? 1L : 0L);
             long total = sides * (1L + 2L * shiftsPerLevel) * Math.Max(0, options.PerpendicularLevels);
 

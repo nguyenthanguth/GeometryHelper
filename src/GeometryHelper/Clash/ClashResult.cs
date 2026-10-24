@@ -102,7 +102,11 @@ namespace GeometryHelper.Clash
         /// A bar through a plate runs inside it for the plate's thickness, or more if it crosses at a slant; a bar cast
         /// along a flange, for as long as it runs in the steel; a bar whose centre line lies along a face, within the
         /// tolerance of it, for as long as it lies there, half of it being in the material: 400 for a bar 800 long laid
-        /// on the top of a box with half its length over it.
+        /// on the top of a box with half its length over it. So does one coming off a face, or crossing one at a slant
+        /// shallower than about 6 degrees, for as long as it stays within the tolerance of the face, each stretch within it
+        /// counted however often it leaves the tolerance and comes back: 125 for a bar from
+        /// 0.0007 over the top of a box at 250 before its edge to 0.0015 over it 1 000 along. A bar crossing a face more
+        /// steeply is measured to the crossing.
         /// </remarks>
         public double LengthInside { get; private set; }
 

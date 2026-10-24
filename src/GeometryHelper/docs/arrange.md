@@ -150,6 +150,17 @@ The rows of both sides come nearest first, each straight across the middle of th
 and a step forward along it in turn. Two rows as far off, one on each side, as every pair is when both sides have
 the same gap, are tried together, place by place. A label has no more than `MaximumCandidates` candidates in all.
 
+Each row slides twenty equal steps each way, the last at the full reach, or, where a twentieth of the reach, within
+the point tolerance, comes to less than 0.1, steps of the label's height, the last of them no further than the point
+tolerance past the reach. The steps are counted, not added up one after another, so a scene moved elsewhere is tried at
+the same places, moved, to within the rounding of where it lies: a label on a leader 60 long had 234 places at the
+origin and 246 900 along X, its last slide coming and going with the rounding of the sum, and has 246 at both. A reach
+falling within rounding of the switch itself still goes either way: one of 1.999, the switch less the point tolerance,
+gives 246 places at the origin and 54 or 66 half a million out. Which of
+those places a label takes can still follow that rounding where two of them are nearly as open: the scenes the tests
+run, moved by up to a million, place every label alike, but of 400 labels crowded a step apart, one goes to candidate
+57 of its list at the origin and to candidate 61 when the scene is moved 900 along X.
+
 A label 600 by 250 on a leader 2 000 long, 50 off above and 150 below, with the default options, has 246 candidates:
 six rows of 41, a step of 72.5 apart. The first row above lies 175 off the leader and the first below 275, and as the
 gaps differ the rows are tried one at a time, 175 above, 275 below, 445 above, 545 below, 715 and 815:
