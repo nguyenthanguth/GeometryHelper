@@ -413,6 +413,13 @@ namespace GeometryHelper.Core
             List<GeoPlane3> planes = new List<GeoPlane3>();
             List<List<GeoFace3>> groups = new List<List<GeoFace3>>();
 
+            // Each face joins the first group whose plane it lies in. Past a few groups they are filed by their normals in cells
+            // as wide as two normals may stand apart and still be one, and only those in the cells round a face's normal are
+            // asked: every group was asked before, and the 24 000 faces of the hull of 12 000 points on a sphere took a third of
+            // a second.
+            double cell = Math.Max(tolerance.EqualVector, 1E-12) * 1.001;
+            Dictionary<(long, long, long), List<int>> byNormal = null;
+
             foreach (GeoFace3 face in faces)
             {
                 if (face == null)
@@ -421,22 +428,27 @@ namespace GeometryHelper.Core
                 }
 
                 GeoPlane3 plane = face.GetPlane();
-                int group = -1;
-
-                for (int i = 0; i < planes.Count; i++)
-                {
-                    if (planes[i].IsEqualTo(plane, tolerance))
-                    {
-                        group = i;
-                        break;
-                    }
-                }
+                int group = byNormal == null ? FirstGroup(planes, plane, tolerance) : FirstGroup(planes, byNormal, plane, cell, tolerance);
 
                 if (group < 0)
                 {
                     planes.Add(plane);
                     groups.Add(new List<GeoFace3>());
                     group = groups.Count - 1;
+
+                    if (byNormal != null)
+                    {
+                        File(byNormal, NormalCell(plane.Normal, cell), group);
+                    }
+                    else if (planes.Count > FewGroups)
+                    {
+                        byNormal = new Dictionary<(long, long, long), List<int>>(CellKeys.Instance);
+
+                        for (int i = 0; i < planes.Count; i++)
+                        {
+                            File(byNormal, NormalCell(planes[i].Normal, cell), i);
+                        }
+                    }
                 }
 
                 groups[group].Add(face);
@@ -553,6 +565,97 @@ namespace GeometryHelper.Core
             }
 
             return new GeoSolid3(merged, openings);
+        }
+
+        /// <summary>
+        /// Up to this many groups of coplanar faces, each face asks every group in turn; past them, the groups filed by normal.
+        /// </summary>
+        private const int FewGroups = 64;
+
+        /// <summary>
+        /// The first of some planes a plane is equal to within a tolerance, or -1, asking every one in turn.
+        /// </summary>
+        private static int FirstGroup(List<GeoPlane3> planes, GeoPlane3 plane, Tolerance tolerance)
+        {
+            for (int i = 0; i < planes.Count; i++)
+            {
+                if (planes[i].IsEqualTo(plane, tolerance))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// The first of some planes a plane is equal to within a tolerance, or -1, asking only those filed in the cells round
+        /// its normal: a plane equal to it has a normal no further off along any axis than the side of a cell.
+        /// </summary>
+        private static int FirstGroup(List<GeoPlane3> planes, Dictionary<(long, long, long), List<int>> byNormal, GeoPlane3 plane, double cell, Tolerance tolerance)
+        {
+            (long x, long y, long z) = NormalCell(plane.Normal, cell);
+            int group = -1;
+
+            for (long dx = -1; dx <= 1; dx++)
+            {
+                for (long dy = -1; dy <= 1; dy++)
+                {
+                    for (long dz = -1; dz <= 1; dz++)
+                    {
+                        if (!byNormal.TryGetValue((x + dx, y + dy, z + dz), out List<int> near))
+                        {
+                            continue;
+                        }
+
+                        foreach (int i in near)
+                        {
+                            if ((group < 0 || i < group) && planes[i].IsEqualTo(plane, tolerance))
+                            {
+                                group = i;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return group;
+        }
+
+        private static void File(Dictionary<(long, long, long), List<int>> byNormal, (long, long, long) cell, int group)
+        {
+            if (!byNormal.TryGetValue(cell, out List<int> filed))
+            {
+                filed = new List<int>();
+                byNormal.Add(cell, filed);
+            }
+
+            filed.Add(group);
+        }
+
+        /// <summary>
+        /// The cell a unit normal falls in, on a grid of cubes of a side.
+        /// </summary>
+        private static (long, long, long) NormalCell(GeoVector3 normal, double cell)
+            => ((long)Math.Floor(normal.X / cell), (long)Math.Floor(normal.Y / cell), (long)Math.Floor(normal.Z / cell));
+
+        /// <summary>
+        /// Hashes the three numbers of a cell, each spread over the whole hash by a multiply, so that the cells of a sphere's
+        /// normals, small numbers close together, do not crowd into a few buckets.
+        /// </summary>
+        private sealed class CellKeys : IEqualityComparer<(long, long, long)>
+        {
+            internal static CellKeys Instance { get; } = new CellKeys();
+
+            public bool Equals((long, long, long) a, (long, long, long) b) => a.Item1 == b.Item1 && a.Item2 == b.Item2 && a.Item3 == b.Item3;
+
+            public int GetHashCode((long, long, long) key)
+            {
+                ulong hash = (ulong)key.Item1;
+                hash = (hash * 0x9E3779B97F4A7C15UL) ^ (ulong)key.Item2;
+                hash = (hash * 0x9E3779B97F4A7C15UL) ^ (ulong)key.Item3;
+                return unchecked((int)((hash * 0x9E3779B97F4A7C15UL) >> 32));
+            }
         }
 
         #endregion

@@ -1615,10 +1615,13 @@ tolerance lies within it of its middle plane, and its hull is found or not by th
 triangles of one plane within the tolerance can stand a face as far again from a point: up to 1.08E-3 off on 5 of
 1 000 plates 100 by 100 and from 0.002 to 1 thick. Every point is held within the tolerance of the merged hull: where
 one is not, the triangles are merged again within a tenth of the planar tolerance, then a hundredth, and left as they
-are where that does not hold it either; a hull that holds every point merged is kept as it was, to the bit. The work grows with the points and the faces: 10 000 points in a cube take 45 milliseconds, 3 000 on a
-sphere 120. Fitting the box round those 3 000 takes 0.4 seconds: each corner of the hull is taken once, and a
-face is passed over where no box on it can be as small as one found already, so 8 of the hull's 6 000 faces
-are fitted.
+are where that does not hold it either; a hull that holds every point merged is kept as it was, to the bit. A point is read only against the faces that can stand below it, found by the way
+they face, so the work grows little faster than the points even where every one is on the hull: 10 000 points in a
+cube take 50 milliseconds, and 12 000 on a sphere 0.18 seconds, where they took 2.4. Fitting the box round 3 000 on
+a sphere takes 0.27 seconds and round the 12 000 1.9, where they took 0.53 and 7.7: each corner of the hull is
+taken once, a face is passed over where no box on it can be as small as one found already, so 8 of the hull's
+6 000 faces are fitted, and what a face can stand is read from the corners and rim edges near it, laid out in
+trees.
 
 ```csharp
 GeoObb3 box = GeoObb3.Fit(part.Faces.SelectMany(face => face.Boundary.Vertices));

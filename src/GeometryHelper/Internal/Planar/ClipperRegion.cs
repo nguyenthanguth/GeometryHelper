@@ -489,17 +489,48 @@ namespace GeometryHelper.Core
         /// The input vertices and edges, used to give the vertices Clipper2 returns the digits its rounding took
         /// off.
         /// </summary>
+        /// <remarks>
+        /// A crossing was restored from the edges filed under the cell of a grid 64 cells across the drawing that the
+        /// point falls in, each edge filed under every cell of its box. On a long shape those cells grew long with it,
+        /// and every point looked through thousands of edges: a comb of 40 000 teeth took 4.4 seconds to offset by a
+        /// half, where Clipper2 itself took a third of one. The edges are found in cells sized and shaped by them now, each
+        /// filed under the cells along it rather than the whole of its box, and still kept only where they lie in the
+        /// point's cell of the 64 and within reach of it, in the order they were added; and each input vertex is filed
+        /// once, under its own cell, rather than under every cell a grid step from it. The same points are restored to
+        /// the bit, and the comb is offset in 0.8 seconds.
+        /// </remarks>
         private sealed class ExactPoints
         {
             private const int CellsAcross = 64;
 
+            /// <summary>How many fine cells the edges are filed under, an edge on the whole, at most, beyond a few each.</summary>
+            private const int CellsAnEdge = 16;
+
             private readonly double _grid;
             private readonly double _steps;
             private readonly double _cell;
-            private readonly Dictionary<(long, long), List<GeoPoint2>> _vertices = new Dictionary<(long, long), List<GeoPoint2>>();
-            private readonly Dictionary<(long, long), List<int>> _edgeCells = new Dictionary<(long, long), List<int>>();
+
+            // Each input vertex once, under the cell of four grid steps it falls in: the last filed there, and before each the
+            // one filed there before it.
+            private readonly Dictionary<(long, long), int> _vertexCells = new Dictionary<(long, long), int>();
+            private readonly List<GeoPoint2> _vertices = new List<GeoPoint2>();
+            private readonly List<int> _filedBefore = new List<int>();
+            private readonly List<int> _nearby = new List<int>();
             private readonly List<GeoPoint2> _from = new List<GeoPoint2>();
             private readonly List<GeoPoint2> _to = new List<GeoPoint2>();
+
+            // The cells of the 64 each edge was filed under, four numbers an edge: first and last across, then up.
+            private readonly List<long> _wide = new List<long>();
+
+            // The finer cells edges are looked up in: their width and height, the corner of the drawing's box they are counted
+            // from, and how many the box spans.
+            private readonly Dictionary<long, List<int>> _fine = new Dictionary<long, List<int>>(PackedKeys.Instance);
+            private readonly double _fineX;
+            private readonly double _fineY;
+            private readonly double _minX;
+            private readonly double _minY;
+            private readonly long _columns;
+            private readonly long _rows;
 
             /// <param name="loops">The loops handed to Clipper2.</param>
             /// <param name="precision">The decimal places it rounded to.</param>
@@ -512,6 +543,70 @@ namespace GeometryHelper.Core
                 _steps = steps;
                 double extent = Extent(loops);
                 _cell = Math.Max(extent * 2.0 / CellsAcross, _grid * 16.0);
+
+                // Fine cells holding a few edges each: as many cells as edges where the drawing has an area, along its length
+                // where it has none, each as much wider than tall as the edges run further across than up on the whole, so
+                // that an edge is filed under few of them. An edge is filed under every cell along it, so the cells are no
+                // finer than lets the edges fill sixteen of them an edge on the whole, and never coarser than the 64: 16 000
+                // strips 100 000 long and 1 wide, side by side, filed under square cells as many as the edges, were filed 600
+                // million times and took 4 GB.
+                double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
+                double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+                double acrossX = 0.0, acrossY = 0.0;
+                long count = 0;
+
+                foreach (IReadOnlyList<GeoPoint2> loop in loops)
+                {
+                    for (int i = 0; i < loop.Count; i++)
+                    {
+                        GeoPoint2 point = loop[i];
+                        GeoPoint2 next = loop[(i + 1) % loop.Count];
+                        double dx = Math.Abs(next.X - point.X), dy = Math.Abs(next.Y - point.Y);
+                        minX = Math.Min(minX, point.X);
+                        minY = Math.Min(minY, point.Y);
+                        maxX = Math.Max(maxX, point.X);
+                        maxY = Math.Max(maxY, point.Y);
+                        count++;
+
+                        if (dx < double.PositiveInfinity && dy < double.PositiveInfinity)
+                        {
+                            acrossX += dx;
+                            acrossY += dy;
+                        }
+                    }
+                }
+
+                double width = count > 0 ? maxX - minX : 0.0;
+                double height = count > 0 ? maxY - minY : 0.0;
+                double edges = Math.Max(count, 1);
+                double fineX, fineY;
+
+                if (width > 0.0 && height > 0.0 && acrossX > 0.0 && acrossY > 0.0)
+                {
+                    fineX = Math.Sqrt(width * height / edges * acrossX / acrossY);
+                    fineY = Math.Sqrt(width * height / edges * acrossY / acrossX);
+                }
+                else
+                {
+                    fineX = fineY = Math.Max(width, height) / edges;
+                }
+
+                fineX = Math.Max(Math.Max(fineX, width / (CellsAnEdge * edges)), _grid * 16.0);
+                fineY = Math.Max(Math.Max(fineY, height / (CellsAnEdge * edges)), _grid * 16.0);
+                double filed = acrossX / fineX + acrossY / fineY;
+
+                if (filed > CellsAnEdge * edges)
+                {
+                    fineX *= filed / (CellsAnEdge * edges);
+                    fineY *= filed / (CellsAnEdge * edges);
+                }
+
+                _fineX = Math.Min(_cell, fineX);
+                _fineY = Math.Min(_cell, fineY);
+                _minX = count > 0 ? minX : 0.0;
+                _minY = count > 0 ? minY : 0.0;
+                _columns = (long)(width / _fineX) + 4;
+                _rows = (long)(height / _fineY) + 4;
 
                 foreach (IReadOnlyList<GeoPoint2> loop in loops)
                 {
@@ -551,14 +646,15 @@ namespace GeometryHelper.Core
                 // within a step of where it came from.
                 double reachSquared = _grid * _grid;
 
-                if (_vertices.TryGetValue(Key(rounded), out List<GeoPoint2> nearby))
+                if (Nearby(Key(rounded)))
                 {
                     bool found = false;
                     GeoPoint2 best = rounded;
                     double bestDistance = double.MaxValue;
 
-                    foreach (GeoPoint2 vertex in nearby)
+                    foreach (int v in _nearby)
                     {
+                        GeoPoint2 vertex = _vertices[v];
                         double distance = vertex.DistanceSquaredTo(rounded);
 
                         if (distance <= reachSquared && distance < bestDistance)
@@ -584,17 +680,19 @@ namespace GeometryHelper.Core
             /// </summary>
             private GeoPoint2 RestoreCrossing(GeoPoint2 rounded)
             {
-                if (!_edgeCells.TryGetValue(CellOf(rounded), out List<int> candidates))
+                if (!TryFine(rounded.X - _minX, rounded.Y - _minY, out long key) || !_fine.TryGetValue(key, out List<int> candidates))
                 {
                     return rounded;
                 }
 
+                (long x, long y) = CellOf(rounded);
                 double reach = _steps * _grid;
                 List<int> close = new List<int>();
 
                 foreach (int id in candidates)
                 {
-                    if (DistanceToSegment(rounded, _from[id], _to[id]) <= reach)
+                    if (_wide[4 * id] <= x && x <= _wide[4 * id + 1] && _wide[4 * id + 2] <= y && y <= _wide[4 * id + 3]
+                        && DistanceToSegment(rounded, _from[id], _to[id]) <= reach)
                     {
                         close.Add(id);
                     }
@@ -638,32 +736,47 @@ namespace GeometryHelper.Core
             private void AddVertex(GeoPoint2 vertex)
             {
                 (long, long) key = Key(vertex);
+                _filedBefore.Add(_vertexCells.TryGetValue(key, out int before) ? before : -1);
+                _vertexCells[key] = _vertices.Count;
+                _vertices.Add(vertex);
+            }
 
-                if (!_vertices.TryGetValue(key, out List<GeoPoint2> list))
+            /// <summary>
+            /// Gathers, in the order they were added, the input vertices that a rounded point in a cell may have been rounded
+            /// from: near a cell border the rounded point may fall in the neighbouring cell, so those are the vertices a grid
+            /// step or less from the cell, each filed under its own cell, one of the nine round it. Whether any were found.
+            /// </summary>
+            private bool Nearby((long, long) cell)
+            {
+                _nearby.Clear();
+                bool any = false;
+
+                for (long dx = -1; dx <= 1; dx++)
                 {
-                    list = new List<GeoPoint2>();
-                    _vertices.Add(key, list);
+                    for (long dy = -1; dy <= 1; dy++)
+                    {
+                        if (!_vertexCells.TryGetValue((cell.Item1 + dx, cell.Item2 + dy), out int v))
+                        {
+                            continue;
+                        }
+
+                        for (; v >= 0; v = _filedBefore[v])
+                        {
+                            GeoPoint2 vertex = _vertices[v];
+                            (long left, long low) = Key(new GeoPoint2(vertex.X - _grid, vertex.Y - _grid));
+                            (long right, long high) = Key(new GeoPoint2(vertex.X + _grid, vertex.Y + _grid));
+
+                            if (left <= cell.Item1 && cell.Item1 <= right && low <= cell.Item2 && cell.Item2 <= high)
+                            {
+                                _nearby.Add(v);
+                                any = true;
+                            }
+                        }
+                    }
                 }
 
-                list.Add(vertex);
-
-                // Near a cell border the rounded point may fall in the neighbouring cell, so the vertex is filed
-                // under every cell within a grid step of it.
-                foreach ((long, long) neighbour in NeighbourKeys(vertex))
-                {
-                    if (neighbour.Equals(key))
-                    {
-                        continue;
-                    }
-
-                    if (!_vertices.TryGetValue(neighbour, out List<GeoPoint2> other))
-                    {
-                        other = new List<GeoPoint2>();
-                        _vertices.Add(neighbour, other);
-                    }
-
-                    other.Add(vertex);
-                }
+                _nearby.Sort();
+                return any;
             }
 
             private void AddEdge(GeoPoint2 a, GeoPoint2 b)
@@ -673,19 +786,38 @@ namespace GeometryHelper.Core
                 _to.Add(b);
 
                 double margin = _steps * _grid;
-                long x0 = (long)Math.Floor((Math.Min(a.X, b.X) - margin) / _cell);
-                long x1 = (long)Math.Floor((Math.Max(a.X, b.X) + margin) / _cell);
-                long y0 = (long)Math.Floor((Math.Min(a.Y, b.Y) - margin) / _cell);
-                long y1 = (long)Math.Floor((Math.Max(a.Y, b.Y) + margin) / _cell);
+                _wide.Add((long)Math.Floor((Math.Min(a.X, b.X) - margin) / _cell));
+                _wide.Add((long)Math.Floor((Math.Max(a.X, b.X) + margin) / _cell));
+                _wide.Add((long)Math.Floor((Math.Min(a.Y, b.Y) - margin) / _cell));
+                _wide.Add((long)Math.Floor((Math.Max(a.Y, b.Y) + margin) / _cell));
 
-                for (long x = x0; x <= x1; x++)
+                // Filed under every fine cell holding a point within twice the reach of it, which leaves rounding ample
+                // room: cell by cell along its longer way, and across as far as it goes within that cell.
+                bool alongX = Math.Abs(b.X - a.X) / _fineX >= Math.Abs(b.Y - a.Y) / _fineY;
+                double sa = alongX ? a.X - _minX : a.Y - _minY;
+                double sb = alongX ? b.X - _minX : b.Y - _minY;
+                double ta = alongX ? a.Y - _minY : a.X - _minX;
+                double tb = alongX ? b.Y - _minY : b.X - _minX;
+                double wide = 2.0 * margin + 1E-12 * (Math.Abs(_minX) + Math.Abs(_minY) + Math.Abs(sa) + Math.Abs(ta));
+                long limitS = alongX ? _columns : _rows;
+                long limitT = alongX ? _rows : _columns;
+                double cellS = alongX ? _fineX : _fineY;
+                double cellT = alongX ? _fineY : _fineX;
+                double lowS = Math.Min(sa, sb), highS = Math.Max(sa, sb);
+
+                for (long s = Fine(lowS - wide, cellS, limitS), last = Fine(highS + wide, cellS, limitS); s <= last; s++)
                 {
-                    for (long y = y0; y <= y1; y++)
+                    double t1 = Across(Math.Max(s * cellS - wide, lowS), sa, sb, ta, tb, 0.0);
+                    double t2 = Across(Math.Min((s + 1) * cellS + wide, highS), sa, sb, ta, tb, 1.0);
+
+                    for (long t = Fine(Math.Min(t1, t2) - wide, cellT, limitT), end = Fine(Math.Max(t1, t2) + wide, cellT, limitT); t <= end; t++)
                     {
-                        if (!_edgeCells.TryGetValue((x, y), out List<int> list))
+                        long key = alongX ? FineKey(s, t) : FineKey(t, s);
+
+                        if (!_fine.TryGetValue(key, out List<int> list))
                         {
                             list = new List<int>();
-                            _edgeCells.Add((x, y), list);
+                            _fine.Add(key, list);
                         }
 
                         list.Add(id);
@@ -693,22 +825,43 @@ namespace GeometryHelper.Core
                 }
             }
 
-            private (long, long) Key(GeoPoint2 point) => ((long)Math.Floor(point.X / (_grid * 4.0)), (long)Math.Floor(point.Y / (_grid * 4.0)));
-
-            private IEnumerable<(long, long)> NeighbourKeys(GeoPoint2 point)
+            /// <summary>
+            /// Where across an edge from (sa, ta) to (sb, tb) is at a point along it, its fraction kept within the edge; where
+            /// the edge has no length that way, the end the fraction stands for.
+            /// </summary>
+            private static double Across(double s, double sa, double sb, double ta, double tb, double fraction)
             {
-                HashSet<(long, long)> keys = new HashSet<(long, long)>();
+                double f = sb != sa ? Math.Max(0.0, Math.Min(1.0, (s - sa) / (sb - sa))) : fraction;
+                return ta + (tb - ta) * f;
+            }
 
-                for (int dx = -1; dx <= 1; dx++)
+            /// <summary>
+            /// The fine cell a distance from the corner of the box falls in, kept within four cells of the box.
+            /// </summary>
+            private static long Fine(double offset, double cell, long limit) => Math.Max(-4L, Math.Min(limit + 4L, (long)Math.Floor(offset / cell)));
+
+            private static long FineKey(long column, long row) => ((column + 4L) << 32) | (uint)(row + 4L);
+
+            /// <summary>
+            /// The key of the fine cell a point at a distance from the corner of the box falls in; false where that is
+            /// more than four cells off the box, which no edge is filed under.
+            /// </summary>
+            private bool TryFine(double dx, double dy, out long key)
+            {
+                double column = Math.Floor(dx / _fineX);
+                double row = Math.Floor(dy / _fineY);
+                key = 0;
+
+                if (!(column >= -4.0 && column <= _columns + 4.0 && row >= -4.0 && row <= _rows + 4.0))
                 {
-                    for (int dy = -1; dy <= 1; dy++)
-                    {
-                        keys.Add(Key(new GeoPoint2(point.X + dx * _grid, point.Y + dy * _grid)));
-                    }
+                    return false;
                 }
 
-                return keys;
+                key = FineKey((long)column, (long)row);
+                return true;
             }
+
+            private (long, long) Key(GeoPoint2 point) => ((long)Math.Floor(point.X / (_grid * 4.0)), (long)Math.Floor(point.Y / (_grid * 4.0)));
 
             private (long, long) CellOf(GeoPoint2 point) => ((long)Math.Floor(point.X / _cell), (long)Math.Floor(point.Y / _cell));
 

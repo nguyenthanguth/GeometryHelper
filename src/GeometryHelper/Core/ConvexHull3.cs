@@ -34,8 +34,9 @@ namespace GeometryHelper.Core
     /// within the tolerance of the hull given; a merged hull that holds every point is kept as it was, to the bit.
     /// </para>
     /// <para>
-    /// The work is quadratic in the worst case: 10 000 points in a cube take 45 milliseconds, 3 000 on a sphere 120,
-    /// which is fine for the hull of a part; it is not meant for a laser scan.
+    /// A point is read only against the faces that can stand below it, found by the way they face, so the work no longer
+    /// grows with the square of the points where they all lie on the hull: 10 000 points in a cube take 50 milliseconds as
+    /// they did, and 12 000 on a sphere 0.18 seconds where they took 2.4. It is still not meant for a laser scan.
     /// </para>
     /// </remarks>
     public static class ConvexHull3
@@ -127,6 +128,12 @@ namespace GeometryHelper.Core
             double rounding = Rounding(p);
             var below = new bool[p.Count];
             var depth = new double[p.Count];
+            var byNormal = new FacesByNormal(p.Count, inside, rounding, false);
+            var candidates = new List<int>();
+
+            // Below every plane by more than this, a point is below by more than rounding and by more than three tolerances,
+            // which is all that is asked of how high it stands where it sees no face.
+            double lowest = Math.Min(-3.0 * eps, Math.Min(eps, rounding));
 
             for (int k = 0; k < p.Count; k++)
             {
@@ -138,9 +145,12 @@ namespace GeometryHelper.Core
                 visible.Clear();
                 seen.Clear();
                 double highest = double.NegativeInfinity;
+                bool every = !byNormal.TryGather(faces, p, p[k], lowest, candidates);
 
-                for (int f = 0; f < faces.Count; f++)
+                for (int i = 0, count = every ? faces.Count : candidates.Count; i < count; i++)
                 {
+                    int f = every ? i : candidates[i];
+
                     if (!faces[f].Alive)
                     {
                         continue;
@@ -160,9 +170,16 @@ namespace GeometryHelper.Core
                     }
                 }
 
+                // Oldest first, as every face was read.
+                if (!every)
+                {
+                    visible.Sort();
+                }
+
                 if (visible.Count == 0)
                 {
-                    // Below every plane of the hull so far, so within what its corners span; see HoldsEveryPoint.
+                    // Below every plane of the hull so far, so within what its corners span; see HoldsEveryPoint. The faces not
+                    // read stand lower than the lowest asked, so the highest read tells as much as the highest of all.
                     below[k] = highest <= rounding;
                     depth[k] = highest;
                     continue;
@@ -730,6 +747,12 @@ namespace GeometryHelper.Core
             var visible = new List<int>();
             var seen = new HashSet<int>();
             var next = new Dictionary<int, int>();
+            var start = new GeoPoint3(
+                (p[i0].X + p[i1].X + p[i2].X + p[i3].X) / 4,
+                (p[i0].Y + p[i1].Y + p[i2].Y + p[i3].Y) / 4,
+                (p[i0].Z + p[i1].Z + p[i2].Z + p[i3].Z) / 4);
+            var byNormal = new FacesByNormal(p.Count, start, Rounding(p), true);
+            var candidates = new List<int>();
 
             for (int k = 0; k < p.Count; k++)
             {
@@ -741,9 +764,11 @@ namespace GeometryHelper.Core
                 visible.Clear();
                 seen.Clear();
                 double nearest = double.PositiveInfinity;
+                bool every = !byNormal.TryGather(faces, p, p[k], 0.0, candidates);
 
-                for (int f = 0; f < faces.Count; f++)
+                for (int i = 0, count = every ? faces.Count : candidates.Count; i < count; i++)
                 {
+                    int f = every ? i : candidates[i];
                     Face face = faces[f];
 
                     if (face.Alive && Orientation(p[face.A], p[face.B], p[face.C], p[k]) > 0)
@@ -753,6 +778,12 @@ namespace GeometryHelper.Core
                         GeoPoint3 foot = Projection3.ProjectToTriangle(new GeoTriangle3(p[face.A], p[face.B], p[face.C]), p[k]);
                         nearest = Math.Min(nearest, foot.DistanceTo(p[k]));
                     }
+                }
+
+                // Oldest first, as every face was read.
+                if (!every)
+                {
+                    visible.Sort();
                 }
 
                 // Inside, or outside the faces it sees by no more than the tolerance, which a convex body is nearest it on.
@@ -994,5 +1025,314 @@ namespace GeometryHelper.Core
             => face.Normal.DotProduct(new GeoVector3(point.X, point.Y, point.Z)) - face.Offset;
 
         private static long Key(int from, int to) => ((long)from << 32) | (uint)to;
+
+        /// <summary>
+        /// The faces of a hull being built, filed by the way they face, so that those a point may stand above are found
+        /// without reading the others.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Every point was read against every face built so far, standing or gone: 12 000 points on a sphere, each outside the
+        /// hull of those before it, were read against tens of thousands of faces each, and took 2.4 seconds. The normals are
+        /// filed on the faces of a cube, each cut into cells, and a cell's normals lie within a cone round its middle. How far
+        /// a point can stand above the plane of a face is then bounded for the whole cell: no further than it reaches along
+        /// the nearest normal in the cone, measured from a point inside the hull, less the least distance from there to a plane
+        /// of the cell. Only the cells where a point can stand as high as asked, rounding allowed for, are read, each face as
+        /// before, and the faces it sees put oldest first, as every face was read; so the same faces are found, and the hull
+        /// is the same to the bit. Until the faces outnumber the cells sixteen times over every face is read, which is faster
+        /// for so few.
+        /// </para>
+        /// <para>
+        /// Where a point's side of a face is read exactly, the normal worked out in floating point is off the exact one by an
+        /// angle its rounding bounds; the cone is widened by that angle, and the distance to the plane taken less by as much,
+        /// and a face so thin that its normal is not known to half a radian is read every time.
+        /// </para>
+        /// </remarks>
+        private sealed class FacesByNormal
+        {
+            /// <summary>
+            /// Until the faces built outnumber the cells this many times over, reading every face is faster than the cells.
+            /// </summary>
+            private const int FacesACell = 16;
+
+            private readonly int _side;
+            private List<int>[] _cells;
+            private double[] _axes;
+            private double[] _angles;
+            private double[] _lowest;
+            private double[] _spread;
+            private double[] _cos;
+            private double[] _sin;
+            private readonly List<double> _faceLowest = new List<double>();
+            private readonly List<double> _faceSpread = new List<double>();
+            private readonly GeoPoint3 _inside;
+            private readonly double _margin;
+            private readonly bool _exact;
+
+            /// <param name="points">How many points the hull is built on, which sets how finely the normals are filed.</param>
+            /// <param name="inside">A point inside the hull from its start.</param>
+            /// <param name="rounding">As much as rounding can put a point above a plane it lies in.</param>
+            /// <param name="exact">Whether a point's side of a face is read exactly, rather than from the face's normal.</param>
+            internal FacesByNormal(int points, GeoPoint3 inside, double rounding, bool exact)
+            {
+                _side = Math.Max(1, Math.Min(12, (int)Math.Round(Math.Sqrt(Math.Sqrt(points) / 2.0))));
+                _inside = inside;
+                _margin = 10.0 * rounding;
+                _exact = exact;
+            }
+
+            /// <summary>
+            /// Gathers the faces standing that a point may stand above by a height or more, and perhaps a few more, in no order;
+            /// false, and every face to be read, while they are few. The cells are laid out the first time they are read, and
+            /// faces added since the last time are filed first.
+            /// </summary>
+            internal bool TryGather(List<Face> faces, List<GeoPoint3> p, GeoPoint3 point, double height, List<int> found)
+            {
+                found.Clear();
+
+                if (_cells == null)
+                {
+                    if (faces.Count < FacesACell * (6 * _side * _side + 1))
+                    {
+                        return false;
+                    }
+
+                    Lay();
+                }
+
+                for (int f = _faceLowest.Count; f < faces.Count; f++)
+                {
+                    File(faces[f], p);
+                }
+
+                double wx = point.X - _inside.X, wy = point.Y - _inside.Y, wz = point.Z - _inside.Z;
+                double length = Math.Sqrt(wx * wx + wy * wy + wz * wz);
+                int last = _cells.Length - 1;
+
+                for (int c = 0; c <= last; c++)
+                {
+                    if (_cells[c].Count == 0)
+                    {
+                        continue;
+                    }
+
+                    if (c < last && Reach(c, wx, wy, wz, length) - _lowest[c] + _margin < height)
+                    {
+                        continue;
+                    }
+
+                    Gather(faces, c, found);
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// Lays out the cells: on each face of the cube a square of them, each with the cone round its middle that holds it.
+            /// </summary>
+            private void Lay()
+            {
+                int cells = 6 * _side * _side;
+                _cells = new List<int>[cells + 1];
+                _axes = new double[3 * cells];
+                _angles = new double[cells + 1];
+                _lowest = new double[cells + 1];
+                _spread = new double[cells + 1];
+                _cos = new double[cells + 1];
+                _sin = new double[cells + 1];
+
+                for (int c = 0; c <= cells; c++)
+                {
+                    _cells[c] = new List<int>();
+                    _lowest[c] = double.PositiveInfinity;
+                }
+
+                for (int face = 0; face < 6; face++)
+                {
+                    for (int i = 0; i < _side; i++)
+                    {
+                        for (int j = 0; j < _side; j++)
+                        {
+                            // The cone round the middle of the cell holds its four corners, and so the whole of it.
+                            int c = (face * _side + i) * _side + j;
+                            double s0 = -1.0 + 2.0 * i / _side, s1 = -1.0 + 2.0 * (i + 1) / _side;
+                            double t0 = -1.0 + 2.0 * j / _side, t1 = -1.0 + 2.0 * (j + 1) / _side;
+                            GeoVector3 axis = Direction(face, 0.5 * (s0 + s1), 0.5 * (t0 + t1));
+                            double cos = 1.0;
+
+                            foreach (GeoVector3 corner in new[] { Direction(face, s0, t0), Direction(face, s1, t0), Direction(face, s0, t1), Direction(face, s1, t1) })
+                            {
+                                cos = Math.Min(cos, axis.DotProduct(corner));
+                            }
+
+                            _axes[3 * c] = axis.X;
+                            _axes[3 * c + 1] = axis.Y;
+                            _axes[3 * c + 2] = axis.Z;
+                            _angles[c] = Math.Acos(Math.Max(-1.0, Math.Min(1.0, cos))) + 1E-9;
+                            Widen(c);
+                        }
+                    }
+                }
+            }
+
+            /// <summary>
+            /// How far along a normal within the cone of a cell a point reaches, measured from the point inside.
+            /// </summary>
+            private double Reach(int c, double wx, double wy, double wz, double length)
+            {
+                if (!(length > 0.0))
+                {
+                    return length == 0.0 ? 0.0 : double.NaN;
+                }
+
+                double along = Math.Max(-1.0, Math.Min(1.0, (_axes[3 * c] * wx + _axes[3 * c + 1] * wy + _axes[3 * c + 2] * wz) / length));
+
+                if (along >= _cos[c])
+                {
+                    return length;
+                }
+
+                // The angle off the axis less the cone's: its cosine, from the two angles' sines and cosines.
+                return length * (along * _cos[c] + Math.Sqrt(Math.Max(0.0, 1.0 - along * along)) * _sin[c]);
+            }
+
+            /// <summary>
+            /// Adds the faces of a cell still standing to a list, and drops those that are not from the cell.
+            /// </summary>
+            private void Gather(List<Face> faces, int c, List<int> found)
+            {
+                List<int> cell = _cells[c];
+                int kept = 0;
+
+                for (int i = 0; i < cell.Count; i++)
+                {
+                    int f = cell[i];
+
+                    if (faces[f].Alive)
+                    {
+                        cell[kept++] = f;
+                        found.Add(f);
+                    }
+                }
+
+                if (kept == cell.Count)
+                {
+                    return;
+                }
+
+                cell.RemoveRange(kept, cell.Count - kept);
+                _lowest[c] = double.PositiveInfinity;
+                _spread[c] = 0.0;
+
+                foreach (int f in cell)
+                {
+                    _lowest[c] = Math.Min(_lowest[c], _faceLowest[f]);
+                    _spread[c] = Math.Max(_spread[c], _faceSpread[f]);
+                }
+
+                Widen(c);
+            }
+
+            /// <summary>
+            /// Files a face under the cell its normal falls in, with how far its plane lies from the point inside, less what
+            /// the angle its normal may be off by can take off that.
+            /// </summary>
+            private void File(Face face, List<GeoPoint3> p)
+            {
+                GeoVector3 n = face.Normal;
+                double spread = _exact ? Spread(p[face.A], p[face.B], p[face.C]) : 0.0;
+                GeoPoint3 a = p[face.A];
+                double lowest = face.Offset - n.DotProduct(new GeoVector3(_inside.X, _inside.Y, _inside.Z)) - spread * a.DistanceTo(_inside);
+                int c = double.IsNaN(lowest) || double.IsInfinity(lowest) ? _cells.Length - 1 : CellOf(n, spread);
+
+                _faceLowest.Add(lowest);
+                _faceSpread.Add(spread);
+                _cells[c].Add(_faceLowest.Count - 1);
+                _lowest[c] = Math.Min(_lowest[c], lowest);
+
+                if (spread > _spread[c])
+                {
+                    _spread[c] = spread;
+                    Widen(c);
+                }
+            }
+
+            /// <summary>
+            /// The cell a normal falls in: on the face of the cube its largest coordinate points to, at the place it meets it;
+            /// the last cell, read every time, where it has no direction or may be off by half a radian or more.
+            /// </summary>
+            private int CellOf(GeoVector3 n, double spread)
+            {
+                double ax = Math.Abs(n.X), ay = Math.Abs(n.Y), az = Math.Abs(n.Z);
+                int face;
+                double most, s, t;
+
+                if (ax >= ay && ax >= az)
+                {
+                    most = ax;
+                    face = n.X >= 0.0 ? 0 : 1;
+                    s = n.Y / most;
+                    t = n.Z / most;
+                }
+                else if (ay >= az)
+                {
+                    most = ay;
+                    face = n.Y >= 0.0 ? 2 : 3;
+                    s = n.Z / most;
+                    t = n.X / most;
+                }
+                else
+                {
+                    most = az;
+                    face = n.Z >= 0.0 ? 4 : 5;
+                    s = n.X / most;
+                    t = n.Y / most;
+                }
+
+                if (!(most > 0.0) || !(spread < 0.5) || double.IsNaN(s) || double.IsNaN(t))
+                {
+                    return _cells.Length - 1;
+                }
+
+                int i = Math.Max(0, Math.Min(_side - 1, (int)Math.Floor((s + 1.0) * 0.5 * _side)));
+                int j = Math.Max(0, Math.Min(_side - 1, (int)Math.Floor((t + 1.0) * 0.5 * _side)));
+                return (face * _side + i) * _side + j;
+            }
+
+            /// <summary>
+            /// The direction through a place on a face of the cube, as <see cref="CellOf"/> reads it, of unit length.
+            /// </summary>
+            private static GeoVector3 Direction(int face, double s, double t)
+            {
+                double sign = face % 2 == 0 ? 1.0 : -1.0;
+                GeoVector3 d = face < 2 ? new GeoVector3(sign, s, t) : face < 4 ? new GeoVector3(t, sign, s) : new GeoVector3(s, t, sign);
+                return d.Multiply(1.0 / d.Length);
+            }
+
+            /// <summary>
+            /// Sets the cosine and sine of the half angle of a cell's cone, widened by the angle its normals may be off by.
+            /// </summary>
+            private void Widen(int c)
+            {
+                double angle = Math.Min(Math.PI, _angles[c] + _spread[c]);
+                _cos[c] = Math.Cos(angle);
+                _sin[c] = Math.Sin(angle);
+            }
+
+            /// <summary>
+            /// The angle the unit normal of a triangle, worked out in floating point as <see cref="Add"/> works it out, may be
+            /// off the exact one by: the rounding of its cross product over its length, twice over, and a little for scaling it.
+            /// </summary>
+            private static double Spread(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c)
+            {
+                double ux = b.X - a.X, uy = b.Y - a.Y, uz = b.Z - a.Z;
+                double vx = c.X - a.X, vy = c.Y - a.Y, vz = c.Z - a.Z;
+                double nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+                double length = Math.Sqrt(nx * nx + ny * ny + nz * nz);
+                double error = 4E-15 * (Math.Abs(ux) + Math.Abs(uy) + Math.Abs(uz)) * (Math.Abs(vx) + Math.Abs(vy) + Math.Abs(vz));
+
+                return error < 0.25 * length ? 4.0 * error / length + 1E-14 : double.PositiveInfinity;
+            }
+        }
     }
 }

@@ -198,8 +198,7 @@ than left on its baseline stands at its alignment point.
 round every copy of every corner of every face: 3 000 points on a sphere make 6 000 faces and 18 000 copies, sorted on each
 face, and took 7.7 seconds on .NET 10 and 15.2 on .NET Framework. Each corner is taken once now, and a face is passed over where no
 box on it can be as small as one already found, the least rectangle on it bounded from below by calipers round the corners on the
-rim the hull shows along its normal: 8 of the 6 000 faces are fitted, in 0.40 and 0.54 seconds. The bound is still worked out on
-every face from all the hull, so the time grows faster than the points: 6 000 take 1.8 seconds and 12 000 6.7 on .NET 10. The box
+rim the hull shows along its normal: 8 of the 6 000 faces are fitted, in 0.40 and 0.54 seconds. The box
 is the same to the bit, on 3 122 sets of points from cubes, plates and lattices with copies to spheres and ellipsoids, at three
 tolerances, on both runtimes.
 
@@ -223,6 +222,52 @@ every loop against every other for which lies inside which. A comb face of 5 000
 on .NET Framework) for its 5 001 pieces, 25 million tests; a loop is asked of another now only where its first corner lies in the
 other's box, grown by the tolerances, and the cut takes 0.05 seconds (0.02). Of 400 cuts and merges of combs, plates with grids of
 holes and bodies nested three deep, none moves by a bit, nor with the boxes asked of every set of loops however few.
+
+**CHANGED.** The booleans, offsets and meshes of the plane no longer slow with the square of the edges in giving the points of
+their answer back their full precision. Each point Clipper2 hands back is given its digits again from the input vertex it was
+rounded from, or from the crossing of two input edges near it, and the edges were looked up in the cells of a grid 64 across the
+drawing, each edge filed under every cell of its box: on a long shape a cell held thousands of edges, and every point read them
+all. A comb of 10 000, 20 000, 40 000 and 80 000 teeth pointing down from its back took 0.52, 1.43, 4.37 and 15.5 seconds to
+offset by -0.5 on .NET 10, where Clipper2 itself takes a third of a second at 40 000; and 8 000 and 16 000 strips 100 000 by 1,
+each a tenth along and a thousandth up from the one before, took 3.4 and 9.4 seconds to unite. The edges are found now in cells as
+many as the edges, each as much wider than tall as the edges run further across than up, no finer than lets the edges fill sixteen
+cells an edge on the whole and no coarser than the 64, and kept only where they were before, in the same order; and each input
+vertex is filed once, under its own cell, where it was filed under every cell a step of the grid from it. The comb takes 0.23,
+0.44, 0.79 and 2.1 seconds (0.27, 0.41, 0.74 and 2.0 on .NET 8), and the strips 1.3 and 2.3, at their peak in 90 and 100 MB where
+they took 100 and 130. The comb with its teeth pointing up from its back is hardly quicker, 1.8, 6.5 and 31 to 37 seconds at 10
+000, 20 000 and 40 000 teeth before and 1.3, 5.7 and 21 to 43 now: Clipper2's own union of it slows with the square of the teeth.
+Of 2 800 booleans, 1 260 offsets and 300 meshes of stars, rectangles a hair apart, far-off copies and combs at three tolerances
+none moves by a bit, nor do the strips, and in a build that ran the old lookups beside the new, over those and the whole unit
+suite, every one found the same edges and vertices in the same order.
+
+**CHANGED.** `ConvexHull3` and `GeoObb3.Fit` no longer slow with the square of the points where every point is on the hull. The
+hull read each point against every face built before it, standing or gone, and the box worked out its bound on each face of the
+hull from every corner and every face: 3 000, 6 000 and 12 000 points on a sphere took 0.14, 0.66 and 2.4 seconds to hull and 0.53,
+2.2 and 7.7 to fit on .NET 10. The faces of a hull being built are filed by the way they face, and a point is read only against
+those that can stand below it; and past 1 536 edges the corners, and the edges between two faces by their normals, are laid out
+in trees of boxes, and a face's bound reads only the corners reaching furthest along its normal and the edges of its rim: 0.03, 0.07
+and 0.18 seconds to hull, 0.27, 0.76 and 1.9 to fit (much the same on .NET 8). 10 000 points in a cube take 50 milliseconds as
+they did, and 2 000 small sets of 4 to 400 points within about 5 % of what they took. The hull and the box are the same to the bit
+on 607 sets of points from cubes, spheres, plates, lattices with copies, cylinders and ellipsoids at four tolerances, and every
+face a point saw, every rim and every reach was checked against the old reading in a build that ran both, with the new reading
+taken however small the hull, over those and the whole unit suite.
+
+**CHANGED.** Merging the faces of one plane, as the hull, the booleans and `MergeCoplanarFaces` do, no longer asks every group
+found so far which plane a face lies in. 12 000, 24 000 and 50 000 triangles each in a plane of its own took 0.14, 0.45 and 1.6
+seconds to group; past 64 groups they are filed by their normals in cells a little wider than the vector tolerance, and only those
+in the 27 cells round a face's normal are asked, which hold every normal the tolerance can join to it, the first found as before:
+16, 26 and 44 milliseconds. The merges of 1 500 sets of nudged triangles at five tolerances, and 1 800 booleans of turned boxes,
+600 each of union, subtraction and intersection with 2 315 results, give the same faces to the bit, and every group found was
+checked against the old search.
+
+**CHANGED.** Clipper2 no longer sorts the edges of a scanbeam to find where they cross when none does. A zigzag of 100 000,
+200 000 and 400 000 vertices with its minima at 50 heights and its maxima on one line took 0.56, 2.0 and 5.8 seconds to unite on
+.NET 10, most of it in that sort, which walked the list of edges log n times to swap none; whether they stand in order is seen as
+their places at the top of the scanbeam are worked out, and the sort is left out where they do: 0.23, 0.63 and 1.6 seconds (0.17,
+0.53 and 1.4 on .NET 8). With its maxima at 30 heights as well, 1.9, 5.0 and 15.8 seconds are 0.95, 2.6 and 7.9: every scanbeam
+still walks every edge. Of
+2 400 runs of every operation and fill rule over random, degenerate and zigzag sets none moves, and in a build that sorted anyway
+the sort found nothing to swap wherever it was left out.
 
 **FIXED.** `TryCutOpenings` gives the material of a closed body with closed openings closed as `Validate` reads it, as a
 boolean gives its result, or returns `false`, logged. Cut in at once, it was handed back open: a plate 300 by 200 by 12
