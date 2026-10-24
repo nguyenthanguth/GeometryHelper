@@ -472,6 +472,75 @@ places nearly as open a label takes can still follow the rounding of where the s
 benchmark `Arrange.Dense`, one goes to candidate 57 at the origin and to candidate 61 moved 900 along X, as before. As
 fast as before, within the noise of the benchmarks.
 
+**FIXED.** `Offset2.Offset` of a `GeoPolygonArc2` at a tolerance coarse beside the loop no longer comes back empty where
+two moved pieces cross within the tolerance of where one of them ends. Such a crossing is not cut, each piece runs on past
+it by up to the tolerance, and the runs either side could end further apart than the tolerance, or a stub the slack lets
+stand carried one past the next, so that the loop never closed. A loop whose offset leaves a run open is offset again
+within a hundredth of the tolerance, and where a run is still open within a ten-thousandth: at each step cut at its
+crossings wherever it crosses itself there, whether or not it was cut within the tolerance, and as a simple loop only
+where it crosses itself nowhere there. An answer is taken where it leaves fewer runs open and no fewer loops, with any
+loop of it finer than the tolerance, as the answer within the finer step has it. At a tolerance of 0.1: the loop of
+twelve straight corners in a box 7.9 by 5.1 grown by 4 is one loop of 150.317 with round joins and 186.801 with miters
+(the straight path 150.320 and 186.801); a loop of ten corners with a spike 12 degrees wide, shrunk by 0.3, one of 9.453
+round and 9.435 chamfered; a star of sixteen corners shrunk by 1 one of 4.779 round and 4.461 chamfered; a comb of three
+teeth grown by 0.3 one of 62.296 mitered and 62.158 chamfered; a loop of eight corners 2.62 by 2.37 with its arcs, cut
+at its three crossings, grown by 0.3 one of 4.886 with a hole of 0.0024 in it, as within 1E-3; a loop of eight corners
+1.91 by 2.01 that crosses itself within 0.1 of a corner, which reads as a touch within 0.1, grown by 0.3 one of 4.102,
+as within 1E-3; and the loop from (-8, 0) to the origin, round an arc of bulge -0.44058 to (-0.0036, 0.0035) and on to
+(2.633, 6.989), grown by 0.3 one of 36.680 round, 37.029 mitered and 36.734 chamfered, as within 1E-3. Each was empty.
+
+**FIXED.** A curved loop that crosses itself at places nearer each other along an edge than the tolerance is read
+even-odd. Its crossings were made one place only where each lay within the tolerance of the first found there, so three
+edges crossing in a triangle a tolerance across made two places 0.101 apart, an edge was to be cut twice within the
+tolerance, and the loop was offset as if it did not cross itself. Crossings within the tolerance of each other, or linked
+through others that are, are now one place, as long as every crossing of it lies within the tolerance of the place, where
+every edge through it is cut: a row of forty crossings 0.09 apart is twenty places of two, not one place 3.5 long. Where
+two places still lie too near along an edge to cut it at both, the loop is cut within a hundredth of the tolerance, or
+failing that a ten-thousandth, and offset within that: a loop of fifteen corners 1.2 across, whose crossings cannot be cut
+within 0.1 or 1E-3, is cut within 1E-5 and grown by 1 at a tolerance of 0.1 is one loop of 7.858, as within 1E-5. A loop
+that cannot be cut at any of the three is offset as a simple loop, as it was before; at a tolerance of 0.1 none of 2 991
+loops of 8 to 27 corners that cross themselves, nor of 611 stars, came to that, 2 088 and 220 of them being cut at a finer
+step. The loop of eight corners whose crossings lie 0.070, 0.084 and 0.101 apart, at a tolerance of 0.1, is now as
+within 1E-3: grown by 0.3 an
+outline of 181.68 and three holes of 11.46, 8.09 and 1.58, shrunk by 0.3 the six loops it pinches into, 46.19 to 0.54
+(the straight path 46.15 to 0.54), grown by 1 an outline of 231.08 and holes of 2.78 and 1.40, shrunk by 1 four loops,
+29.67 to 0.70, grown by 3 one of 383.16 and shrunk by 3 one of 2.22. It was nothing grown by 0.3, 1 or 3, two loops of
+8.09 and 1.58 shrunk by 0.3, one of 1.40 shrunk by 1 and nothing shrunk by 3. The star {37/18} of radius 16.670 shrunk by
+0.3 is its 37 loops of 0.824, as the straight path gives it; it was nothing. A loop that crosses itself at more than
+2 000 places within the tolerance is read within the tolerance only, cut where it can be and otherwise offset as a simple
+loop, as before: where the crossings bunch, the moved pieces of a loop cut at them cross each other some square of their
+number of times, and 60 diameters of a circle, 6 903 crossings, cut within 1E-5 took 21 s and 1.2 GB so. The star
+{71/35} of radius 10, 2 414 crossings, grown by 0.3 at a tolerance of 0.1 is the one loop of 302.631 round it, as before;
+200 diameters, whose 19 900 crossings at the centre are one place, are offset as a simple loop past the cap, as before:
+1.8 s within 1E-3, as before. At 0.1 their 79 003 crossings
+are cut, and the one loop of 333.80 takes 6.5 s where it took 0.7.
+
+**FIXED.** A miter whose piece before it, or after it, was cut back by the next corner to no longer than the tolerance, or
+a hair past its own end, is run on along the whole edge that piece was moved from, where the piece itself gives no
+meeting. The tip of 22.6 degrees at (3.416, -7.019) of a loop that crosses itself, grown by 0.3 at 1E-3, is mitered 1.546
+out, 54.770 as at 1E-4, where the piece before it, cut to 1.94E-4 and turned backwards, had it rounded off at 54.441; a
+chain offset at a tolerance of 0.1 now miters such a corner as it does within 1E-3. A piece turned backwards that ends a
+hair past the meeting runs back to it, and not on round nearly a whole turn of its circle.
+
+Of 139 404 curved offsets of the fuzz corpus of item 6 at tolerances of 0.1, 1E-3 and 1E-4, the fixes move 2 381, most
+of them at 0.1, and the rest are the same to the bit; 261 come back that were empty, and none is empty that was not.
+Read against the distance from the source and the miter wedges built from the source alone, a point counted wrong only
+outside a band twice the tolerance wide about the answer, of the 2 238 fuzz loops among them 425 come nearer the exact
+answer and none goes further, the rest the same within the reading; before the last of these fixes the 23 audit cases
+and chains came nearer too, the loops to that reading's answer and the chains to the miter they have within 1E-3. 96 offsets within 1E-3 of two loops
+whose corner dips 0.0002 and 0.0005 through an edge come back as the same loops in another order. Of 11 964 offsets at
+0.1 of loops of 8 to 27 corners that cross themselves, and 2 444 of stars, read against the distance alone, 4 114 and
+165 come nearer and none goes further.
+
+The finer steps cost time where a loop crosses itself, the cut loop being offset where the simple one was before. At a
+tolerance of 0.1 the 8 448 offsets of one fuzz seed take 1.18 to 1.24 s on .NET 10 where they took 1.06 to 1.17, and
+2.31 to 2.34 s on .NET Framework 4.8 where they took 2.04 to 2.23 (another reading gave 1.29 to 1.32 s where 1.07 to
+1.16, 11 to 23 % longer); the 2 444 offsets of stars take 77 to 80 s where they took 8.2 to 9.9, and the 4 500 of loops
+of 8 to 27 corners 15.7 to 16.8 s where they took 2.8 to 3.2. Most of it goes to stars of 100 to 500 crossings, up to
+2 s for four offsets each; the star {63/31} of radius 10, 1 890 crossings, just under the most that are cut finer, takes
+2.2 s grown by 0.3 and 4.6 s shrunk, where it took 52 and 7 ms with the same answers. Within 1E-3 and 1E-4 the fuzz takes
+as long as before within the noise, and so does a gear of 3 200 teeth, 3.7 to 4.2 s on .NET 10 and 7.2 to 8.0 s on 4.8.
+
 ## 12.3.0
 
 **NEW.** `DxfReader` reads a DXF file into the library's shapes: `Read(path)`, `Read(stream)` and `Parse(text)`, each with

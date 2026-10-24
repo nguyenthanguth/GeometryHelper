@@ -83,6 +83,24 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the next step down a loop is read within where the tolerance is coarse beside it: a hundredth of the
+        /// tolerance given, the angle kept.
+        /// </summary>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>The finer tolerance.</returns>
+        internal static Tolerance Finer(Tolerance tolerance)
+            => new Tolerance(tolerance.EqualPoint * 0.01, tolerance.EqualVector * 0.01, tolerance.EqualAngleRad, tolerance.EqualPlanar * 0.01);
+
+        /// <summary>
+        /// The most places a loop may cross itself at, within the tolerance given or a finer step of it, for its offset to be
+        /// cut or done again within a hundredth or a ten-thousandth of the tolerance. Where crossings bunch, the moved pieces
+        /// of a loop cut at them cross each other some square of their number of times: 40 diameters of a circle of radius
+        /// 10, 3 003 crossings, cut within 1E-5 and grown by 0.3 take 2.2 s and 180 MB, 60 diameters, 6 903 crossings, take
+        /// 21 s and 1.2 GB, and 200 diameters ran out of memory.
+        /// </summary>
+        internal const int MostCrossingsRetried = 2000;
+
+        /// <summary>
         /// Offsets a run of edges to the left of the way it runs, and gives back the runs that survive.
         /// </summary>
         /// <param name="edges">The edges, each starting where the one before it ended.</param>
@@ -90,14 +108,18 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far to move it, to the left of the way it runs when positive.</param>
         /// <param name="options">How to fill a corner that opens up.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <param name="open">How many runs of the offset of a loop were left open, which close no loop; none for a chain.</param>
         /// <returns>The runs of the offset, each closed when the input was.</returns>
         internal static List<List<GeoEdge2>> Offset(
             List<GeoEdge2> edges,
             bool closed,
             double distance,
             OffsetOptions options,
-            Tolerance tolerance)
+            Tolerance tolerance,
+            out int open)
         {
+            open = 0;
+
             var moved = new List<GeoEdge2>(edges.Count * 2);
             var kept = new List<int>(edges.Count);
             var spent = new List<bool>(edges.Count);
@@ -126,7 +148,7 @@ namespace GeometryHelper.Core
             var mitres = new List<Mitre>();
             List<Piece> joined = Join(edges, kept, moved, spent, closed, distance, options, mitres, tolerance);
 
-            return Prune(joined, mitres, edges, closed, distance, tolerance, Spans.Single(joined.Count), Spans.Single(edges.Count), null, 0);
+            return Prune(joined, mitres, edges, closed, distance, tolerance, Spans.Single(joined.Count), Spans.Single(edges.Count), null, 0, out open);
         }
 
         /// <summary>
@@ -697,16 +719,31 @@ namespace GeometryHelper.Core
             GeoEdge2 before = result[result.Count - 1].Edge;
             double limit = Math.Abs(distance) * options.MiterLimit;
 
-            if (TryMeeting(before, after, from, to, corner, limit, tolerance, out GeoPoint2 meeting))
+            GeoEdge2 beforeCurve = before;
+            GeoEdge2 afterCurve = after;
+            bool met = TryMeeting(before, after, from, to, corner, limit, tolerance, out GeoPoint2 meeting);
+
+            // A piece cut back by the corner before it to no longer than the tolerance, or a hair past its own end, has no way
+            // of its own left to run on, and runs on along the whole of the edge it was moved from: the loop 2:100 grown by 0.3
+            // is mitered at its corner (3.416, -7.019), the tip 1.546 from the corner and the piece before run on 1.509 to it,
+            // where that piece was cut to 0.0002, turned backwards, and the corner was rounded off.
+            if (!met && (before.Length <= tolerance.EqualPoint || after.Length <= tolerance.EqualPoint))
+            {
+                beforeCurve = before.Length <= tolerance.EqualPoint && TryMove(arriving, distance, tolerance, out GeoEdge2 wholeBefore) ? wholeBefore : before;
+                afterCurve = after.Length <= tolerance.EqualPoint && TryMove(leaving, distance, tolerance, out GeoEdge2 wholeAfter) ? wholeAfter : after;
+                met = TryMeeting(beforeCurve, afterCurve, from, to, corner, limit, tolerance, out meeting);
+            }
+
+            if (met)
             {
                 if (!across)
                 {
-                    mitres.Add(new Mitre(vertex, before, after, meeting));
+                    mitres.Add(new Mitre(vertex, beforeCurve, afterCurve, meeting));
                 }
 
-                result[result.Count - 1] = result[result.Count - 1].With(CurveMeet2.Stretch(before, meeting, true));
+                result[result.Count - 1] = result[result.Count - 1].With(StretchAlong(before, beforeCurve, meeting, true));
 
-                return CurveMeet2.Stretch(after, meeting, false);
+                return StretchAlong(after, afterCurve, meeting, false);
             }
 
             // Across an edge that was dropped the corner is not the pieces' own, and is tied straight across as it was.
@@ -877,6 +914,52 @@ namespace GeometryHelper.Core
             double along = corner.GetVectorTo(point).DotProduct(bisector);
 
             return along >= -tolerance.EqualPoint && along <= reach + tolerance.EqualPoint;
+        }
+
+        /// <summary>
+        /// Runs a piece on to a point, or back to it, along a curve: its own, or, for a piece too short to have one, the whole
+        /// moved edge it was cut from, keeping the piece's other end.
+        /// </summary>
+        /// <param name="piece">The piece.</param>
+        /// <param name="curve">The curve to run it along: the piece itself, or the moved edge it was cut from.</param>
+        /// <param name="at">The point, on the curve.</param>
+        /// <param name="toEnd">true to move the end of the piece, false to move its start.</param>
+        /// <returns>The piece run on or back, never round more than half a turn of the curve's circle.</returns>
+        internal static GeoEdge2 StretchAlong(GeoEdge2 piece, GeoEdge2 curve, GeoPoint2 at, bool toEnd)
+        {
+            if (curve.Equals(piece))
+            {
+                return CurveMeet2.Stretch(piece, at, toEnd);
+            }
+
+            GeoPoint2 kept = toEnd ? piece.StartPoint : piece.EndPoint;
+
+            if (!curve.IsArc)
+            {
+                return toEnd ? new GeoEdge2(kept, at) : new GeoEdge2(at, kept);
+            }
+
+            // Round the curve's circle the way it runs, from the end kept to the point.
+            GeoArc2 arc = curve.ToArc();
+            double from = Math.Atan2(kept.Y - arc.Center.Y, kept.X - arc.Center.X);
+            double to = Math.Atan2(at.Y - arc.Center.Y, at.X - arc.Center.X);
+            double swept = toEnd ? to - from : from - to;
+            double full = Math.PI * 2.0;
+
+            swept %= full;
+
+            if (arc.SweptAngle > 0.0 ? swept < 0.0 : swept > 0.0)
+            {
+                swept += arc.SweptAngle > 0.0 ? full : -full;
+            }
+
+            // A sliver turned backwards that ends a hair past the point runs back to it, and not on round nearly a whole turn:
+            // run along a quarter circle of radius 10 to 0.02 past its end, from a sliver 0.05 past it, it swept 359.8 degrees.
+            swept -= Math.Abs(swept) > Math.PI ? (swept > 0.0 ? full : -full) : 0.0;
+
+            double bulge = Math.Tan(swept * 0.25);
+
+            return toEnd ? new GeoEdge2(kept, at, bulge) : new GeoEdge2(at, kept, bulge);
         }
 
         /// <summary>
@@ -1107,12 +1190,13 @@ namespace GeometryHelper.Core
             Spans pieceSpans,
             Spans edgeSpans,
             Region region,
-            int winding)
+            int winding,
+            out int open)
         {
             // A hair of slack, so that the piece running exactly along the offset is never thrown away.
             double slack = Math.Max(tolerance.EqualPoint, Math.Abs(sideways) * 1E-6);
 
-            List<List<GeoEdge2>> loops = Prune(offset, mitres, original, closed, sideways, tolerance, pieceSpans, edgeSpans, region, winding, slack, slack, out int open);
+            List<List<GeoEdge2>> loops = Prune(offset, mitres, original, closed, sideways, tolerance, pieceSpans, edgeSpans, region, winding, slack, slack, out open);
 
             // A stretch of a piece that lies inside the point of another corner's miter by less than the slack is kept, and
             // a stub of it longer than the tolerance leaves the run it ends open by its own length: a slot 5.12 wide cut
@@ -1126,6 +1210,7 @@ namespace GeometryHelper.Core
 
                 if (stillOpen == 0 && again.Count >= loops.Count)
                 {
+                    open = 0;
                     return again;
                 }
             }

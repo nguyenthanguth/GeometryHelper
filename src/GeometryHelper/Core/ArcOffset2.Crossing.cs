@@ -144,9 +144,12 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far to move them, to the left of the way they run when positive.</param>
         /// <param name="options">How to fill a corner that opens up.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <param name="open">How many runs of the offset were left open, which no loop closes.</param>
         /// <returns>The loops of the offset, counter-clockwise where they bound the region from outside.</returns>
-        internal static List<List<GeoEdge2>> Offset(List<List<GeoEdge2>> loops, List<List<GeoEdge2>> region, double distance, OffsetOptions options, Tolerance tolerance)
+        internal static List<List<GeoEdge2>> Offset(List<List<GeoEdge2>> loops, List<List<GeoEdge2>> region, double distance, OffsetOptions options, Tolerance tolerance, out int open)
         {
+            open = 0;
+
             var all = new List<GeoEdge2>();
             var edgeSizes = new List<int>(loops.Count);
             var pieces = new List<Piece>();
@@ -207,7 +210,7 @@ namespace GeometryHelper.Core
                 return new List<List<GeoEdge2>>();
             }
 
-            return Prune(pieces, mitres, all, true, distance, tolerance, Spans.Of(pieceSizes), Spans.Of(edgeSizes), new Region(region, distance > 0.0), 1);
+            return Prune(pieces, mitres, all, true, distance, tolerance, Spans.Of(pieceSizes), Spans.Of(edgeSizes), new Region(region, distance > 0.0), 1, out open);
         }
 
         /// <summary>
@@ -218,6 +221,7 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance, which says how near a crossing may lie to an end of an edge and still be at it.</param>
         /// <param name="region">The simple loops the crossings cut it into, which say what lies in the region: inside an odd number of them.</param>
         /// <param name="bounds">The loops that bound the region, each running with it on its left.</param>
+        /// <param name="found">How many places two edges were found to cross each other at, whether or not the loop could be cut there.</param>
         /// <returns>true when two edges cross each other, other than at a vertex, and the loop was cut.</returns>
         /// <remarks>
         /// A crossing is a place two edges cross each other, away from the ends of both: edges that meet at a vertex, or
@@ -233,12 +237,13 @@ namespace GeometryHelper.Core
         /// narrower than the offset being filled up to where its sides meet.
         /// </para>
         /// </remarks>
-        internal static bool TrySplitAtCrossings(List<GeoEdge2> edges, Tolerance tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds)
+        internal static bool TrySplitAtCrossings(List<GeoEdge2> edges, Tolerance tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int found)
         {
             region = null;
             bounds = null;
 
             List<Crossing> crossings = FindCrossings(edges, tolerance);
+            found = crossings.Count;
 
             if (crossings.Count == 0)
             {
@@ -643,7 +648,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gives each place where edges cross a number, the crossings within the tolerance of each other being one place.
         /// </summary>
-        /// <returns>The places, in the order their first crossings were found in.</returns>
+        /// <returns>The places, each where the first of its crossings along X lies, in order along X.</returns>
         private static List<GeoPoint2> ClusterNodes(List<Crossing> crossings, Tolerance tolerance)
         {
             var nodes = new List<GeoPoint2>();
@@ -654,7 +659,7 @@ namespace GeometryHelper.Core
                 order[i] = i;
             }
 
-            // In order along X, so that the places a crossing can be at are found among the latest few.
+            // In order along X, which numbers the places.
             Array.Sort(order, (one, other) =>
             {
                 int byX = crossings[one].At.X.CompareTo(crossings[other].At.X);
@@ -669,39 +674,173 @@ namespace GeometryHelper.Core
                 return byY != 0 ? byY : one.CompareTo(other);
             });
 
-            var nodeOrder = new List<int>();
+            // Crossings within the tolerance of each other are one place, and so are two that are each within it of a third:
+            // three edges that cross in a triangle no wider than the tolerance cross at one place, which cut in two would leave
+            // an edge to be cut twice within the tolerance. Each place is the one of its crossings that comes first along X, and
+            // every edge through the place is cut there, so two places are not made one where that would leave a crossing of
+            // either further than the tolerance from it: a row of forty crossings 0.09 apart is twenty places of two, where made
+            // one place it had the edges cut up to 3.5 off where they cross.
+            var rank = new int[order.Length];
+            var first = new int[order.Length];
+            var next = new int[order.Length];
+            var last = new int[order.Length];
+
+            for (int k = 0; k < order.Length; k++)
+            {
+                rank[order[k]] = k;
+                first[k] = k;
+                next[k] = -1;
+                last[k] = k;
+            }
+
+            var byY = (int[])order.Clone();
+
+            Array.Sort(byY, (one, other) =>
+            {
+                int byYs = crossings[one].At.Y.CompareTo(crossings[other].At.Y);
+
+                if (byYs != 0)
+                {
+                    return byYs;
+                }
+
+                int byXs = crossings[one].At.X.CompareTo(crossings[other].At.X);
+
+                return byXs != 0 ? byXs : one.CompareTo(other);
+            });
+
+            // Swept along the axis fewer pairs lie close on, each crossing tried against those before it within the reach, the
+            // nearest first. Crossings next to each other in the sweep that are one place are one run, tried until one of them
+            // lies within the tolerance: the 19 900 crossings of 200 diameters at the centre of a circle are one run.
+            double reach = tolerance.EqualPoint;
+            bool alongX = CloseAlong(crossings, order, true, reach) <= CloseAlong(crossings, byY, false, reach);
+            int[] sweep = alongX ? order : byY;
+            var run = new int[sweep.Length];
             int from = 0;
 
-            foreach (int index in order)
+            for (int b = 0; b < sweep.Length; b++)
             {
-                Crossing crossing = crossings[index];
-                int node = -1;
+                GeoPoint2 at = crossings[sweep[b]].At;
+                double key = alongX ? at.X : at.Y;
 
-                while (from < nodeOrder.Count && nodes[nodeOrder[from]].X < crossing.At.X - tolerance.EqualPoint)
+                run[b] = b;
+
+                while ((alongX ? crossings[sweep[from]].At.X : crossings[sweep[from]].At.Y) < key - reach)
                 {
                     from++;
                 }
 
-                for (int k = from; k < nodeOrder.Count && node < 0; k++)
+                for (int a = b - 1; a >= from;)
                 {
-                    if (nodes[nodeOrder[k]].IsEqualTo(crossing.At, tolerance))
+                    int one = FirstOf(first, rank[sweep[a]]);
+                    int start = FirstOf(run, a);
+
+                    while (start > 0 && FirstOf(first, rank[sweep[start - 1]]) == one)
                     {
-                        node = nodeOrder[k];
+                        run[start] = start - 1;
+                        start = FirstOf(run, start - 1);
                     }
-                }
 
-                if (node < 0)
+                    int other = FirstOf(first, rank[sweep[b]]);
+
+                    for (int k = a; one != other && k >= Math.Max(start, from); k--)
+                    {
+                        if (crossings[sweep[k]].At.IsEqualTo(at, tolerance))
+                        {
+                            TryJoin(crossings, order, first, next, last, Math.Min(one, other), Math.Max(one, other), tolerance);
+                            break;
+                        }
+                    }
+
+                    a = start - 1;
+                }
+            }
+
+            var nodeAt = new int[order.Length];
+
+            for (int k = 0; k < order.Length; k++)
+            {
+                int root = FirstOf(first, k);
+
+                if (root == k)
                 {
-                    node = nodes.Count;
-                    nodes.Add(crossing.At);
-                    nodeOrder.Add(node);
+                    nodeAt[k] = nodes.Count;
+                    nodes.Add(crossings[order[k]].At);
                 }
 
-                crossing.Node = node;
-                crossings[index] = crossing;
+                Crossing crossing = crossings[order[k]];
+                crossing.Node = nodeAt[root];
+                crossings[order[k]] = crossing;
             }
 
             return nodes;
+        }
+
+        /// <summary>
+        /// Gets the first of those one is linked with, so far: of the crossings one is one place with, in order along X, or of
+        /// the run of the sweep one is in.
+        /// </summary>
+        private static int FirstOf(int[] first, int at)
+        {
+            while (first[at] != at)
+            {
+                first[at] = first[first[at]];
+                at = first[at];
+            }
+
+            return at;
+        }
+
+        /// <summary>
+        /// Makes two places one, at the first along X of their crossings, unless a crossing of the later place would then lie
+        /// further than the tolerance from it.
+        /// </summary>
+        /// <param name="crossings">The crossings.</param>
+        /// <param name="byX">Their numbers in order along X.</param>
+        /// <param name="first">For each crossing, by its order along X, one before it of the same place, or itself.</param>
+        /// <param name="next">For each crossing, by its order along X, the next of its place, or -1 for the last.</param>
+        /// <param name="last">For the first crossing of each place, the last of it.</param>
+        /// <param name="keep">The first crossing of the place that comes first along X.</param>
+        /// <param name="join">The first crossing of the other place.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        private static void TryJoin(List<Crossing> crossings, int[] byX, int[] first, int[] next, int[] last, int keep, int join, Tolerance tolerance)
+        {
+            GeoPoint2 place = crossings[byX[keep]].At;
+
+            for (int k = join; k >= 0; k = next[k])
+            {
+                if (!crossings[byX[k]].At.IsEqualTo(place, tolerance))
+                {
+                    return;
+                }
+            }
+
+            first[join] = keep;
+            next[last[keep]] = join;
+            last[keep] = last[join];
+        }
+
+        /// <summary>
+        /// Counts the pairs of crossings that lie within a reach of each other along one axis.
+        /// </summary>
+        private static long CloseAlong(List<Crossing> crossings, int[] order, bool alongX, double reach)
+        {
+            long pairs = 0;
+            int from = 0;
+
+            for (int b = 0; b < order.Length; b++)
+            {
+                double key = alongX ? crossings[order[b]].At.X : crossings[order[b]].At.Y;
+
+                while ((alongX ? crossings[order[from]].At.X : crossings[order[from]].At.Y) < key - reach)
+                {
+                    from++;
+                }
+
+                pairs += b - from;
+            }
+
+            return pairs;
         }
 
         /// <summary>

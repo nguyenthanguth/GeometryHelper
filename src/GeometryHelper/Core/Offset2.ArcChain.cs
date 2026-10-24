@@ -105,6 +105,29 @@ namespace GeometryHelper.Core
         /// five vertices shrunk by 1 with the default limit of 10 has two loops where round corners give three, the
         /// third of 0.203 wholly in a wedge; with a limit of 2 it stays.
         /// </para>
+        /// <para>
+        /// At a tolerance coarse beside the loop, two moved pieces can cross within the tolerance of where one of them ends and
+        /// are not cut there. Where that leaves the offset open, the loop is offset again within a hundredth of the tolerance,
+        /// and where a run is still open within a ten-thousandth: at each step cut at its crossings wherever it crosses itself
+        /// there, and as a simple loop only where it crosses itself nowhere there. An answer is taken where it leaves fewer
+        /// runs open and no fewer loops, with any loop of it finer than the tolerance, as the answer within the finer step has
+        /// it. At a tolerance of 0.1 the loop of twelve straight corners in a box 7.9 by 5.1, grown by 4 with round joins, is
+        /// one loop of 150.317, as the straight path gives it (150.320); it was none.
+        /// </para>
+        /// <para>
+        /// Crossings of a loop that crosses itself lying within the tolerance of each other, or linked through others that
+        /// are, are one place, as long as each lies within the tolerance of the place, where the edges through it are cut: a
+        /// row of forty crossings 0.09 apart is twenty places of two. A loop with two places too near along an edge to cut it
+        /// at both is cut within a hundredth of the tolerance, or failing that a ten-thousandth, and offset within that: a loop
+        /// of fifteen corners 1.2 across, grown by 1 at a tolerance of 0.1, is cut within 1E-5 and is one loop of 7.858. A
+        /// loop that cannot be cut at any of the three is offset as a simple loop, as it always was. The loop whose three
+        /// crossings lie 0.070, 0.084 and 0.101 apart, grown by 0.3 at a tolerance of 0.1, is an outline of 181.68 and three
+        /// holes, as within 1E-3; it was none. A loop that crosses itself at more than 2 000 places within the tolerance is
+        /// read within the tolerance only, cut where it can be and otherwise offset as a simple loop, since where its
+        /// crossings bunch the work of a loop cut at them grows faster than their square: 60 diameters of a circle, 6 903
+        /// crossings, cut within 1E-5 took 21 s. The star {71/35} of radius 10, 2 414 crossings, grown by 0.3 at a tolerance
+        /// of 0.1 is so the one loop of 302.631 round it.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the options are null.</exception>
         public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetOptions options, Tolerance tolerance)
@@ -126,12 +149,65 @@ namespace GeometryHelper.Core
             // A loop that crosses itself is read even-odd, as the straight offsets read one: cut at its crossings into the
             // simple loops they make, each running with the region on its left, which is then moved to its right whatever
             // way the loop ran, and the loops that come of it wound the way the loop ran.
-            bool crossing = ArcOffset2.TrySplitAtCrossings(edges, tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds);
-            bool clockwise = crossing ? false : loop.IsClockwise;
+            bool crossing = ArcOffset2.TrySplitAtCrossings(edges, tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int crossings);
+
+            // The tolerance, a hundredth of it and a ten-thousandth of it: a loop it reads in finer steps where the tolerance is
+            // coarse beside the shape. One crossing itself at more than 2 000 places is read within the tolerance only, since the
+            // offset of a loop cut at so many grows faster than their square where they bunch.
+            var ladder = new[] { tolerance, ArcOffset2.Finer(tolerance), ArcOffset2.Finer(ArcOffset2.Finer(tolerance)) };
+            bool finely = tolerance.EqualPoint > 0.0 && crossings <= ArcOffset2.MostCrossingsRetried;
+            int used = 0;
+
+            // Crossings too near each other along an edge to cut it at both within the tolerance are cut within a hundredth of
+            // it, or a ten-thousandth, and the loop is offset within that: the star {37/18} of radius 16.670 within a hundredth
+            // of 0.1, a loop of fifteen corners in a box 1.2 across within a ten-thousandth. One that cannot be cut at any step,
+            // or crosses itself at too many places to try, is offset as a simple loop, as it always was.
+            while (!crossing && crossings > 0 && finely && used + 1 < ladder.Length)
+            {
+                used++;
+                crossing = ArcOffset2.TrySplitAtCrossings(edges, ladder[used], out region, out bounds, out crossings);
+                finely = crossings <= ArcOffset2.MostCrossingsRetried;
+                crossing = crossing && finely;
+            }
+
+            if (!crossing)
+            {
+                used = 0;
+            }
 
             List<List<GeoEdge2>> runs = crossing
-                ? ArcOffset2.Offset(bounds, region, -distance, options, tolerance)
-                : ArcOffset2.Offset(edges, true, sideways, options, tolerance);
+                ? ArcOffset2.Offset(bounds, region, -distance, options, ladder[used], out int open)
+                : ArcOffset2.Offset(edges, true, sideways, options, tolerance, out open);
+
+            // Two moved pieces that cross within the tolerance of where either ends are not cut there, and each runs on past
+            // the crossing by up to the tolerance; at a tolerance coarse beside the shape the runs either side can be left
+            // further apart than the tolerance, or a stub the slack lets stand can carry a run past the next, and the loop does
+            // not close. Where the offset leaves a run open the loop is offset again at the next steps down, cut at its
+            // crossings there where it crosses itself, and taken as a simple loop only where it does not: an answer is taken
+            // where it leaves fewer runs open and no fewer loops, a loop of it finer than the tolerance and all.
+            for (int step = used + 1; open > 0 && finely && step < ladder.Length; step++)
+            {
+                bool cut = ArcOffset2.TrySplitAtCrossings(edges, ladder[step], out List<List<GeoEdge2>> fineRegion, out List<List<GeoEdge2>> fineBounds, out int fineCrossings)
+                    && fineCrossings <= ArcOffset2.MostCrossingsRetried;
+
+                if (!cut && fineCrossings > 0)
+                {
+                    continue;
+                }
+
+                List<List<GeoEdge2>> again = cut
+                    ? ArcOffset2.Offset(fineBounds, fineRegion, -distance, options, ladder[step], out int stillOpen)
+                    : ArcOffset2.Offset(edges, true, sideways, options, ladder[step], out stillOpen);
+
+                if (stillOpen < open && again.Count >= runs.Count)
+                {
+                    runs = again;
+                    open = stillOpen;
+                    crossing = cut;
+                }
+            }
+
+            bool clockwise = crossing ? false : loop.IsClockwise;
             var built = new List<GeoPolygonArc2>(runs.Count);
             var closed = new List<List<GeoEdge2>>(runs.Count);
             var against = new List<bool>(runs.Count);
@@ -234,7 +310,7 @@ namespace GeometryHelper.Core
                 return new[] { chain.Clone() };
             }
 
-            List<List<GeoEdge2>> runs = ArcOffset2.Offset(ArcChain2.EdgesOf(chain), false, distance, options, tolerance);
+            List<List<GeoEdge2>> runs = ArcOffset2.Offset(ArcChain2.EdgesOf(chain), false, distance, options, tolerance, out _);
             var results = new List<GeoPolylineArc2>(runs.Count);
 
             foreach (List<GeoEdge2> run in runs)

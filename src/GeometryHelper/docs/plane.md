@@ -802,6 +802,35 @@ along its tangent: the loop from the origin along x to (10, 0), round a quarter 
 (5, 5) and straight back to (0, 5), grown by 1, is mitered to 76.246 and chamfered to 75.760, and still the chamfer's
 corner at (11, -0.414) stands 0.014 outside the circle of radius 6 that the miter runs the arc round.
 
+At a tolerance coarse beside the shape, two moved pieces can cross within the tolerance of where one of them ends, and are
+not cut there. Where that leaves the offset open, the loop is offset again within a hundredth of the tolerance, and where
+a run is still open within a ten-thousandth: at each step cut at its crossings wherever it crosses itself there, and as
+a simple loop only where it crosses itself nowhere there. An answer is taken where it leaves fewer runs open and no fewer
+loops, with any loop of it finer than the tolerance, as the answer within the finer step has it. At a tolerance of 0.1
+the loop of twelve straight corners in a box 7.9 by 5.1, grown by 4, is one loop of 150.317 with round joins and 186.801
+with miters, as the straight path gives them (150.320 and 186.801), and a loop of ten corners whose spike 12 degrees wide
+is gone shrunk by 0.3 is one of 9.453; both were none. A loop of eight corners 2.62 by 2.37 with its arcs, cut at its
+three crossings and grown by 0.3, is one of 4.886 with a hole of 0.0024 in it, finer than the tolerance, as within 1E-3.
+
+Crossings of a loop that crosses itself that lie within the tolerance of each other, or are linked through others that
+do, are one place, as long as each lies within the tolerance of the place, where every edge through it is cut: a row of
+forty crossings 0.09 apart is twenty places of two, not one place 3.5 long. A loop with two places too near along an
+edge to cut it at both is cut within a hundredth of the tolerance, or failing that a ten-thousandth, and offset within
+that: a loop of fifteen corners 1.2 across that cannot be cut within 0.1 or 1E-3 is cut within 1E-5, and grown by 1 at a
+tolerance of 0.1 is one loop of 7.858, as within 1E-5. A loop that cannot be cut at any of the three is offset as a
+simple loop, as it was before. The loop of eight corners whose three crossings lie 0.070, 0.084 and 0.101 apart, grown
+by 0.3 at a tolerance of 0.1, is an outline of 181.68 and three holes, and shrunk by 0.3 the six loops it pinches into,
+as within 1E-3; the star {37/18} of radius 16.670 shrunk by 0.3 is its 37 loops of 0.824. A loop that crosses itself at
+more than 2 000 places within the tolerance is read within the tolerance only, cut where it can be and otherwise offset
+as a simple loop: where its crossings bunch, the work of a loop cut at them grows faster than their square, and 60
+diameters of a circle, 6 903 crossings, cut within 1E-5 took 21 s and 1.2 GB. The star {71/35} of radius 10, 2 414
+crossings, grown by 0.3 at a tolerance of 0.1 is so the one loop of 302.631 round it.
+
+A piece cut back by the corner
+before it to no longer than the tolerance is mitered along the edge it was moved from: the tip of 22.6 degrees at
+(3.416, -7.019) of a loop that crosses itself, grown by 0.3 at 1E-3, is mitered 1.546 out, as at 1E-4, where it was rounded
+off.
+
 **What still needs flattening.** The four boolean operations do, because a boolean cannot be done piece by
 piece. They take an optional chord tolerance and hand back the straight types, which say plainly that the
 arcs are gone:
