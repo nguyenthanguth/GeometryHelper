@@ -303,7 +303,8 @@ namespace GeometryHelper.Internal.Nurbs
         /// the same place read to the reach; where the distance falls straight to a meeting within the reach, which is a crossing at an
         /// angle found a few snaps short of the last digit; and at a corner or an end, where D must not fall going either way. A piece
         /// start on a slope, and a stationary point that is a greatest, as lies between two crossings of a line that passes a hair
-        /// inside a circle, are not places.
+        /// inside a circle, are not places. Where the partner's nearest point is held at its end, the distance is that to the end only on
+        /// the side the partner does not go on, and a least there is looked for a little way either side as well (<see cref="IsLeast"/>).
         /// </para>
         /// <para>
         /// A curve that stops, or has a cusp at the contact, or a partner that cannot give its derivatives, is probed a little way either
@@ -364,9 +365,13 @@ namespace GeometryHelper.Internal.Nurbs
             // offset from a line stops at an inflection, as a cubic's does across the line through its inflection, has a curvature of the
             // distance there that changes sign, and a root found a hair to one side of it reads as one that curves up, as the cubic
             // y = x³ / 100 turned by 0.7 of a radian a hundred thousand out did against the line 0.0001 over its inflection.
+            // Held at an end of the partner, the distance is read as to that end, which it is on the side the partner does not go on; on the
+            // side it goes on, its inside can be nearer, so a least there is one only where the curve is no nearer the partner either way:
+            // the point of a copy moved 0.0007 square from the other's end is no place where the distance falls on into the stretch the two
+            // run along, which it was from the side of the copy and was not from the other's.
             if (Math.Abs(slopeAlong) <= foot.Slack)
             {
-                return (curvatureAlong > flat && (!weak || !FallsEitherWay(contact, hunt))) || (Dim == 3 && !contact.From.InPlaneAt(this, contact.Knot) && RisesBothWays(contact, hunt));
+                return (curvatureAlong > flat && (!weak || !FallsEitherWay(contact, hunt)) && (foot.Free || IsLeast(contact, hunt))) || (Dim == 3 && !contact.From.InPlaneAt(this, contact.Knot) && RisesBothWays(contact, hunt));
             }
 
             // On a slope: a minimum within the reach, if the distance curves up; or a meeting within the reach, going the way it
@@ -843,8 +848,10 @@ namespace GeometryHelper.Internal.Nurbs
         /// (<see cref="IsMinimum"/>). Those no further apart than the reach, one from the next, are one place, the nearer kept, and so
         /// are two near touches next to each other along the curve within ten times the reach with no point between them farther from the
         /// partners than at either by more than four snaps (<see cref="MergeBasins"/>); two meetings are only one place when they are
-        /// within the reach of each other, whatever lies between, and in space a least within the reach of a meeting is left out, so that
-        /// it does not join two (<see cref="DropBesideMeetings"/>). Where the curve runs along a partner for a stretch, to
+        /// within the reach of each other, whatever lies between, a meeting in the plane that is one only to the snap and is no least of the
+        /// distance is left out beside a meeting to the digits (<see cref="KeepLoose"/>), and in space a least
+        /// within the reach of a meeting is left out, so that it does not join two (<see cref="DropBesideMeetings"/>). A place made of
+        /// several contacts is a crossing, or a near crossing, if any of them is. Where the curve runs along a partner for a stretch, to
         /// rounding, or along another curve within the reach and level for a quarter of the size of the smaller (<see cref="DropAlong"/>),
         /// it is not crossing it there, and nothing is given along the stretch.
         /// </remarks>
@@ -859,6 +866,7 @@ namespace GeometryHelper.Internal.Nurbs
 
             var kept = new List<Contact>();
             var pending = new List<Contact>();
+            var loose = new List<Contact>();
 
             for (int i = 0; i < hunt.Found.Count; i++)
             {
@@ -871,7 +879,7 @@ namespace GeometryHelper.Internal.Nurbs
 
                 if (contact.Verified)
                 {
-                    kept.Add(contact);
+                    (Loose(contact, hunt) ? loose : kept).Add(contact);
                 }
                 else if (contact.Least || IsMinimum(contact, hunt))
                 {
@@ -879,6 +887,7 @@ namespace GeometryHelper.Internal.Nurbs
                 }
             }
 
+            kept.AddRange(KeepLoose(loose, kept, hunt));
             List<Contact> leasts = DropNearerElsewhere(pending, partners, hunt);
             kept.AddRange(Dim == 3 ? DropBesideMeetings(leasts, kept, reach, hunt) : leasts);
             kept.Sort(Compare);
@@ -959,19 +968,167 @@ namespace GeometryHelper.Internal.Nurbs
                 }
             }
 
+            // A run that holds a crossing is a crossing, or in space a near crossing, whichever of its contacts is nearest: a crossing that
+            // the offset found inside a stretch along is not lost to a meeting Newton's method settled on a few units of rounding nearer.
+            var crossing = new bool[kept.Count];
+            var dip = new bool[kept.Count];
+
+            for (int i = 0; i < kept.Count; i++)
+            {
+                int root = Root(parent, i);
+                crossing[root] |= kept[i].Crossing;
+                dip[root] |= kept[i].Dip;
+            }
+
             var meetings = new List<Contact>();
 
             for (int i = 0; i < kept.Count; i++)
             {
                 if (best[i] >= 0)
                 {
-                    meetings.Add(kept[best[i]]);
+                    Contact place = kept[best[i]];
+                    place.Crossing |= crossing[i];
+                    place.Dip |= dip[i];
+                    meetings.Add(place);
                 }
             }
 
             meetings.Sort(Compare);
 
             return DropAlong(MergeBasins(meetings, partners, hunt), hunt);
+        }
+
+        /// <summary>
+        /// Says whether a meeting is one only to the snap, in the plane: not a crossing the offset found, and further from the partner than
+        /// the numbers can be evaluated to (<see cref="Evaluated"/>).
+        /// </summary>
+        private bool Loose(Contact contact, Hunt hunt) => Dim == 2 && !contact.Crossing && contact.Raw > Evaluated(hunt);
+
+        /// <summary>
+        /// Gets how near nought a distance can be told from nought by evaluating the curves: sixteen units in the last place of the size of
+        /// the numbers, a sixth of a hundredth of the snap.
+        /// </summary>
+        private static double Evaluated(Hunt hunt) => 16.0 * 2.220446049250313E-16 * hunt.Scale;
+
+        /// <summary>
+        /// Gives the meetings that are meetings only to the snap, but for one that lies within ten times the reach of a meeting to the digits
+        /// on the same partner and is no least of the distance: the curve comes nearer the partner a little way along it, one way or the
+        /// other, by more than the numbers can be evaluated to.
+        /// </summary>
+        /// <remarks>
+        /// Along a tangency far from the origin the curve is within the snap of the partner for a long way, and Newton's method settles
+        /// on points of the slope there that read as meetings: a quadratic sitting on the circle spline of radius 100 a million from the
+        /// origin is 2.3E-8 from it 0.002 either side of the touch, under the snap of 1E-7 and well over the 3.6E-9 the numbers are
+        /// evaluated to, and was given those two places besides the touch, where the circle gives one. A meeting to the digits is kept
+        /// whatever lies beside it, so two crossings a few snaps deep are two places, as the exact curves have them, and a loose meeting
+        /// with no exact one beside it stays, since it is the only reading of the place there is.
+        /// </remarks>
+        private List<Contact> KeepLoose(List<Contact> loose, List<Contact> exact, Hunt hunt)
+        {
+            var kept = new List<Contact>(loose.Count);
+
+            if (loose.Count == 0)
+            {
+                return kept;
+            }
+
+            double near = 10.0 * hunt.Reach;
+            double evaluated = Evaluated(hunt);
+
+            // The exact meetings in cells as wide as the reach looked within, one grid for each partner, so that a loose meeting looks at the
+            // nine cells round it and not at every exact one: an arc a million out against its flattening into 65 536 chords has as many of
+            // each.
+            double cell = Math.Max(near, 1E-9 * hunt.Scale);
+            var grid = new Dictionary<long, List<int>>(new CellComparer());
+
+            for (int i = 0; i < exact.Count; i++)
+            {
+                Register(grid, (long)Math.Floor(exact[i].Px / cell), (long)Math.Floor(exact[i].Py / cell), exact[i].Part, i);
+            }
+
+            foreach (Contact contact in loose)
+            {
+                bool beside = false;
+                long cx = (long)Math.Floor(contact.Px / cell);
+                long cy = (long)Math.Floor(contact.Py / cell);
+
+                for (long gx = cx - 1; gx <= cx + 1 && !beside; gx++)
+                {
+                    for (long gy = cy - 1; gy <= cy + 1 && !beside; gy++)
+                    {
+                        if (!grid.TryGetValue(CellKey(gx, gy, contact.Part), out List<int> inCell))
+                        {
+                            continue;
+                        }
+
+                        foreach (int j in inCell)
+                        {
+                            Contact other = exact[j];
+                            double dx = other.Px - contact.Px;
+                            double dy = other.Py - contact.Py;
+
+                            if (other.Part == contact.Part && dx * dx + dy * dy <= near * near)
+                            {
+                                beside = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!beside || !FallsAlong(contact, hunt.Reach, evaluated))
+                {
+                    kept.Add(contact);
+                }
+            }
+
+            return kept;
+        }
+
+        /// <summary>
+        /// Says whether the distance from the curve to the partner falls below that at a contact, by more than a band, a little way along
+        /// the curve either side of it: a millionth of the size of the curve, and twice that each time, out to a length.
+        /// </summary>
+        private bool FallsAlong(Contact contact, double length, double band)
+        {
+            double[][] here = Derivatives(contact.Knot, 1);
+            double speed = Math.Sqrt(here[1][0] * here[1][0] + here[1][1] * here[1][1] + Z(here[1]) * Z(here[1]));
+
+            if (!(speed > StillSpeed))
+            {
+                return false;
+            }
+
+            var point = new double[Dim];
+
+            for (int side = -1; side <= 1; side += 2)
+            {
+                double from = AcrossSeam(contact.Knot, side);
+
+                for (double step = 1E-6 * Extent; step <= length; step *= 2.0)
+                {
+                    double knot = Around(from + side * step / speed);
+
+                    if (knot == from)
+                    {
+                        break;
+                    }
+
+                    PointAt(knot, point);
+
+                    if (contact.From.Gap(point[0], point[1], Dim == 3 ? point[2] : 0.0, out _, out _, out _, out _) < contact.Raw - band)
+                    {
+                        return true;
+                    }
+
+                    if (!IsClosed && (knot == Start || knot == End))
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -1352,6 +1509,8 @@ namespace GeometryHelper.Internal.Nurbs
                 }
 
                 int best = from;
+                bool crossing = places[from].Crossing;
+                bool dip = places[from].Dip;
 
                 for (int i = from + 1; i <= to; i++)
                 {
@@ -1359,9 +1518,15 @@ namespace GeometryHelper.Internal.Nurbs
                     {
                         best = i;
                     }
+
+                    crossing |= places[i].Crossing;
+                    dip |= places[i].Dip;
                 }
 
-                merged.Add(places[best]);
+                Contact place = places[best];
+                place.Crossing = crossing;
+                place.Dip = dip;
+                merged.Add(place);
                 from = to + 1;
             }
 

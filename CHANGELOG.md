@@ -541,6 +541,71 @@ of 8 to 27 corners 15.7 to 16.8 s where they took 2.8 to 3.2. Most of it goes to
 2.2 s grown by 0.3 and 4.6 s shrunk, where it took 52 and 7 ms with the same answers. Within 1E-3 and 1E-4 the fuzz takes
 as long as before within the noise, and so does a gear of 3 200 teeth, 3.7 to 4.2 s on .NET 10 and 7.2 to 8.0 s on 4.8.
 
+**FIXED.** `GeoSpline2.Flatten` and `GeoSpline3.Flatten` of a spline no longer than the point tolerance give the chain of its
+corners as they are, where a chain would merge them into one point and the call threw: the part 0.000245 long that `Split(1E-6)`
+cuts off the fit through (0, 0), (30, 20), (60, -10), (100, 0) flattens to the chord from its start to its end. `Split` keeps such a
+part, exactly, as it did; `Flatten` throws now only where every corner it cuts at is one point to the bit, a spline that stands still
+or a closed one that the chord tolerance leaves cut at its ends alone.
+
+**FIXED.** A touch of a spline far from the origin is given no points on the slope beside it. A meeting of a spline with a shape in
+the plane that is one only to the snap (1E-13 of the size of the numbers), no crossing and further off than the numbers are evaluated to
+(sixteen units in their last place), which lies within ten times the tolerance of a meeting to the digits and is no least of the
+distance, is left out: a quadratic sitting on the circle spline of radius 100 a million from the origin, 2.3E-8 off it 0.002 either side
+of the touch, was given three places where the `GeoCircle2` gives one, and is given one, from either side, in the plane and in a tilted
+plane of space; bows 600 across sitting on that circle spline 100 000 to 3 000 000 out, three, and are given one. A meeting
+to the digits is kept whatever lies beside it, so crossings a few snaps deep are as many places as before: bows 600 across rising 0.05 to
+5, cut by a segment spline 1E-8 above their lowest point 100 000 out, 3E-8 a million out and 3E-7 three million out, in chords of 0.15 to
+0.47, are crossed twice, as they were (shallower chords far out still give one or three, the rounding's places, as before); and the spline
+of the arc of radius 100 about (1 000 000, 1 000 000) turning 0.1 against its own `Flatten(1E-7)`, 2 049 corners, gives 4 097 places, as
+it did, and turning 2 against `Flatten(2E-8)`, 65 537 corners, 131 073 in 0.95 s on .NET 10, as it did in 0.89. Ten million out the points beside the touch are 4E-9 off, under what the numbers are evaluated
+to, and are still given (parked), as are the five places of a line tangent to a circle spline of radius 1 000 a million out cut into
+10 000 segments, and the four of two circle splines crossing at the joins of their spans.
+
+**FIXED.** A spline of a flat arc and an arc of nearly its circle lie along each other where they are one circle to the rule however
+far the reading of the spline's circle may be off: their centres and radii within the tolerance of each other with the doubt of that
+reading counted twice. The spline of an arc of radius 849 821 and the arc of that circle moved 0.00011 and 0.0002 smaller were given
+the two ends of their overlap as places, where the arcs give none. Of 1 200 random pairs of arcs of radius 100 to 100 000 000 moved and
+grown less than the tolerance, 517 answered otherwise as splines than as arcs and 307 do, and with their centres within 100 000 of the
+origin 603 and 384; those left are splines whose circle the digits of their control points do not hold to the tolerance (parked).
+
+**FIXED.** Two splines that lie along each other give the same places whichever is asked and however they are turned. The stretch
+along them now runs past the end of either, within the tolerance of it, as an arc runs along an arc of its circle, where a copy that
+overhung the other's end ended it short; a point square from the end of the other is no least where the distance falls on into the
+other's inside, where it was read as the distance to that end; a crossing found inside the stretch stays one when a meeting found beside
+it is a few units of rounding nearer, where it was lost; and the offset of one from the other is read lobe by lobe between its changes
+of sign: a lobe that goes no further than a hundredth of the tolerance is taken with its neighbours, and between two lobes that go further,
+one to either side, the curves cross once, at the change nearest the middle of the small lobes between them, or the next nearest where
+that one is a jump of the offset at a corner of the other curve or a crossing so shallow that the two run along each other to the snap,
+and failing every change where Newton's method from either side of it settles on a meeting to the hundredth of the snap, the one nearer
+the change, however long the two run along each other round it, and never where it stalls short of that: two segments a million out that
+cross at a slope of 2.5E-7 cross once, 0.00006 off their crossing, where they were given none; between two that go further to the same
+side not at all. A sample of the offset that is nought exactly lies across a change and hides none. A change of sign inside the stretch was a crossing wherever the stretch swung
+further elsewhere, which gave the fit through 37 points of a quarter circle 68 crossings of an ellipse 1E-9 off that circle once crossings
+were kept as above; it gives at most 37. A cubic whose offset from a line goes from 1.1E-4 under it to 4.4E-4 over it, crossing it at 20,
+40 and 60 with lobes of 7E-6 between, crosses it once in the plane, at 40 at the origin and at 60 a million out, where the crossing at 40
+runs along the line within the snap, 1E-7 for two splines there, whichever is asked and however turned; it was given 3, the exact count, and in a tilted plane of space,
+where the pair is measured in space and no lobes are read, it is given 3 still. A
+zigzag of degree one and its copy moved 2.6E-5 along it cross at each corner where the edges are 1.8E-5 off each other, and once across
+two shallow edges 8.7E-7 off each other, where the exact polylines cross three times; of 400 random polylines that never turn back and
+their copies moved 2.6E-5, 216 give the exact count where 201 did, and 314 its parity where 270 did, and of 400 more moved 5E-4, 388
+and 395 where 266 and 299 did, none of them answering otherwise asked the other way or turned. Polylines that turn back on themselves
+pay where a first or last lobe goes no further than a hundredth of the tolerance, which is no crossing by the rule: of 400 at the origin
+moved 2.6E-5, 46 give the exact count where 51 did and 285 its parity where 293 did, and none answers otherwise asked the other way or
+turned, where 36 did. Of 60 random splines and their copies
+moved 0.0001 to 0.0009, 5 gave a place more or fewer turned by 0.7 of a radian and none does, and of 200 more 18 and 4. Of 120 copies
+moved 0.0001 to 0.0021, asked three ways (either first, and turned) at two tolerances, 166 places are found that were lost, every one a
+crossing, a point of both curves to 1E-14; 24 ends and near touches that were no least of the distance are given no more; and 7
+crossings are given no more: a pair 0.011 of the curve apart whose offset swings less than a hundredth of the tolerance between them,
+asked three ways, as the rule for a stretch along has it, and one where the copy meets the curve's other branch beside a crossing of the
+curve with itself, inside a stretch along, which the other two ways missed before as well (parked).
+
+What moved: of 60 480 answers of random splines against every shape of the plane and 37 440 against every shape of space, at two
+or three tolerances (the draws of the symmetry fuzz tests, eight times over), none, to the bit. The touches far out, the spline arcs that are one circle with
+an arc, and splines with their near copies, as above. The space reading of a curve and a copy moved out of every plane, a place at each
+least of their distance, is as it was: a curve and its copy moved 0.0005 in its plane give no place, and a curve that is not flat and its
+copy moved 0.0005 give 14 (parked). The draw of a fuzz run that once found a spline on one line 5.8E-6 too far from an ellipse 709 across,
+fixed before, is a test of its own. 28 new tests.
+
 ## 12.3.0
 
 **NEW.** `DxfReader` reads a DXF file into the library's shapes: `Read(path)`, `Read(stream)` and `Parse(text)`, each with

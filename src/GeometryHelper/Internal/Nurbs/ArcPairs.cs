@@ -30,10 +30,29 @@ namespace GeometryHelper.Internal.Nurbs
         /// Says whether two arcs are known well enough to be met in closed form: their centres and radii, as read from the numbers they
         /// are made of, within a hundredth of the reach of the true circles for the places, and within a snap for the distance. A flat arc,
         /// of radius 1 000 000 and chord 300, has its centre read from its control points to no better than 2E-4, and the rule of the two
-        /// circles read so would give places the arcs do not have; such a pair is cut as any other.
+        /// circles read so would give places the arcs do not have; such a pair is cut as any other, unless the two are one circle to the
+        /// rule however far the reading may be off, their centres and radii within the reach of each other with the doubt on each counted
+        /// twice: then they lie along each other, as the arcs do, which no doubt about where they would cross can change.
         /// </summary>
         internal static bool Exact(PieceArc first, PieceArc second, Hunt hunt)
-            => first.Error + second.Error <= (hunt.OnlyNearest ? hunt.Snap : 1E-2 * hunt.Reach);
+        {
+            double doubt = first.Error + second.Error;
+
+            if (doubt <= (hunt.OnlyNearest ? hunt.Snap : 1E-2 * hunt.Reach))
+            {
+                return true;
+            }
+
+            if (hunt.OnlyNearest)
+            {
+                return false;
+            }
+
+            double dx = second.Cx - first.Cx;
+            double dy = second.Cy - first.Cy;
+
+            return Math.Sqrt(dx * dx + dy * dy) + Math.Abs(first.Radius - second.Radius) + 2.0 * doubt <= hunt.Reach;
+        }
 
         /// <summary>
         /// Offers what a piece of a curve that is an arc gives a hunt against a partner's arc.

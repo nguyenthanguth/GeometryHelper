@@ -1342,6 +1342,9 @@ every control point of the piece is within the tolerance of its chord (a Bézier
 the second differences of a polynomial piece, or the height of the middle control point of a conic, say so with less cutting.
 The circle of radius 100 within 0.01 is 256 chords, where 223 would hold, and the cubic above is 128. There is no automatic
 tolerance, since a spline has no radius to take a share of; a tolerance that needs more than 1 048 576 pieces is refused.
+A spline no longer than the point tolerance, which a chain would merge into one point, is the chain of its corners as they are: the
+part 0.000245 long that `Split(1E-6)` cuts off the fit through (0, 0), (30, 20), (60, -10), (100, 0) flattens to the chord from its start
+to its end, where it was refused. `Split` keeps such a part, exactly, as it keeps any other.
 
 **Writing, showing and reading.** `DxfWriter.Add(spline, layer)` writes a spline as the R2000 SPLINE entity AutoCAD reads: its degree, its
 knots, its weights where it is rational and its control points, at height nought, every number to the bit and no fit points, flagged
@@ -1403,9 +1406,15 @@ as the digits tell all along a stretch, and each near touch it finds there is th
 within the tolerance of each other, whatever lies between them, as the exact curves have it: two crossings 6E-4 apart are one place at a
 thousandth and two at a ten-thousandth, and a line that cuts a circle of radius 30 a million from the origin in a chord of 0.009 meets it
 twice, for the spline as for the `GeoCircle2`. A line tangent to a circle of radius 1 000 touches it once, however the line is cut into
-segments (a polyline of 10 000 segments, 100 000 out): a million out the numbers are 1.2E-10 apart and the two are within a snap, 1E-7,
-of each other for 0.014 either side of the touch, where the places are the crossings of the rounding, up to three, all within that
-hundredth of a millimetre. Of the edges of a polygon, chain or loop, each is asked in turn and a place that another edge is nearer to is
+segments (a polyline of 10 000 segments, 100 000 out): a million out the numbers are 1.2E-10 apart and the two are within a snap of each
+other for 0.014 either side of the touch, where the places are the crossings of the rounding, up to five, all within that hundredth of a
+millimetre. The snap is 1E-13 of the size of the numbers, which for a line, a segment or a polyline is the sum of its coordinates' sizes:
+2E-7 for one a million out along both axes. A meeting that is one only to the snap, no crossing and further from the shape than the
+numbers can be evaluated to (sixteen units in their last place), which lies within ten times the tolerance of a meeting to the digits and
+is no least of the distance, is left out: a quadratic sitting on the circle spline of radius 100 a million from the origin is 2.3E-8 off it
+0.002 either side of the touch, and those two points, on the slope of the distance, were given besides the touch, where the `GeoCircle2`
+gives one place; it is given one. Ten million out the two points are 4E-9 off, within what the numbers are evaluated to, and are still
+given in place of the touch, a known limit. Of the edges of a polygon, chain or loop, each is asked in turn and a place that another edge is nearer to is
 not one of the shape. A closed spline has no end to come near: the line tangent to the circle spline of radius 100 at 0.003 of a radian
 touches it once, as it does the `GeoCircle2`, where the seam at (100, 0), 4.5E-4 off the line, was given too as an end. A least
 that curves up too little to rise a snap a thousandth of the size of the spline along it is one only where the distance falls neither
@@ -1428,14 +1437,41 @@ crosses it nowhere, and no point is given along the stretch: the corner (0, 0), 
 copy cross nowhere and are nought apart. Against an ellipse or another spline the same is so where each stays within the point
 tolerance of the other, and the first keeps its distance level, changing by no more than half of it, for a quarter of the size of the
 smaller of the two, the size being how far its control points reach from the first, which is the same however the pair is turned (the
-span along the axes was, and 14 of 60 copies of a spline moved a few ten-thousandths gave a place more or fewer turned by 0.7 of a radian;
-7 still do, by where the stretches along them end): two circles of radius 1 000 and 1 000.0005 are 0.0005 apart all round, collide, give no place, and are 0.0005 apart for
+span along the axes was, and 14 of 60 copies of a spline moved a few ten-thousandths gave a place more or fewer turned by 0.7 of a radian).
+Past an end of the other, within the tolerance of it, the first is along it as far as the tolerance reaches, as an arc is along an arc of
+its circle, so a copy that overhangs the other's end and the other's end itself answer alike whichever is asked first, which turning the
+pair can change; a point square from the other's end is a least of the distance only where the distance falls on neither way, the other's
+inside included; and a crossing found inside the stretch stays a crossing however a meeting found beside it is read. Of those 60 copies
+none gives a place more or fewer turned, where 5 did, and of 200 more 4, where 18 did. Two circles of radius 1 000 and 1 000.0005 are 0.0005 apart all round, collide, give no place, and are 0.0005 apart for
 `DistanceTo` (not nought: it never reads the tolerance), where at a tolerance of 1E-4 they do not collide and are as far apart. Both are
 looked at: a stretch that one curve leaves by more than the tolerance, a dart of a millimetre of a polyline 2E-4 off a line that goes out a
 unit and back, is cut out of the stretch, which is cut in two there, and the crossings at the dart's two edges, (506.0002, 0) and
 (507.9998, 0), are given from either side, where they were lost. A crossing inside a stretch is given too, where the offset of the one
 from the other changes sign and goes more than a hundredth of the tolerance, 1E-5, to each side: a line and one that goes from 2E-4 under it
-to 2E-4 over it cross at (500, 0) in 1 000. A change of sign by less is the rounding of curves that are the same to a hundred-millionth. A
+to 2E-4 over it cross at (500, 0) in 1 000. A change of sign by less is the rounding of curves that are the same to a hundred-millionth: a
+lobe of the offset between two changes, its samples off nought on one side (a sample that is nought exactly belongs to none, and the change
+lies across it), that goes no further is taken with its neighbours, and between two lobes that go further, one to either side, the curves
+cross once, at the change nearest the middle of the small lobes between them, or the next nearest where that one is a jump of the offset at
+a corner of the other curve, which bisects to no meeting, or a crossing so shallow that the two run along each other there to the snap,
+and failing every change, where Newton's method on the two curves from either side of it settles on a meeting to the hundredth of the
+snap it works to, the one nearer the change (a point it stalls on short of that is no crossing, however near, and one it settles on is one
+however long the two run along each other round it: two segments a million out that cross at a slope of 2.5E-7 cross once, at their
+crossing, 0.00006 off, where they were given no place, or one 0.35 off); between two that go
+further to the same side, not at all. So between the first and the last lobe that go further, the crossings given are odd in number where
+those two lie to either side and even where not, wherever a change between two such lobes is found to meet; a small lobe before the first
+or after the last gives none. A cubic whose offset from a line goes from 1.1E-4 under it to 4.4E-4 over it, crossing it at 20, 40 and 60
+with lobes of 7E-6 between, crosses it once in the plane, at 40 at the origin, whichever is asked and however turned, where it was given
+three; a million out the crossing at 40 runs along the line within the snap for 0.1 either side (1E-7, 1E-13 of the largest coordinate of the
+control points of the two splines; a `GeoLine2` reads the sum of its coordinates, 2E-7 there), and the one at 60 is given; laid in
+a tilted plane of space the pair lies in no plane the digits can tell, and is measured in space, where no lobes are read, at all three. A
+zigzag of degree one and its copy moved 2.6E-5 along it cross at each corner where the edges either side are 1.8E-5 off each other, and
+once across two shallow edges 8.7E-7 off each other, where the exact polylines cross three times. Of 400 random polylines that never turn
+back and their copies moved 2.6E-5, 216 are given the exact count of crossings and 314 its parity, where 201 and 270 were, and moved 5E-4,
+388 and 395 of 400 more, where 266 and 299 were, and none answers otherwise asked the other way or turned. A polyline that turns back
+on itself pays for the rule where its first or last lobe goes no further than the hundredth: the first edge of one 26.8 long lies 7.07E-6
+off its copy, and the corner after it, which the exact polylines cross at, is no crossing; of 400 such polylines at the origin and their
+copies moved 2.6E-5, 46 are given the exact count and 285 its parity, where 51 and 293 were, and none of them answers otherwise asked the
+other way or turned, where 36 did. A
 sine of 21 fit points and a copy moved 0.0005 up are along each other and cross nowhere, where 15 101 places came before, after 22 seconds,
 and none comes now in a few milliseconds. The fit through 37 points of a quarter circle against `GeoArc2` of the same arc, which is
 solved exactly, gives its true crossings, 72 of them, the fit being the arc to rounding only in the places it was made to pass through,
@@ -1462,8 +1498,14 @@ leaves the centre within a hundredth of the tolerance of the true one for the pl
 turn of radius 100 000 is read to 1E-10, while a flat arc of radius 1 000 000 and chord 300, read to no better than 2.3E-4, or of radius
 10 000 000 and chord 1 000 a hundred thousand out, off by 0.6, is cut as any other span, where the circles read so gave one to four
 places the arcs do not have. A flat arc so cut can still answer otherwise than the arcs against an arc of nearly its circle, as it
-did, a known limit: of 1 200 random pairs of arcs of radius 100 to 100 000 000 moved and grown less than the tolerance, 383 do, where
-838 did; the spline of radius 1 000 000 and chord 300 is given two places against the arc of its circle 0.0002 larger, which the arcs
+did. Two such arcs that are one circle to the rule however far the reading may be off, their centres and radii within the tolerance of
+each other with the doubt on each counted twice, lie along each other as the arcs do: the spline of an arc of radius 849 821 and the arc
+of that circle moved 0.00011 and 0.0002 smaller meet nowhere, where the ends of their overlap were two places. Where the doubt is larger
+than that leaves room for, the spline of a flat arc is not one circle to the digits of its control points, which hold a circle off the
+arc's by up to 0.7 for an arc of radius 69 000 000 and chord 15 000, and it still answers otherwise than the arcs, a known limit: of 1 200
+random pairs of arcs of radius 100 to 100 000 000 a thousand from the origin moved and grown less than the tolerance, 307 do, where 517
+did, and with their centres within 100 000 of it, 384, where 603 did, every one of them a spline whose circle cannot be read to the
+tolerance; the spline of radius 1 000 000 and chord 300 is given two places against the arc of its circle 0.0002 larger, which the arcs
 do not have.
 Two circle splines nearly about one centre are as near as the digits tell for a long way round, and cut into parts they paired
 every part of the one with hundreds of the other's: of radius 100 000 and 100 000.0005 with their centres 0.01 apart they ran through
@@ -1513,7 +1555,7 @@ bit; and 45 hand cases, and 39 more, at a hundred thousand and a million from th
 curves that cross twice a hair apart. The worst distance error was 1.6E-15 of the size of the spline, and 6.4E-9 of it a million from the
 origin. A run of four times the draws, which the environment variable SPLINE_FUZZ_DRAWS asks for, once found a distance 5.8E-6 too great,
 for a spline all on one line against an ellipse of size 700, where the hair was a hundred-millionth of the size; it is a billionth now,
-and the run is clean.
+the run is clean, and that draw is a test of its own.
 
 **Not offered, and why.** `SignedDistanceTo`, `Contains` and `GetClosestEdge` (a spline has neither an inside nor edges), and a
 `TryIntersectWith` that gives one point (a spline can meet a shape many times, so it gives the places as an array, as an arc does). A point

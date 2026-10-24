@@ -1974,7 +1974,7 @@ which `ToPolylineByChordTolerance` gives a chain that errs on the safe side.
 they were given and, when it is rational, weights; clamped, so it starts at its first control point and ends at its last. It is made,
 read, cut and measured as the plane's is, by the same engine, so everything said there about its exactness holds here: the point at a
 parameter, derivatives, tangent, `Length`, `GetAabb` (a `GeoAabb3`), `Split`, `Reverse`, `Flatten(chordTolerance)` into a
-`GeoPolyline3`, and the two kinds of parameter: the members named for a parameter (`GetPointAtParameter`, `GetParameterAtPoint`, `Split`)
+`GeoPolyline3` (a part no longer than the point tolerance, as `Split` cuts off near an end, the chain of its corners as they are), and the two kinds of parameter: the members named for a parameter (`GetPointAtParameter`, `GetParameterAtPoint`, `Split`)
 take a share of the domain from 0 to 1, those named for a knot (`GetPointAtKnot`, `GetKnotAtPoint`, `SplitAtKnot`) a value of the
 knots, and those named for a distance (`GetPointAtDistance`, `GetParameterAtDistance`, `GetDistanceAtPoint`) a length. In space a curve has no left to turn to, so `GetCurvatureAtParameter` and `GetCurvatureAtKnot` are never negative.
 
@@ -2061,7 +2061,9 @@ the sixth power) and lower nowhere on the way. A least that curves up is one onl
 the line y = 0.0001 stops at its inflection and goes on falling, which is no place, and the line crosses it once, at x = 0.21544. Places no further
 apart than the point tolerance are one place, as are two near touches next to each other along the spline within ten times that with no point
 between them farther from the shape than at either by more than four snaps (a snap is 1E-13 of the size of the numbers); two crossings are one place
-only when they are within the tolerance of each other, and a least of the distance beside a crossing does not join two. A closed spline, its first and
+only when they are within the tolerance of each other, and a meeting of two curves in one plane that is one only to the snap and no least
+of the distance is left out beside a meeting to the digits, as in the plane (a quadratic sitting on a circle spline of radius 100 laid in a
+tilted plane a million out touches it once, where it was given three places), and a least of the distance beside a crossing does not join two. A closed spline, its first and
 last control points the same to the bit, has no ends, as in the plane: a line 0.0002 off the plane of a circle spline of radius 100, tangent to it
 0.003 of a radian past its seam, touches it once, where the seam was given too.
 
@@ -2089,7 +2091,7 @@ in the plane), and a polyline spline through (0, 0), (100, 0), (100, 100), (200,
 and its copy moved (0.0003, 0.0004) along its plane, which lie along each other within the tolerance all the way, cross at the three corners,
 (100, 0.0004), (100.0003, 100.00015) and (199.99993, 150.00021). In a plane square to an axis the answers are the plane's to the bit; a tilted plane
 is laid flat by two directions of its own, and its answers are those of the plane turned, which for two curves that run a hair from each other the
-plane itself can give a place more or fewer for (7 of 60 such copies, turned by 0.7 radians in the plane). An arc, a circle, an ellipse, an edge,
+plane itself can give a place more or fewer for (none of 60 such copies turned by 0.7 radians in the plane, where 5 did, and 4 of 200 more, where 18 did). An arc, a circle, an ellipse, an edge,
 a chain of edges, a segment, a ray or a line without ends in the plane of a spline is laid flat with it the same way for the places: a circle spline
 of radius 100 moved (0.0003, 0.0005) along its plane is one circle with its circle and with an arc of it, as in the plane, and a segment along the
 first side of a polyline spline, 1.15E-6 off it and turned by 7E-8 of a radian, is given the one place the plane gives, where it was given the spline's

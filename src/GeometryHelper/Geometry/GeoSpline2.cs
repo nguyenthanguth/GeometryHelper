@@ -864,17 +864,51 @@ namespace GeometryHelper.Geometry
         /// is not kept, as for <see cref="GeoPolylineArc2.Flatten(double)"/>; the writers (<c>ObjWriter</c>, <c>Wkt</c>,
         /// <c>DxfWriter</c>) keep every piece.
         /// </para>
+        /// <para>
+        /// A spline no longer than the point tolerance, all of it within the tolerance of its start, which a chain would merge into one
+        /// point, is the chain of its corners as they are, the repeats of one point to the bit left out: the part 0.000245 long that
+        /// <see cref="Split(double)"/> at a millionth cuts off the fit through (0, 0), (30, 20), (60, -10), (100, 0) is the chord from its
+        /// start to its end, where it was refused. <see cref="Split(double)"/> keeps such a part, exactly, as it keeps any other.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is not a positive number, or needs more than 1 048 576 pieces.</exception>
-        /// <exception cref="ArgumentException">Thrown when the spline is so small that its corners merge into one point.</exception>
+        /// <exception cref="ArgumentException">Thrown when every corner the spline is cut at is the same point, to the bit: a spline that stands still, or a closed one whose chord tolerance is so large that it is cut at its ends alone.</exception>
         public GeoPolyline2 Flatten(double chordTolerance)
         {
             Guard.Positive(chordTolerance, nameof(chordTolerance), "A chord tolerance has to be a positive number.");
 
             var corners = new List<double>();
             _curve.Flatten(chordTolerance, corners);
+            GeoPoint2[] points = Unflatten(corners.ToArray());
 
-            return new GeoPolyline2(Unflatten(corners.ToArray()));
+            // A chain keeps a corner that is not within the point tolerance of the last it kept, so it has two corners when one of
+            // them is not within the tolerance of the first, as for every spline longer than the tolerance.
+            for (int i = 1; i < points.Length; i++)
+            {
+                if (!points[i].IsEqualTo(points[0]))
+                {
+                    return new GeoPolyline2(points);
+                }
+            }
+
+            // A spline that lies within the point tolerance of its start, shorter than the tolerance, as the part Split cuts off
+            // near an end can be, is the chain of its corners as they are, the repeats of one point to the bit left out.
+            var kept = new List<GeoPoint2>(points.Length);
+
+            foreach (GeoPoint2 point in points)
+            {
+                if (kept.Count == 0 || point.X != kept[kept.Count - 1].X || point.Y != kept[kept.Count - 1].Y)
+                {
+                    kept.Add(point);
+                }
+            }
+
+            if (kept.Count < 2)
+            {
+                throw new ArgumentException("Every corner the spline is cut at is one point: a spline that stands still, or a closed one that the chord tolerance leaves cut at its ends alone.");
+            }
+
+            return new GeoPolyline2(kept.ToArray(), kept.Count);
         }
 
         #endregion
