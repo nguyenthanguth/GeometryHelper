@@ -40,7 +40,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoTriangle3 face in solid.TriangulateQuietly(tolerance))
             {
-                if (TryIntersectWith(ray, face, out GeoPoint3 meeting, tolerance))
+                if (TryCrossTriangle(ray, face, out GeoPoint3 meeting, tolerance, false))
                 {
                     reaches.Add(ray.GetDistanceAtPoint(meeting));
                 }

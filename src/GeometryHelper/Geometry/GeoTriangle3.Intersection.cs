@@ -26,7 +26,8 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(ray, this, out intersection);
 
         /// <summary>
-        /// Tries to find the point where a ray crosses this triangle, within a tolerance.
+        /// Tries to find the point where a ray crosses this triangle, within a tolerance: the first point
+        /// <see cref="GeoRay3.GetIntersections(GeoTriangle3, Tolerance)"/> gives, and false where it gives none.
         /// </summary>
         public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(ray, this, out intersection, tolerance);
         /// <summary>

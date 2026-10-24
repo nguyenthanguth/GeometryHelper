@@ -25,7 +25,8 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(this, triangle, out intersection);
 
         /// <summary>
-        /// Tries to find the point where this ray crosses a triangle, within a tolerance.
+        /// Tries to find the point where this ray crosses a triangle, within a tolerance: the first point
+        /// <see cref="GeoRay3.GetIntersections(GeoTriangle3, Tolerance)"/> gives, and false where it gives none.
         /// </summary>
         public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(this, triangle, out intersection, tolerance);
 
@@ -67,7 +68,8 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoFace3 face, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(this, face, out intersection);
 
         /// <summary>
-        /// Tries to find the point where this ray crosses a face, within a tolerance.
+        /// Tries to find the point where this ray crosses a face, within a tolerance: the first point
+        /// <see cref="GeoRay3.GetIntersections(GeoFace3, Tolerance)"/> gives, and false where it gives none.
         /// </summary>
         /// <param name="face">The face.</param>
         /// <param name="intersection">The crossing point when the method returns true.</param>
@@ -82,7 +84,8 @@ namespace GeometryHelper.Geometry
         public bool TryIntersectWith(GeoPolygon3 polygon, out GeoPoint3 intersection) => Intersection3.TryIntersectWith(this, polygon, out intersection);
 
         /// <summary>
-        /// Tries to find the point where this ray crosses a polygon, within a tolerance.
+        /// Tries to find the point where this ray crosses a polygon, within a tolerance: the first point
+        /// <see cref="GeoRay3.GetIntersections(GeoPolygon3, Tolerance)"/> gives, and false where it gives none.
         /// </summary>
         /// <param name="polygon">The polygon.</param>
         /// <param name="intersection">The crossing point when the method returns true.</param>

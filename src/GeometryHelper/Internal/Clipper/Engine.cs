@@ -3765,31 +3765,109 @@ namespace GeometryHelper.Clipper
         /// Looks among the paths split off an owner, and those split off them, for one that holds the output path;
         /// makes it the owner and returns true when it finds one.
         /// </summary>
+        /// <remarks>
+        /// The lists are walked with a stack of their own, in the order the recursion of the C# original walks them, so
+        /// that a chain of splits thousands deep does not run out of the thread's stack. A path with no points whose
+        /// splits lead back to a list already being walked is passed over: the original walked that list again from its
+        /// start, and in some cases came to the same place and recursed until the stack overflowed (case 194 of seed 1 of
+        /// the LN9 clip fuzz, a polytree of a union of zigzags); where its walk ended, of 3 600 fuzz cases, the owner it
+        /// chose is the one chosen here.
+        /// </remarks>
         private bool CheckSplitOwner(OutRec outrec, List<int> splits)
         {
-            // nb: use indexing (not an iterator) in case 'splits' is modified inside this loop (#1029)
-            for (int i = 0; i < splits.Count; i++)
+            var walk = new List<SplitWalk> { new SplitWalk(splits) };
+
+            while (walk.Count > 0)
             {
-                OutRec split = _outrecList[splits[i]];
-                if (split.pts == null && split.splits != null &&
-                    CheckSplitOwner(outrec, split.splits)) return true; //#942
-                split = GetRealOutRec(split);
-                if (split == null || split == outrec || split.recursiveSplit == outrec) continue;
-                split.recursiveSplit = outrec; //#599
+                SplitWalk at = walk[walk.Count - 1];
 
-                if (split.splits != null && CheckSplitOwner(outrec, split.splits)) return true;
+                if (at.stage == 0)
+                {
+                    // nb: use indexing (not an iterator) in case 'splits' is modified inside this loop (#1029)
+                    if (at.i >= at.splits.Count)
+                    {
+                        walk.RemoveAt(walk.Count - 1);
+                        continue;
+                    }
 
-                if (!CheckBounds(split) ||
-                        !split.bounds.Contains(outrec.bounds) ||
-                        !Path1InsidePath2(outrec.pts, split.pts)) continue;
+                    at.split = _outrecList[at.splits[at.i]];
+                    at.stage = 1;
 
-                if (!IsValidOwner(outrec, split)) // split is owned by outrec (#957)
-                    split.owner = outrec.owner;
+                    if (at.split.pts == null && at.split.splits != null && !Walking(walk, at.split.splits))
+                    {
+                        walk.Add(new SplitWalk(at.split.splits)); //#942
+                        continue;
+                    }
+                }
 
-                outrec.owner = split; //found in split
+                if (at.stage == 1)
+                {
+                    OutRec split = GetRealOutRec(at.split);
+                    if (split == null || split == outrec || split.recursiveSplit == outrec)
+                    {
+                        at.Next();
+                        continue;
+                    }
+                    split.recursiveSplit = outrec; //#599
+                    at.split = split;
+                    at.stage = 2;
+
+                    if (split.splits != null)
+                    {
+                        walk.Add(new SplitWalk(split.splits));
+                        continue;
+                    }
+                }
+
+                OutRec found = at.split;
+                if (!CheckBounds(found) ||
+                        !found.bounds.Contains(outrec.bounds) ||
+                        !Path1InsidePath2(outrec.pts, found.pts))
+                {
+                    at.Next();
+                    continue;
+                }
+
+                if (!IsValidOwner(outrec, found)) // split is owned by outrec (#957)
+                    found.owner = outrec.owner;
+
+                outrec.owner = found; //found in split
                 return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// Determines whether a list of splits is being walked already, lower in the walk.
+        /// </summary>
+        private static bool Walking(List<SplitWalk> walk, List<int> splits)
+        {
+            foreach (SplitWalk at in walk)
+            {
+                if (at.splits == splits) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Where the walk of one list of splits stands: the split it is at, and how far that split has been looked at, the
+        /// splits of a path with no points (stage 1 next), those of the path it stands for (stage 2 next) or its bounds.
+        /// </summary>
+        private sealed class SplitWalk
+        {
+            public readonly List<int> splits;
+            public int i;
+            public int stage;
+            public OutRec split;
+
+            public SplitWalk(List<int> splits) => this.splits = splits;
+
+            public void Next()
+            {
+                i++;
+                stage = 0;
+                split = null;
+            }
         }
 
         /// <summary>

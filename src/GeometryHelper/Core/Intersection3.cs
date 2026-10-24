@@ -466,10 +466,19 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Tries to find the point where a ray crosses a triangle, within a tolerance.
+        /// Tries to find the point where a ray crosses a triangle, within a tolerance: the first point
+        /// <see cref="GetIntersections(GeoRay3, GeoTriangle3, Tolerance)"/> gives, and false where it gives none.
         /// </summary>
+        /// <remarks>
+        /// The answer is the list's, so the two never disagree: the ray is read as the line without ends along it, and is given
+        /// what that line meets at its origin or ahead of it, the crossing or the point of a touch. The ray from
+        /// (10, 20, 0.0002) falling 4E-6 for each unit along X climbs 0.00032 across the triangle with corners (0, 0, 0),
+        /// (100, 0, 0) and (0, 100, 0) and lies level over it within the planar tolerance of a thousandth, so it is refused,
+        /// where it was given its crossing of the floor at (60, 20, 0) while the list gave none; the ray from (20, 20, 10)
+        /// pointing straight down crosses it at (20, 20, 0).
+        /// </remarks>
         public static bool TryIntersectWith(GeoRay3 ray, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance)
-            => TryCrossTriangle(ray, triangle, out intersection, tolerance, false);
+            => First(Meeting(ray, triangle, tolerance), out intersection);
 
         /// <summary>
         /// Tries to find the point where a ray crosses a triangle, with the plane read as
@@ -675,9 +684,26 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Tries to find the point where a ray crosses a polygon, within a tolerance.
+        /// Tries to find the point where a ray crosses a polygon, within a tolerance: the first point
+        /// <see cref="GetIntersections(GeoRay3, GeoPolygon3, Tolerance)"/> gives, and false where it gives none.
         /// </summary>
+        /// <remarks>
+        /// The answer is the list's, so the two never disagree: the ray is read as the line without ends along it, and is given
+        /// what that line meets at its origin or ahead of it, the crossing or the point of a touch. The ray from
+        /// (10, 50, 0.0002) falling 4E-6 for each unit along X climbs 0.0004 across the square 100 by 100 in the floor with a
+        /// corner at the origin and lies level over it within the planar tolerance of a thousandth, so it is refused, where it
+        /// was given its crossing of the floor at (60, 50, 0) while the list gave none; the ray from (20, 20, 10) pointing
+        /// straight down crosses it at (20, 20, 0).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool TryIntersectWith(GeoRay3 ray, GeoPolygon3 polygon, out GeoPoint3 intersection, Tolerance tolerance)
+            => First(Meeting(ray, polygon, tolerance), out intersection);
+
+        /// <summary>
+        /// Tries to find the point where a ray crosses a polygon by its crossing of the polygon's plane, held by the polygon: the
+        /// reading the library's own questions start from, before the ray is read as its line.
+        /// </summary>
+        internal static bool TryCrossPolygon(GeoRay3 ray, GeoPolygon3 polygon, out GeoPoint3 intersection, Tolerance tolerance)
         {
             intersection = GeoPoint3.Origin;
 
@@ -1061,10 +1087,29 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Tries to find the point where a ray crosses a face, within a tolerance.
+        /// Tries to find the point where a ray crosses the material of a face, within a tolerance: the first point
+        /// <see cref="GetIntersections(GeoRay3, GeoFace3, Tolerance)"/> gives, and false where it gives none.
         /// </summary>
+        /// <remarks>
+        /// The answer is the list's, so the two never disagree: the ray is read as the line without ends along it, and is given
+        /// what that line meets at its origin or ahead of it, the crossing or the point of a touch. The ray from
+        /// (10, 50, 0.0002) falling 4E-6 for each unit along X climbs 0.0004 across the square 100 by 100 in the floor with a
+        /// corner at the origin and lies level over it within the planar tolerance of a thousandth, so it is refused, where it
+        /// was given its crossing of the floor at (60, 50, 0) while the list gave none. The ray from (50, 50, 10) pointing
+        /// straight down through a hole 40 by 40 in the middle of the square crosses nothing.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static bool TryIntersectWith(GeoRay3 ray, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance)
-            => TryCrossFace(ray, face, out intersection, tolerance, false);
+            => First(Meeting(ray, face, tolerance), out intersection);
+
+        /// <summary>
+        /// Gives the first of the points of a list, and false where it holds none, the point then the origin.
+        /// </summary>
+        private static bool First(GeoPoint3[] points, out GeoPoint3 intersection)
+        {
+            intersection = points.Length > 0 ? points[0] : GeoPoint3.Origin;
+            return points.Length > 0;
+        }
 
         /// <summary>
         /// Tries to find the point where a ray crosses the material of a face, with the plane read as

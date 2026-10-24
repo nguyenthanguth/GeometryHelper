@@ -553,6 +553,33 @@ starting within the planar tolerance that were given nothing where their origin 
 over the three shapes and 40 000 over a square, none is given a point its line is not, but its origin as above. A ray
 takes about 1.5 times as long to meet a triangle, a polygon or a face, read both as a ray and as its line.
 
+**FIXED.** `TryIntersectWith` of a ray against a triangle, a polygon or a face gives the first point `GetIntersections`
+gives, and false where that gives none. Since the ray is read as its line the two disagreed: the ray from (10, 50, 0.0002)
+over the square 100 by 100, falling 4E-6 for each unit along it, lies level over the square and is given nothing by the
+list, but `TryIntersectWith` gave its crossing of the floor at (60, 50, 0); so did the ray from 0.00005 over it falling
+1E-6 and the one from 1E-7 over a rectangle 5 000 by 100 falling 1E-10. Each is refused now, and a ray passing the rim at
+a slant within the tolerance, given the touch by the list, is given it by `TryIntersectWith` too. Of 20 000 rays drawn
+level, slanting, steep and near the rims of a triangle, a square and a face with a hole, turned and moved up to a million
+off, 3 371 of the 60 000 answers were true with no point listed, 1 380 false with one, and 14 gave a point further than
+the tolerance from the one listed; none is now, and `GetIntersections` is as it was to the bit. A segment and a line
+without ends are crossed by `TryIntersectWith` where they cross the plane within the shape, as before; the list gives
+that crossing too, and a touch besides (4 834 of the same 60 000 answers), and the hierarchies are held to the plain scan
+of that crossing. `TryIntersectWith` of a ray costs what `GetIntersections` does, about ten times the plane crossing it
+was: 100 000 calls take 80 to 140 ms on .NET 10 where they took 7 to 10. Code that counts the triangles a ray crosses
+with `TryIntersectWith` now counts the rims it touches within the tolerance as well.
+
+**CHANGED.** A bar checked by its centre line (`ClashBar`) that runs at a slant past a large mesh no longer gathers every
+triangle in the box of its centre line, only those whose boxes it passes within the tolerance of. Fifty bars running at a
+slant past a cylinder of radius 500 and 10 000 sides take 370 to 790 ms on .NET 10 where they took 960 to 1 640, and
+fifty that pass it 10 to 20 off take 140 to 360 ms where they took 800 to 1 060; every answer is the same to the bit, as
+are those of 48 000 bars along and across a box, a comb, a slotted plate and an angle.
+
+**FIXED.** The copy of Clipper2 kept in the library builds a polytree whose paths split off one another in a ring: it
+looked for the owner of a path among those splits by recursion, walked a list it was already walking again from its
+start, and overflowed the stack, which ends the process. The splits are walked with a stack of their own now, and a list
+already being walked is passed over. Of the 1 300 cases of three seeds of the clip fuzz, the three that overflowed
+build their trees, and every other gives the same paths to the bit.
+
 **CHANGED.** `ArrangeItem.GetPlacePoints` and `Arranger.Run` try a label at the same places, moved, wherever the scene
 lies. The slides along a leader were stepped off by adding a step to the last, up to the reach of the label, so whether
 the last slide, at the reach itself, was tried came and went with the rounding of the sum, and of where the scene lay:

@@ -86,7 +86,7 @@ namespace GeometryHelper.Core
         internal static GeoPoint3[] Meeting(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
         {
             bool flat = !triangle.IsDegenerate(tolerance);
-            bool crossed = TryIntersectWith(ray, triangle, out GeoPoint3 crossing, tolerance);
+            bool crossed = TryCrossTriangle(ray, triangle, out GeoPoint3 crossing, tolerance, false);
             GeoPoint3[] own = crossed && flat && OnPlaneAndPiece(crossing, triangle.GetPlane(), ray)
                 ? new[] { crossing }
                 : Meeting(ray, Gap3.Region.Of(triangle), triangle, crossed, crossing, tolerance);
@@ -100,7 +100,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static GeoPoint3[] Meeting(GeoRay3 ray, GeoPolygon3 polygon, Tolerance tolerance)
         {
-            bool crossed = TryIntersectWith(ray, polygon, out GeoPoint3 crossing, tolerance);
+            bool crossed = TryCrossPolygon(ray, polygon, out GeoPoint3 crossing, tolerance);
             GeoPoint3[] own = crossed && OnPlaneAndPiece(crossing, polygon.GetPlane(), ray)
                 ? new[] { crossing }
                 : Meeting(ray, Gap3.Region.Of(polygon), null, crossed, crossing, tolerance);
@@ -114,7 +114,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static GeoPoint3[] Meeting(GeoRay3 ray, GeoFace3 face, Tolerance tolerance)
         {
-            bool crossed = TryIntersectWith(ray, face, out GeoPoint3 crossing, tolerance);
+            bool crossed = TryCrossFace(ray, face, out GeoPoint3 crossing, tolerance, false);
             GeoPoint3[] own = crossed && OnPlaneAndPiece(crossing, face.GetPlane(), ray)
                 ? new[] { crossing }
                 : Meeting(ray, Gap3.Region.Of(face), null, crossed, crossing, tolerance);

@@ -487,7 +487,7 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="ray"/> and landing on <paramref name="triangle"/>, of no length at all where the ray pierces the face.</returns>
         public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            if (Intersection3.TryIntersectWith(ray, triangle, out GeoPoint3 through, tolerance))
+            if (Intersection3.TryCrossTriangle(ray, triangle, out GeoPoint3 through, tolerance, false))
             {
                 return new GeoLine3(through, through);
             }

@@ -467,7 +467,9 @@ namespace GeometryHelper.Geometry
         /// built within 1E-5, is 12 triangles at 1E-5 but 4 at 0.001, its four sides gone, and a Debug line in
         /// <see cref="GeometryHelperLog"/> says how many faces were left out whole and how much area they had; a face meshed
         /// in part is not counted. The mesh is then open edge by edge but closed within the tolerance: the top and the
-        /// bottom meet along every edge where the sides were.
+        /// bottom meet along every edge where the sides were, and those 4 triangles leave 8 edges with no triangle on the
+        /// other side. A mesh closed edge by edge is had at the tolerance the body was built within: the slab's 12 triangles
+        /// at 1E-5.
         /// </para>
         /// <para>
         /// A triangle is left out only when it has no width, its corners on a line within a millionth of the point

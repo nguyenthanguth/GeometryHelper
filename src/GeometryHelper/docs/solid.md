@@ -269,7 +269,10 @@ meshes read no area as they did, and the queries of a triangle read it by `IsDeg
 [how near is touching](#how-near-is-touching-in-space)). A face thinner than the tolerance is a seam at
 it and has no triangle: a slab 100 by 100 and 0.0008 thick, built within 1E-5, is 12 triangles at 1E-5 and 4 at 0.001,
 its four sides gone, and a Debug line in `GeometryHelperLog` says how many faces were left out whole and how much area
-they had; a face meshed in part is not counted.
+they had; a face meshed in part is not counted. Such a mesh is closed within the tolerance, the top and the bottom
+meeting where the sides were, but not edge by edge: the slab's 4 triangles leave 8 edges with no triangle on the other
+side. Triangulate at the tolerance the body was built within for a mesh closed edge by edge, the slab's 12 triangles at
+1E-5.
 
 ## Operations
 
@@ -518,7 +521,10 @@ and chains and loops of arcs against all of them. Measured at a thousandth:
   nothing; the one from 0.0002 over it falling 4E-6 climbs 0.0004 and is given nothing, as its line is; and one a
   hundred-millionth or so off the plane and level to rounding is given nothing however near it starts. Where the line
   meets the region only behind the origin, or lies level over it only behind a ray running away from it, a ray whose
-  origin touches the region is given its origin. Such a ray or line is read by the two ends of the part of it over the region, from where its shadow on the
+  origin touches the region is given its origin. `TryIntersectWith` of a ray gives the first point of this list and is
+  false where the list is empty, so the ray from 0.0002 over the square falling 4E-6 is refused there too, where it was
+  given its crossing of the floor; that of a segment or a line without ends gives the crossing alone, and is false for a
+  touch the list gives. Such a ray or line is read by the two ends of the part of it over the region, from where its shadow on the
   region's plane first crosses the rim to where it last does, or beside the side it runs along, and not by where it was
   cut past the region: the ray from 0.0004 over the triangle rising 1E-6 was given its origin, the one from 1E-12 under it
   (10.000001, 20, 0), and the line without ends 0.0009 over the square rising 1E-6 the point over its rim. Every other

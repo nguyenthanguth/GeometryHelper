@@ -177,7 +177,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(face));
             }
 
-            if (Intersection3.TryIntersectWith(ray, face, out GeoPoint3 through, tolerance))
+            if (Intersection3.TryCrossFace(ray, face, out GeoPoint3 through, tolerance, false))
             {
                 return new GeoLine3(through, through);
             }
@@ -221,7 +221,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            if (Intersection3.TryIntersectWith(ray, polygon, out GeoPoint3 through, tolerance))
+            if (Intersection3.TryCrossPolygon(ray, polygon, out GeoPoint3 through, tolerance))
             {
                 return new GeoLine3(through, through);
             }

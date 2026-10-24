@@ -283,8 +283,9 @@ namespace GeometryHelper.Spatial
         /// <remarks>
         /// The results come back in no particular order. A ray passing exactly along an edge shared by two
         /// triangles is reported by both of them, so a caller counting crossings should aim the ray away
-        /// from edges rather than trust the count. Each triangle is crossed as
-        /// <see cref="Intersection3.TryIntersectWith(GeoRay3, GeoTriangle3, out GeoPoint3, Tolerance)"/> crosses it:
+        /// from edges rather than trust the count. Each triangle is crossed by the ray's own crossing of its plane where the
+        /// triangle holds it, not as <see cref="Intersection3.TryIntersectWith(GeoRay3, GeoTriangle3, out GeoPoint3, Tolerance)"/>
+        /// reads the ray, as the line without ends along it:
         /// a ray starting within the planar tolerance of a triangle's plane and dipping into it, however shallowly,
         /// crosses where it reaches the plane, one rising from there touches at its origin, and one level with it to
         /// rounding names no place on it. The ray from (5, 5, 0.0004) along (1, 0, -0.01) crosses a mesh whose top lies
@@ -533,8 +534,15 @@ namespace GeometryHelper.Spatial
         }
 
         /// <summary>
-        /// Gets the triangles whose boxes come within a reach of the box of a segment, in the order the tree holds them.
+        /// Gets the triangles whose boxes come within a reach of a segment, in the order the tree holds them.
         /// </summary>
+        /// <remarks>
+        /// A branch or a triangle is passed over where the segment itself misses its box grown by the reach, not only where the
+        /// box of the segment stands further than the reach: a bar running at a slant past a cylinder of radius 500 and 10 000
+        /// sides has a box holding thousands of its triangles, of which a handful lie within the reach of its line. The reach is
+        /// read a rounding wide, a trillionth of the largest coordinate of the segment, so no triangle the segment comes within
+        /// the reach of is passed over.
+        /// </remarks>
         internal List<GeoTriangle3> TrianglesNear(GeoPoint3 from, GeoPoint3 to, double reach)
         {
             var near = new List<GeoTriangle3>();
@@ -544,6 +552,11 @@ namespace GeometryHelper.Spatial
                 return near;
             }
 
+            double largest = Math.Max(
+                Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z))),
+                Math.Max(Math.Abs(to.X), Math.Max(Math.Abs(to.Y), Math.Abs(to.Z))));
+            double within = reach + 1E-12 * (1.0 + largest);
+            GeoVector3 step = from.GetVectorTo(to);
             Stack<int> pending = new Stack<int>();
             pending.Push(0);
 
@@ -551,7 +564,7 @@ namespace GeometryHelper.Spatial
             {
                 Node node = _nodes[pending.Pop()];
 
-                if (Gap3.BoxGap(from, to, node.Bounds) > reach)
+                if (Apart(from, to, step, node.Bounds, reach, within))
                 {
                     continue;
                 }
@@ -562,7 +575,7 @@ namespace GeometryHelper.Spatial
                     {
                         GeoTriangle3 triangle = _triangles[_order[i]];
 
-                        if (!(Gap3.BoxGap(from, to, triangle.GetAabb()) > reach))
+                        if (!Apart(from, to, step, triangle.GetAabb(), reach, within))
                         {
                             near.Add(triangle);
                         }
@@ -577,6 +590,14 @@ namespace GeometryHelper.Spatial
 
             return near;
         }
+
+        /// <summary>
+        /// Determines whether a segment stands further from a box than a reach: its own box further than the reach, as before,
+        /// or the segment itself missing the box grown on every side by the reach read a rounding wide, which holds every point
+        /// within the reach of the box.
+        /// </summary>
+        private static bool Apart(GeoPoint3 from, GeoPoint3 to, GeoVector3 step, GeoAabb3 box, double reach, double within)
+            => Gap3.BoxGap(from, to, box) > reach || !LineEntersBox(from, step, box, within, 0.0, 1.0);
 
         /// <summary>
         /// Calculates the shortest distance from the mesh to a point, using the default tolerance.
@@ -1072,9 +1093,10 @@ namespace GeometryHelper.Spatial
 
         /// <summary>
         /// Checks whether a line from a point along a direction enters a box grown by a distance on every side, at any
-        /// distance along it from <paramref name="lowest"/> on: nought for a ray, minus infinity for a line without ends.
+        /// distance along it from <paramref name="lowest"/> on: nought for a ray, minus infinity for a line without ends; and
+        /// no further than <paramref name="highest"/>, a segment read from its start along the step to its end reaching 1.
         /// </summary>
-        private static bool LineEntersBox(GeoPoint3 start, GeoVector3 direction, GeoAabb3 box, double grow, double lowest)
+        private static bool LineEntersBox(GeoPoint3 start, GeoVector3 direction, GeoAabb3 box, double grow, double lowest, double highest = double.MaxValue)
         {
             if (box.IsEmpty)
             {
@@ -1082,7 +1104,7 @@ namespace GeometryHelper.Spatial
             }
 
             double enter = lowest;
-            double exit = double.MaxValue;
+            double exit = highest;
 
             for (int axis = 0; axis < 3; axis++)
             {

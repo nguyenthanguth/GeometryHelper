@@ -893,9 +893,8 @@ namespace GeometryHelper.Core
         /// <param name="triangle">The triangle.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// The one point of <see cref="TryIntersectWith(GeoRay3, GeoTriangle3, out GeoPoint3, Tolerance)"/>, or nothing:
-        /// the segment's reading with the far end taken away, where it stands within the point tolerance of both and the two
-        /// touch. The ray is read as the line without ends along it, by how far that line climbs across the triangle, and is given
+        /// One point or nothing, and <see cref="TryIntersectWith(GeoRay3, GeoTriangle3, out GeoPoint3, Tolerance)"/> gives the
+        /// same point, true exactly where this gives one. The ray is read as the line without ends along it, by how far that line climbs across the triangle, and is given
         /// what the line meets at its origin or ahead of it: the crossing, the point of a touch nearest the triangle, or none where the
         /// line lies level over the material within the planar tolerance of the triangle's plane. Where the line meets the triangle
         /// only behind the origin, or lies level over it only behind a ray running away from it, a ray whose origin touches it
@@ -924,9 +923,8 @@ namespace GeometryHelper.Core
         /// <param name="polygon">The polygon.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// The one point of <see cref="TryIntersectWith(GeoRay3, GeoPolygon3, out GeoPoint3, Tolerance)"/>, or nothing:
-        /// the segment's reading with the far end taken away, where it stands within the point tolerance of both and the two
-        /// touch. The ray is read as the line without ends along it, by how far that line climbs across the polygon, and is given
+        /// One point or nothing, and <see cref="TryIntersectWith(GeoRay3, GeoPolygon3, out GeoPoint3, Tolerance)"/> gives the
+        /// same point, true exactly where this gives one. The ray is read as the line without ends along it, by how far that line climbs across the polygon, and is given
         /// what the line meets at its origin or ahead of it: the crossing, the point of a touch nearest the polygon, or none where the
         /// line lies level over the material within the planar tolerance of the polygon's plane. Where the line meets the polygon
         /// only behind the origin, or lies level over it only behind a ray running away from it, a ray whose origin touches it
@@ -956,9 +954,8 @@ namespace GeometryHelper.Core
         /// <param name="face">The face, read by its material.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
-        /// The one point of <see cref="TryIntersectWith(GeoRay3, GeoFace3, out GeoPoint3, Tolerance)"/>, or nothing:
-        /// the segment's reading with the far end taken away, where it stands within the point tolerance of both and the two
-        /// touch. The ray is read as the line without ends along it, by how far that line climbs across the face, and is given
+        /// One point or nothing, and <see cref="TryIntersectWith(GeoRay3, GeoFace3, out GeoPoint3, Tolerance)"/> gives the
+        /// same point, true exactly where this gives one. The ray is read as the line without ends along it, by how far that line climbs across the face, and is given
         /// what the line meets at its origin or ahead of it: the crossing, the point of a touch nearest the face, or none where the
         /// line lies level over the material within the planar tolerance of the face's plane. Where the line meets the face
         /// only behind the origin, or lies level over it only behind a ray running away from it, a ray whose origin touches it

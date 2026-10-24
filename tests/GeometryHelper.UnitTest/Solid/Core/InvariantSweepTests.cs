@@ -99,7 +99,8 @@ namespace GeometryHelper.UnitTest.Solid
                     var brute = new List<GeoPoint3>();
                     foreach (var tri in mesh)
                     {
-                        if (Intersection3.TryIntersectWith(ray, tri, out GeoPoint3 hit, Tol)) { brute.Add(hit); }
+                        // The tree crosses each triangle by the ray's own plane crossing; the public Try gives the list's touches too.
+                        if (Intersection3.TryCrossTriangle(ray, tri, out GeoPoint3 hit, Tol, false)) { brute.Add(hit); }
                     }
 
                     GeoPoint3[] viaTree = tree.GetIntersections(ray, Tol);
