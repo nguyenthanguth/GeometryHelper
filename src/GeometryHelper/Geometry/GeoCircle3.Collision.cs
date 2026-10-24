@@ -61,6 +61,17 @@ namespace GeometryHelper.Geometry
         public bool CollidesWith(GeoCircle3 other, Tolerance tolerance) => Arc3.CollidesWith(this, other, tolerance);
 
         /// <summary>
+        /// Checks whether this circle touches the rim of an ellipse in space, using the default tolerance.
+        /// </summary>
+        public bool CollidesWith(GeoEllipse3 ellipse) => Ellipse3.CollidesWith(ellipse, this);
+
+        /// <summary>
+        /// Checks whether this circle touches the rim of an ellipse in space, within a tolerance: the answer the ellipse gives
+        /// asked of the circle, <see cref="GeoEllipse3.CollidesWith(GeoCircle3, Tolerance)"/>.
+        /// </summary>
+        public bool CollidesWith(GeoEllipse3 ellipse, Tolerance tolerance) => Ellipse3.CollidesWith(ellipse, this, tolerance);
+
+        /// <summary>
         /// Checks whether this circle touches a triangle, using the default tolerance.
         /// </summary>
         public bool CollidesWith(GeoTriangle3 triangle) => Arc3.CollidesWith(this, triangle);

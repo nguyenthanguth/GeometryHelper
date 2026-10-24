@@ -23,7 +23,9 @@ namespace GeometryHelper.Core
     /// <para>
     /// <b>Not in the plane.</b> Two planes meet in a line, and every point the rim shares with anything lying in the other
     /// plane is on that line, where the rim is crossed in closed form; the points the other shape holds are kept. A
-    /// segment or a ray not lying in the plane meets it at one point, kept when it is on the rim.
+    /// segment or a ray not lying in the plane meets it at one point, kept when it is on the rim. Two ellipses are read
+    /// from the one that comes first in a fixed order, whichever is asked first, and the rim touches another ellipse's, a
+    /// circle or an arc besides where they pass within the point tolerance of each other off that line.
     /// </para>
     /// <para>
     /// The order is the circle's: along the line the two planes share, along a segment or a ray, edge by edge for a flat
@@ -233,6 +235,10 @@ namespace GeometryHelper.Core
         /// (300, 0, 0) to (250, 0, -50), meets the ellipse 300 by 100 lying in the plan about the origin at (300, 0, 0) only;
         /// the other half meets it nowhere.
         /// </returns>
+        /// <remarks>
+        /// Not in one plane, an arc that passes within the point tolerance of the rim without crossing it on the line the
+        /// planes share touches it, at the middle of the shortest line between them, as a circle does.
+        /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoArc3 arc, Tolerance tolerance)
         {
             if (Arc3.IsCoplanar(arc, ellipse.GetPlane(), tolerance))
@@ -246,13 +252,15 @@ namespace GeometryHelper.Core
 
             foreach (GeoPoint3 candidate in PointsOnPlane(arc, ellipse, tolerance))
             {
-                if (OnRim(ellipse, candidate, tolerance))
+                if (OnRim(ellipse, candidate, tolerance) && arc.IsPointOn(candidate, tolerance))
                 {
-                    Arc3.AddOnce(found, candidate, tolerance);
+                    AddApart(found, candidate, tolerance);
                 }
             }
 
-            return found.ToArray();
+            NearPass3.Add(found, AsRim(ellipse, tolerance), NearPass3.Target.Of(arc, tolerance), tolerance);
+
+            return AlongLine(found, arc.Center, Arc3.AlongShared(arc.Normal, ellipse.Normal, arc.Center, ellipse.Center, arc.Center.GetVectorTo(arc.StartPoint), tolerance));
         }
 
         /// <summary>
@@ -295,6 +303,12 @@ namespace GeometryHelper.Core
         /// radius 50 about (250, 0, 0) standing upright on the X axis meets it at (300, 0, 0) only. None when the two draw
         /// the same curve.
         /// </returns>
+        /// <remarks>
+        /// Not in one plane, rims that pass within the point tolerance of each other without crossing on the line the planes
+        /// share touch, at the middle of the shortest line between them: the circle of radius 50 leaning 0.01 radians, the
+        /// end of its diameter along X 0.0005 above (0, 100, 0) and its rim running square to the ellipse's there, touches
+        /// the ellipse 300 by 100 lying in the plan about the origin at (0, 100, 0.00025).
+        /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoCircle3 circle, Tolerance tolerance)
         {
             if (IsCoplanar(ellipse, circle.GetPlane(), tolerance))
@@ -310,13 +324,15 @@ namespace GeometryHelper.Core
 
             foreach (GeoPoint3 candidate in PointsOnPlane(ellipse, circle.GetPlane(), tolerance))
             {
-                if (rim.IsPointOn(candidate, tolerance))
+                if (OnRim(ellipse, candidate, tolerance) && rim.IsPointOn(candidate, tolerance))
                 {
-                    Arc3.AddOnce(found, candidate, tolerance);
+                    AddApart(found, candidate, tolerance);
                 }
             }
 
-            return found.ToArray();
+            NearPass3.Add(found, AsRim(ellipse, tolerance), NearPass3.Target.Of(rim, tolerance), tolerance);
+
+            return AlongLine(found, ellipse.Center, Arc3.AlongShared(ellipse.Normal, circle.Normal, ellipse.Center, circle.Center, ellipse.MajorAxis, tolerance));
         }
 
         /// <summary>
@@ -350,7 +366,9 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="ellipse">
         /// The first ellipse, whose plane and centre order the points; the other's, where only the other lies within the planar
-        /// tolerance of this one's plane, so that the two are read in one plane whichever is asked first.
+        /// tolerance of this one's plane, so that the two are read in one plane whichever is asked first. Where both do, the
+        /// pair is read from the one that comes first in a fixed order, so that it gives the same points to the last digit
+        /// either way, and they are put in this one's order.
         /// </param>
         /// <param name="other">The other ellipse.</param>
         /// <param name="tolerance">The tolerance: rims that come within its point tolerance of each other touch, and two crossings no further apart than twice it are one.</param>
@@ -359,26 +377,38 @@ namespace GeometryHelper.Core
         /// lying in the plan about the origin and the same ellipse turned a quarter cross at (94.868, 94.868, 0) first, then
         /// at the three points mirrored from it. None when the two are the same ellipse.
         /// </returns>
+        /// <remarks>
+        /// Not in one plane, the two give the same places to the last digit whichever is asked first, and rims that pass
+        /// within the point tolerance of each other without crossing touch, at the middle of the shortest line between them:
+        /// the ellipse 300 by 100 lying in the plan about the origin and an ellipse 200 by 100 leaning 0.01 radians, the end
+        /// of its major axis 0.0005 above (0, 100, 0) and its rim running square to the first there, touch at
+        /// (0, 100, 0.00025); 0.0011 above, they do not.
+        /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
         {
-            if (InOnePlane(ref ellipse, ref other, tolerance))
+            GeoEllipse3 asked = ellipse;
+            GeoEllipse3 against = other;
+
+            if (InOnePlane(ref ellipse, ref other, tolerance, out bool reordered))
             {
                 GeoPoint2[] points = Ellipse2.GetIntersections(Flat(ellipse), LayOut(ellipse, other), tolerance);
+                List<GeoPoint3> kept = Kept(ellipse, points, (point, within) => OnRim(other, point, within), tolerance);
 
-                return AlongRadicalLine(Kept(ellipse, points, (point, within) => OnRim(other, point, within), tolerance), ellipse.Normal, ellipse.Center, other.Center, tolerance);
+                return reordered
+                    ? InOrderOf(kept, asked, against, tolerance)
+                    : AlongRadicalLine(kept, ellipse.Normal, ellipse.Center, other.Center, tolerance);
             }
 
-            var found = new List<GeoPoint3>();
+            // Read from the one that comes first, so that the places are the same whichever is asked first, and put in order
+            // along the line the planes share as this one's normal crossed with the other's runs.
+            bool swapped = ComesFirst(other, ellipse);
+            GeoEllipse3 first = swapped ? other : ellipse;
+            GeoEllipse3 second = swapped ? ellipse : other;
+            List<GeoPoint3> found = InSpace(first, second, tolerance);
 
-            foreach (GeoPoint3 candidate in PointsOnPlane(ellipse, other.GetPlane(), tolerance))
-            {
-                if (OnRim(other, candidate, tolerance))
-                {
-                    Arc3.AddOnce(found, candidate, tolerance);
-                }
-            }
+            GeoVector3 direction = Arc3.AlongShared(first.Normal, second.Normal, first.Center, second.Center, first.MajorAxis, tolerance);
 
-            return found.ToArray();
+            return AlongLine(found, first.Center, direction.Multiply(swapped ? -1.0 : 1.0));
         }
 
         /// <summary>
@@ -848,8 +878,8 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Determines whether two ellipses are read in one plane, the first within the planar tolerance of the second's, and
-        /// puts first the one that lies so where only the second does, so that the pair is read the same whichever is asked
-        /// first.
+        /// puts first the one that lies so where only the second does, or, where both do, the one that comes first by
+        /// centre, radii, normal and axis, so that the pair is read the same, to the last digit, whichever is asked first.
         /// </summary>
         /// <remarks>
         /// The rim of the larger one may stand off the smaller one's plane by more than the tolerance where the smaller one
@@ -858,21 +888,239 @@ namespace GeometryHelper.Core
         /// places, and not at all asked the other.
         /// </remarks>
         internal static bool InOnePlane(ref GeoEllipse3 ellipse, ref GeoEllipse3 other, Tolerance tolerance)
+            => InOnePlane(ref ellipse, ref other, tolerance, out _);
+
+        /// <summary>
+        /// Determines whether two ellipses are read in one plane, as <see cref="InOnePlane(ref GeoEllipse3, ref GeoEllipse3, Tolerance)"/>
+        /// does, and whether they were put the other way round though both lie within the tolerance of the other's plane,
+        /// so that the points read are to be put back in the order the one asked first gives.
+        /// </summary>
+        private static bool InOnePlane(ref GeoEllipse3 ellipse, ref GeoEllipse3 other, Tolerance tolerance, out bool reordered)
         {
-            if (IsCoplanar(ellipse, other.GetPlane(), tolerance))
+            bool first = IsCoplanar(ellipse, other.GetPlane(), tolerance);
+            bool second = IsCoplanar(other, ellipse.GetPlane(), tolerance);
+
+            reordered = false;
+
+            if (!first && !second)
+            {
+                return false;
+            }
+
+            if (first && (!second || !ComesFirst(other, ellipse)))
             {
                 return true;
             }
 
-            if (!IsCoplanar(other, ellipse.GetPlane(), tolerance))
-            {
-                return false;
-            }
+            reordered = first;
 
             GeoEllipse3 swap = ellipse;
             ellipse = other;
             other = swap;
             return true;
+        }
+
+        /// <summary>
+        /// Puts the points two ellipses of one plane share in the order the one asked first gives them in: along the radical
+        /// line from its centre, or, the centres one, in the order of its eccentric angle, ties in the order they came in.
+        /// </summary>
+        private static GeoPoint3[] InOrderOf(List<GeoPoint3> points, GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
+        {
+            if (ellipse.Center.GetVectorTo(other.Center).Length > tolerance.EqualPoint)
+            {
+                return AlongRadicalLine(points, ellipse.Normal, ellipse.Center, other.Center, tolerance);
+            }
+
+            var keys = new double[points.Count];
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                Frame(ellipse, points[i], out double along, out double across, out _);
+
+                double angle = Math.Atan2(across / ellipse.MinorRadius, along / ellipse.MajorRadius);
+
+                keys[i] = angle < 0.0 ? angle + 2.0 * Math.PI : angle;
+            }
+
+            var order = new int[points.Count];
+
+            for (int i = 0; i < order.Length; i++)
+            {
+                order[i] = i;
+            }
+
+            Array.Sort(order, (x, y) =>
+            {
+                int byKey = keys[x].CompareTo(keys[y]);
+
+                return byKey != 0 ? byKey : x.CompareTo(y);
+            });
+
+            var sorted = new GeoPoint3[points.Count];
+
+            for (int i = 0; i < order.Length; i++)
+            {
+                sorted[i] = points[order[i]];
+            }
+
+            return sorted;
+        }
+
+        /// <summary>
+        /// Determines whether an ellipse comes before another in a fixed order of the two: by centre, coordinate by
+        /// coordinate, then by radii, normal and axis.
+        /// </summary>
+        /// <remarks>
+        /// Two ellipses not in one plane are read from the one that comes first, whichever is asked first: read from the one
+        /// asked first, where its rim crosses the other's plane, the places depended on the order in 134 of 4 000 pairs drawn
+        /// to pass within 0.0012 of each other, every one of them tilted more than 0.001 radians.
+        /// </remarks>
+        private static bool ComesFirst(GeoEllipse3 ellipse, GeoEllipse3 other)
+        {
+            double[] one = Key(ellipse);
+            double[] two = Key(other);
+
+            for (int i = 0; i < one.Length; i++)
+            {
+                int order = one[i].CompareTo(two[i]);
+
+                if (order != 0)
+                {
+                    return order < 0;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets the numbers an ellipse is put in order by.
+        /// </summary>
+        private static double[] Key(GeoEllipse3 ellipse)
+        {
+            GeoPoint3 center = ellipse.Center;
+            GeoVector3 normal = ellipse.Normal;
+            GeoVector3 axis = ellipse.MajorAxis;
+
+            return new[]
+            {
+                center.X, center.Y, center.Z, ellipse.MajorRadius, ellipse.MinorRadius,
+                normal.X, normal.Y, normal.Z, axis.X, axis.Y, axis.Z,
+            };
+        }
+
+        /// <summary>
+        /// Gets the places two rims not in one plane share, read from the first: where its rim crosses the other's plane on
+        /// the other's rim, and where the two pass within the point tolerance of each other without that.
+        /// </summary>
+        private static List<GeoPoint3> InSpace(GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
+        {
+            var found = new List<GeoPoint3>();
+
+            foreach (GeoPoint3 candidate in PointsOnPlane(ellipse, other.GetPlane(), tolerance))
+            {
+                if (OnRim(ellipse, candidate, tolerance) && OnRim(other, candidate, tolerance))
+                {
+                    AddApart(found, candidate, tolerance);
+                }
+            }
+
+            NearPass3.Add(found, AsRim(ellipse, tolerance), AsTarget(other, tolerance), tolerance);
+
+            return found;
+        }
+
+        /// <summary>
+        /// Adds a crossing found where one rim crosses the other's plane, unless one already found lies no further than twice
+        /// the point tolerance from it: a thin rim 208 by 0.21 crossing the plane of one 148 by 0.19 twice, 0.0013 apart,
+        /// beside its rim, was given both.
+        /// </summary>
+        /// <remarks>
+        /// The crossing is kept only where it lies on both rims: where a thin rim only grazes the plane, the crossing is read
+        /// at the middle of the chord, which on a rim 182 by 0.004 lay 0.0084 off it, and the search along the rim
+        /// (<see cref="NearPass3"/>) gives the place instead.
+        /// </remarks>
+        private static void AddApart(List<GeoPoint3> found, GeoPoint3 candidate, Tolerance tolerance)
+        {
+            foreach (GeoPoint3 point in found)
+            {
+                if (point.DistanceTo(candidate) <= 2.0 * tolerance.EqualPoint)
+                {
+                    return;
+                }
+            }
+
+            found.Add(candidate);
+        }
+
+        /// <summary>
+        /// Reads the rim of an ellipse to be searched along for where it passes another curve (<see cref="NearPass3"/>).
+        /// </summary>
+        private static NearPass3.Rim AsRim(GeoEllipse3 ellipse, Tolerance tolerance)
+            => NearPass3.Rim.Of(ellipse, point => OnRim(ellipse, point, tolerance));
+
+        /// <summary>
+        /// Reads the rim of an ellipse as the curve a rim searched along passes (<see cref="NearPass3"/>).
+        /// </summary>
+        private static NearPass3.Target AsTarget(GeoEllipse3 ellipse, Tolerance tolerance)
+            => new NearPass3.Target(
+                ellipse.GetPlane(),
+                ellipse.Normal,
+                ellipse.Center,
+                ellipse.MajorRadius,
+                point => GapAtLeast(ellipse, point),
+                point => RimGap(ellipse, point),
+                point => GetClosestPointOnBoundary(ellipse, point),
+                point => OnRim(ellipse, point, tolerance),
+                ellipse.MajorAxis,
+                ellipse.MinorAxis,
+                ellipse.MajorRadius,
+                ellipse.MinorRadius,
+                point => Ellipse2.GetClosestPointOnBoundary(Flat(ellipse), point),
+                true);
+
+        /// <summary>
+        /// Gets a bound the distance from a point to the rim cannot be under: the root of its height above the plane squared
+        /// and, squared, how far its foot lies from the rim by <see cref="Ellipse2.Below(GeoEllipse2, double, double)"/>.
+        /// </summary>
+        private static double GapAtLeast(GeoEllipse3 ellipse, GeoPoint3 point)
+        {
+            Frame(ellipse, point, out double along, out double across, out double height);
+
+            double below = Ellipse2.Below(Flat(ellipse), along, across);
+
+            return Math.Sqrt(height * height + below * below);
+        }
+
+        /// <summary>
+        /// Puts places in order along a direction, ties in the order they came in.
+        /// </summary>
+        private static GeoPoint3[] AlongLine(List<GeoPoint3> points, GeoPoint3 from, GeoVector3 direction)
+        {
+            var keys = new double[points.Count];
+            var order = new int[points.Count];
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                keys[i] = from.GetVectorTo(points[i]).DotProduct(direction);
+                order[i] = i;
+            }
+
+            Array.Sort(order, (x, y) =>
+            {
+                int byKey = keys[x].CompareTo(keys[y]);
+
+                return byKey != 0 ? byKey : x.CompareTo(y);
+            });
+
+            var sorted = new GeoPoint3[points.Count];
+
+            for (int i = 0; i < order.Length; i++)
+            {
+                sorted[i] = points[order[i]];
+            }
+
+            return sorted;
         }
 
         /// <summary>

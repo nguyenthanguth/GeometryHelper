@@ -335,6 +335,110 @@ tilted 1E-7 to 1E-3 radians, 339 answered by the order, and none does. A pair re
 neither, is answered as before to the bit; a pair in neither is asked both ways round whether it is, and 2 000 such pairs
 take 4.6 milliseconds on .NET 10, the median of three runs, where they took 3.9.
 
+**FIXED.** Two ellipses in space in no one plane give the same places whichever is asked first, and touch where their
+rims pass within the point tolerance of each other without crossing. Read where the rim of the one asked first crossed
+the other's plane, kept where the other's rim stood within the tolerance, two rims passing 0.0005 apart square to each
+other gave nothing: the ellipse 300 by 100 in the plan about the origin and an ellipse 200 by 100 leaning 0.01 radians,
+the end of its major axis 0.0005 above (0, 100, 0) and its rim running square to the first there, collided neither way,
+and touch at (0, 100, 0.00025) now; 0.0011 above, they do not. The pair is read from the one that comes first by centre,
+radii, normal and axis. Where its rim stands within the tolerance of the other's plane, the rim is searched for where the
+gap between the two comes within the tolerance, piece by piece, a piece passed over only where bounds on the gap prove it
+further than the tolerance: how fast the rim moves, its height above the other's plane, and how far its foot on that
+plane lies from the other's ellipse. Each run of the rim within the tolerance of the other is one place, where the gap
+along it is least, at the middle of the shortest line between the rims; two copies running along each other within the
+tolerance for a long way touch at one place. Pieces not proved clear are halved until the rim runs no more than twice
+the tolerance along them, and halving stops after 384 readings, after which what is left is brought down by Brent's
+method, the one part not proved. Which side of the other's ellipse the rim's foot lies on is read from the foot's own
+place about that ellipse's centre: an ellipse 93 894 by 93 894 and one 3.3 by 0.0006, passing within 0.00092 of each
+other 93 000 from the first's centre, collided neither way, that side lost to rounding, and touch now. Two crossings no
+further apart than twice the tolerance are one place, as documented: a thin rim crossing another's plane twice 0.0013
+apart was given both. A crossing of the other's plane is kept only where it lies within the tolerance of both rims: the
+rim 182 by 0.004 grazing the plane of one 304 by 0.039 was given the middle of its chord there, 0.0084 off its own rim,
+asked either way, and is given a place 0.00044 off each now. Of 4 000 pairs drawn to pass within 0.0012 of each
+other at tilts of 1E-8 to 1 radian, 134 answered by the order they were asked in and 1 517 came within 0.00098 of each
+other and collided neither way; none does now, nor of 8 000 more such, 4 000 tilted 1E-8 to 0.003 radians and 4 000
+tilted 0.01 to 1 radian further apart, nor, against an independent oracle, of 1 000 drawn to graze, 1 000 thin rims and
+150 copies running along each other, and every place given lies within the tolerance of both rims. The ellipse 3 000 by
+1 000 and its copy 0.0012 above, leaning so that its rim is 0.0001 to 0.0023 above, touch at (0, -1 000, 0.00005). A pair
+read in one plane is answered as before to the bit, as is a pair in no one plane that gave the same places both ways
+round, but where it gave none and now touches, or gave a place off one of the rims; the others move within the
+tolerance asked from the side that does not come first. On .NET 10, the median of three runs, 2 000 pairs asked both ways take 1.9 microseconds a call where they meet
+nowhere, where they took 0.94, 3.0 nearly in one plane (2.3), and 8.3 passing within 0.0012 of each other (2.1). Of the
+pairs not in one plane among 300 copies running along each other, the call takes 112 microseconds on average, 0.84
+milliseconds at the 99th hundredth and 0.93 at the most, where it took under 0.01; those in one plane take up to 14.
+
+**FIXED.** Two circles in space give the same places whichever is asked first. Read from the circle asked first alone,
+the circle of radius 473.706 about the origin in the plan and the circle of radius 477.624 about (-37.520, -84.167,
+0.0009), tilted 4.6E-6 radians off it, crossed at (421.493, -216.198, 0) asked the one way, and at (-442.545, 168.972,
+0.001) as well asked the other. Each is read against the other now and a place both readings name is given once, the
+first reading that of the circle lying within the planar tolerance of the other's plane or, where both or neither do,
+of the one that comes first by centre, radius and normal; asked the other way the points are the same to the bit, in
+the opposite order along their line, whichever way the two normals point: the circle of radius 100 about the origin with
+its normal up and the circle of radius 90 about (60, 20, 0) with its normal down gave their two crossings in the same
+order both ways. In planes parallel within the vector tolerance but further apart than the planar one, which share no
+line, the points are put in order along the line square to the one between the centres, as in one plane: the same two
+circles in planes 0.005 apart, at a point tolerance of 0.01 and a planar one of 0.0001, came in the order they were
+found both ways round, either way the normals pointed, and so did two ellipses. `TryIntersectWith` gives the points `GetIntersections` gives; it read each circle as an arc, in the order
+asked, and disagreed with it for 598 and 2 297 of 6 000 pairs. Of 4 000 such pairs tilted 1E-7 to 1E-3 radians, 65 gave
+a different number of places by the order they were asked in, and of 6 000 more at tilts up to 1.6 radians, most passing
+within 0.0015 of each other, 392; none does now. A pair that gave the same places both ways round is answered as before
+to the bit. A ball's crossings with a circle or an arc are read through the circle the ball cuts from the curve's plane,
+by this reading, and move with it in their last bits, 5 of 20 000.
+
+**NEW.** `GeoCircle3` and `GeoArc3` are asked about an ellipse in space: `CollidesWith(GeoEllipse3)`,
+`GetIntersections(GeoEllipse3)` and `TryIntersectWith(GeoEllipse3)`, each with and without a tolerance, give the answer
+and the points, in the same order, that the ellipse gives asked about them. The circle of radius 50 standing upright on the X axis about (250, 0, 0) and the
+half of it from (250, 0, 50) round through (300, 0, 0) cross the ellipse 300 by 100 in the plan about the origin at
+(300, 0, 0), asked from either side.
+
+**FIXED.** An ellipse in space touches a circle or an arc whose rim passes within the point tolerance of its own without
+crossing it on the line their planes share, as two ellipses do. Read only where the one rim crossed the other's plane,
+the circle of radius 50 leaning 0.01 radians, the end of its diameter along X 0.0005 above (0, 100, 0) and its rim
+running square to the ellipse 300 by 100 in the plan about the origin, collided nowhere, and touches it at
+(0, 100, 0.00025) now; 0.0011 above, it does not. The ellipse's rim is searched where it stands within the tolerance of
+the other's plane, as against another ellipse. Of 2 000 circles drawn to pass within 0.0012 of an ellipse's rim at tilts
+of 1E-8 to 1 radian, 1 056 came within 0.00098 of it and collided nowhere, and 570 of arcs cut from them; of 2 000 more,
+1 064 and 548; none does now, and every place given lies within the tolerance of both. Where the ellipse's rim crosses
+the other's plane, the crossing is kept only where it lies within the tolerance of both rims, and two no further apart
+than twice the tolerance are one, as documented: the ellipse 182 by 0.002 crossing the plane of a circle of radius 303
+twice, 0.0011 apart, on the circle both times, was given both. A pair that met before keeps its points to the bit,
+but where a crossing lay off the ellipse's rim or within twice the tolerance of another, and where the search finds
+places besides: of 400 thin ellipses against circles, 5, and against arcs, 6, one that crossed once given three. In
+planes parallel within the vector tolerance, the points come in order along the line square to the one between the
+centres. On .NET 10, the median of three runs, 2 000 ellipses and circles take 6.0 microseconds a call where they meet
+nowhere, where they took 1.9, and 12 passing within 0.0012 (4.3); with arcs, 6.7 (2.9) and 8.5 (4.9).
+
+**FIXED.** Two arcs in space give the same places whichever is asked first, and two arcs or two circles that
+`CollidesWith` reads as touching are given the place. Arcs are read both ways and the places merged, as circles are,
+and where the two pass within the point tolerance of each other and no reading names a place there, the middle of the
+shortest line between them is given: the arc of radius 100 about the origin in the plan and an arc of radius 50
+leaning 0.01 radians, the end of its diameter along X 0.0005 above (0, 100, 0) and running square to the first there,
+touch at (0, 100, 0.00025). Read from the arc asked first alone, of 4 000 arcs tilted 1E-7 to 1E-3 radians off each
+other 37 gave a different number of places by the order and 356 collided and were given none; of 2 000 pairs of circles
+drawn to pass within 0.0012 of each other at any tilt 1 034 collided with no place, and of arcs cut from them 288, with
+42 by the order; none does now, nor of 2 000 more. Two arcs of one circle still name no place, and a run of the one within
+the tolerance of the other is one place, as for ellipses: the circles of radius 1 000 and 1 000.0005 with their centres
+0.0006 apart, within the tolerance of each other most of the way round, are given their two crossings and nothing else.
+A pair that gave the same places both ways round is answered as before to the bit. As before, 7 of the 4 000 and 3 of
+the 2 000 are given a place where `CollidesWith` reads them 0.0011 to 0.0016 apart, a point within the tolerance of
+each; asked one way round before, both ways now. On .NET 10, the median of three runs, 2 000 pairs of arcs asked both
+ways take 3.5 microseconds a
+call where they meet nowhere, where they took 3.7, and 4.6 passing within 0.0012 (0.67); of circles, 3.3 (4.7) and
+8.8 (5.3), and 4.7 (0.69) for the 8 000 above.
+
+The search for rims passing within the tolerance costs most where they run along each other. Of 400 pairs drawn of
+each kind, on .NET 10, the median call takes 2 to 80 times what it took: copies of an ellipse running along it 79
+microseconds, where they took 1.0, ellipses and circles so 229 (3.7), circles 82 (6.8), and circles grown by the
+tolerance and leaning 37 (6.8); pairs drawn to graze each other 16 to 26 (1.9 to 7.3). The search stops after 384
+readings, about a millisecond a call.
+
+**FIXED.** Two ellipses that each lie within the planar tolerance of the other's plane give the same points to the last
+digit whichever is asked first, read from the one that comes first by centre, radii, normal and axis. Read from the one
+asked first, the ellipse 300 by 100 in the plan about the origin and the ellipse 200 by 150 about it, turned a quarter,
+gave their four crossings in another order the other way round; of 4 000 pairs drawn to pass within 0.0012 of each
+other, the 1 282 read in one plane differed in their last bits by the order, and none does now. A pair asked first from
+the one that comes first is answered as before to the bit.
+
 **FIXED.** `GeoArc2.FromBulge`, past a bulge of a half, puts the centre off the middle of the chord by c (1 - b²) / 4b
 and gives the radius as c (1 + b²) / 4|b|, each worked out as it stands. The centre, worked out from the radius as the
 root of r² - c²/4, cancelled near a half turn: the chord of 200 000 with a bulge of 1 - 1E-8 had its centre on the chord,

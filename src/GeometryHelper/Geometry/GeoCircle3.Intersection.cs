@@ -121,6 +121,33 @@ namespace GeometryHelper.Geometry
         public GeoPoint3[] GetIntersections(GeoCircle3 other, Tolerance tolerance) => Arc3.GetIntersections(this, other, tolerance);
 
         /// <summary>
+        /// Gets every point where this circle crosses the rim of an ellipse in space, using the default tolerance.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoEllipse3 ellipse) => Ellipse3.GetIntersections(ellipse, this);
+
+        /// <summary>
+        /// Gets every point where this circle crosses the rim of an ellipse in space, within a tolerance: the points the
+        /// ellipse gives asked of the circle, in the same order, <see cref="GeoEllipse3.GetIntersections(GeoCircle3, Tolerance)"/>.
+        /// </summary>
+        public GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, Tolerance tolerance) => Ellipse3.GetIntersections(ellipse, this, tolerance);
+
+        /// <summary>
+        /// Tries to find where this circle crosses the rim of an ellipse in space, using the default tolerance.
+        /// </summary>
+        /// <param name="ellipse">The ellipse.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        public bool TryIntersectWith(GeoEllipse3 ellipse, out GeoPoint3[] intersections) => Ellipse3.TryIntersectWith(ellipse, this, out intersections);
+
+        /// <summary>
+        /// Tries to find where this circle crosses the rim of an ellipse in space, within a tolerance: the points the ellipse
+        /// gives asked of the circle, in the same order.
+        /// </summary>
+        /// <param name="ellipse">The ellipse.</param>
+        /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        public bool TryIntersectWith(GeoEllipse3 ellipse, out GeoPoint3[] intersections, Tolerance tolerance) => Ellipse3.TryIntersectWith(ellipse, this, out intersections, tolerance);
+
+        /// <summary>
         /// Tries to find where this circle crosses a circle, using the default tolerance.
         /// </summary>
         /// <param name="other">The circle.</param>
