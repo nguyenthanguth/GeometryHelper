@@ -5,7 +5,7 @@ namespace GeometryHelper.Export
 {
     /// <summary>
     /// A text of a DXF file, a TEXT of one line or an MTEXT of paragraphs, as <see cref="DxfReader"/> reads it into
-    /// <see cref="DxfEntity.Shape"/>: where it stands, which way it faces and reads, how tall it is, and its words.
+    /// <see cref="DxfShape.Shape"/>: where it stands, which way it faces and reads, how tall it is, and its words.
     /// </summary>
     /// <remarks>
     /// <para>

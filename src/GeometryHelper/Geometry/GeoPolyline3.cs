@@ -431,7 +431,15 @@ namespace GeometryHelper.Geometry
             }
 
             GeoVector3 normal = along.CrossProduct(across.Divide(widest));
-            plane = new GeoPlane3(first, normal.Divide(normal.Length));
+            double length = normal.Length;
+
+            // A span too long for a double leaves the directions, and so the normal, of length nought.
+            if (!(length > 0.0) || double.IsInfinity(length))
+            {
+                return false;
+            }
+
+            plane = new GeoPlane3(first, normal.Divide(length));
             return true;
         }
 

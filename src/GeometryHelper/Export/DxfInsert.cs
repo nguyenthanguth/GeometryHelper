@@ -14,14 +14,14 @@ namespace GeometryHelper.Export
     /// <see cref="BlockName"/> BOLT, <see cref="Position"/> (100, 50, 0), <see cref="Normal"/> (0, 0, 1),
     /// <see cref="Rotation"/> pi / 2, <see cref="ScaleX"/> 2 and the other scales 1, one column and one row.
     /// <see cref="GetPlacedEntities()"/> gives the entities of the block placed where it puts them, as <see cref="DxfReader"/>
-    /// reads them in <see cref="DxfDocument.Entities"/>.
+    /// reads them in <see cref="DxfDocument.Shapes"/>.
     /// </para>
     /// <para>
     /// It cannot be changed once made, and two INSERTs are the same only where they are one object: it does not compare its
     /// numbers.
     /// </para>
     /// </remarks>
-    public sealed class DxfInsert
+    internal sealed class DxfInsert
     {
         private readonly Func<DxfReader.Placing> _placed;
 
@@ -107,7 +107,7 @@ namespace GeometryHelper.Export
         /// Gets the entities of the block placed where the INSERT puts them, each cell of a MINSERT's array in turn, as
         /// <see cref="DxfReader"/> reads them with its default options: each shape placed, layer 0 and BYBLOCK taking the
         /// INSERT's look, an INSERT inside the block placed within it, and each with the names of its blocks in
-        /// <see cref="DxfEntity.BlockPath"/>.
+        /// <see cref="DxfShape.BlockPath"/>.
         /// </summary>
         /// <returns>
         /// The entities placed, a new list on each call, in world coordinates for an INSERT of the drawing and in the block's
@@ -128,7 +128,7 @@ namespace GeometryHelper.Export
         /// they are for one reading; once they are spent, an INSERT whose size would need one more is not placed.
         /// </para>
         /// </remarks>
-        public IReadOnlyList<DxfEntity> GetPlacedEntities() => _placed().Entities;
+        public IReadOnlyList<DxfShape> GetPlacedEntities() => _placed().Entities;
 
         /// <summary>
         /// Gets the entities of the block placed where the INSERT puts them, as <see cref="GetPlacedEntities()"/> does, and
@@ -138,7 +138,7 @@ namespace GeometryHelper.Export
         /// define, of a block inside itself, past the bound, and each type of entity of the block it did not place with the
         /// reasons, such as <c>1 HATCH not placed: 1 of a type that is not read.</c> Empty where everything was placed.</param>
         /// <returns>The entities placed, a new list on each call.</returns>
-        public IReadOnlyList<DxfEntity> GetPlacedEntities(out IReadOnlyList<string> warnings)
+        public IReadOnlyList<DxfShape> GetPlacedEntities(out IReadOnlyList<string> warnings)
         {
             DxfReader.Placing placing = _placed();
             warnings = placing.Warnings;

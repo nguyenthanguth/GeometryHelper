@@ -157,12 +157,12 @@ namespace GeometryHelper.UnitTest.Export
         {
             DxfDocument read = Read(planAs2D);
 
-            Assert.Equal(Expected.Length, read.Entities.Count);
+            Assert.Equal(Expected.Length, read.Shapes.Count);
             Assert.Empty(read.Skipped);
 
             for (int i = 0; i < Expected.Length; i++)
             {
-                DxfEntity entity = read.Entities[i];
+                DxfShape entity = read.Shapes[i];
                 Expected[i].Check(Assert.IsType<DxfText>(entity.Shape), "text " + i + ", the " + entity.Type + " " + entity.Handle + " placed by " + string.Join(" > ", entity.InsertHandles));
             }
         }
@@ -172,9 +172,9 @@ namespace GeometryHelper.UnitTest.Export
         {
             DxfDocument read = Read(false);
 
-            Assert.All(read.Entities.Where(e => e.Handle == "D1"), e => Assert.Equal("⌀20 at 45°", ((DxfText)e.Shape).Value));
-            Assert.All(read.Entities.Where(e => e.Handle == "D7"), e => Assert.Equal("Bold\nline", ((DxfText)e.Shape).Value));
-            Assert.Equal(9, read.Entities.Count(e => e.Handle == "D1"));
+            Assert.All(read.Shapes.Where(e => e.Handle == "D1"), e => Assert.Equal("⌀20 at 45°", ((DxfText)e.Shape).Value));
+            Assert.All(read.Shapes.Where(e => e.Handle == "D7"), e => Assert.Equal("Bold\nline", ((DxfText)e.Shape).Value));
+            Assert.Equal(9, read.Shapes.Count(e => e.Handle == "D1"));
         }
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);

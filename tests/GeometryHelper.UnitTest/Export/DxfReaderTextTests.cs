@@ -17,7 +17,7 @@ namespace GeometryHelper.UnitTest.Export
 
         private static DxfDocument Read(string text, bool planAs2D = false) => DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = planAs2D, Tolerance = Tol });
 
-        private static DxfText Only(DxfDocument read) => Assert.IsType<DxfText>(Assert.Single(read.Entities).Shape);
+        private static DxfText Only(DxfDocument read) => Assert.IsType<DxfText>(Assert.Single(read.Shapes).Shape);
 
         private static void Same(GeoPoint3 expected, GeoPoint3 actual)
         {
@@ -133,7 +133,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = Read(R2000(
                 G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "tab^Ihere, a caret ^ , a line^Jfeed^M and a\\U+000Aline\\U+000D")
                 + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "tab^Ihere^Jnext\\U+000Dline\\U+000Alast")));
-            DxfText[] texts = read.Entities.Select(e => (DxfText)e.Shape).ToArray();
+            DxfText[] texts = read.Shapes.Select(e => (DxfText)e.Shape).ToArray();
 
             // A TEXT is one line: a line feed is a space and a carriage return is left out; an MTEXT keeps its line feeds.
             Assert.Equal("tab\there, a caret ^, a line feed and a line", texts[0].Value);
@@ -148,16 +148,16 @@ namespace GeometryHelper.UnitTest.Export
                 + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "a\\U+000Ab\\U+000Dc^Id^ e\\U+0001f")));
             var writer = new DxfWriter();
 
-            foreach (DxfEntity entity in read.Entities)
+            foreach (DxfShape entity in read.Shapes)
             {
                 writer.Add(entity);
             }
 
             DxfDocument again = Read(writer.ToString());
 
-            Assert.Equal(read.Entities.Select(e => ((DxfText)e.Shape).Value).ToArray(), again.Entities.Select(e => ((DxfText)e.Shape).Value).ToArray());
-            Assert.Equal("a bc\td^e", ((DxfText)again.Entities[0].Shape).Value);
-            Assert.Equal("a\nbc\td^e\u0001f", ((DxfText)again.Entities[1].Shape).Value);
+            Assert.Equal(read.Shapes.Select(e => ((DxfText)e.Shape).Value).ToArray(), again.Shapes.Select(e => ((DxfText)e.Shape).Value).ToArray());
+            Assert.Equal("a bc\td^e", ((DxfText)again.Shapes[0].Shape).Value);
+            Assert.Equal("a\nbc\td^e\u0001f", ((DxfText)again.Shapes[1].Shape).Value);
             Assert.Contains("a bc^Id^ e", writer.ToString());
         }
 
@@ -187,7 +187,7 @@ namespace GeometryHelper.UnitTest.Export
 
             Assert.Contains("11", codes);
             Assert.DoesNotContain("50", codes);
-            Assert.Equal(Math.PI / 2.0, ((DxfText)Read(written).Entities[0].Shape).Rotation, 15);
+            Assert.Equal(Math.PI / 2.0, ((DxfText)Read(written).Shapes[0].Shape).Rotation, 15);
         }
 
         [Fact]
@@ -217,7 +217,7 @@ namespace GeometryHelper.UnitTest.Export
                 G(0, "MTEXT", 8, "0", 10, "1", 20, "2", 30, "3", 40, "2", 41, "20", 1, "tilted", 210, "0.6", 220, "0", 230, "0.8", 11, "-0.8", 21, "0", 31, "0.6")
                 + G(0, "MTEXT", 8, "0", 10, "0", 20, "5", 30, "0", 40, "1.5", 1, "up", 50, "90")
                 + G(0, "MTEXT", 8, "0", 10, "0", 20, "5", 30, "0", 40, "1.5", 1, "both", 50, "90", 11, "1", 21, "1", 31, "0")));
-            DxfText[] texts = read.Entities.Select(e => (DxfText)e.Shape).ToArray();
+            DxfText[] texts = read.Shapes.Select(e => (DxfText)e.Shape).ToArray();
 
             // On (0.6, 0, 0.8) the system's x is (0, 1, 0) and its y (-0.8, 0, 0.6): the direction is a quarter turn on.
             Same(new GeoPoint3(1.0, 2.0, 3.0), texts[0].Position);
@@ -239,18 +239,18 @@ namespace GeometryHelper.UnitTest.Export
                 + G(0, "TEXT", 8, "0", 40, "1", 1, "nowhere")
                 + G(0, "LINE", 8, "0", 10, "0", 20, "0", 11, "1", 21, "0")));
 
-            Assert.Equal("LINE", Assert.Single(read.Entities).Type);
+            Assert.Equal("LINE", Assert.Single(read.Shapes).Type);
             Assert.Equal(3, read.Skipped["TEXT"]);
             Assert.Equal(1, read.Skipped["MTEXT"]);
         }
 
         [Fact]
-        public void AText_IsATextWithPlanAs2D_AndItsLengthsAreScaledToMillimetres_NotItsAngleOrWidthFactor()
+        public void AText_IsATextWithPlanAs2D_AndItsLengthsAreScaledToMillimeters_NotItsAngleOrWidthFactor()
         {
             string text = File("AC1015", 6, string.Empty, G(0, "TEXT", 8, "0", 10, "1.5", 20, "2", 30, "0", 40, "0.25", 1, "a", 50, "30", 41, "0.8")
                 + G(0, "MTEXT", 8, "0", 10, "1", 20, "1", 30, "0", 40, "0.5", 41, "2", 1, "b"));
-            DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, ToMillimetres = true, Tolerance = Tol });
-            DxfText[] texts = read.Entities.Select(e => (DxfText)e.Shape).ToArray();
+            DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, ToMillimeters = true, Tolerance = Tol });
+            DxfText[] texts = read.Shapes.Select(e => (DxfText)e.Shape).ToArray();
 
             Same(new GeoPoint3(1500.0, 2000.0, 0.0), texts[0].Position);
             Assert.Equal(250.0, texts[0].Height);
@@ -283,11 +283,11 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Read(text);
 
-            Assert.Equal(new[] { "doors", "walls" }, read.Entities.Select(e => e.Layer).ToArray());
-            Assert.Equal(new int?[] { 3, null }, read.Entities.Select(e => e.Colour).ToArray());
-            Assert.All(read.Entities, e => Assert.Equal(new[] { "TAG" }, e.BlockPath.ToArray()));
-            Assert.Equal(new[] { "B1", "B2" }, read.Entities.Select(e => e.InsertHandles[0]).ToArray());
-            Same(new GeoPoint3(11.0, 22.0, 0.0), ((DxfText)read.Entities[0].Shape).Position);
+            Assert.Equal(new[] { "doors", "walls" }, read.Shapes.Select(e => e.Layer).ToArray());
+            Assert.Equal(new int?[] { 3, null }, read.Shapes.Select(e => e.Color).ToArray());
+            Assert.All(read.Shapes, e => Assert.Equal(new[] { "TAG" }, e.BlockPath.ToArray()));
+            Assert.Equal(new[] { "B1", "B2" }, read.Shapes.Select(e => e.InsertHandles[0]).ToArray());
+            Same(new GeoPoint3(11.0, 22.0, 0.0), ((DxfText)read.Shapes[0].Shape).Position);
             Assert.Empty(read.Skipped);
         }
 
@@ -298,7 +298,7 @@ namespace GeometryHelper.UnitTest.Export
                 G(0, "BLOCK", 8, "0", 2, "TAG", 70, 0, 10, "0", 20, "0", 30, "0") + G(0, "TEXT", 8, "0", 10, "1", 20, "0", 40, "2", 1, "D1") + G(0, "ENDBLK", 8, "0"),
                 G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0", 41, "-1") + G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0", 41, "2", 42, "2", 43, "2", 50, "90"));
 
-            DxfText[] texts = Read(text).Entities.Select(e => (DxfText)e.Shape).ToArray();
+            DxfText[] texts = Read(text).Shapes.Select(e => (DxfText)e.Shape).ToArray();
 
             // Mirrored in x, the text faces down, whose system has its x along the world's -x: it reads from (-1, 0) on along
             // -x, its rotation nought, as it would seen in a mirror.
@@ -325,7 +325,7 @@ namespace GeometryHelper.UnitTest.Export
                 + G(0, "ENDBLK", 8, "0"),
                 G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0", 41, "3", 42, "2"));
 
-            DxfText[] texts = Read(text).Entities.Select(e => (DxfText)e.Shape).ToArray();
+            DxfText[] texts = Read(text).Shapes.Select(e => (DxfText)e.Shape).ToArray();
 
             Assert.Equal(4.0, texts[0].Height);
             Assert.Equal(0.75, texts[0].WidthFactor);
@@ -348,9 +348,9 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument under = DxfReader.Parse(text, new DxfReadOptions { MaxPlacedEntities = 3, Tolerance = Tol });
             DxfDocument enough = DxfReader.Parse(text, new DxfReadOptions { MaxPlacedEntities = 4, Tolerance = Tol });
 
-            Assert.Empty(under.Entities);
+            Assert.Empty(under.Shapes);
             Assert.Equal(1, under.Skipped["INSERT"]);
-            Assert.Equal(new[] { "TEXT", "TEXT", "MTEXT", "LINE" }, enough.Entities.Select(e => e.Type).ToArray());
+            Assert.Equal(new[] { "TEXT", "TEXT", "MTEXT", "LINE" }, enough.Shapes.Select(e => e.Type).ToArray());
         }
 
         [Fact]
@@ -362,7 +362,7 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Read(text);
 
-            Assert.Empty(read.Entities);
+            Assert.Empty(read.Shapes);
             Assert.Equal(1, read.Skipped["TEXT"]);
         }
 
@@ -392,11 +392,11 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Read(writer.ToString());
 
-            Assert.Equal(new[] { "TEXT", "TEXT", "TEXT", "MTEXT", "MTEXT" }, read.Entities.Select(e => e.Type).ToArray());
+            Assert.Equal(new[] { "TEXT", "TEXT", "TEXT", "MTEXT", "MTEXT" }, read.Shapes.Select(e => e.Type).ToArray());
 
             for (int i = 0; i < texts.Length; i++)
             {
-                var back = (DxfText)read.Entities[i].Shape;
+                var back = (DxfText)read.Shapes[i].Shape;
                 DxfText text = texts[i];
 
                 Assert.Equal(text.Value, back.Value);
@@ -406,7 +406,7 @@ namespace GeometryHelper.UnitTest.Export
                 Assert.Equal(text.Width, back.Width);
                 Same(text.Normal, back.Normal);
                 Assert.True(Math.Abs(text.Rotation - back.Rotation) <= 1E-14, "rotation " + text.Rotation.ToString("R") + " came back " + back.Rotation.ToString("R"));
-                Assert.Equal("notes", read.Entities[i].Layer);
+                Assert.Equal("notes", read.Shapes[i].Layer);
 
                 // The TEXT on a tilted normal goes through its plane's system and comes back to its rounding.
                 if (i == 2)
@@ -429,7 +429,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = Read(text);
             var writer = new DxfWriter();
 
-            foreach (DxfEntity entity in read.Entities)
+            foreach (DxfShape entity in read.Shapes)
             {
                 writer.Add(entity);
             }
@@ -438,17 +438,17 @@ namespace GeometryHelper.UnitTest.Export
 
             for (int i = 0; i < 2; i++)
             {
-                DxfEntity first = read.Entities[i];
-                DxfEntity second = again.Entities[i];
+                DxfShape first = read.Shapes[i];
+                DxfShape second = again.Shapes[i];
                 var a = (DxfText)first.Shape;
                 var b = (DxfText)second.Shape;
 
                 Assert.Equal(first.Type, second.Type);
                 Assert.Equal(first.Layer, second.Layer);
-                Assert.Equal(first.Colour, second.Colour);
-                Assert.Equal(first.TrueColour, second.TrueColour);
+                Assert.Equal(first.Color, second.Color);
+                Assert.Equal(first.TrueColor, second.TrueColor);
                 Assert.Equal(first.Linetype, second.Linetype);
-                Assert.Equal(first.Lineweight, second.Lineweight);
+                Assert.Equal(first.LineWeight, second.LineWeight);
                 Assert.Equal(first.Thickness, second.Thickness);
                 Assert.Equal(a.Value, b.Value);
                 Same(a.Position, b.Position);
@@ -458,8 +458,8 @@ namespace GeometryHelper.UnitTest.Export
                 Assert.True(Math.Abs(a.Rotation - b.Rotation) <= 1E-14, "rotation " + a.Rotation.ToString("R") + " came back " + b.Rotation.ToString("R"));
             }
 
-            Assert.Equal(5.0, again.Entities[0].Thickness);
-            Assert.Equal("a\nb", ((DxfText)again.Entities[1].Shape).Value);
+            Assert.Equal(5.0, again.Shapes[0].Thickness);
+            Assert.Equal("a\nb", ((DxfText)again.Shapes[1].Shape).Value);
         }
 
         [Fact]

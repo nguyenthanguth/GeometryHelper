@@ -108,7 +108,7 @@ namespace GeometryHelper.UnitTest.Export
                 GeometryHelperLog.Writer = before;
             }
 
-            Assert.Equal(new[] { "LINE", "CIRCLE" }, read.Entities.Select(e => e.Type).ToArray());
+            Assert.Equal(new[] { "LINE", "CIRCLE" }, read.Shapes.Select(e => e.Type).ToArray());
             Assert.Equal(new[] { "3DFACE", "ARC", "CIRCLE", "ELLIPSE", "LINE", "LWPOLYLINE", "RAY", "SPLINE" }, read.Skipped.Keys.ToArray());
             Assert.Equal(4, read.Skipped["LINE"]);
             Assert.Equal(2, read.Skipped["LWPOLYLINE"]);
@@ -125,8 +125,8 @@ namespace GeometryHelper.UnitTest.Export
         {
             string text = R2000(G(0, "LINE", 8, "0", 10, "0", 20, "0", 11, "0.0004", 21, "0"));
 
-            Assert.Empty(Plan(text).Entities);
-            Assert.Single(DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, Tolerance = new Tolerance(1E-5, 1E-7) }).Entities);
+            Assert.Empty(Plan(text).Shapes);
+            Assert.Single(DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, Tolerance = new Tolerance(1E-5, 1E-7) }).Shapes);
         }
 
         [Fact]
@@ -140,7 +140,7 @@ namespace GeometryHelper.UnitTest.Export
                 10, "0", 20, "0", 30, "0", 10, "10", 20, "0", 30, "0", 10, "10", 20, "10", 30, "0", 10, "0", 20, "10", 30, "0"));
 
             DxfDocument read = Plan(text);
-            var spline = Assert.IsType<GeoSpline2>(Assert.Single(read.Entities).Shape);
+            var spline = Assert.IsType<GeoSpline2>(Assert.Single(read.Shapes).Shape);
             var control = new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) };
             double[] knots = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
@@ -189,7 +189,7 @@ namespace GeometryHelper.UnitTest.Export
         // ----- Units -----------------------------------------------------------------------------------------------------
 
         [Fact]
-        public void ADrawingInMetres_IsScaledToMillimetresWhereAsked_ItsAnglesBulgesRatiosKnotsAndWeightsKept()
+        public void ADrawingInMetres_IsScaledToMillimetersWhereAsked_ItsAnglesBulgesRatiosKnotsAndWeightsKept()
         {
             string text = File("AC1015", 6, string.Empty, G(
                 0, "LINE", 8, "0", 39, "0.5", 10, "1", 20, "2", 30, "3", 11, "4", 21, "5", 31, "6",
@@ -200,28 +200,28 @@ namespace GeometryHelper.UnitTest.Export
                 10, "0", 20, "0", 30, "0", 10, "1", 20, "1", 30, "0", 10, "2", 20, "0", 30, "0"));
 
             DxfDocument kept = Plan(text);
-            DxfDocument scaled = DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, ToMillimetres = true, Tolerance = Tol });
+            DxfDocument scaled = DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, ToMillimeters = true, Tolerance = Tol });
 
-            Assert.Equal(DxfUnits.Metres, kept.Units);
-            Assert.Equal(DxfUnits.Metres, scaled.Units);
-            Assert.Equal(new GeoPoint3(4, 5, 6), Assert.IsType<GeoLine3>(kept.Entities[0].Shape).EndPoint);
-            Assert.Equal(new GeoPoint3(4000, 5000, 6000), Assert.IsType<GeoLine3>(scaled.Entities[0].Shape).EndPoint);
-            Assert.Equal(500.0, scaled.Entities[0].Thickness);
+            Assert.Equal(DxfUnits.Meters, kept.Units);
+            Assert.Equal(DxfUnits.Meters, scaled.Units);
+            Assert.Equal(new GeoPoint3(4, 5, 6), Assert.IsType<GeoLine3>(kept.Shapes[0].Shape).EndPoint);
+            Assert.Equal(new GeoPoint3(4000, 5000, 6000), Assert.IsType<GeoLine3>(scaled.Shapes[0].Shape).EndPoint);
+            Assert.Equal(500.0, scaled.Shapes[0].Thickness);
 
-            var arc = Assert.IsType<GeoArc2>(scaled.Entities[1].Shape);
+            var arc = Assert.IsType<GeoArc2>(scaled.Shapes[1].Shape);
             Assert.Equal(2000.0, arc.Radius);
             Assert.Equal(new GeoPoint2(1000, 1000), arc.Center);
             Assert.Equal(Math.PI / 6, arc.StartAngle, 15);
 
-            var chain = Assert.IsType<GeoPolylineArc3>(scaled.Entities[2].Shape);
+            var chain = Assert.IsType<GeoPolylineArc3>(scaled.Shapes[2].Shape);
             Assert.Equal(250.0, chain.Vertices[0].Z);
             Assert.Equal(0.5, chain.Bulges[0]);
 
-            var ellipse = Assert.IsType<GeoEllipse2>(scaled.Entities[3].Shape);
+            var ellipse = Assert.IsType<GeoEllipse2>(scaled.Shapes[3].Shape);
             Assert.Equal(2000.0, ellipse.MajorRadius);
             Assert.Equal(1000.0, ellipse.MinorRadius);
 
-            var spline = Assert.IsType<GeoSpline2>(scaled.Entities[4].Shape);
+            var spline = Assert.IsType<GeoSpline2>(scaled.Shapes[4].Shape);
             Assert.Equal(new[] { 1.0, 0.5, 1.0 }, spline.Weights.ToArray());
             Assert.Equal(new[] { 0.0, 0, 0, 1, 1, 1 }, spline.Knots.ToArray());
             Assert.Equal(new GeoPoint2(1000, 1000), spline.ControlPoints[1]);
@@ -232,18 +232,18 @@ namespace GeometryHelper.UnitTest.Export
         public void ADrawingInInches_IsScaledBy25Point4_AndOneWithNoUnitOrAnUnknownOne_IsKeptAndWarnedAbout()
         {
             string Line(int units) => File("AC1015", units, string.Empty, G(0, "POINT", 8, "0", 10, "2", 20, "3", 30, "0"));
-            var options = new DxfReadOptions { PlanAs2D = true, ToMillimetres = true, Tolerance = Tol };
+            var options = new DxfReadOptions { PlanAs2D = true, ToMillimeters = true, Tolerance = Tol };
 
             DxfDocument inches = DxfReader.Parse(Line(1), options);
             DxfDocument none = DxfReader.Parse(Line(0), options);
             DxfDocument unknown = DxfReader.Parse(Line(99), options);
 
-            Assert.Equal(new GeoPoint2(50.8, 76.19999999999999), Assert.IsType<GeoPoint2>(inches.Entities[0].Shape));
+            Assert.Equal(new GeoPoint2(50.8, 76.19999999999999), Assert.IsType<GeoPoint2>(inches.Shapes[0].Shape));
             Assert.Equal(DxfUnits.Inches, inches.Units);
-            Assert.Equal(new GeoPoint2(2, 3), Assert.IsType<GeoPoint2>(none.Entities[0].Shape));
+            Assert.Equal(new GeoPoint2(2, 3), Assert.IsType<GeoPoint2>(none.Shapes[0].Shape));
             Assert.Contains(none.Warnings, w => w.Contains("no unit"));
-            Assert.Equal(DxfUnits.Unitless, unknown.Units);
-            Assert.Equal(new GeoPoint2(2, 3), Assert.IsType<GeoPoint2>(unknown.Entities[0].Shape));
+            Assert.Equal(DxfUnits.Undefined, unknown.Units);
+            Assert.Equal(new GeoPoint2(2, 3), Assert.IsType<GeoPoint2>(unknown.Shapes[0].Shape));
             Assert.Contains(unknown.Warnings, w => w.Contains("99"));
         }
 
@@ -252,7 +252,7 @@ namespace GeometryHelper.UnitTest.Export
         {
             DxfDocument read = DxfReader.Parse(File("AC1006", 0, string.Empty, G(0, "POINT", 8, "0", 10, "1", 20, "1")));
 
-            Assert.Single(read.Entities);
+            Assert.Single(read.Shapes);
             Assert.Contains(read.Warnings, w => w.Contains("AC1006"));
         }
     }

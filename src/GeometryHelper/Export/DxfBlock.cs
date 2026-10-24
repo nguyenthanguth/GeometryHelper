@@ -11,18 +11,18 @@ namespace GeometryHelper.Export
     /// <remarks>
     /// The entities are read as the drawing's are, with the same options, and an INSERT inside the block is placed within
     /// it, its entities carrying the names of the blocks they were placed through after this one in
-    /// <see cref="DxfEntity.BlockPath"/>. Nothing of the block is placed, layer 0 and BYBLOCK being kept as they are: a block
+    /// <see cref="DxfShape.BlockPath"/>. Nothing of the block is placed, layer 0 and BYBLOCK being kept as they are: a block
     /// of a bolt drawn on layer 0 about its own origin holds its circle about the origin on layer 0, wherever the drawing
     /// puts it.
     /// </remarks>
     public sealed class DxfBlock
     {
-        internal DxfBlock(string name, GeoPoint3 basePoint, int flags, DxfEntity[] entities)
+        internal DxfBlock(string name, GeoPoint3 basePoint, int flags, DxfShape[] entities)
         {
             Name = name;
             BasePoint = basePoint;
             Flags = flags;
-            Entities = Array.AsReadOnly(entities);
+            Shapes = Array.AsReadOnly(entities);
         }
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the base point of the block (groups 10, 20, 30): the point of the block an INSERT puts at its insertion
-        /// point, scaled to millimetres where <see cref="DxfReadOptions.ToMillimetres"/> asks.
+        /// point, scaled to millimetres where <see cref="DxfReadOptions.ToMillimeters"/> asks.
         /// </summary>
         public GeoPoint3 BasePoint { get; }
 
@@ -45,8 +45,8 @@ namespace GeometryHelper.Export
         public int Flags { get; }
 
         /// <summary>
-        /// Gets the entities of the block in the order of the file, in the block's own coordinates.
+        /// Gets the shapes of the entities of the block in the order of the file, in the block's own coordinates.
         /// </summary>
-        public IReadOnlyList<DxfEntity> Entities { get; }
+        public IReadOnlyList<DxfShape> Shapes { get; }
     }
 }

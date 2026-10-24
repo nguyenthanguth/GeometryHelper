@@ -13,7 +13,7 @@ namespace GeometryHelper.Export
             private const string NotFiniteReason = "with a number that is not a finite number";
             private const string Incomplete = "without the groups that place it";
 
-            private static readonly IReadOnlyList<DxfGroup> NoGroups = Array.AsReadOnly(new DxfGroup[0]);
+            private static readonly IReadOnlyList<DxfTypedValue> NoGroups = Array.AsReadOnly(new DxfTypedValue[0]);
             private readonly SortedDictionary<string, Failure> _failures = new SortedDictionary<string, Failure>(StringComparer.Ordinal);
             private Gathering _drawing;
             private int _fitSplines;
@@ -326,7 +326,7 @@ namespace GeometryHelper.Export
                 }
 
                 string handle = r.Text(5)?.Trim();
-                IReadOnlyList<DxfGroup> groups = _keepGroups ? r.Groups() : NoGroups;
+                IReadOnlyList<DxfTypedValue> groups = _keepGroups ? r.Groups() : NoGroups;
 
                 // Whatever the size worked out for its block, an INSERT places no more than the bound leaves.
                 if (_approved && _into.Count - _treeStart >= _budget.Left)
@@ -334,7 +334,7 @@ namespace GeometryHelper.Export
                     throw new PastTheBound();
                 }
 
-                _into.Add(new DxfEntity(shape, r.Type, look.Layer, look.Colour, string.IsNullOrEmpty(handle) ? null : handle, look.Linetype, look.Lineweight, look.TrueColour, thickness, groups, hiddenEdges, _path, _handles));
+                _into.Add(new DxfShape(shape, r.Type, look.Layer, look.Colour, string.IsNullOrEmpty(handle) ? null : handle, look.Linetype, look.Lineweight, look.TrueColour, thickness, groups, hiddenEdges, _path, _handles));
             }
 
             /// <summary>
@@ -370,7 +370,7 @@ namespace GeometryHelper.Export
 
                 if (r.Has(370))
                 {
-                    if (r.TryInt(370, out int weight) && (weight < 0 || DxfEntity.IsLineweight(weight)))
+                    if (r.TryInt(370, out int weight) && (weight < 0 || DxfShape.IsLineweight(weight)))
                     {
                         lineweight = weight >= 0 ? weight : (int?)null;
                         weightByBlock = weight == -2;

@@ -41,16 +41,16 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument plan = Plan(text);
 
-            Assert.Equal(new GeoPoint2(1.5, 2.5), Assert.IsType<GeoPoint2>(plan.Entities[0].Shape));
-            Assert.Equal(new GeoPoint2(100, 50), Assert.IsType<GeoLine2>(plan.Entities[1].Shape).EndPoint);
-            Assert.Equal(0.8, Assert.IsType<GeoRay2>(plan.Entities[2].Shape).Direction.Y);
-            Assert.Equal(new GeoPoint3(0, 0, 7), Assert.IsType<GeoXLine3>(plan.Entities[3].Shape).Origin);
-            Assert.Equal(new[] { "1A", "1B", "1C", "1D" }, plan.Entities.Select(e => e.Handle).ToArray());
+            Assert.Equal(new GeoPoint2(1.5, 2.5), Assert.IsType<GeoPoint2>(plan.Shapes[0].Shape));
+            Assert.Equal(new GeoPoint2(100, 50), Assert.IsType<GeoLine2>(plan.Shapes[1].Shape).EndPoint);
+            Assert.Equal(0.8, Assert.IsType<GeoRay2>(plan.Shapes[2].Shape).Direction.Y);
+            Assert.Equal(new GeoPoint3(0, 0, 7), Assert.IsType<GeoXLine3>(plan.Shapes[3].Shape).Origin);
+            Assert.Equal(new[] { "1A", "1B", "1C", "1D" }, plan.Shapes.Select(e => e.Handle).ToArray());
 
             DxfDocument space = Space(text);
-            Assert.IsType<GeoPoint3>(space.Entities[0].Shape);
-            Assert.IsType<GeoLine3>(space.Entities[1].Shape);
-            Assert.IsType<GeoRay3>(space.Entities[2].Shape);
+            Assert.IsType<GeoPoint3>(space.Shapes[0].Shape);
+            Assert.IsType<GeoLine3>(space.Shapes[1].Shape);
+            Assert.IsType<GeoRay3>(space.Shapes[2].Shape);
         }
 
         // ----- Polylines -------------------------------------------------------------------------------------------------
@@ -63,11 +63,11 @@ namespace GeometryHelper.UnitTest.Export
                 0, "LWPOLYLINE", 5, "2F", 330, "1F", 100, "AcDbEntity", 8, "0", 100, "AcDbPolyline", 90, 4, 70, 1, 43, "0.0",
                 10, "0.0", 20, "0.0", 10, "60.0", 20, "0.0", 42, "1.0", 10, "60.0", 20, "20.0", 10, "0.0", 20, "20.0", 42, "1.0"));
 
-            var loop = Assert.IsType<GeoPolygonArc2>(Assert.Single(Plan(text).Entities).Shape);
+            var loop = Assert.IsType<GeoPolygonArc2>(Assert.Single(Plan(text).Shapes).Shape);
             Assert.Equal(new[] { 0.0, 1.0, 0.0, 1.0 }, loop.Bulges.ToArray());
             Assert.Equal(1200 + Math.PI * 100, loop.Area, 9);
 
-            var inSpace = Assert.IsType<GeoPolygonArc3>(Assert.Single(Space(text).Entities).Shape);
+            var inSpace = Assert.IsType<GeoPolygonArc3>(Assert.Single(Space(text).Shapes).Shape);
             Assert.All(inSpace.Vertices, v => Assert.Equal(0.0, v.Z));
         }
 
@@ -76,7 +76,7 @@ namespace GeometryHelper.UnitTest.Export
         {
             string text = R2000(G(0, "LWPOLYLINE", 8, "0", 100, "AcDbPolyline", 90, 3, 70, 0, 38, "12.5", 10, "0", 20, "0", 42, "0.5", 10, "10", 20, "0", 10, "10", 20, "10", 42, "0.7"));
 
-            var chain = Assert.IsType<GeoPolylineArc3>(Assert.Single(Plan(text).Entities).Shape);
+            var chain = Assert.IsType<GeoPolylineArc3>(Assert.Single(Plan(text).Shapes).Shape);
             Assert.All(chain.Vertices, v => Assert.Equal(12.5, v.Z));
             Assert.Equal(0.5, chain.Bulges[0]);
             Assert.Equal(0.0, chain.Bulges[2]);
@@ -101,18 +101,18 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = Plan(text);
 
             Assert.Equal("AC1009", read.Version);
-            Assert.Equal(DxfUnits.Unitless, read.Units);
-            Assert.Equal(2, read.Entities.Count);
-            Assert.All(read.Entities, e => Assert.Null(e.Handle));
+            Assert.Equal(DxfUnits.Undefined, read.Units);
+            Assert.Equal(2, read.Shapes.Count);
+            Assert.All(read.Shapes, e => Assert.Null(e.Handle));
 
-            var loop = Assert.IsType<GeoPolygonArc2>(read.Entities[0].Shape);
+            var loop = Assert.IsType<GeoPolygonArc2>(read.Shapes[0].Shape);
             Assert.Equal(3, loop.VertexCount);
             Assert.Equal(0.414213562373095, loop.Bulges[0]);
 
-            var bar = Assert.IsType<GeoPolyline3>(read.Entities[1].Shape);
+            var bar = Assert.IsType<GeoPolyline3>(read.Shapes[1].Shape);
             Assert.Equal(new GeoPoint3(5, 5, 6), bar.EndPoint);
-            Assert.Contains("VERTEX", read.Entities[1].Groups.Where(g => g.Code == 0).Select(g => g.Value));
-            Assert.Equal("SEQEND", read.Entities[1].Groups.Last(g => g.Code == 0).Value);
+            Assert.Contains("VERTEX", read.Shapes[1].Groups.Where(g => g.TypeCode == 0).Select(g => g.Value));
+            Assert.Equal("SEQEND", read.Shapes[1].Groups.Last(g => g.TypeCode == 0).Value);
         }
 
         [Fact]
@@ -129,7 +129,7 @@ namespace GeometryHelper.UnitTest.Export
                 + G(0, "VERTEX", 8, "0", 10, "10", 20, "5", 70, 16)
                 + G(0, "SEQEND", 8, "0"));
 
-            var chain = Assert.IsType<GeoPolyline2>(Assert.Single(Plan(text).Entities).Shape);
+            var chain = Assert.IsType<GeoPolyline2>(Assert.Single(Plan(text).Shapes).Shape);
             Assert.Equal(new[] { new GeoPoint2(0, 0), new GeoPoint2(5, 4), new GeoPoint2(10, 5) }, chain.Vertices.ToArray());
         }
 
@@ -140,7 +140,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = Plan(text);
 
             // The half circle from (0, 0) to (20, 0) bulging 1 runs under its chord; its middle is (10, -10), each quarter a bulge of tan(pi / 8).
-            var loop = Assert.IsType<GeoPolygonArc2>(Assert.Single(read.Entities).Shape);
+            var loop = Assert.IsType<GeoPolygonArc2>(Assert.Single(read.Shapes).Shape);
             Assert.Equal(3, loop.VertexCount);
             Assert.True(loop.Vertices[1].DistanceTo(new GeoPoint2(10, -10)) < 1E-12, loop.Vertices[1].ToString());
             Assert.Equal(new GeoPoint2(20, 0), loop.Vertices[2]);
@@ -150,7 +150,7 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal(Math.PI * 20, loop.Length, 9);
             Assert.Empty(read.Warnings);
 
-            var inSpace = Assert.IsType<GeoPolygonArc3>(Assert.Single(Space(text).Entities).Shape);
+            var inSpace = Assert.IsType<GeoPolygonArc3>(Assert.Single(Space(text).Shapes).Shape);
             Assert.Equal(Math.PI * 100, inSpace.Area, 9);
         }
 
@@ -162,7 +162,7 @@ namespace GeometryHelper.UnitTest.Export
             // Of the extrusion (0, 0, -1) the x axis of the system is (-1, 0, 0) and its y axis (0, 1, 0): the centre (10, 20, 5)
             // of the system is (-10, 20, -5) of the world.
             string text = R2000(G(0, "CIRCLE", 8, "0", 100, "AcDbCircle", 10, "10", 20, "20", 30, "5", 40, "2.5", 210, "0", 220, "0", 230, "-1"));
-            var circle = Assert.IsType<GeoCircle3>(Assert.Single(Plan(text).Entities).Shape);
+            var circle = Assert.IsType<GeoCircle3>(Assert.Single(Plan(text).Shapes).Shape);
 
             Assert.Equal(new GeoPoint3(-10, 20, -5), circle.Center);
             Assert.Equal(new GeoVector3(0, 0, -1), circle.Normal);
@@ -178,8 +178,8 @@ namespace GeometryHelper.UnitTest.Export
                 + G(0, "LWPOLYLINE", 8, "0", 100, "AcDbPolyline", 90, 3, 70, 0, 38, "7", 10, "0", 20, "0", 10, "10", 20, "0", 10, "10", 20, "5", 210, "1", 220, "0", 230, "0"));
 
             DxfDocument read = Plan(text);
-            var arc = Assert.IsType<GeoArc3>(read.Entities[0].Shape);
-            var chain = Assert.IsType<GeoPolyline3>(read.Entities[1].Shape);
+            var arc = Assert.IsType<GeoArc3>(read.Shapes[0].Shape);
+            var chain = Assert.IsType<GeoPolyline3>(read.Shapes[1].Shape);
 
             Near(new GeoPoint3(7, 0, 0), arc.Center, "the centre");
             Near(new GeoPoint3(7, 10, 0), arc.StartPoint, "the start");
@@ -194,10 +194,10 @@ namespace GeometryHelper.UnitTest.Export
             // AutoCAD writes a mirrored arc with the extrusion (0, 0, -1): from 0 to 90 degrees about down is from (-15, 0)
             // to (-10, 5) about the centre (-10, 0), clockwise seen from above.
             string text = R2000(G(0, "ARC", 8, "0", 100, "AcDbCircle", 10, "10", 20, "0", 30, "0", 40, "5", 210, "0", 220, "0", 230, "-1", 100, "AcDbArc", 50, "0", 51, "90"));
-            var arc = Assert.IsType<GeoArc3>(Assert.Single(Space(text).Entities).Shape);
+            var arc = Assert.IsType<GeoArc3>(Assert.Single(Space(text).Shapes).Shape);
 
             // On the floor it is the arc of the plane, clockwise from 180 to 90 degrees about (-10, 0), as in space.
-            var flat = Assert.IsType<GeoArc2>(Assert.Single(Plan(text).Entities).Shape);
+            var flat = Assert.IsType<GeoArc2>(Assert.Single(Plan(text).Shapes).Shape);
             Assert.Equal(new GeoPoint2(-10, 0), flat.Center);
             Assert.True(flat.IsClockwise);
             Assert.True(flat.StartPoint.DistanceTo(new GeoPoint2(-15, 0)) < 1E-12 && flat.EndPoint.DistanceTo(new GeoPoint2(-10, 5)) < 1E-12, flat.StartPoint + " " + flat.EndPoint);
@@ -220,7 +220,7 @@ namespace GeometryHelper.UnitTest.Export
             })
             {
                 string text = R2000(G(0, "ELLIPSE", 8, "0", 100, "AcDbEllipse", 10, "10", 20, "20", 30, "0", 11, "30", 21, "0", 31, "0", 210, "0", 220, "0", 230, "1", 40, "0.5", 41, from, 42, to));
-                var spline = Assert.IsType<GeoSpline2>(Assert.Single(Plan(text).Entities).Shape);
+                var spline = Assert.IsType<GeoSpline2>(Assert.Single(Plan(text).Shapes).Shape);
 
                 Assert.Equal(2, spline.Degree);
                 Assert.Equal(2 * pieces + 1, spline.ControlPointCount);
@@ -242,16 +242,16 @@ namespace GeometryHelper.UnitTest.Export
         {
             // About (0, 0, -1) the minor axis is the extrusion crossed with the major, (0, -1, 0): a quarter from angle 0 ends at (10, 5, 0).
             string part = R2000(G(0, "ELLIPSE", 8, "0", 100, "AcDbEllipse", 10, "10", 20, "20", 30, "0", 11, "30", 21, "0", 31, "0", 210, "0", 220, "0", 230, "-1", 40, "0.5", 41, "0", 42, "1.5707963267948966"));
-            var spline = Assert.IsType<GeoSpline3>(Assert.Single(Space(part).Entities).Shape);
+            var spline = Assert.IsType<GeoSpline3>(Assert.Single(Space(part).Shapes).Shape);
             Near(new GeoPoint3(40, 20, 0), spline.StartPoint, "the start");
             Near(new GeoPoint3(10, 5, 0), spline.EndPoint, "the end");
 
-            var flat = Assert.IsType<GeoSpline2>(Assert.Single(Plan(part).Entities).Shape);
+            var flat = Assert.IsType<GeoSpline2>(Assert.Single(Plan(part).Shapes).Shape);
             Near(new GeoPoint2(40, 20), flat.StartPoint, "the start in the plane");
             Near(new GeoPoint2(10, 5), flat.EndPoint, "the end in the plane");
 
             string whole = R2000(G(0, "ELLIPSE", 8, "0", 100, "AcDbEllipse", 10, "10", 20, "20", 30, "0", 11, "0", 21, "30", 31, "0", 210, "0", 220, "0", 230, "1", 40, "0.5", 41, "0", 42, "6.283185307179586"));
-            var ellipse = Assert.IsType<GeoEllipse2>(Assert.Single(Plan(whole).Entities).Shape);
+            var ellipse = Assert.IsType<GeoEllipse2>(Assert.Single(Plan(whole).Shapes).Shape);
             Assert.Equal(30, ellipse.MajorRadius);
             Assert.Equal(15, ellipse.MinorRadius);
             Assert.Equal(new GeoVector2(0, 1), ellipse.MajorAxis);
@@ -292,7 +292,7 @@ namespace GeometryHelper.UnitTest.Export
                 40, "0", 40, "0", 40, "0", 40, "1", 40, "1", 40, "1", 41, "1", 41, "0.7071067811865476", 41, "1",
                 10, "10", 20, "0", 30, "0", 10, "10", 20, "10", 30, "0", 10, "0", 20, "10", 30, "0"));
 
-            var spline = Assert.IsType<GeoSpline2>(Assert.Single(Plan(text).Entities).Shape);
+            var spline = Assert.IsType<GeoSpline2>(Assert.Single(Plan(text).Shapes).Shape);
             Assert.True(spline.IsRational);
 
             GeoPoint2 middle = spline.GetPointAtParameter(0.5);
@@ -321,7 +321,7 @@ namespace GeometryHelper.UnitTest.Export
 
             string text = R2000(G(0, "POLYLINE", 5, "40", 8, "mesh", 100, "AcDb2dPolyline", 66, 1, 10, "0", 20, "0", 30, "0", 70, 64, 71, 8, 72, 6) + vertices + G(0, "SEQEND", 8, "mesh"));
 
-            DxfEntity entity = Assert.Single(Plan(text).Entities);
+            DxfShape entity = Assert.Single(Plan(text).Shapes);
             var body = Assert.IsType<GeoSolid3>(entity.Shape);
 
             Assert.Equal("POLYLINE", entity.Type);
@@ -344,7 +344,7 @@ namespace GeometryHelper.UnitTest.Export
             }
 
             string text = R12(G(0, "POLYLINE", 8, "0", 66, 1, 10, "0", 20, "0", 30, "0", 70, 16, 71, 3, 72, 3) + vertices + G(0, "SEQEND", 8, "0"));
-            var body = Assert.IsType<GeoSolid3>(Assert.Single(Plan(text).Entities).Shape);
+            var body = Assert.IsType<GeoSolid3>(Assert.Single(Plan(text).Shapes).Shape);
 
             // The cell standing out of flat, its corner (20, 20) raised 4, is its two triangles.
             Assert.Equal(5, body.Faces.Count);
@@ -362,20 +362,20 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Equal(5, read.Entities.Count);
-            Assert.IsType<GeoTriangle3>(read.Entities[0].Shape);
-            Assert.Equal(4, Assert.IsType<GeoFace3>(read.Entities[1].Shape).Boundary.VertexCount);
+            Assert.Equal(5, read.Shapes.Count);
+            Assert.IsType<GeoTriangle3>(read.Shapes[0].Shape);
+            Assert.Equal(4, Assert.IsType<GeoFace3>(read.Shapes[1].Shape).Boundary.VertexCount);
 
             // Out of flat, cut along the shorter diagonal, from (10, 0, 0) to (0, 10, 0); both triangles carry the handle.
-            var first = Assert.IsType<GeoTriangle3>(read.Entities[2].Shape);
-            var second = Assert.IsType<GeoTriangle3>(read.Entities[3].Shape);
+            var first = Assert.IsType<GeoTriangle3>(read.Shapes[2].Shape);
+            var second = Assert.IsType<GeoTriangle3>(read.Shapes[3].Shape);
             Assert.Equal(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0) }, new[] { first.A, first.B, first.C });
             Assert.Equal(new[] { new GeoPoint3(10, 0, 0), new GeoPoint3(10, 12, 3), new GeoPoint3(0, 10, 0) }, new[] { second.A, second.B, second.C });
-            Assert.Equal("9A", read.Entities[2].Handle);
-            Assert.Equal("9A", read.Entities[3].Handle);
+            Assert.Equal("9A", read.Shapes[2].Handle);
+            Assert.Equal("9A", read.Shapes[3].Handle);
 
             // A quad folded onto itself, its second and third corners the same, is a triangle.
-            Assert.IsType<GeoTriangle3>(read.Entities[4].Shape);
+            Assert.IsType<GeoTriangle3>(read.Shapes[4].Shape);
         }
 
         [Fact]
@@ -388,11 +388,11 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Equal(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) }, Assert.IsType<GeoPolygon2>(read.Entities[0].Shape).Vertices.ToArray());
-            Assert.Equal(3, Assert.IsType<GeoPolygon2>(read.Entities[1].Shape).VertexCount);
+            Assert.Equal(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) }, Assert.IsType<GeoPolygon2>(read.Shapes[0].Shape).Vertices.ToArray());
+            Assert.Equal(3, Assert.IsType<GeoPolygon2>(read.Shapes[1].Shape).VertexCount);
 
             // The corners after the first stand at its height where they give none.
-            Assert.All(Assert.IsType<GeoPolygon3>(read.Entities[2].Shape).Vertices, v => Assert.Equal(2.0, v.Z));
+            Assert.All(Assert.IsType<GeoPolygon3>(read.Shapes[2].Shape).Vertices, v => Assert.Equal(2.0, v.Z));
         }
 
         // ----- Layers, colours, what is left out -------------------------------------------------------------------------
@@ -409,8 +409,8 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = Plan(text);
 
             Assert.Equal(new[] { "Steel", "Café", "extra", "0" }, read.Layers.ToArray());
-            Assert.Equal(new[] { "Steel", "Café", "extra", "0" }, read.Entities.Select(e => e.Layer).ToArray());
-            Assert.Equal(new int?[] { 1, null, null, null }, read.Entities.Select(e => e.Colour).ToArray());
+            Assert.Equal(new[] { "Steel", "Café", "extra", "0" }, read.Shapes.Select(e => e.Layer).ToArray());
+            Assert.Equal(new int?[] { 1, null, null, null }, read.Shapes.Select(e => e.Color).ToArray());
             Assert.Single(read.OnLayer("steel"));
             Assert.Empty(read.OnLayer("nothing"));
         }
@@ -433,8 +433,8 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = Plan(text);
 
             // TEXT and MTEXT are read since the reader reads texts; ATTRIB and HATCH are still counted.
-            Assert.Equal(new[] { "TEXT", "LINE", "MTEXT", "LINE", "CIRCLE", "TEXT", "CIRCLE" }, read.Entities.Select(e => e.Type).ToArray());
-            Assert.Equal(new[] { "B" }, read.Entities[3].BlockPath.ToArray());
+            Assert.Equal(new[] { "TEXT", "LINE", "MTEXT", "LINE", "CIRCLE", "TEXT", "CIRCLE" }, read.Shapes.Select(e => e.Type).ToArray());
+            Assert.Equal(new[] { "B" }, read.Shapes[3].BlockPath.ToArray());
             Assert.Equal(new[] { "ATTRIB", "HATCH" }, read.Skipped.Keys.ToArray());
             Assert.Equal(1, read.Skipped["ATTRIB"]);
             Assert.Contains(read.Warnings, w => w.StartsWith("1 entity of paper space", StringComparison.Ordinal));
@@ -447,8 +447,8 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument plain = Plan(text);
             DxfDocument windows = Plan(text.Replace("\n", "\r\n"));
 
-            Assert.Equal(Assert.IsType<GeoLine2>(Assert.Single(plain.Entities).Shape).StartPoint, Assert.IsType<GeoLine2>(Assert.Single(windows.Entities).Shape).StartPoint);
-            Assert.DoesNotContain(plain.Entities[0].Groups, g => g.Code == 999);
+            Assert.Equal(Assert.IsType<GeoLine2>(Assert.Single(plain.Shapes).Shape).StartPoint, Assert.IsType<GeoLine2>(Assert.Single(windows.Shapes).Shape).StartPoint);
+            Assert.DoesNotContain(plain.Shapes[0].Groups, g => g.TypeCode == 999);
         }
 
         [Fact]
@@ -465,8 +465,8 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument western = DxfReader.Read(new MemoryStream(Bytes("AC1015", "Café", Encoding.GetEncoding(1252))), new DxfReadOptions { Tolerance = Tol });
             DxfDocument utf8 = DxfReader.Read(new MemoryStream(Bytes("AC1021", "Kết cấu", new UTF8Encoding(true))), new DxfReadOptions { Tolerance = Tol });
 
-            Assert.Equal("Café", Assert.Single(western.Entities).Layer);
-            Assert.Equal("Kết cấu", Assert.Single(utf8.Entities).Layer);
+            Assert.Equal("Café", Assert.Single(western.Shapes).Layer);
+            Assert.Equal("Kết cấu", Assert.Single(utf8.Shapes).Layer);
             Assert.Empty(western.Warnings);
             Assert.Empty(utf8.Warnings);
         }
@@ -480,20 +480,20 @@ namespace GeometryHelper.UnitTest.Export
                 0, "LINE", 8, "0", 6, "ByLayer", 370, -1, 10, "0", 20, "0", 11, "10", 21, "0"));
 
             DxfDocument read = Plan(text);
-            DxfEntity first = read.Entities[0];
-            DxfEntity second = read.Entities[1];
+            DxfShape first = read.Shapes[0];
+            DxfShape second = read.Shapes[1];
 
             Assert.Equal("DASHED", first.Linetype);
-            Assert.Equal(35, first.Lineweight);
-            Assert.Equal(0xFF8000, first.TrueColour);
+            Assert.Equal(35, first.LineWeight);
+            Assert.Equal(0xFF8000, first.TrueColor);
             Assert.Equal(50.0, first.Thickness);
-            Assert.Equal(1, first.Colour);
-            Assert.Equal(new[] { 5, 330, 100, 8, 6, 62, 370, 420, 100, 39, 10, 20, 30, 11, 21, 31, 1001, 1000, 1040 }, first.Groups.Select(g => g.Code).ToArray());
-            Assert.Equal("a note", first.Groups.Single(g => g.Code == 1000).Value);
+            Assert.Equal(1, first.Color);
+            Assert.Equal(new[] { 5, 330, 100, 8, 6, 62, 370, 420, 100, 39, 10, 20, 30, 11, 21, 31, 1001, 1000, 1040 }, first.Groups.Select(g => (int)g.TypeCode).ToArray());
+            Assert.Equal("a note", first.Groups.Single(g => g.TypeCode == 1000).Value);
 
             Assert.Null(second.Linetype);
-            Assert.Null(second.Lineweight);
-            Assert.Null(second.TrueColour);
+            Assert.Null(second.LineWeight);
+            Assert.Null(second.TrueColor);
             Assert.Equal(0.0, second.Thickness);
         }
     }

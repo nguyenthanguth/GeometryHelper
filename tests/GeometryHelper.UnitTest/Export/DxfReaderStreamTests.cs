@@ -65,8 +65,8 @@ namespace GeometryHelper.UnitTest.Export
             {
                 seeking.Position = junk.Length;
 
-                Assert.Equal("Grün", Assert.Single(DxfReader.Read(seeking, new DxfReadOptions { Tolerance = Tol }).Entities).Layer);
-                Assert.Equal("Grün", Assert.Single(DxfReader.Read(oneWay, new DxfReadOptions { Tolerance = Tol }).Entities).Layer);
+                Assert.Equal("Grün", Assert.Single(DxfReader.Read(seeking, new DxfReadOptions { Tolerance = Tol }).Shapes).Layer);
+                Assert.Equal("Grün", Assert.Single(DxfReader.Read(oneWay, new DxfReadOptions { Tolerance = Tol }).Shapes).Layer);
             }
         }
 
@@ -81,7 +81,7 @@ namespace GeometryHelper.UnitTest.Export
             {
                 DxfDocument read = DxfReader.Read(stream, new DxfReadOptions { Tolerance = Tol });
 
-                Assert.Equal("gr�n", Assert.Single(read.Entities).Layer);
+                Assert.Equal("gr�n", Assert.Single(read.Shapes).Layer);
                 Assert.Contains(read.Warnings, w => w.StartsWith("The file is of R2007 or later so its text is UTF-8, but some of its bytes are not", StringComparison.Ordinal));
             }
         }

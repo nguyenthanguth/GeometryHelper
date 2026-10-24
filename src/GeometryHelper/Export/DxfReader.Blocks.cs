@@ -21,7 +21,7 @@ namespace GeometryHelper.Export
             private readonly List<Block> _active = new List<Block>();
             private readonly List<string> _missingNames = new List<string>();
             private readonly List<string> _againNames = new List<string>();
-            private List<DxfEntity> _into;
+            private List<DxfShape> _into;
             private Block _block;
             private Placement _place;
             private Look? _inherit;
@@ -877,7 +877,7 @@ namespace GeometryHelper.Export
                     return 0;
                 }
 
-                var all = new List<DxfEntity>(_entities.Count);
+                var all = new List<DxfShape>(_entities.Count);
                 _into = all;
                 int from = 0;
 

@@ -80,14 +80,14 @@ namespace GeometryHelper.Viewer
                 }
             }
 
-            for (int i = 0; i < _document.Entities.Count; i++)
+            for (int i = 0; i < _document.Shapes.Count; i++)
             {
                 if ((i & 1023) == 0)
                 {
                     _cancel.ThrowIfCancellationRequested();
                 }
 
-                DxfEntity e = _document.Entities[i];
+                DxfShape e = _document.Shapes[i];
                 string name = e.BlockPath.Count > 0 ? string.Join(" > ", e.BlockPath) : null;
 
                 if (e.Type == "3DFACE")
@@ -136,7 +136,7 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// The colour of an entity: its true colour, else that of its colour index, each its own or taken from the INSERT that places it.
         /// </summary>
-        private static string ItemColour(DxfEntity e) => e.TrueColour.HasValue ? Hex(e.TrueColour.Value) : AciColour(e.Colour ?? 0);
+        private static string ItemColour(DxfShape e) => e.TrueColor.HasValue ? Hex(e.TrueColor.Value) : AciColour(e.Color ?? 0);
 
         /// <summary>
         /// The colour of an AutoCAD colour index as #RRGGBB. Seven is white on a dark screen and black on a white page, a colour of nothing in
@@ -245,7 +245,7 @@ namespace GeometryHelper.Viewer
 
             if (info != null)
             {
-                _b.Layer(layer, info.TrueColour.HasValue ? Hex(info.TrueColour.Value) : AciColour(info.Colour ?? 0), !info.IsOff && !info.IsFrozen);
+                _b.Layer(layer, info.TrueColor.HasValue ? Hex(info.TrueColor.Value) : AciColour(info.Color ?? 0), !info.IsOff && !info.IsFrozen);
             }
             else
             {
@@ -261,7 +261,7 @@ namespace GeometryHelper.Viewer
         /// Takes the corners of a 3DFACE, as the library read it, into the meshes of its layer and colour: a triangle, a face of four, or each of the two
         /// triangles of one whose four corners are not in one plane.
         /// </summary>
-        private void AddFace(DxfEntity e)
+        private void AddFace(DxfShape e)
         {
             IReadOnlyList<GeoPoint3> corners = e.Shape is GeoTriangle3 t ? (IReadOnlyList<GeoPoint3>)new[] { t.A, t.B, t.C } : ((GeoFace3)e.Shape).Boundary.Vertices;
             string color = ItemColour(e);

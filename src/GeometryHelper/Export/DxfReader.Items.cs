@@ -27,6 +27,9 @@ namespace GeometryHelper.Export
             return layer.Length == 0 ? "0" : layer;
         }
 
+        /// <summary>A name as the reader reads one of a table or an entity: the spaces around it taken off and its escapes read as letters.</summary>
+        internal static string NameOf(string written) => Decode(written.Trim());
+
         /// <summary>
         /// An INSERT as it stands in the file, for <see cref="DxfFile"/>; null where a number of it is not a finite number, as
         /// the reader leaves such an INSERT out.
@@ -52,14 +55,14 @@ namespace GeometryHelper.Export
         /// <summary>What the reader placed of one INSERT, and what it has to say of what it left out.</summary>
         internal sealed class Placing
         {
-            internal Placing(IReadOnlyList<DxfEntity> entities, IReadOnlyList<string> warnings, Exception failure)
+            internal Placing(IReadOnlyList<DxfShape> entities, IReadOnlyList<string> warnings, Exception failure)
             {
                 Entities = entities;
                 Warnings = warnings;
                 Failure = failure;
             }
 
-            internal IReadOnlyList<DxfEntity> Entities { get; }
+            internal IReadOnlyList<DxfShape> Entities { get; }
 
             internal IReadOnlyList<string> Warnings { get; }
 

@@ -46,7 +46,7 @@ namespace GeometryHelper.Export
         /// scales of an INSERT are not, having no unit. A file in millimetres is read to the bit either way. A file with no unit,
         /// or one the DXF reference does not list, is not scaled, and a warning says so.
         /// </remarks>
-        public bool ToMillimetres { get; set; }
+        public bool ToMillimeters { get; set; }
 
         /// <summary>
         /// Gets or sets the tolerance that says which entities have no shape to them and which four corners of a 3DFACE
@@ -72,7 +72,7 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets or sets whether each entity keeps every group of its record as the file has it, in
-        /// <see cref="DxfEntity.Groups"/>; true by default. False leaves them empty, which a large file reads in less memory:
+        /// <see cref="DxfShape.Groups"/>; true by default. False leaves them empty, which a large file reads in less memory:
         /// the shapes and the look of the entities are read either way.
         /// </summary>
         /// <remarks>

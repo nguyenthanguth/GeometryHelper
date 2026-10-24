@@ -105,6 +105,11 @@ namespace GeometryHelper.Export
         private double _maxY = double.NegativeInfinity;
         private double _maxZ = double.NegativeInfinity;
 
+        // For DxfFile, which writes one shape into a file of its own: the records written, each its type and the groups after
+        // the head of an entity, and whether a polyline of the plane is to be a POLYLINE, the file being older than R14.
+        private List<KeyValuePair<string, List<DxfTypedValue>>> _sunk;
+        private bool _noLightweight;
+
         #region The plane
 
         /// <summary>
@@ -1100,7 +1105,7 @@ namespace GeometryHelper.Export
                 }
 
                 _entities.Int(71, 1);
-                string words = Words(text.Value, true);
+                string words = Words(text.Value, true, _sunk != null);
                 int from = 0;
 
                 // A piece does not end between a caret and the character it goes with.
@@ -1133,7 +1138,7 @@ namespace GeometryHelper.Export
             _entities.Point(0, ocs.X(at.X, at.Y, at.Z), ocs.Y(at.X, at.Y, at.Z), ocs.Z(at.X, at.Y, at.Z));
             Grow(at);
             _entities.Real(40, text.Height);
-            _entities.Str(1, Words(text.Value, false));
+            _entities.Str(1, Words(text.Value, false, _sunk != null));
 
             if (text.Rotation != 0.0)
             {
@@ -1153,9 +1158,10 @@ namespace GeometryHelper.Export
         /// <summary>
         /// The words of a text as its group values hold them: a letter beyond ASCII as its escape, a control character in
         /// AutoCAD's caret form and a caret as ^ and a space; of an MTEXT, a backslash and the braces as the codes that keep
-        /// them and a line feed as a new paragraph.
+        /// them and a line feed as a new paragraph. Asked to keep letters, as <see cref="DxfFile"/> writes them in the file's
+        /// own code page, a letter beyond ASCII is kept as it is.
         /// </summary>
-        private static string Words(string value, bool multiline)
+        private static string Words(string value, bool multiline, bool letters)
         {
             var words = new StringBuilder(value.Length);
 
@@ -1177,7 +1183,7 @@ namespace GeometryHelper.Export
                 {
                     words.Append('^').Append((char)(c + 64));
                 }
-                else if (c > 126)
+                else if (c > 126 && !(letters && c > 127))
                 {
                     words.Append("\\U+").Append(((int)c).ToString("X4", Invariant));
                 }
@@ -1210,7 +1216,7 @@ namespace GeometryHelper.Export
         /// line solid until the drawing is given the linetype's pattern. The thickness is written on the entities that have
         /// one in DXF, the LINE, POINT, CIRCLE, ARC, LWPOLYLINE and TEXT, and on no other. A text is written as a TEXT or an
         /// MTEXT, as <see cref="Add(DxfText, string)"/> writes it. The entity is given a handle of its own,
-        /// and its <see cref="DxfEntity.Groups"/> are not written: only what the shape and the five say is.
+        /// and its <see cref="DxfShape.Groups"/> are not written: only what the shape and the five say is.
         /// </para>
         /// <para>
         /// A face of three or four corners with no hole, as a 3DFACE reads, is written as one 3DFACE of its corners again, in
@@ -1228,7 +1234,7 @@ namespace GeometryHelper.Export
         /// and a mesh comes back as the 3DFACEs of its triangles.
         /// </para>
         /// </remarks>
-        public DxfWriter Add(DxfEntity entity)
+        public DxfWriter Add(DxfShape entity)
         {
             if (entity == null)
             {
@@ -1242,7 +1248,7 @@ namespace GeometryHelper.Export
                 throw new ArgumentException("A " + (shape == null ? "null shape" : shape.GetType().Name) + " has no overload of Add to write it.", nameof(entity));
             }
 
-            var style = new Style(entity.Colour, entity.TrueColour, entity.Linetype == null ? null : Linetype(entity.Linetype), entity.Lineweight, entity.Thickness);
+            var style = new Style(entity.Color, entity.TrueColor, entity.Linetype == null ? null : Linetype(entity.Linetype), entity.LineWeight, entity.Thickness);
             _style = style.IsEmpty ? null : style;
 
             try
@@ -1257,6 +1263,33 @@ namespace GeometryHelper.Export
             return this;
         }
 
+        /// <summary>
+        /// The records a shape is written as in a file <see cref="DxfFile"/> edits, by the overload of Add for it: for each, its
+        /// type and its groups after the head of an entity (its handle, owner, layer and look, which the file writes itself),
+        /// those of a POLYLINE followed by its VERTEX records and its SEQEND. The thickness is written where the entity has
+        /// one, the edges of a 3DFACE hidden as given, a text's letters beyond ASCII as they are; without subclass markers
+        /// for a file of R12, and a polyline of the plane as a POLYLINE for one older than R14. The extents are the least and
+        /// greatest x, y and z the shape reaches, null where it reaches none.
+        /// </summary>
+        internal static List<KeyValuePair<string, List<DxfTypedValue>>> RecordsOf(object shape, int hiddenEdges, double thickness, bool markers, bool lightweight, out double[] extents)
+        {
+            if (!Writes(shape))
+            {
+                throw new ArgumentException("A " + (shape == null ? "null shape" : shape.GetType().Name) + " is not a shape a DXF entity is written from.", nameof(shape));
+            }
+
+            var writer = new DxfWriter { _sunk = new List<KeyValuePair<string, List<DxfTypedValue>>>(), _noLightweight = !lightweight };
+            writer._entities.NoMarkers = !markers;
+            writer._style = thickness != 0.0 ? new Style(null, null, null, null, thickness) : null;
+            writer.Write(shape, null, hiddenEdges, Tolerance.Default);
+
+            extents = double.IsInfinity(writer._minX) ? null : new[] { writer._minX, writer._minY, writer._minZ, writer._maxX, writer._maxY, writer._maxZ };
+            return writer._sunk;
+        }
+
+        /// <summary>Whether a shape is one the writer writes an entity from without a tolerance, as <see cref="RecordsOf"/> writes it.</summary>
+        internal static bool CanWrite(object shape) => Writes(shape);
+
         private static bool Writes(object shape)
             => shape is GeoPoint2 || shape is GeoLine2 || shape is GeoPolyline2 || shape is GeoPolygon2 || shape is GeoRectangle2 || shape is GeoTriangle2
             || shape is GeoPolylineArc2 || shape is GeoPolygonArc2 || shape is GeoFace2 || shape is GeoCircle2 || shape is GeoArc2 || shape is GeoEllipse2
@@ -1265,7 +1298,7 @@ namespace GeometryHelper.Export
             || shape is GeoFace3 || shape is GeoSolid3 || shape is GeoMesh3 || shape is GeoAabb3 || shape is GeoObb3 || shape is GeoArc3
             || shape is GeoCircle3 || shape is GeoPolylineArc3 || shape is GeoPolygonArc3 || shape is DxfText;
 
-        private void Write(object shape, string layer, int hidden)
+        private void Write(object shape, string layer, int hidden, Tolerance? tolerance = null)
         {
             switch (shape)
             {
@@ -1302,14 +1335,14 @@ namespace GeometryHelper.Export
                     Check(corners, nameof(shape));
                     Face(Layer(layer), corners[0], corners[1], corners[2], corners[corners.Count - 1], corners.Count == 4 ? hidden : 0);
                     break;
-                case GeoFace3 s: Add(s, layer); break;
-                case GeoSolid3 s: Add(s, layer); break;
+                case GeoFace3 s: Add(s, tolerance ?? Tolerance.Global, layer); break;
+                case GeoSolid3 s: Add(s, tolerance ?? Tolerance.Global, layer); break;
                 case GeoMesh3 s: Add(s, layer); break;
                 case GeoAabb3 s: Add(s, layer); break;
                 case GeoObb3 s: Add(s, layer); break;
                 case GeoArc3 s: Add(s, layer); break;
                 case GeoCircle3 s: Add(s, layer); break;
-                case GeoPolylineArc3 s: Add(s, layer); break;
+                case GeoPolylineArc3 s: Add(s, tolerance ?? Tolerance.Global, layer); break;
                 case GeoPolygonArc3 s: Add(s, layer); break;
                 case DxfText s: Add(s, layer); break;
             }
@@ -1786,6 +1819,20 @@ namespace GeometryHelper.Export
         {
             int handle = _nextHandle++;
 
+            // A record for DxfFile, which writes the head itself: its groups from the subclass on.
+            if (_sunk != null)
+            {
+                _entities.Into = new List<DxfTypedValue>();
+                _sunk.Add(new KeyValuePair<string, List<DxfTypedValue>>(type, _entities.Into));
+
+                if (subclass != null)
+                {
+                    _entities.Str(100, subclass);
+                }
+
+                return handle;
+            }
+
             _entities.Str(0, type);
             _entities.Hex(5, handle);
             _entities.Hex(330, owner);
@@ -2187,18 +2234,32 @@ namespace GeometryHelper.Export
             int count = closed ? edges.Count : edges.Count + 1;
             GeoPoint3 first = edges[0].StartPoint;
 
-            Begin("LWPOLYLINE", layer, "AcDbPolyline");
-            _entities.Int(90, count);
-            _entities.Int(70, closed ? 1 : 0);
-            _entities.Real(38, ocs.Z(first.X, first.Y, first.Z));
-            Thickness();
+            // Older than R14, the vertices are gathered for a POLYLINE: x, y and bulge each.
+            List<double[]> plain = _noLightweight ? new List<double[]>(count) : null;
+
+            if (plain == null)
+            {
+                Begin("LWPOLYLINE", layer, "AcDbPolyline");
+                _entities.Int(90, count);
+                _entities.Int(70, closed ? 1 : 0);
+                _entities.Real(38, ocs.Z(first.X, first.Y, first.Z));
+                Thickness();
+            }
 
             for (int i = 0; i < count; i++)
             {
                 GeoPoint3 at = i < edges.Count ? edges[i].StartPoint : edges[edges.Count - 1].EndPoint;
 
-                _entities.Real(10, ocs.X(at.X, at.Y, at.Z));
-                _entities.Real(20, ocs.Y(at.X, at.Y, at.Z));
+                if (plain != null)
+                {
+                    plain.Add(new[] { ocs.X(at.X, at.Y, at.Z), ocs.Y(at.X, at.Y, at.Z), 0.0 });
+                }
+                else
+                {
+                    _entities.Real(10, ocs.X(at.X, at.Y, at.Z));
+                    _entities.Real(20, ocs.Y(at.X, at.Y, at.Z));
+                }
+
                 Grow(at);
 
                 if (i < edges.Count && edges[i].IsArc)
@@ -2208,7 +2269,11 @@ namespace GeometryHelper.Export
                     // between the two normals, negative where they point apart, and nought where the arc bows square to the plane.
                     double bulge = edges[i].Bulge * edges[i].Normal.DotProduct(normal);
 
-                    if (bulge != 0.0)
+                    if (plain != null)
+                    {
+                        plain[i][2] = bulge;
+                    }
+                    else if (bulge != 0.0)
                     {
                         _entities.Real(42, bulge);
                     }
@@ -2220,8 +2285,43 @@ namespace GeometryHelper.Export
                 }
             }
 
+            if (plain != null)
+            {
+                Polyline2(layer, ocs.Z(first.X, first.Y, first.Z), normal, plain, closed);
+                return this;
+            }
+
             _entities.Triple(210, normal.X, normal.Y, normal.Z);
             return this;
+        }
+
+        /// <summary>
+        /// A polyline of the plane as a file older than R14 holds one: the POLYLINE, with its elevation as the height of its
+        /// point and the extrusion where it is not up, a VERTEX for each point with the bulge of the edge it starts, and the
+        /// SEQEND; read back as the lightweight polyline of the same vertices is read.
+        /// </summary>
+        private void Polyline2(string layer, double elevation, GeoVector3 normal, List<double[]> vertices, bool closed)
+        {
+            int polyline = Begin("POLYLINE", layer, "AcDb2dPolyline");
+            _entities.Int(66, 1);
+            _entities.Point(0, 0.0, 0.0, elevation);
+            Thickness();
+            _entities.Int(70, closed ? 1 : 0);
+            Extrusion(normal);
+
+            foreach (double[] vertex in vertices)
+            {
+                Begin("VERTEX", layer, "AcDbVertex", polyline);
+                _entities.Str(100, "AcDb2dVertex");
+                _entities.Point(0, vertex[0], vertex[1], elevation);
+
+                if (vertex[2] != 0.0)
+                {
+                    _entities.Real(42, vertex[2]);
+                }
+            }
+
+            Begin("SEQEND", layer, null, polyline);
         }
 
         /// <summary>
@@ -2284,24 +2384,47 @@ namespace GeometryHelper.Export
         /// </summary>
         private DxfWriter Lightweight(string layer, IReadOnlyList<GeoPoint2> vertices, IReadOnlyList<double> bulges, bool closed)
         {
-            Begin("LWPOLYLINE", layer, "AcDbPolyline");
-            _entities.Int(90, vertices.Count);
-            _entities.Int(70, closed ? 1 : 0);
-            Thickness();
+            // Older than R14, the vertices are gathered for a POLYLINE: x, y and bulge each.
+            List<double[]> plain = _noLightweight ? new List<double[]>(vertices.Count) : null;
+
+            if (plain == null)
+            {
+                Begin("LWPOLYLINE", layer, "AcDbPolyline");
+                _entities.Int(90, vertices.Count);
+                _entities.Int(70, closed ? 1 : 0);
+                Thickness();
+            }
 
             for (int i = 0; i < vertices.Count; i++)
             {
-                _entities.Real(10, vertices[i].X);
-                _entities.Real(20, vertices[i].Y);
-                Grow(vertices[i].X, vertices[i].Y, 0.0);
-
                 double bulge = bulges != null && (closed || i < vertices.Count - 1) ? bulges[i] : 0.0;
+
+                if (plain != null)
+                {
+                    plain.Add(new[] { vertices[i].X, vertices[i].Y, bulge });
+                }
+                else
+                {
+                    _entities.Real(10, vertices[i].X);
+                    _entities.Real(20, vertices[i].Y);
+                }
+
+                Grow(vertices[i].X, vertices[i].Y, 0.0);
 
                 if (bulge != 0.0)
                 {
-                    _entities.Real(42, bulge);
+                    if (plain == null)
+                    {
+                        _entities.Real(42, bulge);
+                    }
+
                     GrowEdge(vertices[i], vertices[(i + 1) % vertices.Count], bulge);
                 }
+            }
+
+            if (plain != null)
+            {
+                Polyline2(layer, 0.0, new GeoVector3(0.0, 0.0, 1.0), plain, closed);
             }
 
             return this;
@@ -2712,8 +2835,26 @@ namespace GeometryHelper.Export
         {
             private readonly StringBuilder _text = new StringBuilder();
 
+            /// <summary>Where the groups go for <see cref="DxfFile"/>, which writes them itself; null for the text of a file.</summary>
+            public List<DxfTypedValue> Into { get; set; }
+
+            /// <summary>Whether the subclass markers (100) are left out, as a file of R12 has none.</summary>
+            public bool NoMarkers { get; set; }
+
             public void Str(int code, string value)
-                => _text.Append(code.ToString(Invariant).PadLeft(3)).Append('\n').Append(value).Append('\n');
+            {
+                if (Into != null)
+                {
+                    if (code != 100 || !NoMarkers)
+                    {
+                        Into.Add(DxfTypedValue.Read(code, value));
+                    }
+
+                    return;
+                }
+
+                _text.Append(code.ToString(Invariant).PadLeft(3)).Append('\n').Append(value).Append('\n');
+            }
 
             public void Int(int code, int value) => Str(code, value.ToString(Invariant));
 

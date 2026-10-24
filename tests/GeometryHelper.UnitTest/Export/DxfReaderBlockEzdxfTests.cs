@@ -240,12 +240,12 @@ namespace GeometryHelper.UnitTest.Export
         {
             DxfDocument read = Read(false);
 
-            Assert.Equal(Expected.Length, read.Entities.Count);
+            Assert.Equal(Expected.Length, read.Shapes.Count);
             Assert.Empty(read.Skipped);
 
             for (int i = 0; i < Expected.Length; i++)
             {
-                DxfEntity entity = read.Entities[i];
+                DxfShape entity = read.Shapes[i];
                 Expected[i].Check(entity.Shape, "entity " + i + ", the " + entity.Type + " " + entity.Handle + " placed by " + string.Join(" > ", entity.InsertHandles));
             }
         }
@@ -255,18 +255,18 @@ namespace GeometryHelper.UnitTest.Export
         {
             DxfDocument read = Read(true);
 
-            Assert.Equal(Expected.Length, read.Entities.Count);
+            Assert.Equal(Expected.Length, read.Shapes.Count);
 
             for (int i = 0; i < Expected.Length; i++)
             {
-                DxfEntity entity = read.Entities[i];
+                DxfShape entity = read.Shapes[i];
                 Expected[i].Check(entity.Shape, "entity " + i + ", the " + entity.Type + " " + entity.Handle + " placed by " + string.Join(" > ", entity.InsertHandles));
             }
 
             // Every INSERT but the tilted one leaves its entities on the floor, but for the circle on a tilted extrusion and
             // the face, which is of space either way.
-            Assert.All(read.Entities.Where(e => e.InsertHandles[0] != "C5" && e.Handle != "AB" && e.Handle != "A9"), e => Assert.Contains("2", e.Shape.GetType().Name));
-            Assert.All(read.Entities.Where(e => e.InsertHandles[0] == "C5"), e => Assert.Contains("3", e.Shape.GetType().Name));
+            Assert.All(read.Shapes.Where(e => e.InsertHandles[0] != "C5" && e.Handle != "AB" && e.Handle != "A9"), e => Assert.Contains("2", e.Shape.GetType().Name));
+            Assert.All(read.Shapes.Where(e => e.InsertHandles[0] == "C5"), e => Assert.Contains("3", e.Shape.GetType().Name));
         }
 
         [Fact]
@@ -274,7 +274,7 @@ namespace GeometryHelper.UnitTest.Export
         {
             DxfDocument read = Read(true);
 
-            Type TypeOf(string insert, string handle) => read.Entities.First(e => e.InsertHandles[0] == insert && e.Handle == handle).Shape.GetType();
+            Type TypeOf(string insert, string handle) => read.Shapes.First(e => e.InsertHandles[0] == insert && e.Handle == handle).Shape.GetType();
 
             foreach (string even in new[] { "C1", "C4", "C6", "C8" })
             {
@@ -293,11 +293,11 @@ namespace GeometryHelper.UnitTest.Export
                 Assert.Equal(typeof(GeoSpline2), TypeOf(uneven, "AA"));
 
                 // The polyline with two arcs is its four edges in their order: an arc, a segment, an arc, a segment.
-                Assert.Equal(new[] { typeof(GeoSpline2), typeof(GeoLine2), typeof(GeoSpline2), typeof(GeoLine2) }, read.Entities.Where(e => e.InsertHandles[0] == uneven && e.Handle == "A4").Take(4).Select(e => e.Shape.GetType()).ToArray());
+                Assert.Equal(new[] { typeof(GeoSpline2), typeof(GeoLine2), typeof(GeoSpline2), typeof(GeoLine2) }, read.Shapes.Where(e => e.InsertHandles[0] == uneven && e.Handle == "A4").Take(4).Select(e => e.Shape.GetType()).ToArray());
             }
 
             // The circle of radius 3 scaled by 3 along x is the ellipse 9 by 3.
-            var ellipse = (GeoEllipse2)read.Entities.First(e => e.InsertHandles[0] == "C2" && e.Handle == "A2").Shape;
+            var ellipse = (GeoEllipse2)read.Shapes.First(e => e.InsertHandles[0] == "C2" && e.Handle == "A2").Shape;
             Assert.Equal(9.0, ellipse.MajorRadius, 12);
             Assert.Equal(3.0, ellipse.MinorRadius, 12);
         }
@@ -307,8 +307,8 @@ namespace GeometryHelper.UnitTest.Export
         {
             DxfDocument read = Read(true);
 
-            var mine = (GeoArc2)read.Entities.First(e => e.InsertHandles.Count == 1 && e.InsertHandles[0] == "C4" && e.Handle == "A3").Shape;
-            var turned = (GeoArc2)read.Entities.First(e => e.InsertHandles[0] == "C1" && e.Handle == "A3").Shape;
+            var mine = (GeoArc2)read.Shapes.First(e => e.InsertHandles.Count == 1 && e.InsertHandles[0] == "C4" && e.Handle == "A3").Shape;
+            var turned = (GeoArc2)read.Shapes.First(e => e.InsertHandles[0] == "C1" && e.Handle == "A3").Shape;
 
             // The arc of the block runs counter-clockwise from 30 to 200 degrees; mirrored in x, it runs clockwise from the
             // image of its start, (-100 - (5 + 4 cos 30) + 2, ...).
@@ -321,7 +321,7 @@ namespace GeometryHelper.UnitTest.Export
         public void AMInsert_PlacesItsBlockInEachCell_RowByRow()
         {
             DxfDocument read = Read(true);
-            var points = read.Entities.Where(e => e.InsertHandles[0] == "C6" && e.Handle == "A8").Select(e => (GeoPoint2)e.Shape).ToArray();
+            var points = read.Shapes.Where(e => e.InsertHandles[0] == "C6" && e.Handle == "A8").Select(e => (GeoPoint2)e.Shape).ToArray();
 
             // Turned a quarter, the columns 40 apart run along y and the rows 25 apart along -x; the point (1, 2) of the
             // block, 1 left of and 1 above its base, is at (300 - 0.5, 0 - 0.5) in the first cell.
@@ -336,8 +336,8 @@ namespace GeometryHelper.UnitTest.Export
         public void ANestedInsert_CarriesThePathOfItsBlocksAndTheHandlesOfItsInserts()
         {
             DxfDocument read = Read(false);
-            DxfEntity line = read.Entities.First(e => e.Handle == "B2");
-            DxfEntity nested = read.Entities.First(e => e.InsertHandles.Count == 2 && e.Handle == "A1");
+            DxfShape line = read.Shapes.First(e => e.Handle == "B2");
+            DxfShape nested = read.Shapes.First(e => e.InsertHandles.Count == 2 && e.Handle == "A1");
 
             Assert.Equal(new[] { "OUTER" }, line.BlockPath.ToArray());
             Assert.Equal(new[] { "C8" }, line.InsertHandles.ToArray());
@@ -348,7 +348,7 @@ namespace GeometryHelper.UnitTest.Export
 
             // The 11 entities of PART in each of its 12 places, 6 INSERTs and the 6 cells of the MINSERT, its polyline in four
             // edges under the 3 uneven ones; and twice OUTER's own line and the PART in it, once in four edges.
-            Assert.Equal(168, read.Entities.Count);
+            Assert.Equal(168, read.Shapes.Count);
         }
 
         // ----- What ezdxf says -------------------------------------------------------------------------------------------

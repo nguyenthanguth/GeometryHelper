@@ -46,7 +46,7 @@ namespace GeometryHelper.Export
                 }
 
                 int? trueColour = r.TryInt(420, out int rgb) ? rgb & 0xFFFFFF : (int?)null;
-                int? lineweight = r.TryInt(370, out int weight) && weight >= 0 && DxfEntity.IsLineweight(weight) ? weight : (int?)null;
+                int? lineweight = r.TryInt(370, out int weight) && weight >= 0 && DxfShape.IsLineweight(weight) ? weight : (int?)null;
                 string linetype = Decode((r.Text(6) ?? string.Empty).Trim());
                 int flags = r.Int(70, 0);
                 bool plotted = !r.TryInt(290, out int plot) || plot != 0;
@@ -68,9 +68,13 @@ namespace GeometryHelper.Export
             /// faces the way the carried axes span, turned to the carried x axis, its height stretched as the y axis is and a
             /// TEXT's letters widened as the x axis is against it. The rotation is brought into a turn, from nought up to 2 pi.
             /// </summary>
-            private void ReadText(Record r)
+            private void ReadText(Record record)
             {
-                bool multiline = r.Type == "MTEXT";
+                bool multiline = record.Type == "MTEXT";
+
+                // An MTEXT of R2018 with columns embeds an object of its own (101) whose groups 10, 11, 40 and 41 are not the
+                // text's: its own are read from those before it.
+                Record r = multiline ? record.Before(101) : record;
 
                 if (!TryPoint(r, 0, out GeoPoint3 at) || !r.TryReal(40, out double height))
                 {
@@ -158,7 +162,7 @@ namespace GeometryHelper.Export
                     }
                 }
 
-                Add(r, DxfText.Read(at, normal, height, DxfText.Turn(rotation), value, multiline, widthFactor, width));
+                Add(record, DxfText.Read(at, normal, height, DxfText.Turn(rotation), value, multiline, widthFactor, width));
             }
 
             /// <summary>The words of an MTEXT: its pieces of 250 characters (3) and its last (1), its formatting taken out.</summary>

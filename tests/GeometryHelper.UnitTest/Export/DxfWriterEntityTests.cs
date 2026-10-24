@@ -13,7 +13,7 @@ using static GeometryHelper.UnitTest.Export.DxfLines;
 namespace GeometryHelper.UnitTest.Export
 {
     /// <summary>
-    /// Entities <see cref="DxfReader"/> read, written again by <see cref="DxfWriter.Add(DxfEntity)"/> with their layer, colour,
+    /// Entities <see cref="DxfReader"/> read, written again by <see cref="DxfWriter.Add(DxfShape)"/> with their layer, colour,
     /// linetype, lineweight and thickness, and read once more; and the bytes the other overloads write, unchanged by it.
     /// </summary>
     public class DxfWriterEntityTests
@@ -23,7 +23,7 @@ namespace GeometryHelper.UnitTest.Export
         [Fact]
         public void TheOverloadsThatWereThere_WriteTheSameBytesAsBefore()
         {
-            // The hash of the file of one shape of each overload, as the writer wrote it before Add(DxfEntity) and the
+            // The hash of the file of one shape of each overload, as the writer wrote it before Add(DxfShape) and the
             // linetypes of read entities were added: the digits of a number can differ between the runtimes, so each has its own.
             string text = DxfReaderRoundTripTests.OneOfEach().ToString();
             bool framework = RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.Ordinal);
@@ -69,7 +69,7 @@ namespace GeometryHelper.UnitTest.Export
                 DxfDocument first = DxfReader.Parse(Drawing(), options);
                 var writer = new DxfWriter();
 
-                foreach (DxfEntity entity in first.Entities)
+                foreach (DxfShape entity in first.Shapes)
                 {
                     writer.Add(entity);
                 }
@@ -78,20 +78,20 @@ namespace GeometryHelper.UnitTest.Export
 
                 Assert.Empty(second.Skipped);
                 Assert.Empty(second.Warnings);
-                Assert.Equal(first.Entities.Count, second.Entities.Count);
+                Assert.Equal(first.Shapes.Count, second.Shapes.Count);
 
-                for (int i = 0; i < first.Entities.Count; i++)
+                for (int i = 0; i < first.Shapes.Count; i++)
                 {
-                    DxfEntity was = first.Entities[i];
-                    DxfEntity now = second.Entities[i];
+                    DxfShape was = first.Shapes[i];
+                    DxfShape now = second.Shapes[i];
                     string what = was.Type + " " + was.Handle;
 
                     Assert.Equal(was.Shape.GetType(), now.Shape.GetType());
                     Assert.Equal(was.Layer, now.Layer);
-                    Assert.Equal(was.Colour, now.Colour);
-                    Assert.Equal(was.TrueColour, now.TrueColour);
+                    Assert.Equal(was.Color, now.Color);
+                    Assert.Equal(was.TrueColor, now.TrueColor);
                     Assert.Equal(was.Linetype, now.Linetype);
-                    Assert.Equal(was.Lineweight, now.Lineweight);
+                    Assert.Equal(was.LineWeight, now.LineWeight);
                     Assert.Equal(BitConverter.DoubleToInt64Bits(was.Thickness), BitConverter.DoubleToInt64Bits(now.Thickness));
                     Same(was.Shape, now.Shape, what);
                 }
@@ -171,10 +171,10 @@ namespace GeometryHelper.UnitTest.Export
         public void TheLookIsWrittenInAutoCADsOrder_OnTheEntityAlone_AndTheThicknessWhereTheEntityHasOne()
         {
             DxfDocument read = DxfReader.Parse(Drawing(), new DxfReadOptions { PlanAs2D = true, Tolerance = Tol });
-            string line = new DxfWriter().Add(read.Entities[0]).ToString();
-            var thick = new DxfEntity(new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0)), "3DFACE", "0", null, null, null, null, null, 3.0, new DxfGroup[0]);
+            string line = new DxfWriter().Add(read.Shapes[0]).ToString();
+            var thick = new DxfShape(new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0)), "3DFACE", "0", null, null, null, null, null, 3.0, new DxfTypedValue[0]);
             string face = new DxfWriter().Add(thick).ToString();
-            string chain = new DxfWriter().Add(read.Entities.First(e => e.Type == "POLYLINE")).ToString();
+            string chain = new DxfWriter().Add(read.Shapes.First(e => e.Type == "POLYLINE")).ToString();
 
             // The linetype, the colour, the lineweight and the true colour after the layer; the thickness after the subclass.
             Assert.Contains("  8\nsteel\n  6\nDASHED\n 62\n1\n370\n35\n420\n16744448\n100\nAcDbLine\n 39\n50\n 10\n0.1\n", line);
@@ -192,7 +192,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = DxfReader.Parse(Drawing(), new DxfReadOptions { PlanAs2D = true, Tolerance = Tol });
             var writer = new DxfWriter();
 
-            foreach (DxfEntity entity in read.Entities)
+            foreach (DxfShape entity in read.Shapes)
             {
                 writer.Add(entity);
                 writer.Add(entity);
@@ -204,21 +204,21 @@ namespace GeometryHelper.UnitTest.Export
 
             // ByBlock, ByLayer and Continuous, then DASHED and HIDDEN; Continuous is the table's own, as the entity names it.
             Assert.Equal("5", lines[table + 8]);
-            Assert.Equal(1, lines.Count(l => l == "DASHED") - 2 * read.Entities.Count(e => e.Linetype == "DASHED"));
-            Assert.Equal(1, lines.Count(l => l == "HIDDEN") - 2 * read.Entities.Count(e => e.Linetype == "HIDDEN"));
-            Assert.Equal(new[] { "DASHED", "HIDDEN" }, DxfReader.Parse(text).Entities.Select(e => e.Linetype).Where(t => t != null && t != "Continuous").Distinct().ToArray());
+            Assert.Equal(1, lines.Count(l => l == "DASHED") - 2 * read.Shapes.Count(e => e.Linetype == "DASHED"));
+            Assert.Equal(1, lines.Count(l => l == "HIDDEN") - 2 * read.Shapes.Count(e => e.Linetype == "HIDDEN"));
+            Assert.Equal(new[] { "DASHED", "HIDDEN" }, DxfReader.Parse(text).Shapes.Select(e => e.Linetype).Where(t => t != null && t != "Continuous").Distinct().ToArray());
             Assert.DoesNotContain("1000", lines.Where((l, i) => i % 2 == 0).Select(l => l.Trim()));
         }
 
         [Fact]
         public void AnEntityWhoseShapeHasNoOverload_IsRefusedNamingItsType()
         {
-            var text = new DxfEntity("a text", "TEXT", "0", null, null, null, null, null, 0.0, new DxfGroup[0]);
-            var ball = new DxfEntity(new GeoSphere3(new GeoPoint3(0, 0, 0), 5), "BALL", "0", null, null, null, null, null, 0.0, new DxfGroup[0]);
+            var text = new DxfShape("a text", "TEXT", "0", null, null, null, null, null, 0.0, new DxfTypedValue[0]);
+            var ball = new DxfShape(new GeoSphere3(new GeoPoint3(0, 0, 0), 5), "BALL", "0", null, null, null, null, null, 0.0, new DxfTypedValue[0]);
 
             Assert.Contains("String", Assert.Throws<ArgumentException>(() => new DxfWriter().Add(text)).Message);
             Assert.Contains("GeoSphere3", Assert.Throws<ArgumentException>(() => new DxfWriter().Add(ball)).Message);
-            Assert.Throws<ArgumentNullException>(() => new DxfWriter().Add((DxfEntity)null));
+            Assert.Throws<ArgumentNullException>(() => new DxfWriter().Add((DxfShape)null));
         }
     }
 }

@@ -196,6 +196,21 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
+        public void AChainSpanningPastTheLargestDouble_HasNoPlane_RatherThanThrowing()
+        {
+            // The span from (0, 0, 0) to (1E308, 1E308, 0) is too long for a double, which left the spanning
+            // plane's normal of length nought and divided by it.
+            GeoPolyline3 polyline = new GeoPolyline3(new[]
+            {
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(1E308, 0.0, 0.0),
+                new GeoPoint3(1E308, 1E308, 0.0),
+            });
+
+            Assert.False(polyline.TryGetPlane(out _, Tolerance.Default));
+        }
+
+        [Fact]
         public void BoundingBoxEnclosesEveryVertex()
         {
             GeoAabb3 box = MakeLShape().GetAabb();

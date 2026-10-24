@@ -62,9 +62,9 @@ namespace GeometryHelper.UnitTest.Export
 
             foreach ((DxfDocument read, int inserts) in new[] { (once, 26), (thrice, 78) })
             {
-                Assert.Empty(read.Entities);
+                Assert.Empty(read.Shapes);
                 Assert.Equal(inserts, read.Skipped["INSERT"]);
-                Assert.All(read.Blocks, b => Assert.Equal("LINE", Assert.Single(b.Entities).Type));
+                Assert.All(read.Blocks, b => Assert.Equal("LINE", Assert.Single(b.Shapes).Type));
                 Assert.Equal(
                     new[] { (inserts + 51) + " INSERTs were not placed, 51 of them inside the blocks read for Blocks: the reading had worked out the sizes of 1000 blocks, as many as it works out, and not yet what their blocks place, so they could not be held to DxfReadOptions.MaxPlacedEntities." },
                     read.Warnings.ToArray());
@@ -81,7 +81,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = DxfReader.Parse(RingOfRoots(4, 3), new DxfReadOptions { Tolerance = Tol, KeepGroups = false, MostSizedBlocks = 1000 });
 
             Assert.Equal(106, read.SizedBlocks);
-            Assert.Equal(3 * 106, read.Entities.Count);
+            Assert.Equal(3 * 106, read.Shapes.Count);
             Assert.DoesNotContain(read.Warnings, w => w.Contains("worked out the sizes"));
         }
     }

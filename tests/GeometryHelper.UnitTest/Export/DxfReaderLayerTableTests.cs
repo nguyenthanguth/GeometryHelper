@@ -35,22 +35,22 @@ namespace GeometryHelper.UnitTest.Export
                 Layer("bare")));
 
             Assert.Equal(new[] { "0", "steel", "off", "frozen", "locked", "unplotted", "bare" }, read.LayerTable.Select(l => l.Name).ToArray());
-            Assert.Equal(new int?[] { 7, 1, 3, 5, 2, 3, null }, read.LayerTable.Select(l => l.Colour).ToArray());
+            Assert.Equal(new int?[] { 7, 1, 3, 5, 2, 3, null }, read.LayerTable.Select(l => l.Color).ToArray());
             Assert.Equal(new[] { false, false, true, false, false, false, false }, read.LayerTable.Select(l => l.IsOff).ToArray());
             Assert.Equal(new[] { false, false, false, true, false, false, false }, read.LayerTable.Select(l => l.IsFrozen).ToArray());
             Assert.Equal(new[] { false, false, false, false, true, false, false }, read.LayerTable.Select(l => l.IsLocked).ToArray());
             Assert.Equal(new[] { true, true, true, true, true, false, true }, read.LayerTable.Select(l => l.IsPlotted).ToArray());
 
             DxfLayer steel = read.LayerTable[1];
-            Assert.Equal(0x3072C0, steel.TrueColour);
+            Assert.Equal(0x3072C0, steel.TrueColor);
             Assert.Equal("DASHED", steel.Linetype);
-            Assert.Equal(35, steel.Lineweight);
+            Assert.Equal(35, steel.LineWeight);
 
             // The default lineweight (-3) is none, as on an entity, and a layer that says nothing has nothing.
-            Assert.Null(read.LayerTable[0].Lineweight);
+            Assert.Null(read.LayerTable[0].LineWeight);
             Assert.Equal("Continuous", read.LayerTable[0].Linetype);
             Assert.Null(read.LayerTable[6].Linetype);
-            Assert.Null(read.LayerTable[6].TrueColour);
+            Assert.Null(read.LayerTable[6].TrueColor);
         }
 
         [Fact]
@@ -62,9 +62,9 @@ namespace GeometryHelper.UnitTest.Export
 
             Assert.Equal(new[] { "Steel", "Café" }, read.LayerTable.Select(l => l.Name).ToArray());
             Assert.Equal(new[] { "Steel", "Café", "notes" }, read.Layers.ToArray());
-            Assert.Equal(1, read.LayerTable[0].Colour);
+            Assert.Equal(1, read.LayerTable[0].Color);
             Assert.False(read.LayerTable[0].IsFrozen);
-            Assert.Equal("Steel", read.Entities[0].Layer);
+            Assert.Equal("Steel", read.Shapes[0].Layer);
         }
 
         [Fact]
@@ -90,9 +90,9 @@ namespace GeometryHelper.UnitTest.Export
                 Layer("c", 70, 0, 62, "red", 420, "3271524352"),
                 Layer("d", 70, 0, 62, int.MinValue)));
 
-            Assert.All(read.LayerTable, l => Assert.Null(l.Colour));
-            Assert.All(read.LayerTable, l => Assert.Null(l.Lineweight));
-            Assert.All(read.LayerTable, l => Assert.Null(l.TrueColour));
+            Assert.All(read.LayerTable, l => Assert.Null(l.Color));
+            Assert.All(read.LayerTable, l => Assert.Null(l.LineWeight));
+            Assert.All(read.LayerTable, l => Assert.Null(l.TrueColor));
             Assert.Equal(new[] { false, false, false, true }, read.LayerTable.Select(l => l.IsOff).ToArray());
         }
 

@@ -119,8 +119,8 @@ namespace GeometryHelper.UnitTest.Export
             return shapes;
         }
 
-        private static string Placed(DxfEntity e)
-            => e.Type + "|" + e.Handle + "|" + e.Layer + "|" + e.Colour + "|" + e.TrueColour + "|" + e.Linetype + "|" + e.Lineweight + "|" + e.Thickness.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+        private static string Placed(DxfShape e)
+            => e.Type + "|" + e.Handle + "|" + e.Layer + "|" + e.Color + "|" + e.TrueColor + "|" + e.Linetype + "|" + e.LineWeight + "|" + e.Thickness.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
             + "|" + string.Join(">", e.BlockPath) + "|" + string.Join(">", e.InsertHandles.Select(h => h ?? "null")) + "|" + Bits(e.Shape);
 
         /// <summary>
@@ -146,7 +146,7 @@ namespace GeometryHelper.UnitTest.Export
             return entities;
         }
 
-        private static List<string> Expanded(IEnumerable<DxfEntity> entities)
+        private static List<string> Expanded(IEnumerable<DxfShape> entities)
             => entities.Select(e => e.BlockPath.Count > 0 ? Placed(e) : Bits(e.Shape)).ToList();
 
         private static string Drawing(string version, string entities, string blocks = "")
@@ -190,7 +190,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfWriter writer = DxfReaderRoundTripTests.OneOfEach()
                 .Add(new DxfText(new GeoPoint3(1, 2, 0), new GeoVector3(0, 0, 1), 2.5, 0.3, "Grid A"), "notes")
                 .Add(new DxfText(new GeoPoint3(1, 2, 0), new GeoVector3(0, 0, 1), 2.5, 0, "two\nlines", true, 1.0, 40.0))
-                .Add(new DxfEntity(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 2, 3)), "steel", 1, 0xFF8000, "DASHED", 35, 2.0));
+                .Add(new DxfShape(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 2, 3)), "steel", 1, 0xFF8000, "DASHED", 35, 2.0));
             string text = writer.ToString();
 
             DxfFile file = DxfFile.Parse(text);
@@ -198,12 +198,12 @@ namespace GeometryHelper.UnitTest.Export
 
             Assert.Equal(new UTF8Encoding(false).GetBytes(text), Saved(file));
             Assert.Equal(text, file.ToText());
-            Assert.Equal(read.Entities.Select(e => Bits(e.Shape)), Shapes(file.ModelSpace));
+            Assert.Equal(read.Shapes.Select(e => Bits(e.Shape)), Shapes(file.ModelSpace));
             Assert.Equal(DxfReaderRoundTripTests.EntitiesWritten(text), file.ModelSpace.Count);
             Assert.Equal("AC1015", file.Version);
 
             DxfItem line = file.ModelSpace.Last();
-            DxfEntity entity = read.Entities.Last();
+            DxfShape entity = read.Shapes.Last();
 
             Assert.Equal(entity.Handle, line.Handle);
             Assert.Equal(entity.Layer, line.Layer);
@@ -247,7 +247,7 @@ namespace GeometryHelper.UnitTest.Export
 
                     Assert.Equal(bytes, Saved(file));
                     Assert.Equal(text, file.ToText());
-                    Assert.Equal(Read(bytes, false).Entities.Select(e => Bits(e.Shape)), Shapes(file.ModelSpace));
+                    Assert.Equal(Read(bytes, false).Shapes.Select(e => Bits(e.Shape)), Shapes(file.ModelSpace));
                     Assert.Equal(8, file.ModelSpace.Count);
                 }
             }
@@ -269,7 +269,7 @@ namespace GeometryHelper.UnitTest.Export
 
                 Assert.Equal(bytes, Saved(file));
                 Assert.Equal(layer, Assert.Single(file.ModelSpace).Layer);
-                Assert.Equal(Assert.Single(Read(bytes, false).Entities).Layer, Assert.Single(file.ModelSpace).Layer);
+                Assert.Equal(Assert.Single(Read(bytes, false).Shapes).Layer, Assert.Single(file.ModelSpace).Layer);
             }
         }
 
@@ -294,7 +294,7 @@ namespace GeometryHelper.UnitTest.Export
             try
             {
                 System.IO.File.WriteAllBytes(from, bytes);
-                DxfFile.Open(from).Save(to);
+                DxfDatabase.Open(from).Save(to);
 
                 Assert.Equal(bytes, System.IO.File.ReadAllBytes(to));
             }
@@ -316,7 +316,7 @@ namespace GeometryHelper.UnitTest.Export
             {
                 from.Position = junk.Length;
                 to.Write(junk, 0, junk.Length);
-                DxfFile.Open(from).Save(to);
+                DxfDatabase.Open(from).Save(to);
 
                 Assert.Equal(junk.Concat(drawing).ToArray(), to.ToArray());
             }
@@ -367,8 +367,8 @@ namespace GeometryHelper.UnitTest.Export
             {
                 string expected = Assert.Throws<FormatException>(() => DxfReader.Parse(text)).Message;
 
-                Assert.Equal(expected, Assert.Throws<FormatException>(() => DxfFile.Parse(text)).Message);
-                Assert.Equal(expected, Assert.Throws<FormatException>(() => Opened(Encoding.ASCII.GetBytes(text))).Message);
+                Assert.Equal(expected, Assert.Throws<FormatException>(() => DxfDatabase.Parse(text)).Message);
+                Assert.Equal(expected, Assert.Throws<FormatException>(() => DxfModel.Opened(Encoding.ASCII.GetBytes(text))).Message);
             }
         }
 
@@ -400,9 +400,9 @@ namespace GeometryHelper.UnitTest.Export
                 DxfDocument document = Read(read, false);
                 DxfFile file = Opened(read);
 
-                Assert.Equal(new[] { "TEXT", "LINE" }, document.Entities.Select(e => e.Type));
-                Assert.StartsWith("AB", Assert.IsType<DxfText>(document.Entities[0].Shape).Value);
-                Assert.Equal(Assert.IsType<DxfText>(document.Entities[0].Shape).Value, Assert.IsType<DxfText>(file.ModelSpace[0].Shape).Value);
+                Assert.Equal(new[] { "TEXT", "LINE" }, document.Shapes.Select(e => e.Type));
+                Assert.StartsWith("AB", Assert.IsType<DxfText>(document.Shapes[0].Shape).Value);
+                Assert.Equal(Assert.IsType<DxfText>(document.Shapes[0].Shape).Value, Assert.IsType<DxfText>(file.ModelSpace[0].Shape).Value);
                 Assert.Equal(read, Saved(file));
             }
         }
@@ -410,11 +410,11 @@ namespace GeometryHelper.UnitTest.Export
         [Fact]
         public void NoArgument_IsTakenForAFileOrAStream()
         {
-            DxfFile file = DxfFile.Parse(MixedDrawing());
+            DxfDatabase file = DxfDatabase.Parse(MixedDrawing());
 
-            Assert.Throws<ArgumentNullException>(() => DxfFile.Open((string)null));
-            Assert.Throws<ArgumentNullException>(() => DxfFile.Open((Stream)null));
-            Assert.Throws<ArgumentNullException>(() => DxfFile.Parse(null));
+            Assert.Throws<ArgumentNullException>(() => DxfDatabase.Open((string)null));
+            Assert.Throws<ArgumentNullException>(() => DxfDatabase.Open((Stream)null));
+            Assert.Throws<ArgumentNullException>(() => DxfDatabase.Parse(null));
             Assert.Throws<ArgumentNullException>(() => file.Save((string)null));
             Assert.Throws<ArgumentNullException>(() => file.Save((Stream)null));
         }
@@ -431,12 +431,12 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal(new[] { "LINE", "CIRCLE", "LWPOLYLINE", "HATCH", "3DFACE", "TEXT", "POLYLINE", "INSERT" }, file.ModelSpace.Select(i => i.Type));
             Assert.Equal(new[] { "1A", "1B", "1C", "1D", "1E", "1F", "20", "24" }, file.ModelSpace.Select(i => i.Handle));
 
-            IReadOnlyList<DxfGroup> polyline = file.ModelSpace[6].Groups;
-            IReadOnlyList<DxfGroup> insert = file.ModelSpace[7].Groups;
+            IReadOnlyList<DxfTypedValue> polyline = file.ModelSpace[6].Groups;
+            IReadOnlyList<DxfTypedValue> insert = file.ModelSpace[7].Groups;
 
-            Assert.Equal(new[] { "VERTEX", "VERTEX", "SEQEND" }, polyline.Where(g => g.Code == 0).Select(g => g.Value));
-            Assert.Equal(new[] { "ATTRIB", "SEQEND" }, insert.Where(g => g.Code == 0).Select(g => g.Value));
-            Assert.Equal("B-12", insert.First(g => g.Code == 1).Value);
+            Assert.Equal(new[] { "VERTEX", "VERTEX", "SEQEND" }, polyline.Where(g => g.TypeCode == 0).Select(g => g.Value));
+            Assert.Equal(new[] { "ATTRIB", "SEQEND" }, insert.Where(g => g.TypeCode == 0).Select(g => g.Value));
+            Assert.Equal("B-12", insert.First(g => g.TypeCode == 1).Value);
             Assert.IsType<GeoPolyline3>(file.ModelSpace[6].Shape);
         }
 
@@ -447,8 +447,8 @@ namespace GeometryHelper.UnitTest.Export
             DxfFile file = Opened(bytes);
             DxfDocument read = Read(bytes, false);
 
-            Assert.Equal(read.Entities.Select(e => Bits(e.Shape)), Shapes(file.ModelSpace));
-            Assert.Equal(read.Entities.Select(e => e.Handle), file.ModelSpace.Where(i => !(i.Shape is DxfInsert)).SelectMany(i => i.Shapes.Select(_ => i.Handle)));
+            Assert.Equal(read.Shapes.Select(e => Bits(e.Shape)), Shapes(file.ModelSpace));
+            Assert.Equal(read.Shapes.Select(e => e.Handle), file.ModelSpace.Where(i => !(i.Shape is DxfInsert)).SelectMany(i => i.Shapes.Select(_ => i.Handle)));
             Assert.Equal(1, read.Skipped["HATCH"]);
             Assert.Equal(1, read.Skipped["INSERT"]);
         }
@@ -473,7 +473,7 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal("1D", hatch.Handle);
             Assert.Equal("hatch", hatch.Layer);
             Assert.Equal(2, hatch.Colour);
-            Assert.Equal(new[] { 5, 8, 62, 2, 70, 71, 91, 75, 76, 98, 1001, 1000 }, hatch.Groups.Select(g => g.Code));
+            Assert.Equal(new[] { 5, 8, 62, 2, 70, 71, 91, 75, 76, 98, 1001, 1000 }, hatch.Groups.Select(g => (int)g.TypeCode));
             Assert.Equal("kept", hatch.Groups.Last().Value);
         }
 
@@ -501,7 +501,7 @@ namespace GeometryHelper.UnitTest.Export
                 System.Threading.Tasks.Parallel.For(0, 64, i =>
                 {
                     DxfItem item = file.ModelSpace[i % file.ModelSpace.Count];
-                    IReadOnlyList<DxfEntity> placed = item.Shape is DxfInsert insert ? insert.GetPlacedEntities() : null;
+                    IReadOnlyList<DxfShape> placed = item.Shape is DxfInsert insert ? insert.GetPlacedEntities() : null;
                     seen.Add((i % file.ModelSpace.Count, item.Shapes, placed?.Count ?? -1));
                 });
 
@@ -511,7 +511,7 @@ namespace GeometryHelper.UnitTest.Export
                     Assert.Single(item.Select(s => s.Placed).Distinct());
                 }
 
-                Assert.Equal(Read(bytes, false).Entities.Select(e => Bits(e.Shape)), Shapes(file.ModelSpace));
+                Assert.Equal(Read(bytes, false).Shapes.Select(e => Bits(e.Shape)), Shapes(file.ModelSpace));
             }
         }
 
@@ -561,11 +561,11 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Null(second.TrueColour);
 
             // The reader reads their meanings: layer Steelé, no colour, no lineweight, the true colour's 24 bits.
-            Assert.Equal("Steelé", read.Entities[0].Layer);
-            Assert.Null(read.Entities[0].Colour);
-            Assert.Null(read.Entities[0].Lineweight);
-            Assert.Equal(0, read.Entities[0].TrueColour);
-            Assert.Equal("0", read.Entities[1].Layer);
+            Assert.Equal("Steelé", read.Shapes[0].Layer);
+            Assert.Null(read.Shapes[0].Color);
+            Assert.Null(read.Shapes[0].LineWeight);
+            Assert.Equal(0, read.Shapes[0].TrueColor);
+            Assert.Equal("0", read.Shapes[1].Layer);
         }
 
         [Fact]
@@ -589,9 +589,12 @@ namespace GeometryHelper.UnitTest.Export
             string text = G(0, "SECTION", 2, "HEADER", 9, "$ACADVER", 1, "AC1015", 9, "$DWGCODEPAGE", 3, "ANSI_1252", 9, "$INSBASE", 10, "1.5", 20, "2", 30, "0", 9, "$HANDSEED", 5, "2F", 0, "ENDSEC")
                 + G(0, "SECTION", 2, "ENTITIES", 0, "ENDSEC", 0, "EOF");
             DxfFile file = DxfFile.Parse(text);
+            DxfDatabase db = DxfDatabase.Parse(text);
 
-            Assert.Equal("AC1015", file.Version);
-            Assert.Equal("ANSI_1252", file.CodePage);
+            Assert.Equal("AC1015", db.Version);
+            Assert.Equal("ANSI_1252", db.CodePage);
+            Assert.Equal(new[] { "10 1.5", "20 2", "30 0" }, db.GetHeader("$INSBASE").Select(g => g.ToString()));
+            Assert.Equal("2F", db.Handseed);
             Assert.Equal(new[] { "$ACADVER", "$DWGCODEPAGE", "$HANDSEED", "$INSBASE" }, file.Header.Keys);
             Assert.Equal(new[] { "10 1.5", "20 2", "30 0" }, file.Header["$INSBASE"].Select(g => g.ToString()));
             Assert.Equal("2F", Assert.Single(file.Header["$HANDSEED"]).Value);
@@ -677,7 +680,7 @@ namespace GeometryHelper.UnitTest.Export
             string text = Drawing("AC1015", G(0, "LINE", 8, "Steel", 10, "0", 20, "0", 11, "1", 21, "0") + inserts, blocks);
 
             Assert.Equal(new[] { "Steel", "Steel" }, PlacedLayers(text, true));
-            Assert.Equal(DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tol }).Entities.Skip(1).Select(e => e.Layer), PlacedLayers(text, false));
+            Assert.Equal(DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tol }).Shapes.Skip(1).Select(e => e.Layer), PlacedLayers(text, false));
         }
 
         /// <summary>The layers of the entities the two INSERTs of a drawing place, the second placed first where asked.</summary>
@@ -701,7 +704,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfReaderRoundTripTests.Same(new GeoPoint3(-10, 20, -5), insert.Position);
             DxfReaderRoundTripTests.Same(new GeoPoint3(0, 0, -1), new GeoPoint3(insert.Normal.X, insert.Normal.Y, insert.Normal.Z));
             Assert.Equal(30.0 * Math.PI / 180.0, insert.Rotation);
-            Assert.Equal(Expanded(DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tol }).Entities), Expanded(file.ModelSpace));
+            Assert.Equal(Expanded(DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tol }).Shapes), Expanded(file.ModelSpace));
         }
 
         [Fact]
@@ -767,7 +770,7 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal(45.0 * Math.PI / 180.0, insert.Rotation);
             Assert.Equal(new[] { 1.5, -1.5, 1.0 }, new[] { insert.ScaleX, insert.ScaleY, insert.ScaleZ });
             Assert.Equal(new[] { 1, 1 }, new[] { insert.Columns, insert.Rows });
-            Assert.Equal(Expanded(Read(bytes, true).Entities), Expanded(file.ModelSpace));
+            Assert.Equal(Expanded(Read(bytes, true).Shapes), Expanded(file.ModelSpace));
             Assert.Equal(new[] { "parts", "parts" }, insert.GetPlacedEntities().Select(e => e.Layer));
         }
 
@@ -779,7 +782,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tol });
 
             Assert.Equal(new[] { "Steel", "Wand" }, file.LayerTable.Select(l => l.Name));
-            Assert.Equal(read.LayerTable.Select(l => l.Name + l.Colour + l.Linetype), file.LayerTable.Select(l => l.Name + l.Colour + l.Linetype));
+            Assert.Equal(read.LayerTable.Select(l => l.Name + l.Color + l.Linetype), file.LayerTable.Select(l => l.Name + l.Color + l.Linetype));
         }
 
         #endregion
@@ -793,9 +796,9 @@ namespace GeometryHelper.UnitTest.Export
             {
                 foreach (byte[] bytes in new[] { Ezdxf(text, encoding), encoding.GetBytes(text) })
                 {
-                    DxfFile file = Opened(bytes);
+                    DxfDatabase file = DxfModel.Opened(bytes);
 
-                    Assert.Equal(bytes, Saved(file));
+                    Assert.Equal(bytes, DxfModel.Saved(file));
                     Assert.Equal(text, file.ToText().Replace("\r\n", "\n"));
                 }
             }
@@ -813,13 +816,13 @@ namespace GeometryHelper.UnitTest.Export
 
                 Assert.Equal(version, file.Version);
                 Assert.Equal(version == "AC1009" ? 12 : 27, file.ModelSpace.Count);
-                Assert.Equal(flat.Entities.Select(e => Bits(e.Shape)), Shapes(file.ModelSpace));
-                Assert.Equal(Expanded(placed.Entities), Expanded(file.ModelSpace));
+                Assert.Equal(flat.Shapes.Select(e => Bits(e.Shape)), Shapes(file.ModelSpace));
+                Assert.Equal(Expanded(placed.Shapes), Expanded(file.ModelSpace));
                 Assert.Equal(placed.LayerTable.Select(l => l.Name), file.LayerTable.Select(l => l.Name));
 
                 foreach (DxfBlock block in placed.Blocks)
                 {
-                    Assert.Equal(Expanded(block.Entities), Expanded(file.Blocks[block.Name].Items));
+                    Assert.Equal(Expanded(block.Shapes), Expanded(file.Blocks[block.Name].Items));
                 }
             }
         }
@@ -838,8 +841,8 @@ namespace GeometryHelper.UnitTest.Export
 
             Assert.Equal("Bold\nline two é", Assert.IsType<DxfText>(file.ModelSpace.First(i => i.Type == "MTEXT").Shape).Value);
             Assert.Contains(file.LayerTable, l => l.Name == "Wand€Außen");
-            Assert.Contains(file.ModelSpace[0].Groups, g => g.Code == 1001 && g.Value == "GHPROBE");
-            Assert.Contains(file.ModelSpace[0].Groups, g => g.Code == 1000 && g.Value == "note é");
+            Assert.Contains(file.ModelSpace[0].Groups, g => g.TypeCode == 1001 && g.Value == "GHPROBE");
+            Assert.Contains(file.ModelSpace[0].Groups, g => g.TypeCode == 1000 && g.Value == "note é");
             Assert.Contains("*Paper_Space0", file.Blocks.Keys);
             Assert.Equal(new[] { "CIRCLE", "VIEWPORT" }, file.PaperSpace.Select(i => i.Type));
         }

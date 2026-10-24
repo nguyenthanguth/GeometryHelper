@@ -27,26 +27,33 @@ namespace GeometryHelper.Export
     /// placed and no unit scaled. <see cref="DxfReader"/> is the faster way to read a drawing into shapes alone; this class
     /// is the way to save it again.
     /// </para>
+    /// <para>
+    /// The entities of the drawing can be changed, added and removed: an entity given a new <see cref="DxfItem.Shape"/> or a
+    /// new look has its record written anew, every group the change is not about kept as it was, and every other record of
+    /// the file is saved with its own bytes. Editing is for one thread at a time.
+    /// </para>
     /// <code>
     /// DxfFile file = DxfFile.Open("plan.dxf");
     /// foreach (DxfItem item in file.ModelSpace) { ... }   // Type, Handle, Layer, Groups, Shape
-    /// file.Save("copy.dxf");                              // the same bytes
+    /// file.ModelSpace[0].Colour = 1;                      // that record written anew
+    /// file.ModelSpace.Add(new GeoCircle2(new GeoPoint2(0, 0), 5), "holes");
+    /// file.Save("copy.dxf");                              // every other record the same bytes
     /// </code>
     /// </remarks>
-    public sealed class DxfFile
+    internal sealed partial class DxfFile
     {
-        private static readonly IReadOnlyList<DxfItem> NoItems = Array.AsReadOnly(new DxfItem[0]);
-
         private readonly byte[] _bytes;
         private readonly int _length;
-        private readonly DxfReader.TextDecoding _decoding;
         private readonly int[] _starts;
         private readonly string[] _types;
         private readonly Section[] _sections;
         private readonly Lazy<Drawing> _drawing;
         private readonly Lazy<IReadOnlyDictionary<string, DxfFileBlock>> _blocks;
-        private readonly Lazy<IReadOnlyList<DxfLayer>> _layers;
-        private readonly Lazy<DxfReader.Placer> _placer;
+        private DxfReader.TextDecoding _decoding;
+        private Lazy<IReadOnlyList<DxfLayer>> _layers;
+        private Lazy<DxfReader.Placer> _placer;
+        private IReadOnlyDictionary<string, IReadOnlyList<DxfTypedValue>> _header;
+        private string _namedPage;
 
         private DxfFile(byte[] bytes, int length, string source)
         {
@@ -74,8 +81,14 @@ namespace GeometryHelper.Export
 
             _drawing = new Lazy<Drawing>(ReadDrawing);
             _blocks = new Lazy<IReadOnlyDictionary<string, DxfFileBlock>>(ReadBlocks);
-            _layers = new Lazy<IReadOnlyList<DxfLayer>>(() => Array.AsReadOnly(DxfReader.LayerTableOf(LayerRecords())));
+            _layers = NewLayers();
             _placer = new Lazy<DxfReader.Placer>(NewPlacer);
+
+            // The template of the entities not yet in a file is opened once, unsaid.
+            if (source == null)
+            {
+                return;
+            }
 
             GeometryHelperLog.Info("DxfFile: " + Number(_starts.Length) + " records opened from " + source + ", " + Number(length) + " bytes, version " + (Version ?? "not given") + (warnings.Count > 0 ? ": " + string.Join(" ", warnings) : "."));
         }
@@ -158,7 +171,10 @@ namespace GeometryHelper.Export
         /// <param name="path">The path of the file.</param>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be written.</exception>
-        /// <remarks>Nothing having been changed, the bytes written are those that were read.</remarks>
+        /// <remarks>
+        /// Nothing having been changed, the bytes written are those that were read. Changed, each record not changed, added or
+        /// removed is written with its own bytes, the header's <c>$HANDSEED</c> and extents set as the changes need them.
+        /// </remarks>
         public void Save(string path)
         {
             if (path == null)
@@ -177,7 +193,10 @@ namespace GeometryHelper.Export
         /// </summary>
         /// <param name="stream">The stream; it is written to and left open.</param>
         /// <exception cref="ArgumentNullException">Thrown when the stream is null.</exception>
-        /// <remarks>Nothing having been changed, the bytes written are those that were read.</remarks>
+        /// <remarks>
+        /// Nothing having been changed, the bytes written are those that were read. Changed, each record not changed, added or
+        /// removed is written with its own bytes.
+        /// </remarks>
         public void Save(Stream stream)
         {
             if (stream == null)
@@ -185,15 +204,38 @@ namespace GeometryHelper.Export
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            stream.Write(_bytes, 0, _length);
+            Flush();
+
+            if (_slots == null)
+            {
+                stream.Write(_bytes, 0, _length);
+                return;
+            }
+
+            WriteEdited(stream);
         }
 
         /// <summary>
         /// Gets the text of the file, as <see cref="DxfReader"/> reads it from its bytes: UTF-8 from R2007 on, the code page of
-        /// its header before, the mark of UTF-8 at its start left out.
+        /// its header before, the mark of UTF-8 at its start left out; with what was changed, as <see cref="Save(Stream)"/>
+        /// writes it.
         /// </summary>
         /// <returns>The text of the file, its line ends as the file has them.</returns>
-        public string ToText() => _decoding.GetString(_bytes, _decoding.Start, _length - _decoding.Start);
+        public string ToText()
+        {
+            Flush();
+
+            if (_slots == null)
+            {
+                return _decoding.GetString(_bytes, _decoding.Start, _length - _decoding.Start);
+            }
+
+            using (var saved = new MemoryStream(_length))
+            {
+                WriteEdited(saved);
+                return _decoding.GetString(saved.GetBuffer(), _decoding.Start, (int)saved.Length - _decoding.Start);
+            }
+        }
 
         #endregion
 
@@ -224,22 +266,31 @@ namespace GeometryHelper.Export
         /// Gets the variables of the header, by name in the order of the names: for each, such as <c>$INSUNITS</c> or
         /// <c>$HANDSEED</c>, the groups after its group 9 as the file has them, the unit 4 of millimetres as the one group
         /// 70 of value <c>4</c>, a point as its groups 10, 20 and 30. A variable named twice is as last given, as the reader
-        /// reads the version and the code page.
+        /// reads the version and the code page. After a change, the header as the file is saved, <c>$HANDSEED</c> and the
+        /// extents set as the change needs them.
         /// </summary>
-        public IReadOnlyDictionary<string, IReadOnlyList<DxfGroup>> Header { get; private set; }
+        public IReadOnlyDictionary<string, IReadOnlyList<DxfTypedValue>> Header
+        {
+            get
+            {
+                FlushHeader();
+                return _header;
+            }
+        }
 
         /// <summary>
-        /// Gets the entities of model space in the order of the file: those of the ENTITIES section not in paper space. A
-        /// POLYLINE is one entity with its vertices, and an INSERT one with its attributes.
+        /// Gets the entities of model space in the order of the file: those of the ENTITIES section not in paper space, and
+        /// those added after them. A POLYLINE is one entity with its vertices, and an INSERT one with its attributes. Shapes
+        /// are added to it and entities removed from it, as <see cref="DxfSpace"/> says.
         /// </summary>
-        public IReadOnlyList<DxfItem> ModelSpace => _drawing.Value.Model;
+        public DxfSpace ModelSpace => _drawing.Value.Model;
 
         /// <summary>
         /// Gets the entities of the ENTITIES section in paper space (group 67 of 1), in the order of the file: those of the
         /// layout last shown. Those of the other layouts are in the blocks <c>*Paper_Space0</c>, <c>*Paper_Space1</c> and so
         /// on, in <see cref="Blocks"/>.
         /// </summary>
-        public IReadOnlyList<DxfItem> PaperSpace => _drawing.Value.Paper;
+        public DxfSpace PaperSpace => _drawing.Value.Paper;
 
         /// <summary>
         /// Gets the blocks of the file by name, in the order of the names, letters of either case the same as in AutoCAD:
@@ -276,79 +327,202 @@ namespace GeometryHelper.Export
             internal int Last { get; }
         }
 
+        /// <summary>
+        /// A record as it stands: the bytes it is in, where in them it begins, at the line of its group 0, and ends, at the
+        /// line of the next record, and its type. A record of the file as read is in the file's bytes; one written anew in its
+        /// own.
+        /// </summary>
+        internal readonly struct Rec
+        {
+            internal Rec(byte[] bytes, int start, int end, string type)
+            {
+                Bytes = bytes;
+                Start = start;
+                End = end;
+                Type = type;
+            }
+
+            internal byte[] Bytes { get; }
+
+            internal int Start { get; }
+
+            internal int End { get; }
+
+            internal string Type { get; }
+        }
+
         /// <summary>The bytes of a record: from the line of its group 0 to that of the next record.</summary>
         private int End(int record) => record + 1 < _starts.Length ? _starts[record + 1] : _length;
 
+        /// <summary>A record of the file as it was read.</summary>
+        private Rec Original(int record) => new Rec(_bytes, _starts[record], End(record), _types[record]);
+
         /// <summary>
-        /// Walks the groups of the records from one to the one before another, comments left out: for each, the record, the
-        /// code and the bytes of the value, a carriage return at the end of its line taken off. The group 0 that opens a record
-        /// is given for those after the first where asked, and left out otherwise.
+        /// The records of the file from one to the one before another as they stand: each as read where nothing has changed
+        /// it, else what was written in its place, which may be nothing, or more records than one.
         /// </summary>
-        private void EachGroup(int first, int end, bool following, Action<int, int, int, int> take)
+        private List<Rec> Current(int first, int end)
         {
-            for (int record = first; record < end; record++)
+            var records = new List<Rec>(end - first);
+
+            for (int i = first; i < end; i++)
             {
-                int at = _starts[record];
-                int stop = End(record);
-                bool opening = true;
+                List<Piece> slot = _slots?[i];
 
-                while (at < stop)
+                if (slot == null)
                 {
-                    int codeEnd = LineEnd(at, out int next);
-                    TryCode(_bytes, at, codeEnd, out int code);
-                    int valueStart = next;
-                    int valueEnd = LineEnd(valueStart, out at);
+                    records.Add(Original(i));
+                    continue;
+                }
 
-                    if (opening)
+                foreach (Piece piece in slot)
+                {
+                    records.AddRange(piece.Records);
+                }
+            }
+
+            return records;
+        }
+
+        /// <summary>The records of an entity as they stand: its own, then a POLYLINE's vertices and SEQEND, an INSERT's attributes.</summary>
+        internal List<Rec> RecordsOf(DxfItem item)
+        {
+            if (item.Parent != null)
+            {
+                return new List<Rec> { RecordAt(item.Parent, item.Index) };
+            }
+
+            return item.Piece != null ? new List<Rec>(item.Piece.Records) : Current(item.First, item.First + item.Count);
+        }
+
+        /// <summary>One record of an entity as it stands, its own (0) or one that follows it, read without copying the others.</summary>
+        internal Rec RecordAt(DxfItem item, int index)
+        {
+            if (item.Parent != null)
+            {
+                return RecordAt(item.Parent, item.Index + index);
+            }
+
+            if (item.Piece != null)
+            {
+                return item.Piece.Records[index];
+            }
+
+            return _slots?[item.First] == null ? Original(item.First + index) : Current(item.First, item.First + item.Count)[index];
+        }
+
+        /// <summary>The first record of an entity as it stands, its own, which holds its look.</summary>
+        private Rec HeadOf(DxfItem item) => RecordAt(item, 0);
+
+        /// <summary>
+        /// Walks the groups of a record after its group 0, comments left out: for each, the code and the bytes of the value,
+        /// a carriage return at the end of its line taken off.
+        /// </summary>
+        private static void EachGroup(Rec record, Action<int, int, int> take)
+        {
+            var walk = new GroupWalk(record);
+
+            while (walk.Next(out int code, out int valueStart, out int valueEnd))
+            {
+                take(code, valueStart, valueEnd);
+            }
+        }
+
+        /// <summary>The groups of a record after its group 0, one at a time, comments left out, as <see cref="EachGroup"/> gives them.</summary>
+        private struct GroupWalk
+        {
+            private readonly byte[] _bytes;
+            private readonly int _end;
+            private int _at;
+            private bool _opened;
+
+            internal GroupWalk(Rec record)
+            {
+                _bytes = record.Bytes;
+                _end = record.End;
+                _at = record.Start;
+                _opened = false;
+            }
+
+            internal bool Next(out int code, out int valueStart, out int valueEnd)
+            {
+                byte[] bytes = _bytes;
+                int end = _end;
+                int at = _at;
+
+                while (at < end)
+                {
+                    int codeEnd = LineEnd(bytes, at, end, out valueStart);
+                    TryCode(bytes, at, codeEnd, out code);
+                    valueEnd = LineEnd(bytes, valueStart, end, out at);
+
+                    if (!_opened)
                     {
-                        opening = false;
-
-                        if (record > first && following)
-                        {
-                            take(record, 0, valueStart, valueEnd);
-                        }
-
+                        _opened = true;
                         continue;
                     }
 
                     if (code != 999)
                     {
-                        take(record, code, valueStart, valueEnd);
+                        _at = at;
+                        return true;
                     }
                 }
+
+                _at = at;
+                code = 0;
+                valueStart = 0;
+                valueEnd = 0;
+                return false;
             }
         }
 
+        private string Text(Rec record, int start, int end) => _decoding.GetString(record.Bytes, start, end - start);
+
         private string Text(int start, int end) => _decoding.GetString(_bytes, start, end - start);
 
-        /// <summary>The groups of an entity of a record and those following it, as <see cref="DxfItem.Groups"/> gives them.</summary>
-        internal IReadOnlyList<DxfGroup> GroupsOf(int first, int count)
+        /// <summary>The groups of an entity's records, as <see cref="DxfItem.Groups"/> gives them.</summary>
+        internal IReadOnlyList<DxfTypedValue> GroupsOf(DxfItem item)
         {
-            var groups = new List<DxfGroup>();
-            EachGroup(first, first + count, true, (record, code, start, end) => groups.Add(new DxfGroup(code, code == 0 ? _types[record] : Text(start, end))));
+            var groups = new List<DxfTypedValue>();
+            bool first = true;
+
+            foreach (Rec record in RecordsOf(item))
+            {
+                if (!first)
+                {
+                    groups.Add(DxfTypedValue.Read(0, record.Type));
+                }
+
+                first = false;
+                EachGroup(record, (code, start, end) => groups.Add(DxfTypedValue.Read(code, Text(record, start, end))));
+            }
+
             return groups.AsReadOnly();
         }
 
         /// <summary>A record as the reader takes it: its type and its groups, comments left out.</summary>
-        private DxfReader.Record Record(int index)
+        private DxfReader.Record Record(Rec record)
         {
-            var record = new DxfReader.Record(_types[index], 0);
-            EachGroup(index, index + 1, false, (_, code, start, end) => record.Add(code, Text(start, end)));
-            return record;
+            var read = new DxfReader.Record(record.Type, 0);
+            EachGroup(record, (code, start, end) => read.Add(code, Text(record, start, end)));
+            return read;
         }
 
         /// <summary>The records of an entity as the reader takes them: a POLYLINE's vertices and SEQEND following it.</summary>
-        private DxfReader.Record Records(int first, int count)
+        private DxfReader.Record Records(DxfItem item)
         {
-            DxfReader.Record record = Record(first);
+            Rec head = HeadOf(item);
+            DxfReader.Record record = Record(head);
 
-            if (_types[first] == "POLYLINE")
+            if (head.Type == "POLYLINE")
             {
-                var following = new List<DxfReader.Record>(count - 1);
+                List<Rec> records = RecordsOf(item);
+                var following = new List<DxfReader.Record>(records.Count - 1);
 
-                for (int i = first + 1; i < first + count; i++)
+                for (int i = 1; i < records.Count; i++)
                 {
-                    following.Add(Record(i));
+                    following.Add(Record(records[i]));
                 }
 
                 record.Following = following;
@@ -378,14 +552,16 @@ namespace GeometryHelper.Export
         internal Look LookOf(DxfItem item)
         {
             var values = new Dictionary<int, string>();
+            Rec record = HeadOf(item);
+            var walk = new GroupWalk(record);
 
-            EachGroup(item.First, item.First + 1, false, (_, code, start, end) =>
+            while (walk.Next(out int code, out int start, out int end))
             {
                 if ((code == 5 || code == 8 || code == 6 || code == 39 || code == 62 || code == 370 || code == 420) && !values.ContainsKey(code))
                 {
-                    values.Add(code, Text(start, end));
+                    values.Add(code, Text(record, start, end));
                 }
-            });
+            }
 
             string Value(int code) => values.TryGetValue(code, out string value) ? value : null;
 
@@ -410,17 +586,17 @@ namespace GeometryHelper.Export
         {
             if (item.Type == "INSERT")
             {
-                DxfInsert insert = DxfReader.InsertOf(Record(item.First), () => Placed(item));
+                DxfInsert insert = DxfReader.InsertOf(Record(HeadOf(item)), () => Placed(item));
                 return insert == null ? new List<object>() : new List<object> { insert };
             }
 
-            return DxfReader.ShapesOf(Records(item.First, item.Count), Tolerance.Default);
+            return DxfReader.ShapesOf(Records(item), Tolerance.Default);
         }
 
         /// <summary>What the reader places of an INSERT, with the layer table and the blocks of the file.</summary>
         private DxfReader.Placing Placed(DxfItem insert)
         {
-            DxfReader.Placing placing = _placer.Value.Place(Record(insert.First), insert.Block);
+            DxfReader.Placing placing = _placer.Value.Place(Record(HeadOf(insert)), insert.Block);
 
             // One line for the placing, outside the lock: Warn where an entity threw, Debug for what was left out as expected.
             if (placing.Warnings.Count > 0)
@@ -453,7 +629,7 @@ namespace GeometryHelper.Export
             {
                 if (item.Type != "INSERT" && item.Shapes.Count > 0)
                 {
-                    drawingLayers.Add(DxfReader.LayerOf(Record(item.First)));
+                    drawingLayers.Add(DxfReader.LayerOf(Record(HeadOf(item))));
                 }
             }
 
@@ -463,19 +639,24 @@ namespace GeometryHelper.Export
             {
                 if (section.Name == "BLOCKS")
                 {
-                    var records = new List<DxfReader.Record>(section.Last - section.First);
-
-                    for (int i = section.First + 1; i < section.Last; i++)
-                    {
-                        records.Add(Record(i));
-                    }
-
-                    blocks.Add(records);
+                    blocks.Add(Current(section.First + 1, section.Last).ConvertAll(r => Record(r)));
                 }
             }
 
             return new DxfReader.Placer(LayerRecords(), drawingLayers, blocks, Tolerance.Default);
         }
+
+        private Lazy<IReadOnlyList<DxfLayer>> NewLayers() => new Lazy<IReadOnlyList<DxfLayer>>(() =>
+        {
+            LayerTableReadings++;
+            return Array.AsReadOnly(DxfReader.LayerTableOf(LayerRecords()));
+        });
+
+        /// <summary>How many times the layer table was read, for the tests of the cost of adding layers.</summary>
+        internal int LayerTableReadings { get; private set; }
+
+        /// <summary>How many times what pointed at what was erased was seen to, for the tests of the cost of reading after erasing.</summary>
+        internal int Cleanings { get; private set; }
 
         private List<DxfReader.Record> LayerRecords()
         {
@@ -485,11 +666,11 @@ namespace GeometryHelper.Export
             {
                 if (section.Name == "TABLES")
                 {
-                    for (int i = section.First + 1; i < section.Last; i++)
+                    foreach (Rec record in Current(section.First + 1, section.Last))
                     {
-                        if (_types[i] == "LAYER")
+                        if (record.Type == "LAYER")
                         {
-                            layers.Add(Record(i));
+                            layers.Add(Record(record));
                         }
                     }
                 }
@@ -505,9 +686,10 @@ namespace GeometryHelper.Export
         /// </summary>
         private void ReadHeader()
         {
-            var variables = new SortedDictionary<string, IReadOnlyList<DxfGroup>>(StringComparer.Ordinal);
-            List<DxfGroup> current = null;
+            var variables = new SortedDictionary<string, IReadOnlyList<DxfTypedValue>>(StringComparer.Ordinal);
+            List<DxfTypedValue> current = null;
             string variable = null;
+            string version = null;
             string named = null;
             bool first = true;
 
@@ -520,49 +702,58 @@ namespace GeometryHelper.Export
 
                 first = true;
 
-                EachGroup(section.First, section.Last, false, (_, code, start, end) =>
+                foreach (Rec record in Current(section.First, section.Last))
                 {
-                    // The name of the section is the first group of its SECTION record.
-                    if (first)
+                    EachGroup(record, (code, start, end) =>
                     {
-                        first = false;
-                        return;
-                    }
+                        // The name of the section is the first group of its SECTION record.
+                        if (first)
+                        {
+                            first = false;
+                            return;
+                        }
 
-                    string value = Text(start, end);
+                        string value = Text(record, start, end);
 
-                    if (code == 9)
-                    {
-                        // A variable named again is as last given, as the reader reads the version and the code page.
-                        variable = value.Trim();
-                        current = new List<DxfGroup>();
-                        variables[variable] = current.AsReadOnly();
-                        return;
-                    }
+                        if (code == 9)
+                        {
+                            // A variable named again is as last given, as the reader reads the version and the code page.
+                            variable = value.Trim();
+                            current = new List<DxfTypedValue>();
+                            variables[variable] = current.AsReadOnly();
+                            return;
+                        }
 
-                    current?.Add(new DxfGroup(code, value));
+                        current?.Add(DxfTypedValue.Read(code, value));
 
-                    if (variable == "$ACADVER" && code == 1)
-                    {
-                        Version = value.Trim();
-                    }
-                    else if (variable == "$DWGCODEPAGE" && code == 3)
-                    {
-                        named = value.Trim();
-                    }
-                });
+                        if (variable == "$ACADVER" && code == 1)
+                        {
+                            version = value.Trim();
+                        }
+                        else if (variable == "$DWGCODEPAGE" && code == 3)
+                        {
+                            named = value.Trim();
+                        }
+                    });
+                }
             }
 
-            Header = new ReadOnlyDictionary<string, IReadOnlyList<DxfGroup>>(variables);
-            CodePage = _decoding.CodePageFor(Version, named);
+            _header = new ReadOnlyDictionary<string, IReadOnlyList<DxfTypedValue>>(variables);
+
+            if (CodePage == null)
+            {
+                Version = version;
+                _namedPage = named;
+                CodePage = _decoding.CodePageFor(Version, named);
+            }
         }
 
         /// <summary>The entities of model space and of paper space.</summary>
         private sealed class Drawing
         {
-            internal IReadOnlyList<DxfItem> Model { get; set; }
+            internal DxfSpace Model { get; set; }
 
-            internal IReadOnlyList<DxfItem> Paper { get; set; }
+            internal DxfSpace Paper { get; set; }
         }
 
         private Drawing ReadDrawing()
@@ -579,25 +770,34 @@ namespace GeometryHelper.Export
 
                 foreach (DxfItem item in Items(section.First + 1, section.Last, null))
                 {
-                    (InPaperSpace(item.First) ? paper : model).Add(item);
+                    if (InPaperSpace(Original(item.First)))
+                    {
+                        item.IsPaper = true;
+                        paper.Add(item);
+                    }
+                    else
+                    {
+                        model.Add(item);
+                    }
                 }
             }
 
-            return new Drawing { Model = model.Count == 0 ? NoItems : model.AsReadOnly(), Paper = paper.Count == 0 ? NoItems : paper.AsReadOnly() };
+            return new Drawing { Model = new DxfSpace(this, model), Paper = new DxfSpace(this, paper, DxfSpaceKind.Paper) };
         }
 
         /// <summary>Whether a record is in paper space: its first group 67 is 1, as the reader reads it.</summary>
-        private bool InPaperSpace(int record)
+        private bool InPaperSpace(Rec record)
         {
             string value = null;
+            var walk = new GroupWalk(record);
 
-            EachGroup(record, record + 1, false, (_, code, start, end) =>
+            while (value == null && walk.Next(out int code, out int start, out int end))
             {
-                if (code == 67 && value == null)
+                if (code == 67)
                 {
-                    value = Text(start, end);
+                    value = Text(record, start, end);
                 }
-            });
+            }
 
             return value != null && int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int space) && space == 1;
         }
@@ -623,7 +823,7 @@ namespace GeometryHelper.Export
                         continue;
                     }
 
-                    DxfReader.Record header = Record(i);
+                    DxfReader.Record header = Record(Original(i));
                     string name = DxfReader.BlockNameOf(header);
                     int end = i + 1;
 
@@ -636,7 +836,7 @@ namespace GeometryHelper.Export
                     {
                         List<DxfItem> items = Items(i + 1, end, name);
                         DxfReader.BlockOf(header, out GeoPoint3 basePoint, out int flags);
-                        blocks.Add(name, new DxfFileBlock(name, basePoint, flags, items.Count == 0 ? NoItems : items.AsReadOnly()));
+                        blocks.Add(name, new DxfFileBlock(this, name, basePoint, flags, items, new DxfItem(this, i, 1, "BLOCK", null), end));
                     }
 
                     i = end;
@@ -859,12 +1059,15 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>The end of the line from a byte, a carriage return before its line feed left out, and where the next begins.</summary>
-        private int LineEnd(int at, out int next)
+        private int LineEnd(int at, out int next) => LineEnd(_bytes, at, _length, out next);
+
+        /// <summary>The end of a line of bytes that stop at a point, as <see cref="LineEnd(int, out int)"/> finds it.</summary>
+        private static int LineEnd(byte[] bytes, int at, int length, out int next)
         {
-            int feed = Array.IndexOf(_bytes, (byte)'\n', at, _length - at);
-            int end = feed < 0 ? _length : feed;
-            next = feed < 0 ? _length : feed + 1;
-            return end > at && _bytes[end - 1] == '\r' ? end - 1 : end;
+            int feed = Array.IndexOf(bytes, (byte)'\n', at, length - at);
+            int end = feed < 0 ? length : feed;
+            next = feed < 0 ? length : feed + 1;
+            return end > at && bytes[end - 1] == '\r' ? end - 1 : end;
         }
 
         /// <summary>A group code: a whole number of up to nine digits, a sign before it, padded with spaces or tabs, as the reader reads it.</summary>

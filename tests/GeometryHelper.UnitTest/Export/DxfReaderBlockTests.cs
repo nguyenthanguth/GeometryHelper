@@ -52,11 +52,11 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Equal(new[] { "21", "22", "11", "11" }, read.Entities.Select(e => e.Handle).ToArray());
-            Assert.Equal(new[] { "Steel", "Own", "Steel", "Middle" }, read.Entities.Select(e => e.Layer).ToArray());
-            Assert.Equal(new[] { "OUTER", "INNER" }, read.Entities[3].BlockPath.ToArray());
-            Assert.Equal(new[] { "31", "24" }, read.Entities[3].InsertHandles.ToArray());
-            Near(new GeoPoint2(101, 9), ((GeoLine2)read.Entities[3].Shape).EndPoint, "the inner line");
+            Assert.Equal(new[] { "21", "22", "11", "11" }, read.Shapes.Select(e => e.Handle).ToArray());
+            Assert.Equal(new[] { "Steel", "Own", "Steel", "Middle" }, read.Shapes.Select(e => e.Layer).ToArray());
+            Assert.Equal(new[] { "OUTER", "INNER" }, read.Shapes[3].BlockPath.ToArray());
+            Assert.Equal(new[] { "31", "24" }, read.Shapes[3].InsertHandles.ToArray());
+            Near(new GeoPoint2(101, 9), ((GeoLine2)read.Shapes[3].Shape).EndPoint, "the inner line");
             Assert.Contains("Steel", read.Layers);
             Assert.Contains("Middle", read.Layers);
         }
@@ -76,46 +76,46 @@ namespace GeometryHelper.UnitTest.Export
                 + G(0, "LINE", 5, "M2", 8, "0", 62, 0, 6, "BYBLOCK", 370, -2, 10, "0", 20, "0", 11, "5", 21, "0"));
 
             DxfDocument read = Plan(text);
-            DxfEntity Of(string handle) => read.Entities.Single(e => e.Handle == handle);
+            DxfShape Of(string handle) => read.Shapes.Single(e => e.Handle == handle);
 
-            DxfEntity byBlock = Of("B1");
+            DxfShape byBlock = Of("B1");
             Assert.Equal("Steel", byBlock.Layer);
-            Assert.Equal(3, byBlock.Colour);
-            Assert.Equal(0xFF8000, byBlock.TrueColour);
+            Assert.Equal(3, byBlock.Color);
+            Assert.Equal(0xFF8000, byBlock.TrueColor);
             Assert.Equal("DASHED", byBlock.Linetype);
-            Assert.Equal(35, byBlock.Lineweight);
+            Assert.Equal(35, byBlock.LineWeight);
 
-            DxfEntity byLayer = Of("B2");
+            DxfShape byLayer = Of("B2");
             Assert.Equal("Own", byLayer.Layer);
-            Assert.Null(byLayer.Colour);
-            Assert.Null(byLayer.TrueColour);
+            Assert.Null(byLayer.Color);
+            Assert.Null(byLayer.TrueColor);
             Assert.Null(byLayer.Linetype);
-            Assert.Null(byLayer.Lineweight);
+            Assert.Null(byLayer.LineWeight);
 
             // A true colour of its own is kept; the colour by block is the INSERT's.
-            Assert.Equal(3, Of("B3").Colour);
-            Assert.Equal(0x123456, Of("B3").TrueColour);
+            Assert.Equal(3, Of("B3").Color);
+            Assert.Equal(0x123456, Of("B3").TrueColor);
 
             // A look of its own is kept whole.
-            Assert.Equal(5, Of("B4").Colour);
-            Assert.Null(Of("B4").TrueColour);
+            Assert.Equal(5, Of("B4").Color);
+            Assert.Null(Of("B4").TrueColor);
             Assert.Equal("HIDDEN", Of("B4").Linetype);
-            Assert.Equal(18, Of("B4").Lineweight);
+            Assert.Equal(18, Of("B4").LineWeight);
 
             // The INSERT of C inside B takes B's INSERT's look by block, and the line of C takes that in turn.
-            DxfEntity nested = Of("C1");
+            DxfShape nested = Of("C1");
             Assert.Equal("Steel", nested.Layer);
-            Assert.Equal(3, nested.Colour);
-            Assert.Equal(0xFF8000, nested.TrueColour);
+            Assert.Equal(3, nested.Color);
+            Assert.Equal(0xFF8000, nested.TrueColor);
             Assert.Equal("DASHED", nested.Linetype);
-            Assert.Equal(35, nested.Lineweight);
+            Assert.Equal(35, nested.LineWeight);
 
             // In the drawing itself there is no block to take a look from: BYBLOCK is no colour, and the linetype as named.
-            DxfEntity top = Of("M2");
+            DxfShape top = Of("M2");
             Assert.Equal("0", top.Layer);
-            Assert.Null(top.Colour);
+            Assert.Null(top.Color);
             Assert.Equal("BYBLOCK", top.Linetype);
-            Assert.Null(top.Lineweight);
+            Assert.Null(top.LineWeight);
             Assert.Empty(top.BlockPath);
             Assert.Empty(top.InsertHandles);
         }
@@ -130,7 +130,7 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Space(text);
 
-            Assert.Equal(new[] { 30.0, -12.0, 10.0, -4.0 }, read.Entities.Select(e => e.Thickness).ToArray());
+            Assert.Equal(new[] { 30.0, -12.0, 10.0, -4.0 }, read.Shapes.Select(e => e.Thickness).ToArray());
         }
 
         // ----- The blocks of the file ------------------------------------------------------------------------------------
@@ -151,20 +151,20 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal(1, read.Blocks[1].Flags);
 
             // The block's circle about its own origin, on layer 0, its colour by block no colour, as no INSERT places it.
-            DxfEntity bolt = Assert.Single(read.Blocks[0].Entities);
+            DxfShape bolt = Assert.Single(read.Blocks[0].Shapes);
             Assert.Equal(new GeoCircle2(new GeoPoint2(0, 0), 10), Assert.IsType<GeoCircle2>(bolt.Shape));
             Assert.Equal("0", bolt.Layer);
-            Assert.Null(bolt.Colour);
+            Assert.Null(bolt.Color);
             Assert.Empty(bolt.BlockPath);
 
             // The anonymous block holds its line, and the BOLT it places within itself.
-            Assert.Equal(new[] { "62", "61" }, read.Blocks[1].Entities.Select(e => e.Handle).ToArray());
-            Assert.Equal(new[] { "BOLT" }, read.Blocks[1].Entities[1].BlockPath.ToArray());
-            Assert.Equal(new GeoPoint2(48, -3), ((GeoCircle2)read.Blocks[1].Entities[1].Shape).Center);
+            Assert.Equal(new[] { "62", "61" }, read.Blocks[1].Shapes.Select(e => e.Handle).ToArray());
+            Assert.Equal(new[] { "BOLT" }, read.Blocks[1].Shapes[1].BlockPath.ToArray());
+            Assert.Equal(new GeoPoint2(48, -3), ((GeoCircle2)read.Blocks[1].Shapes[1].Shape).Center);
 
             // The drawing places the anonymous block like any other.
-            Assert.Equal(new[] { "*U7", "*U7" }, read.Entities.Select(e => e.BlockPath[0]).ToArray());
-            Assert.Equal(new GeoPoint2(1048, -3), ((GeoCircle2)read.Entities[1].Shape).Center);
+            Assert.Equal(new[] { "*U7", "*U7" }, read.Shapes.Select(e => e.BlockPath[0]).ToArray());
+            Assert.Equal(new GeoPoint2(1048, -3), ((GeoCircle2)read.Shapes[1].Shape).Center);
             Assert.Empty(read.Skipped);
             Assert.Empty(read.Warnings);
         }
@@ -183,7 +183,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = Plan(text);
 
             Assert.Equal(new[] { "B" }, read.Blocks.Select(b => b.Name).ToArray());
-            Assert.IsType<GeoPoint2>(Assert.Single(read.Entities).Shape);
+            Assert.IsType<GeoPoint2>(Assert.Single(read.Shapes).Shape);
             Assert.Contains("3 entities of the blocks of the layouts (*Model_Space, *Paper_Space) were not read: the drawing is read from its ENTITIES section.", read.Warnings);
         }
 
@@ -194,9 +194,9 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { ExpandBlocks = false, PlanAs2D = true, Tolerance = Tol });
 
-            Assert.IsType<GeoPoint2>(Assert.Single(read.Entities).Shape);
+            Assert.IsType<GeoPoint2>(Assert.Single(read.Shapes).Shape);
             Assert.Equal(2, read.Skipped["INSERT"]);
-            Assert.IsType<GeoLine2>(Assert.Single(Assert.Single(read.Blocks).Entities).Shape);
+            Assert.IsType<GeoLine2>(Assert.Single(Assert.Single(read.Blocks).Shapes).Shape);
             Assert.Empty(read.Warnings);
             Assert.True(new DxfReadOptions().ExpandBlocks);
         }
@@ -213,8 +213,8 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Equal(new[] { "1", "9", "3", "9" }, read.Entities.Select(e => e.Handle).ToArray());
-            Assert.Equal(new GeoPoint2(21, 0), ((GeoLine2)read.Entities[3].Shape).EndPoint);
+            Assert.Equal(new[] { "1", "9", "3", "9" }, read.Shapes.Select(e => e.Handle).ToArray());
+            Assert.Equal(new GeoPoint2(21, 0), ((GeoLine2)read.Shapes[3].Shape).EndPoint);
         }
 
         [Fact]
@@ -226,7 +226,7 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Equal(new GeoPoint2(1, 1), Assert.Single(read.Entities).Shape);
+            Assert.Equal(new GeoPoint2(1, 1), Assert.Single(read.Shapes).Shape);
             Assert.Single(read.Blocks);
             Assert.Contains("1 block was defined again under a name already defined, and the first definition kept: b.", read.Warnings);
         }
@@ -245,14 +245,14 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Equal(new[] { "A1", "B1", "S1" }, read.Entities.Select(e => e.Handle).ToArray());
-            Assert.Equal(new[] { "A", "B" }, read.Entities[1].BlockPath.ToArray());
+            Assert.Equal(new[] { "A1", "B1", "S1" }, read.Shapes.Select(e => e.Handle).ToArray());
+            Assert.Equal(new[] { "A", "B" }, read.Shapes[1].BlockPath.ToArray());
             Assert.Equal(2, read.Skipped["INSERT"]);
             Assert.Contains("2 INSERTs of blocks inside themselves were not placed again, so as not to place them without end: A > B > A the first.", read.Warnings);
 
             // Each block on its own holds what it can.
-            Assert.Equal(new[] { "A1", "B1" }, read.Blocks[0].Entities.Select(e => e.Handle).ToArray());
-            Assert.Equal(new[] { "B1", "A1" }, read.Blocks[1].Entities.Select(e => e.Handle).ToArray());
+            Assert.Equal(new[] { "A1", "B1" }, read.Blocks[0].Shapes.Select(e => e.Handle).ToArray());
+            Assert.Equal(new[] { "B1", "A1" }, read.Blocks[1].Shapes.Select(e => e.Handle).ToArray());
         }
 
         [Fact]
@@ -267,9 +267,9 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(WithBlocks(Blocks(blocks.ToString()), Insert("D0", 0, 0)));
 
-            Assert.Equal(64, read.Entities.Count);
-            Assert.Equal(new GeoPoint2(63, 0), read.Entities[63].Shape);
-            Assert.Equal(64, read.Entities[63].BlockPath.Count);
+            Assert.Equal(64, read.Shapes.Count);
+            Assert.Equal(new GeoPoint2(63, 0), read.Shapes[63].Shape);
+            Assert.Equal(64, read.Shapes[63].BlockPath.Count);
             Assert.Equal(1, read.Skipped["INSERT"]);
             Assert.Contains("1 INSERT nested more than 64 deep was not placed.", read.Warnings);
         }
@@ -279,7 +279,7 @@ namespace GeometryHelper.UnitTest.Export
         {
             DxfDocument read = Plan(WithBlocks(Blocks(Block("B", G(0, "POINT", 8, "0", 10, "0", 20, "0"))), Insert("NOPE", 0, 0) + Insert("B", 0, 0) + Insert("NOPE", 1, 0) + Insert("Gone", 0, 0)));
 
-            Assert.Single(read.Entities);
+            Assert.Single(read.Shapes);
             Assert.Equal(3, read.Skipped["INSERT"]);
             Assert.Contains("3 INSERTs name blocks the file does not define and were left out: NOPE, Gone.", read.Warnings);
         }
@@ -293,7 +293,7 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Single(read.Entities);
+            Assert.Single(read.Shapes);
             Assert.Equal(1, read.Skipped["INSERT"]);
             Assert.Equal(4, read.Blocks[0].Flags);
             Assert.Contains("1 INSERT of an external reference was not placed: the drawing it refers to is another file, which is not read.", read.Warnings);
@@ -308,7 +308,7 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Empty(read.Entities);
+            Assert.Empty(read.Shapes);
             Assert.Equal(1, read.Skipped["INSERT"]);
             Assert.Contains("1 MINSERT of more than 1 048 576 cells was not placed.", read.Warnings);
         }
@@ -322,7 +322,7 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Equal(new object[] { new GeoPoint2(0, 0), new GeoPoint2(0, 5) }, read.Entities.Select(e => e.Shape).ToArray());
+            Assert.Equal(new object[] { new GeoPoint2(0, 0), new GeoPoint2(0, 5) }, read.Shapes.Select(e => e.Shape).ToArray());
         }
 
         [Fact]
@@ -335,7 +335,7 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Equal(2, read.Entities.Count);
+            Assert.Equal(2, read.Shapes.Count);
             Assert.Equal(2, read.Skipped["ATTRIB"]);
             Assert.Equal(2, read.Skipped["ATTDEF"]);
             Assert.False(read.Skipped.ContainsKey("INSERT"));
@@ -348,7 +348,7 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Equal(new GeoPoint2(1, 1), Assert.Single(read.Entities).Shape);
+            Assert.Equal(new GeoPoint2(1, 1), Assert.Single(read.Shapes).Shape);
             Assert.Contains("1 entity of paper space was not read: the reader reads model space.", read.Warnings);
         }
 
@@ -381,24 +381,24 @@ namespace GeometryHelper.UnitTest.Export
                 DxfDocument own = DxfReader.Parse(R2000(entities), options);
                 DxfDocument placed = DxfReader.Parse(WithBlocks(Blocks(Block("ALL", entities)), Insert("ALL", 0, 0) + G(0, "INSERT", 8, "0", 2, "ALL", 41, "1", 50, "0", 210, "0", 220, "0", 230, "1")), options);
 
-                Assert.Equal(own.Entities.Count * 2, placed.Entities.Count);
+                Assert.Equal(own.Shapes.Count * 2, placed.Shapes.Count);
 
                 // Written out, every number of a shape is written as it is held, so two files alike are two readings alike.
                 var expected = new DxfWriter();
                 var actual = new DxfWriter();
 
-                foreach (DxfEntity entity in own.Entities.Concat(own.Entities))
+                foreach (DxfShape entity in own.Shapes.Concat(own.Shapes))
                 {
                     expected.Add(entity);
                 }
 
-                foreach (DxfEntity entity in placed.Entities)
+                foreach (DxfShape entity in placed.Shapes)
                 {
                     actual.Add(entity);
                 }
 
                 Assert.Equal(expected.ToString(), actual.ToString());
-                Assert.Equal(own.Entities.Select(e => e.Shape.GetType()).Concat(own.Entities.Select(e => e.Shape.GetType())), placed.Entities.Select(e => e.Shape.GetType()));
+                Assert.Equal(own.Shapes.Select(e => e.Shape.GetType()).Concat(own.Shapes.Select(e => e.Shape.GetType())), placed.Shapes.Select(e => e.Shape.GetType()));
             }
         }
 
@@ -412,20 +412,20 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = Plan(text);
             var writer = new DxfWriter();
 
-            foreach (DxfEntity entity in read.Entities)
+            foreach (DxfShape entity in read.Shapes)
             {
                 writer.Add(entity);
             }
 
             DxfDocument again = Plan(writer.ToString());
 
-            Assert.Equal(new[] { typeof(GeoEllipse2), typeof(GeoSpline2) }, again.Entities.Select(e => e.Shape.GetType()).ToArray());
-            Assert.Equal(new[] { "Steel", "Own" }, again.Entities.Select(e => e.Layer).ToArray());
-            Assert.Equal(new int?[] { 4, null }, again.Entities.Select(e => e.Colour).ToArray());
-            Assert.All(again.Entities, e => Assert.Empty(e.BlockPath));
+            Assert.Equal(new[] { typeof(GeoEllipse2), typeof(GeoSpline2) }, again.Shapes.Select(e => e.Shape.GetType()).ToArray());
+            Assert.Equal(new[] { "Steel", "Own" }, again.Shapes.Select(e => e.Layer).ToArray());
+            Assert.Equal(new int?[] { 4, null }, again.Shapes.Select(e => e.Color).ToArray());
+            Assert.All(again.Shapes, e => Assert.Empty(e.BlockPath));
 
-            var spline = (GeoSpline2)read.Entities[1].Shape;
-            var back = (GeoSpline2)again.Entities[1].Shape;
+            var spline = (GeoSpline2)read.Shapes[1].Shape;
+            var back = (GeoSpline2)again.Shapes[1].Shape;
             Assert.Equal(spline.ControlPoints.ToArray(), back.ControlPoints.ToArray());
             Assert.Equal(spline.Weights.ToArray(), back.Weights.ToArray());
         }
@@ -437,15 +437,15 @@ namespace GeometryHelper.UnitTest.Export
 
             // A share of 1E-7 moves the circle of radius 10 by 1E-6, within the point tolerance: a circle of radius 10.
             DxfDocument near = Plan(Scaled("1.0000001"));
-            Assert.Equal(10.0, Assert.IsType<GeoCircle2>(near.Entities[0].Shape).Radius);
-            Assert.IsType<GeoArc2>(near.Entities[1].Shape);
+            Assert.Equal(10.0, Assert.IsType<GeoCircle2>(near.Shapes[0].Shape).Radius);
+            Assert.IsType<GeoArc2>(near.Shapes[1].Shape);
 
             // A share of 1E-3 moves it by 0.01: the ellipse 10.01 by 10, and the arc the spline that is exactly its part.
             DxfDocument off = Plan(Scaled("1.001"));
-            var ellipse = Assert.IsType<GeoEllipse2>(off.Entities[0].Shape);
+            var ellipse = Assert.IsType<GeoEllipse2>(off.Shapes[0].Shape);
             Assert.Equal(10.01, ellipse.MajorRadius, 12);
             Assert.Equal(10.0, ellipse.MinorRadius, 12);
-            var part = Assert.IsType<GeoSpline2>(off.Entities[1].Shape);
+            var part = Assert.IsType<GeoSpline2>(off.Shapes[1].Shape);
             Assert.Equal(new GeoPoint2(10, 0), part.StartPoint);
             Near(new GeoPoint2(0, 10.01), part.EndPoint, "the end of the quarter");
         }
@@ -475,8 +475,8 @@ namespace GeometryHelper.UnitTest.Export
                 + G(0, "INSERT", 8, "0", 2, "CUBE", 10, "0", 20, "0", 41, "-2", 42, "3", 43, "1", 50, "30"));
 
             DxfDocument read = Space(text);
-            var body = Assert.IsType<GeoSolid3>(read.Entities[0].Shape);
-            var mirrored = Assert.IsType<GeoSolid3>(read.Entities[1].Shape);
+            var body = Assert.IsType<GeoSolid3>(read.Shapes[0].Shape);
+            var mirrored = Assert.IsType<GeoSolid3>(read.Shapes[1].Shape);
 
             Assert.True(body.IsClosed(Tol));
             Assert.Equal(3000.0, body.GetVolume(Tol), 6);
@@ -495,7 +495,7 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Plan(text);
 
-            Assert.Empty(read.Entities);
+            Assert.Empty(read.Shapes);
             Assert.Equal(1, read.Skipped["LINE"]);
             Assert.Equal(1, read.Skipped["POINT"]);
 
@@ -506,7 +506,7 @@ namespace GeometryHelper.UnitTest.Export
                 + G(0, "LWPOLYLINE", 8, "0", 100, "AcDbPolyline", 90, 2, 70, 0, 38, "1.7E308", 10, "0", 20, "-1.7E308", 10, "1", 20, "-1.7E308", 210, "0.6", 220, "0", 230, "0.8")
                 + G(0, "POINT", 8, "0", 10, "1", 20, "1")));
 
-            Assert.IsType<GeoPoint3>(Assert.Single(tilted.Entities).Shape);
+            Assert.IsType<GeoPoint3>(Assert.Single(tilted.Shapes).Shape);
             Assert.Equal(1, tilted.Skipped["CIRCLE"]);
             Assert.Equal(1, tilted.Skipped["LWPOLYLINE"]);
         }
@@ -518,8 +518,8 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument own = Space(R2000(spline));
             DxfDocument placed = Space(WithBlocks(Blocks(Block("B", spline)), G(0, "INSERT", 8, "0", 2, "B", 10, "5", 20, "6", 30, "7", 41, "2", 42, "-1", 43, "1")));
 
-            var mine = (GeoSpline3)own.Entities[0].Shape;
-            var there = Assert.IsType<GeoSpline3>(Assert.Single(placed.Entities).Shape);
+            var mine = (GeoSpline3)own.Shapes[0].Shape;
+            var there = Assert.IsType<GeoSpline3>(Assert.Single(placed.Shapes).Shape);
 
             Assert.Equal(mine.Knots.ToArray(), there.Knots.ToArray());
             Assert.Equal(mine.ControlPoints.Select(p => new GeoPoint3(5 + 2 * p.X, 6 - p.Y, 7 + p.Z)).ToArray(), there.ControlPoints.ToArray());
@@ -533,7 +533,7 @@ namespace GeometryHelper.UnitTest.Export
                 + Blocks(G(0, "BLOCK", 8, "0", 2, "B", 70, 0, 10, "1", 20, "1", 30, "0") + G(0, "LINE", 8, "0", 10, "1", 20, "1", 11, "2", 21, "1") + G(0, "ENDBLK", 8, "0"))
                 + G(0, "SECTION", 2, "ENTITIES") + G(0, "INSERT", 8, "0", 2, "B", 10, "10", 20, "10", 30, "0") + G(0, "ENDSEC", 0, "EOF");
 
-            DxfEntity line = Assert.Single(Plan(text).Entities);
+            DxfShape line = Assert.Single(Plan(text).Shapes);
 
             Assert.Equal(new GeoLine2(10, 10, 11, 10), line.Shape);
             Assert.Null(line.Handle);
@@ -541,14 +541,14 @@ namespace GeometryHelper.UnitTest.Export
         }
 
         [Fact]
-        public void ToMillimetres_ScalesTheInsertionPointTheBasePointAndTheSpacings_NotTheScales()
+        public void ToMillimeters_ScalesTheInsertionPointTheBasePointAndTheSpacings_NotTheScales()
         {
             string text = File("AC1015", 6, Blocks(Block("B", G(0, "POINT", 8, "0", 10, "1", 20, "0"), 1, 0)),
                 G(0, "INSERT", 8, "0", 100, "AcDbMInsertBlock", 2, "B", 10, "2", 20, "0", 41, "3", 42, "3", 43, "3", 70, 2, 71, 1, 44, "0.5", 45, "0"));
 
-            DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, ToMillimetres = true, Tolerance = Tol });
+            DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, ToMillimeters = true, Tolerance = Tol });
 
-            Assert.Equal(new object[] { new GeoPoint2(2000, 0), new GeoPoint2(2500, 0) }, read.Entities.Select(e => e.Shape).ToArray());
+            Assert.Equal(new object[] { new GeoPoint2(2000, 0), new GeoPoint2(2500, 0) }, read.Shapes.Select(e => e.Shape).ToArray());
             Assert.Equal(new GeoPoint3(1000, 0, 0), read.Blocks[0].BasePoint);
         }
     }

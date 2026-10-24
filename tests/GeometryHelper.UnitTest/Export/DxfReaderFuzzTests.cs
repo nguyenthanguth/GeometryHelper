@@ -132,14 +132,14 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = DxfReader.Parse(writer.ToString(), new DxfReadOptions { PlanAs2D = plan, Tolerance = Tol });
 
             Assert.Empty(read.Skipped);
-            Assert.Equal(shapes.Count, read.Entities.Count);
+            Assert.Equal(shapes.Count, read.Shapes.Count);
 
             for (int i = 0; i < shapes.Count; i++)
             {
-                Assert.Equal(shapes[i].GetType(), read.Entities[i].Shape.GetType());
+                Assert.Equal(shapes[i].GetType(), read.Shapes[i].Shape.GetType());
 
                 double[] expected = Of(shapes[i]);
-                double[] actual = Of(read.Entities[i].Shape);
+                double[] actual = Of(read.Shapes[i].Shape);
 
                 Assert.Equal(expected.Length, actual.Length);
 

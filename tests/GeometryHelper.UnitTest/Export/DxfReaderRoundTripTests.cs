@@ -27,7 +27,7 @@ namespace GeometryHelper.UnitTest.Export
 
         internal static T Only<T>(DxfDocument document)
         {
-            DxfEntity entity = Assert.Single(document.Entities);
+            DxfShape entity = Assert.Single(document.Shapes);
             return Assert.IsType<T>(entity.Shape);
         }
 
@@ -180,8 +180,8 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = Read(new DxfWriter().Add(new GeoFace2(boundary, new[] { slot, hole }), "plate"), true);
             IReadOnlyList<GeoPolygon2> rings = read.OfType<GeoPolygon2>();
 
-            Assert.Equal(3, read.Entities.Count);
-            Assert.All(read.Entities, e => Assert.Equal("plate", e.Layer));
+            Assert.Equal(3, read.Shapes.Count);
+            Assert.All(read.Shapes, e => Assert.Equal("plate", e.Layer));
 
             var face = new GeoFace2(boundary, new[] { slot, hole });
             Same(face.Boundary.Vertices, rings[0].Vertices);
@@ -405,7 +405,7 @@ namespace GeometryHelper.UnitTest.Export
 
                 Assert.Equal(64, triangles.Count);
                 Assert.Equal(expected.Length, triangles.Count);
-                Assert.All(read.Entities, e => Assert.Equal("3DFACE", e.Type));
+                Assert.All(read.Shapes, e => Assert.Equal("3DFACE", e.Type));
 
                 for (int i = 0; i < expected.Length; i++)
                 {
@@ -471,11 +471,11 @@ namespace GeometryHelper.UnitTest.Export
                 }
 
                 DxfDocument read = Read(new DxfWriter().Add(mesh), false);
-                Assert.Equal(expected.Count, read.Entities.Count);
+                Assert.Equal(expected.Count, read.Shapes.Count);
 
                 for (int i = 0; i < expected.Count; i++)
                 {
-                    Same(expected[i], Corners(read.Entities[i].Shape));
+                    Same(expected[i], Corners(read.Shapes[i].Shape));
                 }
             }
         }
@@ -655,12 +655,12 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = Read(new DxfWriter().Add(bar, Tol, "bars"), false);
 
-            Assert.Equal(new[] { "LINE", "ARC", "LINE", "ARC", "LINE" }, read.Entities.Select(e => e.Type).ToArray());
+            Assert.Equal(new[] { "LINE", "ARC", "LINE", "ARC", "LINE" }, read.Shapes.Select(e => e.Type).ToArray());
 
             for (int i = 0; i < bar.EdgeCount; i++)
             {
                 GeoEdge3 edge = bar.GetEdgeAt(i);
-                object shape = read.Entities[i].Shape;
+                object shape = read.Shapes[i].Shape;
                 GeoPoint3 start = shape is GeoLine3 line ? line.StartPoint : ((GeoArc3)shape).StartPoint;
                 GeoPoint3 end = shape is GeoLine3 line2 ? line2.EndPoint : ((GeoArc3)shape).EndPoint;
                 GeoPoint3 middle = shape is GeoLine3 line3 ? line3.MidPoint : ((GeoArc3)shape).MidPoint;
@@ -710,14 +710,14 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = Read(new DxfWriter().Add(new GeoLine2(0, 0, 10, 0), "steel").Add(new GeoCircle2(new GeoPoint2(5, 5), 2), "Café").Add(new GeoPoint3(1, 2, 3), "STEEL"), true);
 
             Assert.Equal("AC1015", read.Version);
-            Assert.Equal(DxfUnits.Millimetres, read.Units);
+            Assert.Equal(DxfUnits.Millimeters, read.Units);
             Assert.Equal(new[] { "0", "steel", "Café" }, read.Layers.ToArray());
-            Assert.Equal(new[] { "steel", "Café", "steel" }, read.Entities.Select(e => e.Layer).ToArray());
-            Assert.Equal(new[] { "LINE", "CIRCLE", "POINT" }, read.Entities.Select(e => e.Type).ToArray());
-            Assert.All(read.Entities, e => Assert.Null(e.Colour));
-            Assert.All(read.Entities, e => Assert.Empty(e.BlockPath));
-            Assert.Equal(3, read.Entities.Select(e => e.Handle).Distinct().Count());
-            Assert.All(read.Entities, e => Assert.Matches("^[0-9A-F]+$", e.Handle));
+            Assert.Equal(new[] { "steel", "Café", "steel" }, read.Shapes.Select(e => e.Layer).ToArray());
+            Assert.Equal(new[] { "LINE", "CIRCLE", "POINT" }, read.Shapes.Select(e => e.Type).ToArray());
+            Assert.All(read.Shapes, e => Assert.Null(e.Color));
+            Assert.All(read.Shapes, e => Assert.Empty(e.BlockPath));
+            Assert.Equal(3, read.Shapes.Select(e => e.Handle).Distinct().Count());
+            Assert.All(read.Shapes, e => Assert.Matches("^[0-9A-F]+$", e.Handle));
             Assert.Empty(read.Skipped);
             Assert.Empty(read.Warnings);
         }
@@ -738,8 +738,8 @@ namespace GeometryHelper.UnitTest.Export
 
                 Assert.Empty(read.Skipped);
                 Assert.Empty(read.Warnings);
-                Assert.Equal(written, read.Entities.Count);
-                Assert.Equal(written, read.Entities.Select(e => e.Handle).Distinct().Count());
+                Assert.Equal(written, read.Shapes.Count);
+                Assert.Equal(written, read.Shapes.Select(e => e.Handle).Distinct().Count());
             }
         }
 

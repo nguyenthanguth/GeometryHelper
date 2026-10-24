@@ -189,6 +189,115 @@ namespace GeometryHelper.Export
             }
 
             /// <summary>
+            /// The decoding a file all ASCII has once letters beyond ASCII are written into it, for <see cref="DxfFile"/>: the
+            /// one <see cref="Of"/> gives such a file, UTF-8 where it has the mark or is of R2007 or later, else the page its
+            /// header names; null where the runtime has not that page, or it does not read each byte of ASCII as itself.
+            /// </summary>
+            internal TextDecoding WithLetters(string version, string named)
+            {
+                if (Start > 0 || string.CompareOrdinal(version ?? string.Empty, "AC1021") >= 0)
+                {
+                    return new TextDecoding(Start, StrictUtf8, false, "UTF-8");
+                }
+
+                int number = CodePageNumber(named);
+
+                if (number == 1252)
+                {
+                    return new TextDecoding(Start, Latin1, true, "ANSI_1252");
+                }
+
+                Encoding page;
+
+                try
+                {
+                    page = Encoding.GetEncoding(number);
+                }
+                catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
+                {
+                    return null;
+                }
+
+                return WritesAscii(page) ? new TextDecoding(Start, page, false, "ANSI_" + Number(number), !page.IsSingleByte) : null;
+            }
+
+            /// <summary>
+            /// The bytes a text is written as, for <see cref="DxfFile"/>, so that this decoding reads it back: in UTF-8 where the
+            /// text is read as UTF-8, else in the code page it is read in, a letter the page cannot hold written as its escape
+            /// (<c>\U+00E9</c>), as AutoCAD reads one in any page; and every letter beyond ASCII as its escape where the text is
+            /// read in no page of the file's own: a file all ASCII, or one in a page the runtime has not, read as Latin-1.
+            /// </summary>
+            internal byte[] Encode(string text)
+            {
+                bool ascii = true;
+
+                foreach (char c in text)
+                {
+                    ascii &= c < 0x80;
+                }
+
+                if (ascii)
+                {
+                    return Encoding.ASCII.GetBytes(text);
+                }
+
+                bool own = CodePage != null && CodePage != "ISO-8859-1";
+                Encoding strict = own && !_windows1252 ? Strict() : null;
+                var bytes = new List<byte>(text.Length + 8);
+
+                for (int i = 0; i < text.Length; i++)
+                {
+                    char c = text[i];
+                    int units = char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]) ? 2 : 1;
+
+                    if (c < 0x80)
+                    {
+                        bytes.Add((byte)c);
+                        continue;
+                    }
+
+                    byte[] letter = null;
+
+                    if (own && _windows1252)
+                    {
+                        int at = c >= ' ' && c <= 'ÿ' ? c : Array.IndexOf(High1252, c) >= 0 ? 0x80 + Array.IndexOf(High1252, c) : -1;
+                        letter = at >= 0 ? new[] { (byte)at } : null;
+                    }
+                    else if (strict != null)
+                    {
+                        try
+                        {
+                            letter = strict.GetBytes(text.Substring(i, units));
+                        }
+                        catch (EncoderFallbackException)
+                        {
+                            letter = null;
+                        }
+                    }
+
+                    if (letter == null)
+                    {
+                        for (int u = 0; u < units; u++)
+                        {
+                            bytes.AddRange(Encoding.ASCII.GetBytes("\\U+" + ((int)text[i + u]).ToString("X4", CultureInfo.InvariantCulture)));
+                        }
+                    }
+                    else
+                    {
+                        bytes.AddRange(letter);
+                    }
+
+                    i += units - 1;
+                }
+
+                return bytes.ToArray();
+            }
+
+            /// <summary>The encoding of the page the text is read in, refusing a letter it cannot hold rather than putting another.</summary>
+            private Encoding Strict()
+                => _encoding is UTF8Encoding ? new UTF8Encoding(false, true) : Encoding.GetEncoding(_encoding.CodePage, EncoderFallback.ExceptionFallback, DecoderFallback.ReplacementFallback);
+
+            /// <summary>
             /// The decoding of a file, the same on either runtime: UTF-8 where it has the mark or is of R2007 or later; else
             /// UTF-8 where its bytes are UTF-8, which a text in a code page with a letter beyond ASCII in it almost never is,
             /// said in a warning; else the code page of its header, Windows-1252 by a table of its own, since .NET 10 does not
@@ -598,7 +707,7 @@ namespace GeometryHelper.Export
             private string[] _values = new string[16];
             private double[] _numbers;
             private string _unreadable;
-            private IReadOnlyList<DxfGroup> _groups;
+            private IReadOnlyList<DxfTypedValue> _groups;
 
             internal Record(string type, int line)
             {
@@ -632,26 +741,26 @@ namespace GeometryHelper.Export
             /// The groups of the record as the file has them, those of the records following it after each one's group 0;
             /// made once, and shared by every entity made of the record.
             /// </summary>
-            internal IReadOnlyList<DxfGroup> Groups()
+            internal IReadOnlyList<DxfTypedValue> Groups()
             {
                 if (_groups == null)
                 {
-                    var groups = new List<DxfGroup>(Count);
+                    var groups = new List<DxfTypedValue>(Count);
 
                     for (int i = 0; i < Count; i++)
                     {
-                        groups.Add(new DxfGroup(_codes[i], _values[i]));
+                        groups.Add(DxfTypedValue.Read(_codes[i], _values[i]));
                     }
 
                     if (Following != null)
                     {
                         foreach (Record next in Following)
                         {
-                            groups.Add(new DxfGroup(0, next.Type));
+                            groups.Add(DxfTypedValue.Read(0, next.Type));
 
                             for (int i = 0; i < next.Count; i++)
                             {
-                                groups.Add(new DxfGroup(next._codes[i], next._values[i]));
+                                groups.Add(DxfTypedValue.Read(next._codes[i], next._values[i]));
                             }
                         }
                     }
@@ -684,6 +793,31 @@ namespace GeometryHelper.Export
             }
 
             internal bool Has(int code) => IndexOf(code) >= 0;
+
+            /// <summary>
+            /// The groups before the first of a code, as a record of their own with their reals read: an MTEXT's own, before
+            /// the object embedded in it (101), whose groups 10, 11, 40 and the others are the columns', not the text's. The
+            /// record itself where it has no such group.
+            /// </summary>
+            internal Record Before(int code)
+            {
+                int at = IndexOf(code);
+
+                if (at < 0)
+                {
+                    return this;
+                }
+
+                var own = new Record(Type, Line);
+
+                for (int i = 0; i < at; i++)
+                {
+                    own.Add(_codes[i], _values[i]);
+                }
+
+                own.Unreadable();
+                return own;
+            }
 
             internal string Text(int code)
             {
@@ -787,7 +921,7 @@ namespace GeometryHelper.Export
             private readonly bool _keepGroups;
             private readonly bool _expandBlocks;
             private readonly Dictionary<string, string> _interned = new Dictionary<string, string>(StringComparer.Ordinal);
-            private readonly List<DxfEntity> _entities = new List<DxfEntity>();
+            private readonly List<DxfShape> _entities = new List<DxfShape>();
             private readonly List<string> _layers = new List<string>();
             private readonly Dictionary<string, string> _layerNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             private readonly SortedDictionary<string, int> _skipped = new SortedDictionary<string, int>(StringComparer.Ordinal);
@@ -801,7 +935,7 @@ namespace GeometryHelper.Export
             internal Reading(DxfReadOptions options)
             {
                 _planAs2D = options.PlanAs2D;
-                _toMillimetres = options.ToMillimetres;
+                _toMillimetres = options.ToMillimeters;
                 _tolerance = options.Tolerance;
                 _keepGroups = options.KeepGroups;
                 _expandBlocks = options.ExpandBlocks;
@@ -1016,7 +1150,7 @@ namespace GeometryHelper.Export
                     _warnings.Insert(0, "The file is of version " + _version + ", outside R12 (AC1009) to R2018 (AC1032); it was read as those are.");
                 }
 
-                if (_toMillimetres && (units == DxfUnits.Unitless))
+                if (_toMillimetres && (units == DxfUnits.Undefined))
                 {
                     _warnings.Add(listed
                         ? (_unitCode < 0 ? "The file names no unit, so its numbers were kept as they are and not scaled to millimetres." : "The file says it has no unit, so its numbers were kept as they are and not scaled to millimetres.")
@@ -1086,8 +1220,8 @@ namespace GeometryHelper.Export
 
             private DxfUnits Units(out bool listed)
             {
-                listed = _unitCode <= 0 || _unitCode <= (int)DxfUnits.UsSurveyMiles;
-                return _unitCode > 0 && _unitCode <= (int)DxfUnits.UsSurveyMiles ? (DxfUnits)_unitCode : DxfUnits.Unitless;
+                listed = _unitCode <= 0 || _unitCode <= (int)DxfUnits.USSurveyMile;
+                return _unitCode > 0 && _unitCode <= (int)DxfUnits.USSurveyMile ? (DxfUnits)_unitCode : DxfUnits.Undefined;
             }
 
             /// <summary>The millimetres in a unit of <c>$INSUNITS</c>; 1 for none, or one not listed.</summary>
@@ -1144,7 +1278,7 @@ namespace GeometryHelper.Export
         /// <summary>
         /// A name with the escapes of R2000 read as the letters they stand for: <c>\U+00E9</c> is an e acute.
         /// </summary>
-        private static string Decode(string name)
+        internal static string Decode(string name)
         {
             int at = name.IndexOf("\\U+", StringComparison.Ordinal);
 

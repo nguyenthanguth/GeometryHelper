@@ -47,10 +47,10 @@ namespace GeometryHelper.UnitTest.Export
             // 10, 100 and 1 000, and B4 three of its INSERTs of B3, the 3 880 left holding three of 1 000 and not a fourth.
             DxfDocument read = DxfReader.Parse(Bomb(4, 10, 4, 1), new DxfReadOptions { MaxPlacedEntities = 5000, PlanAs2D = true, Tolerance = Tol });
 
-            Assert.Equal(10, read.Entities.Count);
-            Assert.All(read.Entities, e => Assert.Equal(new[] { "B1", "B0" }, e.BlockPath.ToArray()));
+            Assert.Equal(10, read.Shapes.Count);
+            Assert.All(read.Shapes, e => Assert.Equal(new[] { "B1", "B0" }, e.BlockPath.ToArray()));
             Assert.Equal(1, read.Skipped["INSERT"]);
-            Assert.Equal(new[] { 1, 10, 100, 1000, 3000 }, read.Blocks.Select(b => b.Entities.Count).ToArray());
+            Assert.Equal(new[] { 1, 10, 100, 1000, 3000 }, read.Blocks.Select(b => b.Shapes.Count).ToArray());
             Assert.Contains("8 INSERTs were not placed, 7 of them inside the blocks read for Blocks: the entities placed from blocks would have passed DxfReadOptions.MaxPlacedEntities, 5000, had they placed the 17000 more they would have taken.", read.Warnings);
         }
 
@@ -61,10 +61,10 @@ namespace GeometryHelper.UnitTest.Export
             // limit of 1 000, B1 (100) is placed, and of the blocks on their own B1 and eight INSERTs of B1 in B2.
             DxfDocument read = DxfReader.Parse(Bomb(5, 100, 5, 1), new DxfReadOptions { MaxPlacedEntities = 1000, Tolerance = Tol });
 
-            Assert.Equal(100, read.Entities.Count);
+            Assert.Equal(100, read.Shapes.Count);
             Assert.Equal(1, read.Skipped["INSERT"]);
-            Assert.Equal(new[] { 1, 100, 800, 0, 0, 0 }, read.Blocks.Select(b => b.Entities.Count).ToArray());
-            Assert.True(read.Entities.Count + read.Blocks.Sum(b => b.Entities.Count) <= 1000 + 1 + 100);
+            Assert.Equal(new[] { 1, 100, 800, 0, 0, 0 }, read.Blocks.Select(b => b.Shapes.Count).ToArray());
+            Assert.True(read.Shapes.Count + read.Blocks.Sum(b => b.Shapes.Count) <= 1000 + 1 + 100);
         }
 
         [Fact]
@@ -78,7 +78,7 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { MaxPlacedEntities = 100000, Tolerance = Tol });
 
-            Assert.Equal(10, read.Entities.Count);
+            Assert.Equal(10, read.Shapes.Count);
             Assert.Equal(1, read.Skipped["INSERT"]);
             Assert.Contains(read.Warnings, w => w.StartsWith("1 INSERT was not placed: ", StringComparison.Ordinal) && w.Contains("100000, had they placed the 10000000 more"));
         }
@@ -106,7 +106,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tol });
 
             // Along -z the thickness of 2 stands 6 down; a mirror in x leaves it up; the extrusion turned down turns it over.
-            Assert.Equal(new[] { -6.0, 12.0, 6.0, -12.0, -2.0, 4.0 }, read.Entities.Select(e => e.Thickness).ToArray());
+            Assert.Equal(new[] { -6.0, 12.0, 6.0, -12.0, -2.0, 4.0 }, read.Shapes.Select(e => e.Thickness).ToArray());
         }
 
         /// <summary>
@@ -135,9 +135,9 @@ namespace GeometryHelper.UnitTest.Export
             // the bound of 1 000, and is not placed. Each block read on its own: B keeps its line, C its ten.
             DxfDocument read = DxfReader.Parse(Cycle(100, 50), new DxfReadOptions { MaxPlacedEntities = 1000, Tolerance = Tol });
 
-            Assert.Empty(read.Entities);
+            Assert.Empty(read.Shapes);
             Assert.Equal(2, read.Skipped["INSERT"]);
-            Assert.Equal(new[] { 0, 1, 10 }, read.Blocks.Select(b => b.Entities.Count).ToArray());
+            Assert.Equal(new[] { 0, 1, 10 }, read.Blocks.Select(b => b.Shapes.Count).ToArray());
             Assert.Contains(read.Warnings, w => w.StartsWith("5 INSERTs were not placed, 3 of them inside the blocks read for Blocks: ", StringComparison.Ordinal));
         }
 
@@ -148,11 +148,11 @@ namespace GeometryHelper.UnitTest.Export
             // each INSERT that passes it is taken back, its entities and what it counted, and the reading goes on.
             DxfDocument read = DxfReader.Parse(Cycle(100, 50), new DxfReadOptions { MaxPlacedEntities = 1000, Tolerance = Tol, UnsizedBlocks = true });
 
-            Assert.Empty(read.Entities);
+            Assert.Empty(read.Shapes);
             Assert.Equal(new[] { "INSERT" }, read.Skipped.Keys.ToArray());
             Assert.Equal(2, read.Skipped["INSERT"]);
             Assert.DoesNotContain(read.Warnings, w => w.Contains("inside themselves"));
-            Assert.Equal(new[] { 1, 1, 10 }, read.Blocks.Select(b => b.Entities.Count).ToArray());
+            Assert.Equal(new[] { 1, 1, 10 }, read.Blocks.Select(b => b.Shapes.Count).ToArray());
             Assert.Contains(read.Warnings, w => w.StartsWith("4 INSERTs were not placed, 2 of them inside the blocks read for Blocks: ", StringComparison.Ordinal));
         }
 
@@ -194,10 +194,10 @@ namespace GeometryHelper.UnitTest.Export
 
             foreach ((DxfDocument read, int inserts) in new[] { (few, 20), (many, 200) })
             {
-                Assert.Empty(read.Entities);
+                Assert.Empty(read.Shapes);
                 Assert.Equal(new[] { "INSERT" }, read.Skipped.Keys.ToArray());
                 Assert.Equal(inserts, read.Skipped["INSERT"]);
-                Assert.All(read.Blocks, b => Assert.Equal("LINE", Assert.Single(b.Entities).Type));
+                Assert.All(read.Blocks, b => Assert.Equal("LINE", Assert.Single(b.Shapes).Type));
                 Assert.Contains((inserts + 51) + " INSERTs were not placed, 51 of them inside the blocks read for Blocks: the reading had worked out the sizes of 1000 blocks, as many as it works out, and not yet what their blocks place, so they could not be held to DxfReadOptions.MaxPlacedEntities.", read.Warnings);
                 Assert.DoesNotContain(read.Warnings, w => w.Contains("had they placed"));
             }
@@ -221,13 +221,13 @@ namespace GeometryHelper.UnitTest.Export
 
             DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tol, KeepGroups = false, MostSizedBlocks = 6 });
 
-            Assert.Empty(read.Entities);
+            Assert.Empty(read.Shapes);
             Assert.Equal(6, read.SizedBlocks);
             Assert.Equal(2, read.Skipped["INSERT"]);
             Assert.Contains("4 INSERTs were not placed, 2 of them inside the blocks read for Blocks: the reading had worked out the sizes of 6 blocks, as many as it works out, and not yet what their blocks place, so they could not be held to DxfReadOptions.MaxPlacedEntities.", read.Warnings);
             Assert.DoesNotContain(read.Warnings, w => w.Contains("inside itself"));
-            Assert.Equal(new[] { "A1", "A2", "A3", "A4", "A5" }, Assert.Single(read.Blocks.Single(b => b.Name == "R").Entities).BlockPath.ToArray());
-            Assert.Empty(read.Blocks.Single(b => b.Name == "C").Entities);
+            Assert.Equal(new[] { "A1", "A2", "A3", "A4", "A5" }, Assert.Single(read.Blocks.Single(b => b.Name == "R").Shapes).BlockPath.ToArray());
+            Assert.Empty(read.Blocks.Single(b => b.Name == "C").Shapes);
         }
 
         private static string WithBlock(string blocks, string entities) => File("AC1015", 4, G(0, "SECTION", 2, "BLOCKS") + blocks + G(0, "ENDSEC"), entities);

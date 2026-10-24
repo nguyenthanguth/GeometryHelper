@@ -13,10 +13,10 @@ namespace GeometryHelper.Export
     /// </remarks>
     public sealed class DxfDocument
     {
-        private readonly DxfEntity[] _entities;
+        private readonly DxfShape[] _entities;
         private readonly Dictionary<string, DxfLayer> _layerNames = new Dictionary<string, DxfLayer>(StringComparer.OrdinalIgnoreCase);
 
-        internal DxfDocument(DxfEntity[] entities, string[] layers, DxfLayer[] layerTable, DxfBlock[] blocks, DxfUnits units, string version, IReadOnlyDictionary<string, int> skipped, string[] warnings)
+        internal DxfDocument(DxfShape[] entities, string[] layers, DxfLayer[] layerTable, DxfBlock[] blocks, DxfUnits units, string version, IReadOnlyDictionary<string, int> skipped, string[] warnings)
         {
             _entities = entities;
 
@@ -29,7 +29,7 @@ namespace GeometryHelper.Export
                 }
             }
 
-            Entities = Array.AsReadOnly(entities);
+            Shapes = Array.AsReadOnly(entities);
             Layers = Array.AsReadOnly(layers);
             LayerTable = Array.AsReadOnly(layerTable);
             Blocks = Array.AsReadOnly(blocks);
@@ -46,12 +46,12 @@ namespace GeometryHelper.Export
         internal long SizedBlocks { get; set; }
 
         /// <summary>
-        /// Gets the entities read, each with its shape, in the order of the file, an INSERT's where the INSERT stands: the
+        /// Gets the shapes read, each with its look, in the order of the file, an INSERT's where the INSERT stands: the
         /// entities of its block placed, in the order of the block. One entity of the file can give more than one: a 3DFACE
         /// whose four corners are not in one plane is two triangles, both with its handle, and a block of 50 entities placed
         /// by 10 000 INSERTs is 500 000.
         /// </summary>
-        public IReadOnlyList<DxfEntity> Entities { get; }
+        public IReadOnlyList<DxfShape> Shapes { get; }
 
         /// <summary>
         /// Gets the names of the layers: those of the layer table in the order of the file, then any an entity is on that
@@ -70,14 +70,14 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the blocks the file defines, in the order of the file, each with its own entities in its own coordinates;
-        /// the INSERTs of the drawing are read in <see cref="Entities"/> as the entities they place. The blocks of the
+        /// the INSERTs of the drawing are read in <see cref="Shapes"/> as the entities they place. The blocks of the
         /// layouts, <c>*Model_Space</c> and <c>*Paper_Space</c>, are not among them.
         /// </summary>
         public IReadOnlyList<DxfBlock> Blocks { get; }
 
         /// <summary>
-        /// Gets the unit the file says its drawing is in (<c>$INSUNITS</c>): <see cref="DxfUnits.Millimetres"/> for a file
-        /// <see cref="DxfWriter"/> wrote, <see cref="DxfUnits.Unitless"/> where the file says none.
+        /// Gets the unit the file says its drawing is in (<c>$INSUNITS</c>): <see cref="DxfUnits.Millimeters"/> for a file
+        /// <see cref="DxfWriter"/> wrote, <see cref="DxfUnits.Undefined"/> where the file says none.
         /// </summary>
         public DxfUnits Units { get; }
 
@@ -104,22 +104,22 @@ namespace GeometryHelper.Export
         public IReadOnlyList<string> Warnings { get; }
 
         /// <summary>
-        /// Gets the entities on a layer, in the order of the file.
+        /// Gets the shapes on a layer, in the order of the file.
         /// </summary>
         /// <param name="layer">The name of the layer. Names are compared as AutoCAD compares them, letters of either case the
         /// same, so <c>Steel</c> finds the entities on <c>STEEL</c>.</param>
-        /// <returns>The entities on that layer, a new list on each call; empty where there are none.</returns>
+        /// <returns>The shapes on that layer, a new list on each call; empty where there are none.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
-        public IReadOnlyList<DxfEntity> OnLayer(string layer)
+        public IReadOnlyList<DxfShape> OnLayer(string layer)
         {
             if (layer == null)
             {
                 throw new ArgumentNullException(nameof(layer));
             }
 
-            var entities = new List<DxfEntity>();
+            var entities = new List<DxfShape>();
 
-            foreach (DxfEntity entity in _entities)
+            foreach (DxfShape entity in _entities)
             {
                 if (string.Equals(entity.Layer, layer, StringComparison.OrdinalIgnoreCase))
                 {
@@ -156,7 +156,7 @@ namespace GeometryHelper.Export
         {
             var shapes = new List<T>();
 
-            foreach (DxfEntity entity in _entities)
+            foreach (DxfShape entity in _entities)
             {
                 if (entity.Shape is T shape)
                 {
