@@ -1972,6 +1972,17 @@ asked about an ellipse as the ellipse is asked about them, `circle.CollidesWith(
 `arc.GetIntersections(ellipse)` and `circle.TryIntersectWith(ellipse, out points)` giving the ellipse's answer and
 points, in its order.
 
+Read in one plane, the other curve is laid flat in the plane it is read in with its radii kept, though it may lean off
+that plane by up to the planar tolerance, or, where only the one lies within the tolerance of the other's plane, by far
+more: an ellipse 1.97 by 0.0023 lying within the tolerance of the plane of one 15 338 by 15 274, which leans 0.02 radians
+off its own, saw the huge rim 3.1 off its true place where the two pass 0.00016 apart. So a crossing read flat is kept
+only where it lies within the point tolerance of both rims in space, a touch read flat only where the rims come within
+the tolerance of each other in space, and the rim is then searched in space for where the two pass within the tolerance
+of each other, as rims not in one plane are, a run within it one place; the same ellipse, or an ellipse and a circle with
+their centres and radii within the tolerance, still cross nowhere. That pair touches near (-5595.742, -6793.740,
+-12510.089) now whichever is asked first, and two ellipses read in one plane give their points in the opposite order
+asked the other way.
+
 ```csharp
 ellipse.GetIntersections(new GeoPlane3(new GeoPoint3(150, 0, 0), GeoVector3.XAxis));
                                                   // (150, -86.6025, 0), (150, 86.6025, 0)

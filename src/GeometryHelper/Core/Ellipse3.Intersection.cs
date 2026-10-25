@@ -18,7 +18,10 @@ namespace GeometryHelper.Core
     /// <b>In the plane.</b> Where the other shape shares the ellipse's plane, it is laid out in the ellipse's own frame
     /// and <see cref="Ellipse2"/> answers: a segment edge by edge, a circle, an arc or another ellipse as a curve. Whether
     /// the two share a plane is the circle's test: the rim stands off the other plane by no more than the planar
-    /// tolerance, and the centre lies on it.
+    /// tolerance, and the centre lies on it. A curve laid out keeps its radii, and may lean off the plane, so a crossing
+    /// read there is kept only where it lies within the point tolerance of both rims in space, a touch only where the
+    /// rims come within it of each other in space, and the rim is then searched in space for where the two pass within it
+    /// of each other, as it is for curves not in one plane.
     /// </para>
     /// <para>
     /// <b>Not in the plane.</b> Two planes meet in a line, and every point the rim shares with anything lying in the other
@@ -30,7 +33,9 @@ namespace GeometryHelper.Core
     /// <para>
     /// The order is the circle's: along the line the two planes share, along a segment or a ray, edge by edge for a flat
     /// shape, face by face for a body, and in the plane along the line square to the one through the two centres, as two
-    /// circles' crossings lie along their radical line. A place two faces or two edges share is named once.
+    /// circles' crossings lie along their radical line; two ellipses in the plane are put in that order from the one they
+    /// are read from, and the other way round where the other is asked first. A place two faces or two edges share is
+    /// named once.
     /// </para>
     /// </remarks>
     public static partial class Ellipse3
@@ -236,16 +241,27 @@ namespace GeometryHelper.Core
         /// the other half meets it nowhere.
         /// </returns>
         /// <remarks>
-        /// Not in one plane, an arc that passes within the point tolerance of the rim without crossing it on the line the
-        /// planes share touches it, at the middle of the shortest line between them, as a circle does.
+        /// An arc that passes within the point tolerance of the rim without crossing it touches it, at the middle of the
+        /// shortest line between them, as a circle does: not in one plane, away from the line the planes share; in one
+        /// plane, wherever the two come within the tolerance of each other in space. At a tolerance of 0.05, the arc of
+        /// radius 117.4 lying within it of the plane of an ellipse 31.7 by 0.01, its rim 0.038 from the ellipse's, touches it.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoArc3 arc, Tolerance tolerance)
         {
             if (Arc3.IsCoplanar(arc, ellipse.GetPlane(), tolerance))
             {
                 GeoPoint2[] onCircle = Ellipse2.GetIntersections(Flat(ellipse), LayOut(ellipse, arc.Center, arc.Radius), tolerance);
+                List<GeoPoint3> kept = Kept(ellipse, onCircle, arc.IsPointOn, tolerance);
 
-                return AlongRadicalLine(Kept(ellipse, onCircle, arc.IsPointOn, tolerance), arc.Normal, arc.Center, ellipse.Center, tolerance);
+                if (!OnOneCircle(ellipse, arc.Center, arc.Radius, tolerance))
+                {
+                    NearPass3.Target target = NearPass3.Target.Of(arc, tolerance);
+
+                    Passing(kept, ellipse, target, tolerance);
+                    NearPass3.Add(kept, AsRim(ellipse, tolerance), target, tolerance);
+                }
+
+                return AlongRadicalLine(kept, arc.Normal, arc.Center, ellipse.Center, tolerance);
             }
 
             var found = new List<GeoPoint3>();
@@ -307,7 +323,10 @@ namespace GeometryHelper.Core
         /// Not in one plane, rims that pass within the point tolerance of each other without crossing on the line the planes
         /// share touch, at the middle of the shortest line between them: the circle of radius 50 leaning 0.01 radians, the
         /// end of its diameter along X 0.0005 above (0, 100, 0) and its rim running square to the ellipse's there, touches
-        /// the ellipse 300 by 100 lying in the plan about the origin at (0, 100, 0.00025).
+        /// the ellipse 300 by 100 lying in the plan about the origin at (0, 100, 0.00025). In one plane they touch wherever
+        /// they come within the tolerance of each other in space, the circle read where it is and not laid flat: at a
+        /// tolerance of 0.05, an ellipse 262.6 by 0.041 in the plan, within it of the plane of a circle of radius 12 846
+        /// leaning 0.61 radians off the plan, its rim 0.0019 from the circle's, touches it.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoCircle3 circle, Tolerance tolerance)
         {
@@ -315,8 +334,17 @@ namespace GeometryHelper.Core
             {
                 GeoPoint2[] points = Ellipse2.GetIntersections(Flat(ellipse), LayOut(ellipse, circle.Center, circle.Radius), tolerance);
                 GeoArc3 laidOver = Arc3.AsArc(circle);
+                List<GeoPoint3> kept = Kept(ellipse, points, laidOver.IsPointOn, tolerance);
 
-                return AlongRadicalLine(Kept(ellipse, points, laidOver.IsPointOn, tolerance), ellipse.Normal, ellipse.Center, circle.Center, tolerance);
+                if (!OnOneCircle(ellipse, circle.Center, circle.Radius, tolerance))
+                {
+                    NearPass3.Target target = NearPass3.Target.Of(laidOver, tolerance);
+
+                    Passing(kept, ellipse, target, tolerance);
+                    NearPass3.Add(kept, AsRim(ellipse, tolerance), target, tolerance);
+                }
+
+                return AlongRadicalLine(kept, ellipse.Normal, ellipse.Center, circle.Center, tolerance);
             }
 
             GeoArc3 rim = Arc3.AsArc(circle);
@@ -365,10 +393,10 @@ namespace GeometryHelper.Core
         /// Gets every point where the rims of two ellipses in space cross, within a tolerance.
         /// </summary>
         /// <param name="ellipse">
-        /// The first ellipse, whose plane and centre order the points; the other's, where only the other lies within the planar
-        /// tolerance of this one's plane, so that the two are read in one plane whichever is asked first. Where both do, the
-        /// pair is read from the one that comes first in a fixed order, so that it gives the same points to the last digit
-        /// either way, and they are put in this one's order.
+        /// The first ellipse. In one plane the pair is read from the one lying within the planar tolerance of the other's
+        /// plane, or, where both do, from the one that comes first in a fixed order, so that it gives the same points to the
+        /// last digit whichever is asked first; they are put in order from that one, and in the opposite order where the
+        /// other is asked first.
         /// </param>
         /// <param name="other">The other ellipse.</param>
         /// <param name="tolerance">The tolerance: rims that come within its point tolerance of each other touch, and two crossings no further apart than twice it are one.</param>
@@ -382,21 +410,32 @@ namespace GeometryHelper.Core
         /// within the point tolerance of each other without crossing touch, at the middle of the shortest line between them:
         /// the ellipse 300 by 100 lying in the plan about the origin and an ellipse 200 by 100 leaning 0.01 radians, the end
         /// of its major axis 0.0005 above (0, 100, 0) and its rim running square to the first there, touch at
-        /// (0, 100, 0.00025); 0.0011 above, they do not.
+        /// (0, 100, 0.00025); 0.0011 above, they do not. In one plane the rims touch wherever they come within the
+        /// tolerance of each other in space, and the points come in the opposite order asked the other way: an ellipse
+        /// 1.97 by 0.0023 lying within the planar tolerance of the plane of one 15 338 by 15 274, which leans 0.02 radians
+        /// off its own, their rims 0.00016 apart, touch near (-5595.742, -6793.740, -12510.089) whichever is asked first.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
         {
-            GeoEllipse3 asked = ellipse;
-            GeoEllipse3 against = other;
-
-            if (InOnePlane(ref ellipse, ref other, tolerance, out bool reordered))
+            if (InOnePlane(ref ellipse, ref other, tolerance, out bool turned))
             {
-                GeoPoint2[] points = Ellipse2.GetIntersections(Flat(ellipse), LayOut(ellipse, other), tolerance);
-                List<GeoPoint3> kept = Kept(ellipse, points, (point, within) => OnRim(other, point, within), tolerance);
+                GeoEllipse2 flat = Flat(ellipse);
+                GeoEllipse2 laidOut = LayOut(ellipse, other);
 
-                return reordered
-                    ? InOrderOf(kept, asked, against, tolerance)
-                    : AlongRadicalLine(kept, ellipse.Normal, ellipse.Center, other.Center, tolerance);
+                // The same ellipse crosses nowhere, as documented, though its rim runs within the tolerance of the other's.
+                if (Ellipse2.IsEqualTo(flat, laidOut, tolerance))
+                {
+                    return new GeoPoint3[0];
+                }
+
+                GeoPoint2[] points = Ellipse2.GetIntersections(flat, laidOut, tolerance);
+                List<GeoPoint3> kept = Kept(ellipse, points, (point, within) => OnRim(other, point, within), tolerance);
+                NearPass3.Target target = AsTarget(other, tolerance);
+
+                Passing(kept, ellipse, target, tolerance);
+                NearPass3.Add(kept, AsRim(ellipse, tolerance), target, tolerance);
+
+                return InOrderOf(kept, ellipse, other, turned, tolerance);
             }
 
             // Read from the one that comes first, so that the places are the same whichever is asked first, and put in order
@@ -892,15 +931,14 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Determines whether two ellipses are read in one plane, as <see cref="InOnePlane(ref GeoEllipse3, ref GeoEllipse3, Tolerance)"/>
-        /// does, and whether they were put the other way round though both lie within the tolerance of the other's plane,
-        /// so that the points read are to be put back in the order the one asked first gives.
+        /// does, and whether they were put the other way round, so that the points read are to be given in the opposite order.
         /// </summary>
-        private static bool InOnePlane(ref GeoEllipse3 ellipse, ref GeoEllipse3 other, Tolerance tolerance, out bool reordered)
+        private static bool InOnePlane(ref GeoEllipse3 ellipse, ref GeoEllipse3 other, Tolerance tolerance, out bool turned)
         {
             bool first = IsCoplanar(ellipse, other.GetPlane(), tolerance);
             bool second = IsCoplanar(other, ellipse.GetPlane(), tolerance);
 
-            reordered = false;
+            turned = false;
 
             if (!first && !second)
             {
@@ -912,7 +950,7 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            reordered = first;
+            turned = true;
 
             GeoEllipse3 swap = ellipse;
             ellipse = other;
@@ -921,16 +959,35 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Puts the points two ellipses of one plane share in the order the one asked first gives them in: along the radical
-        /// line from its centre, or, the centres one, in the order of its eccentric angle, ties in the order they came in.
+        /// Puts the points two ellipses of one plane share in order as the one they are read from gives them: along the
+        /// radical line from its centre, or, the centres one, in the order of its eccentric angle, ties in the order they
+        /// came in; the other way round where the other was asked first, so that the two orders are each other reversed.
         /// </summary>
-        private static GeoPoint3[] InOrderOf(List<GeoPoint3> points, GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
+        /// <remarks>
+        /// Put in order from the one read, whichever was asked first, the two crossings of a thin ellipse 2.11 by 0.0003
+        /// lying within the planar tolerance of the plane of one 69 635 by 50 234, which does not lie within it of the thin
+        /// one's, came in the same order asked either way.
+        /// </remarks>
+        private static GeoPoint3[] InOrderOf(List<GeoPoint3> points, GeoEllipse3 ellipse, GeoEllipse3 other, bool turned, Tolerance tolerance)
         {
-            if (ellipse.Center.GetVectorTo(other.Center).Length > tolerance.EqualPoint)
+            GeoPoint3[] sorted = ellipse.Center.GetVectorTo(other.Center).Length > tolerance.EqualPoint
+                ? AlongRadicalLine(points, ellipse.Normal, ellipse.Center, other.Center, tolerance)
+                : ByEccentricAngle(points, ellipse);
+
+            if (turned)
             {
-                return AlongRadicalLine(points, ellipse.Normal, ellipse.Center, other.Center, tolerance);
+                Array.Reverse(sorted);
             }
 
+            return sorted;
+        }
+
+        /// <summary>
+        /// Puts points of the rim in the order of the eccentric angle, from nought up to a whole turn, ties in the order they
+        /// came in.
+        /// </summary>
+        private static GeoPoint3[] ByEccentricAngle(List<GeoPoint3> points, GeoEllipse3 ellipse)
+        {
             var keys = new double[points.Count];
 
             for (int i = 0; i < points.Count; i++)
@@ -1553,7 +1610,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The other curve is laid out flat to be read in the plane, but it may stand off it by up to the planar tolerance:
         /// a point the two share in the plane counts only where the curve itself, in space, passes within the point
-        /// tolerance of it, as the circle keeps only what the other circle holds.
+        /// tolerance of it, as the circle keeps only what the other circle holds. Two points no further apart than twice the
+        /// point tolerance are one place, as not in one plane (<see cref="AddApart"/>): merged only within one tolerance, at
+        /// a tolerance of 0.05 two crossings of a thin ellipse 280.6 by 0.017 and one 39.6 by 0.035, 0.0916 apart, were
+        /// both given.
         /// </remarks>
         private static List<GeoPoint3> Kept(GeoEllipse3 ellipse, GeoPoint2[] points, Func<GeoPoint3, Tolerance, bool> holds, Tolerance tolerance)
         {
@@ -1563,12 +1623,38 @@ namespace GeometryHelper.Core
             {
                 if (holds(point, tolerance))
                 {
-                    Arc3.AddOnce(found, point, tolerance);
+                    AddApart(found, point, tolerance);
                 }
             }
 
             return found;
         }
+
+        /// <summary>
+        /// Drops the points read in the plane where the rims do not come within the point tolerance of each other in space:
+        /// where the point of the rim nearest one stands further than that from the other curve.
+        /// </summary>
+        /// <remarks>
+        /// A touch read in the plane is judged with the other curve laid flat, which may stand off the plane by up to the
+        /// planar tolerance, and is put midway between the two, within the tolerance of both where the rims are up to twice
+        /// it apart: a thin ellipse 3.73 by 0.027 in the plane of one 98 684 by 68 437, their rims 0.00124 apart, touched at
+        /// a point 0.00100 and 0.00042 off them. Where a point is dropped and the rims do come within the tolerance, the
+        /// search along the rim (<see cref="NearPass3"/>) names the place.
+        /// </remarks>
+        private static void Passing(List<GeoPoint3> points, GeoEllipse3 ellipse, NearPass3.Target target, Tolerance tolerance)
+        {
+            points.RemoveAll(point => !(target.Gap(GetClosestPointOnBoundary(ellipse, point)) <= tolerance.EqualPoint));
+        }
+
+        /// <summary>
+        /// Determines whether an ellipse and a circle of its plane draw the same curve, as <c>CollidesWith</c> reads it: the
+        /// centres and both radii within the point tolerance. Such a pair crosses nowhere, as documented, though the rims run
+        /// within the tolerance of each other all the way round.
+        /// </summary>
+        private static bool OnOneCircle(GeoEllipse3 ellipse, GeoPoint3 center, double radius, Tolerance tolerance)
+            => ellipse.Center.IsEqualTo(center, tolerance)
+                && Math.Abs(ellipse.MajorRadius - radius) <= tolerance.EqualPoint
+                && Math.Abs(ellipse.MinorRadius - radius) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Orders the points two curves of one plane share as the circle orders two circles' crossings: along their radical

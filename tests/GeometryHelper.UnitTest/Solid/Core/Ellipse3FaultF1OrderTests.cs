@@ -1,3 +1,4 @@
+using System.Linq;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -30,8 +31,10 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3[] one = small.GetIntersections(large, Thousandth);
             GeoPoint3[] other = large.GetIntersections(small, Thousandth);
 
+            // Since F12 the two orders are each other exactly reversed: both are read from the one lying in the other's plane
+            // and put in order from it, the other way round where the other is asked first.
             Assert.Equal(4, one.Length);
-            Assert.Equal(one, other);
+            Assert.Equal(one, other.Reverse());
             Assert.All(one, place => Assert.InRange(System.Math.Max(small.DistanceTo(place), large.DistanceTo(place)), 0.0, Thousandth.EqualPoint));
         }
     }

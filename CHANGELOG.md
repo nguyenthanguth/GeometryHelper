@@ -429,7 +429,34 @@ segment that misses is asked whether it touches only where it reaches the tolera
 circle's plane and sphere at once: 100 000 random segments against arcs take 36.4 milliseconds on .NET 10, the median
 of six runs, where they took 27.9, and as many rays 41.1, where they took 27.2.
 
-**FIXED.** Two ellipses in space nearly in one plane are read the same whichever is asked first. Read in one plane only
+**FIXED.** Two ellipses in space read in one plane, and an ellipse read in one plane with a circle or an arc, touch
+wherever their rims pass within the point tolerance of each other, and two ellipses give their points in the opposite
+order asked the other way. The other curve was laid flat in the plane it is read in with its radii kept, though it may
+lean off that plane, and read there alone: an ellipse 1.97 by 0.0023 lying within the planar tolerance of the plane of
+one 15 338 by 15 274, which leans 0.02 radians off its own, saw the huge rim 3.1 off its true place where the two pass
+0.00016 apart, and touched it neither way round; it touches near (-5595.742, -6793.740, -12510.089) now. At a tolerance
+of 0.05, an ellipse 262.6 by 0.041 in the plan saw a circle of radius 12 846, leaning 0.61 radians off it, 2 327 off its
+true place where the rims pass 0.0019 apart. A crossing read flat is kept where it lies within the tolerance of both
+rims, as before, a touch read flat only where the rims come within the tolerance of each other in space, and the rim is
+then searched in space for where the two pass within it, as two rims not in one plane are, a run within the tolerance
+one place; the same ellipse, or an ellipse and a circle or an arc with their centres and radii within the tolerance,
+still cross nowhere. Against an independent oracle, of 346 pairs of a huge ellipse and a small one read in one plane
+108 missed a touch both ways, of 263 more 51, of 146 thin pairs at a tolerance of 0.05 10, of 142 thin ellipses and
+circles 13, and of 126 with arcs 1; none does now. A touch read flat was put midway between the rims, within the
+tolerance of both where they are up to twice it apart: 16 of those pairs, and 9 more among 1 210 read in one plane,
+were given a place where the rims are 1.001 to 1.24 times the tolerance apart, and are not now. Two ellipses read in
+one plane were put in order from the one asked first, or both ways from the one lying in the other's plane where only
+one does: 96 of the 346 and 94 of the 263 came in the same order both ways, and none does now. Pairs not in one plane
+are answered as before to the bit, every one of 6 990; of the 1 210 read in one plane, those that were right are too
+but for their order asked from the side not read and for 23: the 9 above, 11 that touch now where the rims come 0.0005
+to 0.0009999 apart at a tolerance of 0.001 (0.0499 at 0.05), and 3 touches moved within the tolerance to where the
+rims come nearest. Of 171 more pairs read in one plane, one grown by the tolerance and leaning along the other, 47 missed a
+touch or a run and 12 were given a place past the tolerance; none is now. The search costs most in one plane, where every rim stands
+within the tolerance of the other's plane: on .NET 10, the median of three runs, a call takes 146 microseconds for a
+huge ellipse and a small one, where it took 64, 153 (51) where the huge one is a circle, 342 (208) for thin ellipses at a
+tolerance of 0.05, 69 (15) for thin ellipses and circles, 66 (44) with arcs, and 65 (12) for a circle hugging an
+ellipse; .NET 8 alike. The slowest, thin ellipses running along each other, take 14 milliseconds, as before.
+
 where the first lay within the planar tolerance of the second's, the ellipse 192 by 32 in the plan and one 496 by 46
 tilted 3E-6 radians, their rims 0.00027 apart at four places, collided at four places asked one way round and not at
 all the other. They are read in one plane now where either lies within the tolerance of the other's: of 4 000 such pairs
