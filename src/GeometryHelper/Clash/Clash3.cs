@@ -580,6 +580,13 @@ namespace GeometryHelper.Clash
 
             if (!fromWithin && !toWithin)
             {
+                if (StaysClear(ray, from, to, triangle, near, tolerance))
+                {
+                    start = 0.0;
+                    end = 0.0;
+                    return false;
+                }
+
                 // The least gap, by golden section: the first place found within the tolerance will do.
                 const double golden = 0.38196601125010515;
                 double low = from;
@@ -666,6 +673,28 @@ namespace GeometryHelper.Clash
 
                 return inside;
             }
+        }
+
+        /// <summary>
+        /// Determines whether a piece of a ray, both ends of it further than the tolerance from a triangle, stays further
+        /// than that from it all along, by the least distance between the piece and the triangle worked out outright, so that
+        /// no search along it is needed. The tolerance is read a rounding wide, a billionth of the largest coordinate: what
+        /// the search would find within the tolerance is never passed over, and nothing else is changed.
+        /// </summary>
+        /// <remarks>
+        /// A bar grazing a facet of a cylinder of 10 000 sides comes near the boxes of thousands of the long thin triangles of
+        /// its ends, of which a handful come within the tolerance; the others were each searched along the whole bar.
+        /// </remarks>
+        private static bool StaysClear(GeoRay3 ray, double from, double to, GeoTriangle3 triangle, double near, Tolerance tolerance)
+        {
+            GeoPoint3 start = ray.GetPointAtDistance(from);
+            GeoPoint3 end = ray.GetPointAtDistance(to);
+            double largest = Math.Max(Largest(start), Math.Max(Largest(end), Math.Max(Largest(triangle.A), Math.Max(Largest(triangle.B), Largest(triangle.C)))));
+            double clear = near + 1E-9 * (1.0 + largest);
+
+            return Gap3.Segment(Gap3.Region.Of(triangle), start, end, false, tolerance, clear) > clear;
+
+            double Largest(GeoPoint3 point) => Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z)));
         }
 
         private static GeoPoint3 Along(GeoPoint3 from, GeoPoint3 to, double fraction)

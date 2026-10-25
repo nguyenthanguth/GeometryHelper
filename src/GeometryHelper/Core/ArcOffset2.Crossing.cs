@@ -682,15 +682,11 @@ namespace GeometryHelper.Core
             // one place it had the edges cut up to 3.5 off where they cross.
             var rank = new int[order.Length];
             var first = new int[order.Length];
-            var next = new int[order.Length];
-            var last = new int[order.Length];
 
             for (int k = 0; k < order.Length; k++)
             {
                 rank[order[k]] = k;
                 first[k] = k;
-                next[k] = -1;
-                last[k] = k;
             }
 
             var byY = (int[])order.Clone();
@@ -709,51 +705,92 @@ namespace GeometryHelper.Core
                 return byXs != 0 ? byXs : one.CompareTo(other);
             });
 
-            // Swept along the axis fewer pairs lie close on, each crossing tried against those before it within the reach, the
-            // nearest first. Crossings next to each other in the sweep that are one place are one run, tried until one of them
-            // lies within the tolerance: the 19 900 crossings of 200 diameters at the centre of a circle are one run.
+            // Swept along the axis fewer pairs lie close on, each crossing is tried against those before it within the reach, the
+            // latest in the sweep first: the place of each that lies within the tolerance is joined to the crossing's own, if
+            // it can be, and the sweep goes on from there with the place the join made. That is done place by place, not
+            // crossing by crossing, each place keeping where its crossings lie in the sweep: the 79 003 crossings of 200
+            // diameters of a circle lie in some 60 places within the reach of each, where a crossing at a time read tens of
+            // thousands. A place whose first crossing lies further than the tolerance from the first of the crossing's own place
+            // cannot be joined to it, and is not tried.
             double reach = tolerance.EqualPoint;
             bool alongX = CloseAlong(crossings, order, true, reach) <= CloseAlong(crossings, byY, false, reach);
             int[] sweep = alongX ? order : byY;
-            var run = new int[sweep.Length];
+            var members = new List<int>[sweep.Length];
+            var inReach = new int[sweep.Length];
+            var slot = new int[sweep.Length];
+            var near = new List<int>();
+            var places = new List<int>();
             int from = 0;
+
+            for (int k = 0; k < sweep.Length; k++)
+            {
+                members[rank[sweep[k]]] = new List<int> { k };
+                slot[k] = -1;
+            }
 
             for (int b = 0; b < sweep.Length; b++)
             {
                 GeoPoint2 at = crossings[sweep[b]].At;
                 double key = alongX ? at.X : at.Y;
 
-                run[b] = b;
-
                 while ((alongX ? crossings[sweep[from]].At.X : crossings[sweep[from]].At.Y) < key - reach)
                 {
+                    Count(places, inReach, slot, FirstOf(first, rank[sweep[from]]), -1);
                     from++;
                 }
 
-                for (int a = b - 1; a >= from;)
-                {
-                    int one = FirstOf(first, rank[sweep[a]]);
-                    int start = FirstOf(run, a);
+                int own = FirstOf(first, rank[sweep[b]]);
+                int before = b;
 
-                    while (start > 0 && FirstOf(first, rank[sweep[start - 1]]) == one)
+                while (true)
+                {
+                    GeoPoint2 ownAt = crossings[order[own]].At;
+
+                    near.Clear();
+
+                    foreach (int place in places)
                     {
-                        run[start] = start - 1;
-                        start = FirstOf(run, start - 1);
+                        if (place != own && crossings[order[place]].At.IsEqualTo(ownAt, tolerance))
+                        {
+                            int latest = LatestWithin(crossings, sweep, members[place], from, before, at, tolerance);
+
+                            if (latest >= 0)
+                            {
+                                near.Add(latest);
+                            }
+                        }
                     }
 
-                    int other = FirstOf(first, rank[sweep[b]]);
+                    near.Sort((one, other) => other.CompareTo(one));
 
-                    for (int k = a; one != other && k >= Math.Max(start, from); k--)
+                    int joined = -1;
+
+                    foreach (int k in near)
                     {
-                        if (crossings[sweep[k]].At.IsEqualTo(at, tolerance))
+                        int place = FirstOf(first, rank[sweep[k]]);
+
+                        if (TryJoin(crossings, sweep, order, first, members, Math.Min(place, own), Math.Max(place, own), tolerance))
                         {
-                            TryJoin(crossings, order, first, next, last, Math.Min(one, other), Math.Max(one, other), tolerance);
+                            int keep = Math.Min(place, own);
+                            int gone = Math.Max(place, own);
+
+                            Count(places, inReach, slot, keep, inReach[gone]);
+                            Count(places, inReach, slot, gone, -inReach[gone]);
+                            own = keep;
+                            joined = k;
                             break;
                         }
                     }
 
-                    a = start - 1;
+                    if (joined < 0)
+                    {
+                        break;
+                    }
+
+                    before = joined;
                 }
+
+                Count(places, inReach, slot, own, 1);
             }
 
             var nodeAt = new int[order.Length];
@@ -777,8 +814,7 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets the first of those one is linked with, so far: of the crossings one is one place with, in order along X, or of
-        /// the run of the sweep one is in.
+        /// Gets the first of the crossings one is one place with, so far, in order along X.
         /// </summary>
         private static int FirstOf(int[] first, int at)
         {
@@ -796,28 +832,108 @@ namespace GeometryHelper.Core
         /// further than the tolerance from it.
         /// </summary>
         /// <param name="crossings">The crossings.</param>
+        /// <param name="sweep">Their numbers in the order of the sweep.</param>
         /// <param name="byX">Their numbers in order along X.</param>
         /// <param name="first">For each crossing, by its order along X, one before it of the same place, or itself.</param>
-        /// <param name="next">For each crossing, by its order along X, the next of its place, or -1 for the last.</param>
-        /// <param name="last">For the first crossing of each place, the last of it.</param>
+        /// <param name="members">For the first crossing of each place, where its crossings lie in the sweep, in order.</param>
         /// <param name="keep">The first crossing of the place that comes first along X.</param>
         /// <param name="join">The first crossing of the other place.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static void TryJoin(List<Crossing> crossings, int[] byX, int[] first, int[] next, int[] last, int keep, int join, Tolerance tolerance)
+        /// <returns>true when the places were made one.</returns>
+        private static bool TryJoin(List<Crossing> crossings, int[] sweep, int[] byX, int[] first, List<int>[] members, int keep, int join, Tolerance tolerance)
         {
             GeoPoint2 place = crossings[byX[keep]].At;
 
-            for (int k = join; k >= 0; k = next[k])
+            foreach (int k in members[join])
             {
-                if (!crossings[byX[k]].At.IsEqualTo(place, tolerance))
+                if (!crossings[sweep[k]].At.IsEqualTo(place, tolerance))
                 {
-                    return;
+                    return false;
                 }
             }
 
             first[join] = keep;
-            next[last[keep]] = join;
-            last[keep] = last[join];
+            members[keep] = Merged(members[keep], members[join]);
+            members[join] = null;
+            return true;
+        }
+
+        /// <summary>
+        /// Merges two lists in order into the longer of them.
+        /// </summary>
+        private static List<int> Merged(List<int> one, List<int> other)
+        {
+            List<int> into = one.Count >= other.Count ? one : other;
+            List<int> from = one.Count >= other.Count ? other : one;
+            int i = into.Count - 1;
+            int j = from.Count - 1;
+
+            into.AddRange(from);
+
+            for (int k = into.Count - 1; j >= 0; k--)
+            {
+                into[k] = i >= 0 && into[i] > from[j] ? into[i--] : from[j--];
+            }
+
+            return into;
+        }
+
+        /// <summary>
+        /// Gets the latest place in the sweep, before a given one and not before another, of a crossing of a place that lies
+        /// within the tolerance of a point, or -1 where there is none.
+        /// </summary>
+        private static int LatestWithin(List<Crossing> crossings, int[] sweep, List<int> members, int from, int before, GeoPoint2 at, Tolerance tolerance)
+        {
+            int low = 0;
+            int high = members.Count;
+
+            // The first of them at or after the end.
+            while (low < high)
+            {
+                int middle = (low + high) / 2;
+
+                if (members[middle] < before)
+                {
+                    low = middle + 1;
+                }
+                else
+                {
+                    high = middle;
+                }
+            }
+
+            for (int i = low - 1; i >= 0 && members[i] >= from; i--)
+            {
+                if (crossings[sweep[members[i]]].At.IsEqualTo(at, tolerance))
+                {
+                    return members[i];
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// Counts crossings of a place in or out of the reach of the sweep, and keeps the list of the places that have some.
+        /// </summary>
+        private static void Count(List<int> places, int[] inReach, int[] slot, int place, int change)
+        {
+            inReach[place] += change;
+
+            if (inReach[place] > 0 && slot[place] < 0)
+            {
+                slot[place] = places.Count;
+                places.Add(place);
+            }
+            else if (inReach[place] == 0 && slot[place] >= 0)
+            {
+                int moved = places[places.Count - 1];
+
+                places[slot[place]] = moved;
+                slot[moved] = slot[place];
+                places.RemoveAt(places.Count - 1);
+                slot[place] = -1;
+            }
         }
 
         /// <summary>

@@ -1206,13 +1206,19 @@ namespace GeometryHelper.Core
                 }
             }
 
-            for (int i = edges.Count - 1; i >= 0; i--)
+            // The edges kept close up in order, in one pass: taken out one at a time, each moved all those after it, and a
+            // column of 12 002 faces united with a beam spent a fifth of its time moving edges.
+            int kept = 0;
+
+            for (int i = 0; i < edges.Count; i++)
             {
-                if (dropped[i])
+                if (!dropped[i])
                 {
-                    edges.RemoveAt(i);
+                    edges[kept++] = edges[i];
                 }
             }
+
+            edges.RemoveRange(kept, edges.Count - kept);
         }
     }
 }

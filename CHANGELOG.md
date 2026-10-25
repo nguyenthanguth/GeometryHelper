@@ -417,6 +417,45 @@ layer grün € of one in Windows-1250 is grün € too. Its own pass over the f
 where its INSERT places it, the labels are among the other items in the order of the file, and a TEXT aligned otherwise
 than left on its baseline stands at its alignment point.
 
+**CHANGED.** Offsetting a curved loop that crosses itself no longer slows with the square of its crossings where thousands of
+them lie within the tolerance of each other. The crossings that are one place were found by trying each against every crossing
+before it within the tolerance, one at a time, and a join refused was tried again at every crossing of the same place beside
+it: 200 diameters of a circle of radius 10, 79 003 crossings in places of up to 29 626, took 6.2 seconds to grow by 0.3 with
+round joins at a tolerance of 0.1 on .NET 10 (10.4 on .NET 8), and 300 diameters 25 (46). They are tried a place at a time
+now, each place keeping where its crossings lie, in the same order as before, and a place whose first crossing lies further
+than the tolerance from the first of the crossing's own, which cannot be joined to it, is not tried: 0.73 and 1.4 seconds
+(0.96 and 1.7). Of 6.6 million crossings in 403 000 clouds bunched at four tolerances, set against the old way in one run,
+none is put in another place, and the 3 672 offsets of stars, 1 344 of random loops of 50 to 130 corners, 18 000 of small dense
+loops and 1 260 of stars of up to 61 points, at tolerances of 0.1 and 0.001 each, are the same to the bit.
+
+**CHANGED.** Offsetting a curved loop whose edges run across the whole of it, as a star's do, no longer sorts the edges near
+each piece: the edges whose boxes overlap a piece's were put in order by sorting them, and in a star of 61 points every edge
+overlaps every other. Where they are many they are put in order by marking them: the stars of 21 to 61 points grown and shrunk
+by 0.3 and by 1 at a tolerance of 0.1 take 17.5 seconds in all where they took 32.6 (19.2 and 34.5 on .NET 8), the same to the
+bit. The rest of that time is the pruning trying every pair of edges that cross, which a star has.
+
+**CHANGED.** The booleans and `TryCutOpenings` do less work where faces lie back to back. A plate 300 by 200 by 12 with
+twelve blind holes, turned and moved off the origin, cut at a tolerance of 0.01, made 45 000 small boolean answers in its
+plane, each of a few edges, whose edges were filed under 6.4 million lists made and thrown away: three such plates took 1.9
+seconds and 1.4 to 2.2 GB each. Up to 64 edges none is filed now, a point asking each edge whether it would have been; two
+faces of one plane lying apart in it by more than four times the tolerance, across a side of either, are not laid out and
+shared to find nothing; the faces lying back to back are swept along the axis that leaves the fewest pairs to try; and the
+edges that cancel are taken out in one pass. The three plates take 0.91 seconds (0.90 on .NET 8) and 0.4 to 0.6 GB each, and
+a column of 12 002 faces united with a beam, 5.3 and 4.7 seconds either way round, takes 2.1 and 1.3 (much the same on .NET
+8). Of 18 600 unions, differences and common parts of boxes, columns, beams, cylinders and plates meeting within a few
+tolerances, turned and moved off the origin at three tolerances, 600 plates cut at once and 72 000 booleans in the plane none
+moves by a bit, nor do the earlier rounds' sets of exact-tolerance, band and bent-bar booleans, and a build that worked
+out every pair said to lie apart found no area shared by any.
+
+**CHANGED.** A clash bar grazing the faces of a part no longer searches along itself for each triangle near it that it never
+comes within the tolerance of: the least distance between the bar's piece and the triangle is worked out outright first, and
+only a triangle within the tolerance and a rounding of it is searched as before. 50 bars grazing a facet of a cylinder of
+10 000 sides 0.0005 off it, which come near the boxes of 5 000 of its triangles each and within the tolerance of 8, take 0.39
+seconds where they took 0.60 (0.49 and 0.66 on .NET 8), the part's preparing included; the 48 000 random bars along the faces
+of boxes, L-sections, combs and slotted plates, turned three ways, give their lengths to the bit. Bars grazing a cylinder in a
+helix are as slow as they were, 5.1 seconds for 50: their time is in measuring how deep the part reaches into them, a point at
+a time.
+
 **CHANGED.** `GeoObb3.Fit` is many times faster on a hull of thousands of faces. The box on each face of the hull was fitted
 round every copy of every corner of every face: 3 000 points on a sphere make 6 000 faces and 18 000 copies, sorted on each
 face, and took 7.7 seconds on .NET 10 and 15.2 on .NET Framework. Each corner is taken once now, and a face is passed over where no

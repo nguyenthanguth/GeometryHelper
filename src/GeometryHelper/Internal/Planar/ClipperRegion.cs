@@ -506,6 +506,12 @@ namespace GeometryHelper.Core
             /// <summary>How many fine cells the edges are filed under, an edge on the whole, at most, beyond a few each.</summary>
             private const int CellsAnEdge = 16;
 
+            /// <summary>
+            /// Up to this many edges none is filed: a point asks each in turn whether it would have been filed under the point's
+            /// cell, by the same sums, which costs less than filing them.
+            /// </summary>
+            private const int FewEdges = 64;
+
             private readonly double _grid;
             private readonly double _steps;
             private readonly double _cell;
@@ -531,6 +537,7 @@ namespace GeometryHelper.Core
             private readonly double _minY;
             private readonly long _columns;
             private readonly long _rows;
+            private readonly bool _fileEdges;
 
             /// <param name="loops">The loops handed to Clipper2.</param>
             /// <param name="precision">The decimal places it rounded to.</param>
@@ -608,6 +615,10 @@ namespace GeometryHelper.Core
                 _columns = (long)(width / _fineX) + 4;
                 _rows = (long)(height / _fineY) + 4;
 
+                // Cutting the twelve blind holes of a plate made 45 000 sets of loops of a few edges each, whose edges were filed
+                // under 6.4 million lists made and thrown away: 0.9 GB of the 1.4 GB the cut took.
+                _fileEdges = count > FewEdges;
+
                 foreach (IReadOnlyList<GeoPoint2> loop in loops)
                 {
                     for (int i = 0; i < loop.Count; i++)
@@ -680,7 +691,14 @@ namespace GeometryHelper.Core
             /// </summary>
             private GeoPoint2 RestoreCrossing(GeoPoint2 rounded)
             {
-                if (!TryFine(rounded.X - _minX, rounded.Y - _minY, out long key) || !_fine.TryGetValue(key, out List<int> candidates))
+                if (!TryFine(rounded.X - _minX, rounded.Y - _minY, out long column, out long row))
+                {
+                    return rounded;
+                }
+
+                List<int> candidates = null;
+
+                if (_fileEdges && !_fine.TryGetValue(FineKey(column, row), out candidates))
                 {
                     return rounded;
                 }
@@ -688,10 +706,14 @@ namespace GeometryHelper.Core
                 (long x, long y) = CellOf(rounded);
                 double reach = _steps * _grid;
                 List<int> close = new List<int>();
+                int count = _fileEdges ? candidates.Count : _from.Count;
 
-                foreach (int id in candidates)
+                for (int k = 0; k < count; k++)
                 {
-                    if (_wide[4 * id] <= x && x <= _wide[4 * id + 1] && _wide[4 * id + 2] <= y && y <= _wide[4 * id + 3]
+                    int id = _fileEdges ? candidates[k] : k;
+
+                    if ((_fileEdges || FiledUnder(id, column, row))
+                        && _wide[4 * id] <= x && x <= _wide[4 * id + 1] && _wide[4 * id + 2] <= y && y <= _wide[4 * id + 3]
                         && DistanceToSegment(rounded, _from[id], _to[id]) <= reach)
                     {
                         close.Add(id);
@@ -791,28 +813,22 @@ namespace GeometryHelper.Core
                 _wide.Add((long)Math.Floor((Math.Min(a.Y, b.Y) - margin) / _cell));
                 _wide.Add((long)Math.Floor((Math.Max(a.Y, b.Y) + margin) / _cell));
 
+                if (!_fileEdges)
+                {
+                    return;
+                }
+
                 // Filed under every fine cell holding a point within twice the reach of it, which leaves rounding ample
                 // room: cell by cell along its longer way, and across as far as it goes within that cell.
-                bool alongX = Math.Abs(b.X - a.X) / _fineX >= Math.Abs(b.Y - a.Y) / _fineY;
-                double sa = alongX ? a.X - _minX : a.Y - _minY;
-                double sb = alongX ? b.X - _minX : b.Y - _minY;
-                double ta = alongX ? a.Y - _minY : a.X - _minX;
-                double tb = alongX ? b.Y - _minY : b.X - _minX;
-                double wide = 2.0 * margin + 1E-12 * (Math.Abs(_minX) + Math.Abs(_minY) + Math.Abs(sa) + Math.Abs(ta));
-                long limitS = alongX ? _columns : _rows;
-                long limitT = alongX ? _rows : _columns;
-                double cellS = alongX ? _fineX : _fineY;
-                double cellT = alongX ? _fineY : _fineX;
-                double lowS = Math.Min(sa, sb), highS = Math.Max(sa, sb);
+                Filing filing = FilingOf(a, b);
 
-                for (long s = Fine(lowS - wide, cellS, limitS), last = Fine(highS + wide, cellS, limitS); s <= last; s++)
+                for (long s = filing.First; s <= filing.Last; s++)
                 {
-                    double t1 = Across(Math.Max(s * cellS - wide, lowS), sa, sb, ta, tb, 0.0);
-                    double t2 = Across(Math.Min((s + 1) * cellS + wide, highS), sa, sb, ta, tb, 1.0);
+                    filing.Across(s, out long first, out long last);
 
-                    for (long t = Fine(Math.Min(t1, t2) - wide, cellT, limitT), end = Fine(Math.Max(t1, t2) + wide, cellT, limitT); t <= end; t++)
+                    for (long t = first; t <= last; t++)
                     {
-                        long key = alongX ? FineKey(s, t) : FineKey(t, s);
+                        long key = filing.AlongX ? FineKey(s, t) : FineKey(t, s);
 
                         if (!_fine.TryGetValue(key, out List<int> list))
                         {
@@ -822,6 +838,88 @@ namespace GeometryHelper.Core
 
                         list.Add(id);
                     }
+                }
+            }
+
+            /// <summary>
+            /// Determines whether an edge is filed under a fine cell, or would be were the edges filed.
+            /// </summary>
+            private bool FiledUnder(int id, long column, long row)
+            {
+                Filing filing = FilingOf(_from[id], _to[id]);
+                long s = filing.AlongX ? column : row;
+                long t = filing.AlongX ? row : column;
+
+                if (s < filing.First || s > filing.Last)
+                {
+                    return false;
+                }
+
+                filing.Across(s, out long first, out long last);
+
+                return t >= first && t <= last;
+            }
+
+            private Filing FilingOf(GeoPoint2 a, GeoPoint2 b)
+            {
+                bool alongX = Math.Abs(b.X - a.X) / _fineX >= Math.Abs(b.Y - a.Y) / _fineY;
+                double sa = alongX ? a.X - _minX : a.Y - _minY;
+                double sb = alongX ? b.X - _minX : b.Y - _minY;
+                double ta = alongX ? a.Y - _minY : a.X - _minX;
+                double tb = alongX ? b.Y - _minY : b.X - _minX;
+                double margin = _steps * _grid;
+                double wide = 2.0 * margin + 1E-12 * (Math.Abs(_minX) + Math.Abs(_minY) + Math.Abs(sa) + Math.Abs(ta));
+
+                return new Filing(alongX, sa, sb, ta, tb, wide, alongX ? _columns : _rows, alongX ? _rows : _columns, alongX ? _fineX : _fineY, alongX ? _fineY : _fineX);
+            }
+
+            /// <summary>
+            /// The fine cells an edge is filed under: cell by cell along its longer way, and in each across as far as it goes
+            /// within that cell, both grown by twice the reach.
+            /// </summary>
+            private struct Filing
+            {
+                private readonly double _sa;
+                private readonly double _sb;
+                private readonly double _ta;
+                private readonly double _tb;
+                private readonly double _wide;
+                private readonly long _limitT;
+                private readonly double _cellS;
+                private readonly double _cellT;
+                private readonly double _lowS;
+                private readonly double _highS;
+
+                internal Filing(bool alongX, double sa, double sb, double ta, double tb, double wide, long limitS, long limitT, double cellS, double cellT)
+                {
+                    AlongX = alongX;
+                    _sa = sa;
+                    _sb = sb;
+                    _ta = ta;
+                    _tb = tb;
+                    _wide = wide;
+                    _limitT = limitT;
+                    _cellS = cellS;
+                    _cellT = cellT;
+                    _lowS = Math.Min(sa, sb);
+                    _highS = Math.Max(sa, sb);
+                    First = Fine(_lowS - wide, cellS, limitS);
+                    Last = Fine(_highS + wide, cellS, limitS);
+                }
+
+                internal bool AlongX { get; }
+
+                internal long First { get; }
+
+                internal long Last { get; }
+
+                internal void Across(long s, out long first, out long last)
+                {
+                    double t1 = ClipperRegion.ExactPoints.Across(Math.Max(s * _cellS - _wide, _lowS), _sa, _sb, _ta, _tb, 0.0);
+                    double t2 = ClipperRegion.ExactPoints.Across(Math.Min((s + 1) * _cellS + _wide, _highS), _sa, _sb, _ta, _tb, 1.0);
+
+                    first = Fine(Math.Min(t1, t2) - _wide, _cellT, _limitT);
+                    last = Fine(Math.Max(t1, t2) + _wide, _cellT, _limitT);
                 }
             }
 
@@ -843,21 +941,23 @@ namespace GeometryHelper.Core
             private static long FineKey(long column, long row) => ((column + 4L) << 32) | (uint)(row + 4L);
 
             /// <summary>
-            /// The key of the fine cell a point at a distance from the corner of the box falls in; false where that is
+            /// The fine cell a point at a distance from the corner of the box falls in; false where that is
             /// more than four cells off the box, which no edge is filed under.
             /// </summary>
-            private bool TryFine(double dx, double dy, out long key)
+            private bool TryFine(double dx, double dy, out long fineColumn, out long fineRow)
             {
                 double column = Math.Floor(dx / _fineX);
                 double row = Math.Floor(dy / _fineY);
-                key = 0;
+                fineColumn = 0;
+                fineRow = 0;
 
                 if (!(column >= -4.0 && column <= _columns + 4.0 && row >= -4.0 && row <= _rows + 4.0))
                 {
                     return false;
                 }
 
-                key = FineKey((long)column, (long)row);
+                fineColumn = (long)column;
+                fineRow = (long)row;
                 return true;
             }
 

@@ -693,6 +693,7 @@ namespace GeometryHelper.Core
             private readonly double[] _starts;
             private readonly double[] _reaches;
             private readonly bool _alongX;
+            private bool[] _marks;
 
             internal BoxOrder(IList<Box> boxes)
             {
@@ -776,8 +777,40 @@ namespace GeometryHelper.Core
                 }
 
                 double low = _alongX ? box.MinX : box.MinY;
+                int end = CountUpTo(_alongX ? box.MaxX : box.MaxY);
+                int start = end;
 
-                for (int k = CountUpTo(_alongX ? box.MaxX : box.MaxY) - 1; k >= 0 && _reaches[k] >= low; k--)
+                while (start > 0 && _reaches[start - 1] >= low)
+                {
+                    start--;
+                }
+
+                // Many of them, as the long chords of a star across the whole of it are, are put in order by marking them
+                // and reading the marks, which costs no more than there are boxes; a few are sorted.
+                int count = end - start;
+
+                if (count > 64 && count * Math.Log(count, 2.0) > _order.Length)
+                {
+                    _marks = _marks ?? new bool[_order.Length];
+
+                    for (int k = start; k < end; k++)
+                    {
+                        _marks[_order[k]] = true;
+                    }
+
+                    for (int i = 0; i < _marks.Length; i++)
+                    {
+                        if (_marks[i])
+                        {
+                            into.Add(i);
+                            _marks[i] = false;
+                        }
+                    }
+
+                    return;
+                }
+
+                for (int k = end - 1; k >= start; k--)
                 {
                     into.Add(_order[k]);
                 }
