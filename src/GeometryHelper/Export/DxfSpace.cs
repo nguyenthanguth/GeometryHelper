@@ -186,6 +186,7 @@ namespace GeometryHelper.Export
             item.Space = this;
             _items.Add(item);
             _version++;
+            _file.Joined(item);
         }
 
         /// <summary>An entity removed from the space: left in the list, marked, until the list is next read.</summary>

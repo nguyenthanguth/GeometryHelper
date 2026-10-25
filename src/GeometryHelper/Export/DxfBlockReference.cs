@@ -652,6 +652,18 @@ namespace GeometryHelper.Export
         /// <summary>Refuses a block of no drawing or another, a layout, or one that would make the block it is added to insert itself.</summary>
         internal override void Appending(DxfBlockTableRecord owner)
         {
+            // A copy of an INSERT of a block AutoCAD names itself (*U), from another drawing, takes a copy of that block as it is
+            // added, as AutoCAD's deep clone does, rather than the block of its name there.
+            DxfFile origin = Item.File.Origin;
+
+            if (Item.OriginBlock != null && !Item.OriginBlock.Head.IsRemoved && origin != null && owner.File != null && origin != owner.File
+                && Name.StartsWith("*", StringComparison.Ordinal))
+            {
+                _record = null;
+                DropEmbeddedBefore(owner);
+                return;
+            }
+
             DxfBlockTableRecord block = _record != null && string.Equals(_record.Name, Name, StringComparison.OrdinalIgnoreCase) ? _record : owner.File == null ? null : Resolve(owner.File, Name);
 
             if (block == null)
@@ -672,8 +684,12 @@ namespace GeometryHelper.Export
             }
 
             _record = block;
+            DropEmbeddedBefore(owner);
+        }
 
-            // A drawing older than R2018 has no MTEXT embedded in an ATTRIB: its text's part keeps the first line.
+        /// <summary>A drawing older than R2018 has no MTEXT embedded in an ATTRIB: its text's part keeps the first line.</summary>
+        private void DropEmbeddedBefore(DxfBlockTableRecord owner)
+        {
             if (owner.File != null && !owner.File.Supports(1032))
             {
                 foreach (DxfAttributeReference attribute in Attributes())

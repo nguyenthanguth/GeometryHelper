@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -182,6 +183,81 @@ namespace GeometryHelper.Export
             Rec head = records[0];
             string type = head.Type;
             Writing style = Style;
+            bool marking = style.Markers && !source.Style.Markers;
+            bool unmarking = !style.Markers && source.Style.Markers;
+            DxfFile origin = source.Origin;
+            bool foreign = origin != null && origin != Template && origin != this;
+            CheckAdoptable(source, records, out string layer, out List<string> applications, foreign ? origin : null);
+
+            // A copy of an entity of another drawing that draws by a block AutoCAD names itself (a DIMENSION's *D, an ACAD_TABLE's
+            // *T, an INSERT's *U) takes a copy of that block, under a name of its own here, as AutoCAD's deep clone between
+            // databases does; and a block such a block inserts that this drawing has not of its name, under that name. The
+            // records of the tables it and they name that this drawing has not, its layers, linetypes, text styles and dimension
+            // styles, are copied by name too. Every entity of those blocks is checked before anything is written.
+            var needs = new RecordsToCopy();
+            List<DxfFileBlock> blocks = foreign ? BlocksToCopy(origin, records, needs) : null;
+            bool outer = _blockCopies == null && blocks != null && blocks.Count > 0;
+
+            if (outer)
+            {
+                _blockCopies = new Dictionary<DxfFileBlock, string>();
+            }
+
+            try
+            {
+                if (foreign)
+                {
+                    CopyRecords(origin, needs.Styles, "STYLE");
+                    CopyRecords(origin, needs.Linetypes, "LTYPE");
+                    CopyRecords(origin, needs.Layers, "LAYER");
+                }
+
+                EnsureLayer(layer == null || layer.Trim().Length == 0 ? "0" : layer.Trim());
+
+                foreach (string application in applications)
+                {
+                    EnsureApplication(application);
+                }
+
+                if (blocks != null && blocks.Count > 0)
+                {
+                    CopyBlocks(origin, blocks);
+                }
+
+                if (foreign)
+                {
+                    CopyRecords(origin, needs.DimStyles, "DIMSTYLE");
+                }
+
+                DxfFileBlock drawn = foreign && _blockCopies != null ? origin.BlockDrawnBy(records[0]) : null;
+
+                if (drawn != null && _blockCopies.TryGetValue(drawn, out string copied) && source.WithGroup(records[0], 2, copied, false, out Rec renamed))
+                {
+                    records[0] = renamed;
+                }
+
+                return Write(space, from, source, records, foreign ? origin : null, marking, unmarking);
+            }
+            finally
+            {
+                if (outer)
+                {
+                    _blockCopies = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks that the records of an entity of a file can be added to this one, as <see cref="Adopt"/> adds them, and gives the
+        /// layer the entity is on and the applications of its extended data.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown where this file's version cannot hold the entity's type or look, or its
+        /// linetype is not in this file's linetype table.</exception>
+        private void CheckAdoptable(DxfFile source, List<Rec> records, out string layer, out List<string> applications, DxfFile origin = null)
+        {
+            Rec head = records[0];
+            string type = head.Type;
+            Writing style = Style;
 
             // A record that follows an entity is not one of a block: AutoCAD refuses a vertex appended to a block table record.
             if (type == "VERTEX" || type == "SEQEND" || type == "ATTRIB")
@@ -221,12 +297,12 @@ namespace GeometryHelper.Export
                 }
             }
 
-            string layer = null;
+            layer = null;
             string linetype = null;
             bool weighted = false;
             bool coloured = false;
             bool ownLook = false;
-            var applications = new List<string>();
+            applications = new List<string>();
             List<Pair> pairs = PairsOf(head);
             int data = DataAt(head, pairs);
 
@@ -272,32 +348,33 @@ namespace GeometryHelper.Export
                 throw new ArgumentException("A DXF " + VersionSaid() + " has no true colours, colour books or transparency, which came with R2004 (AC1018).", "entity");
             }
 
-            if (linetype != null && !HasLinetype(linetype))
+            // A copy of another drawing takes a linetype this one has not with it, where that one has it.
+            if (linetype != null && !HasLinetype(linetype) && !(origin != null && RecordsCopy(origin) && origin.HasLinetype(linetype)))
             {
                 throw new ArgumentException("The linetype " + DxfReader.NameOf(linetype) + " is not in the file's linetype table: give one of it, BYLAYER or BYBLOCK.", "entity");
             }
+        }
 
-            EnsureLayer(layer == null || layer.Trim().Length == 0 ? "0" : layer.Trim());
-
-            foreach (string application in applications)
-            {
-                EnsureApplication(application);
-            }
+        /// <summary>
+        /// Writes the records of an entity checked by <see cref="CheckAdoptable"/> into a space of this file, as <see cref="Adopt"/>
+        /// says; a copy of another drawing (<paramref name="origin"/>) with its pointers taken to this one.
+        /// </summary>
+        private DxfItem Write(DxfSpace space, DxfItem from, DxfFile source, List<Rec> records, DxfFile origin, bool marking, bool unmarking)
+        {
+            Writing style = Style;
+            string type = records[0].Type;
 
             // A copy of an entity of another drawing points at objects of that drawing: each pointer is taken to the object of
             // the same name here, or left out, as AutoCAD's deep clone between databases maps or drops them.
-            DxfFile origin = source.Origin;
-
-            if (origin != null && origin != Template && origin != this)
+            if (origin != null)
             {
                 for (int r = 0; r < records.Count; r++)
                 {
                     records[r] = source.Pointed(records[r], origin, this);
                 }
-
-                head = records[0];
             }
 
+            Rec head = records[0];
             bool paper = space.Kind == DxfSpaceKind.Paper;
             string handle = UsesHandles() ? NewHandle() : null;
             string owner = style.Markers ? OwnerOf(space) : null;
@@ -321,6 +398,457 @@ namespace GeometryHelper.Export
 
             Edited();
             return item;
+        }
+
+        // The blocks of another drawing being copied into this one by the entity being added, each with the name it is given here.
+        private Dictionary<DxfFileBlock, string> _blockCopies;
+
+        /// <summary>
+        /// The block of this file an entity draws by: the one its group 2 names, of an INSERT, a dimension or an ACAD_TABLE;
+        /// null for any other type, or where the file has no block of the name.
+        /// </summary>
+        private DxfFileBlock BlockDrawnBy(Rec record)
+        {
+            switch (record.Type)
+            {
+                case "INSERT":
+                case "DIMENSION":
+                case "ARC_DIMENSION":
+                case "LARGE_RADIAL_DIMENSION":
+                case "ACAD_TABLE":
+                    string name = Record(record).Text(2);
+                    return name != null && Blocks.TryGetValue(DxfReader.NameOf(name), out DxfFileBlock block) ? block : null;
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// The blocks of the drawing a copy came from (<paramref name="origin"/>) to be copied into this one with it: the block
+        /// AutoCAD names itself the entity draws by, and, within each block copied, every such block an entity of it draws by and
+        /// every block of a name this drawing has not; each once, those copied already by the entity being added left out. Every
+        /// entity of them is checked to be one this file can hold, before anything is written, and the records of the tables they
+        /// and the entity name that this drawing has not are noted in <paramref name="needs"/>, an arrow block of a dimension style
+        /// among the blocks.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown where an entity of a block to be copied cannot be added to this file, as
+        /// <see cref="Adopt"/> says.</exception>
+        private List<DxfFileBlock> BlocksToCopy(DxfFile origin, List<Rec> records, RecordsToCopy needs)
+        {
+            var order = new List<DxfFileBlock>();
+            Collect(origin, records[0], order, true);
+            NeedsOf(origin, records, needs, order);
+
+            for (int k = 0; k < order.Count; k++)
+            {
+                foreach (DxfItem item in order[k].Items.Snapshot())
+                {
+                    if (item.IsRemoved)
+                    {
+                        continue;
+                    }
+
+                    List<Rec> own = origin.RecordsOf(item);
+                    CheckAdoptable(origin, own, out _, out _, origin);
+                    Collect(origin, own[0], order, false);
+                    NeedsOf(origin, own, needs, order);
+                }
+            }
+
+            return order;
+        }
+
+        /// <summary>Adds to the blocks to copy the one a record of the origin draws by, where it is to be copied, as <see cref="BlocksToCopy"/> says.</summary>
+        private void Collect(DxfFile origin, Rec record, List<DxfFileBlock> order, bool top)
+        {
+            DxfFileBlock block = origin.BlockDrawnBy(record);
+
+            if (block == null || order.Contains(block) || (_blockCopies != null && _blockCopies.ContainsKey(block)))
+            {
+                return;
+            }
+
+            if (IsAnonymous(block.Name) || (!top && !Blocks.ContainsKey(block.Name)))
+            {
+                order.Add(block);
+            }
+        }
+
+        /// <summary>Whether a block's name is one AutoCAD gives itself, as <c>*D1</c> or <c>*U4</c>; not model space nor paper space.</summary>
+        private static bool IsAnonymous(string name)
+            => name.StartsWith("*", StringComparison.Ordinal) && !DxfBlockTableRecord.IsModelName(name) && !name.StartsWith(DxfBlockTableRecord.PaperSpace, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Copies blocks of another drawing into this one, as AutoCAD's deep clone between databases copies those an entity draws
+        /// by: each named first (a block AutoCAD names itself the first name of its letter, <c>*D</c>, <c>*U</c>, <c>*T</c>, and
+        /// a number, this file has not; any other by its own name), then written with its BLOCK_RECORD, BLOCK and ENDBLK, its
+        /// flags of a block named by AutoCAD and of attribute definitions, its base point, and each of its entities copied into
+        /// it, new handles and owners given, an entity that draws by another of these blocks naming its copy.
+        /// </summary>
+        private void CopyBlocks(DxfFile origin, List<DxfFileBlock> blocks)
+        {
+            foreach (DxfFileBlock block in blocks)
+            {
+                _blockCopies[block] = IsAnonymous(block.Name) ? FreeAnonymousName(block.Name) : block.Name;
+            }
+
+            foreach (DxfFileBlock block in blocks)
+            {
+                DxfFileBlock made = AddBlock(_blockCopies[block], block.BasePoint, 0, true, false, string.Empty, out DxfItem record, block.Flags & 3);
+                Database?.BlockTable.Adopted(made, record);
+
+                foreach (DxfItem item in block.Items.Snapshot())
+                {
+                    if (!item.IsRemoved)
+                    {
+                        Adopt(made.Items, origin.CopyOf(item));
+                    }
+                }
+            }
+        }
+
+        /// <summary>The names of the records of the tables a copy of another drawing needs and this drawing has not, by table, in the order found.</summary>
+        private sealed class RecordsToCopy
+        {
+            internal List<string> Styles { get; } = new List<string>();
+
+            internal List<string> Linetypes { get; } = new List<string>();
+
+            internal List<string> Layers { get; } = new List<string>();
+
+            internal List<string> DimStyles { get; } = new List<string>();
+
+            /// <summary>The records of the tables and objects of the origin by handle, read once for the pointers of the records copied.</summary>
+            internal Dictionary<ulong, KeyValuePair<Rec, bool>> Objects { get; set; }
+        }
+
+        /// <summary>
+        /// Whether a record of a table, named by a copy of an entity made from another drawing (<paramref name="origin"/>), is
+        /// copied into this one with it when it is added, as <see cref="Adopt"/> copies one this drawing has not: the origin has
+        /// it, and its records are copied as they are.
+        /// </summary>
+        internal bool CopiesRecordFrom(DxfFile origin, string table, string name)
+            => origin != null && origin != Template && origin != this && RecordsCopy(origin) && FindRecord(origin, table, DxfReader.NameOf(name).Trim()) != null;
+
+        /// <summary>Whether the records of the tables of another drawing are copied into this one as they are: both of R12, or both of R13 or later.</summary>
+        private bool RecordsCopy(DxfFile origin) => origin.Style.Markers == Style.Markers;
+
+        /// <summary>
+        /// Notes the records of the tables the records of an entity of the origin name that this drawing has not: its layer (8)
+        /// and linetype (6), the text style of a text (7), the dimension style of a dimension, a leader or a tolerance (3).
+        /// </summary>
+        private void NeedsOf(DxfFile origin, List<Rec> records, RecordsToCopy needs, List<DxfFileBlock> blocks)
+        {
+            foreach (Rec record in records)
+            {
+                DxfReader.Record read = origin.Record(record);
+                Need(origin, "LAYER", read.Text(8), needs, blocks);
+                Need(origin, "LTYPE", read.Text(6), needs, blocks);
+
+                switch (record.Type)
+                {
+                    case "TEXT":
+                    case "MTEXT":
+                    case "ATTRIB":
+                    case "ATTDEF":
+                        Need(origin, "STYLE", read.Text(7), needs, blocks);
+                        break;
+                    case "DIMENSION":
+                    case "ARC_DIMENSION":
+                    case "LARGE_RADIAL_DIMENSION":
+                    case "LEADER":
+                    case "TOLERANCE":
+                        Need(origin, "DIMSTYLE", read.Text(3), needs, blocks);
+
+                        // The records its overrides of the style name (DIMBLK, DIMLTYPE, DIMTXSTY ...), as 1005s of ACAD DSTYLE.
+                        if (RecordsCopy(origin))
+                        {
+                            List<Pair> pairs = PairsOf(record);
+                            bool overrides = false;
+
+                            for (int i = DataAt(record, pairs); i < pairs.Count; i++)
+                            {
+                                overrides = origin.DimensionOverrides(record, pairs, i, overrides);
+
+                                if (overrides && pairs[i].Code == 1005)
+                                {
+                                    NeedPointed(origin, origin.Text(record, pairs[i]), needs, blocks);
+                                }
+                            }
+                        }
+
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Notes a record of a table of the origin that this drawing has not of its name, where the origin has it, and what it
+        /// names in turn: a layer's linetype, a linetype's text styles, a dimension style's text style, linetypes and arrow blocks.
+        /// A layer is noted between drawings of any versions; the others where <see cref="RecordsCopy"/> says.
+        /// </summary>
+        private void Need(DxfFile origin, string table, string written, RecordsToCopy needs, List<DxfFileBlock> blocks)
+        {
+            string name = written == null ? string.Empty : DxfReader.NameOf(written).Trim();
+            List<string> list = table == "STYLE" ? needs.Styles : table == "LTYPE" ? needs.Linetypes : table == "LAYER" ? needs.Layers : needs.DimStyles;
+
+            if (name.Length == 0 || list.Exists(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase)) || (table != "LAYER" && !RecordsCopy(origin))
+                || (table == "LTYPE" && (string.Equals(name, "BYLAYER", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "BYBLOCK", StringComparison.OrdinalIgnoreCase)))
+                || FindRecord(this, table, name) != null)
+            {
+                return;
+            }
+
+            Rec? theirs = FindRecord(origin, table, name);
+
+            if (theirs == null)
+            {
+                return;
+            }
+
+            list.Add(name);
+
+            if (!RecordsCopy(origin))
+            {
+                return;
+            }
+
+            // What the record copied points at, by handle, or names, a layer its linetype.
+            List<Pair> pairs = PairsOf(theirs.Value);
+
+            for (int i = 1; i < pairs.Count; i++)
+            {
+                int code = pairs[i].Code;
+
+                if (table == "LAYER" && code == 6)
+                {
+                    Need(origin, "LTYPE", origin.Text(theirs.Value, pairs[i]), needs, blocks);
+                }
+
+                if (IsPointer(code))
+                {
+                    NeedPointed(origin, origin.Text(theirs.Value, pairs[i]), needs, blocks);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Notes the record of the origin a handle points at, where this drawing has not one of its name: a text style or a
+        /// linetype as <see cref="Need"/> notes it, a block (an arrow of a dimension style) among the blocks to copy.
+        /// </summary>
+        private void NeedPointed(DxfFile origin, string pointer, RecordsToCopy needs, List<DxfFileBlock> blocks)
+        {
+            if (!TryHex(pointer.Trim(), out ulong handle))
+            {
+                return;
+            }
+
+            needs.Objects = needs.Objects ?? origin.Objects();
+
+            if (!needs.Objects.TryGetValue(handle, out KeyValuePair<Rec, bool> pointed) || !pointed.Value)
+            {
+                return;
+            }
+
+            string named = origin.Record(pointed.Key).Text(2);
+
+            switch (pointed.Key.Type)
+            {
+                case "STYLE":
+                case "LTYPE":
+                    Need(origin, pointed.Key.Type, named, needs, blocks);
+                    break;
+                case "BLOCK_RECORD":
+                    // An arrow block of a dimension style, copied under its name where this drawing has not one of it.
+                    if (named != null && origin.Blocks.TryGetValue(DxfReader.NameOf(named), out DxfFileBlock arrow) && !blocks.Contains(arrow)
+                        && !Blocks.ContainsKey(arrow.Name) && (_blockCopies == null || !_blockCopies.ContainsKey(arrow)))
+                    {
+                        blocks.Add(arrow);
+                    }
+
+                    break;
+            }
+        }
+
+        /// <summary>The record of a table of a file by its name, letters of either case the same; null where the table has none.</summary>
+        private static Rec? FindRecord(DxfFile file, string table, string name)
+        {
+            foreach (Rec record in file.TableRecords(table))
+            {
+                if (string.Equals(DxfReader.NameOf(file.Record(record).Text(2) ?? string.Empty).Trim(), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return record;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Copies records of a table of another drawing into this one by their names, as AutoCAD's deep clone between databases
+        /// copies those an entity names: each with a handle of its own, this drawing's table as its owner, its groups as they are
+        /// but its handle, owner, reactors and extension dictionary; each pointer taken to the record of the same name here, or
+        /// left out; the applications of its extended data registered. Between drawings of R12 and of R13 or later, a layer is
+        /// added with its colour, linetype and flags, and the other records are not copied.
+        /// </summary>
+        private void CopyRecords(DxfFile origin, List<string> names, string table)
+        {
+            foreach (string name in names)
+            {
+                if (FindRecord(this, table, name) != null)
+                {
+                    continue;
+                }
+
+                Rec? found = FindRecord(origin, table, name);
+
+                if (found == null)
+                {
+                    continue;
+                }
+
+                Rec record = found.Value;
+
+                if (!RecordsCopy(origin))
+                {
+                    if (table == "LAYER")
+                    {
+                        DxfReader.Record read = origin.Record(record);
+                        int colour = int.TryParse(read.Text(62)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int c) && c != 0 ? c : 7;
+                        string linetype = read.Text(6)?.Trim();
+                        int flags = int.TryParse(read.Text(70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int f) ? f & 7 : 0;
+                        AddLayer(name, colour, null, linetype != null && HasLinetype(linetype) ? linetype : "Continuous", -3, flags, true);
+                    }
+
+                    continue;
+                }
+
+                List<Pair> pairs = PairsOf(record);
+                int data = DataAt(record, pairs);
+                var groups = new List<KeyValuePair<int, string>>();
+                var applications = new List<string>();
+                string marker = null;
+                int markers = 0;
+                bool braced = false;
+                bool owned = false;
+
+                for (int i = 1; i < pairs.Count; i++)
+                {
+                    int code = pairs[i].Code;
+                    string text = origin.Text(record, pairs[i]);
+
+                    if (code == 102)
+                    {
+                        braced = text.Trim().StartsWith("{", StringComparison.Ordinal);
+                        continue;
+                    }
+
+                    if (braced || code == 999)
+                    {
+                        continue;
+                    }
+
+                    if (i >= data)
+                    {
+                        if (code == 1001)
+                        {
+                            applications.Add(text.Trim());
+                        }
+
+                        if (code != 1005)
+                        {
+                            groups.Add(new KeyValuePair<int, string>(code, text));
+                        }
+
+                        continue;
+                    }
+
+                    // The handle (a DIMSTYLE's 105; its 5 is an arrow block of R12), the owner and the markers are this drawing's.
+                    if (code == 105 || (code == 5 && table != "DIMSTYLE") || (code == 330 && !owned))
+                    {
+                        owned |= code == 330;
+                        continue;
+                    }
+
+                    if (code == 100)
+                    {
+                        if (++markers == 2)
+                        {
+                            marker = text.Trim();
+                        }
+
+                        continue;
+                    }
+
+                    if (IsPointer(code))
+                    {
+                        string now = Equivalent(origin, text);
+
+                        if (now != null)
+                        {
+                            groups.Add(new KeyValuePair<int, string>(code, now));
+                        }
+
+                        continue;
+                    }
+
+                    groups.Add(new KeyValuePair<int, string>(code, text));
+                }
+
+                foreach (string application in applications)
+                {
+                    EnsureApplication(application);
+                }
+
+                DxfItem made = AddTableRecord(table, marker ?? MarkerOf(table), b =>
+                {
+                    foreach (KeyValuePair<int, string> group in groups)
+                    {
+                        b.Group(group.Key, group.Value);
+                    }
+                });
+
+                if (made != null)
+                {
+                    Edited();
+                    GeometryHelperLog.Info("DxfFile: the " + table + " " + name + " was copied with an entity of another drawing.");
+                }
+            }
+        }
+
+        /// <summary>The subclass marker of a record of a table.</summary>
+        private static string MarkerOf(string table)
+        {
+            switch (table)
+            {
+                case "STYLE": return "AcDbTextStyleTableRecord";
+                case "LTYPE": return "AcDbLinetypeTableRecord";
+                case "LAYER": return "AcDbLayerTableRecord";
+                default: return "AcDbDimStyleTableRecord";
+            }
+        }
+
+        /// <summary>The first name of an anonymous block's letter and a number, from 1 up, that this file has no block of and no block being copied is given.</summary>
+        private string FreeAnonymousName(string name)
+        {
+            int digits = 1;
+
+            while (digits < name.Length && !char.IsDigit(name[digits]))
+            {
+                digits++;
+            }
+
+            string prefix = name.Substring(0, digits);
+
+            for (int n = 1; ; n++)
+            {
+                string candidate = prefix + n.ToString(CultureInfo.InvariantCulture);
+
+                if (!Blocks.ContainsKey(candidate) && !_blockCopies.Values.Any(v => string.Equals(v, candidate, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return candidate;
+                }
+            }
         }
 
         /// <summary>
@@ -532,6 +1060,7 @@ namespace GeometryHelper.Export
             ["INSERT"] = new HashSet<int> { 66, 2, 10, 20, 30, 41, 42, 43, 50, 70, 71, 44, 45, 210, 220, 230 },
             ["POLYLINE"] = new HashSet<int> { 66, 10, 20, 30, 39, 70, 40, 41, 71, 72, 73, 74, 75, 210, 220, 230 },
             ["VERTEX"] = new HashSet<int> { 10, 20, 30, 40, 41, 42, 70, 50, 71, 72, 73, 74 },
+            ["DIMENSION"] = new HashSet<int> { 2, 3, 10, 20, 30, 11, 21, 31, 12, 22, 32, 70, 1, 13, 23, 33, 14, 24, 34, 15, 25, 35, 16, 26, 36, 40, 50, 51, 52, 53, 210, 220, 230 },
             ["SEQEND"] = new HashSet<int>(),
         };
 
@@ -676,7 +1205,9 @@ namespace GeometryHelper.Export
         /// each soft or hard pointer (320 to 369, 390 to 399, 480 and 481) to the object of the same name there, a table's record
         /// by its name, an object of the named object dictionary (a material, a plot style, a visual style) by the names of its
         /// dictionary and of its entry; left out where the target has none of that name, so that the target's default holds. A
-        /// handle of extended data (1005) is left out, as AutoCAD's mapping of objects between drawings leaves it null. The
+        /// handle of extended data (1005) is left out, as AutoCAD's mapping of objects between drawings leaves it null; but one
+        /// of the overrides of a dimension style (ACAD DSTYLE, a 1070 of the variable then a 1005 of its record: DIMBLK, DIMLTYPE,
+        /// DIMTXSTY and the others) names the record of the same name in the target, the two left out where it has none. The
         /// record itself where nothing changes.
         /// </summary>
         private Rec Pointed(Rec record, DxfFile origin, DxfFile target)
@@ -687,11 +1218,34 @@ namespace GeometryHelper.Export
             b.Raw(record, pairs[0]);
             bool changed = false;
             bool braced = false;
+            bool overrides = false;
 
             for (int i = 1; i < pairs.Count; i++)
             {
                 Pair pair = pairs[i];
                 int code = pair.Code;
+
+                if (i >= data)
+                {
+                    overrides = DimensionOverrides(record, pairs, i, overrides);
+                }
+
+                // An override of a dimension style naming a record (DIMBLK, DIMLTYPE, DIMTXSTY and the others: a 1070 of its
+                // code, then a 1005 of the record) names the record of the same name here; the two go where there is none.
+                if (overrides && code == 1070 && i + 1 < pairs.Count && pairs[i + 1].Code == 1005)
+                {
+                    string now = target.Equivalent(origin, Text(record, pairs[i + 1]));
+                    changed = true;
+
+                    if (now != null)
+                    {
+                        b.Raw(record, pair);
+                        b.Group(1005, now);
+                    }
+
+                    i++;
+                    continue;
+                }
 
                 if (code == 102)
                 {
@@ -720,6 +1274,41 @@ namespace GeometryHelper.Export
             }
 
             return changed ? Recounted(b.Done(record.Type)) : record;
+        }
+
+        /// <summary>
+        /// Whether a group of the extended data of a record stands in the list of overrides of a dimension style, that of ACAD
+        /// opened by <c>1000 DSTYLE</c> and <c>1002 {</c> and closed by its <c>1002 }</c>: given whether the group before did.
+        /// </summary>
+        private bool DimensionOverrides(Rec record, List<Pair> pairs, int at, bool before)
+        {
+            Pair pair = pairs[at];
+
+            if (pair.Code == 1001)
+            {
+                return false;
+            }
+
+            if (before)
+            {
+                return !(pair.Code == 1002 && Text(record, pair).Trim() == "}");
+            }
+
+            // Opened by its 1002 {, after 1000 DSTYLE of the application ACAD.
+            if (pair.Code != 1002 || Text(record, pair).Trim() != "{" || at < 2 || pairs[at - 1].Code != 1000 || Text(record, pairs[at - 1]).Trim() != "DSTYLE")
+            {
+                return false;
+            }
+
+            for (int k = at - 2; k >= 0; k--)
+            {
+                if (pairs[k].Code == 1001)
+                {
+                    return string.Equals(Text(record, pairs[k]).Trim(), "ACAD", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -822,6 +1411,13 @@ namespace GeometryHelper.Export
             if (found.Value)
             {
                 string name = DxfReader.NameOf(origin.Record(record).Text(2) ?? string.Empty);
+
+                // A block copied with the entity, as a table's *T, is pointed at by the name of its copy.
+                if (record.Type == "BLOCK_RECORD" && _blockCopies != null && origin.Blocks.TryGetValue(name, out DxfFileBlock copiedBlock)
+                    && _blockCopies.TryGetValue(copiedBlock, out string copiedName))
+                {
+                    name = copiedName;
+                }
 
                 foreach (Rec mine in TableRecords(record.Type))
                 {
@@ -2290,9 +2886,10 @@ namespace GeometryHelper.Export
             var b = new Builder(this);
             b.Group(0, table);
 
+            // A DIMSTYLE gives its handle as 105, its 5 being the arrow block DIMBLK of R12.
             if (UsesHandles())
             {
-                b.Group(5, NewHandle());
+                b.Group(table == "DIMSTYLE" ? 105 : 5, NewHandle());
             }
 
             if (style.Markers)
@@ -2608,9 +3205,10 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Adds a block made in code, as AutoCAD writes one: from R13 on its BLOCK_RECORD in the block table, then its BLOCK and
-        /// ENDBLK at the end of the BLOCKS section, owned by that record, on layer 0, with handles where the file uses them.
+        /// ENDBLK at the end of the BLOCKS section, owned by that record, on layer 0, with handles where the file uses them; its
+        /// BLOCK's flags (70) those given, 1 for a block AutoCAD names itself, as a dimension's <c>*D1</c>.
         /// </summary>
-        internal DxfFileBlock AddBlock(string name, Geometry.GeoPoint3 origin, int units, bool explodable, bool uniform, string comments, out DxfItem record)
+        internal DxfFileBlock AddBlock(string name, Geometry.GeoPoint3 origin, int units, bool explodable, bool uniform, string comments, out DxfItem record, int flags = 0)
         {
             int end = -1;
 
@@ -2673,7 +3271,7 @@ namespace GeometryHelper.Export
             }
 
             head.Group(2, name);
-            head.Group(70, "0");
+            head.Group(70, flags.ToString(CultureInfo.InvariantCulture));
             head.Group(10, Numbers.Exact(origin.X + 0.0));
             head.Group(20, Numbers.Exact(origin.Y + 0.0));
             head.Group(30, Numbers.Exact(origin.Z + 0.0));
@@ -2719,7 +3317,7 @@ namespace GeometryHelper.Export
             List<Piece> home = PutBefore(end, headPiece);
             PutBefore(end, endPiece);
             var headItem = new DxfItem(this, headPiece, "BLOCK") { Home = home };
-            var block = new DxfFileBlock(this, name, origin, 0, new List<DxfItem>(), headItem, -1) { EndPiece = endPiece, Home = home };
+            var block = new DxfFileBlock(this, name, origin, flags, new List<DxfItem>(), headItem, -1) { EndPiece = endPiece, Home = home };
 
             // Found by its name from then on, as a block of the file is, by the INSERTs of it among the rest.
             if (!Blocks.ContainsKey(name))

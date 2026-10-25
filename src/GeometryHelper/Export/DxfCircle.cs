@@ -456,7 +456,7 @@ namespace GeometryHelper.Export
         /// <param name="transform">The transformation, one that scales the circle's plane alike both ways.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the transformation scales the plane of the circle more one way than
-        /// the other, which would make it an ellipse, as AutoCAD refuses one, or flattens it.</exception>
+        /// the other or shears it, which would make it an ellipse, as AutoCAD refuses one, or flattens it.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the circle is erased.</exception>
         private protected override void TransformEntity(GeoTransform3 transform)
         {
@@ -510,22 +510,22 @@ namespace GeometryHelper.Export
         /// A circle or an arc moved as ezdxf's <c>OCSTransform</c> moves one: the new normal is the image of the old system's x
         /// axis crossed with that of its y axis, the centre is taken into the world, moved and taken into the new system, the
         /// radius is the length of the image of the radius along the old x axis, and the thickness is the height along the
-        /// new normal of the image of the old thickness. Refused where the images of the two axes differ in length.
+        /// new normal of the image of the old thickness. Refused where the images of the two axes differ in length or are not
+        /// square.
         /// </summary>
         internal static void Moved(GeoTransform3 transform, GeoVector3 normal, GeoPoint3 centre, double radius, double thickness, out GeoVector3 newNormal, out GeoPoint3 newCentre, out double newRadius, out double newThickness)
         {
             OcsAxes(normal, out GeoVector3 u, out GeoVector3 v);
             GeoVector3 x = transform.Transform(u);
             GeoVector3 y = transform.Transform(v);
-            double xx = x.LengthSquared;
-            double yy = y.LengthSquared;
             GeoVector3 cross = x.CrossProduct(y);
             double length = cross.Length;
 
-            // ezdxf's test of a plane scaled alike both ways: math.isclose(|x|², |y|², rel_tol=1e-9, abs_tol=1e-9).
-            if (!(Math.Abs(xx - yy) <= Math.Max(1E-9 * Math.Max(Math.Abs(xx), Math.Abs(yy)), 1E-9)) || !(length > 0.0) || double.IsInfinity(length))
+            // ezdxf's test of a plane scaled alike both ways, math.isclose(|x|², |y|², rel_tol=1e-9, abs_tol=1e-9), and the axes
+            // kept square: a shear of axes of one length makes an ellipse of a circle all the same.
+            if (!DxfOcsTransform.IsUniform(x, y) || !(length > 0.0) || double.IsInfinity(length))
             {
-                throw new ArgumentException("The transformation scales the plane of the circle more one way than the other, or flattens it: a circle stays a circle only under one that scales it alike.", nameof(transform));
+                throw new ArgumentException("The transformation scales the plane of the circle more one way than the other, shears it or flattens it: a circle stays a circle only under one that scales it alike.", nameof(transform));
             }
 
             newNormal = cross.Divide(length);

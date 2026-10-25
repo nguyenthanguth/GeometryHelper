@@ -544,13 +544,69 @@ namespace GeometryHelper.Export
         public bool IsUsed => Item != null && (IsKept(Name) || Item.File.LayersDrawnOn().Contains(Name));
 
         /// <summary>
+        /// Gets whether the layer looks otherwise in some viewport, as AutoCAD's <c>HasOverrides</c>: whether an XRECORD of its
+        /// extension dictionary that AutoCAD keeps overrides in (ADSK_XREC_LAYER_COLOR_OVR, ADSK_XREC_LAYER_LINETYPE_OVR,
+        /// ADSK_XREC_LAYER_LINEWT_OVR, ADSK_XREC_LAYER_ALPHA_OVR) names a viewport.
+        /// </summary>
+        public bool HasOverrides => DxfLayerViewportProperties.Overrides(this).Count > 0;
+
+        /// <summary>Gets whether the layer looks otherwise in a viewport, as AutoCAD's <c>HasViewportOverrides</c>.</summary>
+        /// <param name="viewport">The viewport.</param>
+        /// <returns>Whether it does.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the viewport is null.</exception>
+        public bool HasViewportOverrides(DxfViewport viewport)
+        {
+            if (viewport == null)
+            {
+                throw new ArgumentNullException(nameof(viewport));
+            }
+
+            return viewport.Handle != null && DxfLayerViewportProperties.Overrides(this).Exists(o => string.Equals(o.Key, viewport.Handle, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Gets how the layer looks in a viewport, as AutoCAD's <c>GetViewportOverrides</c>: its colour, linetype, lineweight and
+        /// transparency there, each the override the layer's extension dictionary keeps for the viewport, else the layer's own.
+        /// </summary>
+        /// <param name="viewport">The viewport.</param>
+        /// <returns>The properties, read when asked for.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the viewport is null.</exception>
+        public DxfLayerViewportProperties GetViewportOverrides(DxfViewport viewport)
+        {
+            if (viewport == null)
+            {
+                throw new ArgumentNullException(nameof(viewport));
+            }
+
+            return new DxfLayerViewportProperties(this, viewport);
+        }
+
+        /// <summary>
+        /// Takes out every override of the layer in the viewports, as AutoCAD's <c>RemoveAllOverrides</c>: the XRECORDs of its
+        /// extension dictionary that hold them, each with its entry; nothing where it has none.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the layer is erased.</exception>
+        public void RemoveAllOverrides()
+        {
+            DxfDBDictionary dictionary = ExtensionDictionary;
+
+            foreach (string key in DxfLayerViewportProperties.Keys)
+            {
+                if (dictionary != null && dictionary.Contains(key))
+                {
+                    dictionary.Remove(key);
+                }
+            }
+        }
+
+        /// <summary>
         /// Erases the layer from its table, as AutoCAD's <c>Erase</c> of a layer no entity is on: its LAYER record taken out, the
         /// table's count lowered by one, its handle not given again and what it owned, as its extension dictionary, removed with
         /// it when the file is saved.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the layer is in no file or is erased already; when it is layer
         /// 0, Defpoints or the current layer, which AutoCAD keeps; when an entity is on it (<see cref="IsUsed"/>); or when an
-        /// object of the file points at it, as a viewport that freezes it.</exception>
+        /// object of the file points at it, as a viewport that freezes it (by handle, or by name in a file before R2000).</exception>
         public override void Erase()
         {
             if (Item == null)
@@ -575,7 +631,7 @@ namespace GeometryHelper.Export
                 throw new InvalidOperationException("The layer " + name + " has entities on it, and is not erased, as AutoCAD erases a layer only when nothing is on it.");
             }
 
-            if (Item.File.PointedAt(Handle))
+            if (Item.File.PointedAt(Handle) || FrozenByName())
             {
                 throw new InvalidOperationException("The layer " + name + " is pointed at by an object of the file, as a viewport that freezes it, and is not erased.");
             }
@@ -628,6 +684,33 @@ namespace GeometryHelper.Export
             }
 
             GeometryHelperLog.Info("DxfDatabase: the layer " + old + " was renamed " + name + ", with every entity on it.");
+        }
+
+        /// <summary>
+        /// Whether a viewport of a file before R2000 freezes the layer by its name, in its extended data MVIEW: a file from R2000
+        /// on names it by handle, which <see cref="DxfFile.PointedAt"/> finds.
+        /// </summary>
+        private bool FrozenByName()
+        {
+            DxfDatabase database = Item.File.Database;
+
+            if (database == null || Item.File.Supports(1015))
+            {
+                return false;
+            }
+
+            foreach (DxfBlockTableRecord block in database.BlockTable)
+            {
+                foreach (DxfEntity entity in block)
+                {
+                    if (entity is DxfViewport viewport && viewport.IsLayerFrozenInViewport(this))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>Whether a layer is one AutoCAD keeps whatever is on it: layer 0, Defpoints and the current layer.</summary>

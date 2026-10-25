@@ -5,14 +5,15 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Export
 {
     /// <summary>
-    /// An entity of a type the library has no class for, such as a HATCH, a DIMENSION or a MULTILEADER: kept as the file has
-    /// it, its groups read as they are, its look editable and the entity erasable.
+    /// An entity of a type the library has no class for, such as an IMAGE, a WIPEOUT or an ACAD_PROXY_ENTITY: kept as the
+    /// file has it, its groups read as they are, its look editable and the entity erasable.
     /// </summary>
     /// <remarks>
     /// Its <see cref="DxfEntity.Layer"/>, colour, linetype, lineweight and visibility are set as any entity's are, every other
     /// group of its record kept as it was; its geometry is not changed, so <see cref="DxfEntity.TransformBy(GeoTransform3)"/> is refused.
     /// It is copied as it is by <see cref="DxfEntity.Clone"/>, and by <see cref="DxfEntity.GetTransformedCopy"/> with the
-    /// identity. <see cref="DxfEntity.GetGeometry"/> gives what <see cref="DxfReader"/> reads of it, nothing for a HATCH.
+    /// identity. <see cref="DxfEntity.GetGeometry"/> gives what <see cref="DxfReader"/> reads of it, nothing for a type it
+    /// does not read.
     /// </remarks>
     public sealed class DxfUnknownEntity : DxfEntity
     {
@@ -23,7 +24,7 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the type of the entity as the file names it in its group 0, as AutoCAD's class names its <c>DxfName</c>:
-        /// <c>HATCH</c>, <c>DIMENSION</c>, <c>ACAD_PROXY_ENTITY</c>.
+        /// <c>IMAGE</c>, <c>WIPEOUT</c>, <c>ACAD_PROXY_ENTITY</c>.
         /// </summary>
         public string DxfName => Item.Type;
 

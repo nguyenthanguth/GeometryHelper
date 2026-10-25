@@ -229,6 +229,49 @@ those AutoCAD keeps as DICTIONARYVAR objects rather than in the header (`Cannosc
 `MLeaderstyle`, `AnnoAllVisible`, `TstackSize` and the rest), adding the dictionary of variables where a drawing has none,
 reads its `ThumbnailBitmap`, and has five more variables of the header as properties, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. Every value set was read back by ezdxf 1.4.5, whose recover and audit found nothing to fix.
 
+**NEW.** The objects of a drawing with AutoCAD's names. `DxfXrecord`, AutoCAD's `Xrecord`: its `Data` the groups after its
+cloning flag, the groups 102 of a list among them, set, `Append`ed and enumerated, made in code and added by
+`DxfDBDictionary.SetAt`. `DxfDBDictionary.SetAt` takes a `DxfXrecord`, a `DxfGroup` or a `DxfDBDictionary` made in code (a
+group under `*` is anonymous, named `*A1`, `*A2` and on); `TreatElementsAsHard` (280, its entries named by 360 or 350) and
+`CopyTo` are new. The drawing's dictionaries are objects: `NamedObjectsDictionary`, `GroupDictionary`, `LayoutDictionary`,
+`MLeaderStyleDictionary`, `TableStyleDictionary` and the nine others of AutoCAD's `Database`, null where a drawing has none.
+`DxfGroup`, AutoCAD's `Group`: its `Name` the key of its entry, `Description`, `Selectable`, `IsAnonymous`, `SetAnonymous`,
+`NumEntities`, `GetAllEntityIds` (the entities), `Append`, `Prepend`, `InsertAt`, `Remove`, `RemoveAt`, `Replace`, `Reverse`,
+`Transfer`, `Clear`, `Has`, `GetIndex`, and `SetColor`, `SetColorIndex`, `SetLayer`, `SetLinetype`, `SetLinetypeScale` and
+`SetVisibility` on every member; a member put in names the group among its reactors and loses it when taken out, and a
+member erased leaves the group at once. `DxfLayout`, AutoCAD's `Layout`, read with its plot settings (`DxfPlotSettings`,
+AutoCAD's `PlotSettings`, also for a PLOTSETTINGS): `LayoutName` (renamed with its entry), `TabOrder`, `TabSelected`,
+`Limits` (the new `DxfExtents2d`), `Extents`, `BlockTableRecord`, `GetViewports`, the sheet's margins, size, scale (the new
+`DxfCustomScale`), rotation, plot type and flags; `DxfDatabase.Layouts` gives them in the order of their tabs. `DxfViewport`,
+AutoCAD's `Viewport`, read and set: `CenterPoint`, `Width`, `Height`, `Number`, `On`, `Locked`, `ViewCenter`, `ViewHeight`,
+`ViewTarget`, `ViewDirection`, `TwistAngle`, `CustomScale` and `StandardScale` (a viewport 150 high showing 7 500 of model
+space is at 1:50), the snap, grid and clipping, the user coordinate system, the plot style, shading and lighting, and
+`FreezeLayersInViewport`, `ThawLayersInViewport`, `IsLayerFrozenInViewport` (331); a viewport of a file before R2000 is read and set in
+its extended data MVIEW; `TransformBy` moves and scales one on its sheet, its view kept. A layer's overrides in a viewport
+are read as AutoCAD keeps them (`GetViewportOverrides`, the new `DxfLayerViewportProperties`, `HasOverrides`,
+`HasViewportOverrides`, `RemoveAllOverrides`), and the drawing's properties as its DWGPROPS (`DxfDatabase.SummaryInfo`, the
+new `DxfDatabaseSummaryInfo` and `DxfDatabaseSummaryInfoBuilder`; custom properties read from the groups 300 to 309 and
+from the list after a group 90, and written in the form the record has). A group left empty is dropped when the drawing is
+saved, as AutoCAD drops it; erasing a viewport takes its overrides out of the layers; a viewport appended takes the first
+free number of its layout. Every value set in R2000 and R2018 was read back by
+ezdxf 1.4.5, and its recover and audit found nothing to fix in any file, R12 among them; ezdxf reads no MVIEW, so the views
+set in R12 were read back by the library.
+
+**FIXED.** A copy of an entity that draws by a block AutoCAD names itself, a DIMENSION's `*D1`, an ACAD_TABLE's `*T1` or an
+INSERT's `*U1`, appended to another drawing took that drawing's block of the same name, or was refused where it had none: it
+now takes a copy of its own block, under the first name of its letter the drawing has not (`*D2` beside a `*D1`), with every
+entity of it and any block of a name the drawing has not that it inserts, as AutoCAD's deep clone between databases does; a
+copy within its own drawing still shares its block. A DIMENSION is written in the forms of R12 into a drawing of R12, its
+block with it, where every entity of the block has a form of R12 (one with an MTEXT is refused, nothing written). A copy
+into another drawing takes with it, by name, the layers, linetypes, text styles and dimension styles it and its block name
+or its dimension style overrides (ACAD DSTYLE 1005, now named in the target, not dropped)
+that the drawing has not, and a dimension style's arrow blocks, as AutoCAD's deep clone does; names the drawing has are used
+as they are. A circle, an arc and a polyline with arcs refuse a shear whose axes come out of one length, as S(2, 1) R(45°),
+which was taken for a scale alike and left a circle a circle (a circle of radius 10 so sheared is an ellipse of area
+628.32, not a circle of 785.40); a text takes its lean from it, and an MTEXT, which has no lean, refuses it. The
+handle of a DIMSTYLE is read from its group 105, as its 5 is the arrow block of R12, and a DIMSTYLE added is given one so.
+`DxfEntity.GetPlane` and `GeometricExtents` are virtual, for the classes of types the reader gives no shapes for.
+
 **FIXED.** A copy of an INSERT in no file, `Clone()` or `GetTransformedCopy` of it, placed its block as the file was read,
 not as it was edited since: a block given a line and a circle of a new radius showed neither in the copy's `GetGeometry`.
 It now keeps to its block when the block is renamed in the drawing it came from, as AutoCAD's keeps its id, is appended

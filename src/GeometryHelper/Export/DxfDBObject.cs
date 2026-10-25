@@ -384,8 +384,9 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// The object of a record of the OBJECTS section, made once: a <see cref="DxfDBDictionary"/> for a DICTIONARY, else one of no
-        /// class of its own.
+        /// The object of a record of the OBJECTS section, made once: a <see cref="DxfDBDictionary"/> for a DICTIONARY, a
+        /// <see cref="DxfXrecord"/> for an XRECORD, a <see cref="DxfGroup"/> for a GROUP, a <see cref="DxfLayout"/> for a LAYOUT,
+        /// a <see cref="DxfPlotSettings"/> for a PLOTSETTINGS; else one of no class of its own.
         /// </summary>
         internal static DxfDBObject OfObject(DxfItem item)
         {
@@ -394,7 +395,31 @@ namespace GeometryHelper.Export
                 return kept;
             }
 
-            DxfDBObject made = item.Type == "DICTIONARY" || item.Type == "ACDBDICTIONARYWDFLT" ? new DxfDBDictionary(item) : (DxfDBObject)new DxfUnknownObject(item);
+            DxfDBObject made;
+
+            switch (item.Type)
+            {
+                case "DICTIONARY":
+                case "ACDBDICTIONARYWDFLT":
+                    made = new DxfDBDictionary(item);
+                    break;
+                case "XRECORD":
+                    made = new DxfXrecord(item);
+                    break;
+                case "GROUP":
+                    made = new DxfGroup(item);
+                    break;
+                case "LAYOUT":
+                    made = new DxfLayout(item);
+                    break;
+                case "PLOTSETTINGS":
+                    made = new DxfPlotSettings(item);
+                    break;
+                default:
+                    made = new DxfUnknownObject(item);
+                    break;
+            }
+
             return (DxfDBObject)item.KeepWrapper(made);
         }
 
@@ -521,13 +546,15 @@ namespace GeometryHelper.Export
         /// <summary>
         /// Erases the object from its file, as AutoCAD's <c>Erase</c> does: an entity is taken out of its block with every
         /// record of it, as <see cref="DxfEntity.Erase"/> says; a layer, a linetype or a block nothing uses out of its table, as
-        /// their own <c>Erase</c> says.
+        /// their own <c>Erase</c> says; an XRECORD (<see cref="DxfXrecord"/>) and a GROUP (<see cref="DxfGroup"/>) with the entry
+        /// of the dictionary that names it.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the object is in no file, or is erased.</exception>
-        /// <exception cref="NotSupportedException">Thrown for an object not erased yet: a table, a text style, a dictionary.</exception>
+        /// <exception cref="NotSupportedException">Thrown for an object not erased yet: a table, a text style, a dictionary, a
+        /// layout.</exception>
         public virtual void Erase()
         {
-            throw new NotSupportedException("A " + GetType().Name + " is not erased yet: entities, layers, linetypes and blocks are.");
+            throw new NotSupportedException("A " + GetType().Name + " is not erased yet: entities, layers, linetypes, blocks, XRECORDs and GROUPs are.");
         }
 
         /// <summary>Whether two runs of extended data are the same, group for group, code and text.</summary>

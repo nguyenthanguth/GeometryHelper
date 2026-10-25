@@ -1039,11 +1039,13 @@ namespace GeometryHelper.Export
         /// Moves, turns, scales or mirrors the MTEXT, as AutoCAD's <c>TransformBy</c> does, and as ezdxf's <c>transform()</c>
         /// carries one: its location and direction carried, its angle (50) given up for its direction, its height the stretch of
         /// its upright square to its direction, its width the stretch of its direction, the heights <c>\H</c> of its words scaled
-        /// with it, its normal carried.
+        /// with it, its normal carried. A scale unlike along its direction and its upright stretches its box, as ezdxf stretches
+        /// it; one that leans them is refused, an MTEXT having no lean.
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the transformation flattens the MTEXT.</exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation flattens the MTEXT, or shears it: its direction and
+        /// upright no longer square.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
         private protected override void TransformEntity(GeoTransform3 transform)
         {
@@ -1056,6 +1058,15 @@ namespace GeometryHelper.Export
             if (DxfOcsTransform.IsIdentity(transform))
             {
                 return;
+            }
+
+            // An MTEXT has no lean: a transformation that leans its frame is refused, before anything is written, as a circle
+            // refuses one that makes it an ellipse.
+            GeoVector3 frame = HasDirection() ? Point(11, Origin).ToVector() : Value(50) != null ? Direction : new GeoVector3(1.0, 0.0, 0.0);
+
+            if (DxfOcsTransform.Shears(transform, Normal, frame))
+            {
+                throw new ArgumentException("The transformation shears the MTEXT, which cannot lean: its direction and its upright would no longer be square.", nameof(transform));
             }
 
             // A copy holds the words of its column MTEXTs before it is moved, as it is not moved with them; an MTEXT of a

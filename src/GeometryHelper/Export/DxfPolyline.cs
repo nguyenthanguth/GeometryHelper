@@ -762,7 +762,7 @@ namespace GeometryHelper.Export
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="ArgumentException">Thrown when it takes the plane of the polyline to no plane, or scales it more one
-        /// way than another while the polyline has arcs, which would no longer be arcs.</exception>
+        /// way than another or shears it while the polyline has arcs, which would no longer be arcs.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the polyline is erased.</exception>
         private protected override void TransformEntity(GeoTransform3 transform)
         {

@@ -930,6 +930,48 @@ there, in an XRECORD of groups 310 of 127 bytes each, and `GetBinaryDataForKey` 
 moves the extended data as AutoCAD moves it: a position of the world (1011) moved, a displacement (1012) turned and
 scaled, a direction (1013) turned, a distance (1041) and a scale factor (1042) scaled, a plain point (1010) kept. An entity's `TransformBy` and `GetTransformedCopy` move its extended data so, in the same writing of its record, a POLYLINE that of its vertices and an INSERT that of its attributes; one with none of those groups keeps the bytes of its extended data. `Remove` of an entry erases the dictionaries and records it owns at every depth, and an object erased takes its extension dictionary with everything in it.
 
+The drawing's own dictionaries are objects too: `NamedObjectsDictionary`, and those it names, `GroupDictionary`
+(ACAD_GROUP), `LayoutDictionary` (ACAD_LAYOUT), `MLeaderStyleDictionary`, `TableStyleDictionary` and the others AutoCAD's
+`Database` names by id; null where a drawing has none, as one of R12. `SetAt` adds a `DxfDBDictionary`, a `DxfXrecord` or a
+`DxfGroup` made in code; `TreatElementsAsHard` says whether a dictionary owns its entries hard (280 of 1, its entries named
+by 360), and `CopyTo` copies its entries into an array. An XRECORD is a `DxfXrecord`, its `Data` the groups after its
+cloning flag, the groups 102 of a list among them: `db.NamedObjectsDictionary.SetAt("GH_PLATE", new DxfXrecord { Data =
+new[] { new DxfTypedValue(1, "B-12"), new DxfTypedValue(40, "12.5") } })` keeps a text and a real with the drawing.
+
+A group is a `DxfGroup`, named by its entry of the group dictionary: `db.GroupDictionary.SetAt("BEAMS", new
+DxfGroup("Beams of grid A", true))`, then `group.Append(beam)`, which writes the beam's handle last among the group's (340)
+and the group into the beam's reactors, as AutoCAD writes a member. `Prepend`, `InsertAt`, `Remove`, `RemoveAt`, `Replace`,
+`Reverse`, `Transfer` and `Clear` reorder the members, `GetAllEntityIds` gives them as entities, and `SetColorIndex`,
+`SetLayer` and the other setters of the look set every member at once. A large group is filled by `Append` of a collection, in
+one writing: one at a time is fine for groups as drawings have them (8 000 in half a second), but 32 000 take some 15 seconds.
+A group added under `*` is anonymous, `*A1` the first
+name its dictionary has not. An entity erased leaves its groups at once, and a group left empty is dropped when the drawing
+is saved, as AutoCAD drops it, whatever emptied it: its last member erased, `Clear`, `RemoveAt`, or never given one. A group
+the file was read with empty is kept as it was. An entity copied into another drawing takes with it the records of the
+tables it names that the drawing has not (its layer, linetype, text style, dimension style) and a copy of the block AutoCAD
+names itself it draws by (a dimension's `*D`, a table's `*T`, an INSERT's `*U`), as AutoCAD's deep clone between databases does.
+
+The layouts are `db.Layouts`, `DxfLayout` objects in the order of their tabs: `LayoutName` (set, the layout dictionary's
+entry renamed with it; Model keeps its name), `TabOrder`, `TabSelected` (the layout the drawing opens on), `Limits`,
+`Extents` (empty for a layout never worked out, as ezdxf's 1E+20 above -1E+20 says), `BlockTableRecord` and
+`GetViewports()`, with the plot settings read as AutoCAD's `PlotSettings` has them: a layout of A3 on its side has
+`PlotPaperSize` (420, 297) in millimetres. A viewport is a `DxfViewport`: one 200 by 150 about (150, 100) on the sheet,
+showing model space about (5 000, 3 000) with a `ViewHeight` of 7 500, has `CustomScale` 0.02 and `StandardScale`
+`Scale1To50`; its view, snap, grid, user coordinate system, plot style, shading and lighting are read and set, its layers
+frozen and thawed by `FreezeLayersInViewport` and `ThawLayersInViewport` (331, by handle), and `TransformBy` moves and
+scales it on its sheet, its view kept, a turn refused. A viewport of a file before R2000 keeps its view in its extended data MVIEW, read
+and set there; what those files have not, as the user coordinate system, reads as AutoCAD's default and is refused when set. A
+viewport made in code goes to a layout of paper space, given the next `Number` of the layout; `On = true` turns it on.
+
+A layer's look in a viewport is `layer.GetViewportOverrides(viewport)`, a `DxfLayerViewportProperties` of its colour,
+linetype, lineweight and transparency there, each the override AutoCAD keeps in the layer's extension dictionary
+(ADSK_XREC_LAYER_COLOR_OVR and the three others) else the layer's own; `RemoveAllOverrides()` takes them out. The drawing's
+properties are `db.SummaryInfo`, its DWGPROPS, set as AutoCAD sets them:
+`db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo) { Title = "Plate B-12" }.ToDatabaseSummaryInfo()`. Its
+custom properties are read from the groups 300 to 309 (`name=value`) and from the list after a group 90 (a count, then each
+name and value in two groups 1); they are written in the form the record has, the list where it has one or is made new in a
+drawing of R2004 or later, so that it never holds two sets. Erasing a viewport takes its overrides out of the layers.
+
 A layer has its `Description` and `Transparency`, kept in the extended data of AcAecLayerStandard and AcCmTransparency as
 AutoCAD keeps them, `ViewportVisibilityDefault` (frozen in new viewports, flag 2) and `IsUsed`: layer 0, Defpoints, the
 current layer and any layer an entity is on, those appended in code among them. The first `IsUsed` reads the drawing once

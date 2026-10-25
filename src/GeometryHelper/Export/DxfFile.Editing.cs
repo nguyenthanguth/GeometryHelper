@@ -452,6 +452,8 @@ namespace GeometryHelper.Export
         /// </summary>
         private void Flush()
         {
+            DropEmptyGroups();
+
             if (_removed != null && _removed.Count > _cleaned)
             {
                 Clean();
@@ -1560,12 +1562,16 @@ namespace GeometryHelper.Export
 
         #region Handles and tables
 
-        /// <summary>The handle of a record: its first group 5, or 105 for a DIMSTYLE, read as hexadecimal; false where it has none.</summary>
+        /// <summary>
+        /// The handle of a record: its first group 5, or 105 for a DIMSTYLE, whose 5 is the name of its arrow block in a file of
+        /// R12, read as hexadecimal; false where it has none.
+        /// </summary>
         private static bool HandleOf(Rec record, out ulong handle)
         {
             handle = 0;
             int at = record.Start;
             bool opening = true;
+            int wanted = record.Type == "DIMSTYLE" ? 105 : 5;
 
             while (at < record.End)
             {
@@ -1573,7 +1579,7 @@ namespace GeometryHelper.Export
                 TryCode(record.Bytes, at, codeEnd, out int code);
                 int valueEnd = LineEnd(record.Bytes, valueStart, record.End, out at);
 
-                if (!opening && (code == 5 || code == 105))
+                if (!opening && (code == wanted || (wanted == 5 && code == 105)))
                 {
                     return TryHex(record.Bytes, valueStart, valueEnd, out handle);
                 }

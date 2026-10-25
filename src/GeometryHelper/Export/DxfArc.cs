@@ -559,7 +559,7 @@ namespace GeometryHelper.Export
         /// <param name="transform">The transformation, one that scales the arc's plane alike both ways.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the transformation scales the plane of the arc more one way than the
-        /// other, which would make it a part of an ellipse, as AutoCAD refuses one, or flattens it.</exception>
+        /// other or shears it, which would make it a part of an ellipse, as AutoCAD refuses one, or flattens it.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the arc is erased.</exception>
         private protected override void TransformEntity(GeoTransform3 transform)
         {

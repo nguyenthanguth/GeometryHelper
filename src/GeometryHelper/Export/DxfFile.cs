@@ -557,7 +557,7 @@ namespace GeometryHelper.Export
 
             while (walk.Next(out int code, out int start, out int end))
             {
-                if ((code == 5 || code == 8 || code == 6 || code == 39 || code == 62 || code == 370 || code == 420) && !values.ContainsKey(code))
+                if ((code == 5 || code == 105 || code == 8 || code == 6 || code == 39 || code == 62 || code == 370 || code == 420) && !values.ContainsKey(code))
                 {
                     values.Add(code, Text(record, start, end));
                 }
@@ -567,7 +567,8 @@ namespace GeometryHelper.Export
 
             int? Whole(int code) => values.TryGetValue(code, out string value) && int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : (int?)null;
 
-            string handle = Value(5)?.Trim();
+            // A DIMSTYLE gives its handle as 105: its 5 is the name of its arrow block in a file of R12.
+            string handle = (record.Type == "DIMSTYLE" ? Value(105) : Value(5))?.Trim();
             double thickness = values.TryGetValue(39, out string raised) && Numbers.TryRead(raised, out double read) && Guard.IsFinite(read) ? read : 0.0;
 
             return new Look

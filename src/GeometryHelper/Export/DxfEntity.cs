@@ -523,11 +523,12 @@ namespace GeometryHelper.Export
         /// shapes of <see cref="GetGeometry"/> reach as <see cref="DxfWriter"/> writes them, its thickness not counted. An
         /// INSERT's are those of what it places; one whose block would place more than
         /// <see cref="DxfReadOptions.MaxPlacedEntities"/> by its default, 2 000 000 entities, places nothing, as the reader leaves
-        /// it, and so has no extents, as an INSERT of a block the drawing does not define has none.
+        /// it, and so has no extents, as an INSERT of a block the drawing does not define has none. A class of a type the reader
+        /// gives no shapes for gives its own, as a HATCH the box of its loops.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the entity has no shape the library reads, as AutoCAD throws
-        /// for an entity with no extents: a HATCH, a LINE of no length, an INSERT that places nothing.</exception>
-        public GeoAabb3 GeometricExtents
+        /// for an entity with no extents: an IMAGE, a LINE of no length, an INSERT that places nothing.</exception>
+        public virtual GeoAabb3 GeometricExtents
         {
             get
             {
@@ -764,12 +765,13 @@ namespace GeometryHelper.Export
         /// all of it lies in that, as a circle, an arc, a polyline or a text does; else the plane its shapes span, as a 3DFACE's
         /// or a SPLINE's. An entity along one line, as a LINE, lies in the plane through it whose normal is nearest its
         /// extrusion, the extrusion itself where the line runs across it; a point, in the plane of its extrusion. Points and planes are compared to
-        /// <see cref="Tolerance.Default"/>.
+        /// <see cref="Tolerance.Default"/>. A class of a type the reader gives no shapes for gives its own, as a HATCH the plane of
+        /// its extrusion.
         /// </summary>
         /// <returns>The plane, its origin the entity's first point.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the entity does not lie in one plane, as AutoCAD answers
         /// eNotPlanar, or has no shape the library reads.</exception>
-        public GeoPlane3 GetPlane()
+        public virtual GeoPlane3 GetPlane()
         {
             if (!TryGetPlane(out GeoPlane3 plane))
             {

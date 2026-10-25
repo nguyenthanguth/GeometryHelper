@@ -76,6 +76,18 @@ namespace GeometryHelper.Export
         /// <summary>Reads the table as the drawing is opened, so that model space and paper space stand for their records from the first.</summary>
         internal void Load() => Read();
 
+        /// <summary>A block the file added itself, as one copied with an entity of another drawing, of the table from then on.</summary>
+        internal void Adopted(DxfFileBlock block, DxfItem record)
+        {
+            if (_records == null)
+            {
+                Read();
+                return;
+            }
+
+            _records.Add(new DxfBlockTableRecord(_database.File, record, block));
+        }
+
         /// <summary>A block erased, no longer of the table.</summary>
         internal void Forget(DxfBlockTableRecord block) => Read().Remove(block);
 
@@ -1046,8 +1058,12 @@ namespace GeometryHelper.Export
         /// has its pointers taken to this drawing as AutoCAD's deep clone between databases takes them: a material, plot style
         /// or visual style to the one of the same dictionary and entry names, a record of a table to the one of its name; a
         /// pointer to an object this drawing has no namesake of is left out, so that its default holds, and a handle of
-        /// extended data (1005) is left out, as AutoCAD's mapping leaves it null. A copy appended to its own drawing keeps its
-        /// pointers. The extents of the header are not grown by what is appended to a block.
+        /// extended data (1005) is left out, as AutoCAD's mapping leaves it null, but for the records the overrides of a dimension
+        /// style name (ACAD DSTYLE), which name those of the same name here. The records of the tables a copy names that this
+        /// drawing has not (its layers, linetypes, text styles and dimension styles, and their arrow blocks) are copied with it by
+        /// name, and a block AutoCAD names itself it draws by (a dimension's <c>*D</c>, an INSERT's <c>*U</c>) under a name of its
+        /// own, as AutoCAD's deep clone does. A copy appended to its own drawing keeps its pointers. The extents of the header are
+        /// not grown by what is appended to a block.
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the entity is null.</exception>

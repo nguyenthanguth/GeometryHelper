@@ -429,7 +429,8 @@ namespace GeometryHelper.Export
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the transformation flattens the plane of the text.</exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation flattens the plane of the text, or shears an attribute
+        /// of several lines, whose MTEXT cannot lean.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
         private protected override void TransformEntity(GeoTransform3 transform)
         {
@@ -477,7 +478,8 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// Refuses a text style the file of the block has not; and leaves out the embedded MTEXT (101) of an attribute added to
+        /// Refuses a text style the file of the block has not, unless the entity is a copy of another drawing that has it, which
+        /// is copied with it; and leaves out the embedded MTEXT (101) of an attribute added to
         /// a drawing older than R2018, which has no such object, its text's part keeping its first line.
         /// </summary>
         internal override void Appending(DxfBlockTableRecord owner)
@@ -502,6 +504,12 @@ namespace GeometryHelper.Export
                 {
                     return;
                 }
+            }
+
+            // A copy of another drawing takes the style with it where that drawing has it, as AutoCAD's deep clone does.
+            if (owner.File.CopiesRecordFrom(Item.File.Origin, "STYLE", name))
+            {
+                return;
             }
 
             throw new ArgumentException("The text style " + name + " is not in the file's text style table.", "entity");
@@ -974,6 +982,12 @@ namespace GeometryHelper.Export
             else
             {
                 direction = new GeoVector3(1.0, 0.0, 0.0);
+            }
+
+            // The MTEXT of a multiline attribute has no lean: one that would lean it is refused, before anything is written.
+            if (DxfOcsTransform.Shears(transform, extrusion, direction))
+            {
+                throw new ArgumentException("The transformation shears the attribute's lines of MTEXT, which cannot lean.", nameof(transform));
             }
 
             GeoVector3 insert = Vector(10, new GeoVector3(0.0, 0.0, 0.0));

@@ -24,7 +24,7 @@ namespace GeometryHelper.Export
             GeoVector3 y = m.Transform(_old.ToWorld(new GeoVector3(0.0, 1.0, 0.0)));
             double xx = x.DotProduct(x);
             double yy = y.DotProduct(y);
-            ScaleUniform = Math.Abs(xx - yy) <= Math.Max(1E-9 * Math.Max(Math.Abs(xx), Math.Abs(yy)), 1E-9);
+            ScaleUniform = IsUniform(x, y);
             GeoVector3 z = Cross(x, y);
             double length = z.Length;
 
@@ -50,8 +50,36 @@ namespace GeometryHelper.Export
         /// <summary>The extrusion of the new system, of unit length.</summary>
         internal GeoVector3 NewExtrusion { get; }
 
-        /// <summary>Whether the plane of the system is scaled alike along its x and y, within 1E-9.</summary>
+        /// <summary>
+        /// Whether the plane of the system is scaled alike along its x and y, within 1E-9, and its axes stay square, to
+        /// <see cref="Tolerance.Default"/>: a shear whose axes come out of one length, as S(2, 1) R(45°), is not.
+        /// </summary>
         internal bool ScaleUniform { get; }
+
+        /// <summary>
+        /// Whether a transformation leans the frame of a text: the images of its direction and of its upright (the normal crossed
+        /// with the direction) no longer square, the cosine of the angle between them beyond <see cref="Tolerance.EqualVector"/>
+        /// of <see cref="Tolerance.Default"/>. An MTEXT, which has no lean, cannot carry it.
+        /// </summary>
+        internal static bool Shears(GeoTransform3 m, GeoVector3 normal, GeoVector3 direction)
+        {
+            GeoVector3 along = m.Transform(direction);
+            GeoVector3 up = m.Transform(Cross(normal, direction));
+            return !(Math.Abs(along.DotProduct(up)) <= Tolerance.Default.EqualVector * along.Length * up.Length);
+        }
+
+        /// <summary>
+        /// Whether two images of the axes of a plane make it a plane scaled alike: of one length, within 1E-9 of their squares as
+        /// ezdxf compares them, and square, the cosine of the angle between them within <see cref="Tolerance.EqualVector"/> of
+        /// <see cref="Tolerance.Default"/>.
+        /// </summary>
+        internal static bool IsUniform(GeoVector3 x, GeoVector3 y)
+        {
+            double xx = x.DotProduct(x);
+            double yy = y.DotProduct(y);
+            return Math.Abs(xx - yy) <= Math.Max(1E-9 * Math.Max(Math.Abs(xx), Math.Abs(yy)), 1E-9)
+                && Math.Abs(x.DotProduct(y)) <= Tolerance.Default.EqualVector * Math.Sqrt(xx * yy);
+        }
 
         /// <summary>A point of the old system in the new.</summary>
         internal GeoPoint3 TransformVertex(GeoPoint3 point)
