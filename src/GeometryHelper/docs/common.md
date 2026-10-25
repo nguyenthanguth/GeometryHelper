@@ -781,7 +781,7 @@ and a change to it is written at once.
 What is kept is everything: the version, R12 (AC1009) to R2018 (AC1032); the line ends, a carriage return and a line
 feed, a line feed alone, or both in one file; the group codes padded to three places or not; the mark of UTF-8 or none;
 the text in the code page of a file before R2007 and in UTF-8 after, byte for byte; comments (999); the sections, tables,
-objects and entities the library does not read (CLASSES, OBJECTS, LAYOUT, DICTIONARY, HATCH, DIMENSION, IMAGE and the
+objects and entities the library does not read (CLASSES, OBJECTS, LAYOUT, DICTIONARY, DIMENSION, IMAGE and the
 rest); extended data, reactors and extension dictionaries; and whatever follows the EOF. A file `DxfReader` refuses is
 refused the same way, with the same message.
 
@@ -794,7 +794,7 @@ opened, with their handles and extended data. Every entity has AutoCAD's `Layer`
 `Linetype`, `LinetypeScale`, `LineWeight` and `Visible`, its `Handle`, `OwnerHandle`, `XData` and
 `ExtensionDictionary`, its `Owner` and `BlockName`, `GetGeometry()`, the library's shapes for it as `DxfReader` reads it,
 and `TransformBy`, which every class of entity has but `DxfUnknownEntity`: the geometry of a type the library keeps as the
-file has it is not changed, and a HATCH refuses to be moved. A true colour's `Color` carries the index nearest it, orange
+file has it is not changed, and an IMAGE refuses to be moved. A true colour's `Color` carries the index nearest it, orange
 (0xFF8000) the index 30, and is written with it. A curve is a `DxfCurve`, walked as AutoCAD walks one; the line from
 (0, 0, 0) to (30, 40, 0) is 50 long, its parameter the distance from its start. A property given the value it has changes
 nothing, to the byte.
@@ -907,6 +907,38 @@ is the height of the columns in the extended data of ACAD. A SPLINE is a `DxfSpl
 `Degree`, `ControlPoints`, knots and weights; a 3DFACE a `DxfFace` (`GetVertexAt`, `IsEdgeVisibleAt`), a SOLID a
 `DxfSolid` (`GetPointAt`), and the meshes a `DxfPolyFaceMesh` and a `DxfPolygonMesh`, whose vertices and face records are
 walked as their polyline's are.
+
+A HATCH is a `DxfHatch`. Its loops are given in the world as the library's shapes: `hatch.GetLoopAt(0).Polyline` is the
+`GeoPolygonArc3` of a loop of a polyline, and `Curves` the lines, arcs, circles, ellipses and splines of a loop of edges,
+each running the way the loop runs, a part of an ellipse as the `GeoSpline3` that is exactly it. `AppendLoop(new
+DxfHatchLoop(DxfHatchLoopTypes.External, square))` adds one from shapes in the hatch's plane, and `AppendLoop(type, points,
+bulges)` one of AutoCAD's vertices and bulges in the plane's own system; a loop read from a hatch is written back as it was
+read. A change to the loops of an associative hatch takes its association away with the handles of its boundary objects,
+and takes the hatch out of their reactors, as AutoCAD's does. A loop is spliced into the bytes of the record, so that three
+thousand islands appended one at a time take half a second. `Area` is exact on arcs, ellipses and splines, the islands taken
+off as `HatchStyle` says: a square 30 by 20 round a circle of radius 5 fills 521.46, and a loop given twice counts as the
+even-odd rule counts it, a square given twice filling nothing. `GetPlane()` is the plane of its normal at its elevation and
+`GeometricExtents` the box of its loops. A hatch copied into a drawing of another version is written as that version writes
+it, the count of fit points of a spline edge as the version has it and a gradient dropped before R2004, as AutoCAD's SAVEAS
+drops it. `SetHatchPattern(DxfHatchPatternType.PreDefined, "SOLID")` fills it solid;
+`PatternScale` and `PatternAngle` scale and turn the lines of its pattern with them (`GetPatternDefinitionAt`), a pattern
+made by the user (`_USER`, `PatternSpace`, `PatternDouble`) is given its lines as AutoCAD makes them, and the lines of a
+pattern of AutoCAD's own file the drawing does not hold are AutoCAD's to give: they are not in the library. `SetGradient`
+fills it with one of AutoCAD's gradients from R2004, its colours `DxfGradientColor`s. What a pattern draws is worked out by
+AutoCAD (`EvaluateHatch`), not here.
+
+A LEADER is a `DxfLeader`, a curve through its vertices (`AppendVertex`, `SetVertexAt`, `VertexAt`) that points to its
+`Annotation`, an MTEXT, a TOLERANCE or an INSERT of the drawing, which lists the leader among its reactors, as AutoCAD keeps
+it; `Dimasz`, `Dimgap`, `Dimclrd` and the other overrides read
+the extended data of ACAD (`DSTYLE`) where the leader has them and its dimension style where it has not, and are written
+there as AutoCAD writes them: `leader.Dimasz = 3.5` writes `1070 41, 1040 3.5`. A MULTILEADER is a `DxfMLeader`: its
+words (`MText`, `TextLocation`, `TextHeight`) or block (`BlockContent`, `BlockPosition`, `BlockScale`, `BlockRotation`,
+`SetBlockAttribute`), its look, and its leaders and their lines by AutoCAD's indices. A line's last vertex is the point its
+leader's dogleg starts at, which every line of the leader ends at: `mleader.GetLastVertex(0)` is that point, and
+`SetLastVertex` moves it for them all. A property set is written in the MULTILEADER and in its context data, where AutoCAD
+keeps both, and sets its bit of the overrides of the multileader style. Where the leaders meet the words is worked out by
+AutoCAD when it draws the MULTILEADER, and is not worked out here, nor is the size of its words in its `GeometricExtents`,
+the box of its lines' vertices and the point of its words or block.
 
 Every entity has AutoCAD's `Transparency`, group 440, as a `DxfTransparency`: BYLAYER where the record gives none, BYBLOCK,
 or an alpha from 0, clear, to 255, solid, `new DxfTransparency(127)` the 50 per cent of AutoCAD's dialog, written

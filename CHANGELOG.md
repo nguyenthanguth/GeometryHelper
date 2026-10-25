@@ -272,6 +272,51 @@ which was taken for a scale alike and left a circle a circle (a circle of radius
 handle of a DIMSTYLE is read from its group 105, as its 5 is the arrow block of R12, and a DIMSTYLE added is given one so.
 `DxfEntity.GetPlane` and `GeometricExtents` are virtual, for the classes of types the reader gives no shapes for.
 
+**NEW.** `DxfHatch`, `DxfLeader` and `DxfMLeader`, AutoCAD's `Hatch`, `Leader` and `MLeader`, read and edited with
+AutoCAD's members. A HATCH has its pattern (`PatternName`, `PatternType`, `PatternScale`, `PatternAngle`,
+`PatternSpace`, `PatternDouble`, `SetHatchPattern`, its lines by `GetPatternDefinitionAt` as the new
+`DxfPatternDefinition`, scaled and turned with the pattern as ezdxf scales them, a pattern made by the user given its
+lines as AutoCAD makes them), `IsSolidFill`, `HatchStyle`, `Elevation`, `Normal`, its gradient (`SetGradient`,
+`GradientName`, `GradientAngle`, `GradientShift`, `ShadeTintValue`, `GradientOneColorMode`, `GetGradientColors` and
+`SetGradientColors` as the new `DxfGradientColor`, from R2004), `BackgroundColor`, its seed points, and its loops:
+`GetLoopAt` gives each as the new `DxfHatchLoop` of the library's shapes in the world, a polyline as a `GeoPolygonArc3`,
+an edge as a `GeoLine3`, `GeoArc3`, `GeoCircle3`, `GeoEllipse3`, or the `GeoSpline3` that is exactly a part of an
+ellipse or the spline it is, clockwise ones running clockwise; `AppendLoop`, `InsertLoopAt` and `RemoveLoopAt` change
+them, a loop read written back as it was read, and an associative hatch is so no longer once they change, its boundary
+handles taken out (`Associative`, `GetAssociatedObjects`, `RemoveAssociatedObjects`). `Area` is worked out exactly on
+the loops' own pieces and nested as the style says: a square 30 by 20 round a circle of radius 5 fills 521.46, an island
+touching the outer loop taken off as one inside it, a loop given twice counted as the even-odd rule counts it, and a
+thousand islands read in a fraction of a second. A loop is spliced into the bytes of the record, so that three thousand
+islands appended one at a time take half a second, not 24, and a HATCH copied into a drawing of another version is
+written as that version writes it, its gradient dropped before R2004 as AutoCAD's SAVEAS drops it. A hatch whose
+association is taken away is taken out of the reactors of its boundary objects, and a leader is put among those of its
+annotation, as AutoCAD keeps them; `GetPlane` and `GeometricExtents` give each its plane and the box of its loops,
+vertices or points. A LEADER has its vertices (`AppendVertex`, `SetVertexAt`, `VertexAt`, `RemoveLastVertex`),
+`HasArrowHead`, `IsSplined`, `HasHookLine`, `Annotation` (the MTEXT, TOLERANCE or INSERT it points to),
+`AnnotationOffset`, `DimensionStyleName`, and the overrides `Dimasz`, `Dimclrd`, `Dimgap`, `Dimldrblk`, `Dimlwd`,
+`Dimsah`, `Dimscale`, `Dimtad` and `Dimtxt`, read from its extended data of ACAD (DSTYLE), else from its dimension
+style, and written there as AutoCAD writes them; a straight leader is walked as a curve by its vertex index. A
+MULTILEADER has its content (`ContentType`, `MText` as a `DxfMText`, `TextLocation`, `TextHeight`, `BlockContent`,
+`BlockPosition`, `BlockScale`, `BlockRotation`, `GetBlockAttribute`, `SetBlockAttribute`), its look (`ArrowSize`,
+`ArrowSymbol`, `DoglegLength`, `LandingGap`, `EnableLanding`, `EnableDogleg`, the colours, types and attachments of its
+lines and words, `MLeaderStyle` by name, `Scale`), its leaders and lines by AutoCAD's indices (`AddLeader`,
+`AddLeaderLine`, `RemoveLeader`, `RemoveLeaderLine`, `VerticesCount`, `GetVertex`, `SetVertex`, `AddFirstVertex` and the
+rest, the last vertex of a line the point its leader's dogleg starts at) and `MoveMLeader`, each property set written in
+the MULTILEADER and its context data as AutoCAD keeps them, the bit of the overrides of its style set. Each is made in
+code (`new DxfHatch()`, `new DxfLeader()`, `new DxfMLeader()`, which takes the drawing's multileader style when it is
+appended) and refused in a file of R12, and is moved by `TransformBy` as ezdxf's `transform()` moves it, a hatch's seed
+points and gradient and a leader's offsets past ezdxf; a hatch scaled unlike along its axes has its arcs made ellipse
+edges, as ezdxf makes them, and so has one sheared, which ezdxf leaves circles, and a multileader so scaled or sheared
+is refused, as AutoCAD refuses it. A leader of fewer than two vertices is refused by `AppendEntity`, as AutoCAD refuses
+one. What AutoCAD works out when it draws them, the lines of a pattern (`EvaluateHatch`), a leader anew
+(`EvaluateLeader`), where a multileader's leaders meet its words, is not worked out. Every edit was read back by ezdxf,
+whose recover and audit found nothing to fix.
+
+**CHANGED.** A HATCH, a LEADER and a MULTILEADER are a `DxfHatch`, a `DxfLeader` and a `DxfMLeader`, no longer a
+`DxfUnknownEntity`: `TransformBy` moves them where it refused, and `DxfBlockReference.Explode` gives them, placed as the
+rest of the block are, where it left them out; a MULTILEADER under an INSERT that scales it unlike along its axes, or
+shears it, is left out still, as it cannot hold that placing.
+
 **FIXED.** A copy of an INSERT in no file, `Clone()` or `GetTransformedCopy` of it, placed its block as the file was read,
 not as it was edited since: a block given a line and a circle of a new radius showed neither in the copy's `GetGeometry`.
 It now keeps to its block when the block is renamed in the drawing it came from, as AutoCAD's keeps its id, is appended

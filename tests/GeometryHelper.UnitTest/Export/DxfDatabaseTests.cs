@@ -118,7 +118,8 @@ namespace GeometryHelper.UnitTest.Export
 
             Assert.Equal(first, db.ModelSpace.ToList());
             Assert.IsType<DxfLine>(first[0]);
-            Assert.Equal("HATCH", Assert.IsType<DxfUnknownEntity>(first.Single(e => e.Handle == "74")).DxfName);
+            Assert.IsType<DxfHatch>(first.Single(e => e.Handle == "74"));
+            Assert.Equal("IMAGE", Assert.IsType<DxfUnknownEntity>(first.Single(e => e.Handle == "8E")).DxfName);
             Assert.All(first, e => Assert.Same(db.ModelSpace, e.Owner));
             Assert.Equal(read.Shapes.Count(s => s.Type != "INSERT"), first.Where(e => e.Item.Type != "INSERT").Sum(e => e.GetGeometry().Count));
         }
@@ -408,9 +409,9 @@ namespace GeometryHelper.UnitTest.Export
         {
             string text = DxfFileEzdxfDrawings.R2000;
             DxfDatabase db = DxfDatabase.Parse(text);
-            var hatch = (DxfUnknownEntity)db.ModelSpace.Single(e => e.Handle == "74");
+            var hatch = (DxfUnknownEntity)db.ModelSpace.Single(e => e.Handle == "8E");
 
-            Assert.Equal("HATCH", hatch.DxfName);
+            Assert.Equal("IMAGE", hatch.DxfName);
             Assert.Equal(hatch.Groups.Count, hatch.Groups.Count);
             Assert.Empty(hatch.GetGeometry());
             Assert.Throws<NotSupportedException>(() => hatch.TransformBy(GeoTransform3.Translation(new GeoVector3(1, 0, 0))));
@@ -420,8 +421,8 @@ namespace GeometryHelper.UnitTest.Export
             hatch.ColorIndex = 2;
             hatch.Visible = false;
             hatch.LinetypeScale = 2.0;
-            OnlyTheseChanged(text, db.ToText(), "74");
-            DxfUnknownEntity again = (DxfUnknownEntity)DxfDatabase.Parse(db.ToText()).ModelSpace.Single(e => e.Handle == "74");
+            OnlyTheseChanged(text, db.ToText(), "8E");
+            DxfUnknownEntity again = (DxfUnknownEntity)DxfDatabase.Parse(db.ToText()).ModelSpace.Single(e => e.Handle == "8E");
             Assert.Equal(2, again.ColorIndex);
             Assert.False(again.Visible);
             Assert.Equal(2.0, again.LinetypeScale);

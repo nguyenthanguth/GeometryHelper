@@ -45,7 +45,7 @@ namespace GeometryHelper.UnitTest.Export
         [Fact]
         public void EveryEntityOfALaterDrawing_IsWrittenInTheFormsOfR12_AndReadsBackTheSame()
         {
-            string[] laterOnly = { "DxfEllipse", "DxfMText", "DxfPolyline", "DxfRay", "DxfSpline", "DxfUnknownEntity", "DxfXline" };
+            string[] laterOnly = { "DxfEllipse", "DxfHatch", "DxfLeader", "DxfMLeader", "DxfMText", "DxfPolyline", "DxfRay", "DxfSpline", "DxfUnknownEntity", "DxfXline" };
 
             foreach (string later in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
             {
@@ -364,7 +364,7 @@ namespace GeometryHelper.UnitTest.Export
         public void AnUnknownEntity_IsClonedAsItIs_AndCopiedByTheIdentity()
         {
             DxfDatabase source = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
-            DxfUnknownEntity hatch = source.ModelSpace.OfType<DxfUnknownEntity>().First(u => u.DxfName == "HATCH");
+            DxfUnknownEntity hatch = source.ModelSpace.OfType<DxfUnknownEntity>().First(u => u.DxfName == "IMAGE");
             DxfDatabase target = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
 
             var clone = Assert.IsType<DxfUnknownEntity>(hatch.Clone());
@@ -374,7 +374,7 @@ namespace GeometryHelper.UnitTest.Export
             target.ModelSpace.AppendEntity(copy);
 
             DxfDatabase reopened = DxfDatabase.Parse(target.ToText());
-            Assert.Equal("HATCH", Assert.IsType<DxfUnknownEntity>(reopened.ModelSpace.Single(e => e.Handle == clone.Handle)).DxfName);
+            Assert.Equal("IMAGE", Assert.IsType<DxfUnknownEntity>(reopened.ModelSpace.Single(e => e.Handle == clone.Handle)).DxfName);
             Assert.Equal(hatch.GetGeometry().Count, reopened.ModelSpace.Single(e => e.Handle == copy.Handle).GetGeometry().Count);
         }
 

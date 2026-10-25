@@ -576,7 +576,8 @@ namespace GeometryHelper.Export
         /// <see cref="DxfWriter"/> writes them, an ELLIPSE for that circle, with its look; nothing nested is placed for it. An
         /// INSERT in the block that cannot hold the placing, one turned in its block under a scale unlike along the world's
         /// axes, is exploded in its turn and its parts placed, so that what is drawn stays where it was. A type the library
-        /// neither moves nor reads, as a HATCH, is left out.
+        /// neither moves nor reads, as an IMAGE, is left out, and so is a MULTILEADER under a placing that scales it unlike along
+        /// its axes or shears it, which it does not hold.
         /// </para>
         /// <para>
         /// The entities are made in a drawing of R2018: an ELLIPSE or a SPLINE that a circle or an arc comes out as under a scale
