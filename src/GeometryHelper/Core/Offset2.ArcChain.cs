@@ -99,7 +99,12 @@ namespace GeometryHelper.Core
         /// the edge after it leaves to the other: the loop from the origin to (10, 0), up to (10, 10) by an arc of bulge 0.2,
         /// back to (5, 0) and on to (3, -6) by an arc of bulge -0.2 crosses itself at (5, 0), and grown by 0.5 with round
         /// joins is one loop of 74.484 (the straight path 74.483), shrunk by 0.5 two of 21.342 and 10.017. A vertex that
-        /// touches an edge with both its own edges on one side of it, or a hair off it, does not cross it.
+        /// touches an edge with both its own edges on one side of it, or a hair off it, does not cross it. A spike the loop
+        /// runs out to and straight back from, between two straight edges whose far ends lie within the point tolerance of
+        /// each other, is dropped first, as the straight offsets drop it, the two ends of its foot one corner: the square 10
+        /// by 10 with a needle 0.0005 wide at its foot and 6 tall on its top, grown by 0.3 at a tolerance of 0.001, is the
+        /// square grown, 112.283 with round joins, as the straight path gives it; it kept a strip 0.6 wide about the needle,
+        /// 115.845.
         /// A region shrunk with miter corners can lose a small island that a miter wedge covers: the offset arcs run on round their
         /// own circles and are cut square at the miter limit times the distance, and what lies inside that wedge is not left. A loop of
         /// five vertices shrunk by 1 with the default limit of 10 has two loops where round corners give three, the
@@ -145,6 +150,8 @@ namespace GeometryHelper.Core
             // caller having to know it.
             double sideways = loop.IsClockwise ? distance : -distance;
             List<GeoEdge2> edges = ArcChain2.EdgesOf(loop);
+
+            DropSpikes(edges, tolerance);
 
             // A loop that crosses itself is read even-odd, as the straight offsets read one: cut at its crossings into the
             // simple loops they make, each running with the region on its left, which is then moved to its right whatever
@@ -323,6 +330,56 @@ namespace GeometryHelper.Core
             }
 
             return results.ToArray();
+        }
+
+        /// <summary>
+        /// Drops each corner a loop runs out to and straight back from, between two straight edges whose far ends lie within
+        /// the point tolerance of each other, and the far end of the second with it, the edge after it starting where the
+        /// first began, as the straight offsets drop them.
+        /// </summary>
+        /// <remarks>
+        /// Such a spike is narrower than the tolerance where it leaves the loop and encloses nothing at it, and the straight
+        /// path reads the loop without it, the two ends of its foot one corner. Offset as drawn, the square 10 by 10 with a
+        /// needle 0.0005 wide at its foot and 6 tall on its top, grown by 0.3 with round joins, kept a strip 0.6 wide about
+        /// the needle, 115.85 where the straight path gives 112.28; with the needle dropped and its foot left an edge
+        /// 0.0004 long, the triangle (0, 0), (10, 0), (5, 10) with such a needle on its top, grown by 0.3 with miters, had
+        /// two corners there, 60.1989 where the triangle grown is 60.1795. A spike left behind by the one dropped goes too:
+        /// the square with a needle 0.0006 wide at its foot that narrows to 0.0001 three up and runs on to a tip, grown by
+        /// 0.3 with round joins, is the square grown, 112.283, where the straight path, which drops the tip only, keeps the
+        /// rest, 114.045. A loop is left at least three edges.
+        /// </remarks>
+        private static void DropSpikes(List<GeoEdge2> edges, Tolerance tolerance)
+        {
+            for (int i = 0; i < edges.Count && edges.Count > 3;)
+            {
+                int next = (i + 1) % edges.Count;
+                GeoEdge2 into = edges[i];
+                GeoEdge2 outOf = edges[next];
+
+                if (into.IsArc || outOf.IsArc || into.StartPoint.DistanceTo(outOf.EndPoint) > tolerance.EqualPoint)
+                {
+                    i++;
+                    continue;
+                }
+
+                if (edges.Count > 4)
+                {
+                    // The foot's far end goes too: the edge after the spike starts where the spike began.
+                    int after = (next + 1) % edges.Count;
+
+                    edges[after] = new GeoEdge2(into.StartPoint, edges[after].EndPoint, edges[after].Bulge);
+                    edges.RemoveAt(Math.Max(i, next));
+                    edges.RemoveAt(Math.Min(i, next));
+                }
+                else
+                {
+                    edges[i] = new GeoEdge2(into.StartPoint, outOf.EndPoint);
+                    edges.RemoveAt(next);
+                }
+
+                // Dropping a spike can leave another behind it.
+                i = 0;
+            }
         }
 
         /// <summary>

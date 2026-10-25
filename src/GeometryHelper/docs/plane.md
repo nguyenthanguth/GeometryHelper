@@ -787,6 +787,12 @@ before it comes from one side of that edge and the edge after it leaves to the o
 at (5, 0), and grown by 0.5 with round joins is one loop of 74.484 (the straight path 74.483), shrunk by 0.5 two of 21.342
 and 10.017, the same when the vertex is 0.0005 above or below the edge. A vertex that touches an edge with both its own
 edges on one side of it does not cross it.
+A spike the loop runs out to and straight back from, between two straight edges whose far ends lie within the point
+tolerance of each other, is dropped first, as the straight offsets drop it, the two ends of its foot one corner: the
+square 10 by 10 with a needle 0.0005 wide at its foot and 6 tall on its top, grown by 0.3 at a tolerance of 0.001, is the
+square grown, 112.283 with round joins, 112.360 mitered and 112.298 chamfered, as the straight path gives them, where it
+kept a strip 0.6 wide about the needle; the triangle (0, 0), (10, 0), (5, 10) with such a needle on its top is the
+triangle grown, 60.179 mitered. A spike whose sides are arcs is offset as drawn.
 A region shrunk with miter corners can lose a small island that a miter wedge covers: the offset arcs run on round their own
 circles and are cut square at the miter limit times the distance, and what lies inside that wedge is not left. A loop of five
 vertices shrunk by 1 with the default limit of 10 has two loops where round corners give three, the third of 0.203 lying

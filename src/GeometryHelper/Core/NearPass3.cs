@@ -182,6 +182,12 @@ namespace GeometryHelper.Core
             /// <summary>Gets whether the curve is the whole ellipse or circle, so that its gap is read from its foot.</summary>
             internal bool Whole { get; }
 
+            /// <summary>Gets the angle an arc starts at in the curve's frame; nought for a whole ellipse or circle.</summary>
+            internal double From { get; private set; }
+
+            /// <summary>Gets the angle an arc sweeps, negative for clockwise; nought for a whole ellipse or circle.</summary>
+            internal double Sweep { get; private set; }
+
             internal GeoPlane3 Plane { get; }
 
             internal GeoVector3 Normal { get; }
@@ -227,7 +233,11 @@ namespace GeometryHelper.Core
 
                         return reach > 0.0 ? new GeoPoint2(point.X * radius / reach, point.Y * radius / reach) : new GeoPoint2(radius, 0.0);
                     },
-                    Math.Abs(arc.SweptAngle) >= 2.0 * Math.PI);
+                    Math.Abs(arc.SweptAngle) >= 2.0 * Math.PI)
+                {
+                    From = arc.StartAngle,
+                    Sweep = arc.SweptAngle,
+                };
             }
         }
 
@@ -300,9 +310,14 @@ namespace GeometryHelper.Core
                 stretches.Add(new[] { phase - outer, phase - inner });
             }
 
+            // Whether the one stretch is a whole turn of a closed rim, said here rather than read off its ends: from the
+            // phase 2.0169641759523502, the phase plus a turn less the phase measures a hair short of a turn.
+            bool round = inner == 0.0 && outer == Math.PI;
+
             if (Math.Abs(rim.Sweep) < 2.0 * Math.PI)
             {
                 stretches = Swept(stretches, rim.From, rim.Sweep);
+                round = false;
             }
 
             double limit = tolerance.EqualPoint;
@@ -323,7 +338,7 @@ namespace GeometryHelper.Core
                 }
 
                 // Each run of the rim within the tolerance of the other is one place, where the gap along it is least.
-                foreach (Run run in search.Runs(from, to))
+                foreach (Run run in search.Runs(from, to, round))
                 {
                     double angle = run.LeastAt;
                     double least = run.Least;
@@ -341,7 +356,7 @@ namespace GeometryHelper.Core
 
                     if (least <= limit && !Named(found, rim, run, tolerance))
                     {
-                        AddPlace(found, rim, target, rim.At(angle), tolerance);
+                        AddPlace(found, rim, target, rim.At(angle), search, tolerance);
                     }
                 }
             }
@@ -357,6 +372,9 @@ namespace GeometryHelper.Core
             internal double To;
             internal double LeastAt;
             internal double Least;
+
+            /// <summary>Whether the run was parted from others of its group, its ends readings close beside it.</summary>
+            internal bool Parted;
         }
 
         /// <summary>
@@ -380,7 +398,8 @@ namespace GeometryHelper.Core
         /// <para>
         /// The stretch is read every 64th of a turn first, then the piece with the least bound is halved first. A piece proved
         /// further than the tolerance is passed over. A piece with an end within the tolerance is halved only to a 64th of a
-        /// turn: there the two run along each other, and a run of such pieces is one place. Any other piece is halved until
+        /// turn: there the two run along each other, and a run of such pieces is one place, unless halved further it holds
+        /// two runs the gap rises above the tolerance between (<see cref="Split"/>). Any other piece is halved until
         /// the rim runs no more than twice the tolerance along it, and is then kept: at 64 tolerances, a rim crossing a needle
         /// 0.03 across held both its sides in one piece, and the touch was missed. So nothing is passed over that is not
         /// proved clear. Halving stops after 384 readings in a call, and what is left is kept too. Of 400 pairs drawn to graze
@@ -407,6 +426,7 @@ namespace GeometryHelper.Core
             private readonly double _limit;
             private readonly double _near;
             private readonly double _resolution;
+            private readonly double _offset;
 
             // The rim's foot on the other's plane, in the other's frame: along = u0 + uc cos t + us sin t, and across alike.
             private readonly double _uc;
@@ -414,6 +434,7 @@ namespace GeometryHelper.Core
             private readonly double _vc;
             private readonly double _vs;
             private int _readings;
+            private int _splitting;
             private long _queued;
 
             internal Search(Rim rim, Target target, double height, double swing, double phase, double limit, double near, double resolution)
@@ -427,6 +448,7 @@ namespace GeometryHelper.Core
                 _near = near;
                 _resolution = resolution;
                 Gap = angle => _target.Gap(_rim.At(angle));
+                _offset = rim.Center.DistanceTo(target.Center);
 
                 GeoVector3 u = target.Along;
                 GeoVector3 v = target.Across;
@@ -444,18 +466,22 @@ namespace GeometryHelper.Core
             /// Gets the runs of a stretch of angle within the tolerance of the other curve, or not proved clear of it, in
             /// order of angle; a stretch of a whole turn read round, a run over its ends one.
             /// </summary>
-            internal List<Run> Runs(double from, double to)
+            internal List<Run> Runs(double from, double to, bool round)
             {
                 var kept = new List<Piece>();
                 var queue = new List<Piece>();
                 int count = Math.Max(1, (int)Math.Ceiling((to - from) / Fine));
                 double previous = Read(from, out Foot previousFoot);
 
+                _readings++;
+
                 for (int k = 1; k <= count; k++)
                 {
                     double end = k == count ? to : from + (to - from) * k / count;
                     double start = k == 1 ? from : from + (to - from) * (k - 1) / count;
                     double value = Read(end, out Foot foot);
+
+                    _readings++;
 
                     Enqueue(queue, new Piece { From = start, To = end, AtFrom = previous, AtTo = value, FootFrom = previousFoot, FootTo = foot });
                     previous = value;
@@ -483,11 +509,11 @@ namespace GeometryHelper.Core
                     }
                 }
 
-                if (to - from >= Turn && groups.Count > 1 && groups[0][0].From <= from && groups[groups.Count - 1][groups[groups.Count - 1].Count - 1].To >= to)
+                if (round && groups.Count > 1 && groups[0][0].From <= from && groups[groups.Count - 1][groups[groups.Count - 1].Count - 1].To >= to)
                 {
                     foreach (Piece piece in groups[0])
                     {
-                        groups[groups.Count - 1].Add(new Piece { From = piece.From + Turn, To = piece.To + Turn, AtFrom = piece.AtFrom, AtTo = piece.AtTo });
+                        groups[groups.Count - 1].Add(new Piece { From = piece.From + Turn, To = piece.To + Turn, AtFrom = piece.AtFrom, AtTo = piece.AtTo, FootFrom = piece.FootFrom, FootTo = piece.FootTo });
                     }
 
                     groups.RemoveAt(0);
@@ -521,7 +547,7 @@ namespace GeometryHelper.Core
                     {
                         run.From = group[0].From;
                         run.To = group[group.Count - 1].To;
-                        runs.Add(run);
+                        runs.AddRange(Split(group, run, round && group[0].From <= from && group[group.Count - 1].To >= to));
                         continue;
                     }
 
@@ -594,9 +620,394 @@ namespace GeometryHelper.Core
                     double middle = 0.5 * (piece.From + piece.To);
                     double value = Read(middle, out Foot foot);
 
+                    _readings++;
                     Enqueue(queue, new Piece { From = piece.From, To = middle, AtFrom = piece.AtFrom, AtTo = value, FootFrom = piece.FootFrom, FootTo = foot });
                     Enqueue(queue, new Piece { From = middle, To = piece.To, AtFrom = value, AtTo = piece.AtTo, FootFrom = foot, FootTo = piece.FootTo });
                 }
+            }
+
+            /// <summary>
+            /// Gets the runs a group of pieces within the tolerance somewhere holds: the run read from the whole group, the
+            /// least reading and the group's ends, where the group, halved further, holds one run within the tolerance;
+            /// otherwise a run for each stretch of readings within it, from the reading before to the reading after, and for
+            /// each reading above it no higher than its neighbours between them.
+            /// </summary>
+            /// <remarks>
+            /// Pieces with an end within the tolerance are kept by <see cref="Settle"/> at a 64th of a turn, so two touches
+            /// closer than that along the rim fall into one group: a circle of radius 247 passing within 0.018 and 0.017 of a
+            /// rim 5 995 by 2 863 at two places 11.4 apart, the gap rising to 0.069 between, at a tolerance of 0.05, was given
+            /// one. Here the pieces are halved again, those with an end within the tolerance first, until the rim runs no more
+            /// than twice the tolerance along each, a piece with no end within it is proved clear, or one with both ends
+            /// within it is proved within it throughout (<see cref="Most"/>). Halving stops after another 384 readings in a
+            /// call, and what is left is kept. A piece proved clear, or a reading above the tolerance, between two readings
+            /// within it parts two runs, unless the other curve runs within the tolerance of the rim all the way between them
+            /// (<see cref="Joined(Run, Run, double)"/>); a group that holds one run is read as it was, and nothing is passed
+            /// over that was not before.
+            /// </remarks>
+            private List<Run> Split(List<Piece> group, Run whole, bool round)
+            {
+                var queue = new List<Piece>();
+                var settled = new List<Piece>();
+
+                foreach (Piece piece in group)
+                {
+                    Enqueue(queue, new Piece { From = piece.From, To = piece.To, AtFrom = piece.AtFrom, AtTo = piece.AtTo, FootFrom = piece.FootFrom, FootTo = piece.FootTo });
+                }
+
+                while (queue.Count > 0)
+                {
+                    Piece piece = Dequeue(queue);
+                    bool fromWithin = piece.AtFrom <= _near;
+                    bool toWithin = piece.AtTo <= _near;
+
+                    if (!fromWithin && !toWithin && piece.Key > _near)
+                    {
+                        continue;
+                    }
+
+                    double reach = Speed(piece.From, piece.To) * (piece.To - piece.From);
+
+                    if (reach <= 2.0 * _near || reach <= _resolution || _splitting >= Readings || (fromWithin && toWithin && Most(piece, reach) <= _near))
+                    {
+                        settled.Add(piece);
+                        continue;
+                    }
+
+                    double middle = 0.5 * (piece.From + piece.To);
+                    double value = Read(middle, out Foot foot);
+
+                    _splitting++;
+                    Enqueue(queue, new Piece { From = piece.From, To = middle, AtFrom = piece.AtFrom, AtTo = value, FootFrom = piece.FootFrom, FootTo = foot });
+                    Enqueue(queue, new Piece { From = middle, To = piece.To, AtFrom = value, AtTo = piece.AtTo, FootFrom = foot, FootTo = piece.FootTo });
+                }
+
+                settled.Sort((x, y) =>
+                {
+                    int byFrom = x.From.CompareTo(y.From);
+
+                    return byFrom != 0 ? byFrom : x.To.CompareTo(y.To);
+                });
+
+                // The readings in order of angle, a piece proved clear between two parting them as a reading above the
+                // tolerance would.
+                var angles = new List<double>();
+                var values = new List<double>();
+                var parted = new List<bool>();
+
+                foreach (Piece piece in settled)
+                {
+                    if (angles.Count == 0 || piece.From > angles[angles.Count - 1])
+                    {
+                        angles.Add(piece.From);
+                        values.Add(piece.AtFrom);
+                        parted.Add(angles.Count > 1);
+                    }
+
+                    angles.Add(piece.To);
+                    values.Add(piece.AtTo);
+                    parted.Add(false);
+                }
+
+                if (round && !Unwound(angles, values, parted))
+                {
+                    return new List<Run> { whole };
+                }
+
+                var runs = new List<Run>();
+                var dips = new List<Run>();
+                int last = angles.Count - 1;
+
+                for (int k = 0; k <= last; k++)
+                {
+                    if (values[k] <= _near)
+                    {
+                        // A stretch of readings within the tolerance, up to a reading above it or a piece proved clear.
+                        var run = new Run { From = angles[k > 0 && !parted[k] ? k - 1 : k], LeastAt = angles[k], Least = values[k] };
+                        int end = k;
+
+                        while (end < last && values[end + 1] <= _near && !parted[end + 1])
+                        {
+                            end++;
+
+                            if (values[end] < run.Least)
+                            {
+                                run.Least = values[end];
+                                run.LeastAt = angles[end];
+                            }
+                        }
+
+                        run.To = angles[end < last && !parted[end + 1] ? end + 1 : end];
+                        runs.Add(run);
+                        k = end;
+                        continue;
+                    }
+
+                    bool first = k == 0 || parted[k];
+                    bool final = k == last || parted[k + 1];
+
+                    if ((first || values[k] <= values[k - 1]) && (final || values[k] <= values[k + 1]))
+                    {
+                        dips.Add(new Run
+                        {
+                            From = angles[first ? k : k - 1],
+                            To = angles[final ? k : k + 1],
+                            LeastAt = angles[k],
+                            Least = values[k],
+                        });
+                    }
+                }
+
+                // Runs the other curve joins, running within the tolerance of the rim all the way from the one to the other,
+                // are one place.
+                for (int k = runs.Count - 1; k > 0; k--)
+                {
+                    if (Joined(runs[k - 1], runs[k], 0.0))
+                    {
+                        runs[k - 1] = Merged(runs[k - 1], runs[k], 0.0);
+                        runs.RemoveAt(k);
+                    }
+                }
+
+                if (round && runs.Count > 1 && Joined(runs[runs.Count - 1], runs[0], Turn))
+                {
+                    runs[runs.Count - 1] = Merged(runs[runs.Count - 1], runs[0], Turn);
+                    runs.RemoveAt(0);
+                }
+
+                foreach (Run run in runs)
+                {
+                    run.Parted = true;
+                }
+
+                foreach (Run dip in dips)
+                {
+                    dip.Parted = true;
+                }
+
+                if (runs.Count > 1)
+                {
+                    runs.AddRange(dips);
+                    runs.Sort((x, y) =>
+                    {
+                        int byFrom = x.From.CompareTo(y.From);
+
+                        return byFrom != 0 ? byFrom : x.To.CompareTo(y.To);
+                    });
+
+                    return runs;
+                }
+
+                // One run: read from the whole group as before, and the dips beside it after it.
+                dips.Insert(0, whole);
+
+                return dips;
+            }
+
+            /// <summary>
+            /// Turns the readings of a whole turn, the last the first again, to start and end at the highest, so that a run
+            /// over the ends is read as one: read from the start of the turn, one rim of 314 by 4.5 and another a hair
+            /// larger, running along each other within the tolerance across it, gave a place at either end of the run.
+            /// False where none is above the tolerance, the whole turn one run.
+            /// </summary>
+            private bool Unwound(List<double> angles, List<double> values, List<bool> parted)
+            {
+                int count = angles.Count - 1;
+                int top = 0;
+
+                for (int k = 1; k < count; k++)
+                {
+                    if (values[k] > values[top])
+                    {
+                        top = k;
+                    }
+                }
+
+                if (!(values[top] > _near))
+                {
+                    return false;
+                }
+
+                var turnedAngles = new List<double>(count + 1);
+                var turnedValues = new List<double>(count + 1);
+                var turnedParted = new List<bool>(count + 1);
+
+                for (int k = 0; k <= count; k++)
+                {
+                    int at = (top + k) % count;
+
+                    turnedAngles.Add(top + k >= count ? angles[at] + Turn : angles[at]);
+                    turnedValues.Add(values[at]);
+                    turnedParted.Add(k > 0 && (at == 0 ? parted[count] : parted[at]));
+                }
+
+                angles.Clear();
+                angles.AddRange(turnedAngles);
+                values.Clear();
+                values.AddRange(turnedValues);
+                parted.Clear();
+                parted.AddRange(turnedParted);
+
+                return true;
+            }
+
+            /// <summary>
+            /// Gets a bound the gap cannot be over on a piece: from the gap at its ends and the rim's speed; or from the gap
+            /// D between the rim and a point carried evenly along the other between its points nearest the ends, where those
+            /// lie on it.
+            /// </summary>
+            /// <remarks>
+            /// D strays from its chord by no more than an eighth of the width squared times the greatest D'', and the chord
+            /// is no longer than the greater gap at the ends. Both are ellipses read by angle, whose second derivatives are
+            /// their points less their centres: with the other's angle k times the rim's, D'' is no more than a + k² A, the
+            /// major radii a of the rim and A of the other, which bounds a small rim passing a large one; and
+            /// D'' = -D + (k² - 1)(Q - C) + (C' - C), C the other's centre and C' the rim's, which, solved for the greatest
+            /// D, bounds two rims running along each other, bending alike. The rim's speed alone proves a rim of radius 500
+            /// running 0.0005 from a copy of itself within a tolerance of 0.001 only in pieces a thousandth long, the last
+            /// in pieces a radian long.
+            /// </remarks>
+            private double Most(Piece piece, double reach)
+            {
+                double most = 0.5 * (piece.AtFrom + piece.AtTo + reach);
+                double width = piece.To - piece.From;
+                double share = 0.125 * width * width;
+
+                if (!(share < 1.0) || !Carried(piece.FootFrom, piece.FootTo, out double turned))
+                {
+                    return most;
+                }
+
+                double k = turned / width;
+                double chord = Math.Max(piece.AtFrom, piece.AtTo);
+                double apart = chord + share * (_rim.Major + k * k * _target.Major);
+                double alike = (chord + share * (Math.Abs(k * k - 1.0) * _target.Major + _offset)) / (1.0 - share);
+
+                return Math.Min(most, Math.Min(apart, alike) + (_near - _limit));
+            }
+
+            /// <summary>
+            /// Determines whether the other curve runs within the tolerance of the rim all the way between its points nearest
+            /// the least readings of two runs, the second a turn on where asked.
+            /// </summary>
+            /// <remarks>
+            /// The gap read from one rim can rise above the tolerance where the gap read from the other does not: round the
+            /// end of a rim 100 000 by 1 that a copy 0.001 larger rings, the gap from the larger rose a hair above the
+            /// tolerance either side of its end, and the two sides of the end were two places, the smaller running within
+            /// the tolerance of the larger all round its own end. Read from the points between, they are one.
+            /// </remarks>
+            private bool Joined(Run one, Run two, double shift) => Joined(_rim.At(one.LeastAt), _rim.At(two.LeastAt + shift));
+
+            /// <summary>
+            /// Determines whether the other curve runs within the tolerance of the rim all the way between its points nearest
+            /// two points: read at points evenly between, no further apart along it than the tolerance, or 255 of them.
+            /// </summary>
+            internal bool Joined(GeoPoint3 one, GeoPoint3 two) => Linked(one, two) == true;
+
+            /// <summary>
+            /// Determines whether the other curve runs within the tolerance of the rim all the way between its points nearest
+            /// two points, as <see cref="Joined(GeoPoint3, GeoPoint3)"/> reads it; null where it cannot tell, the points of
+            /// an arc nearest them not both on it.
+            /// </summary>
+            internal bool? Linked(GeoPoint3 one, GeoPoint3 two)
+            {
+                GeoPoint3 start = _target.Nearest(one);
+                GeoPoint3 end = _target.Nearest(two);
+
+                if (!Carried(OnOther(start), OnOther(end), out double turned))
+                {
+                    return null;
+                }
+
+                double from = OnOther(start);
+
+                // A step no longer than the tolerance along the other, at most 256 of them and at least 16: read at 16, the
+                // ends of two ellipses 313.85 by 4.54 and 0.001 larger, whose gap rises 0.11 tolerances above it round
+                // either end, were read as joined, and gave one place each where they touch at both sides.
+                int steps = (int)Math.Min(256.0, Math.Max(16.0, Math.Ceiling(Math.Abs(turned) * _target.Major / _limit)));
+
+                for (int k = 1; k < steps; k++)
+                {
+                    double angle = from + turned * k / steps;
+                    double along = _target.Major * Math.Cos(angle);
+                    double across = _target.Minor * Math.Sin(angle);
+                    GeoPoint3 point = _target.Center.Add(_target.Along.Multiply(along)).Add(_target.Across.Multiply(across));
+
+                    if (!_rim.Holds(point))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// Gets one run from two, the second a turn on where asked: from the start of the first to the end of the
+            /// second, and the lesser of their least readings.
+            /// </summary>
+            private static Run Merged(Run one, Run two, double shift)
+            {
+                bool second = two.Least < one.Least;
+
+                return new Run
+                {
+                    From = one.From,
+                    To = two.To + shift,
+                    LeastAt = second ? two.LeastAt + shift : one.LeastAt,
+                    Least = second ? two.Least : one.Least,
+                };
+            }
+
+            /// <summary>
+            /// Gets the angle on the other's ellipse or circle of a point of its plane, read from its own coordinates.
+            /// </summary>
+            private double OnOther(GeoPoint3 point)
+            {
+                GeoVector3 offset = _target.Center.GetVectorTo(point);
+
+                return Math.Atan2(offset.DotProduct(_target.Across) / _target.Minor, offset.DotProduct(_target.Along) / _target.Major);
+            }
+
+            /// <summary>
+            /// Gets the angle the other's point is carried through between its points nearest the rims' feet at two ends,
+            /// the short way round a whole ellipse or circle and within what an arc sweeps; false where the nearest point
+            /// of an arc's circle at either end lies off the arc.
+            /// </summary>
+            private bool Carried(Foot start, Foot end, out double turned) => Carried(OnOther(start), OnOther(end), out turned);
+
+            /// <summary>
+            /// Gets the angle the other's point is carried through between two angles on its ellipse or circle, the short
+            /// way round a whole one and within what an arc sweeps; false where either lies off the arc.
+            /// </summary>
+            private bool Carried(double from, double to, out double turned)
+            {
+                if (_target.Whole)
+                {
+                    turned = Math.IEEERemainder(to - from, Turn);
+
+                    return true;
+                }
+
+                // Measured from the arc's start the way it runs, each in [0, a turn).
+                double way = _target.Sweep < 0.0 ? -1.0 : 1.0;
+                double first = way * (from - _target.From);
+                double second = way * (to - _target.From);
+
+                first -= Turn * Math.Floor(first / Turn);
+                second -= Turn * Math.Floor(second / Turn);
+                turned = way * (second - first);
+
+                return first <= Math.Abs(_target.Sweep) && second <= Math.Abs(_target.Sweep);
+            }
+
+            /// <summary>
+            /// Gets the angle on the other's ellipse or circle of its point nearest the rim's foot.
+            /// </summary>
+            private double OnOther(Foot foot)
+            {
+                double along = foot.Along - foot.Gap * foot.NormalX;
+                double across = foot.Across - foot.Gap * foot.NormalY;
+
+                return Math.Atan2(across / _target.Minor, along / _target.Major);
             }
 
             /// <summary>
@@ -764,8 +1175,6 @@ namespace GeometryHelper.Core
             /// </summary>
             private double Read(double angle, out Foot foot)
             {
-                _readings++;
-
                 GeoPoint3 point = _rim.At(angle);
                 GeoVector3 offset = _target.Center.GetVectorTo(point);
                 double along = offset.DotProduct(_target.Along);
@@ -940,6 +1349,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a place already named lies on a run: its angle on the rim within the run's.
         /// </summary>
+        /// <remarks>
+        /// On a run parted from others of its group the angle is read from the rim's point nearest the place, as the run's
+        /// ends lie close beside it: read from the place itself, a place 0.0003 off a rim 67 620 by 6.8 was put 0.0000075
+        /// radians along it from that point, on the run beside, 0.17 away, and the touch there was not named.
+        /// </remarks>
         private static bool Named(List<GeoPoint3> found, Rim rim, Run run, Tolerance tolerance)
         {
             const double Turn = 2.0 * Math.PI;
@@ -947,7 +1361,20 @@ namespace GeometryHelper.Core
             foreach (GeoPoint3 named in found)
             {
                 GeoVector3 offset = rim.Center.GetVectorTo(named);
-                double at = Math.Atan2(offset.DotProduct(rim.Across) / rim.Minor, offset.DotProduct(rim.Along) / rim.Major);
+                double along = offset.DotProduct(rim.Along);
+                double across = offset.DotProduct(rim.Across);
+
+                if (run.Parted && rim.Major != rim.Minor)
+                {
+                    GeoPoint2 nearest = Ellipse2.GetClosestPointOnBoundary(
+                        new GeoEllipse2(new GeoPoint2(0.0, 0.0), GeoVector2.XAxis, rim.Major, rim.Minor, true),
+                        new GeoPoint2(along, across));
+
+                    along = nearest.X;
+                    across = nearest.Y;
+                }
+
+                double at = Math.Atan2(across / rim.Minor, along / rim.Major);
 
                 at += Turn * Math.Ceiling((run.From - at) / Turn);
 
@@ -1017,18 +1444,32 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Adds the middle of the shortest line from a point of the rim to the other curve, unless a place already named
-        /// stands within the tolerance of it or both pass within the tolerance of the point halfway to it.
+        /// stands within the tolerance of it or is joined to it, the other curve running within the tolerance of the rim all
+        /// the way between the two; where that cannot be told, the nearest points of an arc not both on it, where both pass
+        /// within the tolerance of the point halfway between.
         /// </summary>
-        private static void AddPlace(List<GeoPoint3> found, Rim rim, Target target, GeoPoint3 onRim, Tolerance tolerance)
+        /// <remarks>
+        /// Read by the point halfway, two touches were one wherever both rims ran near straight between them: a needle 19.5
+        /// by 0.055 passing an arc of radius 126 within 0.019 and 0.040 at two places 4.3 apart, the gap rising to 1.17
+        /// tolerances between at a tolerance of 0.05, was given one, the point halfway 0.047 off the needle and 0.014 off the
+        /// arc. Asked of the other curve, a circle crossing a needle 0.00013 wide still touches it once at each crossing, at
+        /// places on either side 0.008 apart that the circle runs within the tolerance of the needle between.
+        /// </remarks>
+        private static void AddPlace(List<GeoPoint3> found, Rim rim, Target target, GeoPoint3 onRim, Search search, Tolerance tolerance)
         {
             GeoPoint3 onOther = target.Nearest(onRim);
             GeoPoint3 place = onRim.Add(onRim.GetVectorTo(onOther).Multiply(0.5));
 
             foreach (GeoPoint3 named in found)
             {
+                if (named.IsEqualTo(place, tolerance))
+                {
+                    return;
+                }
+
                 GeoPoint3 halfway = named.Add(named.GetVectorTo(place).Multiply(0.5));
 
-                if (named.IsEqualTo(place, tolerance) || (rim.Holds(halfway) && target.Holds(halfway)))
+                if (search.Linked(named, place) ?? (rim.Holds(halfway) && target.Holds(halfway)))
                 {
                     return;
                 }

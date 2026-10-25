@@ -729,6 +729,39 @@ segment that misses is asked whether it touches only where it reaches the tolera
 circle's plane and sphere at once: 100 000 random segments against arcs take 36.4 milliseconds on .NET 10, the median
 of six runs, where they took 27.9, and as many rays 41.1, where they took 27.2.
 
+**FIXED.** An ellipse, a circle or an arc in space that passes within the point tolerance of another curve at two places
+close together along its rim, the gap rising above the tolerance between, is given both places. The rim was read every
+64th of a turn and a piece of it with an end within the tolerance kept whole, so touches that fell in one piece, or in
+pieces side by side, were one place: a circle of radius 247 passing a rim 5 995 by 2 863 within 0.018 and 0.017 at two
+places 11.4 apart, the gap rising to 0.069 between, at a tolerance of 0.05, was given one, and so was a circle of radius
+2.12 crossing a needle 33.5 by 0.00013 twice, 0.141 apart. Such pieces are halved further now, until each is proved
+clear, proved within the tolerance all along, or the rim runs no more than twice the tolerance along it, at most 384
+readings more a call, and a reading above the tolerance, or a piece proved clear, between two within it parts two runs;
+a group that holds one run is answered as before to the bit. Two runs the other curve joins, running within the
+tolerance of the rim all the way between, are one place, as read along the other at steps no longer than the tolerance,
+and that, rather than both curves passing within the tolerance of the point halfway between, is what makes a place the
+search names stand for another, the point halfway asked only where the other cannot tell, an arc's points nearest the
+two not both on it: the rim 100 000 by 1 ringed by a copy 0.001 larger in its plane touches it once at each end, as
+before, a circle crossing a needle touches it once at each crossing, not at either side of it, the rim 285.55 by 3.38
+passing a circle of radius 21.2 at two places 0.348 apart, the gap rising to 1.11 tolerances between, touches it at
+both, and so does a needle 19.5 by 0.055 passing an arc of radius 126 within 0.019 and 0.040 at two places 4.3 apart, the
+gap rising to 1.17 tolerances between, at a tolerance of 0.05, where the point halfway lay 0.047 off the needle and
+0.014 off the arc. A run over the start of a whole turn is one run, the turn known from where it is read rather than
+measured: an ellipse 458.57 by 458.56 and a circle nearly on it, read from 2.0169641759523502, where that plus a turn
+less itself falls a hair short of a turn, gave a fifth place 143 from the fourth. A place already named stands for a
+parted run where it lies on it, read from the rim's point nearest it: the ellipse 313.85 by 4.54 and another 0.001
+larger, nearly in its plane, touch at both sides of both ends, four places, where they touched at one end only, and the
+rim 67 620 by 6.84 passing one 3.40 by 3.30 at two places 0.167 apart touches it at both. Against an independent
+oracle, of 38 900 pairs in 100 corpora (ellipses, circles and arcs grazing, thin, huge, copies, rims running along
+each other, needles, near copies and the pairs read in one plane, at tolerances of 0.001, 0.01 and 0.05), 647 are given a
+touch they missed, every place within the tolerance of both curves and none on a run already named, 12 lose a second
+place on one run, and 12 move within their runs; 7 are given two places where the point halfway made them one, and
+the gap between the two rises 0.4 % to 6 % above the tolerance along both curves, so they are two touches. The other 38 222 are answered as before to the bit. On .NET 10, the sum of the mean times
+of the 100 corpora is 1.21 times what it was, the median call 1.24 times; copies and rims running along each other take
+up to 3.3 times as long at the median (circles running along each other 124 microseconds a call where they took 38,
+ellipse copies 174 where they took 69), their slowest as before, and 2 000 ellipses crossed by a circle 13.5
+microseconds a call where they took 11.5, ellipses crossed by an ellipse and pairs far apart as before.
+
 **FIXED.** Two ellipses in space read in one plane, and an ellipse read in one plane with a circle or an arc, touch
 wherever their rims pass within the point tolerance of each other, and two ellipses give their points in the opposite
 order asked the other way. The other curve was laid flat in the plane it is read in with its radii kept, though it may
@@ -1031,6 +1064,22 @@ the golden scenes place every label alike, where 10 of their 41 runs placed up t
 places nearly as open a label takes can still follow the rounding of where the scene lies: of the 400 labels of the
 benchmark `Arrange.Dense`, one goes to candidate 57 at the origin and to candidate 61 moved 900 along X, as before. As
 fast as before, within the noise of the benchmarks.
+
+**FIXED.** `Offset2.Offset` of a `GeoPolygonArc2` drops a spike the loop runs out to and straight back from, between two
+straight edges whose far ends lie within the point tolerance of each other, as the straight path drops it, the two ends
+of its foot one corner: the triangle (0, 0), (10, 0), (5, 10) with a needle from its top to (5, 20) and back to
+(5.0004, 10), grown by 0.3 with miters, is the triangle grown, 60.179, where it was 67.757. Offset as
+drawn, the square 10 by 10 with a needle 0.0005 wide at its foot and 6 tall on its top, grown by 0.3 at a tolerance of
+0.001, kept a strip 0.6 wide about the needle, 115.85 with round joins, 117.58 mitered and 115.90 chamfered, and the
+same square with a notch 0.0008 wide and 0.01 deep in its bottom grew a miter spike, 113.63; both are the square grown
+now, 112.283, 112.360 and 112.298, as the straight path gives them. A spike whose sides are arcs is offset as drawn, and
+a needle wider than the tolerance is kept: within 1E-4 the same square grows round its needle, 115.845, as before. Of
+the 23 offset repros of the audit only the needle and a notch 0.001 wide move; of 7 344 offsets of stars at each of the tolerances 0.1, 0.001
+and 0.0001, 10 800 of loops a long edge into a short arc, 72 000 of random loops, 10 800 of dense loops but 33 at 0.1,
+and 2 195 of loops of 50 to 130 corners, none moves. Of 3 024 of loops with rows of teeth 0.0005 to 0.2 wide, 1 118
+move: each is the loop without its teeth narrower than the tolerance, nearer the straight path or as near but for 3
+within 0.006 where the straight path cuts an arc, and 168 are right now by distance from that loop where they were not.
+As fast as before, within the noise, on .NET 10.
 
 **FIXED.** `Offset2.Offset` of a `GeoPolygonArc2` at a tolerance coarse beside the loop no longer comes back empty where
 two moved pieces cross within the tolerance of where one of them ends. Such a crossing is not cut, each piece runs on past

@@ -1972,7 +1972,11 @@ tolerance: how fast the rim moves, its height above the other's plane, and how f
 other's ellipse. Each run of the rim within the tolerance of the other is one place, where the gap along it is least: two
 copies running along each other within the tolerance for a long way touch at one place, where they come nearest, and
 the ellipse 3 000 by 1 000 and its copy 0.0012 above, leaning so that its rim is 0.0001 to 0.0023 above, touch at
-(0, -1 000, 0.00005). Pieces not proved clear are halved until the rim runs no more than twice the tolerance along them;
+(0, -1 000, 0.00005). Two runs are two places wherever the gap rises above the tolerance between them, however near each
+other along the rim, unless the other curve runs within the tolerance of the rim all the way between: a circle of radius
+247 passing a rim 5 995 by 2 863 within 0.018 and 0.017 at two places 11.4 apart, the gap rising to 0.069 between, at a
+tolerance of 0.05, touches it at both, and a circle of radius 2.12 crossing a needle 33.5 by 0.00013 twice, 0.141 apart,
+crosses it at both. Pieces not proved clear are halved until the rim runs no more than twice the tolerance along them;
 halving stops after 384 readings, which only rims running along each other within a few tolerances for a long way
 reach, and what is left is brought down by Brent's method, the one part not proved. A pair not in one plane costs a few
 microseconds where the rims are far apart, and up to about a millisecond for long copies running along each other.
