@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Export
@@ -28,6 +29,9 @@ namespace GeometryHelper.Export
 
         // The groups of a point in the order AutoCAD writes them.
         private static readonly IReadOnlyList<int> VertexOrder = Array.AsReadOnly(new[] { 100, 100, 10, 20, 30, 70 });
+
+        // The own groups of the VERTEX records last read, by the bytes they stand in.
+        private Dictionary<RecordKey, IReadOnlyList<DxfTypedValue>> _read;
 
         /// <summary>Initializes a mesh of no points and no faces, as AutoCAD's <c>new PolyFaceMesh()</c>, on layer 0 in no file.</summary>
         public DxfPolyFaceMesh()
@@ -149,7 +153,7 @@ namespace GeometryHelper.Export
         /// <exception cref="InvalidOperationException">Thrown when a face names the point.</exception>
         internal void Remove(DxfVertex vertex)
         {
-            List<KeyValuePair<int, IReadOnlyList<DxfTypedValue>>> records = DxfFollowers.Vertices(Item);
+            List<KeyValuePair<int, IReadOnlyList<DxfTypedValue>>> records = Vertices();
             int number = 0;
             bool point = false;
 
@@ -172,7 +176,7 @@ namespace GeometryHelper.Export
                 return;
             }
 
-            var renumbered = new List<KeyValuePair<int, KeyValuePair<int, string>[]>>();
+            var renumbered = new List<KeyValuePair<int, IList<KeyValuePair<int, string>>>>();
 
             foreach (KeyValuePair<int, IReadOnlyList<DxfTypedValue>> record in records)
             {
@@ -200,13 +204,48 @@ namespace GeometryHelper.Export
 
                 if (changes.Count > 0)
                 {
-                    renumbered.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(record.Key, changes.ToArray()));
+                    renumbered.Add(new KeyValuePair<int, IList<KeyValuePair<int, string>>>(record.Key, changes.ToArray()));
                 }
             }
 
-            SetGroupsAtMany(renumbered, VertexOrder);
+            // The faces name the same points by their new numbers: the mesh's shape is as it was, so the extents are not
+            // grown by it, which would read all its faces at each point erased.
+            Item.File.SetValuesAtMany(Item, renumbered, VertexOrder, false);
             vertex.EraseRecord();
             Count(71, Math.Max(0, NumVertices - 1));
+        }
+
+        /// <summary>
+        /// The VERTEX records of the mesh, each its index among the records and its own groups, as
+        /// <see cref="DxfFollowers.Vertices"/> gives them: a record whose bytes are those read before is not read again, so that
+        /// points erased one at a time read only the faces renumbered since, not all 20 000 points each time.
+        /// </summary>
+        private List<KeyValuePair<int, IReadOnlyList<DxfTypedValue>>> Vertices()
+        {
+            List<DxfFile.Rec> all = Item.File.RecordsOf(Item);
+            var read = new Dictionary<RecordKey, IReadOnlyList<DxfTypedValue>>(all.Count, RecordKey.Comparer);
+            var vertices = new List<KeyValuePair<int, IReadOnlyList<DxfTypedValue>>>(all.Count);
+
+            for (int r = 1; r < all.Count; r++)
+            {
+                if (all[r].Type != "VERTEX")
+                {
+                    continue;
+                }
+
+                var key = new RecordKey(all[r].Bytes, all[r].Start);
+
+                if (_read == null || !_read.TryGetValue(key, out IReadOnlyList<DxfTypedValue> groups))
+                {
+                    groups = GetOwnGroups(r);
+                }
+
+                read[key] = groups;
+                vertices.Add(new KeyValuePair<int, IReadOnlyList<DxfTypedValue>>(r, groups));
+            }
+
+            _read = read;
+            return vertices;
         }
 
         /// <summary>
@@ -226,5 +265,28 @@ namespace GeometryHelper.Export
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;
+
+        /// <summary>A record by the bytes it stands in: the array, the same one only while the record is not written anew, and where in it the record begins.</summary>
+        private readonly struct RecordKey
+        {
+            internal static readonly IEqualityComparer<RecordKey> Comparer = new KeyComparer();
+
+            internal RecordKey(byte[] bytes, int start)
+            {
+                Bytes = bytes;
+                Start = start;
+            }
+
+            internal byte[] Bytes { get; }
+
+            internal int Start { get; }
+
+            private sealed class KeyComparer : IEqualityComparer<RecordKey>
+            {
+                public bool Equals(RecordKey x, RecordKey y) => ReferenceEquals(x.Bytes, y.Bytes) && x.Start == y.Start;
+
+                public int GetHashCode(RecordKey key) => (RuntimeHelpers.GetHashCode(key.Bytes) * 397) ^ key.Start;
+            }
+        }
     }
 }

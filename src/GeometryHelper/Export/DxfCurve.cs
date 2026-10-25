@@ -462,7 +462,7 @@ namespace GeometryHelper.Export
                 case DxfPolyline p: along = p.NumberOfVertices < 2 ? 0.0 : p.Length; break;
                 case DxfPolyline2d p: along = p.Model(out _).Count < 2 ? 0.0 : p.Length; break;
                 case DxfPolyline3d p: along = p.Model(out _).Count < 2 ? 0.0 : p.Length; break;
-                case DxfSpline s: along = s.GetDistanceAtParameter(s.EndParam); break;
+                case DxfSpline s: along = s.RunsFartherThan(Tolerance.Default.EqualPoint) ? double.PositiveInfinity : 0.0; break;
                 default: along = double.PositiveInfinity; break;
             }
 

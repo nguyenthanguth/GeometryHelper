@@ -172,6 +172,24 @@ namespace GeometryHelper.UnitTest.Export
         }
 
         [Fact]
+        public void AZigzagWithinATinyBox_ProjectedLongerThanThePointTolerance_IsKept_AsItsPolylineIs()
+        {
+            // Twelve corners within a box 0.00063 by 0.00054 on the floor, its diagonal under 1E-3, the zigzag some 0.008 long.
+            var floor = new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1));
+            GeoPoint3[] corners = Enumerable.Range(0, 12).Select(i => new GeoPoint3((i % 2) * 0.7 * 0.0009, (i % 3) * 0.3 * 0.0009, i)).ToArray();
+            var knots = new List<double> { 0, 0 };
+            knots.AddRange(Enumerable.Range(1, 10).Select(k => (double)k));
+            knots.AddRange(new double[] { 11, 11 });
+            var zigzag = new DxfSpline(1, false, false, false, corners, knots, null, 0, 0);
+            var polyline = new DxfPolyline3d(DxfPoly3dType.SimplePoly, corners, false);
+
+            var flat = Assert.IsType<DxfSpline>(zigzag.GetOrthoProjectedCurve(floor));
+
+            Assert.True(flat.GetDistanceAtParameter(flat.EndParam) > 0.007);
+            Assert.IsType<DxfPolyline3d>(polyline.GetOrthoProjectedCurve(floor));
+        }
+
+        [Fact]
         public void APolylineProjected_StaysOneWhereItCan_AndIsASplineOfItsArcsWhereItCannot()
         {
             var straight = new DxfPolyline();

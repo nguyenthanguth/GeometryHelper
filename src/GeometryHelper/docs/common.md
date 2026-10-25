@@ -1014,7 +1014,8 @@ chords, so that a spline through (0, 0, 0), (30, 40, 0) and (60, 0, 0) runs from
 makes it pass a point in a direction, `Rebuild` fits it again of another degree and count of points, and `ToPolyline` /
 `ToPolylineWithPrecision` give the polyline along it, of arcs where it is flat, within a thousandth of the spline's size
 at precision 0 and a tenth of that for each 10 more, never finer than a millionth of its size: the cubic on (0, 0),
-(10, 10), (20, 10) and (30, 0) made lines gives 65 vertices at precision 10 and 513 from precision 30 up. A point or face
+(10, 10), (20, 10) and (30, 0) made lines gives 65 vertices at precision 10 and 513 from precision 30 up, the floor
+reached, so that a precision above about 30 gives the same polyline. A point or face
 of a polyface mesh erased keeps the mesh's counts and the faces' numbers of its points true. Vertices of a POLYLINE
 appended or set one at a time cost about the same each, however many the polyline has: 20 000 appended one by one take a
 fifth of a second, 10 000 points of a polyface mesh a twentieth. A LWPOLYLINE's vertex put in, set or taken out rewrites

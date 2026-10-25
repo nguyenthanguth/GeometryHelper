@@ -421,5 +421,50 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal(1.2, again.EndParam);
             Assert.True(again.NurbsData.IsEqualTo(spline.NurbsData, Tight));
         }
+
+        /// <summary>A cubic of 203 control points (i * 100, a random height to 100), seed 7, over the knots 0 to 200.</summary>
+        private static DxfSpline LongWave()
+        {
+            var random = new Random(7);
+            var points = Enumerable.Range(0, 203).Select(i => new GeoPoint3(i * 100, random.NextDouble() * 100, 0)).ToList();
+            var knots = new List<double> { 0, 0, 0 };
+            knots.AddRange(Enumerable.Range(0, 201).Select(k => (double)k));
+            knots.AddRange(new double[] { 200, 200, 200 });
+            return new DxfSpline(3, false, false, false, points, knots, null, 0.0, 0.0);
+        }
+
+        [Fact]
+        public void APolylineOfACountOfVerticesAlongALongSpline_HasThemEvenlyAlongItsLength()
+        {
+            DxfSpline spline = LongWave();
+            double length = spline.GetDistanceAtParameter(spline.EndParam);
+
+            var polyline = (DxfPolyline)spline.ToPolyline(100, false, true);
+
+            Assert.Equal(100, polyline.NumberOfVertices);
+
+            for (int i = 0; i < 100; i++)
+            {
+                double along = spline.GetDistAtPoint(polyline.GetPoint3dAt(i));
+                Assert.True(Math.Abs(along - length * i / 99) <= Tolerance.Default.EqualPoint, i + ": " + along + " against " + (length * i / 99));
+            }
+        }
+
+        [Fact]
+        public void ASplineRebuiltOfThousandsOfControlPoints_KeepsToTheCurve()
+        {
+            DxfSpline spline = LongWave();
+            DxfSpline rebuilt = LongWave();
+
+            rebuilt.Rebuild(3, 3000);
+
+            Assert.Equal(3000, rebuilt.NumControlPoints);
+
+            for (int i = 0; i <= 400; i++)
+            {
+                GeoPoint3 point = spline.GetPointAtParameter(i * 0.5);
+                Assert.True(rebuilt.GetClosestPointTo(point, false).DistanceTo(point) <= 0.01, i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+        }
     }
 }

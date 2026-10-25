@@ -145,7 +145,10 @@ longer reads the whole polyline each time to grow the drawing's extents: 20 000 
 .NET 10, where 10 000 took 81 s, and 10 000 points appended to a polyface mesh 0.05 s, where they took 32 s. A LWPOLYLINE's
 vertex put in, set or taken out rewrites only that vertex's groups and the count: 10 000 put in one by one take 0.8 s, where
 they took 97 s, and set one by one 1.2 s, where they took 287 s. Straightening a fitted polyline or desmoothing a mesh takes
-the made vertices out in one writing: 90 000 in 0.6 s, where they took 29 s.
+the made vertices out in one writing: 90 000 in 0.6 s, where they took 29 s. A spline of 200 spans made a polyline of 100
+vertices takes 0.04 s, where it took 151 s, the lengths of its spans measured once; one of 1 000 spans is rebuilt of
+5 000 control points in 0.05 s, its least squares solved over their band. 500 points of a polyface mesh of 20 000 erased
+one at a time take 5 s, where they took 53 s, and no longer grow the extents by the mesh as it stands half renumbered.
 
 **NEW.** `DxfDBText`, `DxfMText`, `DxfBlockReference`, `DxfMInsertBlock`, `DxfAttributeReference` and
 `DxfAttributeDefinition` read and edit TEXT, MTEXT, INSERT, MINSERT, ATTRIB and ATTDEF with AutoCAD's names and meanings,

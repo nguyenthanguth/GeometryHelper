@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
@@ -121,6 +122,63 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal(new GeoPoint2(13, 1), again.GetPoint2dAt(2));
             Assert.Equal(new GeoPoint2(50, 5), again.GetPoint2dAt(19));
             Assert.Equal(new[] { "GHPROBE", "11", "2", "0" }, again.XData.Select(g => g.Value));
+        }
+
+        [Fact]
+        public void APointOfAPolyfaceMeshNoFaceNames_ErasedFirst_LeavesTheExtentsToTheFaces()
+        {
+            // The far point (500, 500, 0) is first, the square of side 10 its face (2, 3, 4, 5); erased, the face is (1, 2, 3, 4).
+            DxfDatabase db = DxfDatabase.Parse(new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString());
+            var mesh = new DxfPolyFaceMesh();
+            db.ModelSpace.AppendEntity(mesh);
+            mesh.AppendVertex(new DxfPolyFaceMeshVertex(new GeoPoint3(500, 500, 0)));
+
+            foreach (GeoPoint3 corner in new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0) })
+            {
+                mesh.AppendVertex(new DxfPolyFaceMeshVertex(corner));
+            }
+
+            mesh.AppendFaceRecord(new DxfFaceRecord(2, 3, 4, 5));
+            Assert.Equal(10.0, db.Extmax.X);
+
+            mesh.OfType<DxfPolyFaceMeshVertex>().First().Erase();
+
+            DxfFaceRecord face = mesh.OfType<DxfFaceRecord>().Single();
+            Assert.Equal(new short[] { 1, 2, 3, 4 }, new short[] { face.GetVertexAt(0), face.GetVertexAt(1), face.GetVertexAt(2), face.GetVertexAt(3) });
+            Assert.Equal(4, mesh.NumVertices);
+            Assert.Equal(new GeoPoint3(10, 10, 0), db.Extmax);
+        }
+
+        [Fact]
+        public void PointsOfAPolyfaceMeshErasedOneAtATime_RenumberTheFaces_ThoseWrittenBetweenAmongThem()
+        {
+            DxfDatabase db = DxfDatabase.Parse(new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString());
+            var mesh = new DxfPolyFaceMesh();
+            db.ModelSpace.AppendEntity(mesh);
+
+            for (int i = 0; i < 40; i++)
+            {
+                mesh.AppendVertex(new DxfPolyFaceMeshVertex(new GeoPoint3(i % 10, i / 10, i % 3)));
+            }
+
+            // Faces on the points 1-4, 11-14, 21-24 and 31-34; the points 6, 16, 26 and 36 named by none.
+            for (short a = 1; a < 40; a += 10)
+            {
+                mesh.AppendFaceRecord(new DxfFaceRecord(a, (short)(a + 1), (short)(a + 2), (short)-(a + 3)));
+            }
+
+            List<DxfPolyFaceMeshVertex> points = mesh.OfType<DxfPolyFaceMeshVertex>().ToList();
+            points[5].Erase();
+            mesh.OfType<DxfFaceRecord>().ElementAt(3).SetVertexAt(0, 7);
+            points[15].Erase();
+            points[25].Erase();
+
+            DxfPolyFaceMesh again = ByHandle<DxfPolyFaceMesh>(DxfDatabase.Parse(db.ToText()), mesh.Handle);
+            List<DxfFaceRecord> faces = again.OfType<DxfFaceRecord>().ToList();
+            Assert.Equal(37, again.NumVertices);
+            Assert.Equal(new short[] { 1, 10, 19, 7 }, faces.Select(f => f.GetVertexAt(0)).ToArray());
+            Assert.Equal(new short[] { 4, 13, 22, 31 }, faces.Select(f => f.GetVertexAt(3)).ToArray());
+            Assert.False(faces[3].IsEdgeVisibleAt(3));
         }
 
         [Fact]

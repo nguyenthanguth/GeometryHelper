@@ -24,6 +24,9 @@ namespace GeometryHelper.Export
         private readonly GeoPoint3[] _points;
         private readonly double[] _w;
 
+        // The lengths to the knots, worked out at the first asking: the spline's data are fixed once made.
+        private double[] _knotLengths;
+
         // How near the halves of a piece agree with the whole for a length worked out loosely, as for cuts.
         private const double Loose = 1E-9;
 
@@ -210,6 +213,138 @@ namespace GeometryHelper.Export
             }
 
             return from < b ? length + Integrate(from, b, 0, Loose) : length;
+        }
+
+        /// <summary>The length of the whole spline as <see cref="LengthBetween"/> measures it, each span measured once and kept.</summary>
+        internal double LooseLength
+        {
+            get
+            {
+                double[] lengths = KnotLengths();
+                return lengths[lengths.Length - 1];
+            }
+        }
+
+        /// <summary>
+        /// The parameter at a length from the start, the length measured as <see cref="LengthBetween"/> measures it: the span
+        /// found among the lengths to the knots, kept once worked out, and Newton's steps taken within it alone, halving where a
+        /// step would leave what is left of it, until the length is within 1E-9 of a unit, so that a hundred lengths along 200
+        /// spans cost a hundred walks over one span each rather than over all of them.
+        /// </summary>
+        internal double ParameterAtLooseLength(double length)
+        {
+            double[] lengths = KnotLengths();
+
+            if (length <= 0.0)
+            {
+                return Start;
+            }
+
+            if (length >= lengths[lengths.Length - 1])
+            {
+                return End;
+            }
+
+            // The last knot reached by the length, and the first beyond it: a span of some length.
+            int lo = 0;
+            int hi = lengths.Length - 1;
+
+            while (hi - lo > 1)
+            {
+                int middle = (lo + hi) / 2;
+
+                if (lengths[middle] <= length)
+                {
+                    lo = middle;
+                }
+                else
+                {
+                    hi = middle;
+                }
+            }
+
+            double a = _u[_p + lo];
+            double low = a;
+            double high = _u[_p + hi];
+            double target = length - lengths[lo];
+            double t = a + (high - a) * target / (lengths[hi] - lengths[lo]);
+
+            for (int i = 0; i < 100; i++)
+            {
+                double f = (t > a ? Integrate(a, t, 0, Loose) : 0.0) - target;
+
+                if (Math.Abs(f) <= Loose)
+                {
+                    return t;
+                }
+
+                if (f > 0.0)
+                {
+                    high = t;
+                }
+                else
+                {
+                    low = t;
+                }
+
+                double speed = Speed(t);
+                double next = speed > 0.0 ? t - f / speed : 0.5 * (low + high);
+
+                if (!(next > low && next < high))
+                {
+                    next = 0.5 * (low + high);
+                }
+
+                if (next == t || high - low <= 1E-15 * Math.Max(1.0, Math.Abs(t)))
+                {
+                    return next;
+                }
+
+                t = next;
+            }
+
+            return t;
+        }
+
+        /// <summary>Whether the control points lie within a box whose diagonal is a distance at most, the spline in it.</summary>
+        internal bool SpreadWithin(double distance)
+        {
+            double minX = double.PositiveInfinity, minY = double.PositiveInfinity, minZ = double.PositiveInfinity;
+            double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity, maxZ = double.NegativeInfinity;
+
+            foreach (GeoPoint3 c in _points)
+            {
+                minX = Math.Min(minX, c.X);
+                minY = Math.Min(minY, c.Y);
+                minZ = Math.Min(minZ, c.Z);
+                maxX = Math.Max(maxX, c.X);
+                maxY = Math.Max(maxY, c.Y);
+                maxZ = Math.Max(maxZ, c.Z);
+            }
+
+            double dx = maxX - minX, dy = maxY - minY, dz = maxZ - minZ;
+            return Math.Sqrt(dx * dx + dy * dy + dz * dz) <= distance;
+        }
+
+        /// <summary>The lengths from the start to each knot of the domain, from the knot of index degree on, as <see cref="LengthBetween"/> measures them.</summary>
+        private double[] KnotLengths()
+        {
+            if (_knotLengths != null)
+            {
+                return _knotLengths;
+            }
+
+            var lengths = new double[_points.Length - _p + 1];
+
+            for (int k = _p; k < _points.Length; k++)
+            {
+                double a = _u[k];
+                double b = _u[k + 1];
+                lengths[k - _p + 1] = lengths[k - _p] + (b > a ? Integrate(a, b, 0, Loose) : 0.0);
+            }
+
+            _knotLengths = lengths;
+            return lengths;
         }
 
         /// <summary>The parameter at a length from the start, found by halving and Newton's steps until it no longer moves.</summary>

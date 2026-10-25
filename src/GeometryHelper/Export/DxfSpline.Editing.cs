@@ -427,7 +427,9 @@ namespace GeometryHelper.Export
         /// <c>Rebuild</c>: the spline of least squares through points of the curve taken at even steps of its parameter (ten for
         /// each control point and at least 200), each fitted at its own parameter, so that the ends are where they were and the
         /// domain the same; not rational, its fit data taken out. A cubic 13 long of 5 points with an inner knot at 0.49, rebuilt
-        /// as a cubic of 20 points, keeps within 0.003 of the old curve.
+        /// as a cubic of 20 points, keeps within 0.003 of the old curve. The least squares are solved over the band of their
+        /// equations, a point of the curve lying under degree + 1 control points: a spline of 1 000 spans is rebuilt of 5 000
+        /// points in 0.05 s.
         /// </summary>
         /// <param name="degree">The degree, from 1 to 10.</param>
         /// <param name="numCtrlPts">The count of control points, the degree and one at least.</param>
@@ -452,7 +454,7 @@ namespace GeometryHelper.Export
             var q = new List<GeoPoint3>(samples + 1);
             var ub = new List<double>(samples + 1);
 
-            if (!(nurbs.Length > 0.0))
+            if (!(nurbs.LooseLength > 0.0))
             {
                 throw new InvalidOperationException("The spline stands still: it has no length to be rebuilt along.");
             }
@@ -469,6 +471,17 @@ namespace GeometryHelper.Export
             DxfNurbsEdit.LeastSquares(q, ub, degree, numCtrlPts, out List<double> knots, out List<GeoPoint3> points);
             bool closed = Closed && points[0].IsEqualTo(points[points.Count - 1], Tolerance.Default);
             SetNurbsData(degree, false, closed, false, points, knots, null);
+        }
+
+        /// <summary>
+        /// Whether the spline runs farther than a distance: its length, measured span by span to 1E-9 of a unit, above it, as a
+        /// polyline's is judged; not measured where its control points spread wider than the distance already. For telling a
+        /// curve projected to a point, with no walk along it to the bit: a zigzag within a box 0.0006 across can run 0.008.
+        /// </summary>
+        internal bool RunsFartherThan(double distance)
+        {
+            DxfNurbs nurbs = Nurbs();
+            return !nurbs.SpreadWithin(distance) || nurbs.LooseLength > distance;
         }
 
         /// <summary>
@@ -513,17 +526,17 @@ namespace GeometryHelper.Export
             }
 
             DxfNurbs nurbs = Nurbs();
-            double length = nurbs.Length;
+            double length = nurbs.LooseLength;
             var parameters = new List<double>(numOfVertices);
             var middles = new List<double>(numOfVertices);
 
             for (int i = 0; i < numOfVertices; i++)
             {
-                parameters.Add(i == 0 ? nurbs.Start : i == numOfVertices - 1 ? nurbs.End : nurbs.ParameterAtLength(length * i / (numOfVertices - 1)));
+                parameters.Add(i == 0 ? nurbs.Start : i == numOfVertices - 1 ? nurbs.End : nurbs.ParameterAtLooseLength(length * i / (numOfVertices - 1)));
 
                 if (i > 0)
                 {
-                    middles.Add(nurbs.ParameterAtLength(length * (i - 0.5) / (numOfVertices - 1)));
+                    middles.Add(nurbs.ParameterAtLooseLength(length * (i - 0.5) / (numOfVertices - 1)));
                 }
             }
 
@@ -543,7 +556,8 @@ namespace GeometryHelper.Export
         /// spline's size (the diagonal of the box of its control points) times 1E-3 times 10 to the power of minus a tenth of
         /// the precision, so that precision 0 keeps within a thousandth of the size and each 10 more within a tenth of that,
         /// down to a floor of the larger of 1E-6 times the size and 1E-9 times one more than the largest coordinate, which
-        /// precisions above 30 reach (precision 99 keeps a spline 10 000 across within 0.01, not 1E-10 of it); each segment a
+        /// precisions above 30 reach, so that every precision from about 30 up gives the same polyline (precision 99 keeps a
+        /// spline 10 000 across within 0.01, not 1E-10 of it); each segment a
         /// line, or the arc through its ends and the spline's point halfway between them. How far a segment strays is judged
         /// at three points of the spline between its ends, a quarter, half and three quarters of the way along its parameter
         /// (a quarter and three quarters for an arc, which passes the half), not everywhere. A spline 10 000 across made a

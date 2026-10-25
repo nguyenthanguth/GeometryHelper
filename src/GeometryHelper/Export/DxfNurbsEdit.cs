@@ -663,9 +663,12 @@ namespace GeometryHelper.Export
                 return;
             }
 
-            // The normal equations for the inner points P1 .. Pn-1: (N^T N) P = N^T R.
+            // The normal equations for the inner points P1 .. Pn-1: (N^T N) P = N^T R. A point of the curve lies under p + 1
+            // control points, so N^T N is nought beyond p places off its diagonal: kept as that band, its upper half, and
+            // solved by Cholesky's factoring of the band, so that 5 000 control points cost 5 000 rows of p + 1, not a
+            // square of 25 million.
             int size = n - 1;
-            var ata = new double[size, size];
+            var band = new double[size, p + 1];
             var rhs = new double[size, 3];
 
             for (int k = 1; k < m; k++)
@@ -691,19 +694,19 @@ namespace GeometryHelper.Export
                     rhs[i - 1, 1] += basis[0, a] * ry;
                     rhs[i - 1, 2] += basis[0, a] * rz;
 
-                    for (int c = 0; c <= p; c++)
+                    for (int c = a; c <= p; c++)
                     {
                         int j = span - p + c;
 
                         if (j >= 1 && j <= n - 1)
                         {
-                            ata[i - 1, j - 1] += basis[0, a] * basis[0, c];
+                            band[i - 1, j - i] += basis[0, a] * basis[0, c];
                         }
                     }
                 }
             }
 
-            double[,] solved = Solve(ata, rhs);
+            double[,] solved = SolveBand(band, rhs);
 
             for (int i = 0; i < size; i++)
             {
@@ -713,82 +716,73 @@ namespace GeometryHelper.Export
             points.Add(q[m]);
         }
 
-        /// <summary>Solves a square system for three right sides by elimination with partial pivoting.</summary>
-        /// <exception cref="InvalidOperationException">Thrown when the system is singular.</exception>
-        internal static double[,] Solve(double[,] a, double[,] b)
+        /// <summary>
+        /// Solves a symmetric system that is nought beyond a band of its diagonal, given as the band's upper half (row i, column
+        /// d the entry at i, i + d), for three right sides: the band factored as U^T U by Cholesky, then the two triangles solved.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the system is not positive definite, as for points that leave a span empty.</exception>
+        private static double[,] SolveBand(double[,] band, double[,] b)
         {
-            int n = a.GetLength(0);
+            int n = band.GetLength(0);
+            int w = band.GetLength(1) - 1;
             int columns = b.GetLength(1);
-            var m = (double[,])a.Clone();
-            var x = (double[,])b.Clone();
+            var u = new double[n, w + 1];
 
-            for (int c = 0; c < n; c++)
+            for (int i = 0; i < n; i++)
             {
-                int pivot = c;
-
-                for (int r = c + 1; r < n; r++)
+                for (int d = 0; d <= w && i + d < n; d++)
                 {
-                    if (Math.Abs(m[r, c]) > Math.Abs(m[pivot, c]))
-                    {
-                        pivot = r;
-                    }
-                }
+                    int j = i + d;
+                    double sum = band[i, d];
 
-                if (!(Math.Abs(m[pivot, c]) > 1E-300))
-                {
-                    throw new InvalidOperationException("The points do not give the spline a control point of its own for every span.");
-                }
-
-                if (pivot != c)
-                {
-                    for (int k = 0; k < n; k++)
+                    for (int k = Math.Max(0, j - w); k < i; k++)
                     {
-                        double swap = m[c, k];
-                        m[c, k] = m[pivot, k];
-                        m[pivot, k] = swap;
+                        sum -= u[k, i - k] * u[k, j - k];
                     }
 
-                    for (int k = 0; k < columns; k++)
+                    if (d == 0)
                     {
-                        double swap = x[c, k];
-                        x[c, k] = x[pivot, k];
-                        x[pivot, k] = swap;
+                        if (!(sum > 1E-300))
+                        {
+                            throw new InvalidOperationException("The points do not give the spline a control point of its own for every span.");
+                        }
+
+                        u[i, 0] = Math.Sqrt(sum);
                     }
-                }
-
-                for (int r = c + 1; r < n; r++)
-                {
-                    double f = m[r, c] / m[c, c];
-
-                    if (f == 0.0)
+                    else
                     {
-                        continue;
-                    }
-
-                    for (int k = c; k < n; k++)
-                    {
-                        m[r, k] -= f * m[c, k];
-                    }
-
-                    for (int k = 0; k < columns; k++)
-                    {
-                        x[r, k] -= f * x[c, k];
+                        u[i, d] = sum / u[i, 0];
                     }
                 }
             }
 
-            for (int c = n - 1; c >= 0; c--)
-            {
-                for (int k = 0; k < columns; k++)
-                {
-                    double sum = x[c, k];
+            var x = (double[,])b.Clone();
 
-                    for (int j = c + 1; j < n; j++)
+            for (int c = 0; c < columns; c++)
+            {
+                // U^T y = b, from the first row down; then U x = y, from the last row up.
+                for (int i = 0; i < n; i++)
+                {
+                    double sum = x[i, c];
+
+                    for (int k = Math.Max(0, i - w); k < i; k++)
                     {
-                        sum -= m[c, j] * x[j, k];
+                        sum -= u[k, i - k] * x[k, c];
                     }
 
-                    x[c, k] = sum / m[c, c];
+                    x[i, c] = sum / u[i, 0];
+                }
+
+                for (int i = n - 1; i >= 0; i--)
+                {
+                    double sum = x[i, c];
+
+                    for (int d = 1; d <= w && i + d < n; d++)
+                    {
+                        sum -= u[i, d] * x[i + d, c];
+                    }
+
+                    x[i, c] = sum / u[i, 0];
                 }
             }
 
