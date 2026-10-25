@@ -383,46 +383,710 @@ per cent of the larger side of what is drawn high, the margin not counted. The t
 written, and a character XML 1.0 forbids, such as a control character, is shown as U+FFFD so that the picture still
 parses. SVG numbers are written to six places, and one that rounds to minus nought is written 0.
 
-`DxfWriter` writes a DXF file of version R2000 in millimetres, which AutoCAD, Tekla Structures and every CAD viewer
-open. Each shape goes on a layer named as given (layer 0 when none is), made on first use in white with the continuous
-line, since CAD colours by layer. Names are cut at 255 characters, the characters DXF refuses and the comma become `_`,
-and letters beyond ASCII are written as escapes such as `\U+00E9`; two names that differ only in case, accented letters
-included, are one layer, named as first seen. In the plane a shape is written as the entity CAD has for it, not as
-chords: a polygon, rectangle, triangle or ring of a face as a closed lightweight polyline, a chain or loop with arcs as
-one with the bulge of each arc edge (the same number `GeoEdge2.Bulge` gives, 1 for a semicircle), a circle, an arc, an
-ellipse, a ray, a line without ends and a spline as a CIRCLE, ARC, ELLIPSE, RAY, XLINE and SPLINE. DXF arcs run counter-clockwise only, so a clockwise `GeoArc2` is
-written from its end to its start; a face is its rings, not a filled area, which `SvgWriter` draws. In space a point,
-segment, ray, line without ends, ellipse and spline are written as they are, a chain and a polygon as a 3D polyline, and anything with a surface as
-3DFACEs: one per triangle of a face or a body (a box 100 by 100 by 20 with a hole 20 by 20 through it is 64), one per
-face of a mesh that has three or four corners and turns one way, and six for a `GeoAabb3` or `GeoObb3`, written from its
-corners, so a box 100 by 100 by 0.002, or by nothing, is written too, and an empty `GeoAabb3` is refused with an
-`InvalidOperationException`, as `ToObb` refuses it. Where a face, a side of a body or a face of a mesh is cut into
-triangles, the edges between its own triangles are marked invisible, so a wireframe shows its outline; triangles given
-as they are keep every edge. A curve in space (`GeoArc3`, `GeoCircle3`, and chains and loops with arcs) is written as
-itself when no chord tolerance is given. An arc is an ARC and a circle a CIRCLE, each in the coordinate system of its
-own plane: the normal, turned if need be to point up in its largest component, is the extrusion, the centre is in the
-plane's coordinates by the arbitrary axis algorithm AutoCAD itself applies (x is the world y crossed with the normal
-where its x and y are both less than 1/64 from nought, the world z crossed with it otherwise), and the angles are degrees
-counter-clockwise about the extrusion from that x axis. A circle of radius 25 about (10, 20, 30) standing on the normal
-(1, 1, 0) is a CIRCLE with extrusion (0.7071, 0.7071, 0) and centre (7.0711, 30, 21.2132); an arc that turns clockwise
-about the extrusion is written from its end to its start, so an arc on the floor with the normal (0, 0, -1) is written
-about up, and is written exactly as the `GeoArc2` or `GeoCircle2` of the same arc is, with no extrusion groups. A chain or
-loop that lies in one plane is one lightweight polyline in that plane: the extrusion is the plane's normal turned up in
-the same way, the elevation is the height along it, the vertices are the plane's x and y and each arc edge keeps its
-bulge times the cosine between its normal and the extrusion (negated where they point apart, nought for an arc that
-bows square to the plane, which the planar tolerance lets stand off it). A slot 80 long and 20 wide (straight sides of
-60) with a half circle at each end, in a plane tilted 30 degrees about the x axis, is four vertices and two bulges of 1,
-and `Add(chain, tolerance)` states the tolerance that judges whether a chain lies in one plane (the global one without
-it). A chain that bends out of one plane, such as a reinforcing bar, is a LINE for each straight edge and an ARC for
-each arc edge, each in its own coordinate system, in the order of the chain; an arc edge too shallow to place a circle
-for is read by its chord, and a chain with no arc whose vertices lie on one line, which lies in no one plane, is a LINE
-for each edge. An arc or circle with a radius that is not a finite number above nought, or a normal of no length, is
-refused with an `ArgumentOutOfRangeException` or an `ArgumentException`. Given a chord tolerance instead (`Add(arc, 0.1)`), any of them is cut into chords no further from it
-than that, with no default: a circle of radius 100 at 0.1 is 71 chords, one of radius 50 000 at 0.001 is 15 708, and one
-of radius 25 at 0.1 is 36 where the CIRCLE is one entity. A curve that would need more than 1 048 576 chords, a chain or loop
-counted whole, is refused with an `ArgumentOutOfRangeException`. A shape holding a number that is not finite is refused
-with an `ArgumentException` and leaves nothing in the file. The file is plain ASCII, with the extents of what was drawn
-in its header and the view opened on them.
+`DxfWriter`, the writer of DXF, is set out with the reader and the editing model under [Writing DXF](#writing-dxf).
+
+## DXF files
+
+The library has three ways into a DXF file, each for its own job:
+
+| To | Use | What it gives |
+|---|---|---|
+| draw the library's shapes for CAD to open | `DxfWriter` | a new file of R2000 in millimetres, each shape the entity CAD has for it, on the layers named (see [Writing DXF](#writing-dxf)) |
+| read the geometry of a drawing | `DxfReader`, which gives a `DxfDocument` | the shapes of the plane or of space with their layer and look, every INSERT placed, read only (see [Reading DXF](#reading-dxf)) |
+| change a drawing and save it with nothing else lost | `DxfDatabase` | the drawing as AutoCAD's `Database` holds it, its classes AutoCAD's with Dxf in front (see [Editing a DXF file](#editing-a-dxf-file)) |
+
+`DxfReader` reads a whole drawing into shapes at once, 100 000 entities of eight kinds (34 MB) in 0.54 s on .NET 10, and is the
+way to take geometry out of a drawing to work on. `DxfDatabase` reads what it is asked for when it is asked: 100 000 lines of
+10.5 MB are opened and saved in 36 ms and walked as `DxfLine` objects in 21 ms, and what is not changed is written back as
+it was read. `DxfWriter` makes a file from nothing. The three meet: an entity of the editing model gives the shapes
+`DxfReader` would read for it by `GetGeometry()`, and a drawing begins as the text `DxfWriter` writes (see [The
+model](#the-model)).
+
+## Editing a DXF file
+
+### The model
+
+`DxfDatabase` opens a DXF file to edit it as AutoCAD's `Database` edits a drawing, and saves it again with nothing lost. Its
+classes are AutoCAD's with Dxf in front, so that a plugin can use both without a clash of names: `DxfBlockTableRecord`,
+`DxfLayerTableRecord`, `DxfLine`, `DxfMText`, each with AutoCAD's members and their meanings, points in world coordinates
+and angles in radians as AutoCAD's .NET API gives them. Under them is an engine that keeps every byte of the file and
+reads what the file holds from those bytes when it is asked for: opened and saved with nothing changed, a file is written
+back byte for byte; a change writes the records it is about anew in the file's own style, and every other record keeps its
+bytes.
+
+```csharp
+using GeometryHelper.Export;
+using GeometryHelper.Geometry;
+
+DxfDatabase db = DxfDatabase.Open("plan.dxf");                       // or Open(stream), Parse(text)
+
+foreach (DxfEntity entity in db.ModelSpace) { ... }                  // DxfLine, DxfMText, ..., DxfUnknownEntity
+DxfLine line = db.ModelSpace.OfType<DxfLine>().First();
+line.EndPoint = new GeoPoint3(100, 0, 0);                            // that record written anew
+line.ColorIndex = 1;
+db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0)) { Layer = "steel" });
+db.LayerTable.Add(new DxfLayerTableRecord { Name = "rebar", ColorIndex = 3 });
+db.Insunits = DxfUnits.Millimeters;
+line.Erase();
+db.Save("copy.dxf");                                                 // every other record the same bytes
+```
+
+There is no `ObjectId` and no transaction. An object is used directly, as AutoCAD's is once a transaction has opened it:
+an object read from the drawing is the same object each time it is reached, a change to it is written at once, and an
+object erased stays erased, `IsErased` true, refusing to be changed or copied. What AutoCAD gives as an `ObjectId` the
+library gives as the object (`Owner`, `BlockTableRecord`, `DimensionStyle`, `GetBlockReferences`), and a handle as the
+text the file prints (`Handle`, `"2F"`). `db.GetObject("2F")` and `db.TryGetObject("2F", out DxfDBObject found)` give the
+object of a handle back, as AutoCAD's `GetObjectId` gives its id: an entity of model space, paper space or a block, a VERTEX
+and an ATTRIB among them, an object of the OBJECTS section, a record of the layer, linetype, text style, dimension style or
+block table, or one of those five tables, letters of either case the same. The records the library has no class for carry a
+handle but are not found: the APPID, VPORT, VIEW and UCS tables and their records, and the BLOCK and ENDBLK that open and
+close a block. The objects are found in one walk of the drawing, kept until the drawing next changes, so that many lookups
+between two changes, in a loop, cost one walk. There is no undo: a change stays in the drawing until it is saved or let go.
+Editing is for one thread at a time.
+
+The objects are AutoCAD's classes in AutoCAD's order. A `DxfDBObject` is any object of the drawing, a `DxfEntity` one that
+is drawn, and a `DxfCurve` an entity walked along; the tables are a `DxfSymbolTable` of `DxfSymbolTableRecord`s; the
+dictionaries, records of data and groups of the OBJECTS section are a `DxfDBDictionary`, a `DxfXrecord` and a `DxfGroup`;
+a layout is a `DxfLayout`, whose plot settings are a `DxfPlotSettings`. A type of entity the library has no class for yet,
+an IMAGE, a REGION or a 3DSOLID among them, is a `DxfUnknownEntity`: kept as the file has it, its look editable, itself
+erasable and copied, its geometry not moved.
+
+There is no `new DxfDatabase()`. A drawing begins as a file, and one made from nothing begins as the drawing `DxfWriter`
+writes with no shape in it: `DxfDatabase.Parse(new DxfWriter().ToString())` is a drawing of R2000 in millimetres with model
+space and paper space, two layouts, the dimension style Standard and the named object dictionary, to which entities,
+blocks and layers are added as to any other.
+
+### AutoCAD and GeometryHelper
+
+For a reader who knows AutoCAD's .NET API, what each daily pattern is here. The classes not named keep AutoCAD's name with
+Dxf in front and their members' names.
+
+| AutoCAD | GeometryHelper | The difference |
+|---|---|---|
+| `new Database(false, true); db.DxfIn(path, log)` | `DxfDatabase.Open(path)`, `Open(stream)`, `Parse(text)` | A DXF file only, ASCII, R12 to R2018; no DWG and no binary DXF. No `new DxfDatabase()`: start from `Parse(new DxfWriter().ToString())`. |
+| `db.DxfOut(path, 16, version)`, `db.SaveAs(path, version)` | `db.Save(path)`, `Save(stream)`, `ToText()` | Saved in the version, code page and style it was read in; a drawing is not turned into another version. An entity appended from a drawing of another version is turned into this one's forms. |
+| `HostApplicationServices.WorkingDatabase`, `Document.LockDocument()` | none | No application and no document: the drawing is the object `Open` gave. |
+| `using (Transaction tr = db.TransactionManager.StartTransaction()) { ...; tr.Commit(); }` | none | Every change is written at once; nothing is rolled back. |
+| `(Line)tr.GetObject(id, OpenMode.ForWrite)` | the object itself | An object is reached through what holds it (`db.ModelSpace`, a table, `entity.Owner`) and is the same object each time; no `UpgradeOpen`. |
+| `ObjectId`, `id.Handle`, `db.GetObjectId(false, handle, 0)` | the object; `obj.Handle`, a text such as `"2F"`; `db.GetObject(handle)`, `db.TryGetObject(handle, out value)` | Entities (VERTEX and ATTRIB among them), objects of the OBJECTS section, and the layer, linetype, text style, dimension style and block tables and their records are found; APPID, VPORT, VIEW and UCS records and a block's BLOCK and ENDBLK, which have no class, are not. A handle of no object throws `KeyNotFoundException` from `GetObject`, as AutoCAD answers eUnknownHandle. A handle of an erased object throws it too, at once, where AutoCAD's `GetObjectId` still gives the erased object's id and fails only when it is opened (eWasErased); `TryGetObject` gives false for both. |
+| `ObjectIdCollection`, `DBObjectCollection` | `IReadOnlyList<DxfEntity>` and the like | `Explode()`, `GetOffsetCurves`, `GetSplitCurves`, `GetBlockReferences` give lists of objects. |
+| `var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead)` | `db.BlockTable` | Also `db.LayerTable`, `LinetypeTable`, `TextStyleTable`, `DimStyleTable`. |
+| `bt[BlockTableRecord.ModelSpace]` opened for write | `db.ModelSpace`, `db.PaperSpace`, `db.BlockTable["BOLT"]` | Named `*Model_Space` and `*Paper_Space` whatever the file calls them. |
+| `btr.AppendEntity(line); tr.AddNewlyCreatedDBObject(line, true)` | `db.ModelSpace.AppendEntity(line)` | One call; the entity is given a handle and an owner, and its layer is added to the layer table where it is not listed. |
+| `foreach (ObjectId id in btr)` | `foreach (DxfEntity e in btr)` | The entities as objects, walked over those the block holds when the walk begins. |
+| `entity.Erase()` | `entity.Erase()` | Takes every record of it out; no `Erase(false)` to bring it back. |
+| `new Line(p1, p2)`, `new Circle(c, n, r)`, `new Arc(...)`, `new Ellipse(...)`, `new DBPoint(p)` | `new DxfLine(p1, p2)`, `new DxfCircle(c, n, r)`, `new DxfArc(...)`, `new DxfEllipse(...)`, `new DxfDBPoint(p)` | Points are `GeoPoint3`, directions `GeoVector3`. |
+| `Polyline`, `Polyline2d`, `Polyline3d`, `PolyFaceMesh`, `PolygonMesh`, `Spline`, `Ray`, `Xline`, `Face`, `Solid` | `DxfPolyline`, `DxfPolyline2d`, `DxfPolyline3d`, `DxfPolyFaceMesh`, `DxfPolygonMesh`, `DxfSpline`, `DxfRay`, `DxfXline`, `DxfFace`, `DxfSolid` | Their vertices are `DxfVertex2d`, `DxfPolylineVertex3d`, `DxfPolyFaceMeshVertex`, `DxfFaceRecord` and `DxfPolygonMeshVertex`. |
+| `DBText`, `MText` | `DxfDBText`, `DxfMText` | No fonts: a text's `GeometricExtents` is its insertion point, and `AdjustAlignment` is not there. `TextStyleId` is `TextStyle`, the record, beside `TextStyleName`. |
+| `BlockReference`, `MInsertBlock`, `AttributeReference`, `AttributeDefinition` | `DxfBlockReference`, `DxfMInsertBlock`, `DxfAttributeReference`, `DxfAttributeDefinition` | `new DxfBlockReference(position, block)` takes the block record, not its id; `AttributeCollection.AppendAttribute` takes the attribute itself. |
+| `Hatch`, `Leader`, `MLeader` | `DxfHatch`, `DxfLeader`, `DxfMLeader` | A loop is a `DxfHatchLoop` of the library's shapes; `EvaluateHatch` and `EvaluateLeader` are not there. |
+| `RotatedDimension`, `AlignedDimension`, `RadialDimension`, `DiametricDimension`, `LineAngularDimension2`, `Point3AngularDimension`, `ArcDimension`, `OrdinateDimension`, `RadialDimensionLarge` | the same with Dxf in front | `RecomputeDimensionBlock` is not there: the block that draws a dimension is left for AutoCAD to draw anew. |
+| `Table` | `DxfTable` | Cells read and set; its block is left for AutoCAD to draw anew (`RecomputeTableBlock` is not there); a shear or a scale unlike along its axes refused. |
+| `Viewport`, `Layout`, `PlotSettings` | `DxfViewport`, `DxfLayout`, `DxfPlotSettings` | `db.Layouts` walks the layouts in the order of their tabs; plot settings are read only. |
+| `LayerTableRecord`, `LinetypeTableRecord`, `TextStyleTableRecord`, `DimStyleTableRecord` | `DxfLayerTableRecord`, `DxfLinetypeTableRecord`, `DxfTextStyleTableRecord`, `DxfDimStyleTableRecord` | Found by name, either case: `db.LayerTable["steel"]` is the layer Steel, and added by `Add`. A layer, a dimension style and a block are renamed by `Name` with every reference to them; a layer, a linetype, a dimension style and a block are erased by `Erase()` where nothing uses them. |
+| `lt.Has("steel")`, `lt["steel"]` giving an `ObjectId` | `db.LayerTable.Has("steel")`, `db.LayerTable["steel"]` giving the record | Null where the table has none. |
+| `layer.LinetypeObjectId = ltId` | `layer.LinetypeName = "DASHED"` | Records point at records by name where AutoCAD's point by id, and at the record itself where AutoCAD's property is the record (`Dimtxsty`, `Dimblk`). |
+| `DBDictionary`, `Xrecord`, `Group`, `db.NamedObjectsDictionaryId`, `db.GroupDictionaryId` | `DxfDBDictionary`, `DxfXrecord`, `DxfGroup`, `db.NamedObjectsDictionary`, `db.GroupDictionary` | The dictionaries are objects; `SetAt` takes the object made in code. |
+| `ResultBuffer`, `TypedValue` | `IReadOnlyList<DxfTypedValue>`, `DxfTypedValue` | A value is the text the file prints: `new DxfTypedValue(1040, "2.5")`. Setting `XData` registers its application. |
+| `Entity.TransformBy(Matrix3d)`, `GetTransformedCopy` | `TransformBy(GeoTransform3)`, `GetTransformedCopy` | Each class refuses what it cannot hold, as AutoCAD's does (see [Editing rules](#editing-rules)). |
+| `Entity.Explode(DBObjectCollection)` | `Explode()` giving a list | The library explodes exactly an INSERT, a MINSERT, the three polylines, an MTEXT, a dimension, a table and a straight leader, as AutoCAD's do; every other entity refuses with `NotSupportedException`, a mesh, a HATCH, a splined leader, a multileader and the types it keeps as the file has them among them, which AutoCAD explodes (see [What the model does not do](#what-the-model-does-not-do)). |
+| `BlockReference.ExplodeToOwnerSpace()` | `ExplodeToOwnerSpace()` | The same: the parts appended, the INSERT kept; a MINSERT of more than one cell refused, as AutoCAD's EXPLODE refuses one. |
+| `entity.IntersectWith(other, Intersect.ExtendThis, points, IntPtr.Zero, IntPtr.Zero)` | `entity.IntersectWith(other, DxfIntersect.ExtendThis)` giving `IReadOnlyList<GeoPoint3>` | Worked out on the library's shapes; a pair it cannot cross, a text among them, throws `NotSupportedException`. |
+| `GeometricExtents` giving `Extents3d` | `GeometricExtents` giving `GeoAabb3` | Of the shapes `GetGeometry()` gives; a text has no fonts to give it a box. |
+| `Curve.GetPointAtParameter`, `GetDistAtPoint`, `GetOffsetCurves`, `GetSplitCurves`, `Extend` | the same on `DxfCurve` | Offsets go to the right of the curve's way, as below. |
+| `Curve.GetGeCurve()` giving a `Curve3d` | `GetGeCurve()` giving the library's shape (`GeoLine3`, `GeoArc3`, ...) as an `object` | `GetGeometry()` gives the same as `DxfReader` reads it. |
+| `Clone()`, `db.WblockCloneObjects(ids, ownerId, map, DuplicateRecordCloning.Ignore, false)` | `entity.Clone()` then `other.ModelSpace.AppendEntity(copy)`; `db.WblockCloneObjects(entities, other.ModelSpace)` giving the copies | Records of the tables and the blocks a copy draws by come with it where the other drawing has none of their names, its own used where it has (see [Editing rules](#editing-rules)). No `IdMapping`: the copies are given back in the order of the entities. |
+| `Point3d`, `Vector3d`, `Point2d`, `Vector2d` | `GeoPoint3`, `GeoVector3`, `GeoPoint2`, `GeoVector2` | CadConvert turns one into the other: `point.ToGeoPoint3()`, `point.ToAcadPoint3()`. |
+| `Matrix3d.Displacement(v)`, `Rotation(angle, axis, centre)`, `Scaling(factor, centre)`, `Mirroring(plane)` | `GeoTransform3.Translation(v)`, `RotationAxis(centre, axis, angle)`, `Scaling(centre, factor)`, `Mirror(plane)` | `a * b` applies `b` first, as `Matrix3d`'s product does. `Matrix3d.AlignCoordinateSystem` from one system to another is `FromCoordinateSystem(to) * ToCoordinateSystem(from)`. |
+| `Extents3d`, `Plane`, `CoordinateSystem3d`, `Tolerance` | `GeoAabb3`, `GeoPlane3`, `GeoCoordinateSystem3`, `Tolerance` | |
+| `Color`, `LineWeight`, `Transparency` | `DxfColor`, `DxfLineWeight`, `DxfTransparency` | `DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1)` and `FromRgb(255, 128, 0)`, as AutoCAD's. |
+| `db.Clayer = layerId`, `db.Insunits`, `Application.SetSystemVariable("LTSCALE", 2.0)` | `db.Clayer = "steel"`, `db.Insunits`, `db.Ltscale = 2` | Variables of the header and of the OBJECTS section as properties; any other by `GetHeader("$NAME")` and `SetHeader`. |
+| `Highlight`, `Draw`, grips, overrules, events, reactors of the runtime | none | They need AutoCAD running. |
+
+### Opening and saving
+
+`DxfDatabase.Open(path)` and `Open(stream)` read the bytes of a file, `Parse(text)` its text; `Save(path)` and `Save(stream)`
+write them, and `ToText()` gives the text as it would be saved. What is kept is everything: the version, R12 (AC1009) to
+R2018 (AC1032), as `Version` names it; the line ends, a carriage return and a line feed, a line feed alone, or both in one
+file; the group codes padded to three places or not; the mark of UTF-8 or none; the text in the code page of a file before
+R2007 and in UTF-8 after, byte for byte, `CodePage` naming it (`ANSI_1252`, `UTF-8`); comments (999); the sections, tables,
+objects and entities the library does not read (CLASSES, IMAGE, objects of a type with no class and the rest); extended data,
+reactors and extension dictionaries; and whatever follows the EOF. A file is read as `DxfReader` reads it (see [Reading
+DXF](#reading-dxf)), and one it refuses is refused the same way, with the same message: a binary DXF, one cut short, one whose
+header names a code page that does not read each byte of ASCII as itself. `Warnings` says what was said of reading its text,
+a file before R2007 whose text is UTF-8 or one in a code page the runtime has not; it is empty for most files.
+
+What is written is in the file's own style: its line end, its padding, the numbers as `DxfWriter` prints them, and the text
+in its encoding, a letter the page cannot hold, or whose bytes would read back as UTF-8, written as its escape (`\U+00E9`).
+A file that names no version is written as one of R12, or of R2000 where its records carry subclass markers. Held against
+ezdxf 1.4.5 on its drawings of R12, R2000, R2007 and R2018, recover and audit find nothing to fix in what the model writes,
+ezdxf reads each value as set, and every untouched record keeps its bytes (188, 308, 361 and 363 of them).
+
+### The drawing
+
+The header is read and set raw by `GetHeader("$INSUNITS")` and `SetHeader("$LTSCALE", new DxfTypedValue(40, "2"))`, and
+through AutoCAD's properties: `Clayer`, `Insunits`, `Extmin`, `Extmax`, `Handseed`, `Celtype`, `Cecolor`, `Celweight`,
+`Ltscale`, `Limmin`, `Limmax`, `Insbase`, `Pdmode`, `Pdsize`, `Textsize`, `Textstyle`, `Dimstyle`, `Lunits`, `Luprec`,
+`Aunits`, `Auprec`, `Angbase` (in radians; the file writes degrees), `Angdir`, `Orthomode`, `Fillmode`, `Mirrtext`,
+`LineWeightDisplay`, `Saveproxygraphics`, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. A variable R2000
+brought, `$INSUNITS`, `$CELWEIGHT`, `$LWDISPLAY` and `$PROXYGRAPHICS` among them, is refused in a file of R12, as AutoCAD
+writes none there. Setting `Clayer` to a layer the table does not list adds it, as an entity's `Layer` does.
+
+`$EXTMIN` and `$EXTMAX` hold model space and paper space. They grow to hold what is written and are never shrunk: an entity
+whose own record is written whole, as a LINE moved or a POLYLINE given a new flag, grows them at once; a run of groups of
+its record written in place (a LWPOLYLINE's vertex, a SPLINE's knots) or a record that follows it (a VERTEX put in or set
+in a POLYLINE, a point of a mesh) grows them by the entity as it stands when the header is next read or the file saved,
+once however many vertices were written, so that a vertex moved out and back between two readings leaves no trace. An
+entity of a block appended, moved or changed leaves them as they are, as AutoCAD leaves them until the INSERTs of the block
+are regenerated.
+
+The drawing reads and sets the variables AutoCAD keeps out of the header, as DICTIONARYVAR objects of the dictionary
+AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), `Cetransparency` (a whole per cent, so the
+alpha 127 is 50), `Tablestyle`, `MLeaderstyle`, `DetailViewStyle` and `SectionViewStyle` (by name, one of the drawing's),
+`MLeaderscale`, `AnnoAllVisible`, `MsLtScale`, `MsOleScale`, `LayerEval`, `LightingUnits`, `LightsInBlocks`,
+`TStackAlign`, `TstackSize`, `HpInherit`, `Isolines`, `Facetres`, `PdfFrame` and `PlineEllipse`; AutoCAD's default where the
+drawing gives none, as a drawing of ezdxf, to which a variable set adds the dictionary of variables. `ThumbnailBitmap` reads
+the bytes of the THUMBNAILIMAGE section.
+
+The drawing's properties are `db.SummaryInfo`, its DWGPROPS, set as AutoCAD sets them:
+`db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo) { Title = "Plate B-12" }.ToDatabaseSummaryInfo()`. Its
+custom properties are read from the groups 300 to 309 (`name=value`) and from the list after a group 90 (a count, then each
+name and value in two groups 1); they are written in the form the record has, the list where it has one or is made new in a
+drawing of R2004 or later, so that it never holds two sets.
+
+### The tables
+
+`ModelSpace`, `PaperSpace` and each block of the `BlockTable` are a `DxfBlockTableRecord`: its `Name`, `Origin`,
+`IsLayout`, `IsAnonymous` and `IsFromExternalReference`, and its entities, each the `DxfEntity` of its type's class or a
+`DxfUnknownEntity`. Model space and paper space are named `*Model_Space` and `*Paper_Space`, as AutoCAD names them,
+whatever the file calls them (ezdxf's files of R12 call them `$Model_Space` and `$Paper_Space`), and stand for their records
+from the moment the drawing is opened, with their handles and extended data.
+`BlockTable.Add(new DxfBlockTableRecord { Name = "BOLT", Origin = new GeoPoint3(0, 0, 0) })` adds a block, which is filled
+by its own `AppendEntity`. A block has its
+`Comments` (the BLOCK's 4), `Units`, `Explodable` and `BlockScaling` (its BLOCK_RECORD's 70, 280 and 281, from R2007 on),
+`PreviewIcon` (the bytes of its 310), `IsDynamicBlock` and `Hyperlinks`. `GetBlockReferences(true)` gives its INSERTs, as
+AutoCAD's `GetBlockReferenceIds` gives their ids, and `GetBlockReferences(false)` those of the blocks that hold one of it too
+(all of 2 000 nested blocks in 0.02 seconds); `GetAnonymousBlocks()` gives the blocks AutoCAD made of a dynamic block.
+Setting its `Name` renames it with every INSERT of it; `Erase()` takes it out, BLOCK, entities, ENDBLK and BLOCK_RECORD,
+where nothing inserts it; and `AssumeOwnershipOf(entities)` moves entities of the drawing into it, each keeping its handle,
+out of the draw order (SORTENTSTABLE) of the block it leaves and onto the end of that of the block it enters.
+
+The `LayerTable` holds a `DxfLayerTableRecord` for each layer, found by its name in either case: its `Color`, `ColorIndex`,
+`TrueColor`, `LinetypeName`, `LineWeight`, `IsOff`, `IsFrozen`, `IsLocked` and `IsPlottable`; its `Description` and
+`Transparency`, kept in the extended data of AcAecLayerStandard and AcCmTransparency as AutoCAD keeps them;
+`ViewportVisibilityDefault` (frozen in new viewports, flag 2); and `IsUsed`: layer 0, Defpoints, the current layer and any
+layer an entity is on, those appended in code among them. The first `IsUsed` reads the drawing once for every layer, and the
+answers hold until the drawing is edited: 400 layers of a drawing of 300 000 lines take 0.08 seconds. Setting the `Name` of
+a layer renames it with every reference to it: the layer steel renamed Steel_S355 has every entity of it, in model space,
+paper space and the blocks, its vertices and attributes among them, on Steel_S355, a layer named in extended data (1003) too,
+and `$CLAYER` where it was the current one; layer 0 and Defpoints keep their names. `Erase()` takes a layer out where nothing
+is on it, nothing points at it and it is not 0, Defpoints or the current layer, the table's count lowered by one. The
+LAYER_INDEX and LAYER_FILTER objects a drawing may keep are left as they are.
+
+A layer's look in a viewport is `layer.GetViewportOverrides(viewport)`, a `DxfLayerViewportProperties` of its colour,
+linetype, lineweight and transparency there, each the override AutoCAD keeps in the layer's extension dictionary
+(ADSK_XREC_LAYER_COLOR_OVR and the three others) else the layer's own; `RemoveAllOverrides()` takes them out, and erasing a
+viewport takes its overrides out of the layers.
+
+The `LinetypeTable` holds a `DxfLinetypeTableRecord` for each linetype: its `AsciiDescription`, `PatternLength`,
+`NumDashes` and `DashLengthAt`, a new one of simple dashes added by `Add`. A linetype's dashes carry their shapes and texts:
+AutoCAD's gas line is `SetTextAt(1, "GAS")`, `SetShapeStyleAt(1, db.TextStyleTable["Standard"])`, `SetShapeScaleAt(1, 0.1)`
+and `SetShapeOffsetAt(1, new GeoVector2(-0.1, -0.05))` on its gap of 0.2, written `49 -0.2, 74 2, 75 0, 340` the style's
+handle `, 46 0.1, 50 0, 44 -0.1, 45 -0.05, 9 GAS`; a dash of a file has its length set too, and a linetype nothing draws
+with is erased. A text style is added to the `TextStyleTable`,
+`new DxfTextStyleTableRecord { Name = "ROMANS", FileName = "romans.shx", TextSize = 2.5 }`, and its font, height, width,
+slant and TrueType `Font` (a `DxfFontDescriptor`, `1001 ACAD, 1000 Arial, 1071 34` as AutoCAD keeps it) are set.
+
+The dimension styles are the `DimStyleTable`, each a `DxfDimStyleTableRecord` with AutoCAD's 73 variables of a DXF file,
+each read and set in its group: `Dimasz` 41, `Dimtxt` 140, `Dimdec` 271, `Dimjogang` 50 (radians; the file writes degrees),
+`Dimtfillclr` the record's second 70 (the first is its flags), the arrowheads `Dimblk`, `Dimblk1`, `Dimblk2` and `Dimldrblk`
+as the blocks they are drawn with (by handle, 342 to 344 and 341; by name, 5 to 7, in R12, ARCHTICK for the block
+_ARCHTICK; null for the closed filled one), `Dimtxsty` a `DxfTextStyleTableRecord` and `Dimltype`, `Dimltex1` and `Dimltex2`
+linetypes. A variable the record gives no group for reads as AutoCAD's own, that of acad.dwt: arrowheads 0.18 long, four
+decimal places. A style made in code, `new DxfDimStyleTableRecord { Name = "GH_25", Dimasz = 2.5 }`, is added whole, every
+variable its file's version has, its handle in group 105 as AutoCAD writes a DIMSTYLE's; renamed by its `Name`, the
+dimensions, leaders and tolerances drawn in it, the styles AutoCAD keeps for its kinds of dimension (GH_25$0) and
+`$DIMSTYLE` follow; `Erase()` takes out one nothing is drawn in that is not Standard or the current style.
+
+### Dictionaries, records of data and groups
+
+The drawing's own dictionaries are objects: `NamedObjectsDictionary`, and those it names, `GroupDictionary` (ACAD_GROUP),
+`LayoutDictionary` (ACAD_LAYOUT), `MLeaderStyleDictionary`, `TableStyleDictionary` and the others AutoCAD's `Database`
+names by id; null where a drawing has none, as one of R12. `SetAt` adds a `DxfDBDictionary`, a `DxfXrecord` or a `DxfGroup`
+made in code; `TreatElementsAsHard` says whether a dictionary owns its entries hard (280 of 1, its entries named by 360),
+and `CopyTo` copies its entries into an array. An XRECORD is a `DxfXrecord`, its `Data` the groups after its cloning flag,
+the groups 102 of a list among them:
+
+```csharp
+db.NamedObjectsDictionary.SetAt("GH_PLATE", new DxfXrecord
+{
+    Data = new[] { new DxfTypedValue(1, "B-12"), new DxfTypedValue(40, "12.5") },   // a text and a real kept with the drawing
+});
+```
+
+Every object can be given an extension dictionary, `CreateExtensionDictionary()`, an empty DICTIONARY owned by it and
+written as AutoCAD writes one, reached as its `ExtensionDictionary`: `SetAt("GH_DATA", new DxfDBDictionary())` adds an
+entry, `SetName` renames one, `Remove` takes one out with its object, and `ReleaseExtensionDictionary()` takes the
+dictionary out once it is empty. `SetBinaryDataForKey("GH_BIN", bytes)` keeps bytes there, in an XRECORD of groups 310 of
+127 bytes each, and `GetBinaryDataForKey` reads them back. `Remove` of an entry erases the dictionaries and records it owns at
+every depth, and an object erased takes its extension dictionary with everything in it.
+
+Extended data is `XData`, a list of `DxfTypedValue`s set application by application as AutoCAD sets it, each application
+named in the groups given having its data replaced and one the table of applications does not list registered:
+`line.XData = new[] { new DxfTypedValue(1001, "GH"), new DxfTypedValue(1000, "B-12") }`. `GetXDataForApplication("GH")`
+gives one application's. A text of extended data is read with its escapes as letters, as a layer's name is, so that a letter
+the file's code page has not, written as `\U+0110`, comes back as the letter it was set as. `XDataTransformBy` moves the
+extended data as AutoCAD moves it: a position of the world (1011) moved, a displacement (1012) turned and scaled, a direction
+(1013) turned, a distance (1041) and a scale factor (1042) scaled, a plain point (1010) kept.
+
+A group is a `DxfGroup`, named by its entry of the group dictionary:
+`db.GroupDictionary.SetAt("BEAMS", new DxfGroup("Beams of grid A", true))`, then `group.Append(beam)`, which writes the
+beam's handle last among the group's (340) and the group into the beam's reactors, as AutoCAD writes a member. `Prepend`, `InsertAt`, `Remove`, `RemoveAt`, `Replace`,
+`Reverse`, `Transfer` and `Clear` reorder the members, `GetAllEntityIds` gives them as entities, and `SetColorIndex`,
+`SetLayer` and the other setters of the look set every member at once. A large group is filled by `Append` of a collection,
+in one writing: one at a time is fine for groups as drawings have them (8 000 in half a second), but 32 000 take some 15
+seconds. A group added under `*` is anonymous, `*A1` the first name its dictionary has not. An entity erased leaves its
+groups at once, and a group left empty is dropped when the drawing is saved, as AutoCAD drops it, whatever emptied it: its
+last member erased, `Clear`, `RemoveAt`, or never given one. A group the file was read with empty is kept as it was.
+
+### What every entity has
+
+Every entity has AutoCAD's `Layer`, `Color`, `ColorIndex`, `TrueColor`, `Linetype`, `LinetypeScale`, `LineWeight`,
+`Visible` and `Transparency`, its `Handle`, `OwnerHandle`, `XData`, `Hyperlinks` and `ExtensionDictionary`, its `Owner` and
+`BlockName`, and `GetGeometry()`, the library's shapes for it as `DxfReader` reads it. A true colour's `Color` carries the
+index nearest it, orange (0xFF8000) the index 30, and is written with it. `Transparency`, group 440, is a `DxfTransparency`:
+BYLAYER where the record gives none, BYBLOCK, or an alpha from 0, clear, to 255, solid, `new DxfTransparency(127)` the 50 per
+cent of AutoCAD's dialog, written 33 554 559 (0x0200007F); a file older than R2004 has none and refuses one. Its
+`Hyperlinks` are those of its extended data of PE_URL, written as AutoCAD writes them:
+`line.Hyperlinks.Add(new DxfHyperLink { Name = "https://example.com/B-12.pdf", Description = "Plate B-12" })`.
+`SetPropertiesFrom` takes the look of another entity, checked whole before anything is written, and `SetDatabaseDefaults`
+that of a drawing's current variables.
+
+`GeometricExtents` is the box of its shapes, a `GeoAabb3`; an entity with none, an IMAGE or a LINE of no length, throws, as
+AutoCAD throws for an entity with no extents. A text has no fonts here, so its box is the point it stands at. `GetPlane()`
+gives the plane it lies in, that of its extrusion through its first point where all of it lies there, else the one its shapes
+span, to `Tolerance.Default`, and `IsPlanar` whether there is one: a 3D polyline with a corner 0.002 off the plane of the
+others has none. `IntersectWith(other, DxfIntersect.ExtendThis)` gives the points where two entities meet, by the library's
+shapes for them: the line from (0, 0, 0) to (10, 0, 0) meets the circle of radius 3 about (10, 0, 0) at (7, 0, 0), and, run
+on as its infinite line, at (13, 0, 0) too; an arc runs on as its circle. A closed polyline, a SOLID and a 3DFACE meet along
+their edges, not across their inside: the square 4 by 4 about the origin meets the line along the x axis at (-2, 0, 0) and
+(2, 0, 0), and a line standing through its middle not at all. A polyline meets segment by segment, a point meets what it lies
+on, and a pair the library cannot cross, a text among them, throws `NotSupportedException`. `BoundingBoxIntersectWith`
+gives where the boxes of two entities meet.
+
+### Curves
+
+Lines, circles, arcs, ellipses, points, rays and xlines are `DxfLine`, `DxfCircle`, `DxfArc`, `DxfEllipse`, `DxfDBPoint`,
+`DxfRay` and `DxfXline`, with AutoCAD's members. A CIRCLE whose groups 10, 20 and 30 are (10, 20, 5) on the extrusion
+(0, 0, -1) has its `Center` at (-10, 20, -5), as AutoCAD gives it; setting `Normal` keeps that centre where it is in the
+world. An arc's `StartAngle` and `EndAngle` are radians from nought up to 2 pi, written as degrees. On the ellipse with major
+axis (10, 0, 0) and ratio 0.5, `StartParam` 0.7854 (pi / 4) is the point (7.071, 3.536, 0), whose `StartAngle` is 0.4636.
+`new DxfArc(center, normal, 10, 0, Math.PI / 2)` then `db.ModelSpace.AppendEntity(arc)` adds a quarter circle.
+
+A LWPOLYLINE is a `DxfPolyline`: `pl.GetPoint2dAt(1)` is its second vertex in the plane of its normal, `pl.GetPoint3dAt(1)`
+the same in the world, `pl.AddVertexAt(2, point, bulge, 0, 0)` puts one in, and `pl.SetBulgeAt(1, 1.0)` makes the segment
+leaving it a half circle. A POLYLINE is a `DxfPolyline2d` or a `DxfPolyline3d`, walked as AutoCAD walks one,
+`foreach (DxfVertex2d v in polyline2d) v.Bulge = 0;`, and grows by `AppendVertex(new DxfVertex2d(point, 0, 0, 0, 0))`; a
+vertex is written, put in or taken out as its own record, the others keeping their handles, and its `Owner` is the polyline. A SPLINE
+is a `DxfSpline` of its `Degree`, `ControlPoints`, `Knots`, `Weights` and `FitPoints`, a 3DFACE a `DxfFace`
+(`GetVertexAt`, `IsEdgeVisibleAt`), a SOLID a `DxfSolid` (`GetPointAt`), and the meshes a `DxfPolyFaceMesh` and a
+`DxfPolygonMesh`, whose vertices and face records are walked as their polyline's are. A point or face of a polyface mesh
+erased keeps the mesh's counts and the faces' numbers of its points true.
+
+A curve is a `DxfCurve`, walked as AutoCAD walks one: the line from (0, 0, 0) to (30, 40, 0) is 50 long, its parameter the
+distance from its start; a circle or an arc is walked by its angle, an ellipse by its eccentric angle, a ray or an xline by
+the distance from its base point, a polyline by the index of a vertex plus how far along its segment, and a spline by its knot
+value. The polyline (0, 0), (10, 0), (10, 10) with a bulge of 1 on its second vertex is 25.71 long, and its parameter 1.5 is
+(15, 5). The curves edit as AutoCAD's do, each result a new entity of the same look in no file, to be appended:
+
+```csharp
+DxfPolyline pl = db.ModelSpace.OfType<DxfPolyline>().First();
+IReadOnlyList<DxfCurve> pieces = pl.GetSplitCurves(new[] { 1.5 });   // cut half way along the second segment
+IReadOnlyList<DxfCurve> outer = pl.GetOffsetCurves(5.0);              // to the right of its way: a counter-clockwise loop grows
+pl.Extend(pl.EndParam + 0.5);                                         // the last segment run on by half its length or angle
+DxfSpline spline = pl.Spline;                                         // the spline that is exactly the polyline
+DxfCurve flat = spline.GetOrthoProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1)));
+```
+
+A segment cut keeps the part of its arc and its widths read off along it: the polyline above cut at 1.5 is (0, 0), (10, 0),
+(15, 5) and (15, 5), (10, 10), each arc of bulge 0.414. An offset keeps arcs as arcs and runs the corners on until they meet,
+as AutoCAD's OFFSETGAPTYPE 0; the square of side 10 running counter-clockwise offset by 1 is 12 by 12, running clockwise 8 by
+8. Every curve offsets to that side, the right of its way seen from the tip of its normal, where an arc's radius grows, as
+AutoCAD offsets a circle and an arc: the line from (0, 0, 0) to (30, 40, 0) offset by 5 runs from (4, -3, 0). The exceptions
+are an arc, a circle and an ellipse given a normal by `GetOffsetCurvesGivenPlaneNormal`: their radius grows with a distance
+above nought whichever way the normal points, as AutoCAD offsets them by their radius, so that under the normal turned over an
+arc and a polyline of that one arc offset to opposite sides. An ellipse is offset as the spline of the curve at the distance,
+as AutoCAD gives one. A spline is offset piece by piece between its corners (knots standing as many times as its degree where
+its direction turns), each piece a cubic fitted through points of the true offset, more of them only in the spans that need
+them, until it keeps within 1E-3 of the true offset both ways; the pieces are joined as a polyline's offsets are, so that the L
+of degree 2 from (0, 0) to (10, 0) to (10, 10) offset by 1 has its corner at (11, -1). A span that does not keep within 1E-3
+at 512 points is given as fitted. A cubic of 300 spans with one corner gives an offset of some 9 600 control points in 0.6 s.
+A spline is run on along the polynomial of its end span. Every curve gives the `Spline` that is exactly it (a circle of
+radius 10 is the rational quadratic of 9 control points), and a curve projected keeps its kind where it can: a circle of
+radius 10 on the floor projected along (0, 0, 1) onto the plane y + z = 0 is an ellipse of radii 14.14 and 10.
+
+`DxfPolyline.ConvertFrom(polyline2d, true)` and `ConvertTo(true)` turn a LWPOLYLINE into a POLYLINE of the plane and back
+in its place, its handle, owner, look, extended data and extension dictionary kept, the old object erased, as AutoCAD hands
+the object id over; with `false` the new polyline is made in no file and the old one kept. A polyline of the plane is
+fitted with `CurveFit` (a pair of arcs on each segment through every vertex) or `SplineFit` (a uniform B-spline on its
+vertices as a frame, of the header's SPLINETYPE, 5 quadratic or 6 cubic, and SPLINESEGS segments to each span), a 3D
+polyline with `SplineFit`, a polygon mesh with `SurfaceFit` (of SURFTYPE, SURFU and SURFV), each straightened by
+`Straighten` or `ConvertToPolyType` / `ConvertToPolyMeshType`; the vertices of the frame keep their handles. The reader reads
+a fitted polyline along the vertices the fitting made, and a smoothed mesh as its grid.
+
+A spline gives and takes its `NurbsData` and `FitData` whole. `ElevateDegree` raises its degree with the curve kept to the
+rounding, `InsertControlPointAt` and `RemoveControlPointAt` put a control point in and take one out with a knot,
+`InsertFitPointAt`, `SetFitPointAt` and `RemoveFitPointAt` fit it anew through its points (its knots the lengths of the
+chords, so that a spline through (0, 0, 0), (30, 40, 0) and (60, 0, 0) runs from 0 to 100), `ModifyPositionAndTangent`
+makes it pass a point in a direction, `Rebuild` fits it again of another degree and count of points, and `ToPolyline` /
+`ToPolylineWithPrecision` give the polyline along it, of arcs where it is flat, within a thousandth of the spline's size
+at precision 0 and a tenth of that for each 10 more, never finer than a millionth of its size: the cubic on (0, 0),
+(10, 10), (20, 10) and (30, 0) made lines gives 65 vertices at precision 10 and 513 from precision 30 up, the floor
+reached, so that a precision above about 30 gives the same polyline.
+
+What it costs: a vertex of a POLYLINE appended or set one at a time costs about the same however many the polyline has, 20 000
+appended one by one in a fifth of a second and 10 000 points of a polyface mesh in a twentieth; a LWPOLYLINE's vertex put in,
+set or taken out rewrites only that vertex's groups and the count, 10 000 put in one by one in 0.8 s and set one by one in
+1.2 s; moving a polyline of 2 000 vertices writes them in one pass, 50 milliseconds; straightening a fitted polyline or
+desmoothing a mesh takes the made vertices out in one writing, 90 000 in 0.6 s; a spline of 200 spans made a polyline of 100
+vertices takes 0.04 s, and one of 1 000 spans is rebuilt of 5 000 control points in 0.05 s, all on .NET 10.
+
+### Text
+
+A TEXT is a `DxfDBText` (`TextString`, `Position`, `AlignmentPoint`, `Height`, `Rotation`, `WidthFactor`, `Oblique`,
+`HorizontalMode`, `VerticalMode`, `IsMirroredInX` and the rest of AutoCAD's) and an MTEXT a `DxfMText` (`Contents` with
+its codes, `Text` without them, `Location`, `TextHeight`, `Width`, `Attachment`). `LineSpaceDistance` is the spacing factor
+times single spacing, 5/3 of the letters' height: 5 for letters 3 high. `SetAttachmentMovingLocation` holds the MTEXT by
+another of its points where it stands, by its width and the height of its words (43): the MTEXT 40 wide at (20, 40, 0) held at
+its top centre stands at (40, 40, 0). `ShowBorders` draws its text frame, and `BackgroundTransparency` is a
+`DxfTransparency`. A text's, an attribute's and an MTEXT's style is set by its name, `TextStyleName`, written as the
+drawing's table names it, letters of either case the same, or as its record, `TextStyle` (AutoCAD's `TextStyleId`):
+`text.TextStyle = db.TextStyleTable["GH_TXT"]` writes `7 GH_TXT`. A style the drawing has not, or a record of another
+drawing, is refused. A text, an MTEXT or an attribute made in code takes any style name, and is refused when it is added to a
+drawing that has no style of that name, by `AppendEntity`, by `AppendAttribute`, or as an INSERT's attribute when the INSERT is
+appended; a copy of a drawing that has the style brings it instead. In a drawing of R12 an MTEXT of a style the drawing has not
+is refused before it would become TEXTs.
+
+An MTEXT is set in columns as AutoCAD sets one: `SetStaticColumns(12.5, 2.5, 3)` is three columns 12.5 wide with gutters of
+2.5, 42.5 across, the MTEXT's `Width` (41, and 40 of its embedded object) made 12.5, the width of a column, as AutoCAD and
+ezdxf make it, and so do `SetDynamicColumns` and `ColumnWidth`; `SetDynamicColumns`, `SetColumnHeight` and the column properties (`ColumnType`, `ColumnCount`,
+`ColumnWidth`, `ColumnGutterWidth`, `ColumnAutoHeight`, `ColumnFlowReversed`) the rest, written in its embedded object from
+R2018 and in the extended data of ACAD before (`ACAD_MTEXT_COLUMN_INFO`, `ACAD_MTEXT_DEFINED_HEIGHT`), as AutoCAD and ezdxf
+write them. Before R2018 the columns after the first are MTEXTs of their own, linked to the first (`ACAD_MTEXT_COLUMNS`),
+which carries them: moved, turned, given a new normal, letter height or box height, or erased, it takes them with it, while
+its `Contents` holds its own column's words alone. They are part of that MTEXT, as AutoCAD's database has them: a block walks
+and counts the main MTEXT alone, so that moving every MTEXT of model space moves each column once; an MTEXT that lists its
+own handle among its columns is walked still. A copy of the first holds the words of them all and links to none, so no two
+MTEXTs claim the same columns; and `Height`, before R2007, is the height of the columns in the extended data of ACAD, 30 for
+ezdxf's three static columns 30 high.
+
+### Blocks and attributes
+
+An INSERT is a `DxfBlockReference`. The INSERT of BOLT at (50, 60, 0) turned by 45 degrees and scaled by (1.5, -1.5, 2) has
+`Position` (50, 60, 0), `Rotation` 0.785 and a `BlockTransform` that takes BOLT's origin (1, 2, 0) to the insertion point;
+the block's point (0, 0, 0) lands at (46.82, 61.06, 0). Setting `Position` to (60, 55, 1) moves its ATTRIB MARK from
+(50, 59, 0) to (60, 54, 1): an INSERT moved, turned, scaled or given a new normal carries its attributes with it. `Name` is
+the block it places, `BlockTableRecord` that block; `BlockName` is the block it is in.
+`new DxfBlockReference(position, block)` places a block of the drawing.
+
+Its attributes are `DxfAttributeReference` objects (`Tag`, `TextString`, owned by the INSERT) in its
+`AttributeCollection`: `AppendAttribute` adds one, `SetAttributeFromBlock` fills one from its ATTDEF, and erasing one keeps
+the others' handles. An ATTDEF is a `DxfAttributeDefinition` with its `Prompt`. An attribute of several lines embeds an
+MTEXT from R2018: `IsMTextAttribute` makes one of its value where its text stands, or takes it out, `MTextAttribute` gives
+and takes the MTEXT, its text made to agree as ezdxf's `set_mtext` makes it, and `UpdateMTextAttribute()` places the MTEXT
+again where the text stands, after the attribute is moved or set from its definition. A MINSERT is a `DxfMInsertBlock` with
+its `Columns`, `Rows`, `ColumnSpacing` and `RowSpacing`.
+
+`UnitFactor` takes the block's units to the drawing's (`$INSUNITS`): 25.4 for a block in inches inserted in millimetres, 1
+where either gives none. `GeometryExtentsBestFit()` is the box of the shapes placed, and
+`GeometryExtentsBestFit(parentTransform)` the same after an outer INSERT's `BlockTransform`. A dynamic block is found as
+ezdxf finds it, by the extended data `AcDbDynamicBlockGUID` of its BLOCK_RECORD, or `AcDbBlockRepBTag` of the anonymous
+block that stands for it (`IsDynamicBlock`, `DynamicBlockTableRecord`, `AnonymousBlockTableRecord`); its dynamic properties
+are AutoCAD's engine's to work out, and are not given. Exploding an INSERT is set out under [Editing rules](#editing-rules).
+
+### Hatches
+
+A HATCH is a `DxfHatch`. Its loops are given in the world as the library's shapes: `hatch.GetLoopAt(0).Polyline` is the
+`GeoPolygonArc3` of a loop of a polyline, and `Curves` the lines, arcs, circles, ellipses and splines of a loop of edges,
+each running the way the loop runs, a part of an ellipse as the `GeoSpline3` that is exactly it.
+`AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.External, square))` adds one from shapes in the hatch's plane, and
+`AppendLoop(type, points, bulges)` one of AutoCAD's vertices and bulges in the plane's own system; a loop read from a hatch
+is written back as it was read. A change to the loops of an associative hatch takes its association away with the handles of its boundary objects,
+and takes the hatch out of their reactors, as AutoCAD's does. A loop is spliced into the bytes of the record, so that three
+thousand islands appended one at a time take half a second. `Area` is exact on arcs, ellipses and splines, the islands taken
+off as `HatchStyle` says: a square 30 by 20 round a circle of radius 5 fills 521.46, and a loop given twice counts as the
+even-odd rule counts it, a square given twice filling nothing. `GetPlane()` is the plane of its normal at its elevation and
+`GeometricExtents` the box of its loops.
+
+`SetHatchPattern(DxfHatchPatternType.PreDefined, "SOLID")` fills it solid; `PatternScale` and `PatternAngle` scale and turn
+the lines of its pattern with them (`GetPatternDefinitionAt`), and a pattern made by the user (`_USER`, `PatternSpace`,
+`PatternDouble`) is given its lines as AutoCAD makes them. `SetGradient` fills it with one of AutoCAD's gradients from
+R2004, its colours `DxfGradientColor`s. A file older than R2000 has no HATCH and refuses one.
+
+### Leaders and multileaders
+
+A LEADER is a `DxfLeader`, a curve through its vertices (`AppendVertex`, `SetVertexAt`, `VertexAt`) that points to its
+`Annotation`, an MTEXT, a TOLERANCE or an INSERT of the drawing, which lists the leader among its reactors, as AutoCAD keeps
+it; a leader of fewer than two vertices is refused by `AppendEntity`, as AutoCAD refuses one. `Dimasz`, `Dimgap`, `Dimclrd`
+and the other overrides read the extended data of ACAD (`DSTYLE`) where the leader has them and its dimension style where it
+has not, and are written there as AutoCAD writes them: `leader.Dimasz = 3.5` writes `1070 41, 1040 3.5`.
+
+A MULTILEADER is a `DxfMLeader`: its words (`MText`, `TextLocation`, `TextHeight`) or block (`BlockContent`,
+`BlockPosition`, `BlockScale`, `BlockRotation`, `SetBlockAttribute`), its look, and its leaders and their lines by AutoCAD's
+indices (`AddLeader`, `AddLeaderLine`, `GetVertex`, `SetVertex`). A line's last vertex is the point its leader's dogleg
+starts at, which every line of the leader ends at: `mleader.GetLastVertex(0)` is that point, and `SetLastVertex` moves it
+for them all. A property set is written in the MULTILEADER and in its context data, where AutoCAD keeps both, and sets its bit
+of the overrides of the multileader style. `new DxfMLeader()` takes the drawing's multileader style when it is appended.
+
+### Dimensions
+
+A DIMENSION is a `DxfRotatedDimension`, `DxfAlignedDimension`, `DxfRadialDimension`, `DxfDiametricDimension`,
+`DxfLineAngularDimension2`, `DxfPoint3AngularDimension` or `DxfOrdinateDimension` by its kind, an ARC_DIMENSION a
+`DxfArcDimension` and a LARGE_RADIAL_DIMENSION a `DxfRadialDimensionLarge`, each a `DxfDimension` with AutoCAD's points
+in world coordinates (`XLine1Point`, `DimLinePoint`, `Center`, `ChordPoint`, `ArcPoint` ...), `TextPosition`,
+`DimensionText`, `DimensionStyle` and `Measurement`, worked out from the points as AutoCAD works it out: the rotated
+dimension of (0, 0, 0) and (100, 20, 0) along 30 degrees measures 96.60, the angle of a level line and one at 45 degrees
+pi / 4. A variable of the style reads as the dimension draws with it, its override (the list DSTYLE of its extended data of
+ACAD) or its style's, and set is written as an override, the style kept: `dim.Dimasz = 4.5` writes `1070 41, 1040 4.5`.
+An ordinate measures along the user's axes its 51 gives (the negative of their angle from the x of the normal's system),
+which a move or a turn carries, so its measurement stays.
+
+What draws a dimension is the block AutoCAD drew for it, `DimBlock` (`*D7`), placed at `DimBlockPosition`: the library
+writes a point, a text or a variable and leaves that block as it was, for AutoCAD to draw anew when it next draws the
+dimension, so AutoCAD shows the old picture until then. A dimension made in code is given its `DimBlock`, a block of the
+drawing, before it is appended. A block, linetype or text style set on a dimension in no drawing, or on a copy, is held as
+the record it is (a `Clone()` holds it too) and taken to the record of its name in the drawing it is added to, refused where
+there is none of that name to take it to.
+
+### Tables of cells
+
+An ACAD_TABLE is a `DxfTable`: its `NumRows`, `NumColumns`, `RowHeight(row)`, `ColumnWidth(col)`, and each cell's
+`TextString`, `Value`, `CellType`, merging (`IsMergedCell`, `GetMergeRange`), corners (`GetCellExtents`), block and
+attribute values, and the look it holds of its own, `Alignment`, `TextHeight`, `TextStyle` and the colours, null where it
+has none and takes its table style's, which the library does not read. Its record is read once while it stands, every cell
+of 1 000 rows in milliseconds. Its cells are written in the form of R2000 (text in 2 and 1) or of R2007 on (between
+`301 CELL_VALUE` and `304 ACVALUE_END`, the text in 302), and `SetTextString`, `SetRowHeight`, `SetColumnWidth`,
+`SetBlockScale`, `SetBlockRotation` and `SetBlockAttributeValue` write that data, the table's block (`*T12`) left for
+AutoCAD to draw anew. Scaled alike by `TransformBy`, a table scales the heights of its rows, the widths of its columns, its
+cell margins and the text heights and block scales it and its cells override: a table of rows 10, 8 and 8 high scaled by 2
+has rows 20, 16 and 16 high. Mirrored, its normal is turned round and its cells stand where the mirror puts them.
+
+### Layouts and viewports
+
+The layouts are `db.Layouts`, `DxfLayout` objects in the order of their tabs: `LayoutName` (set, the layout dictionary's
+entry renamed with it; Model keeps its name), `TabOrder`, `TabSelected` (the layout the drawing opens on), `Limits`,
+`Extents` (empty for a layout never worked out, as ezdxf's 1E+20 above -1E+20 says), `BlockTableRecord` and
+`GetViewports()`, with the plot settings read as AutoCAD's `PlotSettings` has them: a layout of A3 on its side has
+`PlotPaperSize` (420, 297) in millimetres. A viewport is a `DxfViewport`: one 200 by 150 about (150, 100) on the sheet,
+showing model space about (5 000, 3 000) with a `ViewHeight` of 7 500, has `CustomScale` 0.02 and `StandardScale`
+`Scale1To50`; its view, snap, grid, user coordinate system, plot style, shading and lighting are read and set, and its layers
+frozen and thawed by `FreezeLayersInViewport` and `ThawLayersInViewport` (331, by handle). A viewport of a file before R2000
+keeps its view in its extended data MVIEW, read and set there; what those files have not, as the user coordinate system,
+reads as AutoCAD's default and is refused when set. A viewport made in code goes to a layout of paper space, given the next
+`Number` of the layout; `On = true` turns it on. The viewport 1 of a layout of paper space, which shows the sheet itself, is
+not erased, as AutoCAD keeps it; erasing another takes the overrides the layers keep for it out of their extension
+dictionaries, and a layout whose last active viewport (331) it was no longer names it.
+
+### Editing rules
+
+**A property given the value it has writes nothing.** Every setter of an entity, a table record, the header and the
+dictionaries compares first: given the value it has, it changes nothing, to the byte, and never throws, whatever the file
+holds. A change writes the record it is about anew in the file's own style, or, for a vertex of a long polyline, the knots of a
+spline or a loop of a hatch, the run of groups it is about, and every other record keeps its bytes.
+
+**Appending.** `AppendEntity` writes an entity made in code at the end of the ENTITIES section, or before the ENDBLK of a
+block, with a handle above every handle of the file and every handle something points at, `$HANDSEED` set above it, the
+block's BLOCK_RECORD as its owner from R13 on and group 67 in paper space. Its layer is added to the layer table where it is
+not listed, in the colour 7 with CONTINUOUS, and the applications of its extended data to the table of applications. A file
+of R12 takes no subclass markers and has no SPLINE, ELLIPSE, RAY, XLINE, LWPOLYLINE, HATCH, LEADER or MULTILEADER, nor
+lineweights, true colours, or a linetype scale or visibility of an entity's own: those are refused, by `AppendEntity` and by
+the setters alike, as an ELLIPSE is: "A ELLIPSE cannot be added to a DXF of version AC1009, which has no such type: R13
+(AC1012) brought it." Nor has R12 an MTEXT, which is written there as one TEXT for each paragraph (`\P`, a column break `\N`
+taken as one, blank paragraphs at its end left out): its words without their formatting, as `DxfMText.Text` reads them, its
+height, turn and plane, the lines spaced as `LineSpaceDistance` says and held at the left, the middle or the right as the
+MTEXT is held, in its text style where the drawing has it or is given it by name with the copy, else Standard. The TEXTs are
+appended in its place and the MTEXT stays in no file: an MTEXT of two lines 2.5 high held at its top left at (10, 20) comes
+out as two TEXTs on the baselines 17.5 and 13.33 high. A paragraph is not wrapped at the MTEXT's width, as AutoCAD's SAVEAS to
+R12 wraps it by the letters of its font, which the library does not read.
+
+**Walking while editing.** A block is walked over the entities it holds when the walk begins, so that
+`foreach (DxfEntity e in db.ModelSpace) e.Erase();` erases them all, as it does in AutoCAD: an entity erased on the way is
+passed over, one appended on the way is not reached, and nothing throws.
+
+**Erasing.** `Erase()` takes an entity out with every record of it, a POLYLINE its vertices and end and an INSERT its
+attributes, and its handle is not given again; when the file is saved, a GROUP no longer lists it, and one it leaves empty
+goes, a list of reactors, a SORTENTSTABLE and a dictionary no longer hold it, the objects it owned go with it, and any other
+pointer at it, as a table cell's at an erased attribute definition or an XRECORD's at an erased entity, stays where it stands,
+the saving naming up to ten of them in the log (Warn) once, not again at each saving after. A table record and a block are
+erased only where nothing uses them, as each says above.
+
+**Moving.** `TransformBy` moves, turns, scales or mirrors an entity as AutoCAD's does: its record is written anew with the
+new geometry, its look kept, and its extended data moved with it in the same writing, a POLYLINE that of its vertices and an
+INSERT that of its attributes; one with none of the groups `XDataTransformBy` moves keeps the bytes of its extended data.
+`GetTransformedCopy` moves a copy. Each class refuses what it cannot hold, with an `ArgumentException` and nothing written,
+and an entity held in the system of its normal (a circle, an arc, a polyline of the plane, a text, an INSERT, a SOLID, a
+hatch, a dimension) refuses a transformation that flattens that plane:
+
+| Class | Takes | Refuses |
+|---|---|---|
+| `DxfPolyline3d`, `DxfSpline`, `DxfFace`, the meshes | any | nothing |
+| `DxfLine`, `DxfDBPoint`, `DxfRay`, `DxfXline` | any | one that takes the normal of a line or a point, or the direction of a ray or an xline, to no length |
+| `DxfSolid` | any, its corners held in the system of its new normal | a flattening |
+| `DxfCircle`, `DxfArc` | a scale alike in their plane, a turn, a mirror | a scale more one way than the other, or a shear: a circle of radius 5 scaled by 2 along x would be an ellipse |
+| `DxfEllipse` | any that leaves it an ellipse | a flattening |
+| `DxfPolyline`, `DxfPolyline2d` | any, where they have no arcs; with arcs, a scale alike in their plane | with arcs, an uneven scale or a shear, which would make the arcs ellipses |
+| `DxfDBText`, `DxfAttributeReference`, `DxfAttributeDefinition` | any, a shear given to the text as its lean; a mirror turns its normal over | a flattening; an attribute of several lines, a shear |
+| `DxfMText` | a turn, a mirror, a scale even or not, the columns with it | a shear, which it cannot lean by, and a flattening |
+| `DxfBlockReference`, `DxfMInsertBlock` | a turn, a mirror and an uneven scale, taken into `ScaleFactors`; the attributes with it | a shear, which its axes cannot hold, and a flattening |
+| `DxfHatch` | any: under an uneven scale or a shear its arcs become ellipse edges, as ezdxf makes them; seed points and gradient moved | a flattening |
+| `DxfLeader` | any, its offsets with it | a flattening |
+| `DxfMLeader` | a turn, a mirror, a scale alike | an uneven scale or a shear, as AutoCAD refuses it |
+| the dimensions | any, the points moved as ezdxf's `transform()` moves them, the block with them where it is the dimension's alone and placed at no point of its own | a flattening |
+| `DxfTable` | a move, a turn, a tilt, a mirror and a scale alike in every direction, its sizes scaled with it, the block with it where no other entity names it | a shear or a scale unlike along its axes, which would make its cells other than the rectangles AutoCAD lays it out in |
+| `DxfViewport` | a move and a scale alike, on its sheet, its view kept | a turn, a mirror or a stretch |
+| `DxfUnknownEntity` | nothing | everything, with `NotSupportedException`: its geometry is kept as the file has it |
+
+**Exploding.** `Explode()` is every entity's, as AutoCAD's is, and gives new entities in no file, to be appended. Each class
+breaks as AutoCAD breaks it:
+
+| Class | Breaks into |
+|---|---|
+| `DxfBlockReference` | the entities of its block placed where it puts them, one level down: the block's ATTDEFs among them, each a `DxfAttributeDefinition` placed as the rest are, and none of the INSERT's ATTRIBs, whose values stay in its `AttributeCollection` |
+| `DxfMInsertBlock` | the block in every cell, the first cell's entities, then each other cell's, row by row, moved along the turned axes by the spacing of its column and row: a block of one circle in 2 rows by 3 columns gives six circles |
+| `DxfPolyline`, `DxfPolyline2d` | a LINE for each straight segment and an ARC for each bulged one, in its order, each with its look and thickness, its widths left out as AutoCAD leaves them out, and a segment of no length too: a closed square of side 10 with one side bulged by 1 gives three lines and a half circle. Each LINE and ARC is on the polyline's normal, as AutoCAD gives it, so that their walls stand where its wall stood: a polyline on (0, 0, -1) at elevation 5 with a thickness of 2 gives walls from z = -5 down to -7. A POLYLINE fitted to a curve or a spline breaks along the vertices it is drawn through |
+| `DxfPolyline3d` | a LINE for each segment between two vertices it is drawn through, the closing one among them: the polyline through (0, 0, 0), (1, 2, 3) and (4, 5, 6) gives two lines |
+| `DxfMText` | a TEXT for each paragraph, as it is written into a drawing of R12 (see Appending): B-12 and M16 on two lines, 2.5 high, held at the top left at (10, 20), give two TEXTs on the baselines 17.5 and 13.33 high; a paragraph is not wrapped at its width, and a part of it in another font or height is not given a TEXT of its own, as AutoCAD gives it |
+| the dimensions | the entities of the block they are drawn with (`*D7`), placed where the dimension draws them, as ezdxf's `virtual_entities()` places them: the picture AutoCAD drew last, so a point set since is not in it |
+| `DxfTable` | the entities of its block (`*T12`), the lines of its cells and their words, placed where the table draws them: the picture AutoCAD drew last, so a cell's text set since is not in it |
+| `DxfLeader`, straight | a LINE between each two vertices, then, where it has an arrow, its arrowhead at the first vertex pointing away from the second, `Dimasz` times `Dimscale` long: an INSERT of its `Dimldrblk` block, or AutoCAD's closed filled arrow as a SOLID a third as wide as long. The leader from (0, 0, 0) through (10, 10, 0) to (20, 10, 0) with an arrow 2.5 long gives two lines and a SOLID; the hook line to the annotation is AutoCAD's to work out and is not among them |
+
+The library explodes exactly these classes. Every other entity refuses with `NotSupportedException`: those AutoCAD does not
+break, a LINE or a CIRCLE, as AutoCAD answers eNotApplicable for them, and some AutoCAD does break, listed under [What the
+model does not do](#what-the-model-does-not-do), among them a splined LEADER, drawn as the spline AutoCAD works out through its
+vertices, and a MULTILEADER, whose words or block, leader lines, doglegs and arrows AutoCAD works out where they meet when it
+draws it. A dimension or a table whose
+drawing has no block of the name it is drawn by throws `InvalidOperationException`.
+
+An INSERT inside the block that cannot hold the placing is exploded in its turn; one of a block already being exploded further
+out is refused with an `ArgumentException`; and what exploding an INSERT or a MINSERT makes is counted first and held to the
+reader's 2 000 000 (`DxfReadOptions.MaxPlacedEntities`), past which an `InvalidOperationException` is thrown and nothing is
+given: a block of 100 INSERTs turned by 20 degrees, of a block of 100 INSERTs turned by 10 degrees, of a block of 100 lines,
+inserted at twice its width, explodes into 1 000 000 lines; with 200 lines it is refused before anything is made, in 0.8 s
+the first time in a process and 0.26 s after. An INSERT
+that comes out of it places the block of the drawing it came from, so that it explodes in its turn, with what that block now
+holds. A HATCH, a LEADER, a MULTILEADER and an ACAD_TABLE of the block are placed as the rest are; a MULTILEADER or an
+ACAD_TABLE under an INSERT that scales it unlike along its axes, or shears it, is left out, as it cannot hold that placing,
+while one scaled alike or mirrored is kept.
+
+`ExplodeToOwnerSpace()`, a member of `DxfBlockReference` as of AutoCAD's `BlockReference`, appends what `Explode()` gives to
+the block the INSERT is in, in the order of the block, and keeps the INSERT with its ATTRIBs, as AutoCAD does:
+`insert.ExplodeToOwnerSpace(); insert.Erase();` explodes it as AutoCAD's EXPLODE does, the attributes turned back into their
+definitions. Where the drawing cannot hold a part, as R12 the ELLIPSE a circle comes out as under a scale unlike along its
+axes, the parts appended before it are erased again; a MINSERT of more than one cell is refused, as AutoCAD's EXPLODE refuses
+one, its `Explode()` giving the entities of every cell.
+
+**Copying.** `Clone()` copies any entity as it is, as AutoCAD's `Clone` does, a `DxfUnknownEntity` among them, an INSERT with
+its attributes, and `GetTransformedCopy` copies and moves one; a copy is of the class of its original, a vertex a vertex, in
+no file until it is appended. An erased entity refuses to be copied. A copy appended to the drawing it came from points at what
+its original points at, and shares the block that draws it, a dimension's `*D`, a table's `*T`, an INSERT's `*U`.
+
+Appended to another drawing, a copy's pointers are taken to the objects of the same name there, as AutoCAD's deep clone
+between drawings maps them: a material (347), a plot style (390) or a visual style (348) by the names of its dictionary and its
+entry, a record of a table by its name; a pointer to an object the drawing has no namesake of is left out, so that the
+drawing's default holds, and a handle of extended data (1005) is left out, as AutoCAD's mapping leaves it null. The LINE of
+the material Steel_mat at 2F copied into a drawing whose Steel_mat is 57 points at 57; into one with no Steel_mat it has no
+material. A copy brings what it names that the drawing has not, and uses what the drawing has of the same name:
+
+- the records of the tables, its layer, linetype, text style and dimension style, a dimension style's arrow blocks among
+  them, by name, and the overrides of its dimension style (ACAD DSTYLE) naming the records of their names there;
+- a block AutoCAD names itself it draws by, a dimension's `*D`, a table's `*T`, an INSERT's `*U`, under the first name of
+  its letter the drawing has not (`*D2` beside a `*D1`), with every entity of it and any block of a name the drawing has not
+  that it inserts;
+- an INSERT's named block, under its name, with the blocks it inserts that the drawing has not and its description, units,
+  explodability and scaling, as AutoCAD's `WblockCloneObjects` brings it; where the drawing has a block of the name, the
+  copy places the drawing's own.
+
+What the entities of a block copied point to among themselves, a LEADER to its MTEXT or a HATCH to its boundary, is kept
+between their copies whichever comes first in the block, each listed among the reactors of what it points to, as AutoCAD
+translates its map of ids once every object is copied. A copy of an INSERT places its block as the drawing it was copied from
+has it now, edits and all, keeps to it when it is renamed there, and places nothing once it is erased.
+
+`db.WblockCloneObjects(entities, owner)` copies entities of a drawing together into a block of another drawing, or of its
+own, as AutoCAD's `WblockCloneObjects` copies the objects of ids, and gives the copies in the order of the entities: each
+copied as `Clone()` and `AppendEntity` copy one, and what one of them points to among the others pointing to the copy of that
+other. A HATCH copied with every object its loops follow follows their copies and stays associative; a LEADER copied with its
+MTEXT, TOLERANCE or INSERT points to its copy. What one of them points to that is not among the entities given is not kept,
+into its own drawing as into another: a LEADER copied without its annotation by `WblockCloneObjects` points to nothing
+(`AnnoType` `NoAnnotation`) even in its own model space, where `Clone()` and `AppendEntity` keep its pointer, and a HATCH
+copied without every object it follows follows none. A GROUP every entity of which is copied into model space or a layout is copied
+into the group dictionary there, its order, description and selectability kept, under its own name, or that name and `_1`,
+`_2` and on where the dictionary has it, an anonymous one as the next `*A1`; a group holds no entity of a block, so none is
+copied into one. Every copy is checked before any is added, so that a set the drawing cannot hold, a SPLINE for a drawing of
+R12, changes nothing. A rectangle of four LINEs with a HATCH that follows them, copied together into another drawing, comes
+out as four LINEs and a HATCH that follows those four, each LINE listing the HATCH among its reactors.
+
+What a copy by `Clone()` and `AppendEntity` leaves behind: a copy of an associative HATCH, in its own drawing or another,
+leaves its boundary objects, each path counting the pointers it keeps (97 of 0 where it keeps none), and is no longer
+associative (71 of 0), as AutoCAD's COPY leaves it; a LEADER appended to another drawing points to nothing (`AnnoType`
+`NoAnnotation`), its annotation not coming with it; a copy of an ACAD_TABLE for another drawing keeps the values
+its block cells give the attributes of a block that comes with it, each pointer (331) naming the copy of its attribute
+definition, and loses those of a block the drawing has of its own, each pointer left out with its value (300) and the cell's
+count (179) made to agree; a copy of the first column of an MTEXT of linked columns holds the words of them all and links to
+none.
+
+**Versions.** An entity of a file of R12, or a copy of one (`GetTransformedCopy`, `GetOffsetCurves`, `GetSplitCurves`),
+appended to a drawing of R13 or later is written in the forms AutoCAD writes there: its subclass markers in AutoCAD's order,
+the marker AcDbEntity, its owner and a handle of its own. One of R13 or later appended to a drawing of R12 is written in the
+forms of R12, as AutoCAD saves a drawing as R12: each record keeps the groups R12 has for its type, each read from the part of
+the record it belongs to, so that the centred ATTRIB whose AcDbAttribute part writes 71 and 72 again keeps its justification,
+and loses its markers, owner, lineweight, material and plot style, and an object embedded after its 101, as a multi-line
+attribute's, which R12 reads as one line; an MTEXT is written as TEXTs, as Appending says. A DIMENSION is written in the forms
+of R12 into a drawing of R12, its block with it, where every entity of the block has a form of R12, an MTEXT of the block
+written as the TEXTs of its lines, so that a dimension of R2018 whose picture holds its text in an MTEXT goes into R12 with
+its picture. A text style an entity copied between drawings of R12 and of R13 or later names is copied by name, as a layer is.
+A HATCH copied into a drawing of another version is written as that version writes it, the count of fit points of a spline
+edge as the version has it and a gradient dropped before R2004, as AutoCAD's SAVEAS drops it.
+
+What a drawing of an older version has no room for is left out of what is copied into it, as AutoCAD's SAVEAS to that version
+leaves it out, and said in the log at Debug: an override of a dimension style (ACAD DSTYLE) of a variable the version has not,
+as DIMLTYPE and DIMFXLEN of R2007 on a dimension copied or made in code for a drawing of R2000, or DIMDEC of R2000 for one of
+R12; and a group of a dimension style or a layer copied by name with an entity that the version has not, as a DIMSTYLE's
+DIMFXLEN (49), DIMJOGANG (50), DIMTFILL (69), DIMTFILLCLR (its second 70), DIMFXLENON (290), linetypes (345 to 347) and
+DIMTXTDIRECTION (294), and a LAYER's true colour and colour book (420, 430) of R2004 and material (347, 348) of R2007, in a
+drawing of R2000; a LAYER's plotting, lineweight and plot style (290, 370, 390) of R2000 go too in a drawing of R13 or R14,
+the versions taken as ezdxf gives them. In a drawing of R12 an override of an arrow block
+(DIMBLK, DIMBLK1, DIMBLK2) names the block by its name, as R12 writes it, where the drawing has a block of the name, and is left
+out, said in the log, where it has none. A record set on a dimension in no drawing for a variable the version has not is
+refused.
+
+**Memory.** A copy in no file, and an entity made in code, holds its own records alone: one file holds every copy of a
+drawing and keeps none of them, about 460 bytes a copy, so that the explode of an INSERT of 1 000 000 lines holds 440 MB.
+
+### What the model does not do
+
+- It draws nothing anew. The block that draws a dimension (`*D`) or a table (`*T`) is left as it was when a point, a text, a
+  cell or a variable of its style changes, for AutoCAD to draw anew; until AutoCAD does, it shows the old picture. A
+  dimension's `Measurement` is worked out from its points all the same.
+- It has no fonts. A text's `GeometricExtents` is the point it stands at; an MTEXT's `ActualWidth` and `ActualHeight` are what
+  the file says, nought where it says nothing; where the words of an MTEXT wrap, and the box of a fitted or aligned TEXT, are
+  AutoCAD's to work out, and so is where it wraps an MTEXT exploded or written into R12 as TEXTs.
+- It knows no pattern file. A pattern of AutoCAD's acad.pat the HATCH does not hold the lines of, ANSI31 given by
+  `SetHatchPattern` among them, holds no lines (`NumberOfPatternDefinitions` 0), its name written for AutoCAD to take the
+  lines from its own file. The lines a pattern draws (`EvaluateHatch`), a leader drawn anew (`EvaluateLeader`), where a
+  multileader's leaders meet its words, and the size of those words in its `GeometricExtents` are not worked out.
+- It gives no dynamic properties of a dynamic block: they are AutoCAD's engine's to work out.
+- It does not explode every entity AutoCAD explodes. `Explode()` refuses with `NotSupportedException` a polyface mesh and a
+  polygon mesh (`DxfPolyFaceMesh`, `DxfPolygonMesh`), which AutoCAD breaks into 3DFACEs; a HATCH, which AutoCAD's EXPLODE
+  takes; a splined LEADER and a MULTILEADER, whose parts AutoCAD works out when it draws them; and a MESH, an MLINE, a REGION,
+  a 3DSOLID and every other type the library keeps as a `DxfUnknownEntity`. It gives a dimension's and a table's parts as their
+  last picture, not as their data now.
+- It makes no drawing from nothing but `DxfWriter`'s, reads no DWG and no binary DXF, and saves a drawing in its own version
+  only.
+- It has none of AutoCAD's members that need AutoCAD running: `ObjectId`, transactions, documents, drawing to the screen
+  (`Draw`, `Highlight`), grips and object snaps, overrules, events and undo.
+
+What is still to be checked in AutoCAD itself is listed in [Checking against AutoCAD](dxf-autocad-checks.md), and a whole
+session of editing, run against the library, is in [Editing a drawing, step by step](dxf-editing-example.md).
 
 ## Reading DXF
 
@@ -745,397 +1409,49 @@ the places of one entity of a block share its groups; scaled unevenly, the 820 0
 `DxfWriter.Add(entity)` writes a placed entity as it is, in the drawing itself, with its look: the file written has no
 blocks, and reads back as the same shapes, every number to the bit but the angles of an arc and the axis of an ellipse.
 
-## Editing a DXF file
+## Writing DXF
 
-`DxfDatabase` opens a DXF file to edit it as AutoCAD's `Database` edits a drawing, and to save it again with nothing lost.
-Its classes are AutoCAD's with Dxf in front, so that a plugin can use both: `DxfBlockTableRecord`, `DxfLayerTableRecord`,
-`DxfLine`. It keeps every byte of the file and reads what the file holds from them when asked for: opened and saved with
-nothing changed, a file is written back byte for byte; a change writes the records it is about anew in the file's own
-style, and every other record keeps its bytes. `DxfReader` stays the faster way to read a drawing into shapes alone.
+`DxfWriter` writes a DXF file of version R2000 in millimetres, which AutoCAD, Tekla Structures and every CAD viewer
+open. Each shape goes on a layer named as given (layer 0 when none is), made on first use in white with the continuous
+line, since CAD colours by layer. Names are cut at 255 characters, the characters DXF refuses and the comma become `_`,
+and letters beyond ASCII are written as escapes such as `\U+00E9`; two names that differ only in case, accented letters
+included, are one layer, named as first seen. In the plane a shape is written as the entity CAD has for it, not as
+chords: a polygon, rectangle, triangle or ring of a face as a closed lightweight polyline, a chain or loop with arcs as
+one with the bulge of each arc edge (the same number `GeoEdge2.Bulge` gives, 1 for a semicircle), a circle, an arc, an
+ellipse, a ray, a line without ends and a spline as a CIRCLE, ARC, ELLIPSE, RAY, XLINE and SPLINE. DXF arcs run counter-clockwise only, so a clockwise `GeoArc2` is
+written from its end to its start; a face is its rings, not a filled area, which `SvgWriter` draws. In space a point,
+segment, ray, line without ends, ellipse and spline are written as they are, a chain and a polygon as a 3D polyline, and anything with a surface as
+3DFACEs: one per triangle of a face or a body (a box 100 by 100 by 20 with a hole 20 by 20 through it is 64), one per
+face of a mesh that has three or four corners and turns one way, and six for a `GeoAabb3` or `GeoObb3`, written from its
+corners, so a box 100 by 100 by 0.002, or by nothing, is written too, and an empty `GeoAabb3` is refused with an
+`InvalidOperationException`, as `ToObb` refuses it. Where a face, a side of a body or a face of a mesh is cut into
+triangles, the edges between its own triangles are marked invisible, so a wireframe shows its outline; triangles given
+as they are keep every edge. A curve in space (`GeoArc3`, `GeoCircle3`, and chains and loops with arcs) is written as
+itself when no chord tolerance is given. An arc is an ARC and a circle a CIRCLE, each in the coordinate system of its
+own plane: the normal, turned if need be to point up in its largest component, is the extrusion, the centre is in the
+plane's coordinates by the arbitrary axis algorithm AutoCAD itself applies (x is the world y crossed with the normal
+where its x and y are both less than 1/64 from nought, the world z crossed with it otherwise), and the angles are degrees
+counter-clockwise about the extrusion from that x axis. A circle of radius 25 about (10, 20, 30) standing on the normal
+(1, 1, 0) is a CIRCLE with extrusion (0.7071, 0.7071, 0) and centre (7.0711, 30, 21.2132); an arc that turns clockwise
+about the extrusion is written from its end to its start, so an arc on the floor with the normal (0, 0, -1) is written
+about up, and is written exactly as the `GeoArc2` or `GeoCircle2` of the same arc is, with no extrusion groups. A chain or
+loop that lies in one plane is one lightweight polyline in that plane: the extrusion is the plane's normal turned up in
+the same way, the elevation is the height along it, the vertices are the plane's x and y and each arc edge keeps its
+bulge times the cosine between its normal and the extrusion (negated where they point apart, nought for an arc that
+bows square to the plane, which the planar tolerance lets stand off it). A slot 80 long and 20 wide (straight sides of
+60) with a half circle at each end, in a plane tilted 30 degrees about the x axis, is four vertices and two bulges of 1,
+and `Add(chain, tolerance)` states the tolerance that judges whether a chain lies in one plane (the global one without
+it). A chain that bends out of one plane, such as a reinforcing bar, is a LINE for each straight edge and an ARC for
+each arc edge, each in its own coordinate system, in the order of the chain; an arc edge too shallow to place a circle
+for is read by its chord, and a chain with no arc whose vertices lie on one line, which lies in no one plane, is a LINE
+for each edge. An arc or circle with a radius that is not a finite number above nought, or a normal of no length, is
+refused with an `ArgumentOutOfRangeException` or an `ArgumentException`. Given a chord tolerance instead (`Add(arc, 0.1)`), any of them is cut into chords no further from it
+than that, with no default: a circle of radius 100 at 0.1 is 71 chords, one of radius 50 000 at 0.001 is 15 708, and one
+of radius 25 at 0.1 is 36 where the CIRCLE is one entity. A curve that would need more than 1 048 576 chords, a chain or loop
+counted whole, is refused with an `ArgumentOutOfRangeException`. A shape holding a number that is not finite is refused
+with an `ArgumentException` and leaves nothing in the file. The file is plain ASCII, with the extents of what was drawn
+in its header and the view opened on them.
 
-```csharp
-using GeometryHelper.Export;
-using GeometryHelper.Geometry;
-
-DxfDatabase db = DxfDatabase.Open("plan.dxf");                       // or Open(stream), Parse(text)
-
-foreach (DxfEntity entity in db.ModelSpace) { ... }                  // DxfLine, ..., DxfUnknownEntity
-DxfLine line = db.ModelSpace.OfType<DxfLine>().First();
-line.EndPoint = new GeoPoint3(100, 0, 0);                            // that record written anew
-line.ColorIndex = 1;
-db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0)) { Layer = "steel" });
-db.LayerTable.Add(new DxfLayerTableRecord { Name = "rebar", ColorIndex = 3 });
-db.Insunits = DxfUnits.Millimeters;
-line.Erase();
-db.Save("copy.dxf");                                                 // every other record the same bytes
-```
-
-There is no `ObjectId` and no transaction: an object read from the drawing is the same object each time it is reached,
-and a change to it is written at once.
-
-| AutoCAD | GeometryHelper |
-|---|---|
-| `var btr = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite); btr.AppendEntity(line); tr.AddNewlyCreatedDBObject(line, true);` | `db.ModelSpace.AppendEntity(line);` |
-| `var layer = (LayerTableRecord)tr.GetObject(lt["steel"], OpenMode.ForWrite); layer.IsOff = true;` | `db.LayerTable["steel"].IsOff = true;` |
-
-What is kept is everything: the version, R12 (AC1009) to R2018 (AC1032); the line ends, a carriage return and a line
-feed, a line feed alone, or both in one file; the group codes padded to three places or not; the mark of UTF-8 or none;
-the text in the code page of a file before R2007 and in UTF-8 after, byte for byte; comments (999); the sections, tables,
-objects and entities the library does not read (CLASSES, IMAGE, objects of a type with no class and the
-rest); extended data, reactors and extension dictionaries; and whatever follows the EOF. A file `DxfReader` refuses is
-refused the same way, with the same message.
-
-`ModelSpace`, `PaperSpace` and each block of the `BlockTable` are a `DxfBlockTableRecord`: its `Name`, `Origin`,
-`IsLayout`, `IsAnonymous` and `IsFromExternalReference`, and its entities, each the `DxfEntity` of its type's class or a
-`DxfUnknownEntity` for a type the library has no class for yet, kept as the file has it, its look editable. Model space
-and paper space are named `*Model_Space` and `*Paper_Space`, as AutoCAD names them, whatever the file calls them (ezdxf's
-files of R12 call them `$Model_Space` and `$Paper_Space`), and stand for their records from the moment the drawing is
-opened, with their handles and extended data. Every entity has AutoCAD's `Layer`, `Color`, `ColorIndex`, `TrueColor`,
-`Linetype`, `LinetypeScale`, `LineWeight` and `Visible`, its `Handle`, `OwnerHandle`, `XData` and
-`ExtensionDictionary`, its `Owner` and `BlockName`, `GetGeometry()`, the library's shapes for it as `DxfReader` reads it,
-and `TransformBy`, which every class of entity has but `DxfUnknownEntity`: the geometry of a type the library keeps as the
-file has it is not changed, and an IMAGE refuses to be moved. A true colour's `Color` carries the index nearest it, orange
-(0xFF8000) the index 30, and is written with it. A curve is a `DxfCurve`, walked as AutoCAD walks one; the line from
-(0, 0, 0) to (30, 40, 0) is 50 long, its parameter the distance from its start. A property given the value it has changes
-nothing, to the byte.
-
-A block is walked over the entities it holds when the walk begins, so that `foreach (DxfEntity e in db.ModelSpace)
-e.Erase();` erases them all, as it does in AutoCAD: an entity erased on the way is passed over, one appended on the way is
-not reached, and nothing throws. A text of extended data is read with its escapes as letters, as a layer's name is, so that
-a letter the file's code page has not, written as `\U+0110`, comes back as the letter it was set as.
-
-`AppendEntity` writes an entity made in code at the end of the ENTITIES section, or before the ENDBLK of a block, with a
-handle above every handle of the file and every handle something points at, `$HANDSEED` set above it, the block's
-BLOCK_RECORD as its owner from R13 on and group 67 in paper space. Its layer is added to the layer table where it is not
-listed, in the colour 7 with CONTINUOUS, and the applications of its extended data to the table of applications. A file
-of R12 takes no subclass markers and has no SPLINE, ELLIPSE, MTEXT, RAY, XLINE or LWPOLYLINE, nor lineweights, true
-colours, or a linetype scale or visibility of an entity's own: those are refused, by `AppendEntity` and by the setters
-alike. An entity of a file of R12, or a copy of one (`GetTransformedCopy`, `GetOffsetCurves`, `GetSplitCurves`), appended
-to a drawing of R13 or later is written in the forms AutoCAD writes there: its subclass markers in AutoCAD's order, the
-marker AcDbEntity, its owner and a handle of its own. One of R13 or later appended to a drawing of R12 is written in the
-forms of R12, as AutoCAD saves a drawing as R12: each record keeps the groups R12 has for its type, each read from the
-part of the record it belongs to, so that the centred ATTRIB whose AcDbAttribute part writes 71 and 72 again keeps its
-justification, and loses its markers, owner, lineweight, material and plot style, and an object embedded after its 101,
-as a multi-line attribute's, which R12 reads as one line. `Erase()` takes an entity out with every record of it, a
-POLYLINE its vertices and end and an INSERT its attributes, and its handle is not given again; when the file is saved, a GROUP no longer lists it, and one it
-leaves empty goes, a list of reactors, a SORTENTSTABLE and a dictionary no longer hold it, the objects it owned go with it,
-and any other pointer at it stays, the log naming up to ten of them (Warn).
-
-`Clone()` copies any entity as it is, as AutoCAD's `Clone` does, a `DxfUnknownEntity` among them, and
-`GetTransformedCopy` copies and moves one; a copy is of the class of its original, a vertex a vertex. A copy appended to
-the drawing it came from points at what its original points at. Appended to another drawing, its pointers are taken to
-the objects of the same name there, as AutoCAD's deep clone between drawings maps them: a material (347), a plot style
-(390) or a visual style (348) by the names of its dictionary and its entry, a record of a table by its name; a pointer to
-an object the drawing has no namesake of is left out, so that the drawing's default holds, and a handle of extended data
-(1005) is left out, as AutoCAD's mapping leaves it null. The LINE of the material Steel_mat at 2F copied into a drawing
-whose Steel_mat is 57 points at 57; into one with no Steel_mat it has no material. A copy of an associative HATCH leaves its
-boundary objects behind: each path counts the pointers it keeps (97 of 0 where it keeps none), and a hatch left with none is
-no longer associative (71 of 0), as AutoCAD's COPY leaves it.
-
-`$EXTMIN` and `$EXTMAX` hold model space and paper space: an entity of a block appended, moved or changed leaves them as
-they are, as AutoCAD leaves them until the INSERTs of the block are regenerated.
-
-The header is read and set raw by `GetHeader("$INSUNITS")` and `SetHeader("$LTSCALE", new DxfTypedValue(40, "2"))`, and through
-AutoCAD's properties: `Clayer`, `Insunits`, `Extmin`, `Extmax`, `Handseed`, `Celtype`, `Cecolor`, `Celweight`, `Ltscale`,
-`Limmin`, `Limmax`, `Insbase`, `Pdmode`, `Pdsize`, `Textsize`, `Textstyle`, `Dimstyle`, `Lunits`, `Luprec`, `Aunits`,
-`Auprec`, `Angbase` (in radians; the file writes degrees), `Angdir`, `Orthomode`, `Fillmode`, `Mirrtext`,
-`LineWeightDisplay`, `Saveproxygraphics`, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. A variable R2000 brought, `$INSUNITS`, `$CELWEIGHT`, `$LWDISPLAY` and
-`$PROXYGRAPHICS` among them, is refused in a file of R12, as AutoCAD writes none there. `$EXTMIN` and
-`$EXTMAX` grow to hold what is written and are never shrunk: an entity whose own record is written whole, as a LINE moved
-or a POLYLINE given a new flag, grows them at once; a run of groups of its record written in place (a LWPOLYLINE's vertex,
-a SPLINE's knots) or a record that follows it (a VERTEX put in or set in a POLYLINE, a point of a mesh) grows them by the
-entity as it stands when the header is next read or the file saved, once however many vertices were written, so that a
-vertex moved out and back between two readings leaves no trace.
-What is written is in the file's own style: its line end, its padding, the numbers as `DxfWriter` prints them, and the text in its encoding, a letter the page cannot hold, or whose
-bytes would read back as UTF-8, written as its escape (`\U+00E9`). A file that names no version is written as one of R12,
-or of R2000 where its records carry subclass markers. Editing is for one thread at a time.
-
-Circles, arcs, ellipses, points, rays and xlines are `DxfCircle`, `DxfArc`, `DxfEllipse`, `DxfDBPoint`, `DxfRay` and
-`DxfXline`, with AutoCAD's members. A CIRCLE whose groups 10, 20 and 30 are (10, 20, 5) on the extrusion (0, 0, -1) has its
-`Center` at (-10, 20, -5), as AutoCAD gives it; setting `Normal` keeps that centre where it is in the world. An arc's
-`StartAngle` and `EndAngle` are radians from nought up to 2 pi, written as degrees. On the ellipse with major axis
-(10, 0, 0) and ratio 0.5, `StartParam` 0.7854 (pi / 4) is the point (7.071, 3.536, 0), whose `StartAngle` is 0.4636.
-`new DxfArc(center, normal, 10, 0, Math.PI / 2)` then `db.ModelSpace.AppendEntity(arc)` adds a quarter circle; a DXF of R12
-refuses an ellipse, a ray or an xline.
-
-A polyline of a file of R2000 or later is a `DxfPolyline`: `pl.GetPoint2dAt(1)` is its second vertex in the plane of its
-normal, `pl.GetPoint3dAt(1)` the same in the world, and `pl.SetBulgeAt(1, 1.0)` makes the segment leaving it a half circle.
-A POLYLINE is walked as AutoCAD walks one, `foreach (DxfVertex2d v in polyline2d) v.Bulge = 0;`, and grows by
-`AppendVertex(new DxfVertex2d(point, 0, 0, 0, 0))`; a vertex is written, put in or taken out as its own record, the others
-keeping their handles, and its `Owner` is the polyline.
-
-An INSERT of BOLT at (50, 60, 0) turned by 45 degrees and scaled by (1.5, -1.5, 2) has `Position` (50, 60, 0), `Rotation`
-0.785 and a `BlockTransform` that takes BOLT's origin (1, 2, 0) to the insertion point (50, 60, 0); the block's point
-(0, 0, 0) lands at (46.82, 61.06, 0). Setting `Position` to (60, 55, 1) moves its ATTRIB MARK from (50, 59, 0) to
-(60, 54, 1). `Name` is the block it places; `BlockName` is the block it is in.
-`Explode()` gives the entities of its block placed where it puts them, as AutoCAD's `BlockReference.Explode` does: the
-block's ATTDEFs among them, placed as the rest are, and none of the INSERT's ATTRIBs, whose values stay in its
-`AttributeCollection`; every other entity refuses it, as AutoCAD answers eNotApplicable. An INSERT inside that cannot hold
-the placing is exploded in its turn; one of a block already being exploded further out is refused, and the whole explode
-is held to the 2 000 000 entities the reader places at most. An INSERT that comes out of it places the block of the drawing
-it came from, so that it explodes in its turn, with what that block now holds. `ExplodeToOwnerSpace()` appends what
-`Explode()` gives to the block the INSERT is in and keeps the INSERT, as AutoCAD does: `insert.ExplodeToOwnerSpace();
-insert.Erase();` explodes it as AutoCAD's EXPLODE does, the attributes turned back into their definitions. Where the
-drawing cannot hold a part, as R12 an ELLIPSE, nothing stays appended; a MINSERT of more than one cell is refused, as its
-`Explode()` gives its first cell alone. `UnitFactor` takes the block's units to the drawing's (`$INSUNITS`): 25.4 for a block in inches
-inserted in millimetres, 1 where either gives none. `GeometryExtentsBestFit()` is the box of the shapes placed, and
-`GeometryExtentsBestFit(parentTransform)` the same after an outer INSERT's `BlockTransform`. A dynamic block is found as
-ezdxf finds it, by the extended data `AcDbDynamicBlockGUID` of its BLOCK_RECORD, or `AcDbBlockRepBTag` of the anonymous
-block that stands for it (`IsDynamicBlock`, `DynamicBlockTableRecord`, `AnonymousBlockTableRecord`); its dynamic
-properties are AutoCAD's engine's to work out, and are not given. Its attributes are `DxfAttributeReference` objects
-(`Tag`, `TextString`, owned by the INSERT); an ATTDEF is a `DxfAttributeDefinition` with its `Prompt`. An attribute of
-several lines embeds an MTEXT from R2018: `IsMTextAttribute` makes one of its value where its text stands, or takes it out,
-`MTextAttribute` gives and takes the MTEXT, its text made to agree as ezdxf's `set_mtext` makes it, and
-`UpdateMTextAttribute()` places the MTEXT again where the text stands, after the attribute is moved or set from its
-definition. A MINSERT is a `DxfMInsertBlock` with its `Columns`, `Rows`, `ColumnSpacing` and `RowSpacing`.
-
-A TEXT is a `DxfDBText` (`TextString`, `HorizontalMode`, `IsMirroredInX` and the rest of AutoCAD's) and an MTEXT a
-`DxfMText` (`Contents` with its codes, `Text` without them, `Location`, `Attachment`). An MTEXT is set in columns by
-`SetStaticColumns(12.5, 2.5, 3)`, three columns 42.5 across, `SetDynamicColumns`, `SetColumnHeight` and the column
-properties, written in its embedded object from R2018 and in the extended data of ACAD before, as AutoCAD and ezdxf write
-them; `LineSpaceDistance` is its spacing factor times 5/3 of the height of its letters, `SetAttachmentMovingLocation` holds
-it by another point without moving its words, `ShowBorders` draws its text frame, and `BackgroundTransparency` is a
-`DxfTransparency`. Before R2018 the columns after the first are MTEXTs of their own, linked to the first, which carries
-them: moved, turned, given a new normal, letter height or box height, or erased, it takes them with it, while its
-`Contents` holds its own column's words alone. The linked columns of an MTEXT
-of a file before R2018, the MTEXT records its extended data of ACAD lists in `ACAD_MTEXT_COLUMNS`, are part of that MTEXT,
-as AutoCAD's database has them: a block walks and counts the main MTEXT alone, which carries its columns, so
-that moving every MTEXT of model space moves each column once; an MTEXT that lists its own handle among its columns is
-walked still. A copy of the
-first holds the words of them all and links to none, so no two MTEXTs claim the same columns; and `Height`, before R2007,
-is the height of the columns in the extended data of ACAD. A SPLINE is a `DxfSpline` of its
-`Degree`, `ControlPoints`, knots and weights; a 3DFACE a `DxfFace` (`GetVertexAt`, `IsEdgeVisibleAt`), a SOLID a
-`DxfSolid` (`GetPointAt`), and the meshes a `DxfPolyFaceMesh` and a `DxfPolygonMesh`, whose vertices and face records are
-walked as their polyline's are.
-
-A HATCH is a `DxfHatch`. Its loops are given in the world as the library's shapes: `hatch.GetLoopAt(0).Polyline` is the
-`GeoPolygonArc3` of a loop of a polyline, and `Curves` the lines, arcs, circles, ellipses and splines of a loop of edges,
-each running the way the loop runs, a part of an ellipse as the `GeoSpline3` that is exactly it. `AppendLoop(new
-DxfHatchLoop(DxfHatchLoopTypes.External, square))` adds one from shapes in the hatch's plane, and `AppendLoop(type, points,
-bulges)` one of AutoCAD's vertices and bulges in the plane's own system; a loop read from a hatch is written back as it was
-read. A change to the loops of an associative hatch takes its association away with the handles of its boundary objects,
-and takes the hatch out of their reactors, as AutoCAD's does. A loop is spliced into the bytes of the record, so that three
-thousand islands appended one at a time take half a second. `Area` is exact on arcs, ellipses and splines, the islands taken
-off as `HatchStyle` says: a square 30 by 20 round a circle of radius 5 fills 521.46, and a loop given twice counts as the
-even-odd rule counts it, a square given twice filling nothing. `GetPlane()` is the plane of its normal at its elevation and
-`GeometricExtents` the box of its loops. A hatch copied into a drawing of another version is written as that version writes
-it, the count of fit points of a spline edge as the version has it and a gradient dropped before R2004, as AutoCAD's SAVEAS
-drops it. `SetHatchPattern(DxfHatchPatternType.PreDefined, "SOLID")` fills it solid;
-`PatternScale` and `PatternAngle` scale and turn the lines of its pattern with them (`GetPatternDefinitionAt`), a pattern
-made by the user (`_USER`, `PatternSpace`, `PatternDouble`) is given its lines as AutoCAD makes them, and the lines of a
-pattern of AutoCAD's own file the drawing does not hold are AutoCAD's to give: they are not in the library. `SetGradient`
-fills it with one of AutoCAD's gradients from R2004, its colours `DxfGradientColor`s. What a pattern draws is worked out by
-AutoCAD (`EvaluateHatch`), not here.
-
-A LEADER is a `DxfLeader`, a curve through its vertices (`AppendVertex`, `SetVertexAt`, `VertexAt`) that points to its
-`Annotation`, an MTEXT, a TOLERANCE or an INSERT of the drawing, which lists the leader among its reactors, as AutoCAD keeps
-it; `Dimasz`, `Dimgap`, `Dimclrd` and the other overrides read
-the extended data of ACAD (`DSTYLE`) where the leader has them and its dimension style where it has not, and are written
-there as AutoCAD writes them: `leader.Dimasz = 3.5` writes `1070 41, 1040 3.5`. A MULTILEADER is a `DxfMLeader`: its
-words (`MText`, `TextLocation`, `TextHeight`) or block (`BlockContent`, `BlockPosition`, `BlockScale`, `BlockRotation`,
-`SetBlockAttribute`), its look, and its leaders and their lines by AutoCAD's indices. A line's last vertex is the point its
-leader's dogleg starts at, which every line of the leader ends at: `mleader.GetLastVertex(0)` is that point, and
-`SetLastVertex` moves it for them all. A property set is written in the MULTILEADER and in its context data, where AutoCAD
-keeps both, and sets its bit of the overrides of the multileader style. Where the leaders meet the words is worked out by
-AutoCAD when it draws the MULTILEADER, and is not worked out here, nor is the size of its words in its `GeometricExtents`,
-the box of its lines' vertices and the point of its words or block.
-
-Every entity has AutoCAD's `Transparency`, group 440, as a `DxfTransparency`: BYLAYER where the record gives none, BYBLOCK,
-or an alpha from 0, clear, to 255, solid, `new DxfTransparency(127)` the 50 per cent of AutoCAD's dialog, written
-33 554 559 (0x0200007F); a file older than R2004 has none and refuses one. Its `Hyperlinks` are those of its extended data
-of PE_URL, `line.Hyperlinks.Add(new DxfHyperLink { Name = "https://example.com/B-12.pdf", Description = "Plate B-12" })`
-written as AutoCAD writes them. `GetPlane()` gives the plane it lies in, that of its extrusion through its first point
-where all of it lies there, else the one its shapes span, to `Tolerance.Default`, and `IsPlanar` whether there is one: a 3D
-polyline with a corner 0.002 off the plane of the others has none. `IntersectWith(other, DxfIntersect.ExtendThis)` gives
-the points where two entities meet, by the library's shapes for them: the line from (0, 0, 0) to (10, 0, 0) meets the
-circle of radius 3 about (10, 0, 0) at (7, 0, 0), and, run on as its infinite line, at (13, 0, 0) too; an arc runs on as
-its circle. A closed polyline, a SOLID and a 3DFACE meet along their edges, not across their inside: the square 4 by 4
-about the origin meets the line along the x axis at (-2, 0, 0) and (2, 0, 0), and a line standing through its middle not at
-all. A polyline meets segment by segment, a point meets what it lies on, and a pair the library cannot cross, a text among
-them, throws `NotSupportedException`. `BoundingBoxIntersectWith` gives where the boxes of two entities meet.
-
-Every object can be given an extension dictionary, `CreateExtensionDictionary()`, an empty DICTIONARY owned by it and
-written as AutoCAD writes one, reached as its `ExtensionDictionary`, a `DxfDBDictionary`: `SetAt("GH_DATA", new
-DxfDBDictionary())` adds an entry, `SetName` renames one, `Remove` takes one out with its object, and
-`ReleaseExtensionDictionary()` takes the dictionary out once it is empty. `SetBinaryDataForKey("GH_BIN", bytes)` keeps bytes
-there, in an XRECORD of groups 310 of 127 bytes each, and `GetBinaryDataForKey` reads them back. `XDataTransformBy`
-moves the extended data as AutoCAD moves it: a position of the world (1011) moved, a displacement (1012) turned and
-scaled, a direction (1013) turned, a distance (1041) and a scale factor (1042) scaled, a plain point (1010) kept. An entity's `TransformBy` and `GetTransformedCopy` move its extended data so, in the same writing of its record, a POLYLINE that of its vertices and an INSERT that of its attributes; one with none of those groups keeps the bytes of its extended data. `Remove` of an entry erases the dictionaries and records it owns at every depth, and an object erased takes its extension dictionary with everything in it.
-
-The drawing's own dictionaries are objects too: `NamedObjectsDictionary`, and those it names, `GroupDictionary`
-(ACAD_GROUP), `LayoutDictionary` (ACAD_LAYOUT), `MLeaderStyleDictionary`, `TableStyleDictionary` and the others AutoCAD's
-`Database` names by id; null where a drawing has none, as one of R12. `SetAt` adds a `DxfDBDictionary`, a `DxfXrecord` or a
-`DxfGroup` made in code; `TreatElementsAsHard` says whether a dictionary owns its entries hard (280 of 1, its entries named
-by 360), and `CopyTo` copies its entries into an array. An XRECORD is a `DxfXrecord`, its `Data` the groups after its
-cloning flag, the groups 102 of a list among them: `db.NamedObjectsDictionary.SetAt("GH_PLATE", new DxfXrecord { Data =
-new[] { new DxfTypedValue(1, "B-12"), new DxfTypedValue(40, "12.5") } })` keeps a text and a real with the drawing.
-
-A group is a `DxfGroup`, named by its entry of the group dictionary: `db.GroupDictionary.SetAt("BEAMS", new
-DxfGroup("Beams of grid A", true))`, then `group.Append(beam)`, which writes the beam's handle last among the group's (340)
-and the group into the beam's reactors, as AutoCAD writes a member. `Prepend`, `InsertAt`, `Remove`, `RemoveAt`, `Replace`,
-`Reverse`, `Transfer` and `Clear` reorder the members, `GetAllEntityIds` gives them as entities, and `SetColorIndex`,
-`SetLayer` and the other setters of the look set every member at once. A large group is filled by `Append` of a collection, in
-one writing: one at a time is fine for groups as drawings have them (8 000 in half a second), but 32 000 take some 15 seconds.
-A group added under `*` is anonymous, `*A1` the first
-name its dictionary has not. An entity erased leaves its groups at once, and a group left empty is dropped when the drawing
-is saved, as AutoCAD drops it, whatever emptied it: its last member erased, `Clear`, `RemoveAt`, or never given one. A group
-the file was read with empty is kept as it was. An entity copied into another drawing takes with it the records of the
-tables it names that the drawing has not (its layer, linetype, text style, dimension style) and a copy of the block AutoCAD
-names itself it draws by (a dimension's `*D`, a table's `*T`, an INSERT's `*U`), as AutoCAD's deep clone between databases does.
-
-The layouts are `db.Layouts`, `DxfLayout` objects in the order of their tabs: `LayoutName` (set, the layout dictionary's
-entry renamed with it; Model keeps its name), `TabOrder`, `TabSelected` (the layout the drawing opens on), `Limits`,
-`Extents` (empty for a layout never worked out, as ezdxf's 1E+20 above -1E+20 says), `BlockTableRecord` and
-`GetViewports()`, with the plot settings read as AutoCAD's `PlotSettings` has them: a layout of A3 on its side has
-`PlotPaperSize` (420, 297) in millimetres. A viewport is a `DxfViewport`: one 200 by 150 about (150, 100) on the sheet,
-showing model space about (5 000, 3 000) with a `ViewHeight` of 7 500, has `CustomScale` 0.02 and `StandardScale`
-`Scale1To50`; its view, snap, grid, user coordinate system, plot style, shading and lighting are read and set, its layers
-frozen and thawed by `FreezeLayersInViewport` and `ThawLayersInViewport` (331, by handle), and `TransformBy` moves and
-scales it on its sheet, its view kept, a turn refused. A viewport of a file before R2000 keeps its view in its extended data MVIEW, read
-and set there; what those files have not, as the user coordinate system, reads as AutoCAD's default and is refused when set. A
-viewport made in code goes to a layout of paper space, given the next `Number` of the layout; `On = true` turns it on.
-
-A layer's look in a viewport is `layer.GetViewportOverrides(viewport)`, a `DxfLayerViewportProperties` of its colour,
-linetype, lineweight and transparency there, each the override AutoCAD keeps in the layer's extension dictionary
-(ADSK_XREC_LAYER_COLOR_OVR and the three others) else the layer's own; `RemoveAllOverrides()` takes them out. The drawing's
-properties are `db.SummaryInfo`, its DWGPROPS, set as AutoCAD sets them:
-`db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo) { Title = "Plate B-12" }.ToDatabaseSummaryInfo()`. Its
-custom properties are read from the groups 300 to 309 (`name=value`) and from the list after a group 90 (a count, then each
-name and value in two groups 1); they are written in the form the record has, the list where it has one or is made new in a
-drawing of R2004 or later, so that it never holds two sets. Erasing a viewport takes its overrides out of the layers.
-
-A layer has its `Description` and `Transparency`, kept in the extended data of AcAecLayerStandard and AcCmTransparency as
-AutoCAD keeps them, `ViewportVisibilityDefault` (frozen in new viewports, flag 2) and `IsUsed`: layer 0, Defpoints, the
-current layer and any layer an entity is on, those appended in code among them. The first `IsUsed` reads the drawing once
-for every layer, and the answers hold until the drawing is edited: 400 layers of a drawing of 300 000 lines take 0.08
-seconds. Setting the `Name` of a layer renames it with every reference to it: the
-layer steel renamed Steel_S355 has every entity of it, in model space, paper space and the blocks, its vertices and
-attributes among them, on Steel_S355, a layer named in extended data (1003) too, and `$CLAYER` where it was the current
-one; layer 0 and Defpoints keep their names. `Erase()` takes a layer out where nothing is on it, nothing points at it and
-it is not 0, Defpoints or the current layer, the table's count lowered by one. The LAYER_INDEX and LAYER_FILTER objects a
-drawing may keep are left as they are.
-
-A linetype's dashes carry their shapes and texts: AutoCAD's gas line is `SetTextAt(1, "GAS")`, `SetShapeStyleAt(1,
-db.TextStyleTable["Standard"])`, `SetShapeScaleAt(1, 0.1)` and `SetShapeOffsetAt(1, new GeoVector2(-0.1, -0.05))` on its
-gap of 0.2, written `49 -0.2, 74 2, 75 0, 340` the style's handle `, 46 0.1, 50 0, 44 -0.1, 45 -0.05, 9 GAS`; a dash of a
-file has its length set too, and a linetype nothing draws with is erased. A text style is added to the `TextStyleTable`,
-`new DxfTextStyleTableRecord { Name = "ROMANS", FileName = "romans.shx", TextSize = 2.5 }`, and its font, height, width,
-slant and TrueType `Font` (a `DxfFontDescriptor`, `1001 ACAD, 1000 Arial, 1071 34` as AutoCAD keeps it) are set.
-
-A block has its `Comments` (the BLOCK's 4), `Units`, `Explodable` and `BlockScaling` (its BLOCK_RECORD's 70, 280 and 281,
-from R2007 on), `PreviewIcon` (the bytes of its 310), `IsDynamicBlock` and `Hyperlinks`. `GetBlockReferences(true)` gives
-its INSERTs, as AutoCAD's `GetBlockReferenceIds` gives their ids, and `GetBlockReferences(false)` those of the blocks that
-hold one of it too; `GetAnonymousBlocks()` gives the blocks AutoCAD made of a dynamic block. Setting its `Name` renames it
-with every INSERT of it; `Erase()` takes it out, BLOCK, entities, ENDBLK and BLOCK_RECORD, where nothing inserts it; and
-`AssumeOwnershipOf(entities)` moves entities of the drawing into it, each keeping its handle, out of the draw order
-(SORTENTSTABLE) of the block it leaves and onto the end of that of the block it enters.
-
-The dimension styles are the `DimStyleTable`, each a `DxfDimStyleTableRecord` with AutoCAD's 73 variables of a DXF file,
-each read and set in its group: `Dimasz` 41, `Dimtxt` 140, `Dimdec` 271, `Dimjogang` 50 (radians; the file writes degrees),
-`Dimtfillclr` the record's second 70 (the first is its flags), the arrowheads `Dimblk`, `Dimblk1`, `Dimblk2` and `Dimldrblk`
-as the blocks they are drawn with (by handle, 342 to 344 and 341; by name, 5 to 7, in R12, ARCHTICK for the block
-_ARCHTICK; null for the closed filled one), `Dimtxsty` a `DxfTextStyleTableRecord` and `Dimltype`, `Dimltex1` and `Dimltex2`
-linetypes. A variable the record gives no group for reads as AutoCAD's own, that of acad.dwt: arrowheads 0.18 long, four
-decimal places. A style made in code, `new DxfDimStyleTableRecord { Name = "GH_25", Dimasz = 2.5 }`, is added whole, every
-variable its file's version has, its handle in group 105 as AutoCAD writes a DIMSTYLE's; renamed by its `Name`, the
-dimensions, leaders and tolerances drawn in it, the styles AutoCAD keeps for its kinds of dimension (GH_25$0) and
-`$DIMSTYLE` follow; `Erase()` takes out one nothing is drawn in that is not Standard or the current style.
-
-A DIMENSION is a `DxfRotatedDimension`, `DxfAlignedDimension`, `DxfRadialDimension`, `DxfDiametricDimension`,
-`DxfLineAngularDimension2`, `DxfPoint3AngularDimension` or `DxfOrdinateDimension` by its kind, an ARC_DIMENSION a
-`DxfArcDimension` and a LARGE_RADIAL_DIMENSION a `DxfRadialDimensionLarge`, each a `DxfDimension` with AutoCAD's points
-in world coordinates (`XLine1Point`, `DimLinePoint`, `Center`, `ChordPoint`, `ArcPoint` ...), `TextPosition`,
-`DimensionText`, `DimensionStyle` and `Measurement`, worked out from the points as AutoCAD works it out: the rotated
-dimension of (0, 0, 0) and (100, 20, 0) along 30 degrees measures 96.60, the angle of a level line and one at 45 degrees
-pi / 4. A variable of the style reads as the dimension draws with it, its override (the list DSTYLE of its extended data of
-ACAD) or its style's, and set is written as an override, the style kept: `dim.Dimasz = 4.5` writes `1070 41, 1040 4.5`. What
-draws a dimension is the block AutoCAD drew for it, `DimBlock` (`*D7`), placed at `DimBlockPosition`: the library writes a
-point, a text or a variable and leaves that block as it was, for AutoCAD to draw anew when it next draws the dimension, so
-AutoCAD shows the old picture until then. `TransformBy` moves the points as ezdxf's `transform()` moves them, and the block's
-entities with them where the block is the dimension's alone (flag 32 of group 70) and placed at no point of its own (no 12).
-A dimension made in code is given its `DimBlock`, a block of the drawing, before it is appended; a copy shares its block in
-its own drawing and brings a copy of it to another, as the entities copied across do. A block, linetype or text style set on
-a dimension in no drawing, or on a copy, is held as the record it is (a `Clone()` holds it too) and taken to the record of its
-name in the drawing it is added to, refused where there is none of that name to take it to; a copy for another drawing keeps
-its overrides that point at records, those it read and those set on it, each naming the record of its name there. An
-ordinate measures along the user's axes its 51 gives (the negative of their angle from the x of the normal's system), which
-a move or a turn carries, so its measurement stays.
-
-An ACAD_TABLE is a `DxfTable`: its `NumRows`, `NumColumns`, `RowHeight(row)`, `ColumnWidth(col)`, and each cell's
-`TextString`, `Value`, `CellType`, merging (`IsMergedCell`, `GetMergeRange`), corners (`GetCellExtents`), block and
-attribute values, and the look it holds of its own, `Alignment`, `TextHeight`, `TextStyle` and the colours, null where it
-has none and takes its table style's, which the library does not read. Its cells are written in the form of R2000 (text in 2
-and 1) or of R2007 on (between `301 CELL_VALUE` and `304 ACVALUE_END`, the text in 302), and `SetTextString`,
-`SetRowHeight`, `SetColumnWidth`, `SetBlockScale`, `SetBlockRotation` and `SetBlockAttributeValue` write that data, the
-table's block (`*T12`) left for AutoCAD to draw anew. A table is moved, turned and tilted with its block, the block turned in
-the system of its normal, where no other entity names that block; a copy in the same drawing shares the block, which is
-then left for AutoCAD to draw anew; a scale is refused. A copy appended to another drawing loses the values its block cells
-give their blocks' attributes: each pointer to a definition (331) is taken out with its value (300) and the count 179 made
-nought, as the drawing's mapping drops those pointers.
-
-The drawing reads and sets the variables AutoCAD keeps out of the header, as DICTIONARYVAR objects of the dictionary
-AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), `Cetransparency` (a whole per cent, so the
-alpha 127 is 50), `Tablestyle`, `MLeaderstyle`, `DetailViewStyle` and `SectionViewStyle` (by name, one of the drawing's),
-`MLeaderscale`, `AnnoAllVisible`, `MsLtScale`, `MsOleScale`, `LayerEval`, `LightingUnits`, `LightsInBlocks`,
-`TStackAlign`, `TstackSize`, `HpInherit`, `Isolines`, `Facetres`, `PdfFrame` and `PlineEllipse`; AutoCAD's default where the
-drawing gives none, as a drawing of ezdxf, to which a variable set adds the dictionary of variables. `ThumbnailBitmap` reads
-the bytes of the THUMBNAILIMAGE section.
-
-A copy in no file, and an entity made in code, holds its own records alone: one file holds every copy of a drawing and
-keeps none of them, about 460 bytes a copy, so that the explode of an INSERT of 1 000 000 lines holds 440 MB. A copy of an
-INSERT places its block as the drawing it was copied from has it now, edits and all, and keeps to it when it is renamed
-there: appended to another drawing it names the block by its name now, and is refused where that drawing has no block of
-that name; a copy whose block was erased since places nothing.
-
-The curves edit as AutoCAD's do, each result a new entity of the same look in no file, to be appended:
-
-```csharp
-DxfPolyline pl = db.ModelSpace.OfType<DxfPolyline>().First();
-IReadOnlyList<DxfCurve> pieces = pl.GetSplitCurves(new[] { 1.5 });   // cut half way along the second segment
-IReadOnlyList<DxfCurve> outer = pl.GetOffsetCurves(5.0);              // to the right of its way: a counter-clockwise loop grows
-pl.Extend(pl.EndParam + 0.5);                                         // the last segment run on by half its length or angle
-DxfSpline spline = pl.Spline;                                         // the spline that is exactly the polyline
-DxfCurve flat = spline.GetOrthoProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1)));
-```
-
-A segment cut keeps the part of its arc and its widths read off along it: the polyline (0, 0), (10, 0), (10, 10) with a
-bulge of 1 on its second vertex cut at 1.5 is (0, 0), (10, 0), (15, 5) and (15, 5), (10, 10), each arc of bulge 0.414. An
-offset keeps arcs as arcs and runs the corners on until they meet, as AutoCAD's OFFSETGAPTYPE 0; the square of side 10
-running counter-clockwise offset by 1 is 12 by 12, running clockwise 8 by 8. Every curve offsets to that side, the right of
-its way seen from the tip of its normal, where an arc's radius grows, as AutoCAD offsets a circle and an arc: the line from
-(0, 0, 0) to (30, 40, 0) offset by 5 runs from (4, -3, 0). The exceptions are an arc, a circle and an ellipse given a normal
-by `GetOffsetCurvesGivenPlaneNormal`: their radius grows with a distance above nought whichever way the normal points, as
-AutoCAD offsets them by their radius, so that under the normal turned over an arc and a polyline of that one arc offset to
-opposite sides. An ellipse is offset as the spline of the curve at the distance, as AutoCAD gives one. A spline is offset
-piece by piece between its corners (knots standing as many times as its degree where its direction turns), each piece a
-cubic fitted through points of the true offset, more of them only in the spans that need them, until it keeps within
-1E-3 of the true offset both ways; the pieces are joined as a polyline's offsets are, so that the L of degree 2 from
-(0, 0) to (10, 0) to (10, 10) offset by 1 has its corner at (11, -1). A span that does not keep within 1E-3 at 512 points
-is given as fitted. A cubic of 300 spans with one corner gives an offset of some 9 600 control points in 0.6 s. A spline
-is run on along the polynomial of its end span. A curve projected keeps its kind where it can: a circle of radius 10 on
-the floor projected along (0, 0, 1) onto the plane y + z = 0 is an ellipse of radii 14.14 and 10.
-
-`DxfPolyline.ConvertFrom(polyline2d, true)` and `ConvertTo(true)` turn a LWPOLYLINE into a POLYLINE of the plane and back
-in its place, its handle, owner, look, extended data and extension dictionary kept, the old object erased, as AutoCAD hands
-the object id over; with `false` the new polyline is made in no file and the old one kept. A polyline of the plane is
-fitted with `CurveFit` (a pair of arcs on each segment through every vertex) or `SplineFit` (a uniform B-spline on its
-vertices as a frame, of the header's SPLINETYPE, 5 quadratic or 6 cubic, and SPLINESEGS segments to each span), a 3D
-polyline with `SplineFit`, a polygon mesh with `SurfaceFit` (of SURFTYPE, SURFU and SURFV), each straightened by
-`Straighten` or `ConvertToPolyType` / `ConvertToPolyMeshType`; the vertices of the frame keep their handles. The reader reads
-a fitted polyline along the vertices the fitting made, and a smoothed mesh as its grid.
-
-A spline gives and takes its `NurbsData` and `FitData` whole. `ElevateDegree` raises its degree with the curve kept to the
-rounding, `InsertControlPointAt` and `RemoveControlPointAt` put a control point in and take one out with a knot,
-`InsertFitPointAt`, `SetFitPointAt` and `RemoveFitPointAt` fit it anew through its points (its knots the lengths of the
-chords, so that a spline through (0, 0, 0), (30, 40, 0) and (60, 0, 0) runs from 0 to 100), `ModifyPositionAndTangent`
-makes it pass a point in a direction, `Rebuild` fits it again of another degree and count of points, and `ToPolyline` /
-`ToPolylineWithPrecision` give the polyline along it, of arcs where it is flat, within a thousandth of the spline's size
-at precision 0 and a tenth of that for each 10 more, never finer than a millionth of its size: the cubic on (0, 0),
-(10, 10), (20, 10) and (30, 0) made lines gives 65 vertices at precision 10 and 513 from precision 30 up, the floor
-reached, so that a precision above about 30 gives the same polyline. A point or face
-of a polyface mesh erased keeps the mesh's counts and the faces' numbers of its points true. Vertices of a POLYLINE
-appended or set one at a time cost about the same each, however many the polyline has: 20 000 appended one by one take a
-fifth of a second, 10 000 points of a polyface mesh a twentieth. A LWPOLYLINE's vertex put in, set or taken out rewrites
-only that vertex's groups and the count: 10 000 put in one by one take 0.8 s, set one by one 1.2 s. Straightening a
-fitted polyline or desmoothing a mesh takes the made vertices out in one writing: a polyline fitted to 90 000 vertices is
-straightened in 0.6 s.
+A drawing `DxfWriter` writes is also where a drawing made from nothing begins for the editing model:
+`DxfDatabase.Parse(new DxfWriter().Add(outline, "plate").ToString())` opens it to be edited as any other (see [The
+model](#the-model)).

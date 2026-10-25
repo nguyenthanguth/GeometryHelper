@@ -21,9 +21,10 @@ namespace GeometryHelper.Export
     /// <para>
     /// A property set writes its groups as <see cref="DxfWriter"/> writes a number, every other group of the record kept as
     /// it was; a property given the value it has changes nothing. A file of R12 has no MTEXT: one made in code, <c>new
-    /// DxfMText { Contents = "B-12", Location = new GeoPoint3(10, 20, 0) }</c>, is refused there by
-    /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>. <see cref="DxfEntity.GetGeometry"/> gives the
-    /// <see cref="DxfText"/> <see cref="DxfReader"/> reads of it.
+    /// DxfMText { Contents = "B-12\\PM16", Location = new GeoPoint3(10, 20, 0) }</c>, is written there by
+    /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> as one TEXT for each of its paragraphs, B-12 and M16, its
+    /// formatting left out as <see cref="Text"/> leaves it out; the lines are not wrapped at its width, as AutoCAD's SAVEAS to
+    /// R12 wraps them by the letters of the font, which the library does not read. The MTEXT itself stays in no file. <see cref="DxfEntity.GetGeometry"/> gives the <see cref="DxfText"/> <see cref="DxfReader"/> reads of it.
     /// </para>
     /// <para>
     /// Before R2018 an MTEXT's columns after its first are MTEXTs of their own, which it links to by handle in its extended
@@ -486,9 +487,16 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// Gets the name of the text style of the MTEXT (group 7), as AutoCAD's <c>TextStyleName</c>: as the style table names it,
-        /// its escapes read as letters; <c>Standard</c> where the record gives none.
+        /// Gets or sets the name of the text style of the MTEXT (group 7), as AutoCAD's <c>TextStyleName</c>: as the style table
+        /// names it, its escapes read as letters; <c>Standard</c> where the record gives none.
         /// </summary>
+        /// <value>Set, the name of a style of the drawing's text style table, letters of either case the same, written as the
+        /// table names it; any name for an MTEXT in no drawing, which <see cref="DxfBlockTableRecord.AppendEntity"/> checks. The
+        /// style the MTEXT has changes nothing.</value>
+        /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is one AutoCAD does not take, or the drawing has no text style
+        /// of it.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
         public string TextStyleName
         {
             get
@@ -496,6 +504,42 @@ namespace GeometryHelper.Export
                 string name = DxfReader.NameOf(Value(7) ?? string.Empty);
                 return name.Length == 0 ? "Standard" : name;
             }
+
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                if (!string.Equals(value, TextStyleName, StringComparison.OrdinalIgnoreCase))
+                {
+                    string written = TextStyleToWrite(value, nameof(value));
+                    List<DxfMText> columns = ColumnTexts();
+                    Set(new KeyValuePair<int, string>(7, written));
+
+                    // The MTEXTs of its later columns before R2018 take it too, as they take its height.
+                    foreach (DxfMText column in columns)
+                    {
+                        column.TextStyleName = written;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the text style of the MTEXT, as AutoCAD's <c>TextStyleId</c> gives its id: the record of
+        /// <see cref="TextStyleName"/> in the text style table of the MTEXT's drawing; null where it has none of that name, or the
+        /// MTEXT is in no drawing and was made in code.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the style set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the style set is erased, in no drawing, or of another drawing than the
+        /// MTEXT's.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
+        public DxfTextStyleTableRecord TextStyle
+        {
+            get => TextStyleNamed(TextStyleName);
+            set => TextStyleName = TextStyleOf(value, nameof(value));
         }
 
         /// <summary>
@@ -693,7 +737,8 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>Gets or sets how wide each column is (group 44 of its embedded object, 48 of its extended data), as AutoCAD's <c>ColumnWidth</c>; nought where it gives none.</summary>
-        /// <value>Set, a finite number above nought, written as <see cref="ColumnType"/> says.</value>
+        /// <value>Set, a finite number above nought, written as <see cref="ColumnType"/> says, the MTEXT's <see cref="Width"/> made
+        /// the same, as <see cref="SetStaticColumns"/> makes it.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the width set is not a finite number above nought.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased, or has no columns: give it some first.</exception>
         public double ColumnWidth
@@ -710,6 +755,7 @@ namespace GeometryHelper.Export
                 Guard.Positive(value, nameof(value), "The width of a column has to be a finite number above nought.");
                 ColumnSet columns = WithColumns();
                 columns.Width = value;
+                Width = value;
                 WriteColumns(columns);
             }
         }
@@ -836,7 +882,8 @@ namespace GeometryHelper.Export
         /// <summary>
         /// Sets the MTEXT in static columns, as AutoCAD's <c>SetStaticColumns</c>: as many columns as given, each as wide as
         /// given and as high as the MTEXT's <see cref="Height"/>, a gutter between them; written as <see cref="ColumnType"/>
-        /// says. Three columns 12.5 wide with gutters of 2.5 take 42.5 across.
+        /// says, the MTEXT's <see cref="Width"/> (41, and 40 of its embedded object) made the column's, as AutoCAD and ezdxf make
+        /// it. Three columns 12.5 wide with gutters of 2.5 take 42.5 across, the MTEXT 12.5 wide.
         /// </summary>
         /// <param name="width">How wide each column is, a finite number above nought.</param>
         /// <param name="gutter">The space between two columns, a finite number of nought or more.</param>
@@ -860,6 +907,7 @@ namespace GeometryHelper.Export
             columns.Count = count;
             columns.Auto = false;
             columns.Heights.Clear();
+            Width = width;
             WriteColumns(columns);
         }
 
@@ -868,7 +916,7 @@ namespace GeometryHelper.Export
         /// them, which AutoCAD fills with the words as they flow; all as high as the MTEXT's <see cref="Height"/> where their
         /// height is automatic, else each of its own, given the MTEXT's <see cref="Height"/> to start with and set by
         /// <see cref="SetColumnHeight"/>. The count of columns is kept, 1 where the MTEXT had none; written as
-        /// <see cref="ColumnType"/> says.
+        /// <see cref="ColumnType"/> says, the MTEXT's <see cref="Width"/> made the column's, as <see cref="SetStaticColumns"/> makes it.
         /// </summary>
         /// <param name="width">How wide each column is, a finite number above nought.</param>
         /// <param name="gutter">The space between two columns, a finite number of nought or more.</param>
@@ -885,6 +933,7 @@ namespace GeometryHelper.Export
             columns.Gutter = gutter;
             columns.Count = Math.Max(columns.Count, 1);
             columns.Auto = autoHeight;
+            Width = width;
             WriteColumns(columns.Pad(Height));
         }
 
@@ -1336,12 +1385,15 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// Writes the columns of an MTEXT made in code, or copied from another drawing, in the form of the drawing it is added
-        /// to: from R2018 in its embedded object, before it in the extended data of ACAD, as <see cref="ColumnType"/> says; a
-        /// copy of one whose later columns are MTEXTs of their own holding their words itself first (<see cref="Unlink"/>).
+        /// Refuses a text style the file of the block has not, unless the MTEXT is a copy of another drawing that has it, which
+        /// is copied with it, as a <see cref="DxfDBText"/> refuses one. Writes the columns of an MTEXT made in code, or copied
+        /// from another drawing, in the form of the drawing it is added to: from R2018 in its embedded object, before it in the
+        /// extended data of ACAD, as <see cref="ColumnType"/> says; a copy of one whose later columns are MTEXTs of their own
+        /// holding their words itself first (<see cref="Unlink"/>).
         /// </summary>
         internal override void Appending(DxfBlockTableRecord owner)
         {
+            CheckTextStyle(owner.File, Item.File.Origin, Value(7), "entity");
             Unlink();
             ColumnSet columns = Columns();
 
@@ -1350,6 +1402,158 @@ namespace GeometryHelper.Export
                 WriteColumns(columns, owner.File.Supports(1032));
             }
         }
+
+        /// <summary>
+        /// The TEXTs the MTEXT is written as in a drawing of R12 (<paramref name="target"/>), which has no MTEXT, each in no file
+        /// with the MTEXT's look: one for each paragraph (<c>\P</c>, a column break <c>\N</c> taken as one), not wrapped at its
+        /// width, which takes the letters of its font; its words without their formatting as <see cref="Text"/> reads them, a
+        /// height of a code in the words left out; <see cref="TextHeight"/> high, along its
+        /// <see cref="Direction"/> in the plane of its <see cref="Normal"/>, the lines <see cref="LineSpaceDistance"/> apart, the
+        /// whole of them standing where its <see cref="Attachment"/> holds them, and each held at the left, the middle or the right
+        /// of its baseline as the MTEXT is held; in its text style where that drawing has it, else in Standard (in its own, with
+        /// no drawing given). A line with no words is left out, its place kept.
+        /// </summary>
+        internal List<DxfEntity> R12Texts(DxfFile target)
+        {
+            List<string> lines = Paragraphs();
+            double height = TextHeight;
+            double pitch = LineSpaceDistance;
+            GeoVector3 normal = Normal;
+            GeoVector3 up = DxfOcsTransform.Normalized(normal.CrossProduct(Direction));
+            int attachment = (int)Attachment;
+            attachment = attachment >= 1 && attachment <= 9 ? attachment - 1 : 0;
+            int row = attachment / 3;
+            int column = attachment % 3;
+            double first = row == 0 ? -height : row == 1 ? (height + (lines.Count - 1) * pitch) / 2.0 - height : (lines.Count - 1) * pitch;
+            string style = Value(7);
+            DxfFile source = IsResident ? Item.File : Item.File.Origin;
+
+            // The style is kept where the drawing has it, or is given it by the copying, by name; else Standard.
+            style = style != null && (target == null
+                || target.TableItems("STYLE").Exists(s => string.Equals(DxfReader.NameOf(s.File.ValueOf(s, 2) ?? string.Empty), DxfReader.NameOf(style), StringComparison.OrdinalIgnoreCase))
+                || target.CopiesRecordFrom(source, "STYLE", style)) ? style : null;
+            double degrees = DxfOcsTransform.Degrees(Rotation);
+            GeoPoint3 location = Location;
+            var texts = new List<DxfEntity>();
+
+            for (int k = 0; k < lines.Count; k++)
+            {
+                if (lines[k].Trim().Length == 0)
+                {
+                    continue;
+                }
+
+                double rise = first - k * pitch;
+                GeoPoint3 at = WorldToOcs(normal, new GeoPoint3(location.X + up.X * rise, location.Y + up.Y * rise, location.Z + up.Z * rise));
+                var own = new List<KeyValuePair<int, string>>
+                {
+                    G(100, "AcDbText"), G(10, Numbers.Exact(at.X + 0.0)), G(20, Numbers.Exact(at.Y + 0.0)), G(30, Numbers.Exact(at.Z + 0.0)),
+                    G(40, Numbers.Exact(height + 0.0)), G(1, lines[k]), G(50, Numbers.Exact(degrees + 0.0)),
+                };
+
+                if (style != null)
+                {
+                    own.Add(G(7, style));
+                }
+
+                if (column != 0)
+                {
+                    own.Add(G(72, column.ToString(CultureInfo.InvariantCulture)));
+                    own.Add(G(11, Numbers.Exact(at.X + 0.0)));
+                    own.Add(G(21, Numbers.Exact(at.Y + 0.0)));
+                    own.Add(G(31, Numbers.Exact(at.Z + 0.0)));
+                }
+
+                own.Add(G(210, Numbers.Exact(normal.X + 0.0)));
+                own.Add(G(220, Numbers.Exact(normal.Y + 0.0)));
+                own.Add(G(230, Numbers.Exact(normal.Z + 0.0)));
+                own.Add(G(100, "AcDbText"));
+                texts.Add(Of(Item.File.TextOf(Item, own)));
+            }
+
+            return texts;
+        }
+
+        private static KeyValuePair<int, string> G(int code, string value) => new KeyValuePair<int, string>(code, value);
+
+        /// <summary>
+        /// The paragraphs of the MTEXT's words without their formatting, as <see cref="Text"/> reads them, a column break
+        /// (<c>\N</c>) beginning one as a new paragraph (<c>\P</c>) does; blank paragraphs at the end left out, as ezdxf leaves
+        /// them out, so that <c>a\P\Pb\P</c> is the three lines a, nothing and b.
+        /// </summary>
+        private List<string> Paragraphs()
+        {
+            var record = new DxfReader.Record("MTEXT", 0);
+            record.Add(10, "0");
+            record.Add(20, "0");
+            record.Add(40, "1");
+
+            foreach (DxfTypedValue group in GetOwnGroups(0))
+            {
+                if (group.TypeCode == 101)
+                {
+                    break;
+                }
+
+                if (group.TypeCode == 3 || group.TypeCode == 1)
+                {
+                    record.Add(group.TypeCode, ColumnBreaksAsParagraphs(group.Value));
+                }
+            }
+
+            string text = string.Empty;
+
+            foreach (object shape in DxfReader.ShapesOf(record, Tolerance.Default))
+            {
+                if (shape is DxfText read)
+                {
+                    text = read.Value;
+                    break;
+                }
+            }
+
+            var lines = new List<string>(text.Split('\n'));
+
+            while (lines.Count > 1 && lines[lines.Count - 1].Trim().Length == 0)
+            {
+                lines.RemoveAt(lines.Count - 1);
+            }
+
+            return lines;
+        }
+
+        /// <summary>Words with each column break (<c>\N</c>) written as a new paragraph (<c>\P</c>), an escaped backslash (<c>\\</c>) kept as it is.</summary>
+        private static string ColumnBreaksAsParagraphs(string words)
+        {
+            var made = new StringBuilder(words.Length);
+
+            for (int i = 0; i < words.Length; i++)
+            {
+                if (words[i] == '\\' && i + 1 < words.Length && (words[i + 1] == '\\' || words[i + 1] == 'N'))
+                {
+                    made.Append(words[i + 1] == 'N' ? "\\P" : "\\\\");
+                    i++;
+                    continue;
+                }
+
+                made.Append(words[i]);
+            }
+
+            return made.ToString();
+        }
+
+        /// <summary>
+        /// Gets the texts the MTEXT breaks into, as AutoCAD's <c>Explode</c> does: one TEXT for each paragraph (<c>\P</c>, a column
+        /// break <c>\N</c> taken as one), its formatting and the heights of its codes left out as <see cref="Text"/> leaves them
+        /// out, as an MTEXT is written into a drawing of R12 (see <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>): each
+        /// in its text style, its height, turn and plane, the lines spaced as <see cref="LineSpaceDistance"/> says. A paragraph is
+        /// not wrapped at <see cref="Width"/>, as AutoCAD wraps it by the letters of its font, which the library does not read, and
+        /// a part of it in another font or height is not given a TEXT of its own, as AutoCAD gives it. B-12 and M16 on two lines, 2.5 high, held at the
+        /// top left at (10, 20), come out as two TEXTs on the baselines 17.5 and 13.33 high.
+        /// </summary>
+        /// <returns>The <see cref="DxfDBText"/> objects, in no file, to be added to a drawing by
+        /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        public override IReadOnlyList<DxfEntity> Explode() => R12Texts(null).AsReadOnly();
 
         [DxfType("MTEXT")]
         internal static DxfEntity Create(DxfItem item) => new DxfMText(item);

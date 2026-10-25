@@ -1313,23 +1313,38 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Erases the viewport, as <see cref="DxfEntity.Erase"/> erases an entity, and takes the overrides the layers keep for it
-        /// out of their extension dictionaries, as AutoCAD does: an XRECORD of overrides left with none goes with its entry.
+        /// out of their extension dictionaries, as AutoCAD does: an XRECORD of overrides left with none goes with its entry. A
+        /// layout whose last active viewport it was (group 331 of its LAYOUT) no longer names it. The viewport of
+        /// <see cref="Number"/> 1 of a layout of paper space, which shows the sheet itself, is refused, as AutoCAD keeps it.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when the viewport is in no file, or is erased.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the viewport is in no file, or is erased, or is the viewport 1
+        /// of a layout of paper space.</exception>
         public override void Erase()
         {
             string handle = Handle;
-            DxfLayerTable table = IsResident && !IsErased && handle != null ? Item.File.Database?.LayerTable : null;
+            bool resident = IsResident && !IsErased;
+
+            if (resident && Number == 1 && Owner is DxfBlockTableRecord block && block.IsLayout && !DxfBlockTableRecord.IsModelName(block.Name ?? string.Empty))
+            {
+                throw new InvalidOperationException("The viewport " + (handle ?? string.Empty) + " is the viewport 1 of the layout " + block.Name + ", which shows the sheet itself, and AutoCAD does not erase it.");
+            }
+
+            DxfDatabase database = resident && handle != null ? Item.File.Database : null;
             base.Erase();
 
-            if (table == null)
+            if (database == null)
             {
                 return;
             }
 
-            foreach (DxfLayerTableRecord layer in table)
+            foreach (DxfLayerTableRecord layer in database.LayerTable)
             {
                 DxfLayerViewportProperties.Forget(layer, handle);
+            }
+
+            foreach (DxfLayout layout in database.Layouts)
+            {
+                layout.ForgetViewport(handle);
             }
         }
 

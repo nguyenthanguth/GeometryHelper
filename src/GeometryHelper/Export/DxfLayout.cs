@@ -173,6 +173,20 @@ namespace GeometryHelper.Export
             return block == null ? new List<DxfViewport>().AsReadOnly() : block.OfType<DxfViewport>().ToList().AsReadOnly();
         }
 
+        /// <summary>
+        /// Takes the layout's last active viewport (group 331 of AcDbLayout) out where it names the viewport of a handle, erased,
+        /// so that no pointer is left at it; nothing where it names another, or none.
+        /// </summary>
+        internal void ForgetViewport(string handle)
+        {
+            int at = PartIndex(Marker, 331);
+
+            if (at >= 0 && !IsErased && string.Equals(PartValue(Marker, 331)?.Trim(), handle, StringComparison.OrdinalIgnoreCase))
+            {
+                Item.File.RemoveGroupAt(Item, at);
+            }
+        }
+
         /// <summary>Gives the layout as a line for debugging: its type, handle, name and tab.</summary>
         /// <returns>The line, such as <c>LAYOUT 1E Layout1, tab 1</c>.</returns>
         public override string ToString() => "LAYOUT " + (Handle ?? string.Empty) + " " + LayoutName + ", tab " + TabOrder.ToString(CultureInfo.InvariantCulture);

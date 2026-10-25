@@ -36,7 +36,9 @@ namespace GeometryHelper.Export
     /// in no drawing yet is held as the record it is, and taken to the record of its name in the drawing it is added to, as
     /// AutoCAD's deep clone maps one, the dimension refused where that drawing has none of that name. A copy added to another
     /// drawing keeps its overrides that point at a record, those it read and those set on it, each taken to the record of the
-    /// same name there, which the drawing is given where it has none, as AutoCAD's deep clone between drawings does.
+    /// same name there, which the drawing is given where it has none, as AutoCAD's deep clone between drawings does. An override
+    /// of a variable a drawing of an older version has not is left out when the dimension is added to it, as AutoCAD's SAVEAS to
+    /// that version leaves it out: DIMLTYPE and DIMFXLEN, which R2007 brought, in a drawing of R2000.
     /// </para>
     /// <para>
     /// A dimension made in code, <c>new DxfRotatedDimension(0, p1, p2, onLine, "", null)</c>, is drawn by no block until it is
@@ -1283,6 +1285,31 @@ namespace GeometryHelper.Export
         #endregion
 
         #region Reading and writing
+
+        /// <summary>
+        /// Gets the entities the dimension is drawn with, as AutoCAD's <c>Explode</c>: those of its block
+        /// (<see cref="DimBlock"/>, <c>*D7</c>) placed where the dimension draws them, as ezdxf's <c>virtual_entities()</c> places
+        /// them, each a copy of its own look; moved by <see cref="DimBlockPosition"/>, and carried from the system of the
+        /// dimension's <see cref="Normal"/> to the world at the height of its text where that is not the world's. The block is
+        /// the picture AutoCAD drew last: a point set on the dimension since is not in it.
+        /// </summary>
+        /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing has no block of the name the dimension is drawn by.</exception>
+        public override IReadOnlyList<DxfEntity> Explode()
+        {
+            DxfBlockTableRecord block = DimBlock ?? throw new InvalidOperationException("The drawing has no block " + PictureName + " the dimension is drawn with, to explode it into.");
+            GeoVector3 normal = Normal;
+            double slack = Tolerance.Default.EqualVector;
+            GeoTransform3 placing = GeoTransform3.Translation(DimBlockPosition.ToVector());
+
+            if (Math.Abs(normal.X) > slack || Math.Abs(normal.Y) > slack || Math.Abs(normal.Z - 1.0) > slack)
+            {
+                double elevation = Own().Point(11, Own().Base, Origin).Z;
+                placing = placing * Frame(normal, false) * GeoTransform3.Translation(new GeoVector3(0.0, 0.0, elevation));
+            }
+
+            return PlacedCopies(block, placing * GeoTransform3.Translation(block.Origin.ToVector().Negate())).AsReadOnly();
+        }
 
         [DxfType("DIMENSION")]
         internal static DxfEntity Create(DxfItem item)

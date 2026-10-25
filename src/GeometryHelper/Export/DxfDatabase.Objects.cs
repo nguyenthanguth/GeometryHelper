@@ -13,6 +13,11 @@ namespace GeometryHelper.Export
         private Dictionary<string, DxfItem> _entities;
         private int _entitiesAt = -1;
 
+        // The records of the tables and the tables (their objects), and the records that follow an entity (their records), by
+        // handle, as at an edit count.
+        private Dictionary<string, object> _others;
+        private int _othersAt = -1;
+
         /// <summary>
         /// Gets the named object dictionary, as AutoCAD's <c>NamedObjectsDictionaryId</c> names it: the first DICTIONARY of the
         /// OBJECTS section, which names every other dictionary of the drawing (ACAD_GROUP, ACAD_LAYOUT and on); null in a file
@@ -174,6 +179,130 @@ namespace GeometryHelper.Export
 
                 root.SetAt("DWGPROPS", new DxfXrecord { Data = data });
             }
+        }
+
+        /// <summary>
+        /// Gets the object of a handle, as AutoCAD's <c>GetObjectId(false, handle, 0)</c> gives its id: an entity of model space,
+        /// paper space or a block (a VERTEX of a POLYLINE and an ATTRIB of an INSERT among them), an object of the OBJECTS section,
+        /// a record of the layer, linetype, text style, dimension style or block table, or one of those five tables; letters of
+        /// either case the same. <c>db.GetObject("2F")</c> of a drawing whose layer steel has the handle 2F gives that
+        /// <see cref="DxfLayerTableRecord"/>.
+        /// </summary>
+        /// <remarks>
+        /// The library has no class for the other records that carry a handle, and finds none of them: the tables of
+        /// applications (APPID), viewports (VPORT), views (VIEW) and coordinate systems (UCS) and their records, and the BLOCK
+        /// and ENDBLK that open and close a block. The objects are found by handle in one walk of the drawing, kept until the
+        /// drawing next changes, so that many questions between two changes cost one walk.
+        /// </remarks>
+        /// <param name="handle">The handle, as the file writes it, hexadecimal.</param>
+        /// <returns>The object.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the handle is null.</exception>
+        /// <exception cref="KeyNotFoundException">Thrown when the drawing has no object of the handle, or it is erased, as AutoCAD
+        /// answers eUnknownHandle.</exception>
+        public DxfDBObject GetObject(string handle)
+        {
+            if (!TryGetObject(handle, out DxfDBObject found))
+            {
+                throw new KeyNotFoundException("The drawing has no object of the handle " + handle + ".");
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Gets the object of a handle, as <see cref="GetObject"/> finds it; false, with null, where the drawing has none of the
+        /// handle, the handle is not hexadecimal, or the object is erased.
+        /// </summary>
+        /// <param name="handle">The handle, hexadecimal.</param>
+        /// <param name="value">The object; null where there is none.</param>
+        /// <returns>Whether there is one.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the handle is null.</exception>
+        public bool TryGetObject(string handle, out DxfDBObject value)
+        {
+            if (handle == null)
+            {
+                throw new ArgumentNullException(nameof(handle));
+            }
+
+            value = null;
+            string key = handle.Trim();
+
+            if (!ulong.TryParse(key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong number) || number == 0)
+            {
+                return false;
+            }
+
+            value = (DxfDBObject)EntityByHandle(key) ?? (File.HoldsObjects && File.ObjectItem(key) is DxfItem item ? DxfDBObject.OfObject(item) : null)
+                ?? OtherByHandle(key);
+
+            if (value != null && value.IsErased)
+            {
+                value = null;
+            }
+
+            return value != null;
+        }
+
+        /// <summary>
+        /// A record of a table of the drawing, or the table, or a record that follows an entity (a VERTEX or an ATTRIB), of a
+        /// handle; null where there is none. They are found by handle in one walk, made again once the records change.
+        /// </summary>
+        private DxfDBObject OtherByHandle(string handle)
+        {
+            if (_others == null || _othersAt != File.EditCount)
+            {
+                IndexOthers();
+            }
+
+            return !_others.TryGetValue(handle, out object found) ? null : found as DxfDBObject ?? DxfEntity.Of((DxfItem)found);
+        }
+
+        /// <summary>
+        /// Finds the records of the tables, the tables and the records that follow an entity by their handles, in one walk: the
+        /// tables in the order layer, linetype, text style, dimension style and block, each before its records, then the
+        /// followers; the first of a handle kept.
+        /// </summary>
+        private void IndexOthers()
+        {
+            var others = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+            void Keep(string own, object found)
+            {
+                if (own != null && !others.ContainsKey(own))
+                {
+                    others.Add(own, found);
+                }
+            }
+
+            foreach (DxfSymbolTable table in new DxfSymbolTable[] { LayerTable, LinetypeTable, TextStyleTable, DimStyleTable, BlockTable })
+            {
+                Keep(table.Handle, table);
+
+                foreach (object record in table)
+                {
+                    if (record is DxfDBObject found)
+                    {
+                        Keep(found.Handle, found);
+                    }
+                }
+            }
+
+            foreach (DxfBlockTableRecord block in BlockTable)
+            {
+                foreach (DxfEntity entity in block.AllEntities())
+                {
+                    int count = File.RecordCount(entity.Item);
+
+                    for (int r = 1; r < count; r++)
+                    {
+                        DxfItem follower = File.FollowerOf(entity.Item, r);
+                        Keep(follower.Handle, follower);
+                    }
+                }
+            }
+
+            _others = others;
+            _othersAt = File.EditCount;
         }
 
         /// <summary>

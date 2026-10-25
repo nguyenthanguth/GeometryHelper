@@ -543,6 +543,46 @@ namespace GeometryHelper.Export
             throw new ArgumentOutOfRangeException(nameof(index), index, "The record has no group " + Number(index) + ".");
         }
 
+        /// <summary>
+        /// Takes one group of a record out (counted as <see cref="GroupsOf"/> counts them, after its group 0), every other group
+        /// keeping its bytes: the last active viewport (331) of a LAYOUT whose viewport was erased.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the record has no group of the index.</exception>
+        internal void RemoveGroupAt(DxfItem item, int index)
+        {
+            Editable(item);
+            List<Rec> records = RecordsOf(item);
+            Rec head = records[0];
+            List<Pair> pairs = PairsOf(head);
+            int counted = 0;
+
+            for (int i = 1; i < pairs.Count; i++)
+            {
+                if (pairs[i].Code == 999 || counted++ != index)
+                {
+                    continue;
+                }
+
+                var b = new Builder(this);
+
+                for (int k = 0; k < pairs.Count; k++)
+                {
+                    if (k != i)
+                    {
+                        b.Raw(head, pairs[k]);
+                    }
+                }
+
+                records[0] = b.Done(head.Type);
+                SetRecords(item, records);
+                item.Changed(head.Type);
+                Edited();
+                return;
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(index), index, "The record has no group " + Number(index) + ".");
+        }
+
         /// <summary>How many changes the records have had, so that what is worked out of them all is kept until the next.</summary>
         internal int EditCount => _editCount;
 

@@ -104,8 +104,11 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal(parts, copy.Explode().Count);
             Assert.Equal(geometry, string.Join(" ; ", copy.GetGeometry()));
 
-            // Another drawing with no block of that name refuses it; the drawing it came from places it by that name.
-            Assert.Throws<ArgumentException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).ModelSpace.AppendEntity(copy.Clone()));
+            // Another drawing with no block of that name is given a copy of it under that name; the drawing it came from places
+            // it by that name.
+            DxfDatabase other = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
+            other.ModelSpace.AppendEntity(copy.Clone());
+            Assert.Equal(db.BlockTable["BOLT_M20"].Count, other.BlockTable["BOLT_M20"].Count);
             db.ModelSpace.AppendEntity(copy);
             Assert.Equal("BOLT_M20", ByHandle<DxfBlockReference>(DxfDatabase.Parse(db.ToText()), copy.Handle).Name);
         }

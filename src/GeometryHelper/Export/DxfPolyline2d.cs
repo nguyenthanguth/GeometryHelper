@@ -1225,6 +1225,16 @@ namespace GeometryHelper.Export
 
         #endregion
 
+        /// <summary>
+        /// Gets the lines and arcs the polyline breaks into, as AutoCAD's <c>Explode</c>: a LINE for each straight segment and an
+        /// ARC for each bulged one, in its order, as <see cref="DxfReader"/> draws it (one fitted to a curve or a spline through
+        /// the vertices it is drawn through), each with its look and thickness; its widths left out, as AutoCAD leaves them out,
+        /// and a segment of no length too. Each LINE and ARC is on the polyline's <see cref="Normal"/>, as AutoCAD gives it the
+        /// polyline's, so that its wall stands up the same way.
+        /// </summary>
+        /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        public override IReadOnlyList<DxfEntity> Explode() => ChainParts(Normal).AsReadOnly();
+
         [DxfType("POLYLINE")]
         internal static DxfEntity Create(DxfItem item)
             => (Flags(item) & (8 | 16 | 64)) == 0 ? new DxfPolyline2d(item) : null;

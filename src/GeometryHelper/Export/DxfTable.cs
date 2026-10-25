@@ -28,12 +28,14 @@ namespace GeometryHelper.Export
     /// <see cref="SetTextString(int, int, string)"/>, <see cref="SetRowHeight(int, double)"/> and
     /// <see cref="SetColumnWidth(int, double)"/> write the table's data, every other group kept; the block AutoCAD drew the table
     /// with is not drawn anew, as its <c>RecomputeTableBlock</c> would draw it: AutoCAD draws the table anew from its data when
-    /// it next updates it, and until then shows the old picture. Moved by <see cref="DxfEntity.TransformBy(GeoTransform3)"/>, a
-    /// table carries its block's entities with it where it alone names that block; a picture another entity shares, as a
-    /// copy of the table in its own drawing does, is left for AutoCAD to draw anew. A copy added to another drawing loses the
-    /// values its block cells give their blocks' attributes: each pointer to an attribute definition (331) is taken out with
-    /// its value (300) and each cell's count (179) made nought, as the mapping of objects between drawings drops the pointers
-    /// and AutoCAD reads the pairs by that count.
+    /// it next updates it, and until then shows the old picture. Moved, turned, mirrored or scaled alike in every direction by
+    /// <see cref="DxfEntity.TransformBy(GeoTransform3)"/>, its sizes scaled with it, a table carries its block's entities with it
+    /// where it alone names that block; a picture another entity shares, as a
+    /// copy of the table in its own drawing does, is left for AutoCAD to draw anew. A copy added to another drawing keeps the
+    /// values its block cells give their blocks' attributes where the block comes with it, as it does to a drawing that has no
+    /// block of its name: each pointer to an attribute definition (331) names the copy of that definition, as AutoCAD's deep
+    /// clone maps it. Where the drawing has a block of the name, which the cell then shows, a pointer is left out with its
+    /// value (300) and the cell's count (179) made to agree, as AutoCAD reads the pairs by that count.
     /// </para>
     /// </remarks>
     public sealed class DxfTable : DxfEntity
@@ -840,16 +842,24 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// Moves or turns the table, as AutoCAD's <c>TransformBy</c> carries one: its point moved, its direction and normal
-        /// turned, and the entities of the block AutoCAD drew it with turned about the block's origin, seen from the system of its
-        /// normal, as the block is placed at the table's point, where the table is the one entity of the drawing that names the
-        /// block; a block another entity names too, as a copy of the table in its own drawing, is left as drawn, for AutoCAD to
-        /// draw anew. The record is written once.
+        /// Moves, turns, scales or mirrors the table, as AutoCAD's <c>TransformBy</c> carries one: its point moved, its direction
+        /// and normal turned, and the entities of the block AutoCAD drew it with carried by the same transformation, seen from the
+        /// system of its normal, as the block is placed at the table's point, where the table is the one entity of the drawing
+        /// that names the block; a block another entity names too, as a copy of the table in its own drawing, is left as drawn,
+        /// for AutoCAD to draw anew. The record is written once.
         /// </summary>
-        /// <param name="transform">The transformation: one that keeps lengths and does not mirror, as a move and a turn.</param>
+        /// <remarks>
+        /// A scale alike in every direction scales what the table holds of its own sizes: the heights of its rows, the widths of
+        /// its columns, its cell margins, and the text heights and block scales it and its cells override; a text height the
+        /// table takes from its table style, which the library does not read, stays the style's. A table of rows 10, 8 and 8
+        /// high scaled by 2 has rows 20, 16 and 16 high. A mirror turns the table's normal round, as AutoCAD turns a mirrored
+        /// text's, so that its rows and columns stand where the mirror puts them, read from the other side of its plane.
+        /// </remarks>
+        /// <param name="transform">The transformation: one that scales alike in every direction, if it scales, as a move, a turn,
+        /// a mirror and a scale.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the transformation scales, shears or mirrors, which would change the
-        /// sizes of the rows, columns and texts AutoCAD lays the table out by.</exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation shears, scales unlike along its axes or flattens,
+        /// which would make the table's cells other than the rectangles AutoCAD lays it out in.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
         private protected override void TransformEntity(GeoTransform3 transform)
         {
@@ -866,20 +876,32 @@ namespace GeometryHelper.Export
             GeoVector3 x = transform.Transform(new GeoVector3(1.0, 0.0, 0.0));
             GeoVector3 y = transform.Transform(new GeoVector3(0.0, 1.0, 0.0));
             GeoVector3 z = transform.Transform(new GeoVector3(0.0, 0.0, 1.0));
-            const double Tol = 1E-9;
+            double scale = x.Length;
+            double slack = 1E-9 * scale;
 
-            if (Math.Abs(x.Length - 1.0) > Tol || Math.Abs(y.Length - 1.0) > Tol || Math.Abs(z.Length - 1.0) > Tol
-                || Math.Abs(x.DotProduct(y)) > Tol || Math.Abs(x.DotProduct(z)) > Tol || Math.Abs(y.DotProduct(z)) > Tol || x.CrossProduct(y).DotProduct(z) < 0.0)
+            if (!(scale > 0.0) || double.IsInfinity(scale) || Math.Abs(y.Length - scale) > slack || Math.Abs(z.Length - scale) > slack
+                || Math.Abs(x.DotProduct(y)) > slack * scale || Math.Abs(x.DotProduct(z)) > slack * scale || Math.Abs(y.DotProduct(z)) > slack * scale)
             {
-                throw new ArgumentException("A table is moved and turned only: a scale, a shear or a mirror would change the sizes AutoCAD lays it out by.", nameof(transform));
+                throw new ArgumentException("A table is moved, turned, mirrored and scaled alike in every direction only: a shear or a scale unlike along its axes would make its cells other than the rectangles AutoCAD lays it out in.", nameof(transform));
             }
 
             CheckEditable();
+            bool mirrored = x.CrossProduct(y).DotProduct(z) < 0.0;
+            bool scaled = Math.Abs(scale - 1.0) > 1E-9;
             GeoVector3 normal = Normal;
             GeoVector3 turnedNormal = DxfOcsTransform.Normalized(transform.Transform(normal));
+            turnedNormal = mirrored ? new GeoVector3(-turnedNormal.X, -turnedNormal.Y, -turnedNormal.Z) : turnedNormal;
             GeoPoint3 position = transform.Transform(Position);
             GeoVector3 direction = transform.Transform(Direction);
+            direction = scaled ? direction.Divide(scale) : direction;
             DxfDimGroups g = Own();
+
+            // The sizes first, each in its place, before a point is written where the record had none.
+            if (scaled)
+            {
+                ScaleSizes(new Layout(g), scale);
+            }
+
             g.SetPoint(10, WorldToOcs(turnedNormal, position), g.Base, Order, Origin);
             g.SetPoint(11, new GeoPoint3(direction.X, direction.Y, direction.Z), g.Sub, Order, new GeoPoint3(1.0, 0.0, 0.0));
 
@@ -928,54 +950,72 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// Readies a copy for another drawing: each block cell's pointers to its block's attribute definitions (331) taken out
-        /// with their values (300) and its count (179) made nought, as the mapping of objects between drawings drops those
-        /// pointers and AutoCAD reads the pairs by the count. Nothing for a table added to the drawing it was copied from.
+        /// Scales the sizes the table holds of its own, each in its place: its rows' heights (141) and columns' widths (142); each
+        /// cell's text height (140) and block scale (144) outside its value; and its cell margins (40, 41) and text heights (140)
+        /// after its last cell.
         /// </summary>
-        internal override void Appending(DxfBlockTableRecord owner)
+        private static void ScaleSizes(Layout layout, double scale)
         {
-            DxfFile origin = Item.File.Origin;
+            List<KeyValuePair<int, string>> list = layout.Groups.List;
+            var places = new List<int>(layout.RowAt);
+            places.AddRange(layout.ColumnAt);
 
-            if (!Item.File.IsDetached || origin == null || origin == owner.File)
+            for (int k = 0; k < layout.CellStart.Count; k++)
             {
-                return;
-            }
+                int to = k + 1 < layout.CellStart.Count ? layout.CellStart[k + 1] : layout.CellsEnd;
+                bool value = false;
 
-            DxfDimGroups g = Own();
-            bool changed = false;
-
-            for (int i = g.Sub.From; i < g.List.Count; i++)
-            {
-                int code = g.List[i].Key;
-
-                if (code == 331)
+                for (int i = layout.CellStart[k] + 1; i < to; i++)
                 {
-                    g.RemoveAt(i);
+                    int code = list[i].Key;
+                    value = code == 301 && list[i].Value.Trim() == "CELL_VALUE" ? true : code == 304 ? false : value;
 
-                    if (i < g.List.Count && g.List[i].Key == 300)
+                    if (!value && (code == 140 || code == 144))
                     {
-                        g.RemoveAt(i);
+                        places.Add(i);
                     }
-
-                    i--;
-                    changed = true;
-                }
-                else if (code == 179 && g.List[i].Value.Trim() != "0")
-                {
-                    g.List[i] = new KeyValuePair<int, string>(179, "0");
-                    changed = true;
                 }
             }
 
-            if (changed)
+            int own = layout.CellStart.Count > 0 ? layout.CellsEnd : list.Count;
+
+            for (int i = own; i < layout.Groups.Sub.To; i++)
             {
-                g.Write(Order);
+                int code = list[i].Key;
+
+                if (code == 40 || code == 41 || code == 140)
+                {
+                    places.Add(i);
+                }
+            }
+
+            foreach (int at in places)
+            {
+                if (Numbers.TryRead(list[at].Value, out double size) && Guard.IsFinite(size))
+                {
+                    list[at] = new KeyValuePair<int, string>(list[at].Key, Numbers.Exact(size * scale + 0.0));
+                }
             }
         }
 
         #endregion
 
         #region Reading
+
+        /// <summary>
+        /// Gets the entities the table is drawn with, as AutoCAD's <c>Explode</c>: those of its block
+        /// (<see cref="BlockTableRecord"/>, <c>*T12</c>), the lines of its cells and their words, placed where the table draws
+        /// them, at its <see cref="Position"/> in the plane of its <see cref="Normal"/>, each a copy of its own look. The block is
+        /// the picture AutoCAD drew last: a cell's text set since is not in it.
+        /// </summary>
+        /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing has no block of the name the table is drawn by.</exception>
+        public override IReadOnlyList<DxfEntity> Explode()
+        {
+            DxfBlockTableRecord block = BlockTableRecord ?? throw new InvalidOperationException("The drawing has no block " + PictureName + " the table is drawn with, to explode it into.");
+            GeoTransform3 placing = GeoTransform3.Translation(Position.ToVector()) * DxfDimension.Frame(Normal, false) * GeoTransform3.Translation(block.Origin.ToVector().Negate());
+            return PlacedCopies(block, placing).AsReadOnly();
+        }
 
         [DxfType("ACAD_TABLE")]
         internal static DxfEntity Create(DxfItem item) => new DxfTable(item);

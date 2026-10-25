@@ -744,6 +744,14 @@ namespace GeometryHelper.Export
 
         #endregion
 
+        /// <summary>
+        /// Gets the lines the polyline breaks into, as AutoCAD's <c>Explode</c>: a LINE for each segment between two vertices it
+        /// is drawn through, in its order, the closing one of a closed polyline among them, each with its look; a segment of no
+        /// length left out. The polyline through (0, 0, 0), (1, 2, 3) and (4, 5, 6) comes out as two lines.
+        /// </summary>
+        /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        public override IReadOnlyList<DxfEntity> Explode() => ChainParts(null).AsReadOnly();
+
         [DxfType("POLYLINE")]
         internal static DxfEntity Create(DxfItem item)
         {

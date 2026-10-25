@@ -137,6 +137,68 @@ namespace GeometryHelper.Export
             }
         }
 
+        /// <summary>
+        /// Gets the lines and the arrowhead a straight leader breaks into, as AutoCAD's <c>Explode</c>: a LINE between each two
+        /// vertices, a segment of no length left out, then, where it has an arrow (<see cref="HasArrowHead"/>), its arrowhead at
+        /// the first vertex pointing away from the second, <see cref="Dimasz"/> times <see cref="Dimscale"/> long (a scale of
+        /// nought taken as 1): an INSERT of the block of <see cref="Dimldrblk"/> turned and scaled so, or, where it names none,
+        /// AutoCAD's closed filled arrow as a SOLID a third as wide as long. Each with the leader's look. The leader from (0, 0, 0)
+        /// through (10, 10, 0) to (20, 10, 0) with an arrow 2.5 long gives two lines and a SOLID from the origin back along the
+        /// first segment. The hook line AutoCAD draws to the annotation is AutoCAD's to work out, and is not among them.
+        /// </summary>
+        /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        /// <exception cref="NotSupportedException">Thrown for a splined leader, drawn as the spline AutoCAD works out through its
+        /// vertices, which the library does not work out.</exception>
+        public override IReadOnlyList<DxfEntity> Explode()
+        {
+            if (IsSplined)
+            {
+                throw new NotSupportedException("A splined leader is drawn as the spline AutoCAD works out through its vertices, which the library does not work out: explode it in AutoCAD.");
+            }
+
+            List<GeoPoint3> vertices = Vertices();
+            double tolerance = Tolerance.Default.EqualPoint;
+            var parts = new List<DxfEntity>();
+
+            for (int i = 0; i + 1 < vertices.Count; i++)
+            {
+                if (vertices[i].DistanceTo(vertices[i + 1]) > tolerance)
+                {
+                    parts.Add(PartOf(new GeoLine3(vertices[i], vertices[i + 1])));
+                }
+            }
+
+            if (!HasArrowHead || vertices.Count < 2 || !(vertices[0].DistanceTo(vertices[1]) > tolerance))
+            {
+                return parts.AsReadOnly();
+            }
+
+            double scale = Dimscale;
+            double size = Dimasz * (scale > 0.0 ? scale : 1.0);
+            GeoVector3 normal = Normal;
+            GeoVector3 away = DxfOcsTransform.Normalized(vertices[1].GetVectorTo(vertices[0]));
+            DxfBlockTableRecord arrow = Dimldrblk;
+            DxfEntity head;
+
+            if (arrow == null)
+            {
+                GeoPoint3 back = vertices[0].Add(away.Multiply(-size));
+                GeoVector3 side = DxfOcsTransform.Normalized(normal.CrossProduct(away)).Multiply(size / 6.0);
+                var solid = new DxfSolid(vertices[0], back.Add(side), back.Add(side.Negate()));
+                solid.Normal = normal;
+                head = solid;
+            }
+            else
+            {
+                OcsAxes(normal, out GeoVector3 x, out GeoVector3 y);
+                head = new DxfBlockReference(vertices[0], arrow) { Normal = normal, ScaleFactors = new GeoVector3(size, size, size), Rotation = Math.Atan2(away.DotProduct(y), away.DotProduct(x)) };
+            }
+
+            GiveLook(head);
+            parts.Add(head);
+            return parts.AsReadOnly();
+        }
+
         #region The vertices
 
         /// <summary>Gets how many vertices the leader has, as AutoCAD's <c>NumVertices</c>: its groups 10.</summary>
@@ -264,7 +326,9 @@ namespace GeometryHelper.Export
         /// Set, an entity of the same drawing, an MTEXT (a <see cref="DxfMText"/>), a TOLERANCE or an INSERT (a
         /// <see cref="DxfBlockReference"/>): its handle written in group 340 and what it is in group 73; null takes the handle out
         /// and makes group 73 that of no annotation. The leader is put among the reactors of the annotation (102
-        /// <c>{ACAD_REACTORS</c>), and taken out of those of the one it pointed to before, as AutoCAD keeps it.
+        /// <c>{ACAD_REACTORS</c>), and taken out of those of the one it pointed to before, as AutoCAD keeps it. A copy added to
+        /// another drawing points to none, its <see cref="AnnoType"/> <see cref="DxfAnnotationType.NoAnnotation"/>, unless it is
+        /// copied with its annotation by <see cref="DxfDatabase.WblockCloneObjects"/>, which points it to the annotation's copy.
         /// </value>
         /// <exception cref="ArgumentException">Thrown when the entity set is not an MTEXT, a TOLERANCE or an INSERT, or is not of
         /// the leader's drawing.</exception>

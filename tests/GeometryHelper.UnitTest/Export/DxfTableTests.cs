@@ -177,7 +177,7 @@ namespace GeometryHelper.UnitTest.Export
         }
 
         [Fact]
-        public void TheTableTurned_TurnsItsBlockWithIt_AndAScaleIsRefused()
+        public void TheTableTurned_TurnsItsBlockWithIt_AndAScaleUnlikeAlongItsAxesIsRefused()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
             DxfTable table = Table(db);
@@ -191,7 +191,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfLine top = table.BlockTableRecord.OfType<DxfLine>().First();
             Assert.Equal(0.0, top.EndPoint.X, 12);
             Assert.Equal(70.0, top.EndPoint.Y, 12);
-            Refused<ArgumentException>(() => table.TransformBy(GeoTransform3.Scaling(2.0)), "moved and turned only");
+            Refused<ArgumentException>(() => table.TransformBy(GeoTransform3.Scaling(2.0, 1.0, 1.0)), "scaled alike in every direction");
             Assert.Equal("Parts", Table(DxfDatabase.Parse(db.ToText())).TextString(0, 0));
         }
 

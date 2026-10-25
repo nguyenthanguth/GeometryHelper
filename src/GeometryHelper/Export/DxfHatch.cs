@@ -22,7 +22,8 @@ namespace GeometryHelper.Export
     /// Each property is read from and written to the HATCH's own groups, every group a change is not about keeping its text, and
     /// a property given the value it has changes nothing. A change to the loops of an associative HATCH (<see cref="Associative"/>)
     /// takes its association away with the handles of the objects it followed, as AutoCAD's does: its loops are its own from then
-    /// on. The lines a pattern draws are worked out by AutoCAD from the pattern and the loops (<c>EvaluateHatch</c>), and are not
+    /// on. A copy (<see cref="DxfEntity.Clone"/>) follows nothing; one copied with every object it follows by
+    /// <see cref="DxfDatabase.WblockCloneObjects"/> follows their copies. The lines a pattern draws are worked out by AutoCAD from the pattern and the loops (<c>EvaluateHatch</c>), and are not
     /// in the file; a pattern of AutoCAD's own pattern file the HATCH does not hold the lines of is not known to the library:
     /// <c>new DxfHatch()</c> given ANSI31 by <see cref="SetHatchPattern"/> holds no lines of it
     /// (<see cref="NumberOfPatternDefinitions"/> 0), its name and type written for AutoCAD to take the lines from its own file.

@@ -31,7 +31,8 @@ namespace GeometryHelper.Export
     /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> to a block of the same drawing; a block that would come to
     /// insert itself is refused. A copy of an INSERT, <see cref="DxfEntity.GetTransformedCopy(GeoTransform3)"/>'s, added to
     /// another drawing places the block of its name there, whatever that drawing's block of the name holds, as AutoCAD binds
-    /// a block by its name; it is refused where that drawing has no block of the name.
+    /// a block by its name; where that drawing has no block of the name, it brings a copy of its own block, under its name,
+    /// with the blocks that block inserts that the drawing has not, as AutoCAD's <c>WblockCloneObjects</c> brings them.
     /// </para>
     /// <para>
     /// <see cref="DxfEntity.GetGeometry"/> places the block anew on each call, a new list each time; where what it would place
@@ -352,6 +353,12 @@ namespace GeometryHelper.Export
                 throw new ArgumentException("An ATTRIB is named by its tag: give it one before it is appended.", nameof(attribute));
             }
 
+            // Its text style, as a TEXT's is checked when it is added; an INSERT in no drawing has its ATTRIBs checked when it is.
+            if (IsResident)
+            {
+                CheckTextStyle(Item.File, null, attribute.WrittenTextStyle, nameof(attribute));
+            }
+
             string layer = attribute.Layer;
             int count = RecordCount;
             bool ended = count > 1 && RecordType(count - 1) == "SEQEND";
@@ -520,8 +527,8 @@ namespace GeometryHelper.Export
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is in no drawing, is erased, its drawing has no
         /// block of its name, or exploding would make more than the 2 000 000 entities of
         /// <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a MINSERT of more than one cell: <see cref="Explode"/> gives the
-        /// entities of its first cell alone, so the others would be lost from the owner.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a MINSERT of more than one cell, which AutoCAD does not explode into
+        /// its owner, as its EXPLODE command refuses one: <see cref="Explode"/> gives the entities of every cell.</exception>
         /// <exception cref="ArgumentException">Thrown when the drawing cannot hold an entity exploding makes, or the block
         /// inserts itself.</exception>
         public void ExplodeToOwnerSpace()
@@ -533,7 +540,7 @@ namespace GeometryHelper.Export
 
             if (CellCount > 1)
             {
-                throw new NotSupportedException("A MINSERT of more than one cell is not exploded into its owner: Explode gives its first cell alone, and the others would be lost.");
+                throw new NotSupportedException("A MINSERT of more than one cell is not exploded into its owner, as AutoCAD's EXPLODE refuses one: Explode gives the entities of every cell.");
             }
 
             IReadOnlyList<DxfEntity> parts = Explode();
@@ -562,7 +569,7 @@ namespace GeometryHelper.Export
         /// Gets the entities of the block placed where the INSERT puts them, as AutoCAD's <c>Explode</c> gives them: new
         /// entities in no file, one level down, so that an INSERT in the block comes out an INSERT, and an ATTDEF of the block a
         /// <see cref="DxfAttributeDefinition"/> placed as the rest are. The INSERT's ATTRIBs are not among them: their values
-        /// stay where they are, in <see cref="AttributeCollection"/>. A MINSERT gives those of its first cell.
+        /// stay where they are, in <see cref="AttributeCollection"/>. A MINSERT gives those of every cell, row by row.
         /// </summary>
         /// <returns>The entities, in the order of the block, each of its own look; to be added to a drawing by
         /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>. The INSERT of BOLT whose block holds a CIRCLE, a LINE and
@@ -576,8 +583,8 @@ namespace GeometryHelper.Export
         /// <see cref="DxfWriter"/> writes them, an ELLIPSE for that circle, with its look; nothing nested is placed for it. An
         /// INSERT in the block that cannot hold the placing, one turned in its block under a scale unlike along the world's
         /// axes, is exploded in its turn and its parts placed, so that what is drawn stays where it was. A type the library
-        /// neither moves nor reads, as an IMAGE, is left out, and so is a MULTILEADER under a placing that scales it unlike along
-        /// its axes or shears it, which it does not hold.
+        /// neither moves nor reads, as an IMAGE, is left out, and so are a MULTILEADER and an ACAD_TABLE under a placing that
+        /// scales them unlike along their axes or shears them, which they do not hold.
         /// </para>
         /// <para>
         /// The entities are made in a drawing of R2018: an ELLIPSE or a SPLINE that a circle or an arc comes out as under a scale
@@ -650,9 +657,17 @@ namespace GeometryHelper.Export
             => (int.TryParse(item.File.ValueOf(item, 70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int columns) && columns > 1)
             || (int.TryParse(item.File.ValueOf(item, 71)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int rows) && rows > 1);
 
-        /// <summary>Refuses a block of no drawing or another, a layout, or one that would make the block it is added to insert itself.</summary>
+        /// <summary>
+        /// Refuses a block of no drawing or another, a layout, or one that would make the block it is added to insert itself;
+        /// and an ATTRIB of a text style the drawing has not, as a <see cref="DxfDBText"/> refuses one.
+        /// </summary>
         internal override void Appending(DxfBlockTableRecord owner)
         {
+            foreach (DxfAttributeReference attribute in Attributes())
+            {
+                CheckTextStyle(owner.File, Item.File.Origin, attribute.WrittenTextStyle, "entity");
+            }
+
             // A copy of an INSERT of a block AutoCAD names itself (*U), from another drawing, takes a copy of that block as it is
             // added, as AutoCAD's deep clone does, rather than the block of its name there.
             DxfFile origin = Item.File.Origin;
@@ -666,6 +681,15 @@ namespace GeometryHelper.Export
             }
 
             DxfBlockTableRecord block = _record != null && string.Equals(_record.Name, Name, StringComparison.OrdinalIgnoreCase) ? _record : owner.File == null ? null : Resolve(owner.File, Name);
+
+            // A copy of another drawing whose block this drawing has none of the name of brings that block, with the blocks it
+            // inserts, as AutoCAD's WblockCloneObjects brings it; one of a name this drawing has places this drawing's own.
+            if (block == null && Item.OriginBlock != null && !Item.OriginBlock.Head.IsRemoved && origin != null && owner.File != null && origin != owner.File)
+            {
+                _record = null;
+                DropEmbeddedBefore(owner);
+                return;
+            }
 
             if (block == null)
             {

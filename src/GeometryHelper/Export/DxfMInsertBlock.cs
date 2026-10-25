@@ -108,6 +108,55 @@ namespace GeometryHelper.Export
             set => SetDouble(45, value, 0.0);
         }
 
+        /// <summary>
+        /// Gets the entities of the block placed in every cell of the array, as AutoCAD's <c>Explode</c> of a MINSERT: those of the
+        /// first cell, as <see cref="DxfBlockReference.Explode"/> places them, then each other cell's, row by row, the first moved
+        /// along the turned axes of the INSERT by the spacing of its column and row. The MINSERT of a block of one circle in 2 rows
+        /// by 3 columns gives six circles.
+        /// </summary>
+        /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing has no block of the MINSERT's name, or the cells
+        /// would hold more than the 2 000 000 entities of <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
+        /// <exception cref="ArgumentException">Thrown when the block inserts itself, as <see cref="DxfBlockReference.Explode"/> says.</exception>
+        public override IReadOnlyList<DxfEntity> Explode()
+        {
+            IReadOnlyList<DxfEntity> first = base.Explode();
+            int columns = Columns;
+            int rows = Rows;
+
+            if ((long)first.Count * columns * rows > 2000000L)
+            {
+                throw new InvalidOperationException("The MINSERT's " + (columns * rows).ToString(CultureInfo.InvariantCulture) + " cells would hold " + ((long)first.Count * columns * rows).ToString(CultureInfo.InvariantCulture) + " entities, more than the 2 000 000 the reader places.");
+            }
+
+            OcsAxes(Normal, out GeoVector3 u, out GeoVector3 v);
+            double angle = GetDouble(50, 0.0) * (Math.PI / 180.0);
+            GeoVector3 along = u.Multiply(Math.Cos(angle)).Add(v.Multiply(Math.Sin(angle)));
+            GeoVector3 across = v.Multiply(Math.Cos(angle)).Subtract(u.Multiply(Math.Sin(angle)));
+            var parts = new List<DxfEntity>(first.Count * columns * rows);
+
+            for (int row = 0; row < rows; row++)
+            {
+                for (int column = 0; column < columns; column++)
+                {
+                    if (row == 0 && column == 0)
+                    {
+                        parts.AddRange(first);
+                        continue;
+                    }
+
+                    GeoTransform3 move = GeoTransform3.Translation(along.Multiply(column * ColumnSpacing).Add(across.Multiply(row * RowSpacing)));
+
+                    foreach (DxfEntity part in first)
+                    {
+                        parts.Add(part.GetTransformedCopy(move));
+                    }
+                }
+            }
+
+            return parts.AsReadOnly();
+        }
+
         [DxfType("INSERT")]
         internal static DxfEntity CreateArray(DxfItem item) => IsArray(item) ? new DxfMInsertBlock(item) : null;
 

@@ -1204,6 +1204,17 @@ namespace GeometryHelper.Export
 
         #endregion
 
+        /// <summary>
+        /// Gets the lines and arcs the polyline breaks into, as AutoCAD's <c>Explode</c>: a LINE for each straight segment and an
+        /// ARC for each bulged one, in its order, in the plane of its normal at its elevation, each with its look and thickness;
+        /// its widths left out, as AutoCAD leaves them out, and a segment of no length too. A closed square of side 10 with one
+        /// side bulged by 1 comes out as three lines and a half circle. Each LINE and ARC is on the polyline's
+        /// <see cref="Normal"/>, as AutoCAD gives it the polyline's, so that its wall stands up the same way: on the normal
+        /// (0, 0, -1) at elevation 5 with a thickness of 2, the walls stand from z = -5 down to -7.
+        /// </summary>
+        /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        public override IReadOnlyList<DxfEntity> Explode() => ChainParts(Normal).AsReadOnly();
+
         [DxfType("LWPOLYLINE")]
         internal static DxfEntity Create(DxfItem item) => new DxfPolyline(item);
 

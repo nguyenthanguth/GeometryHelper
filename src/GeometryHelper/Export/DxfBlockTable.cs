@@ -1046,8 +1046,15 @@ namespace GeometryHelper.Export
         /// extents of the header grow to hold an entity of model or paper space.
         /// </para>
         /// <para>
-        /// A file of R12 has no SPLINE, ELLIPSE, MTEXT, RAY, XLINE nor LWPOLYLINE, which are refused, nor lineweights or true
-        /// colours. An entity of R13 or later is written in it in the forms of R12, as AutoCAD saves a drawing as R12: each
+        /// A file of R12 has no SPLINE, ELLIPSE, RAY, XLINE nor LWPOLYLINE, which are refused, nor lineweights or true colours.
+        /// Nor has it MTEXT: an MTEXT is written there as one TEXT for each paragraph (<c>\P</c>, a column break <c>\N</c> taken
+        /// as one), its formatting and the heights of its codes left out, not wrapped at its width, which AutoCAD's SAVEAS to R12
+        /// wraps by the letters of the font, which the library does not read; and so is each MTEXT of a block copied there with an
+        /// entity of another drawing, a dimension's <c>*D</c> among them. Each TEXT is in the MTEXT's text style where the drawing
+        /// has it or is given it by name with the copy, else in Standard; a line of more than 255 letters is written whole, not
+        /// split, a length older readers of R12 may not take. The TEXTs are appended in the MTEXT's place, and the MTEXT stays in no file: an MTEXT
+        /// of two lines, 2.5 high and held at its top left at (10, 20), comes out as two TEXTs on the baselines 17.5 and 13.33
+        /// high. An entity of R13 or later is written in it in the forms of R12, as AutoCAD saves a drawing as R12: each
         /// record keeps the groups R12 has for its type, each read from the part of the record it belongs to (a centred
         /// ATTRIB's 72 from its AcDbText, not the 72 its AcDbAttribute writes again), its markers, owner and an object embedded
         /// after a group 101 left out; a type with no form of R12 the library writes, as a HATCH, is refused. An entity of R12
@@ -1062,8 +1069,20 @@ namespace GeometryHelper.Export
         /// style name (ACAD DSTYLE), which name those of the same name here. The records of the tables a copy names that this
         /// drawing has not (its layers, linetypes, text styles and dimension styles, and their arrow blocks) are copied with it by
         /// name, and a block AutoCAD names itself it draws by (a dimension's <c>*D</c>, an INSERT's <c>*U</c>) under a name of its
-        /// own, as AutoCAD's deep clone does. A copy appended to its own drawing keeps its pointers. The extents of the header are
-        /// not grown by what is appended to a block.
+        /// own, as AutoCAD's deep clone does; an INSERT's named block where this drawing has none of its name, under that name, with
+        /// the blocks it inserts, as AutoCAD's <c>WblockCloneObjects</c> brings it. What the entities of the blocks copied point
+        /// to among themselves (a LEADER to its MTEXT, a HATCH to its boundary) is kept between their copies, whichever comes first
+        /// in its block, as AutoCAD's deep clone translates its map of ids once every object is copied. A copy appended to its own
+        /// drawing keeps its pointers. The extents of the header are not grown by what is appended to a block.
+        /// </para>
+        /// <para>
+        /// A drawing of an older version than the entity's is given what it can hold, as AutoCAD's SAVEAS to that version gives
+        /// it: the overrides of a dimension style (ACAD DSTYLE) of a variable the version has not are left out, as DIMLTYPE of
+        /// R2007 on a dimension added to a drawing of R2000, and so are the groups the version has not of the records of the
+        /// tables copied by name with it, as a DIMSTYLE's DIMFXLEN (49) and a LAYER's material (347). A table's block cell keeps
+        /// the values it gives the attributes of a block that comes with it, its pointers (331) naming the copies of their
+        /// definitions; a LEADER whose annotation does not come with it points to none.
+        /// <see cref="DxfDatabase.WblockCloneObjects"/> copies entities together, what points from one to another kept.
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the entity is null.</exception>
@@ -1090,6 +1109,19 @@ namespace GeometryHelper.Export
             }
 
             entity.Appending(this);
+
+            // A drawing of R12 has no MTEXT: it is written as the TEXTs of its lines, which are appended in its place.
+            if (entity is DxfMText mtext && !_file.HasMarkers)
+            {
+                foreach (DxfEntity text in mtext.R12Texts(_file))
+                {
+                    text.Appending(this);
+                    text.Bind(_file.Adopt(space, text.Item));
+                }
+
+                return;
+            }
+
             entity.Bind(_file.Adopt(space, entity.Item));
         }
 

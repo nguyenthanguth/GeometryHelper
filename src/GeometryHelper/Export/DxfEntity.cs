@@ -716,9 +716,12 @@ namespace GeometryHelper.Export
         public DxfEntity Clone() => Copy();
 
         /// <summary>
-        /// Gets the entities the entity breaks into, as AutoCAD's <c>Explode</c>: new entities in no file. An entity that does
-        /// not break into others refuses, as AutoCAD answers <c>eNotApplicable</c>; a <see cref="DxfBlockReference"/> gives the
-        /// entities of its block placed where it puts them.
+        /// Gets the entities the entity breaks into, as AutoCAD's <c>Explode</c>: new entities in no file. A
+        /// <see cref="DxfBlockReference"/> gives the entities of its block placed where it puts them, a MINSERT those of every cell;
+        /// a polyline its lines and arcs; an MTEXT a TEXT for each line; a dimension and a table the entities of the block they are
+        /// drawn with, placed; a straight LEADER its lines and arrowhead. Any other entity refuses, as AutoCAD answers
+        /// <c>eNotApplicable</c> for one that does not break: a HATCH, a MESH, a polyface or polygon mesh and an MLINE among them,
+        /// which AutoCAD explodes, and a MULTILEADER, whose parts AutoCAD works out.
         /// </summary>
         /// <returns>The entities, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         /// <exception cref="NotSupportedException">Thrown for a class that does not break into others.</exception>
@@ -1214,8 +1217,9 @@ namespace GeometryHelper.Export
         /// Erases the entity from its block, as AutoCAD's <c>Erase</c> does: every record of it goes, a POLYLINE's vertices
         /// and end and an INSERT's attributes with it, its handle is not given again, and what pointed at it is seen to when the
         /// file is saved: a GROUP no longer lists it, a list of reactors no longer holds it, and the objects it owned, such as
-        /// its extension dictionary, go with it. A record that follows an entity, a VERTEX of a POLYLINE or an ATTRIB of an
-        /// INSERT, is taken out of it alone, every other record keeping its handle.
+        /// its extension dictionary, go with it; any other pointer at it, as a table cell's at an attribute definition (331) or
+        /// an XRECORD's data, stays where it stands, named in the log once. A record that follows an entity, a VERTEX of a
+        /// POLYLINE or an ATTRIB of an INSERT, is taken out of it alone, every other record keeping its handle.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the entity is in no file, or is erased already; for the SEQEND
         /// that ends a POLYLINE's or an INSERT's records, which the entity keeps.</exception>
@@ -1548,6 +1552,276 @@ namespace GeometryHelper.Export
             {
                 Item.Thickness = value;
             }
+        }
+
+        /// <summary>
+        /// A part of the entity exploded, a shape made an entity in no file as <see cref="DxfWriter"/> writes it, with the entity's
+        /// look (layer, colour, true colour, linetype and its scale, lineweight, visibility) and, a LINE or an ARC, its thickness.
+        /// </summary>
+        private protected DxfEntity PartOf(object shape)
+        {
+            DxfEntity made = Of(DxfFile.Detached(shape));
+            GiveLook(made);
+            double thickness = GetThickness();
+
+            if (!Same(thickness, 0.0) && (made.Item.Type == "LINE" || made.Item.Type == "ARC"))
+            {
+                made.Item.Thickness = thickness;
+            }
+
+            return made;
+        }
+
+        /// <summary>Gives a part made in no file the entity's look: its layer, colour, true colour, linetype and its scale, lineweight and visibility.</summary>
+        private protected void GiveLook(DxfEntity made)
+        {
+            made.Layer = Layer;
+            made.ColorIndex = ColorIndex;
+            made.TrueColor = TrueColor;
+            made.Linetype = Linetype;
+            made.LinetypeScale = LinetypeScale;
+            made.LineWeight = LineWeight;
+            made.Visible = Visible;
+        }
+
+        /// <summary>
+        /// The parts of a chain the entity is read as (a polyline): a LINE or an ARC for each edge of each of its shapes, in their
+        /// order, an edge of no length left out, as AutoCAD's <c>Explode</c> gives a polyline's. Given the normal of the
+        /// polyline's plane, each LINE and ARC is on it, as AutoCAD gives them its 210, so that their walls stand up the way
+        /// the polyline's do: an ARC about it, its angles in that normal's own system, from the end of its edge where the edge
+        /// runs clockwise about it, as ezdxf's <c>virtual_entities</c> gives it.
+        /// </summary>
+        private protected List<DxfEntity> ChainParts(GeoVector3? normal)
+        {
+            var parts = new List<DxfEntity>();
+            double tolerance = Tolerance.Default.EqualPoint;
+
+            void Edge(GeoEdge3 edge)
+            {
+                if (edge.StartPoint.DistanceTo(edge.EndPoint) > tolerance)
+                {
+                    parts.Add(PartOn(edge.IsArc ? (object)edge.ToArc() : edge.ToLine(), normal));
+                }
+            }
+
+            void Line(GeoLine3 line)
+            {
+                if (line.Length > tolerance)
+                {
+                    parts.Add(PartOn(line, normal));
+                }
+            }
+
+            foreach (object shape in Item.Shapes)
+            {
+                switch (shape)
+                {
+                    case GeoPolylineArc3 chain:
+                        foreach (GeoEdge3 edge in chain.GetEdges())
+                        {
+                            Edge(edge);
+                        }
+
+                        break;
+                    case GeoPolygonArc3 ring:
+                        foreach (GeoEdge3 edge in ring.GetEdges())
+                        {
+                            Edge(edge);
+                        }
+
+                        break;
+                    case GeoPolyline3 lines:
+                        foreach (GeoLine3 line in lines.GetEdges())
+                        {
+                            Line(line);
+                        }
+
+                        break;
+                    case GeoPolygon3 polygon:
+                        foreach (GeoLine3 line in polygon.GetEdges())
+                        {
+                            Line(line);
+                        }
+
+                        break;
+                    case GeoLine3 line:
+                        Line(line);
+                        break;
+                    case GeoArc3 _:
+                    case GeoCircle3 _:
+                        parts.Add(PartOn(shape, normal));
+                        break;
+                }
+            }
+
+            return parts;
+        }
+
+        /// <summary>
+        /// A part of <see cref="ChainParts"/> (<see cref="PartOf"/>) on the normal of the polyline's plane: a LINE given it, an
+        /// ARC made about it, its ends kept, from its end where it runs the other way about; any other part, or one of no normal
+        /// given, as <see cref="PartOf"/> makes it.
+        /// </summary>
+        private DxfEntity PartOn(object shape, GeoVector3? normal)
+        {
+            if (normal == null)
+            {
+                return PartOf(shape);
+            }
+
+            GeoVector3 up = normal.Value;
+
+            // An arc off the world's plane is made on the normal at once, rather than made and made again.
+            if (shape is GeoArc3 bulge && !(up.X == 0.0 && up.Y == 0.0 && up.Z == 1.0))
+            {
+                return ArcOn(bulge.Center, bulge.Normal, bulge.Radius, bulge.StartPoint, bulge.EndPoint, up);
+            }
+
+            DxfEntity part = PartOf(shape);
+
+            switch (part)
+            {
+                case DxfLine line:
+                    line.Normal = up;
+                    return part;
+                case DxfArc arc when !(Same(arc.Normal.X, up.X) && Same(arc.Normal.Y, up.Y) && Same(arc.Normal.Z, up.Z)):
+                    return ArcOn(arc.Center, arc.Normal, arc.Radius, arc.StartPoint, arc.EndPoint, up);
+                default:
+                    return part;
+            }
+        }
+
+        /// <summary>
+        /// An ARC in no file about a centre on a normal (<paramref name="up"/>), with the entity's look and thickness, from one
+        /// end to the other counter-clockwise about it: from its start where it ran that way about its own normal, else from its
+        /// end; its angles in the system of the normal.
+        /// </summary>
+        private DxfEntity ArcOn(GeoPoint3 center, GeoVector3 own, double radius, GeoPoint3 start, GeoPoint3 end, GeoVector3 up)
+        {
+            bool back = own.DotProduct(up) < 0.0;
+            GeoPoint3 middle = WorldToOcs(up, center);
+            GeoPoint3 from = WorldToOcs(up, back ? end : start);
+            GeoPoint3 to = WorldToOcs(up, back ? start : end);
+            var arc = new DxfArc(center, up, radius, Math.Atan2(from.Y - middle.Y, from.X - middle.X), Math.Atan2(to.Y - middle.Y, to.X - middle.X));
+            GiveLook(arc);
+            arc.Thickness = GetThickness();
+            return arc;
+        }
+
+        /// <summary>
+        /// Copies of the entities of a block placed by a transformation, as the parts of an entity drawn by the block (a
+        /// dimension's <c>*D</c>, a table's <c>*T</c>) exploded: each moved as <see cref="GetTransformedCopy"/> moves it; one its
+        /// class cannot hold so placed, or of a type the library keeps as it is, left out, said in the log at Debug.
+        /// </summary>
+        private protected List<DxfEntity> PlacedCopies(DxfBlockTableRecord block, GeoTransform3 placing)
+        {
+            var parts = new List<DxfEntity>();
+            int left = 0;
+
+            foreach (DxfEntity entity in block)
+            {
+                try
+                {
+                    DxfEntity copy = entity.GetTransformedCopy(placing);
+                    (copy as DxfMText)?.Unlink();
+                    parts.Add(copy);
+                }
+                catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
+                {
+                    left++;
+                }
+            }
+
+            if (left > 0)
+            {
+                GeometryHelperLog.Debug("DxfEntity: " + left.ToString(CultureInfo.InvariantCulture) + " entities of the block " + block.Name + " could not be placed, and were left out of the " + Item.Type + " exploded.");
+            }
+
+            return parts;
+        }
+
+        /// <summary>
+        /// The text style of a name of the entity's drawing, letters of either case the same: of the drawing it is in, or of the
+        /// one a copy in no file was made from; null where that drawing has none of the name, or there is no drawing.
+        /// </summary>
+        private protected DxfTextStyleTableRecord TextStyleNamed(string name)
+        {
+            DxfDatabase database = (IsResident ? Item.File : Item.File.Origin)?.Database;
+            return database != null && database.TextStyleTable.Has(name) ? database.TextStyleTable[name] : null;
+        }
+
+        /// <summary>
+        /// The name a text style set by its name is written by (group 7): the name the drawing's table gives the style, for an
+        /// entity of a drawing; the name given, for one in no drawing, which <see cref="DxfBlockTableRecord.AppendEntity"/> checks.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the name is one AutoCAD does not take, or the entity's drawing has no
+        /// text style of it.</exception>
+        private protected string TextStyleToWrite(string name, string parameter)
+        {
+            DxfSymbolTable.CheckName(name, parameter);
+
+            if (!IsResident)
+            {
+                return name;
+            }
+
+            DxfTextStyleTableRecord style = TextStyleNamed(name) ?? throw new ArgumentException("The drawing has no text style named " + name + ".", parameter);
+            return style.Name;
+        }
+
+        /// <summary>The name of a text style set as its record: one of a drawing, not erased, of the entity's own where it is in one.</summary>
+        /// <exception cref="ArgumentNullException">Thrown when the record is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the record is erased, in no drawing, or of another drawing than the entity's.</exception>
+        private protected string TextStyleOf(DxfTextStyleTableRecord style, string parameter)
+        {
+            if (style == null)
+            {
+                throw new ArgumentNullException(parameter);
+            }
+
+            if (style.IsErased || !style.IsResident)
+            {
+                throw new ArgumentException("The text style " + style.Name + " is erased or in no drawing: give a style of a drawing's text style table.", parameter);
+            }
+
+            if (IsResident && style.Item.File != Item.File)
+            {
+                throw new ArgumentException("The text style " + style.Name + " is of another drawing than the " + Item.Type + ".", parameter);
+            }
+
+            return style.Name;
+        }
+
+        /// <summary>
+        /// Refuses a text style (group 7, as written) the text style table of a drawing an entity is added to does not list,
+        /// unless the entity is a copy of another drawing (<paramref name="origin"/>) that has it, which is copied with it;
+        /// nothing for no style or no drawing.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the drawing has no text style of the name, nor is given it.</exception>
+        private protected static void CheckTextStyle(DxfFile file, DxfFile origin, string style, string parameter)
+        {
+            if (style == null || file == null)
+            {
+                return;
+            }
+
+            string name = DxfReader.NameOf(style);
+
+            foreach (DxfItem item in file.TableItems("STYLE"))
+            {
+                if (string.Equals(DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+            }
+
+            // A copy of another drawing takes the style with it where that drawing has it, as AutoCAD's deep clone does.
+            if (file.CopiesRecordFrom(origin, "STYLE", name))
+            {
+                return;
+            }
+
+            throw new ArgumentException("The text style " + name + " is not in the file's text style table.", parameter);
         }
 
         /// <summary>A copy of the entity in no file, of the same class, as <see cref="GetTransformedCopy"/> gives one.</summary>

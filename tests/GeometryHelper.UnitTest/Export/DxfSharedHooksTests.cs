@@ -227,16 +227,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfDatabase target = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
             DxfEntity dimension = ByHandle<DxfEntity>(source, "75");
 
-            // An MTEXT in the block has no form of R12: the dimension is refused, nothing written.
-            string before = target.ToText();
-            Assert.Throws<ArgumentException>(() => target.ModelSpace.AppendEntity(dimension.Clone()));
-            Assert.Equal(before, target.ToText());
-
-            foreach (DxfEntity text in source.BlockTable["*D1"].Where(e => e.Item.Type == "MTEXT").ToList())
-            {
-                text.Erase();
-            }
-
+            // An MTEXT in the block, which R12 has not, is written as the TEXT of its one line.
             int entities = source.BlockTable["*D1"].Count;
             DxfEntity copy = dimension.Clone();
             target.ModelSpace.AppendEntity(copy);
@@ -248,6 +239,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfDatabase again = DxfDatabase.Parse(target.ToText());
             Assert.True(again.BlockTable["*D1"].IsAnonymous);
             Assert.Equal(entities, again.BlockTable["*D1"].Count);
+            Assert.Single(again.BlockTable["*D1"].OfType<DxfDBText>());
         }
 
         [Fact]

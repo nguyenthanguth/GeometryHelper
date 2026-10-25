@@ -342,9 +342,16 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// Gets the name of the text style of the text (group 7), as AutoCAD's <c>TextStyleName</c>: as the style table names it,
-        /// its escapes read as letters; <c>Standard</c> where the record gives none.
+        /// Gets or sets the name of the text style of the text (group 7), as AutoCAD's <c>TextStyleName</c>: as the style table
+        /// names it, its escapes read as letters; <c>Standard</c> where the record gives none.
         /// </summary>
+        /// <value>Set, the name of a style of the drawing's text style table, letters of either case the same, written as the
+        /// table names it; any name for a text in no drawing, which <see cref="DxfBlockTableRecord.AppendEntity"/> checks. The
+        /// style the text has changes nothing.</value>
+        /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is one AutoCAD does not take, or the drawing has no text style
+        /// of it.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
         public string TextStyleName
         {
             get
@@ -352,6 +359,34 @@ namespace GeometryHelper.Export
                 string name = DxfReader.NameOf(TextValue(7) ?? string.Empty);
                 return name.Length == 0 ? "Standard" : name;
             }
+
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                if (!string.Equals(value, TextStyleName, StringComparison.OrdinalIgnoreCase))
+                {
+                    SetText(Pair(7, TextStyleToWrite(value, nameof(value))));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the text style of the text, as AutoCAD's <c>TextStyleId</c> gives its id: the record of
+        /// <see cref="TextStyleName"/> in the text style table of the text's drawing; null where it has none of that name, or the
+        /// text is in no drawing and was made in code. <c>text.TextStyle = db.TextStyleTable["GH_TXT"]</c> writes 7 GH_TXT.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the style set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the style set is erased, in no drawing, or of another drawing than the
+        /// text's.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
+        public DxfTextStyleTableRecord TextStyle
+        {
+            get => TextStyleNamed(TextStyleName);
+            set => TextStyleName = TextStyleOf(value, nameof(value));
         }
 
         /// <summary>
@@ -489,31 +524,11 @@ namespace GeometryHelper.Export
                 DropEmbedded();
             }
 
-            string style = TextValue(7);
-
-            if (style == null || owner.File == null)
-            {
-                return;
-            }
-
-            string name = DxfReader.NameOf(style);
-
-            foreach (DxfItem item in owner.File.TableItems("STYLE"))
-            {
-                if (string.Equals(DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
-                {
-                    return;
-                }
-            }
-
-            // A copy of another drawing takes the style with it where that drawing has it, as AutoCAD's deep clone does.
-            if (owner.File.CopiesRecordFrom(Item.File.Origin, "STYLE", name))
-            {
-                return;
-            }
-
-            throw new ArgumentException("The text style " + name + " is not in the file's text style table.", "entity");
+            CheckTextStyle(owner.File, Item.File.Origin, TextValue(7), "entity");
         }
+
+        /// <summary>The text style the record names (group 7), as the file writes it; null where it names none.</summary>
+        internal string WrittenTextStyle => TextValue(7);
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;

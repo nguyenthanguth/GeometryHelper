@@ -62,12 +62,12 @@ or taken out alone, every other keeping its handle. Each type of entity is a cla
 `new DxfLine(start, end) { Layer = "steel", ColorIndex = 1 }` and `db.ModelSpace.AppendEntity(line)`; a type with no class
 yet is a `DxfUnknownEntity`, kept as the file has it, its look editable and itself erasable. `Clone()` copies any entity as
 it is, a `DxfUnknownEntity` among them, a copy always of its original's class, and `Explode()` is every entity's, refused
-but by a `DxfBlockReference`, as AutoCAD answers eNotApplicable. A property given the value it has changes nothing, to the byte. What is appended takes a
-handle above every handle of the file and every handle something points at, `$HANDSEED` set above it, the block's
+with `NotSupportedException` by every class but those the entry on `Explode()` below names. A property given the value it
+has changes nothing, to the byte. What is appended takes a handle above every handle of the file and every handle something points at, `$HANDSEED` set above it, the block's
 BLOCK_RECORD as its owner and group 67 in paper space; its layer is added to the table where it is not listed, a file of R12
-takes no subclass markers and has no SPLINE, ELLIPSE, MTEXT, RAY, XLINE or LWPOLYLINE, lineweights, true colours, or a
-linetype scale or visibility of an entity's own, which are refused, and an entity of R12, or a copy of one, appended to a
-drawing of R13 or later is given AutoCAD's subclass markers in their order, its owner and a handle; one of R13 or later
+takes no subclass markers and has no SPLINE, ELLIPSE, RAY, XLINE or LWPOLYLINE, lineweights, true colours, or a
+linetype scale or visibility of an entity's own, which are refused, nor MTEXT, which is written there as TEXTs (see below),
+and an entity of R12, or a copy of one, appended to a drawing of R13 or later is given AutoCAD's subclass markers in their order, its owner and a handle; one of R13 or later
 appended to a drawing of R12 keeps the groups R12 has for its type, each from the part of the record it belongs to (a
 centred ATTRIB stays centred, its AcDbAttribute part's 71 and 72 no longer read as its text's), its embedded objects left
 out. A copy appended to another drawing has its pointers taken to the objects of the same name there, as AutoCAD's deep
@@ -187,7 +187,7 @@ its top centre stands at (40, 40, 0). `ShowBorders` is its text frame (flag 16 o
 its group 441, of the new `DxfTransparency`. `DxfBlockReference` has `ExplodeToOwnerSpace`, which appends what `Explode`
 gives to the INSERT's block and keeps the INSERT, as AutoCAD keeps it (erase it after, as AutoCAD's EXPLODE does), or
 appends nothing where the drawing cannot hold a part, as R12 an ELLIPSE, and refuses a MINSERT of more than one cell,
-whose `Explode` gives its first cell alone; `UnitFactor`, the block's units against `$INSUNITS` (25.4 for a block in inches in a drawing of
+as AutoCAD's EXPLODE refuses one; `UnitFactor`, the block's units against `$INSUNITS` (25.4 for a block in inches in a drawing of
 millimetres, 1 where either is not given); `GeometryExtentsBestFit`, the box of the shapes placed, after a parent
 transformation where one is given; `TreatAsBlockRefForExplode`; and `IsDynamicBlock`, `DynamicBlockTableRecord` and
 `AnonymousBlockTableRecord`, found by the extended data `AcDbDynamicBlockGUID` and `AcDbBlockRepBTag` of the block records
@@ -278,8 +278,9 @@ drawing keeps the overrides it read and those set on it, each naming the record 
 is a `DxfTable`: rows, columns, heights and widths, each cell's text, value, kind, merging, corners, block and attribute
 values and its own look, in the forms of R2000 and of R2007 on; `SetTextString`, `SetRowHeight`, `SetColumnWidth`,
 `SetBlockScale`, `SetBlockRotation` and `SetBlockAttributeValue` write its data, its block left for AutoCAD to draw anew; a
-table moved or tilted carries its block where no other entity names it, and its record is read once while it stands, every
-cell of 1 000 rows in milliseconds; a copy for another drawing loses the values its block cells give their attributes. Held against ezdxf 1.4.5:
+table moved, tilted, mirrored or scaled alike carries its block where no other entity names it, and its record is read once
+while it stands, every cell of 1 000 rows in milliseconds; a copy for another drawing keeps the values its block cells give
+the attributes of a block that comes with it, and loses those of a block the drawing has of its own. Held against ezdxf 1.4.5:
 recover and audit find nothing to fix in what is written, and ezdxf reads every style, override, point and cell as set.
 
 **CHANGED.** A DIMENSION, an ARC_DIMENSION, a LARGE_RADIAL_DIMENSION and an ACAD_TABLE, which were a `DxfUnknownEntity`, are
@@ -292,7 +293,7 @@ INSERT's `*U1`, appended to another drawing took that drawing's block of the sam
 now takes a copy of its own block, under the first name of its letter the drawing has not (`*D2` beside a `*D1`), with every
 entity of it and any block of a name the drawing has not that it inserts, as AutoCAD's deep clone between databases does; a
 copy within its own drawing still shares its block. A DIMENSION is written in the forms of R12 into a drawing of R12, its
-block with it, where every entity of the block has a form of R12 (one with an MTEXT is refused, nothing written). A copy
+block with it, where every entity of the block has a form of R12, an MTEXT written as the TEXTs of its lines. A copy
 into another drawing takes with it, by name, the layers, linetypes, text styles and dimension styles it and its block name
 or its dimension style overrides (ACAD DSTYLE 1005, now named in the target, not dropped)
 that the drawing has not, and a dimension style's arrow blocks, as AutoCAD's deep clone does; names the drawing has are used
@@ -350,13 +351,106 @@ shears it, is left out still, as it cannot hold that placing.
 **FIXED.** A copy of an INSERT in no file, `Clone()` or `GetTransformedCopy` of it, placed its block as the file was read,
 not as it was edited since: a block given a line and a circle of a new radius showed neither in the copy's `GetGeometry`.
 It now keeps to its block when the block is renamed in the drawing it came from, as AutoCAD's keeps its id, is appended
-to another drawing by the block's name now and refused where that drawing has none, and places nothing once the block is
-erased; it explodes, where it threw that the drawing had no block of its name.
+to another drawing by the block's name now, bringing a copy of its block where that drawing has none of the name, and places
+nothing once the block is erased; it explodes, where it threw that the drawing had no block of its name.
 
 **CHANGED.** A copy in no file, and an entity made in code, no longer holds a file of its own: one file holds every copy of a
 drawing, and keeps none of them. The explode of an INSERT of 1 000 000 lines (100 INSERTs of 100 INSERTs of 100 lines)
 holds 440 MB where it ran out of a heap of 4 GB, about 460 bytes a part where it was some 3 100, and 27 000 parts take 0.49
 seconds where they took 0.65.
+
+**NEW.** `DxfDatabase.WblockCloneObjects(entities, owner)` copies entities of a drawing together into a block of another
+drawing, or of its own, as AutoCAD's `WblockCloneObjects` copies the objects of ids, and gives the copies in the order given:
+each copied as `Clone()` and `AppendEntity` copy one, and what points from one of them to another kept between their copies.
+A HATCH copied with every object its loops follow follows their copies, each listing it among its reactors; a LEADER copied
+with its MTEXT points to its copy; a GROUP every entity of which is copied into model space or a layout (a group holds no
+entity of a block) is copied into the group dictionary there, its
+order, description and selectability kept, under its own name or that name and `_1`, `_2` and on where the dictionary has
+it, an anonymous one as the next `*A`. Every copy is checked before any is added, so that a set the drawing cannot hold, a
+SPLINE for a drawing of R12, changes nothing. A LEADER copied alone into another drawing, by `Clone()` or by
+`WblockCloneObjects`, points to nothing (`AnnoType` `NoAnnotation`), where it kept the kind of an annotation it had lost.
+
+**NEW.** An MTEXT goes into a drawing of R12, which has none, as one TEXT for each paragraph (`\P`, a column break `\N`
+taken as one, blank paragraphs at its end left out as ezdxf leaves them): its words without their formatting, as
+`DxfMText.Text` reads them, the heights of its codes left out, its height, turn and plane, the lines spaced as
+`LineSpaceDistance` says and held at the left, the middle or the right as the MTEXT is held, in its text style where the
+drawing has it or is given it by name with the copy, else Standard. A paragraph is not wrapped at the MTEXT's width, as
+AutoCAD's SAVEAS to R12 wraps it by the letters of its font, which the library does not read. `AppendEntity` of an MTEXT to a drawing of R12 appends the TEXTs and leaves the MTEXT in no file, where it
+refused it; an MTEXT of a block copied into a drawing of R12, the `*D` of a dimension among them, is written so, so that a
+dimension of R2018 whose picture holds its text in an MTEXT goes into R12 with its picture. An MTEXT of two lines 2.5 high
+held at its top left at (10, 20) comes out as two TEXTs, on the baselines 17.5 and 13.33 high.
+
+**CHANGED.** What a drawing of an older version has no room for is left out of what is copied into it, as AutoCAD's SAVEAS to
+that version leaves it out, said in the log at Debug: an override of a dimension style (ACAD DSTYLE) of a variable the version
+has not, as DIMLTYPE and DIMFXLEN of R2007 on a dimension copied or made in code for a drawing of R2000, or DIMDEC of R2000 for
+one of R12; and a group of a dimension style or a layer copied by name with an entity that the version has not, as a
+DIMSTYLE's DIMFXLEN (49), DIMJOGANG (50), DIMTFILL (69), DIMTFILLCLR (its second 70), DIMFXLENON (290) and linetypes (345 to
+347), DIMTXTDIRECTION (294) of R2010, and a LAYER's material (347) of R2007, in a drawing of R2000. In a drawing of R12 an
+override of an arrow block (DIMBLK, DIMBLK1, DIMBLK2) names the block by its name, as R12 writes it (a 1070 of 5, 6 or 7
+then a 1000), where the drawing has a block of the name, and is left out, said in the log, where it has none. A text style
+an entity copied between drawings of R12 and of R13 or later names is copied by name, as a layer is. A record set on a
+dimension in no drawing for a variable the version has not is refused still.
+
+**CHANGED.** A table is moved, turned, mirrored and scaled alike in every direction by `TransformBy`, where a scale or a
+mirror was refused: a scale scales the heights of its rows, the widths of its columns, its cell margins and the text heights
+and block scales it and its cells override, a table of rows 10, 8 and 8 high scaled by 2 having rows 20, 16 and 16 high, and a
+mirror turns its normal round, its cells standing where the mirror puts them; its picture is carried by the same
+transformation where it is the table's alone. An INSERT of a block holding a table, exploded scaled alike or mirrored, keeps
+the table; under a scale unlike along its axes or a shear, which a table does not hold, the table is left out, as a
+MULTILEADER is. A copy of a table for another drawing keeps the values its block cells give the attributes of the block that
+comes with it, each pointer (331) naming the copy of its attribute definition, as AutoCAD's deep clone maps it.
+
+**CHANGED.** The viewport 1 of a layout of paper space, which shows the sheet itself, is not erased, as AutoCAD keeps it, and a
+layout whose last active viewport (331) is erased no longer names it. A pointer at what was erased that no list holds, as a
+table cell's at an erased attribute definition or an XRECORD's at an erased entity, stays where it stands, and the saving
+names it in the log once, not again at each saving after.
+
+**NEW.** `Explode()` breaks more entities, as AutoCAD explodes them: `DxfPolyline`, `DxfPolyline2d`, `DxfPolyline3d`,
+`DxfMText`, `DxfDimension`, `DxfTable`, `DxfMInsertBlock` and a straight `DxfLeader`, besides the `DxfBlockReference` it broke
+before. The other entities refuse, a HATCH, a MESH, a polyface or polygon mesh and an MLINE among them, though AutoCAD explodes
+those. A polyline (`DxfPolyline`, `DxfPolyline2d`) gives a LINE for each straight segment and an ARC for each bulged one, with
+its look and thickness and on its normal, so that their walls stand up as the polyline's do (an ARC of a polyline on the
+normal (0, 0, -1) is on (0, 0, -1), its angles in that normal's system, as AutoCAD and ezdxf give it), its widths left out as
+AutoCAD leaves them out, and a `DxfPolyline3d` its lines; an MTEXT a TEXT for each paragraph, as it is written into R12 (not wrapped at its
+width, and a part in another font or height not a TEXT of its own, as AutoCAD makes it); a dimension and a table
+the entities of the block they are drawn with (`*D`, `*T`), placed where they draw them, as ezdxf's `virtual_entities()`
+places a dimension's; a MINSERT the block in every cell, where it gave the first cell alone (six circles for 2 rows by 3
+columns of a block of one); a straight LEADER its lines and its arrowhead, an INSERT of its `Dimldrblk` or AutoCAD's closed
+filled arrow as a SOLID. A splined LEADER and a MULTILEADER, whose parts AutoCAD works out when it draws them, refuse with
+the reason, and so does `ExplodeToOwnerSpace` a MINSERT, as AutoCAD's EXPLODE refuses one.
+
+**NEW.** A text's and an MTEXT's text style is set by its name, `TextStyleName` (written as the drawing's table names it,
+letters of either case the same), or as its record, the new `TextStyle` (AutoCAD's `TextStyleId`): a style the drawing has not,
+or a record of another drawing, is refused, and the style the text has changes nothing; an attribute takes it as a text does.
+A text, an MTEXT or an attribute in no drawing takes any name, and is refused when it is added to a drawing that has no style
+of it (`AppendEntity`, `AppendAttribute`, or an INSERT added with its attributes), unless it is a copy of a drawing that has
+the style, which comes with it. `DxfDatabase.GetObject(handle)` and `TryGetObject(handle, out value)`, AutoCAD's
+`GetObjectId(handle)`, give the object of a handle: an entity, a VERTEX or an ATTRIB, an object of the OBJECTS section, a
+record of the layer, linetype, text style, dimension style or block table, or one of those five tables. The records the
+library has no class for (the APPID, VPORT, VIEW and UCS tables and their records, a block's BLOCK and ENDBLK) are not found,
+and `TryGetObject` gives null with false. A drawing is walked once, and the walk is kept until the drawing next changes.
+
+**CHANGED.** An INSERT copied into another drawing that has no block of its name, by `Clone()` and `AppendEntity` or by
+`WblockCloneObjects`, brings a copy of its block under that name, with the blocks it inserts that the drawing has not and its
+description, units, explodability and scaling, as AutoCAD's `WblockCloneObjects` brings them, where it was refused; a drawing
+with a block of the name places its own, as before. What the entities of a copied block point to among themselves is kept
+between their copies whichever comes first, as AutoCAD translates its map of ids at the end: a LEADER written before its
+MTEXT points to its copy, and a HATCH in a block keeps following its boundary, each listed among the reactors of what it
+points to. `SetStaticColumns`, `SetDynamicColumns` and `ColumnWidth` give the MTEXT the width of a column (41, and 40 of its
+embedded object), as AutoCAD and ezdxf give it.
+
+**FIXED.** A copy of a HATCH whose spline edge has fit points wrote that edge's count of them (97) nought, as if it counted
+boundary objects, so that AutoCAD would read the fit points as other groups; it keeps the count now.
+
+**NEW.** The guide's DXF part is rewritten around the editing model, for a reader who knows AutoCAD's .NET API: when to use
+`DxfWriter`, `DxfReader` or `DxfDatabase`; a table from AutoCAD's classes and daily patterns (`Database`, transactions and ids,
+the block table, the entities, the tables and dictionaries, `TransformBy`, `Explode`, `IntersectWith`, `WblockCloneObjects`,
+`Point3d` and `Matrix3d`) to the library's, with the deliberate differences; the editing rules (setters given their own value,
+appending, erasing, `TransformBy` class by class, `Explode` class by class, copying within and across drawings and versions);
+and what the model does not do. A worked example opens a drawing, moves a layer, changes a dimension style, sets a note in
+columns, hatches a plate round its bolt holes, copies a bolt and its dimension into another drawing and saves, every snippet run
+against the library; and a page lists 57 points for the maintainer to try in AutoCAD, each with what the library does now and
+what result would mean a change.
 
 **FIXED.** Setting the normal of an entity whose file gives its extrusion not of unit length, as (1, 2, 3), wrote a wrong
 normal.

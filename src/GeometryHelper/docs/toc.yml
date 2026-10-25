@@ -1,5 +1,9 @@
 - name: Shared types
   href: common.md
+- name: "Editing a DXF drawing, step by step"
+  href: dxf-editing-example.md
+- name: "DXF: checking against AutoCAD"
+  href: dxf-autocad-checks.md
 - name: Geometry in the plane
   href: plane.md
 - name: Meshing the plane

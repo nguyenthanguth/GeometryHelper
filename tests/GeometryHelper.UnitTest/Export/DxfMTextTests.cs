@@ -149,7 +149,7 @@ namespace GeometryHelper.UnitTest.Export
         #region Columns
 
         [Fact]
-        public void ColumnsSetInAnMTextOfR2018_AreWrittenInItsEmbeddedObject_AndTakenOutAgainToTheByte()
+        public void ColumnsSetInAnMTextOfR2018_AreWrittenInItsEmbeddedObject_AndTakenOutAgain()
         {
             // ezdxf 1.4.5 reads them back as columns of type 1, count 3, width 12.5, gutter 2.5, total width 42.5.
             string text = DxfFileEzdxfDrawings.R2018;
@@ -161,7 +161,7 @@ namespace GeometryHelper.UnitTest.Export
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "73");
             string record = Records(saved).Single(r => HandleOf(r) == "73");
-            Assert.Contains("101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n20\n 21\n40\n 31\n0\n 40\n40\n 41\n0\n 42\n42.5\n 43\n0\n 71\n1\n 72\n3\n 44\n12.5\n 45\n2.5\n 73\n0\n 74\n0\n", record, StringComparison.Ordinal);
+            Assert.Contains("101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n20\n 21\n40\n 31\n0\n 40\n12.5\n 41\n0\n 42\n42.5\n 43\n0\n 71\n1\n 72\n3\n 44\n12.5\n 45\n2.5\n 73\n0\n 74\n0\n", record, StringComparison.Ordinal);
             DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(saved), "73");
             Assert.Equal(DxfColumnType.StaticColumns, again.ColumnType);
             Assert.Equal(3, again.ColumnCount);
@@ -187,8 +187,12 @@ namespace GeometryHelper.UnitTest.Export
             Assert.True(auto.ColumnFlowReversed);
             Assert.Equal(0.0, auto.GetColumnHeight(1));
 
+            // Taken out, the columns leave the MTEXT as it was but for its width, which they made theirs.
             mtext.ColumnType = DxfColumnType.NoColumns;
-            Assert.Equal(new UTF8Encoding(false).GetBytes(text), Saved(db));
+            mtext.Width = 40.0;
+            OnlyTheseChanged(text, db.ToText(), "73");
+            Assert.DoesNotContain("101\nEmbedded Object\n", db.ToText(), StringComparison.Ordinal);
+            Assert.Equal(40.0, ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").Width);
         }
 
         [Fact]
@@ -214,8 +218,11 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Contains("1070 50", again.GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
             Assert.DoesNotContain("1000 ACAD_MTEXT_DEFINED_HEIGHT_BEGIN", again.GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
 
+            // Taken out, the columns leave the MTEXT as it was but for its width, which they made theirs.
             mtext.ColumnType = DxfColumnType.NoColumns;
-            Assert.Equal(new UTF8Encoding(false).GetBytes(text), Saved(db));
+            mtext.Width = 40.0;
+            OnlyTheseChanged(text, db.ToText(), "73");
+            Assert.Null(ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").GetXDataForApplication("ACAD"));
         }
 
         [Fact]
@@ -703,7 +710,7 @@ namespace GeometryHelper.UnitTest.Export
         #region Made in code
 
         [Fact]
-        public void AnMTextMadeInCode_IsAppendedFromR2000_AndRefusedByR12()
+        public void AnMTextMadeInCode_IsAppendedFromR2000_AndWrittenAsTextsInR12()
         {
             foreach (string text in Drawings)
             {
@@ -719,7 +726,10 @@ namespace GeometryHelper.UnitTest.Export
             }
 
             DxfDatabase r12 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
-            Assert.Throws<ArgumentException>(() => r12.ModelSpace.AppendEntity(new DxfMText { Contents = "x" }));
+            var old = new DxfMText { Contents = "x" };
+            r12.ModelSpace.AppendEntity(old);
+            Assert.False(old.IsResident);
+            Assert.Equal("x", r12.ModelSpace.OfType<DxfDBText>().Last().TextString);
         }
 
         [Fact]

@@ -1992,11 +1992,18 @@ namespace GeometryHelper.Export
                 GeometryHelperLog.Info("DxfFile: what was removed was taken out of " + Number(unlisted) + " lists that held it (GROUPs, reactors, SORTENTSTABLEs and dictionaries), and " + Number(owned) + " objects it owned were removed with it.");
             }
 
+            // Each pointer left is named once, at the first saving that finds it, not again at every saving after.
+            _leftSaid = _leftSaid ?? new HashSet<string>(StringComparer.Ordinal);
+            left.RemoveAll(said => !_leftSaid.Add(said));
+
             if (left.Count > 0)
             {
                 GeometryHelperLog.Warn("DxfFile: " + Number(left.Count) + " pointers at what was removed are left where they stand, no list holding them: " + string.Join(", ", left.GetRange(0, Math.Min(left.Count, 10))) + (left.Count > 10 ? ", ..." : ".") );
             }
         }
+
+        // The pointers at what was removed that the log has named, each as "TYPE handle (code) at handle".
+        private HashSet<string> _leftSaid;
 
         /// <summary>Whether a record is an object owned by something removed (its first 330 outside the groups of the applications), and its handle.</summary>
         private bool OwnedBy(Rec record, HashSet<ulong> gone, out ulong handle)

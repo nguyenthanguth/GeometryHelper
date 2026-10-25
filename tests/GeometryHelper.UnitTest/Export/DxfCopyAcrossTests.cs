@@ -45,7 +45,7 @@ namespace GeometryHelper.UnitTest.Export
         [Fact]
         public void EveryEntityOfALaterDrawing_IsWrittenInTheFormsOfR12_AndReadsBackTheSame()
         {
-            string[] laterOnly = { "DxfEllipse", "DxfHatch", "DxfLeader", "DxfMLeader", "DxfMText", "DxfPolyline", "DxfRay", "DxfRotatedDimension", "DxfSpline", "DxfUnknownEntity", "DxfXline" };
+            string[] laterOnly = { "DxfEllipse", "DxfHatch", "DxfLeader", "DxfMLeader", "DxfPolyline", "DxfRay", "DxfSpline", "DxfUnknownEntity", "DxfXline" };
 
             foreach (string later in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
             {
@@ -61,6 +61,22 @@ namespace GeometryHelper.UnitTest.Export
                     if (laterOnly.Contains(entity.GetType().Name))
                     {
                         Assert.Throws<ArgumentException>(() => r12.ModelSpace.AppendEntity(copy));
+                        continue;
+                    }
+
+                    // An MTEXT is written as the TEXTs of its lines, and stays in no file itself; a dimension goes with its
+                    // picture, whose MTEXT is written so, its block under a name of its own (not compared here).
+                    if (entity is DxfMText)
+                    {
+                        r12.ModelSpace.AppendEntity(copy);
+                        Assert.False(copy.IsResident);
+                        continue;
+                    }
+
+                    if (entity is DxfRotatedDimension)
+                    {
+                        r12.ModelSpace.AppendEntity(copy);
+                        Assert.True(copy.IsResident);
                         continue;
                     }
 

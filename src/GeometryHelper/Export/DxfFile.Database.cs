@@ -107,7 +107,13 @@ namespace GeometryHelper.Export
         /// A copy of an entity, not in the file: every record of it with its groups as written, but its handle, its owner, the
         /// groups of the applications (102: reactors and the extension dictionary), its space (67) and its layout (410).
         /// </summary>
-        internal DxfItem CopyOf(DxfItem item)
+        internal DxfItem CopyOf(DxfItem item) => CopyOf(item, false);
+
+        /// <summary>
+        /// A copy of an entity, not in the file, as <see cref="CopyOf(DxfItem)"/> gives one; where asked, a HATCH keeping the
+        /// handles of the objects its loops follow (its 330s after its own marker), for a copy whose boundary comes with it.
+        /// </summary>
+        internal DxfItem CopyOf(DxfItem item, bool keepLinks)
         {
             DxfFile file = Holder();
             var records = new List<Rec>();
@@ -118,6 +124,7 @@ namespace GeometryHelper.Export
                 List<Pair> pairs = PairsOf(record);
                 b.Raw(record, pairs[0]);
                 bool braced = false;
+                int body = keepLinks && record.Type == "HATCH" ? BodyAt(record, pairs, DataAt(record, pairs)) : -1;
 
                 for (int i = 1; i < pairs.Count; i++)
                 {
@@ -130,8 +137,9 @@ namespace GeometryHelper.Export
                     }
 
                     bool data = pair.Code >= 1000;
+                    bool link = body >= 0 && i > body && pair.Code == 330;
 
-                    if (braced || (!data && (pair.Code == 5 || pair.Code == 105 || pair.Code == 330 || pair.Code == 360 || pair.Code == 67 || pair.Code == 410)))
+                    if (braced || (!data && !link && (pair.Code == 5 || pair.Code == 105 || pair.Code == 330 || pair.Code == 360 || pair.Code == 67 || pair.Code == 410)))
                     {
                         continue;
                     }
@@ -151,6 +159,46 @@ namespace GeometryHelper.Export
             }
 
             return copy;
+        }
+
+        /// <summary>
+        /// A TEXT made of an MTEXT of this file, not in a file, as the MTEXT's copies are held: the MTEXT's common groups, its
+        /// layer, linetype, colour and the rest of its look, as it has them, but its handle, owner, groups of the applications,
+        /// space and layout; then the TEXT's own groups given, which begin with its subclass marker. No extended data.
+        /// </summary>
+        internal DxfItem TextOf(DxfItem mtext, IEnumerable<KeyValuePair<int, string>> own)
+        {
+            DxfFile file = Holder();
+            Rec head = HeadOf(mtext);
+            List<Pair> pairs = PairsOf(head);
+            int data = DataAt(head, pairs);
+            int body = BodyAt(head, pairs, data);
+            var b = new Builder(file);
+            b.Group(0, "TEXT");
+            bool braced = false;
+
+            for (int i = 1; i < (body >= 0 ? body : data); i++)
+            {
+                Pair pair = pairs[i];
+
+                if (pair.Code == 102)
+                {
+                    braced = Text(head, pair).Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (!braced && !Placed(pair.Code) && pair.Code != 999)
+                {
+                    b.Raw(head, pair);
+                }
+            }
+
+            foreach (KeyValuePair<int, string> group in own)
+            {
+                b.Group(group.Key, group.Value);
+            }
+
+            return file.Hold(new List<Rec> { b.Done("TEXT") }, "TEXT");
         }
 
         /// <summary>The block of a name as an INSERT writes it, letters of either case the same; null where the file has none.</summary>
@@ -201,6 +249,9 @@ namespace GeometryHelper.Export
             if (outer)
             {
                 _blockCopies = new Dictionary<DxfFileBlock, string>();
+                _entityCopies = new Dictionary<ulong, string>();
+                _copiedItems = new Dictionary<string, DxfItem>(StringComparer.OrdinalIgnoreCase);
+                _deferred = new List<DxfItem>();
             }
 
             try
@@ -242,8 +293,40 @@ namespace GeometryHelper.Export
             {
                 if (outer)
                 {
-                    _blockCopies = null;
+                    // The pointers between the entities copied, held back until every one of them is written, are taken to
+                    // their copies now, as AutoCAD's deep clone translates its map of ids at the end.
+                    try
+                    {
+                        TranslateDeferred();
+                    }
+                    finally
+                    {
+                        _blockCopies = null;
+                        _entityCopies = null;
+                        _copiedItems = null;
+                        _deferred = null;
+                    }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Checks that an entity not yet in a file can be added to this one, as <see cref="Adopt"/> checks it before it writes
+        /// anything, the blocks it brings with it among what is checked: so that several entities are checked before any of them
+        /// is written.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown where <see cref="Adopt"/> would refuse the entity.</exception>
+        internal void CheckAdopt(DxfItem from)
+        {
+            DxfFile source = from.File;
+            List<Rec> records = source.RecordsOf(from);
+            DxfFile origin = source.Origin;
+            bool foreign = origin != null && origin != Template && origin != this;
+            CheckAdoptable(source, records, out _, out _, foreign ? origin : null);
+
+            if (foreign)
+            {
+                BlocksToCopy(origin, records, new RecordsToCopy());
             }
         }
 
@@ -364,13 +447,22 @@ namespace GeometryHelper.Export
             Writing style = Style;
             string type = records[0].Type;
 
+            // The overrides of a dimension style this drawing's version has no variable of are left out, as AutoCAD's SAVEAS to
+            // an older version leaves them out.
+            if (style.Version < source.Style.Version)
+            {
+                records[0] = source.WithoutLaterOverrides(records[0], this);
+            }
+
             // A copy of an entity of another drawing points at objects of that drawing: each pointer is taken to the object of
             // the same name here, or left out, as AutoCAD's deep clone between databases maps or drops them.
+            bool deferred = false;
+
             if (origin != null)
             {
                 for (int r = 0; r < records.Count; r++)
                 {
-                    records[r] = source.Pointed(records[r], origin, this);
+                    records[r] = source.Pointed(records[r], origin, this, ref deferred);
                 }
             }
 
@@ -391,6 +483,11 @@ namespace GeometryHelper.Export
             TakeFollowers(from, item);
             space.Append(item);
 
+            if (deferred)
+            {
+                _deferred.Add(item);
+            }
+
             if (space.Kind != DxfSpaceKind.Block)
             {
                 GrowBy(item);
@@ -402,6 +499,10 @@ namespace GeometryHelper.Export
 
         // The blocks of another drawing being copied into this one by the entity being added, each with the name it is given here.
         private Dictionary<DxfFileBlock, string> _blockCopies;
+
+        // The entities of those blocks copied so far, by their handles there, each with the handle of its copy here: what a
+        // pointer of the entity being added to one of them is taken to, as a table's cell to an attribute definition (331).
+        private Dictionary<ulong, string> _entityCopies;
 
         /// <summary>
         /// The block of this file an entity draws by: the one its group 2 names, of an INSERT, a dimension or an ACAD_TABLE;
@@ -424,9 +525,9 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// The blocks of the drawing a copy came from (<paramref name="origin"/>) to be copied into this one with it: the block
-        /// AutoCAD names itself the entity draws by, and, within each block copied, every such block an entity of it draws by and
-        /// every block of a name this drawing has not; each once, those copied already by the entity being added left out. Every
+        /// The blocks of the drawing a copy came from (<paramref name="origin"/>) to be copied into this one with it: the block the
+        /// entity draws by where AutoCAD names it itself or this drawing has no block of its name (an INSERT's named block), and,
+        /// within each block copied, every block an entity of it draws by that is so; each once, those copied already by the entity being added left out. Every
         /// entity of them is checked to be one this file can hold, before anything is written, and the records of the tables they
         /// and the entity name that this drawing has not are noted in <paramref name="needs"/>, an arrow block of a dimension style
         /// among the blocks.
@@ -436,7 +537,7 @@ namespace GeometryHelper.Export
         private List<DxfFileBlock> BlocksToCopy(DxfFile origin, List<Rec> records, RecordsToCopy needs)
         {
             var order = new List<DxfFileBlock>();
-            Collect(origin, records[0], order, true);
+            Collect(origin, records[0], order);
             NeedsOf(origin, records, needs, order);
 
             for (int k = 0; k < order.Count; k++)
@@ -449,8 +550,21 @@ namespace GeometryHelper.Export
                     }
 
                     List<Rec> own = origin.RecordsOf(item);
-                    CheckAdoptable(origin, own, out _, out _, origin);
-                    Collect(origin, own[0], order, false);
+
+                    // An MTEXT goes into a drawing of R12 as the TEXTs it is written as there.
+                    List<DxfEntity> texts = AsTexts(item);
+
+                    if (texts == null)
+                    {
+                        CheckAdoptable(origin, own, out _, out _, origin);
+                    }
+
+                    foreach (DxfEntity text in texts ?? new List<DxfEntity>())
+                    {
+                        CheckAdoptable(text.Item.File, text.Item.File.RecordsOf(text.Item), out _, out _, origin);
+                    }
+
+                    Collect(origin, own[0], order);
                     NeedsOf(origin, own, needs, order);
                 }
             }
@@ -459,7 +573,7 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>Adds to the blocks to copy the one a record of the origin draws by, where it is to be copied, as <see cref="BlocksToCopy"/> says.</summary>
-        private void Collect(DxfFile origin, Rec record, List<DxfFileBlock> order, bool top)
+        private void Collect(DxfFile origin, Rec record, List<DxfFileBlock> order)
         {
             DxfFileBlock block = origin.BlockDrawnBy(record);
 
@@ -468,7 +582,10 @@ namespace GeometryHelper.Export
                 return;
             }
 
-            if (IsAnonymous(block.Name) || (!top && !Blocks.ContainsKey(block.Name)))
+            // A block AutoCAD names itself is copied under a name of its own; a named one where this drawing has none of its
+            // name, the INSERT copied placing it among them, as AutoCAD's WblockCloneObjects brings it; one this drawing has of
+            // the name is this drawing's own.
+            if (IsAnonymous(block.Name) || !Blocks.ContainsKey(block.Name))
             {
                 order.Add(block);
             }
@@ -482,8 +599,9 @@ namespace GeometryHelper.Export
         /// Copies blocks of another drawing into this one, as AutoCAD's deep clone between databases copies those an entity draws
         /// by: each named first (a block AutoCAD names itself the first name of its letter, <c>*D</c>, <c>*U</c>, <c>*T</c>, and
         /// a number, this file has not; any other by its own name), then written with its BLOCK_RECORD, BLOCK and ENDBLK, its
-        /// flags of a block named by AutoCAD and of attribute definitions, its base point, and each of its entities copied into
-        /// it, new handles and owners given, an entity that draws by another of these blocks naming its copy.
+        /// flags of a block named by AutoCAD and of attribute definitions, its base point, a named block its units, explodability,
+        /// scaling and description, and each of its entities copied into it, new handles and owners given, an entity that draws
+        /// by another of these blocks naming its copy.
         /// </summary>
         private void CopyBlocks(DxfFile origin, List<DxfFileBlock> blocks)
         {
@@ -494,18 +612,51 @@ namespace GeometryHelper.Export
 
             foreach (DxfFileBlock block in blocks)
             {
-                DxfFileBlock made = AddBlock(_blockCopies[block], block.BasePoint, 0, true, false, string.Empty, out DxfItem record, block.Flags & 3);
+                // A named block keeps what its record says of it; one AutoCAD names itself is written as before.
+                DxfBlockTableRecord own = IsAnonymous(block.Name) || origin.Database == null || !origin.Database.BlockTable.Has(block.Name) ? null : origin.Database.BlockTable[block.Name];
+                DxfItem record;
+                DxfFileBlock made = own == null
+                    ? AddBlock(_blockCopies[block], block.BasePoint, 0, true, false, string.Empty, out record, block.Flags & 3)
+                    : AddBlock(_blockCopies[block], block.BasePoint, (int)own.Units, own.Explodable, own.BlockScaling == DxfBlockScaling.Uniform, own.Comments ?? string.Empty, out record, block.Flags & 3);
                 Database?.BlockTable.Adopted(made, record);
 
                 foreach (DxfItem item in block.Items.Snapshot())
                 {
-                    if (!item.IsRemoved)
+                    if (item.IsRemoved)
                     {
-                        Adopt(made.Items, origin.CopyOf(item));
+                        continue;
+                    }
+
+                    List<DxfEntity> texts = AsTexts(item);
+
+                    if (texts != null)
+                    {
+                        foreach (DxfEntity text in texts)
+                        {
+                            Adopt(made.Items, text.Item);
+                        }
+
+                        continue;
+                    }
+
+                    // A HATCH keeps the handles of its boundary, which comes with it in the block, to follow its copies.
+                    DxfItem copy = Adopt(made.Items, origin.CopyOf(item, true));
+
+                    if (copy != null && TryHex(item.Handle ?? string.Empty, out ulong was) && was != 0 && copy.Handle != null)
+                    {
+                        _entityCopies[was] = copy.Handle;
+                        _copiedItems[copy.Handle] = copy;
                     }
                 }
             }
         }
+
+        /// <summary>
+        /// The TEXTs an MTEXT of a block of another drawing is written as in this drawing of R12, which has no MTEXT, as
+        /// <see cref="DxfMText"/> makes them; null for any other entity, or a drawing of R13 or later.
+        /// </summary>
+        private List<DxfEntity> AsTexts(DxfItem item)
+            => !Style.Markers && item.Type == "MTEXT" && DxfEntity.Of(item) is DxfMText mtext ? mtext.R12Texts(this) : null;
 
         /// <summary>The names of the records of the tables a copy of another drawing needs and this drawing has not, by table, in the order found.</summary>
         private sealed class RecordsToCopy
@@ -528,7 +679,10 @@ namespace GeometryHelper.Export
         /// it, and its records are copied as they are.
         /// </summary>
         internal bool CopiesRecordFrom(DxfFile origin, string table, string name)
-            => origin != null && origin != Template && origin != this && RecordsCopy(origin) && FindRecord(origin, table, DxfReader.NameOf(name).Trim()) != null;
+            => origin != null && origin != Template && origin != this && (RecordsCopy(origin) || CopiesAcross(table)) && FindRecord(origin, table, DxfReader.NameOf(name).Trim()) != null;
+
+        /// <summary>Whether the records of a table are copied by name between drawings of R12 and of R13 or later: a layer and a text style, which both forms hold alike.</summary>
+        private static bool CopiesAcross(string table) => table == "LAYER" || table == "STYLE";
 
         /// <summary>Whether the records of the tables of another drawing are copied into this one as they are: both of R12, or both of R13 or later.</summary>
         private bool RecordsCopy(DxfFile origin) => origin.Style.Markers == Style.Markers;
@@ -560,7 +714,8 @@ namespace GeometryHelper.Export
                     case "TOLERANCE":
                         Need(origin, "DIMSTYLE", read.Text(3), needs, blocks);
 
-                        // The records its overrides of the style name (DIMBLK, DIMLTYPE, DIMTXSTY ...), as 1005s of ACAD DSTYLE.
+                        // The records its overrides of the style name (DIMBLK, DIMLTYPE, DIMTXSTY ...), as 1005s of ACAD DSTYLE; none
+                        // for a variable this drawing's version has not, whose override is left out.
                         if (RecordsCopy(origin))
                         {
                             List<Pair> pairs = PairsOf(record);
@@ -570,7 +725,7 @@ namespace GeometryHelper.Export
                             {
                                 overrides = origin.DimensionOverrides(record, pairs, i, overrides);
 
-                                if (overrides && pairs[i].Code == 1005)
+                                if (overrides && pairs[i].Code == 1005 && HasVariable(origin, record, pairs[i - 1]))
                                 {
                                     NeedPointed(origin, origin.Text(record, pairs[i]), needs, blocks);
                                 }
@@ -585,14 +740,14 @@ namespace GeometryHelper.Export
         /// <summary>
         /// Notes a record of a table of the origin that this drawing has not of its name, where the origin has it, and what it
         /// names in turn: a layer's linetype, a linetype's text styles, a dimension style's text style, linetypes and arrow blocks.
-        /// A layer is noted between drawings of any versions; the others where <see cref="RecordsCopy"/> says.
+        /// A layer and a text style are noted between drawings of any versions; the others where <see cref="RecordsCopy"/> says.
         /// </summary>
         private void Need(DxfFile origin, string table, string written, RecordsToCopy needs, List<DxfFileBlock> blocks)
         {
             string name = written == null ? string.Empty : DxfReader.NameOf(written).Trim();
             List<string> list = table == "STYLE" ? needs.Styles : table == "LTYPE" ? needs.Linetypes : table == "LAYER" ? needs.Layers : needs.DimStyles;
 
-            if (name.Length == 0 || list.Exists(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase)) || (table != "LAYER" && !RecordsCopy(origin))
+            if (name.Length == 0 || list.Exists(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase)) || (!CopiesAcross(table) && !RecordsCopy(origin))
                 || (table == "LTYPE" && (string.Equals(name, "BYLAYER", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "BYBLOCK", StringComparison.OrdinalIgnoreCase)))
                 || FindRecord(this, table, name) != null)
             {
@@ -613,7 +768,8 @@ namespace GeometryHelper.Export
                 return;
             }
 
-            // What the record copied points at, by handle, or names, a layer its linetype.
+            // What the record copied points at, by handle, or names, a layer its linetype; not by a group this drawing's
+            // version has not, which is left out of the copy.
             List<Pair> pairs = PairsOf(theirs.Value);
 
             for (int i = 1; i < pairs.Count; i++)
@@ -625,7 +781,7 @@ namespace GeometryHelper.Export
                     Need(origin, "LTYPE", origin.Text(theirs.Value, pairs[i]), needs, blocks);
                 }
 
-                if (IsPointer(code))
+                if (IsPointer(code) && SinceOf(table, code, true) <= Style.Version)
                 {
                     NeedPointed(origin, origin.Text(theirs.Value, pairs[i]), needs, blocks);
                 }
@@ -689,7 +845,8 @@ namespace GeometryHelper.Export
         /// copies those an entity names: each with a handle of its own, this drawing's table as its owner, its groups as they are
         /// but its handle, owner, reactors and extension dictionary; each pointer taken to the record of the same name here, or
         /// left out; the applications of its extended data registered. Between drawings of R12 and of R13 or later, a layer is
-        /// added with its colour, linetype and flags, and the other records are not copied.
+        /// added with its colour, linetype and flags, a text style with its flags, height, width, slant and fonts, and the other
+        /// records are not copied.
         /// </summary>
         private void CopyRecords(DxfFile origin, List<string> names, string table)
         {
@@ -719,6 +876,19 @@ namespace GeometryHelper.Export
                         int flags = int.TryParse(read.Text(70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int f) ? f & 7 : 0;
                         AddLayer(name, colour, null, linetype != null && HasLinetype(linetype) ? linetype : "Continuous", -3, flags, true);
                     }
+                    else if (table == "STYLE")
+                    {
+                        // A text style with its flags, fixed height, width, slant and fonts, which R12 holds as later versions do.
+                        DxfReader.Record read = origin.Record(record);
+                        int flags = int.TryParse(read.Text(70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int f) ? f & 5 : 0;
+                        double Real(int code, double fallback) => Numbers.TryRead(read.Text(code), out double value) && Guard.IsFinite(value) ? value : fallback;
+
+                        if (AddTextStyle(name, flags, Real(40, 0.0), Real(41, 1.0), Real(50, 0.0), read.Text(3) ?? string.Empty, read.Text(4) ?? string.Empty) != null)
+                        {
+                            Edited();
+                            GeometryHelperLog.Info("DxfFile: the STYLE " + name + " was copied with an entity of another drawing.");
+                        }
+                    }
 
                     continue;
                 }
@@ -731,6 +901,9 @@ namespace GeometryHelper.Export
                 int markers = 0;
                 bool braced = false;
                 bool owned = false;
+                bool older = Style.Version < origin.Style.Version;
+                int seventies = 0;
+                var dropped = new List<string>();
 
                 for (int i = 1; i < pairs.Count; i++)
                 {
@@ -780,6 +953,16 @@ namespace GeometryHelper.Export
                         continue;
                     }
 
+                    // A group this drawing's version has not is left out, as AutoCAD's SAVEAS to that version leaves it out: a
+                    // DIMSTYLE's DIMFXLEN (49) and a LAYER's material (347), which R2007 brought, in a drawing of R2000.
+                    seventies += code == 70 ? 1 : 0;
+
+                    if (older && SinceOf(table, code, seventies > 1) > Style.Version)
+                    {
+                        dropped.Add(code.ToString(CultureInfo.InvariantCulture));
+                        continue;
+                    }
+
                     if (IsPointer(code))
                     {
                         string now = Equivalent(origin, text);
@@ -812,6 +995,11 @@ namespace GeometryHelper.Export
                 {
                     Edited();
                     GeometryHelperLog.Info("DxfFile: the " + table + " " + name + " was copied with an entity of another drawing.");
+
+                    if (dropped.Count > 0)
+                    {
+                        GeometryHelperLog.Debug("DxfFile: the " + table + " " + name + " was copied without its groups " + string.Join(", ", dropped) + ", a DXF " + VersionSaid() + " having none.");
+                    }
                 }
             }
         }
@@ -1207,18 +1395,27 @@ namespace GeometryHelper.Export
         /// dictionary and of its entry; left out where the target has none of that name, so that the target's default holds. A
         /// handle of extended data (1005) is left out, as AutoCAD's mapping of objects between drawings leaves it null; but one
         /// of the overrides of a dimension style (ACAD DSTYLE, a 1070 of the variable then a 1005 of its record: DIMBLK, DIMLTYPE,
-        /// DIMTXSTY and the others) names the record of the same name in the target, the two left out where it has none. The
-        /// record itself where nothing changes.
+        /// DIMTXSTY and the others) names the record of the same name in the target, the two left out where it has none, said in
+        /// the log; in a target of R12 an arrow block's (DIMBLK, DIMBLK1, DIMBLK2) names the block by its name, a 1070 of 5, 6 or
+        /// 7 then a 1000, as R12 writes it, where the target has a block of that name. A pointer to an entity copied with the one being added, as a table cell's to an attribute definition (331) of the block
+        /// copied with the table, names its copy; such a pointer left out takes its value (300) with it, the cell's count (179)
+        /// made to agree. A LEADER whose annotation (340) is left out points to none (73 of 3). While blocks are being copied
+        /// with an entity, a pointer to an entity of the drawing copied from, and a HATCH's handle of a boundary object (330),
+        /// is held back, marked, to be taken to its copy once every entity is written (<see cref="TranslateDeferred"/>), and
+        /// <paramref name="deferred"/> says so. The record itself where nothing changes.
         /// </summary>
-        private Rec Pointed(Rec record, DxfFile origin, DxfFile target)
+        private Rec Pointed(Rec record, DxfFile origin, DxfFile target, ref bool deferred)
         {
             List<Pair> pairs = PairsOf(record);
             int data = DataAt(record, pairs);
+            int body = record.Type == "HATCH" ? BodyAt(record, pairs, data) : -1;
             var b = new Builder(this);
             b.Raw(record, pairs[0]);
             bool changed = false;
             bool braced = false;
             bool overrides = false;
+            bool cells = false;
+            bool unannotated = false;
 
             for (int i = 1; i < pairs.Count; i++)
             {
@@ -1242,6 +1439,16 @@ namespace GeometryHelper.Export
                         b.Raw(record, pair);
                         b.Group(1005, now);
                     }
+                    else if (target.R12Override(origin, Text(record, pair), Text(record, pairs[i + 1]), out int r12Code, out string arrow))
+                    {
+                        // An arrow block in a drawing of R12 is named, by the variable's group of R12 (5, 6, 7), as R12 writes it.
+                        b.Group(1070, r12Code.ToString(CultureInfo.InvariantCulture));
+                        b.Group(1000, arrow);
+                    }
+                    else
+                    {
+                        GeometryHelperLog.Debug("DxfFile: the " + record.Type + "'s override " + Text(record, pair).Trim() + " names a record the drawing it is copied into has none of, and is left out.");
+                    }
 
                     i++;
                     continue;
@@ -1256,15 +1463,40 @@ namespace GeometryHelper.Export
                     changed = true;
                     continue;
                 }
-                else if (i < data && !braced && IsPointer(code))
+                else if (i < data && !braced && (IsPointer(code) || (body >= 0 && i > body && code == 330)))
                 {
                     string was = Text(record, pair);
-                    string now = target.Equivalent(origin, was);
                     changed = true;
+
+                    // A pointer to an entity, while blocks are being copied, waits for the copy of that entity.
+                    if (target._deferred != null && origin.IsEntity(was))
+                    {
+                        b.Group(code, DeferredMark + was.Trim());
+                        deferred = true;
+                        continue;
+                    }
+
+                    // A boundary object's handle no copy is made of goes, the HATCH's counts made to agree.
+                    if (code == 330)
+                    {
+                        continue;
+                    }
+
+                    string now = target.CopyHandle(was) ?? target.Equivalent(origin, was);
 
                     if (now != null)
                     {
                         b.Group(code, now);
+                    }
+                    else if (code == 331 && record.Type == "ACAD_TABLE")
+                    {
+                        // A cell's attribute definition left out takes its value (300) with it, the cell's count made to agree.
+                        cells = true;
+                        i += i + 1 < data && pairs[i + 1].Code == 300 ? 1 : 0;
+                    }
+                    else if (code == 340 && record.Type == "LEADER")
+                    {
+                        unannotated = true;
                     }
 
                     continue;
@@ -1273,7 +1505,45 @@ namespace GeometryHelper.Export
                 b.Raw(record, pair);
             }
 
-            return changed ? Recounted(b.Done(record.Type)) : record;
+            if (!changed)
+            {
+                return record;
+            }
+
+            Rec made = Recounted(b.Done(record.Type));
+            made = cells ? CellsRecounted(made) : made;
+
+            // A leader whose annotation is left out points to none (73 of 3), as AutoCAD's copy of a leader alone leaves it.
+            return unannotated && WithGroup(made, 73, "3", false, out Rec bare) ? bare : made;
+        }
+
+        /// <summary>
+        /// The form of R12 of an override of an arrow block (DIMBLK, DIMBLK1, DIMBLK2: a 1070 of 342 to 344, then the 1005 of the
+        /// block) for this drawing of R12: the variable's group of R12 (5, 6, 7) and the block's name, where this drawing has a
+        /// block of that name or is given one by the copying; false otherwise, or where this drawing is not of R12.
+        /// </summary>
+        private bool R12Override(DxfFile origin, string variable, string pointer, out int r12Code, out string name)
+        {
+            r12Code = 0;
+            name = null;
+
+            if (Style.Markers || !origin.Style.Markers || !int.TryParse(variable.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int code)
+                || !(DxfDimVariable.OfCode(code, false) is DxfDimVariable known) || known.Kind != DxfDimKind.Block || known.R12Code == 0
+                || !TryHex(pointer.Trim(), out ulong handle) || !origin.Objects().TryGetValue(handle, out KeyValuePair<Rec, bool> found)
+                || !found.Value || found.Key.Type != "BLOCK_RECORD")
+            {
+                return false;
+            }
+
+            name = DxfReader.NameOf(origin.Record(found.Key).Text(2) ?? string.Empty);
+
+            if (_blockCopies != null && origin.Blocks.TryGetValue(name, out DxfFileBlock copied) && _blockCopies.TryGetValue(copied, out string given))
+            {
+                name = given;
+            }
+
+            r12Code = known.R12Code;
+            return name.Length > 0 && Blocks.ContainsKey(name);
         }
 
         /// <summary>
@@ -1312,9 +1582,131 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
+        /// A record of a dimension, a leader or a tolerance of this file with the overrides of its dimension style (ACAD DSTYLE) that
+        /// a drawing of an older version (<paramref name="target"/>) has no variable of left out, each a 1070 naming the variable
+        /// and the value after it, as AutoCAD's SAVEAS to that version leaves them out: DIMLTYPE and DIMFXLEN, which R2007 brought,
+        /// of a dimension added to a drawing of R2000, DIMDEC of one added to a drawing of R12. Said once in the log, at Debug. The
+        /// record itself where nothing goes, or it is of another type.
+        /// </summary>
+        private Rec WithoutLaterOverrides(Rec record, DxfFile target)
+        {
+            if (!HasStyleOverrides(record.Type))
+            {
+                return record;
+            }
+
+            List<Pair> pairs = PairsOf(record);
+            int data = DataAt(record, pairs);
+            bool r12 = !Style.Markers;
+            int version = target.Style.Version;
+            var drop = new bool[pairs.Count];
+            var dropped = new List<string>();
+            bool overrides = false;
+
+            for (int i = data; i < pairs.Count; i++)
+            {
+                bool before = overrides;
+                overrides = DimensionOverrides(record, pairs, i, overrides);
+
+                // Within the list, past its opening brace: a 1070 naming the variable, then its value.
+                if (!before || !overrides || pairs[i].Code != 1070 || i + 1 >= pairs.Count)
+                {
+                    continue;
+                }
+
+                DxfDimVariable variable = int.TryParse(Text(record, pairs[i]).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int code)
+                    ? DxfDimVariable.OfCode(code, r12)
+                    : null;
+
+                if (variable != null && variable.Since > version)
+                {
+                    drop[i] = true;
+                    drop[i + 1] = true;
+                    dropped.Add(variable.Name.ToUpperInvariant());
+                }
+
+                i++;
+            }
+
+            if (dropped.Count == 0)
+            {
+                return record;
+            }
+
+            var b = new Builder(this);
+
+            for (int i = 0; i < pairs.Count; i++)
+            {
+                if (!drop[i])
+                {
+                    b.Raw(record, pairs[i]);
+                }
+            }
+
+            GeometryHelperLog.Debug("DxfFile: the " + record.Type + "'s overrides of " + string.Join(", ", dropped) + " were left out, a DXF " + target.VersionSaid() + " having no such variables.");
+            return b.Done(record.Type);
+        }
+
+        /// <summary>Whether a type keeps overrides of its dimension style in its extended data of ACAD (DSTYLE): a dimension, a leader or a tolerance.</summary>
+        private static bool HasStyleOverrides(string type)
+            => type == "DIMENSION" || type == "ARC_DIMENSION" || type == "LARGE_RADIAL_DIMENSION" || type == "LEADER" || type == "TOLERANCE";
+
+        /// <summary>
+        /// Whether an override of a dimension style, in the list DSTYLE of a record of a file (<paramref name="origin"/>), is one of
+        /// a variable this file's version has: by the 1070 that names it, at the index given; true for a variable the library does
+        /// not know.
+        /// </summary>
+        private bool HasVariable(DxfFile origin, Rec record, Pair named)
+        {
+            DxfDimVariable variable = int.TryParse(origin.Text(record, named).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int code)
+                ? DxfDimVariable.OfCode(code, !origin.Style.Markers)
+                : null;
+            return variable == null || variable.Since <= Style.Version;
+        }
+
+        /// <summary>
+        /// The version that brought a group of a record of a table, as ezdxf gives it: of a LAYER, its plotting (290), lineweight
+        /// (370) and plot style (390) R2000, its true colour and colour book (420, 430) R2004, its material (347, 348) R2007; of
+        /// a DIMSTYLE, the version of the variable of the group, its handles (340 to 347) R2000 at the earliest, its second 70
+        /// being DIMTFILLCLR of R2007, and DIMTXTDIRECTION (294) R2010. Nought for any other group, every version of R13 on having it.
+        /// </summary>
+        private static int SinceOf(string table, int code, bool second)
+        {
+            if (table == "LAYER")
+            {
+                switch (code)
+                {
+                    case 290:
+                    case 370:
+                    case 390: return 1015;
+                    case 420:
+                    case 430: return 1018;
+                    case 347:
+                    case 348: return 1021;
+                    default: return 0;
+                }
+            }
+
+            if (table != "DIMSTYLE" || (code == 70 && !second))
+            {
+                return 0;
+            }
+
+            // DIMTXTDIRECTION, which R2010 brought, of no variable of the library's.
+            if (code == 294)
+            {
+                return 1024;
+            }
+
+            DxfDimVariable variable = DxfDimVariable.OfCode(code, false);
+            int since = variable == null ? 0 : variable.Since;
+            return code >= 340 && code <= 347 ? Math.Max(since, 1015) : since > 1009 ? since : 0;
+        }
+
+        /// <summary>
         /// A HATCH whose boundary objects were left out of a copy, its counts made to agree with what is left: each path's count
         /// of boundary objects (97) the number of pointers (330) that follow it, nought where none does, as AutoCAD reads that
-        /// many after it; and, with no boundary object left in the whole record, its associativity (71) nought, as AutoCAD's
+        /// many after it, a spline edge's own 97, its count of fit points, kept; and, with no boundary object left in the whole record, its associativity (71) nought, as AutoCAD's
         /// COPY into another drawing leaves a hatch that keeps none. Any other record as it is.
         /// </summary>
         private Rec Recounted(Rec record)
@@ -1337,7 +1729,9 @@ namespace GeometryHelper.Export
                     associative = i;
                 }
 
-                if (pairs[i].Code != 97)
+                // A spline edge's count of fit points (97) is followed by its fit points (11) or tangents (12, 13), not by the
+                // handles of boundary objects: it is the edge's, and kept.
+                if (pairs[i].Code != 97 || (i + 1 < data && (pairs[i + 1].Code == 11 || pairs[i + 1].Code == 12 || pairs[i + 1].Code == 13)))
                 {
                     continue;
                 }
@@ -1386,7 +1780,161 @@ namespace GeometryHelper.Export
             return b.Done(record.Type);
         }
 
+        /// <summary>
+        /// An ACAD_TABLE whose cells' attribute definitions were left out of a copy, each block cell's count of them (179) made
+        /// the number of pointers (331, each with its value 300) that follow it, as AutoCAD reads that many pairs after it. The
+        /// record itself where every count agrees.
+        /// </summary>
+        private Rec CellsRecounted(Rec record)
+        {
+            List<Pair> pairs = PairsOf(record);
+            int data = DataAt(record, pairs);
+            Dictionary<int, int> counts = null;
+
+            for (int i = 1; i < data; i++)
+            {
+                if (pairs[i].Code != 179)
+                {
+                    continue;
+                }
+
+                int following = 0;
+                int j = i + 1;
+
+                while (j < data && pairs[j].Code == 331)
+                {
+                    following++;
+                    j += j + 1 < data && pairs[j + 1].Code == 300 ? 2 : 1;
+                }
+
+                int written = int.TryParse(Text(record, pairs[i]).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : -1;
+
+                if (written != following)
+                {
+                    (counts = counts ?? new Dictionary<int, int>()).Add(i, following);
+                }
+            }
+
+            if (counts == null)
+            {
+                return record;
+            }
+
+            var b = new Builder(this);
+
+            for (int i = 0; i < pairs.Count; i++)
+            {
+                if (counts.TryGetValue(i, out int count))
+                {
+                    b.Group(179, count.ToString(CultureInfo.InvariantCulture));
+                }
+                else
+                {
+                    b.Raw(record, pairs[i]);
+                }
+            }
+
+            return b.Done(record.Type);
+        }
+
         private static bool IsPointer(int code) => (code >= 320 && code <= 369) || (code >= 390 && code <= 399) || code == 480 || code == 481;
+
+        /// <summary>
+        /// The handle in this file of the copy of an entity of another drawing copied with the entity being added, as an attribute
+        /// definition of a block copied with a table; null where it was not copied.
+        /// </summary>
+        private string CopyHandle(string pointer)
+            => _entityCopies != null && TryHex(pointer.Trim(), out ulong handle) && _entityCopies.TryGetValue(handle, out string copy) ? copy : null;
+
+        // What marks a pointer held back for the copy of the entity it names: no handle begins so.
+        private const string DeferredMark = "?";
+
+        // The entities written while blocks are being copied with an entity, by their handles here; and those written with a
+        // pointer held back, to be taken to its copy when every entity is written.
+        private Dictionary<string, DxfItem> _copiedItems;
+        private List<DxfItem> _deferred;
+
+        /// <summary>Whether a handle is that of an entity of this file's drawing, of model space, paper space or a block.</summary>
+        private bool IsEntity(string handle) => Database != null && Database.ItemByHandle(handle.Trim()) != null;
+
+        /// <summary>
+        /// Takes each pointer held back while blocks were copied (<see cref="Pointed"/>) to the copy of the entity it names, as
+        /// AutoCAD's deep clone translates its map of ids once every object is copied, so that a LEADER written before its MTEXT
+        /// still points to its copy: a pointer whose entity was not copied is left out, as one left out at once is (a table cell's
+        /// with its value and count, a LEADER's annotation with its kind, a HATCH's boundary with its count and association).
+        /// The HATCH or LEADER whose pointer is kept is put among the reactors of the copy it points to, as AutoCAD keeps it.
+        /// </summary>
+        private void TranslateDeferred()
+        {
+            if (_deferred.Count == 0)
+            {
+                return;
+            }
+
+            foreach (DxfItem item in _deferred)
+            {
+                if (item.IsRemoved)
+                {
+                    continue;
+                }
+
+                List<Rec> records = RecordsOf(item);
+                Rec record = records[0];
+                List<Pair> pairs = PairsOf(record);
+                int data = DataAt(record, pairs);
+                var b = new Builder(this);
+                var reactTo = new List<DxfItem>();
+                bool cells = false;
+                bool unannotated = false;
+
+                for (int i = 0; i < pairs.Count; i++)
+                {
+                    string text = i > 0 && i < data ? Text(record, pairs[i]).Trim() : null;
+                    int code = pairs[i].Code;
+
+                    if (text == null || !text.StartsWith(DeferredMark, StringComparison.Ordinal) || !(IsPointer(code) || code == 330))
+                    {
+                        b.Raw(record, pairs[i]);
+                        continue;
+                    }
+
+                    string copy = CopyHandle(text.Substring(DeferredMark.Length));
+
+                    if (copy != null)
+                    {
+                        b.Group(code, copy);
+
+                        if (((record.Type == "HATCH" && code == 330) || (record.Type == "LEADER" && code == 340)) && _copiedItems.TryGetValue(copy, out DxfItem pointed))
+                        {
+                            reactTo.Add(pointed);
+                        }
+                    }
+                    else if (code == 331 && record.Type == "ACAD_TABLE")
+                    {
+                        cells = true;
+                        i += i + 1 < data && pairs[i + 1].Code == 300 ? 1 : 0;
+                    }
+                    else if (code == 340 && record.Type == "LEADER")
+                    {
+                        unannotated = true;
+                    }
+                }
+
+                Rec made = Recounted(b.Done(record.Type));
+                made = cells ? CellsRecounted(made) : made;
+                made = unannotated && WithGroup(made, 73, "3", false, out Rec bare) ? bare : made;
+                records[0] = made;
+                SetRecords(item, records);
+                item.Changed(record.Type);
+
+                foreach (DxfItem pointed in reactTo)
+                {
+                    SetReactor(pointed, item.Handle, true);
+                }
+            }
+
+            Edited();
+        }
 
         /// <summary>
         /// The handle in this file of the object a handle of another file names: the record of a table of the same name, or the

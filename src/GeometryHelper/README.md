@@ -83,7 +83,7 @@ The whole of it, searchable, with every type and member: [https://nguyenthanguth
 
 | Guide | Covers |
 |---|---|
-| [Shared types](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/common.md) | `Tolerance`, `Angle`, the enumerations, `OffsetOptions`, `GeometryHelperLog` |
+| [Shared types](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/common.md) | `Tolerance`, `Angle`, the enumerations, `OffsetOptions`, `GeometryHelperLog`; reading, writing and editing DXF files, the editing with AutoCAD's classes and members; [a drawing edited step by step](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/dxf-editing-example.md) and [the points to check in AutoCAD](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/dxf-autocad-checks.md) |
 | [Geometry in the plane](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/plane.md) | points to polygons and faces; extending, trimming, offsetting, combining regions |
 | [Meshing the plane](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/mesh.md) | triangles, grids of panels or tiles with joints and alignment, strips and convex pieces, edge to edge |
 | [Geometry in space](https://github.com/nguyenthanguth/GeometryHelper/blob/main/src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |

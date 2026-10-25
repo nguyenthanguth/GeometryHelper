@@ -13,7 +13,7 @@ dotnet add package GeometryHelper
 
 | | |
 |---|---|
-| [Shared types](../src/GeometryHelper/docs/common.md) | `Tolerance`, `Angle`, the enumerations, `OffsetOptions`, `GeometryHelperLog` |
+| [Shared types](../src/GeometryHelper/docs/common.md) | `Tolerance`, `Angle`, the enumerations, `OffsetOptions`, `GeometryHelperLog`; reading, writing and editing DXF files, the editing with AutoCAD's classes and members; [a drawing edited step by step](../src/GeometryHelper/docs/dxf-editing-example.md) and [the points to check in AutoCAD](../src/GeometryHelper/docs/dxf-autocad-checks.md) |
 | [Geometry in the plane](../src/GeometryHelper/docs/plane.md) | points to polygons and faces; arcs, offsetting, combining regions |
 | [Meshing the plane](../src/GeometryHelper/docs/mesh.md) | triangles, grids of panels or tiles with joints and alignment, strips and convex pieces, edge to edge |
 | [Geometry in space](../src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |

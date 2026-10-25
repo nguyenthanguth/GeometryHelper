@@ -277,6 +277,65 @@ namespace GeometryHelper.Export
             Unreact(followed);
         }
 
+        /// <summary>The handles of the objects each loop follows (its 330s), loop by loop, in their order; empty lists where it follows none.</summary>
+        internal List<List<string>> LoopSources()
+        {
+            var sources = new List<List<string>>();
+
+            foreach (List<KeyValuePair<int, string>> loop in Snap().Loops)
+            {
+                sources.Add(LoopData.Read(loop).Sources);
+            }
+
+            return sources;
+        }
+
+        /// <summary>
+        /// Makes the HATCH follow entities of its drawing, as AutoCAD keeps an associative one: each loop given the handles of
+        /// its entities (330) after their count (97), group 71 written 1, and the HATCH put among the reactors of each entity
+        /// (102 <c>{ACAD_REACTORS</c>); for a copy whose boundary objects were copied with it. Nothing where the loops given are
+        /// not one for each loop of the HATCH.
+        /// </summary>
+        internal void Follow(IReadOnlyList<IReadOnlyList<DxfEntity>> objects)
+        {
+            Parts record = Record();
+            List<List<KeyValuePair<int, string>>> loops = Loops(record);
+
+            if (loops.Count != objects.Count)
+            {
+                return;
+            }
+
+            for (int i = 0; i < loops.Count; i++)
+            {
+                List<KeyValuePair<int, string>> loop = loops[i].GetRange(0, LoopData.Body(loops[i]));
+                loop.Add(G(97, objects[i].Count));
+
+                foreach (DxfEntity entity in objects[i])
+                {
+                    loop.Add(G(330, entity.Handle));
+                }
+
+                loops[i] = loop;
+            }
+
+            record.SetPart(Kind.Paths, JoinLoops(loops));
+            record.Set(71, "1");
+            Write(record);
+            var reacted = new HashSet<DxfItem>();
+
+            foreach (IReadOnlyList<DxfEntity> loop in objects)
+            {
+                foreach (DxfEntity entity in loop)
+                {
+                    if (reacted.Add(entity.Item))
+                    {
+                        Item.File.SetReactor(entity.Item, Handle, true);
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Gets the area the HATCH fills, as AutoCAD's <c>Area</c>: that of each loop, worked out exactly on its lines, arcs,
         /// ellipses and splines (a spline by Gauss's rule, sixteen points to each span of its knots), added or taken off by how
