@@ -257,6 +257,36 @@ free number of its layout. Every value set in R2000 and R2018 was read back by
 ezdxf 1.4.5, and its recover and audit found nothing to fix in any file, R12 among them; ezdxf reads no MVIEW, so the views
 set in R12 were read back by the library.
 
+**NEW.** Dimensions, dimension styles and tables, with AutoCAD's names. `DxfDatabase.DimStyleTable` holds the
+`DxfDimStyleTableRecord`s, each with AutoCAD's 73 variables a DXF file holds, read and set in their groups (`Dimasz` 41,
+`Dimdec` 271, `Dimjogang` 50 in radians, `Dimtfillclr` the second 70, the arrowheads as blocks by handle from R2000 and by
+name in R12, `Dimtxsty` and the linetypes as their records), AutoCAD's own value where a group is missing, `GetArrow`; a
+style is added whole, its handle as 105, renamed with the dimensions, leaders and tolerances drawn in it and `$DIMSTYLE`, and
+erased where nothing uses it. A DIMENSION is a `DxfRotatedDimension`, `DxfAlignedDimension`, `DxfRadialDimension`,
+`DxfDiametricDimension`, `DxfLineAngularDimension2`, `DxfPoint3AngularDimension` or `DxfOrdinateDimension` by its kind, and
+ARC_DIMENSION and LARGE_RADIAL_DIMENSION are `DxfArcDimension` and `DxfRadialDimensionLarge`: their points in world
+coordinates, `Measurement` worked out from them (96.60 for (0, 0, 0) to (100, 20, 0) along 30 degrees, pi / 4 for a level
+line and one at 45 degrees), `DimensionText`, `Prefix`, `Suffix`, `TextPosition`, `TextRotation`, `HorizontalRotation`,
+`DimensionStyle`, `DimBlock` and `DimBlockPosition`, and every variable of the style read as the dimension draws with it and
+set as an override in the list DSTYLE of its extended data of ACAD, `GetDimstyleData` and `SetDimstyleData`. The block AutoCAD
+drew a dimension with is not drawn anew when a point or a variable is set; `TransformBy` moves the points as ezdxf's
+`transform()` does and the block with them where it is the dimension's alone and placed at no point of its own. An ordinate
+measures along the user's axes its 51 gives, carried with it, so that a move or a turn keeps its measurement. A block,
+linetype or text style set on a dimension in no drawing, or on a copy, a `Clone()` of it among them, is taken to the record
+of its name in the drawing it is added to, and refused where there is none of that name to take it to; a copy for another
+drawing keeps the overrides it read and those set on it, each naming the record of its name there. An ACAD_TABLE
+is a `DxfTable`: rows, columns, heights and widths, each cell's text, value, kind, merging, corners, block and attribute
+values and its own look, in the forms of R2000 and of R2007 on; `SetTextString`, `SetRowHeight`, `SetColumnWidth`,
+`SetBlockScale`, `SetBlockRotation` and `SetBlockAttributeValue` write its data, its block left for AutoCAD to draw anew; a
+table moved or tilted carries its block where no other entity names it, and its record is read once while it stands, every
+cell of 1 000 rows in milliseconds; a copy for another drawing loses the values its block cells give their attributes. Held against ezdxf 1.4.5:
+recover and audit find nothing to fix in what is written, and ezdxf reads every style, override, point and cell as set.
+
+**CHANGED.** A DIMENSION, an ARC_DIMENSION, a LARGE_RADIAL_DIMENSION and an ACAD_TABLE, which were a `DxfUnknownEntity`, are
+objects of their own classes. A dimension made in code is appended only where the drawing has a block of the name of the
+block that draws it, as ezdxf's audit takes out a dimension with none; a copy brings its own block to another drawing, as
+below.
+
 **FIXED.** A copy of an entity that draws by a block AutoCAD names itself, a DIMENSION's `*D1`, an ACAD_TABLE's `*T1` or an
 INSERT's `*U1`, appended to another drawing took that drawing's block of the same name, or was refused where it had none: it
 now takes a copy of its own block, under the first name of its letter the drawing has not (`*D2` beside a `*D1`), with every

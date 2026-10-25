@@ -781,7 +781,7 @@ and a change to it is written at once.
 What is kept is everything: the version, R12 (AC1009) to R2018 (AC1032); the line ends, a carriage return and a line
 feed, a line feed alone, or both in one file; the group codes padded to three places or not; the mark of UTF-8 or none;
 the text in the code page of a file before R2007 and in UTF-8 after, byte for byte; comments (999); the sections, tables,
-objects and entities the library does not read (CLASSES, OBJECTS, LAYOUT, DICTIONARY, DIMENSION, IMAGE and the
+objects and entities the library does not read (CLASSES, IMAGE, objects of a type with no class and the
 rest); extended data, reactors and extension dictionaries; and whatever follows the EOF. A file `DxfReader` refuses is
 refused the same way, with the same message.
 
@@ -1029,6 +1029,49 @@ hold one of it too; `GetAnonymousBlocks()` gives the blocks AutoCAD made of a dy
 with every INSERT of it; `Erase()` takes it out, BLOCK, entities, ENDBLK and BLOCK_RECORD, where nothing inserts it; and
 `AssumeOwnershipOf(entities)` moves entities of the drawing into it, each keeping its handle, out of the draw order
 (SORTENTSTABLE) of the block it leaves and onto the end of that of the block it enters.
+
+The dimension styles are the `DimStyleTable`, each a `DxfDimStyleTableRecord` with AutoCAD's 73 variables of a DXF file,
+each read and set in its group: `Dimasz` 41, `Dimtxt` 140, `Dimdec` 271, `Dimjogang` 50 (radians; the file writes degrees),
+`Dimtfillclr` the record's second 70 (the first is its flags), the arrowheads `Dimblk`, `Dimblk1`, `Dimblk2` and `Dimldrblk`
+as the blocks they are drawn with (by handle, 342 to 344 and 341; by name, 5 to 7, in R12, ARCHTICK for the block
+_ARCHTICK; null for the closed filled one), `Dimtxsty` a `DxfTextStyleTableRecord` and `Dimltype`, `Dimltex1` and `Dimltex2`
+linetypes. A variable the record gives no group for reads as AutoCAD's own, that of acad.dwt: arrowheads 0.18 long, four
+decimal places. A style made in code, `new DxfDimStyleTableRecord { Name = "GH_25", Dimasz = 2.5 }`, is added whole, every
+variable its file's version has, its handle in group 105 as AutoCAD writes a DIMSTYLE's; renamed by its `Name`, the
+dimensions, leaders and tolerances drawn in it, the styles AutoCAD keeps for its kinds of dimension (GH_25$0) and
+`$DIMSTYLE` follow; `Erase()` takes out one nothing is drawn in that is not Standard or the current style.
+
+A DIMENSION is a `DxfRotatedDimension`, `DxfAlignedDimension`, `DxfRadialDimension`, `DxfDiametricDimension`,
+`DxfLineAngularDimension2`, `DxfPoint3AngularDimension` or `DxfOrdinateDimension` by its kind, an ARC_DIMENSION a
+`DxfArcDimension` and a LARGE_RADIAL_DIMENSION a `DxfRadialDimensionLarge`, each a `DxfDimension` with AutoCAD's points
+in world coordinates (`XLine1Point`, `DimLinePoint`, `Center`, `ChordPoint`, `ArcPoint` ...), `TextPosition`,
+`DimensionText`, `DimensionStyle` and `Measurement`, worked out from the points as AutoCAD works it out: the rotated
+dimension of (0, 0, 0) and (100, 20, 0) along 30 degrees measures 96.60, the angle of a level line and one at 45 degrees
+pi / 4. A variable of the style reads as the dimension draws with it, its override (the list DSTYLE of its extended data of
+ACAD) or its style's, and set is written as an override, the style kept: `dim.Dimasz = 4.5` writes `1070 41, 1040 4.5`. What
+draws a dimension is the block AutoCAD drew for it, `DimBlock` (`*D7`), placed at `DimBlockPosition`: the library writes a
+point, a text or a variable and leaves that block as it was, for AutoCAD to draw anew when it next draws the dimension, so
+AutoCAD shows the old picture until then. `TransformBy` moves the points as ezdxf's `transform()` moves them, and the block's
+entities with them where the block is the dimension's alone (flag 32 of group 70) and placed at no point of its own (no 12).
+A dimension made in code is given its `DimBlock`, a block of the drawing, before it is appended; a copy shares its block in
+its own drawing and brings a copy of it to another, as the entities copied across do. A block, linetype or text style set on
+a dimension in no drawing, or on a copy, is held as the record it is (a `Clone()` holds it too) and taken to the record of its
+name in the drawing it is added to, refused where there is none of that name to take it to; a copy for another drawing keeps
+its overrides that point at records, those it read and those set on it, each naming the record of its name there. An
+ordinate measures along the user's axes its 51 gives (the negative of their angle from the x of the normal's system), which
+a move or a turn carries, so its measurement stays.
+
+An ACAD_TABLE is a `DxfTable`: its `NumRows`, `NumColumns`, `RowHeight(row)`, `ColumnWidth(col)`, and each cell's
+`TextString`, `Value`, `CellType`, merging (`IsMergedCell`, `GetMergeRange`), corners (`GetCellExtents`), block and
+attribute values, and the look it holds of its own, `Alignment`, `TextHeight`, `TextStyle` and the colours, null where it
+has none and takes its table style's, which the library does not read. Its cells are written in the form of R2000 (text in 2
+and 1) or of R2007 on (between `301 CELL_VALUE` and `304 ACVALUE_END`, the text in 302), and `SetTextString`,
+`SetRowHeight`, `SetColumnWidth`, `SetBlockScale`, `SetBlockRotation` and `SetBlockAttributeValue` write that data, the
+table's block (`*T12`) left for AutoCAD to draw anew. A table is moved, turned and tilted with its block, the block turned in
+the system of its normal, where no other entity names that block; a copy in the same drawing shares the block, which is
+then left for AutoCAD to draw anew; a scale is refused. A copy appended to another drawing loses the values its block cells
+give their blocks' attributes: each pointer to a definition (331) is taken out with its value (300) and the count 179 made
+nought, as the drawing's mapping drops those pointers.
 
 The drawing reads and sets the variables AutoCAD keeps out of the header, as DICTIONARYVAR objects of the dictionary
 AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), `Cetransparency` (a whole per cent, so the

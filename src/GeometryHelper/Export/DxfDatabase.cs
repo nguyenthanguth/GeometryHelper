@@ -40,6 +40,7 @@ namespace GeometryHelper.Export
         private DxfLayerTable _layerTable;
         private DxfLinetypeTable _linetypeTable;
         private DxfTextStyleTable _textStyleTable;
+        private DxfDimStyleTable _dimStyleTable;
 
         private DxfDatabase(DxfFile file)
         {
@@ -160,6 +161,12 @@ namespace GeometryHelper.Export
 
         /// <summary>Gets the text style table, read, as <see cref="DxfTextStyleTable"/> says.</summary>
         public DxfTextStyleTable TextStyleTable => _textStyleTable ?? (_textStyleTable = new DxfTextStyleTable(File, File.TableItem("STYLE")));
+
+        /// <summary>
+        /// Gets the dimension style table of the drawing, as AutoCAD's <c>DimStyleTableId</c> gives its id: the styles of its
+        /// DIMSTYLE records, as <see cref="DxfDimStyleTable"/> says.
+        /// </summary>
+        public DxfDimStyleTable DimStyleTable => _dimStyleTable ?? (_dimStyleTable = new DxfDimStyleTable(File, File.TableItem("DIMSTYLE")));
 
         /// <summary>Gets the linetype table, as <see cref="DxfLinetypeTable"/> says.</summary>
         public DxfLinetypeTable LinetypeTable => _linetypeTable ?? (_linetypeTable = new DxfLinetypeTable(File, File.TableItem("LTYPE")));

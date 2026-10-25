@@ -45,7 +45,7 @@ namespace GeometryHelper.UnitTest.Export
         [Fact]
         public void EveryEntityOfALaterDrawing_IsWrittenInTheFormsOfR12_AndReadsBackTheSame()
         {
-            string[] laterOnly = { "DxfEllipse", "DxfHatch", "DxfLeader", "DxfMLeader", "DxfMText", "DxfPolyline", "DxfRay", "DxfSpline", "DxfUnknownEntity", "DxfXline" };
+            string[] laterOnly = { "DxfEllipse", "DxfHatch", "DxfLeader", "DxfMLeader", "DxfMText", "DxfPolyline", "DxfRay", "DxfRotatedDimension", "DxfSpline", "DxfUnknownEntity", "DxfXline" };
 
             foreach (string later in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
             {

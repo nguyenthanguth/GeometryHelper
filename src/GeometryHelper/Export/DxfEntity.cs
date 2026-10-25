@@ -1563,7 +1563,17 @@ namespace GeometryHelper.Export
 
             // The copy is of the entity's own class, whatever the classes registered for its type would make of a record that
             // follows no entity: a VERTEX copied is the vertex it was, not an unknown entity.
-            return (DxfEntity)copy.KeepWrapper(SameClass(copy) ?? Of(copy));
+            var made = (DxfEntity)copy.KeepWrapper(SameClass(copy) ?? Of(copy));
+            made.Copied(this);
+            return made;
+        }
+
+        /// <summary>
+        /// Gives a copy what the entity holds outside its records, as a dimension in no drawing the records set on it, which it
+        /// takes to their namesakes when it is appended; nothing unless the class says otherwise.
+        /// </summary>
+        private protected virtual void Copied(DxfEntity original)
+        {
         }
 
         private static readonly Dictionary<Type, ConstructorInfo> RecordConstructors = new Dictionary<Type, ConstructorInfo>();
