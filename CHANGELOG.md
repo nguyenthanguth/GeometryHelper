@@ -417,7 +417,8 @@ the entities of the block they are drawn with (`*D`, `*T`), placed where they dr
 places a dimension's; a MINSERT the block in every cell, where it gave the first cell alone (six circles for 2 rows by 3
 columns of a block of one); a straight LEADER its lines and its arrowhead, an INSERT of its `Dimldrblk` or AutoCAD's closed
 filled arrow as a SOLID. A splined LEADER and a MULTILEADER, whose parts AutoCAD works out when it draws them, refuse with
-the reason, and so does `ExplodeToOwnerSpace` a MINSERT, as AutoCAD's EXPLODE refuses one.
+the reason, and so does `ExplodeToOwnerSpace` a MINSERT, as AutoCAD's EXPLODE refuses one. A closed polyline of two
+vertices, each with a bulge of 1 (a donut), gives one ARC for each segment, two half circles, as AutoCAD and ezdxf give it.
 
 **NEW.** A text's and an MTEXT's text style is set by its name, `TextStyleName` (written as the drawing's table names it,
 letters of either case the same), or as its record, the new `TextStyle` (AutoCAD's `TextStyleId`): a style the drawing has not,

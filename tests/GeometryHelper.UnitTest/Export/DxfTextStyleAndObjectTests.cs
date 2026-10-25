@@ -85,12 +85,12 @@ namespace GeometryHelper.UnitTest.Export
                 var made = new DxfBlockReference(new GeoPoint3(10, 20, 0), db.BlockTable["BOLT"]);
                 made.AttributeCollection.AppendAttribute(new DxfAttributeReference(new GeoPoint3(10, 19, 0), "B-98", "MARK", null) { TextStyleName = "NOPE" });
 
-                string refused = Said(() => db.ModelSpace.AppendEntity(text));
-                Assert.StartsWith("The text style NOPE is not in", refused, StringComparison.Ordinal);
-                Assert.Equal(refused, Said(() => db.ModelSpace.AppendEntity(mtext)));
+                // The same words whichever way it is added, the argument named that of the method called.
                 DxfBlockReference bolt = db.ModelSpace.OfType<DxfBlockReference>().First(b => b.Name == "BOLT");
-                Assert.Equal(refused, Said(() => bolt.AttributeCollection.AppendAttribute(mark)));
-                Assert.Equal(refused, Said(() => db.ModelSpace.AppendEntity(made)));
+                Refused("entity", () => db.ModelSpace.AppendEntity(text));
+                Refused("entity", () => db.ModelSpace.AppendEntity(mtext));
+                Refused("attribute", () => bolt.AttributeCollection.AppendAttribute(mark));
+                Refused("entity", () => db.ModelSpace.AppendEntity(made));
                 Assert.False(mtext.IsResident);
                 Assert.Equal(before, db.ToText());
 
@@ -100,7 +100,12 @@ namespace GeometryHelper.UnitTest.Export
             }
         }
 
-        private static string Said(Action refused) => Assert.Throws<ArgumentException>(refused).Message.Split('\r', '\n')[0];
+        private static void Refused(string argument, Action adding)
+        {
+            ArgumentException refused = Assert.Throws<ArgumentException>(adding);
+            Assert.StartsWith("The text style NOPE is not in the file's text style table.", refused.Message, StringComparison.Ordinal);
+            Assert.Equal(argument, refused.ParamName);
+        }
 
         [Fact]
         public void ColumnsSet_GiveTheMTextTheWidthOfAColumn_AsAutoCADAndEzdxfGiveIt()

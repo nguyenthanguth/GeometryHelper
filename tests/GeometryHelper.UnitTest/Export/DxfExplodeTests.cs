@@ -188,6 +188,50 @@ namespace GeometryHelper.UnitTest.Export
             Near(new GeoPoint3(8.90002, 4.799974, 2.598057), arcs[1].EndPoint);
         }
 
+        [Fact]
+        public void AClosedPolylineOfTwoVertices_ExplodesIntoOnePartForEachSegment_AsADonutDoes()
+        {
+            // As ezdxf's virtual_entities gives them: a donut of two half circles about (5, 0, 0), (-5, 0, 0) on (0, 0, -1).
+            foreach (double z in new[] { 1.0, -1.0 })
+            {
+                DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+                var donut = new DxfPolyline();
+                donut.AddVertexAt(0, new GeoPoint2(0, 0), 1, 0, 0);
+                donut.AddVertexAt(1, new GeoPoint2(10, 0), 1, 0, 0);
+                donut.Closed = true;
+                donut.Normal = new GeoVector3(0, 0, z);
+                var ring = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, 0, true, 0, 0, new[] { 1.0, 1.0 });
+                ring.Normal = new GeoVector3(0, 0, z);
+                var half = new DxfPolyline();
+                half.AddVertexAt(0, new GeoPoint2(0, 0), 1, 0, 0);
+                half.AddVertexAt(1, new GeoPoint2(10, 0), 0, 0, 0);
+                half.Closed = true;
+                half.Normal = new GeoVector3(0, 0, z);
+                db.ModelSpace.AppendEntity(donut);
+                db.ModelSpace.AppendEntity(ring);
+                db.ModelSpace.AppendEntity(half);
+                var far = new GeoPoint3(10 * z, 0, 0);
+
+                foreach (DxfEntity polyline in new DxfEntity[] { donut, ring })
+                {
+                    DxfArc[] arcs = polyline.Explode().Cast<DxfArc>().ToArray();
+
+                    Assert.Equal(2, arcs.Length);
+                    Assert.All(arcs, a => Near(new GeoPoint3(5 * z, 0, 0), a.Center));
+                    Assert.All(arcs, a => Assert.Equal(Bits(new GeoVector3(0, 0, z)), Bits(a.Normal)));
+                    Assert.All(arcs, a => Assert.Equal(Math.PI, a.TotalAngle, 9));
+                    Near(new GeoPoint3(0, 0, 0), arcs[0].StartPoint);
+                    Near(far, arcs[0].EndPoint);
+                    Near(far, arcs[1].StartPoint);
+                    Near(new GeoPoint3(0, 0, 0), arcs[1].EndPoint);
+                }
+
+                DxfEntity[] parts = half.Explode().ToArray();
+                Assert.Equal(new[] { "DxfArc", "DxfLine" }, parts.Select(p => p.GetType().Name));
+                Assert.Equal(Math.PI, ((DxfArc)parts[0]).TotalAngle, 9);
+            }
+        }
+
         private static void Near(GeoPoint3 expected, GeoPoint3 actual)
         {
             Assert.True(expected.DistanceTo(actual) < 1E-5, expected + " was " + actual);

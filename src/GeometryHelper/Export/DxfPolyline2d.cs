@@ -1233,7 +1233,19 @@ namespace GeometryHelper.Export
         /// polyline's, so that its wall stands up the same way.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
-        public override IReadOnlyList<DxfEntity> Explode() => ChainParts(Normal).AsReadOnly();
+        public override IReadOnlyList<DxfEntity> Explode()
+        {
+            // The vertices in the world, as VertexPosition gives each.
+            GeoVector3 normal = Normal;
+            var vertices = new List<GeoPoint3>();
+
+            foreach (DxfVertex2d vertex in this)
+            {
+                vertices.Add(OcsToWorld(normal, vertex.Position));
+            }
+
+            return ChainParts(normal, vertices).AsReadOnly();
+        }
 
         [DxfType("POLYLINE")]
         internal static DxfEntity Create(DxfItem item)

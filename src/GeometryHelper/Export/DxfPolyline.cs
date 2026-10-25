@@ -1208,12 +1208,26 @@ namespace GeometryHelper.Export
         /// Gets the lines and arcs the polyline breaks into, as AutoCAD's <c>Explode</c>: a LINE for each straight segment and an
         /// ARC for each bulged one, in its order, in the plane of its normal at its elevation, each with its look and thickness;
         /// its widths left out, as AutoCAD leaves them out, and a segment of no length too. A closed square of side 10 with one
-        /// side bulged by 1 comes out as three lines and a half circle. Each LINE and ARC is on the polyline's
+        /// side bulged by 1 comes out as three lines and a half circle, and a donut, two vertices 10 apart each bulged by 1 and
+        /// closed, as two half circles of radius 5. Each LINE and ARC is on the polyline's
         /// <see cref="Normal"/>, as AutoCAD gives it the polyline's, so that its wall stands up the same way: on the normal
         /// (0, 0, -1) at elevation 5 with a thickness of 2, the walls stand from z = -5 down to -7.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
-        public override IReadOnlyList<DxfEntity> Explode() => ChainParts(Normal).AsReadOnly();
+        public override IReadOnlyList<DxfEntity> Explode()
+        {
+            // The vertices in the world, as GetPoint3dAt gives each, read at once.
+            GeoVector3 normal = Normal;
+            double elevation = Elevation;
+            var vertices = new List<GeoPoint3>();
+
+            foreach (List<KeyValuePair<int, string>> vertex in Read())
+            {
+                vertices.Add(OcsToWorld(normal, new GeoPoint3(Value(vertex, 10, 0.0), Value(vertex, 20, 0.0), elevation)));
+            }
+
+            return ChainParts(normal, vertices).AsReadOnly();
+        }
 
         [DxfType("LWPOLYLINE")]
         internal static DxfEntity Create(DxfItem item) => new DxfPolyline(item);

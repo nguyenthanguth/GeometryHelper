@@ -1589,18 +1589,48 @@ namespace GeometryHelper.Export
         /// order, an edge of no length left out, as AutoCAD's <c>Explode</c> gives a polyline's. Given the normal of the
         /// polyline's plane, each LINE and ARC is on it, as AutoCAD gives them its 210, so that their walls stand up the way
         /// the polyline's do: an ARC about it, its angles in that normal's own system, from the end of its edge where the edge
-        /// runs clockwise about it, as ezdxf's <c>virtual_entities</c> gives it.
+        /// runs clockwise about it, as ezdxf's <c>virtual_entities</c> gives it. Given the polyline's vertices in the world, two
+        /// arcs that meet at a point no vertex stands on are one segment, one ARC: a closed polyline of two vertices, which
+        /// <see cref="DxfReader"/> reads with its arc cut in two, explodes into one part for each segment, a donut into two
+        /// half circles.
         /// </summary>
-        private protected List<DxfEntity> ChainParts(GeoVector3? normal)
+        private protected List<DxfEntity> ChainParts(GeoVector3? normal, IReadOnlyList<GeoPoint3> vertices)
         {
             var parts = new List<DxfEntity>();
             double tolerance = Tolerance.Default.EqualPoint;
 
-            void Edge(GeoEdge3 edge)
+            bool OnVertex(GeoPoint3 point)
             {
-                if (edge.StartPoint.DistanceTo(edge.EndPoint) > tolerance)
+                foreach (GeoPoint3 vertex in vertices)
                 {
-                    parts.Add(PartOn(edge.IsArc ? (object)edge.ToArc() : edge.ToLine(), normal));
+                    if (vertex.DistanceTo(point) <= tolerance)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            void Edges(IEnumerable<GeoEdge3> chain)
+            {
+                List<GeoEdge3> edges = chain.ToList();
+
+                for (int i = 0; i < edges.Count; i++)
+                {
+                    GeoEdge3 edge = edges[i];
+
+                    if (vertices != null && edge.IsArc && i + 1 < edges.Count && edges[i + 1].IsArc && !OnVertex(edge.EndPoint))
+                    {
+                        // The two halves of one arc, cut where no vertex is: one ARC from the start of the first to the end of the second.
+                        GeoArc3 first = edge.ToArc();
+                        parts.Add(ArcOn(first.Center, first.Normal, first.Radius, edge.StartPoint, edges[i + 1].EndPoint, normal ?? first.Normal));
+                        i++;
+                    }
+                    else if (edge.StartPoint.DistanceTo(edge.EndPoint) > tolerance)
+                    {
+                        parts.Add(PartOn(edge.IsArc ? (object)edge.ToArc() : edge.ToLine(), normal));
+                    }
                 }
             }
 
@@ -1617,18 +1647,10 @@ namespace GeometryHelper.Export
                 switch (shape)
                 {
                     case GeoPolylineArc3 chain:
-                        foreach (GeoEdge3 edge in chain.GetEdges())
-                        {
-                            Edge(edge);
-                        }
-
+                        Edges(chain.GetEdges());
                         break;
                     case GeoPolygonArc3 ring:
-                        foreach (GeoEdge3 edge in ring.GetEdges())
-                        {
-                            Edge(edge);
-                        }
-
+                        Edges(ring.GetEdges());
                         break;
                     case GeoPolyline3 lines:
                         foreach (GeoLine3 line in lines.GetEdges())
