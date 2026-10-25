@@ -151,12 +151,50 @@ the made vertices out in one writing: 90 000 in 0.6 s, where they took 29 s.
 `DxfAttributeDefinition` read and edit TEXT, MTEXT, INSERT, MINSERT, ATTRIB and ATTDEF with AutoCAD's names and meanings,
 points in world coordinates. An INSERT moved, turned, scaled or given a new normal carries its ATTRIBs with it;
 `AttributeCollection.AppendAttribute` adds one, `SetAttributeFromBlock` fills one from its ATTDEF, and erasing one keeps
-the others' handles. `Explode` gives the block's entities one level down; an INSERT whose block would insert itself is
-refused. A nested INSERT that cannot hold the placing is exploded in its turn, one of a block already being exploded
-further out is refused with an `ArgumentException`, and what exploding makes is counted first and held to the reader's
-2 000 000 (`DxfReadOptions.MaxPlacedEntities`), past which an `InvalidOperationException` is thrown and nothing is given:
-a block of 100 INSERTs turned by 20 degrees, of a block of 100 INSERTs turned by 10 degrees, of a block of 100 lines,
-inserted at twice its width, explodes into 1 000 000 lines; with 200 lines it is refused in a quarter of a second. MTEXT columns are read from R2018's embedded object or the ACAD extended data.
+the others' handles. `Explode` gives the block's entities one level down, as AutoCAD's `BlockReference.Explode` gives
+them: the block's ATTDEFs among them, each a `DxfAttributeDefinition` placed as the rest are, and none of the INSERT's
+ATTRIBs, whose values stay in its `AttributeCollection`; the INSERT of BOLT whose block holds a CIRCLE, a LINE and the
+ATTDEF MARK, and which gives MARK the value B-12, explodes into a circle, a line and the definition MARK. An INSERT whose
+block would insert itself is refused. A nested INSERT that cannot hold the placing is exploded in its turn, one of a block
+already being exploded further out is refused with an `ArgumentException`, and what exploding makes is counted first and
+held to the reader's 2 000 000 (`DxfReadOptions.MaxPlacedEntities`), past which an `InvalidOperationException` is thrown
+and nothing is given: a block of 100 INSERTs turned by 20 degrees, of a block of 100 INSERTs turned by 10 degrees, of a
+block of 100 lines, inserted at twice its width, explodes into 1 000 000 lines; with 200 lines it is refused in a quarter
+of a second. MTEXT columns are read from R2018's embedded object or the ACAD extended data.
+
+**NEW.** The rest of AutoCAD's members of text and blocks. `DxfMText` is set in columns as AutoCAD sets one
+(`ColumnType`, `ColumnCount`, `ColumnWidth`, `ColumnGutterWidth`, `ColumnAutoHeight`, `ColumnFlowReversed`,
+`SetStaticColumns`, `SetDynamicColumns`, `SetColumnHeight`), written in the MTEXT's embedded object from R2018 and in the
+extended data of ACAD before it (`ACAD_MTEXT_COLUMN_INFO`, `ACAD_MTEXT_DEFINED_HEIGHT`), as ezdxf writes and reads them:
+three static columns 12.5 wide with gutters of 2.5 take 42.5 across. The values the embedded object repeats, the
+attachment AutoCAD reads from it among them, follow the MTEXT's own, a scale stretches the columns as ezdxf stretches them,
+and an MTEXT made in code is given the form of the drawing it is added to. Before R2018 the columns after the first are
+MTEXTs of their own, linked to the first (`ACAD_MTEXT_COLUMNS`). The first is one text with them, as AutoCAD and ezdxf take
+it: `TransformBy` and its `Location`, `Rotation`, `Direction` and `Normal` move them with it as ezdxf moves them,
+`TextHeight` and `Height` give them the same, and `Erase` takes them with it; its `Contents` and `Text` are its own
+column's words alone, and a block walks and counts it with its linked columns as one, as AutoCAD's database holds
+them. A copy of the first, in its drawing or another, holds the
+words of them all itself and links to none of them, so that no two MTEXTs claim the same columns, and an INSERT of a block
+holding them explodes into that one MTEXT, as ezdxf reads it. `Height` before R2007, which has no group 46, is the height of
+columns of one height in the extended data (`ACAD_MTEXT_DEFINED_HEIGHT`), read and set there: 30 for ezdxf's three static
+columns 30 high. `LineSpaceDistance` is the spacing factor times
+single spacing, 5/3 of the letters' height: 5 for letters 3 high. `SetAttachmentMovingLocation` holds the MTEXT by another
+of its points where it stands, by its width and the height of its words (43): the MTEXT 40 wide at (20, 40, 0) held at
+its top centre stands at (40, 40, 0). `ShowBorders` is its text frame (flag 16 of group 90), and `BackgroundTransparency`
+its group 441, of the new `DxfTransparency`. `DxfBlockReference` has `ExplodeToOwnerSpace`, which appends what `Explode`
+gives to the INSERT's block and keeps the INSERT, as AutoCAD keeps it (erase it after, as AutoCAD's EXPLODE does), or
+appends nothing where the drawing cannot hold a part, as R12 an ELLIPSE, and refuses a MINSERT of more than one cell,
+whose `Explode` gives its first cell alone; `UnitFactor`, the block's units against `$INSUNITS` (25.4 for a block in inches in a drawing of
+millimetres, 1 where either is not given); `GeometryExtentsBestFit`, the box of the shapes placed, after a parent
+transformation where one is given; `TreatAsBlockRefForExplode`; and `IsDynamicBlock`, `DynamicBlockTableRecord` and
+`AnonymousBlockTableRecord`, found by the extended data `AcDbDynamicBlockGUID` and `AcDbBlockRepBTag` of the block records
+as ezdxf finds them (the dynamic properties are worked out by AutoCAD's engine of dynamic blocks and are not given). A
+nested INSERT that `Explode` gives places the block of the drawing it came from, so that it explodes in its turn, with what
+the block now holds. `DxfAttributeReference` and `DxfAttributeDefinition` are made of several lines and of one again
+(`IsMTextAttribute`, `IsMTextAttributeDefinition`), give and take the MTEXT they are made of (`MTextAttribute`,
+`MTextAttributeDefinition`) as AutoCAD and ezdxf's `set_mtext` do, of type 2 and 4, and place it again where their text
+stands (`UpdateMTextAttribute`, `UpdateMTextAttributeDefinition`). Held against ezdxf 1.4.5: recover and audit find
+nothing new to fix in what is written, and ezdxf reads every column, background, attribute and dynamic block as set.
 
 **NEW.** The details of the editing model's objects and tables, with AutoCAD's names. Every entity has its `Transparency`
 (group 440) as the new `DxfTransparency`, AutoCAD's `Transparency` (BYLAYER, BYBLOCK or an alpha, 127 the 50 per cent of
@@ -183,8 +221,7 @@ are set. A block has its `Comments`, `Units`, `Explodable`, `BlockScaling`, `Pre
 `IsDynamicBlock` and `Hyperlinks`; `GetBlockReferences` and `GetAnonymousBlocks` give its INSERTs and the blocks AutoCAD made
 of it as objects (all of 2 000 nested blocks in 0.02 seconds), `AssumeOwnershipOf` moves entities into it keeping their
 handles, out of the draw order (SORTENTSTABLE) of the block they leave and onto the end of that of the block they enter, its `Name` renames it with every INSERT
-of it, and `Erase()` takes it out where nothing inserts it; it walks and counts an MTEXT of a file before R2018 with its
-linked columns (`ACAD_MTEXT_COLUMNS`) as one, as AutoCAD's database holds them. The drawing reads and sets 20 more of AutoCAD's variables,
+of it, and `Erase()` takes it out where nothing inserts it. The drawing reads and sets 20 more of AutoCAD's variables,
 those AutoCAD keeps as DICTIONARYVAR objects rather than in the header (`Cannoscale`, `Cetransparency`, `Tablestyle`,
 `MLeaderstyle`, `AnnoAllVisible`, `TstackSize` and the rest), adding the dictionary of variables where a drawing has none,
 reads its `ThumbnailBitmap`, and has five more variables of the header as properties, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. Every value set was read back by ezdxf 1.4.5, whose recover and audit found nothing to fix.

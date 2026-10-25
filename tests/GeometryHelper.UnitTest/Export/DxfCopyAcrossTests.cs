@@ -24,7 +24,7 @@ namespace GeometryHelper.UnitTest.Export
         {
             "Handle", "OwnerHandle", "Owner", "BlockName", "ExtensionDictionary", "IsErased", "XData", "LineWeight", "TrueColor",
             "Color", "LinetypeScale", "Visible", "Transparency", "BlockTableRecord", "GeometricExtents", "IsMTextAttribute",
-            "MTextAttribute",
+            "MTextAttribute", "DynamicBlockTableRecord", "AnonymousBlockTableRecord",
         };
 
         private static string G(params object[] pairs)

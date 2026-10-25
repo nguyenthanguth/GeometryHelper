@@ -225,7 +225,7 @@ namespace GeometryHelper.UnitTest.Export
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 DxfBlockReference frame = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "FRAME");
-                DxfEntity[] inBlock = db.BlockTable["FRAME"].Where(e => !(e is DxfAttributeDefinition)).ToArray();
+                DxfEntity[] inBlock = db.BlockTable["FRAME"].ToArray();
 
                 var exploded = frame.Explode();
 
@@ -358,25 +358,29 @@ namespace GeometryHelper.UnitTest.Export
         }
 
         [Fact]
-        public void AnInsertExploded_GivesItsAttribsAsTexts_AndLeavesItsAttdefsOut()
+        public void AnInsertExploded_GivesItsBlocksAttdefsPlacedInBlockOrder_AndNoneOfItsAttribs()
         {
-            // As ezdxf and AutoCAD's BURST: the ATTRIB MARK of B-12 comes out a TEXT of B-12 where it stood, on its layer.
+            // As AutoCAD's BlockReference.Explode: BOLT's CIRCLE, LINE and ATTDEF MARK, the ATTDEF placed as the rest are; the
+            // ATTRIB MARK of B-12 stays with the INSERT. ezdxf 1.4.5 places the ATTDEF of the INSERT 65 (68 of R12) at
+            // (-45.757359312880716, 62.121320343559645, 0) on the normal (0, 0, -1), the world's (45.76, 62.12, 0), turned by
+            // 135 degrees, 0.75 high.
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 DxfBlockReference bolt = Bolt(db);
-                DxfAttributeReference mark = bolt.AttributeCollection.Single();
 
                 IReadOnlyList<DxfEntity> parts = bolt.Explode();
 
-                DxfDBText value = Assert.Single(parts.OfType<DxfDBText>());
-                Assert.IsType<DxfDBText>(value);
-                Assert.Equal("B-12", value.TextString);
-                Assert.Equal(Bits(mark.Position), Bits(value.Position));
-                Assert.Equal(mark.Height, value.Height);
-                Assert.Equal("steel", value.Layer);
-                Assert.Same(value, parts[parts.Count - 1]);
-                Assert.Equal(db.BlockTable["BOLT"].Count(e => !(e is DxfAttributeDefinition)) + 1, parts.Count);
+                Assert.Equal(new[] { "DxfCircle", "DxfLine", "DxfAttributeDefinition" }, parts.Select(p => p.GetType().Name));
+                Assert.DoesNotContain(parts, p => p is DxfDBText && !(p is DxfAttributeDefinition));
+                var mark = (DxfAttributeDefinition)parts[2];
+                Assert.Equal("MARK", mark.Tag);
+                Assert.Null(mark.Handle);
+                Near(new GeoPoint3(45.757359312880716, 62.121320343559645, 0.0), mark.Position);
+                Near(new GeoVector3(0.0, 0.0, -1.0), mark.Normal);
+                Near(135.0 * (Math.PI / 180.0), mark.Rotation);
+                Near(0.75, mark.Height);
+                Assert.Equal("B-12", bolt.AttributeCollection.Single().TextString);
             }
         }
 
@@ -465,6 +469,199 @@ namespace GeometryHelper.UnitTest.Export
             InvalidOperationException refused = Assert.Throws<InvalidOperationException>(() => c1.Explode());
 
             Assert.Equal("Exploding the INSERT of C1 would make more than 2000000 entities, the bound of DxfReadOptions.MaxPlacedEntities.", refused.Message);
+        }
+
+        [Fact]
+        public void AnInsertExploded_AfterItsBlockAndANestedInsertWereEdited_GivesTheEditedEntities()
+        {
+            // BOLT's LINE moved to end at (8, 0, 0) and the INSERT of BOLT in FRAME moved to (3, 4, 0): FRAME exploded gives that
+            // INSERT where it now stands, and it exploded in turn gives the LINE as it now is, placed.
+            foreach (string text in Drawings)
+            {
+                DxfDatabase db = DxfDatabase.Parse(text);
+                DxfLine line = db.BlockTable["BOLT"].OfType<DxfLine>().Single();
+                DxfBlockReference inFrame = db.BlockTable["FRAME"].OfType<DxfBlockReference>().Single();
+                DxfBlockReference frame = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "FRAME");
+
+                line.EndPoint = new GeoPoint3(8.0, 0.0, 0.0);
+                inFrame.Position = new GeoPoint3(3.0, 4.0, 0.0);
+                DxfBlockReference placed = frame.Explode().OfType<DxfBlockReference>().Single();
+                DxfLine part = placed.Explode().OfType<DxfLine>().Single();
+
+                Near(frame.BlockTransform.Transform(new GeoPoint3(3.0, 4.0, 0.0)), placed.Position);
+                GeoTransform3 both = frame.BlockTransform.Multiply(inFrame.BlockTransform);
+                Near(both.Transform(new GeoPoint3(8.0, 0.0, 0.0)), part.EndPoint);
+                Near(both.Transform(line.StartPoint), part.StartPoint);
+            }
+        }
+
+        #endregion
+
+        #region Exploded into its owner
+
+        [Fact]
+        public void AnInsertExplodedToOwnerSpace_AppendsItsPartsToModelSpace_AndIsKept_TillTheCallerErasesIt()
+        {
+            // As AutoCAD's ExplodeToOwnerSpace: the INSERT and its ATTRIB stay; erased after, as AutoCAD's EXPLODE does it.
+            foreach (string text in Drawings)
+            {
+                DxfDatabase db = DxfDatabase.Parse(text);
+                DxfBlockReference bolt = Bolt(db);
+                DxfAttributeReference mark = bolt.AttributeCollection.Single();
+                string[] types = bolt.Explode().Select(p => p.GetType().Name).ToArray();
+                int before = db.ModelSpace.Count;
+                string handle = bolt.Handle;
+
+                bolt.ExplodeToOwnerSpace();
+
+                Assert.False(bolt.IsErased);
+                Assert.False(mark.IsErased);
+                Assert.Equal(before + 3, db.ModelSpace.Count);
+                DxfEntity[] added = db.ModelSpace.Skip(before).ToArray();
+                Assert.Equal(types, added.Select(p => p.GetType().Name));
+                Assert.All(added, p => Assert.Same(db.ModelSpace, p.Owner));
+                Assert.Equal(new[] { "DxfCircle", "DxfLine", "DxfAttributeDefinition" }, types);
+                Assert.Contains(Records(db.ToText()), r => r.Contains("\nB-12\n"));
+
+                bolt.Erase();
+                string saved = db.ToText();
+                DxfDatabase again = DxfDatabase.Parse(saved);
+                Assert.DoesNotContain(Everything(again).OfType<DxfBlockReference>(), b => b.Handle == handle);
+                Assert.Equal("MARK", Assert.IsType<DxfAttributeDefinition>(ByHandle<DxfEntity>(again, added[2].Handle)).Tag);
+                Assert.DoesNotContain(Records(saved), r => r.Contains("\nB-12\n"));
+            }
+        }
+
+        [Fact]
+        public void AnInsertInABlock_ExplodedToOwnerSpace_AppendsItsPartsToThatBlock()
+        {
+            foreach (string text in Drawings)
+            {
+                DxfDatabase db = DxfDatabase.Parse(text);
+                DxfBlockTableRecord frame = db.BlockTable["FRAME"];
+                DxfBlockReference inFrame = frame.OfType<DxfBlockReference>().Single();
+                int before = frame.Count;
+
+                inFrame.ExplodeToOwnerSpace();
+
+                Assert.False(inFrame.IsErased);
+                Assert.Equal(before + db.BlockTable["BOLT"].Count, frame.Count);
+                inFrame.Erase();
+                Assert.DoesNotContain(frame, e => e is DxfBlockReference);
+                Assert.All(frame, e => Assert.Same(frame, e.Owner));
+                Assert.Single(DxfDatabase.Parse(db.ToText()).BlockTable["FRAME"].OfType<DxfAttributeDefinition>());
+            }
+        }
+
+        [Fact]
+        public void AnInsertExplodedToOwnerSpace_WhosePartTheDrawingCannotHold_LeavesTheDrawingAsItWas()
+        {
+            // B holds a LINE and a CIRCLE: stretched to twice its width, the CIRCLE comes out an ELLIPSE, which R12 has not. The
+            // LINE appended before it is taken out again.
+            DxfDatabase db = DxfDatabase.Parse(Nest("B", Line(0) + "  0\nCIRCLE\n  8\n0\n 10\n0.0\n 20\n0.0\n 30\n0.0\n 40\n1.0\n"));
+            var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["B"]) { ScaleFactors = new GeoVector3(2, 1, 1) };
+            db.ModelSpace.AppendEntity(insert);
+            string before = db.ToText();
+
+            Assert.Equal(new[] { "DxfLine", "DxfEllipse" }, insert.Explode().Select(p => p.GetType().Name));
+            Assert.Throws<ArgumentException>(() => insert.ExplodeToOwnerSpace());
+
+            Assert.False(insert.IsErased);
+            Assert.Equal(before, db.ToText());
+            Assert.Same(insert, Assert.Single(db.ModelSpace));
+        }
+
+        [Fact]
+        public void AnInsertInNoDrawing_OrAnArrayOfCells_IsNotExplodedToOwnerSpace()
+        {
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
+            var loose = new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["BOLT"]);
+            DxfMInsertBlock grid = ByHandle<DxfMInsertBlock>(db, "6A");
+
+            Assert.Throws<InvalidOperationException>(() => loose.ExplodeToOwnerSpace());
+            Assert.Throws<NotSupportedException>(() => grid.ExplodeToOwnerSpace());
+            Assert.False(grid.IsErased);
+            Assert.True(Bolt(db).TreatAsBlockRefForExplode);
+            Assert.True(grid.TreatAsBlockRefForExplode);
+        }
+
+        #endregion
+
+        #region Units, extents and dynamic blocks
+
+        [Fact]
+        public void TheUnitFactor_TakesTheBlocksUnitsToTheDrawings_AndIsOneWhereEitherIsUndefined()
+        {
+            // R2018 of ezdxf is in metres ($INSUNITS 6), its BOLT of no units (70 of 0): 1. BOLT given inches: 0.0254.
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+            Assert.Equal(1.0, Bolt(db).UnitFactor);
+            Assert.Equal(1.0, Bolt(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000)).UnitFactor);
+
+            DxfDatabase inches = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("  2\nBOLT\n340\n0\n 70\n0\n", "  2\nBOLT\n340\n0\n 70\n1\n"));
+            Assert.Equal(DxfUnits.Inches, Bolt(inches).BlockUnit);
+            Assert.Equal(25.4 / 1000.0, Bolt(inches).UnitFactor);
+
+            inches.Insunits = DxfUnits.Millimeters;
+            Assert.Equal(25.4, Bolt(inches).UnitFactor);
+
+            inches.Insunits = DxfUnits.Undefined;
+            Assert.Equal(1.0, Bolt(inches).UnitFactor);
+        }
+
+        [Fact]
+        public void TheBestFitExtents_AreThoseOfThePlacedShapes_CarriedByAParentTransformation()
+        {
+            // B holds the LINE (0, 0, 0) to (0, 1, 0); placed turned by 90 degrees at (5, 0, 0) it runs to (4, 0, 0); moved by a
+            // parent transformation of (0, 10, 0) it stands from (4, 10, 0) to (5, 10, 0).
+            DxfDatabase db = DxfDatabase.Parse(Nest("B", Line(0)));
+            var insert = new DxfBlockReference(new GeoPoint3(5, 0, 0), db.BlockTable["B"]) { Rotation = Math.PI / 2.0 };
+            db.ModelSpace.AppendEntity(insert);
+
+            GeoAabb3 fit = insert.GeometryExtentsBestFit();
+            GeoAabb3 moved = insert.GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 10, 0)));
+
+            Near(new GeoPoint3(4, 0, 0), fit.Min);
+            Near(new GeoPoint3(5, 0, 0), fit.Max);
+            Assert.Equal(Bits(insert.GeometricExtents.Min), Bits(fit.Min));
+            Near(new GeoPoint3(4, 10, 0), moved.Min);
+            Near(new GeoPoint3(5, 10, 0), moved.Max);
+            Assert.Throws<ArgumentNullException>(() => insert.GeometryExtentsBestFit(null));
+        }
+
+        [Fact]
+        public void ADynamicBlock_IsFoundByItsGuid_OrByTheRepresentationTagOfItsAnonymousBlock_AsEzdxfFindsIt()
+        {
+            // BOLT made a dynamic block by its AcDbDynamicBlockGUID, and FRAME the anonymous block that stands for it by its
+            // AcDbBlockRepBTag naming BOLT's BLOCK_RECORD 32, as AutoCAD writes them and ezdxf's dynblkhelper reads them.
+            foreach (string text in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            {
+                DxfDatabase db = DxfDatabase.Parse(text);
+                DxfBlockReference bolt = Bolt(db);
+                DxfBlockReference frame = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "FRAME");
+
+                Assert.False(bolt.IsDynamicBlock);
+                Assert.Same(db.BlockTable["BOLT"], bolt.DynamicBlockTableRecord);
+                Assert.Null(bolt.AnonymousBlockTableRecord);
+
+                db.BlockTable["BOLT"].XData = new[] { new DxfTypedValue(1001, "AcDbDynamicBlockGUID"), new DxfTypedValue(1000, "{4E1F21B3-8C4E-4F6B-9A39-3F0F2B9B6A11}") };
+                db.BlockTable["FRAME"].XData = new[] { new DxfTypedValue(1001, "AcDbBlockRepBTag"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1005, db.BlockTable["BOLT"].Handle) };
+                DxfDatabase again = DxfDatabase.Parse(db.ToText());
+                bolt = Bolt(again);
+                frame = Everything(again).OfType<DxfBlockReference>().Single(b => b.Owner == again.ModelSpace && b.Name == "FRAME");
+
+                Assert.True(bolt.IsDynamicBlock);
+                Assert.Same(again.BlockTable["BOLT"], bolt.DynamicBlockTableRecord);
+                Assert.Null(bolt.AnonymousBlockTableRecord);
+                Assert.True(frame.IsDynamicBlock);
+                Assert.Same(again.BlockTable["BOLT"], frame.DynamicBlockTableRecord);
+                Assert.Same(again.BlockTable["FRAME"], frame.AnonymousBlockTableRecord);
+
+                // A tag that names no block record is a lost reference: not dynamic.
+                again.BlockTable["FRAME"].XData = new[] { new DxfTypedValue(1001, "AcDbBlockRepBTag"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1005, "FFFF") };
+                Assert.False(frame.IsDynamicBlock);
+                Assert.Same(again.BlockTable["FRAME"], frame.DynamicBlockTableRecord);
+                Assert.Null(frame.AnonymousBlockTableRecord);
+            }
         }
 
         #endregion

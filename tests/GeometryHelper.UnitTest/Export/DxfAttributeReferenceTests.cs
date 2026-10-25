@@ -289,6 +289,133 @@ namespace GeometryHelper.UnitTest.Export
             Assert.DoesNotContain("Embedded Object", Records(into.ToText()).Single(r => HandleOf(r) == mark.Handle), StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void TheMTextOfAnAttribAndWhetherItHasOne_GivenBack_ChangeNothing()
+        {
+            foreach (string text in Drawings.Concat(new[] { Embedded }))
+            {
+                DxfDatabase db = DxfDatabase.Parse(text);
+
+                foreach (DxfAttributeReference a in Everything(db).OfType<DxfBlockReference>().SelectMany(b => b.AttributeCollection).ToList())
+                {
+                    a.IsMTextAttribute = a.IsMTextAttribute;
+                    a.MTextAttribute = a.MTextAttribute;
+                }
+
+                Assert.Equal(new UTF8Encoding(false).GetBytes(text), Saved(db));
+            }
+        }
+
+        [Fact]
+        public void AnAttribGivenAnMText_EmbedsIt_AndItsTextAgrees_AsEzdxfSetsOne()
+        {
+            // ezdxf 1.4.5 reads it back as an ATTRIB of type 2 whose text is B-12 at (60, 70, 0), centred on its middle (72 of 1,
+            // 74 of 2), 3 high, and whose embedded MTEXT reads 'B-12\PM24' at (60, 70, 0), held at its middle centre (5).
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+            DxfAttributeReference mark = Bolt(db).AttributeCollection.Single();
+            string before = db.ToText();
+
+            mark.MTextAttribute = new DxfMText { Contents = "B-12\\PM24", Location = new GeoPoint3(60, 70, 0), TextHeight = 3.0, Attachment = DxfAttachmentPoint.MiddleCenter };
+
+            OnlyTheseChanged(before, db.ToText(), mark.Handle);
+            DxfAttributeReference again = Bolt(DxfDatabase.Parse(db.ToText())).AttributeCollection.Single();
+            Assert.True(again.IsMTextAttribute);
+            Assert.Equal("B-12", again.TextString);
+            Assert.Equal(Bits(new GeoPoint3(60, 70, 0)), Bits(again.Position));
+            Assert.Equal(Bits(new GeoPoint3(60, 70, 0)), Bits(again.AlignmentPoint));
+            Assert.Equal(DxfAttachmentPoint.MiddleCenter, again.Justify);
+            Assert.Equal(3.0, again.Height);
+            Assert.Equal("steel", again.MTextAttribute.Layer);
+            Assert.Equal("B-12\\PM24", again.MTextAttribute.Contents);
+            Assert.Equal(DxfAttachmentPoint.MiddleCenter, again.MTextAttribute.Attachment);
+            Assert.Equal(Bits(new GeoPoint3(60, 70, 0)), Bits(again.MTextAttribute.Location));
+            string record = Records(db.ToText()).Single(r => HandleOf(r) == mark.Handle);
+            Assert.Contains("AcDbAttribute\n  2\nMARK\n 70\n0\n 74\n2\n 71\n2\n 72\n0\n101\nEmbedded Object\n", record, StringComparison.Ordinal);
+
+            // Made one of one line again: the MTEXT goes, the text keeps B-12, the type is 1.
+            mark.IsMTextAttribute = false;
+            Assert.False(mark.IsMTextAttribute);
+            Assert.Equal("B-12", mark.TextString);
+            Assert.Contains("AcDbAttribute\n  2\nMARK\n 70\n0\n 74\n2\n 71\n1\n 72\n0\n", Records(db.ToText()).Single(r => HandleOf(r) == mark.Handle), StringComparison.Ordinal);
+            Assert.Null(mark.MTextAttribute);
+
+            DxfAttributeReference old = Bolt(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000)).AttributeCollection.Single();
+            Assert.Throws<InvalidOperationException>(() => old.IsMTextAttribute = true);
+            Assert.Throws<InvalidOperationException>(() => old.MTextAttribute = new DxfMText());
+
+            // Null, what an attribute of one line reads, changes nothing on one; an attribute of several lines refuses it.
+            string saved = db.ToText();
+            mark.MTextAttribute = null;
+            Assert.Equal(saved, db.ToText());
+            mark.IsMTextAttribute = true;
+            Assert.Throws<ArgumentNullException>(() => mark.MTextAttribute = null);
+        }
+
+        [Fact]
+        public void AnAttribSetFromADefinitionOfSeveralLines_TakesItsMText_AndTheTypeOfAnAttribOfSeveralLines()
+        {
+            // BOLT's ATTDEF MARK made one of several lines, of type 4: the ATTRIB filled from it is one of several lines of
+            // type 2, as ezdxf writes an ATTRIB of several lines, its 72 of nought after it.
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+            DxfAttributeDefinition definition = db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
+            definition.MTextAttributeDefinition = new DxfMText { Contents = "M20\\Pgrade 8.8", Location = new GeoPoint3(0, -1, 0), TextHeight = 0.5 };
+            DxfBlockReference bolt = Bolt(db);
+            DxfAttributeReference mark = bolt.AttributeCollection.Single();
+
+            mark.SetAttributeFromBlock(definition, bolt.BlockTransform);
+
+            Assert.True(mark.IsMTextAttribute);
+            Assert.Equal("M20\\Pgrade 8.8", mark.MTextAttribute.Contents);
+            string record = Records(db.ToText()).Single(r => HandleOf(r) == mark.Handle);
+            Assert.Contains("AcDbAttribute\n  2\nMARK\n 70\n0\n 74\n3\n 71\n2\n 72\n0\n101\nEmbedded Object\n", record, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void AnAttribOfOneLineMadeOfSeveral_HoldsItsWordsWhereTheyStand_ItsCodesWrittenAsCodes()
+        {
+            // The value a\b{c} at (50, 59, 0), left on its baseline: the MTEXT a\\b\{c\} held at its bottom left there, 2.5 high.
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+            DxfAttributeReference mark = Bolt(db).AttributeCollection.Single();
+            mark.TextString = "a\\b{c}";
+
+            mark.IsMTextAttribute = true;
+
+            DxfMText made = mark.MTextAttribute;
+            Assert.Equal("a\\\\b\\{c\\}", made.Contents);
+            Assert.Equal("a\\b{c}", made.Text);
+            Assert.Equal(DxfAttachmentPoint.BottomLeft, made.Attachment);
+            Assert.Equal(Bits(new GeoPoint3(50, 59, 0)), Bits(made.Location));
+            Assert.Equal(2.5, made.TextHeight);
+            Assert.Equal("a\\b{c}", mark.TextString);
+        }
+
+        [Fact]
+        public void AnAttribOfSeveralLinesMovedByItsText_HasItsMTextPlacedAgainByUpdateMTextAttribute()
+        {
+            // The ATTRIB of two lines with its text moved to (70, 80, 0) and turned a quarter: its MTEXT still stands at
+            // (50, 59, 0) until UpdateMTextAttribute places it there, reading along (0, 1, 0), held at its bottom left.
+            DxfDatabase db = DxfDatabase.Parse(Embedded);
+            DxfAttributeReference mark = Bolt(db).AttributeCollection.Single();
+
+            mark.Position = new GeoPoint3(70, 80, 0);
+            mark.Rotation = Math.PI / 2.0;
+            Assert.Equal(Bits(new GeoPoint3(50, 59, 0)), Bits(mark.MTextAttribute.Location));
+
+            mark.UpdateMTextAttribute();
+
+            DxfMText placed = Bolt(DxfDatabase.Parse(db.ToText())).AttributeCollection.Single().MTextAttribute;
+            Assert.Equal(Bits(new GeoPoint3(70, 80, 0)), Bits(placed.Location));
+            Near(new GeoVector3(0, 1, 0), placed.Direction);
+            Assert.Equal(DxfAttachmentPoint.BottomLeft, placed.Attachment);
+            Assert.Equal("B-12\\Pmore", placed.Contents);
+            Assert.Equal(5.0, placed.Width);
+
+            // Once placed, it agrees, and placing it again writes nothing.
+            string saved = db.ToText();
+            mark.UpdateMTextAttribute();
+            Assert.Equal(saved, db.ToText());
+        }
+
         /// <summary>The drawing of R2018 with its ATTRIB MARK made an MTEXT of two lines, as ezdxf writes one.</summary>
         private static string Embedded => DxfFileEzdxfDrawings.R2018.Replace(
             "AcDbAttribute\n  2\nMARK\n 70\n0\n 71\n1\n 72\n0\n  0\nSEQEND\n",

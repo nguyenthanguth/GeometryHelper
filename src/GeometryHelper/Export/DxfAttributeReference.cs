@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using GeometryHelper.Geometry;
 
@@ -111,14 +112,65 @@ namespace GeometryHelper.Export
             set => SetLocked(value);
         }
 
-        /// <summary>Gets whether the attribute is a text of several lines, an MTEXT embedded in its record (group 101), as AutoCAD's <c>IsMTextAttribute</c>.</summary>
-        public bool IsMTextAttribute => Embedded;
+        /// <summary>Gets or sets whether the attribute is a text of several lines, an MTEXT embedded in its record (group 101), as AutoCAD's <c>IsMTextAttribute</c>.</summary>
+        /// <value>
+        /// Set true, an MTEXT made of its value embedded where its text stands, as <see cref="MTextAttribute"/> embeds one: the
+        /// value B-12 of letters 2.5 high at (50, 59, 0) becomes the MTEXT B-12 2.5 high held there, its backslashes and braces
+        /// written as the codes <c>\\</c>, <c>\{</c> and <c>\}</c>. Set false, the MTEXT taken out, the text keeping its first
+        /// line, as an attribute of one line (71 of 1).
+        /// </value>
+        /// <exception cref="InvalidOperationException">Thrown when the attribute is erased, or set true in a file older than R2018 (AC1032).</exception>
+        public bool IsMTextAttribute
+        {
+            get => Embedded;
+            set => SetSeveral(value);
+        }
+
+        /// <summary>
+        /// Gets or sets the MTEXT the attribute is made of where it is of several lines, as AutoCAD's <c>MTextAttribute</c>.
+        /// </summary>
+        /// <value>
+        /// <para>
+        /// Get, a new MTEXT in no file of the groups embedded in the attribute's record after its 101, with the attribute's
+        /// look; null for an attribute of one line. Changing it changes nothing in the drawing until it is set back.
+        /// </para>
+        /// <para>
+        /// Set, as AutoCAD sets it and ezdxf's <c>set_mtext</c> writes it: the MTEXT's own groups embedded after a 101, those
+        /// AutoCAD always writes put in where it has none (its location, height 2.5, width and box height nought, held at its top
+        /// left, flowing by its style, the style Standard, single spacing at least); the text's part made to agree, its value
+        /// the first line of the words, its two points the MTEXT's location, its rotation the MTEXT's direction, its
+        /// justification the MTEXT's attachment, its style and height the MTEXT's, its width factor, lean and mirroring taken
+        /// out; its type (71) 2, of several lines. The attribute keeps its own look. The MTEXT it is made of, given back,
+        /// changes nothing, and so does null given to an attribute of one line, which reads null.
+        /// </para>
+        /// </value>
+        /// <exception cref="ArgumentNullException">Thrown when null is set on an attribute of several lines: set
+        /// <see cref="IsMTextAttribute"/> false to make it one of one line.</exception>
+        /// <exception cref="ArgumentException">Thrown when the MTEXT's text style is not in the file's text style table.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the attribute is erased, or set in a file older than R2018 (AC1032).</exception>
+        public DxfMText MTextAttribute
+        {
+            get => MTextOf();
+            set => SetMText(value);
+        }
+
+        /// <summary>
+        /// Places the attribute's MTEXT where its text stands, as AutoCAD's <c>UpdateMTextAttribute</c>, called after the
+        /// attribute is moved or filled by <see cref="SetAttributeFromBlock(DxfAttributeDefinition, GeoTransform3)"/>: the
+        /// MTEXT's location the text's second point where it is not aligned left on its baseline, else its first; its height,
+        /// direction, normal and style the text's; its attachment the text's justification, a baseline taken as the bottom;
+        /// its words and width kept. Nothing changes for an attribute of one line, or one whose MTEXT agrees.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the attribute is erased.</exception>
+        public void UpdateMTextAttribute() => UpdateMText();
 
         /// <summary>
         /// Fills the attribute from its definition in a block, as AutoCAD's <c>SetAttributeFromBlock</c>: the definition's text
         /// (its words as the default value, its height, rotation, alignment, style and the rest), tag, flags, field length and
         /// lock, and its look, then placed by the transformation that places the block, an INSERT's
-        /// <see cref="DxfBlockReference.BlockTransform"/>. Its prompt is not an attribute's and is left out.
+        /// <see cref="DxfBlockReference.BlockTransform"/>. Its prompt is not an attribute's and is left out. A definition of
+        /// several lines gives its embedded MTEXT and makes the attribute one of several lines, its type (71) 2 where the
+        /// definition's is 4, as ezdxf writes them.
         /// </summary>
         /// <param name="definition">The definition, of the block the INSERT places.</param>
         /// <param name="blockTransform">The transformation that places the block.</param>
@@ -164,6 +216,12 @@ namespace GeometryHelper.Export
                 {
                     tagged |= group.TypeCode == 2;
                     attribute.Add(new KeyValuePair<int, string>(group.TypeCode, group.Value));
+                }
+                else if (segment > 0 && (group.TypeCode == 71 || group.TypeCode == 72))
+                {
+                    // The type from R2018 and the 72 after it: a definition of several lines (4) makes an attribute of several (2).
+                    bool several = group.TypeCode == 71 && int.TryParse(group.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int type) && (type == 4 || type == 2);
+                    attribute.Add(new KeyValuePair<int, string>(group.TypeCode, several ? SeveralLines.ToString(CultureInfo.InvariantCulture) : group.Value));
                 }
                 else if (group.TypeCode == 280 && tagged && locked == null)
                 {

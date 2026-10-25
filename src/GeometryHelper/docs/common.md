@@ -868,15 +868,42 @@ An INSERT of BOLT at (50, 60, 0) turned by 45 degrees and scaled by (1.5, -1.5, 
 0.785 and a `BlockTransform` that takes BOLT's origin (1, 2, 0) to the insertion point (50, 60, 0); the block's point
 (0, 0, 0) lands at (46.82, 61.06, 0). Setting `Position` to (60, 55, 1) moves its ATTRIB MARK from (50, 59, 0) to
 (60, 54, 1). `Name` is the block it places; `BlockName` is the block it is in.
-`Explode()` gives the entities of its block placed where it puts them, as AutoCAD's does; every other entity refuses it,
-as AutoCAD answers eNotApplicable. An INSERT inside that cannot hold the placing is exploded in its turn; one of a block
-already being exploded further out is refused, and the whole explode is held to the 2 000 000 entities the reader
-places at most. Its attributes are `DxfAttributeReference` objects (`Tag`, `TextString`, owned by the
-INSERT, an MTEXT attribute's `IsMTextAttribute` true); an ATTDEF is a `DxfAttributeDefinition` with its `Prompt`; a MINSERT
-is a `DxfMInsertBlock` with its `Columns`, `Rows`, `ColumnSpacing` and `RowSpacing`.
+`Explode()` gives the entities of its block placed where it puts them, as AutoCAD's `BlockReference.Explode` does: the
+block's ATTDEFs among them, placed as the rest are, and none of the INSERT's ATTRIBs, whose values stay in its
+`AttributeCollection`; every other entity refuses it, as AutoCAD answers eNotApplicable. An INSERT inside that cannot hold
+the placing is exploded in its turn; one of a block already being exploded further out is refused, and the whole explode
+is held to the 2 000 000 entities the reader places at most. An INSERT that comes out of it places the block of the drawing
+it came from, so that it explodes in its turn, with what that block now holds. `ExplodeToOwnerSpace()` appends what
+`Explode()` gives to the block the INSERT is in and keeps the INSERT, as AutoCAD does: `insert.ExplodeToOwnerSpace();
+insert.Erase();` explodes it as AutoCAD's EXPLODE does, the attributes turned back into their definitions. Where the
+drawing cannot hold a part, as R12 an ELLIPSE, nothing stays appended; a MINSERT of more than one cell is refused, as its
+`Explode()` gives its first cell alone. `UnitFactor` takes the block's units to the drawing's (`$INSUNITS`): 25.4 for a block in inches
+inserted in millimetres, 1 where either gives none. `GeometryExtentsBestFit()` is the box of the shapes placed, and
+`GeometryExtentsBestFit(parentTransform)` the same after an outer INSERT's `BlockTransform`. A dynamic block is found as
+ezdxf finds it, by the extended data `AcDbDynamicBlockGUID` of its BLOCK_RECORD, or `AcDbBlockRepBTag` of the anonymous
+block that stands for it (`IsDynamicBlock`, `DynamicBlockTableRecord`, `AnonymousBlockTableRecord`); its dynamic
+properties are AutoCAD's engine's to work out, and are not given. Its attributes are `DxfAttributeReference` objects
+(`Tag`, `TextString`, owned by the INSERT); an ATTDEF is a `DxfAttributeDefinition` with its `Prompt`. An attribute of
+several lines embeds an MTEXT from R2018: `IsMTextAttribute` makes one of its value where its text stands, or takes it out,
+`MTextAttribute` gives and takes the MTEXT, its text made to agree as ezdxf's `set_mtext` makes it, and
+`UpdateMTextAttribute()` places the MTEXT again where the text stands, after the attribute is moved or set from its
+definition. A MINSERT is a `DxfMInsertBlock` with its `Columns`, `Rows`, `ColumnSpacing` and `RowSpacing`.
 
 A TEXT is a `DxfDBText` (`TextString`, `HorizontalMode`, `IsMirroredInX` and the rest of AutoCAD's) and an MTEXT a
-`DxfMText` (`Contents` with its codes, `Text` without them, `Location`, `Attachment`). A SPLINE is a `DxfSpline` of its
+`DxfMText` (`Contents` with its codes, `Text` without them, `Location`, `Attachment`). An MTEXT is set in columns by
+`SetStaticColumns(12.5, 2.5, 3)`, three columns 42.5 across, `SetDynamicColumns`, `SetColumnHeight` and the column
+properties, written in its embedded object from R2018 and in the extended data of ACAD before, as AutoCAD and ezdxf write
+them; `LineSpaceDistance` is its spacing factor times 5/3 of the height of its letters, `SetAttachmentMovingLocation` holds
+it by another point without moving its words, `ShowBorders` draws its text frame, and `BackgroundTransparency` is a
+`DxfTransparency`. Before R2018 the columns after the first are MTEXTs of their own, linked to the first, which carries
+them: moved, turned, given a new normal, letter height or box height, or erased, it takes them with it, while its
+`Contents` holds its own column's words alone. The linked columns of an MTEXT
+of a file before R2018, the MTEXT records its extended data of ACAD lists in `ACAD_MTEXT_COLUMNS`, are part of that MTEXT,
+as AutoCAD's database has them: a block walks and counts the main MTEXT alone, which carries its columns, so
+that moving every MTEXT of model space moves each column once; an MTEXT that lists its own handle among its columns is
+walked still. A copy of the
+first holds the words of them all and links to none, so no two MTEXTs claim the same columns; and `Height`, before R2007,
+is the height of the columns in the extended data of ACAD. A SPLINE is a `DxfSpline` of its
 `Degree`, `ControlPoints`, knots and weights; a 3DFACE a `DxfFace` (`GetVertexAt`, `IsEdgeVisibleAt`), a SOLID a
 `DxfSolid` (`GetPointAt`), and the meshes a `DxfPolyFaceMesh` and a `DxfPolygonMesh`, whose vertices and face records are
 walked as their polyline's are.
@@ -927,11 +954,7 @@ its INSERTs, as AutoCAD's `GetBlockReferenceIds` gives their ids, and `GetBlockR
 hold one of it too; `GetAnonymousBlocks()` gives the blocks AutoCAD made of a dynamic block. Setting its `Name` renames it
 with every INSERT of it; `Erase()` takes it out, BLOCK, entities, ENDBLK and BLOCK_RECORD, where nothing inserts it; and
 `AssumeOwnershipOf(entities)` moves entities of the drawing into it, each keeping its handle, out of the draw order
-(SORTENTSTABLE) of the block it leaves and onto the end of that of the block it enters. The linked columns of an MTEXT
-of a file before R2018, the MTEXT records its extended data of ACAD lists in `ACAD_MTEXT_COLUMNS`, are part of that MTEXT,
-as AutoCAD's database has them: a block walks and counts the main MTEXT alone, which carries its columns (`DxfMText`), so
-that moving every MTEXT of model space moves each column once; an MTEXT that lists its own handle among its columns is
-walked still.
+(SORTENTSTABLE) of the block it leaves and onto the end of that of the block it enters.
 
 The drawing reads and sets the variables AutoCAD keeps out of the header, as DICTIONARYVAR objects of the dictionary
 AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), `Cetransparency` (a whole per cent, so the

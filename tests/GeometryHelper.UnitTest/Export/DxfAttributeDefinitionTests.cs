@@ -62,9 +62,41 @@ namespace GeometryHelper.UnitTest.Export
                     a.Height = a.Height;
                     a.VerticalMode = a.VerticalMode;
                     a.HorizontalMode = a.HorizontalMode;
+                    a.IsMTextAttributeDefinition = a.IsMTextAttributeDefinition;
+                    a.MTextAttributeDefinition = a.MTextAttributeDefinition;
                     a.TransformBy(GeoTransform3.Identity);
                 });
             }
+        }
+
+        [Fact]
+        public void AnAttdefGivenAnMText_EmbedsIt_AsADefinitionOfSeveralLines_AndOneMadeOfOneLineAgainKeepsItsFirst()
+        {
+            // ezdxf 1.4.5 writes the type of the definition of an attribute of several lines 4. Given back, nothing changes;
+            // UpdateMTextAttributeDefinition of a definition that agrees writes nothing either.
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+            DxfAttributeDefinition mark = db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
+            string before = db.ToText();
+
+            mark.MTextAttributeDefinition = new DxfMText { Contents = "M20\\Pgrade 8.8", Location = new GeoPoint3(0, -1, 0), TextHeight = 0.5 };
+
+            OnlyTheseChanged(before, db.ToText(), "37");
+            Assert.Contains("AcDbAttributeDefinition\n  3\n\n  2\nMARK\n 70\n0\n 74\n3\n 71\n4\n 72\n0\n101\nEmbedded Object\n", Records(db.ToText()).Single(r => HandleOf(r) == "37"), StringComparison.Ordinal);
+            DxfAttributeDefinition again = DxfDatabase.Parse(db.ToText()).BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
+            Assert.True(again.IsMTextAttributeDefinition);
+            Assert.Equal("M20", again.TextString);
+            Assert.Equal("M20\\Pgrade 8.8", again.MTextAttributeDefinition.Contents);
+            Assert.Equal(DxfAttachmentPoint.TopLeft, again.Justify);
+
+            string saved = db.ToText();
+            mark.MTextAttributeDefinition = mark.MTextAttributeDefinition;
+            mark.UpdateMTextAttributeDefinition();
+            Assert.Equal(saved, db.ToText());
+
+            mark.IsMTextAttributeDefinition = false;
+            Assert.Equal("M20", mark.TextString);
+            Assert.Null(mark.MTextAttributeDefinition);
+            Assert.Throws<InvalidOperationException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single().IsMTextAttributeDefinition = true);
         }
 
         [Fact]

@@ -203,9 +203,10 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal(before + 1, again.ModelSpace.Count);
             Assert.DoesNotContain(again.ModelSpace, e => e.Handle == second.Handle || e.Handle == third.Handle);
 
-            // An MTEXT erased lists nothing: its columns are entities of the block again.
+            // An MTEXT erased takes its columns with it, as AutoCAD erases one text (DxfMText.Erase).
             main.Erase();
-            Assert.Equal(before + 2, db.ModelSpace.Count);
+            Assert.Equal(before, db.ModelSpace.Count);
+            Assert.True(second.IsErased && third.IsErased);
         }
 
         [Fact]

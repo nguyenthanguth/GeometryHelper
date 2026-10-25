@@ -111,6 +111,9 @@ namespace GeometryHelper.Export
         [DxfType("INSERT")]
         internal static DxfEntity CreateArray(DxfItem item) => IsArray(item) ? new DxfMInsertBlock(item) : null;
 
+        /// <inheritdoc/>
+        private protected override int CellCount => Columns * Rows;
+
         /// <summary>
         /// The spacing of the array scaled as the transformation stretches the turned x and y axes of the INSERT, the rows
         /// turned to the other side where its y axis comes out mirrored, so that each cell lands where the transformation takes it.

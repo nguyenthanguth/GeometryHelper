@@ -144,8 +144,43 @@ namespace GeometryHelper.Export
             set => SetLocked(value);
         }
 
-        /// <summary>Gets whether the attribute is a text of several lines, an MTEXT embedded in its record (group 101), as AutoCAD's <c>IsMTextAttributeDefinition</c>.</summary>
-        public bool IsMTextAttributeDefinition => Embedded;
+        /// <summary>Gets or sets whether the attribute is a text of several lines, an MTEXT embedded in its record (group 101), as AutoCAD's <c>IsMTextAttributeDefinition</c>.</summary>
+        /// <value>
+        /// Set true, an MTEXT made of its default value embedded where its text stands, as
+        /// <see cref="MTextAttributeDefinition"/> embeds one, its backslashes and braces written as the codes <c>\\</c>,
+        /// <c>\{</c> and <c>\}</c>. Set false, the MTEXT taken out, the text keeping its first line, as an attribute of one line
+        /// (71 of 1).
+        /// </value>
+        /// <exception cref="InvalidOperationException">Thrown when the definition is erased, or set true in a file older than R2018 (AC1032).</exception>
+        public bool IsMTextAttributeDefinition
+        {
+            get => Embedded;
+            set => SetSeveral(value);
+        }
+
+        /// <summary>
+        /// Gets or sets the MTEXT the definition is made of where it is of several lines, as AutoCAD's
+        /// <c>MTextAttributeDefinition</c>: as <see cref="DxfAttributeReference.MTextAttribute"/> gets and sets one, its type
+        /// (71) 4, as ezdxf writes the definition of an attribute of several lines.
+        /// </summary>
+        /// <value>Get, a new MTEXT in no file with the definition's look; null for a definition of one line. Set, embedded and
+        /// the text made to agree; the MTEXT it is made of, given back, changes nothing, and so does null given to a definition of
+        /// one line.</value>
+        /// <exception cref="ArgumentNullException">Thrown when null is set on a definition of several lines.</exception>
+        /// <exception cref="ArgumentException">Thrown when the MTEXT's text style is not in the file's text style table.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the definition is erased, or set in a file older than R2018 (AC1032).</exception>
+        public DxfMText MTextAttributeDefinition
+        {
+            get => MTextOf();
+            set => SetMText(value);
+        }
+
+        /// <summary>
+        /// Places the definition's MTEXT where its text stands, as AutoCAD's <c>UpdateMTextAttributeDefinition</c>, as
+        /// <see cref="DxfAttributeReference.UpdateMTextAttribute"/> places an attribute's; nothing for a definition of one line.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the definition is erased.</exception>
+        public void UpdateMTextAttributeDefinition() => UpdateMText();
 
         [DxfType("ATTDEF")]
         internal static DxfEntity CreateDefinition(DxfItem item) => new DxfAttributeDefinition(item);
@@ -169,6 +204,9 @@ namespace GeometryHelper.Export
 
         /// <inheritdoc/>
         private protected override int VerticalCode => 74;
+
+        /// <inheritdoc/>
+        private protected override int SeveralLines => 4;
 
         private static IEnumerable<DxfTypedValue> Groups(GeoPoint3 position, string value, string tag, string prompt, string style, bool check)
         {

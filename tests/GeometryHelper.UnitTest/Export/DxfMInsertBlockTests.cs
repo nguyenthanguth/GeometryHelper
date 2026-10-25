@@ -34,7 +34,7 @@ namespace GeometryHelper.UnitTest.Export
                 Near(299.0, grid.BlockTransform[0, 3]);
                 Near(-2.0, grid.BlockTransform[1, 3]);
                 Assert.IsNotType<DxfMInsertBlock>(ByHandle<DxfBlockReference>(db, "65"));
-                Assert.Equal(db.BlockTable["BOLT"].Count(e => !(e is DxfAttributeDefinition)), grid.Explode().Count);
+                Assert.Equal(db.BlockTable["BOLT"].Count(), grid.Explode().Count);
             }
         }
 

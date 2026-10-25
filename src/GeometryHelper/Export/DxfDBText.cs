@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using GeometryHelper.Geometry;
 
@@ -30,9 +31,6 @@ namespace GeometryHelper.Export
     {
         // The groups of a TEXT in the order AutoCAD writes them: AcDbText twice, the second holding the vertical mode.
         private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 39, 10, 20, 30, 40, 1, 50, 41, 51, 7, 71, 72, 11, 21, 31, 210, 220, 230, 100, 73 });
-
-        // The codes of the text's part of a TEXT, an ATTRIB or an ATTDEF.
-        private static readonly HashSet<int> TextCodes = new HashSet<int> { 39, 10, 20, 30, 40, 1, 50, 41, 51, 7, 71, 72, 11, 21, 31, 210, 220, 230 };
 
         // The groups of the MTEXT an ATTRIB or ATTDEF embeds (101 on), in the order ezdxf writes them.
         private static readonly int[] EmbeddedOrder = { 101, 10, 20, 30, 40, 41, 46, 71, 72, 3, 1, 7, 210, 220, 230, 11, 21, 31, 42, 43, 50, 73, 44 };
@@ -479,48 +477,6 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// A TEXT of an attribute's value where it stands, as an ATTRIB comes out of an INSERT exploded: the text's part of its
-        /// record, its vertical mode put where a TEXT has it, and its look; its tag, flags and embedded MTEXT left out.
-        /// </summary>
-        internal static DxfDBText TextOf(DxfDBText attribute)
-        {
-            var groups = new List<DxfTypedValue> { new DxfTypedValue(100, "AcDbText") };
-            IReadOnlyList<DxfTypedValue> own = attribute.GetOwnGroups(0);
-            int segment = own.Count > 0 && own[0].TypeCode == 100 ? -1 : 0;
-
-            foreach (DxfTypedValue group in own)
-            {
-                if (group.TypeCode == 101)
-                {
-                    break;
-                }
-
-                if (group.TypeCode == 100)
-                {
-                    segment++;
-                    continue;
-                }
-
-                if (segment <= 0 && TextCodes.Contains(group.TypeCode) && groups.FindIndex(g => g.TypeCode == group.TypeCode) < 0)
-                {
-                    groups.Add(DxfTypedValue.Read(group.TypeCode, group.Value));
-                }
-            }
-
-            groups.Add(new DxfTypedValue(100, "AcDbText"));
-            int vertical = attribute.TextInt(attribute.VerticalCode, 0);
-
-            if (vertical != 0)
-            {
-                groups.Add(new DxfTypedValue(73, vertical.ToString(CultureInfo.InvariantCulture)));
-            }
-
-            var text = new DxfDBText("TEXT", groups);
-            text.SetPropertiesFrom(attribute);
-            return text;
-        }
-
-        /// <summary>
         /// Refuses a text style the file of the block has not; and leaves out the embedded MTEXT (101) of an attribute added to
         /// a drawing older than R2018, which has no such object, its text's part keeping its first line.
         /// </summary>
@@ -631,8 +587,10 @@ namespace GeometryHelper.Export
         /// Writes the own part of an ATTRIB or ATTDEF anew in one writing: the groups given set in the part their code belongs
         /// to, and the lock of its position (the 280 after the tag) set where one is given; every other group kept as it was.
         /// For a record whose text's part lacks a code the attribute's part has, as ezdxf's of R2018 repeats 71, 72 and 11.
+        /// Given a type, the attribute's part has it as its 71 (1 one line, 2 an ATTRIB of several, 4 an ATTDEF of several),
+        /// and a 72 of nought after it where it has none, as AutoCAD and ezdxf write them from R2018.
         /// </summary>
-        private protected void Rewrite(KeyValuePair<int, string>[] groups, string locked, IReadOnlyList<DxfTypedValue> newEmbedded = null)
+        private protected void Rewrite(KeyValuePair<int, string>[] groups, string locked, IReadOnlyList<DxfTypedValue> newEmbedded = null, int? type = null)
         {
             List<DxfTypedValue> own = new List<DxfTypedValue>(GetOwnGroups(0));
 
@@ -678,6 +636,28 @@ namespace GeometryHelper.Export
                 }
             }
 
+            if (type.HasValue && rest.Count > 0)
+            {
+                string typed = type.Value.ToString(CultureInfo.InvariantCulture);
+                int at = rest.FindIndex(1, g => g.TypeCode == 71);
+
+                if (at >= 0)
+                {
+                    rest[at] = int.TryParse(rest[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int now) && now == type.Value ? rest[at] : DxfTypedValue.Read(71, typed);
+                }
+                else
+                {
+                    int after = rest.FindLastIndex(g => g.TypeCode == 2 || g.TypeCode == 3 || g.TypeCode == 70 || g.TypeCode == 73 || g.TypeCode == 74 || g.TypeCode == 280);
+                    rest.Insert(after < 0 ? rest.Count : after + 1, DxfTypedValue.Read(71, typed));
+                    at = after < 0 ? rest.Count - 1 : after + 1;
+
+                    if (rest.FindIndex(1, g => g.TypeCode == 72) < 0)
+                    {
+                        rest.Insert(at + 1, DxfTypedValue.Read(72, "0"));
+                    }
+                }
+            }
+
             var codes = new HashSet<int>();
             var run = new List<KeyValuePair<int, string>>();
 
@@ -711,6 +691,227 @@ namespace GeometryHelper.Export
             {
                 Rewrite(new KeyValuePair<int, string>[0], null, new DxfTypedValue[0]);
             }
+        }
+
+        /// <summary>The 71 an ATTRIB or ATTDEF of several lines writes in its attribute's part from R2018: 2 for an ATTRIB, 4 for an ATTDEF, as ezdxf writes them.</summary>
+        private protected virtual int SeveralLines => 2;
+
+        /// <summary>
+        /// The MTEXT an attribute is made of, as AutoCAD's <c>MTextAttribute</c> gives it: a new MTEXT in no file of the groups
+        /// of its embedded object, with the attribute's look; null for an attribute of one line.
+        /// </summary>
+        private protected DxfMText MTextOf()
+        {
+            List<DxfTypedValue> tail = EmbeddedTail();
+
+            if (tail == null)
+            {
+                return null;
+            }
+
+            DxfMText mtext = DxfMText.OfEmbedded(tail);
+            mtext.SetPropertiesFrom(this);
+            return mtext;
+        }
+
+        /// <summary>
+        /// Makes the attribute of several lines, of an MTEXT, as AutoCAD's <c>MTextAttribute</c> setter and ezdxf's
+        /// <c>set_mtext</c> do: the MTEXT's own groups embedded after a 101, those AutoCAD always writes put in where it lacks
+        /// them; its text's part made to agree, the first line of the words its value, the MTEXT's location its two points
+        /// in the system of its plane, its direction its rotation, its attachment its justification, its style and height its
+        /// own, its width factor, lean and mirroring taken out; its 71 the type of an attribute of several lines.
+        /// </summary>
+        private protected void SetMText(DxfMText value)
+        {
+            // Null, what an attribute of one line reads, changes nothing on one.
+            if (value == null && !Embedded)
+            {
+                return;
+            }
+
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
+            List<DxfTypedValue> theirs = DxfMText.OwnOf(value);
+            List<DxfTypedValue> tail = EmbeddedTail();
+
+            // The MTEXT it is made of, given back, changes nothing.
+            if (tail != null && tail.Count == theirs.Count && tail.Zip(theirs, (a, b) => a.TypeCode == b.TypeCode && string.Equals(a.Value, b.Value, StringComparison.Ordinal)).All(s => s))
+            {
+                return;
+            }
+
+            Several();
+            string style = DxfMText.StyleOf(value);
+            CheckStyle(style, nameof(value));
+            GeoVector3 normal = value.Normal;
+            GeoPoint3 location = WorldToOcs(normal, value.Location);
+            GeoPoint3 along = WorldToOcs(normal, new GeoPoint3(value.Direction.X, value.Direction.Y, value.Direction.Z));
+            double degrees = Math.Atan2(along.Y, along.X) * (180.0 / Math.PI) + 0.0;
+            int attachment = (int)value.Attachment;
+            int horizontal = attachment >= 1 && attachment <= 9 ? (attachment - 1) % 3 : 0;
+            int vertical = attachment >= 1 && attachment <= 9 ? 3 - (attachment - 1) / 3 : 3;
+            string text = value.Text;
+            int line = text.IndexOf('\n');
+            var embedded = new List<DxfTypedValue> { DxfTypedValue.Read(101, "Embedded Object") };
+            embedded.AddRange(DxfMText.EmbeddedOf(value));
+            Rewrite(
+                Join(
+                    text.Length > 0 ? Pair(1, line < 0 ? text : text.Substring(0, line)) : new KeyValuePair<int, string>[0],
+                    TextPointGroups(10, location),
+                    TextPointGroups(11, location),
+                    NumberGroup(50, degrees, TextDouble(50, 0.0)),
+                    TextNormalGroups(normal),
+                    WholeGroup(72, horizontal, TextInt(72, 0)),
+                    WholeGroup(VerticalCode, vertical, TextInt(VerticalCode, 0)),
+                    string.Equals(style, TextValue(7), StringComparison.Ordinal) ? new KeyValuePair<int, string>[0] : Pair(7, style),
+                    NumberGroup(40, value.TextHeight, Height),
+                    TextValue(41) != null ? Pair(41, null) : new KeyValuePair<int, string>[0],
+                    TextValue(51) != null ? Pair(51, null) : new KeyValuePair<int, string>[0],
+                    TextValue(71) != null ? Pair(71, null) : new KeyValuePair<int, string>[0]),
+                null,
+                embedded,
+                SeveralLines);
+        }
+
+        /// <summary>
+        /// Makes the attribute of several lines or of one, as AutoCAD's <c>IsMTextAttribute</c> setter does: of several, an MTEXT
+        /// made of its value where its text stands, as <see cref="SetMText"/> embeds one; of one, its embedded MTEXT taken out,
+        /// its text's part keeping its first line, its 71 the type of one line. Nothing where it is as asked.
+        /// </summary>
+        private protected void SetSeveral(bool value)
+        {
+            if (value == Embedded)
+            {
+                return;
+            }
+
+            if (!value)
+            {
+                Rewrite(new KeyValuePair<int, string>[0], null, new DxfTypedValue[0], AttributeValue(71) != null ? 1 : (int?)null);
+                return;
+            }
+
+            Several();
+            string words = TextString.Replace("\\", "\\\\").Replace("{", "\\{").Replace("}", "\\}");
+            var made = new DxfMText { Contents = words };
+            SetMText(Placed(made));
+        }
+
+        /// <summary>
+        /// Places the attribute's embedded MTEXT again where its text stands, as AutoCAD's <c>UpdateMTextAttribute</c> does after
+        /// the attribute is moved or set from its definition: its location, height, direction, normal, style and attachment
+        /// those of the text's part, its words and width kept; nothing for an attribute of one line, or one that agrees.
+        /// </summary>
+        private protected void UpdateMText()
+        {
+            List<DxfTypedValue> tail = EmbeddedTail();
+
+            if (tail == null)
+            {
+                return;
+            }
+
+            DxfMText placed = Placed(DxfMText.OfEmbedded(tail));
+            var moved = new List<DxfTypedValue> { DxfTypedValue.Read(101, "Embedded Object") };
+            moved.AddRange(DxfMText.OwnOf(placed));
+            List<DxfTypedValue> now = new List<DxfTypedValue> { DxfTypedValue.Read(101, "Embedded Object") };
+            now.AddRange(tail);
+
+            if (moved.Count == now.Count && moved.Zip(now, (a, b) => a.TypeCode == b.TypeCode && string.Equals(a.Value, b.Value, StringComparison.Ordinal)).All(s => s))
+            {
+                return;
+            }
+
+            Rewrite(new KeyValuePair<int, string>[0], null, moved);
+        }
+
+        /// <summary>
+        /// An MTEXT in no file placed where the attribute's text stands: at its second point where it is not aligned left on
+        /// its baseline, else its first, in the world; its letters as high, along its rotation, on its normal, in its style,
+        /// held by the point of its justification, a baseline taken as the bottom.
+        /// </summary>
+        private DxfMText Placed(DxfMText mtext)
+        {
+            int horizontal = TextInt(72, 0);
+            int vertical = TextInt(VerticalCode, 0);
+            int across = horizontal == 1 || horizontal == 4 ? 1 : horizontal == 2 ? 2 : 0;
+            int down = vertical == 3 ? 0 : vertical == 2 || (horizontal == 4 && vertical == 0) ? 1 : 2;
+            GeoVector3 normal = Normal;
+            double angle = Rotation;
+            GeoPoint3 along = OcsToWorld(normal, new GeoPoint3(Math.Cos(angle), Math.Sin(angle), 0.0));
+            mtext.Normal = normal;
+            mtext.Location = (horizontal != 0 || vertical != 0) && TextPoint(11).HasValue ? AlignmentPoint : Position;
+            mtext.Direction = new GeoVector3(along.X, along.Y, along.Z);
+            mtext.TextHeight = Height;
+            mtext.Attachment = (DxfAttachmentPoint)(down * 3 + across + 1);
+            DxfMText.SetStyleOf(mtext, TextValue(7) ?? "Standard");
+            return mtext;
+        }
+
+        /// <summary>Refuses an attribute of several lines in a file older than R2018 (AC1032), which has no MTEXT embedded in one.</summary>
+        private void Several()
+        {
+            if (!Item.File.Supports(1032))
+            {
+                throw new InvalidOperationException("A DXF older than R2018 (AC1032) has no attribute of several lines: an MTEXT embedded in an ATTRIB or ATTDEF came with it.");
+            }
+        }
+
+        /// <summary>The groups of the attribute's embedded MTEXT, after its 101; null where it has none.</summary>
+        private List<DxfTypedValue> EmbeddedTail()
+        {
+            List<DxfTypedValue> own = new List<DxfTypedValue>(GetOwnGroups(0));
+            int at = own.FindIndex(g => g.TypeCode == 101);
+            return at < 0 ? null : own.GetRange(at + 1, own.Count - at - 1);
+        }
+
+        /// <summary>The text of the first group of a code in the attribute's part of an ATTRIB or ATTDEF, as its type (71) from R2018; null where it has none.</summary>
+        private string AttributeValue(int code)
+        {
+            int segment = -1;
+
+            foreach (DxfTypedValue group in GetOwnGroups(0))
+            {
+                if (group.TypeCode == 101)
+                {
+                    break;
+                }
+
+                if (group.TypeCode == 100)
+                {
+                    segment++;
+                }
+                else if (segment > 0 && group.TypeCode == code)
+                {
+                    return group.Value;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Refuses a text style of a name the file's text style table does not list, as <see cref="Appending"/> does.</summary>
+        private void CheckStyle(string style, string parameter)
+        {
+            if (!IsResident || style == null)
+            {
+                return;
+            }
+
+            string name = DxfReader.NameOf(style);
+
+            foreach (DxfItem item in Item.File.TableItems("STYLE"))
+            {
+                if (string.Equals(DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+            }
+
+            throw new ArgumentException("The text style " + name + " is not in the file's text style table.", parameter);
         }
 
         /// <summary>

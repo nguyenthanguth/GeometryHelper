@@ -85,7 +85,10 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets or sets the block the INSERT places, as AutoCAD's <c>BlockTableRecord</c> gives its id: the record of the block
-        /// table named by <see cref="Name"/>; null where the drawing has no block of that name.
+        /// table named by <see cref="Name"/>; null where the drawing has no block of that name. A copy in no file yet, as
+        /// <see cref="Explode"/> gives a nested INSERT, places the block of the drawing it was copied from, as AutoCAD's copy
+        /// keeps its block's id, until it is added to a drawing: a copy in no file gives the block of the drawing it was copied
+        /// from while that block is there, renamed or not.
         /// </summary>
         /// <value>Set, a block of the same drawing, written as its name; the attributes are kept as they are.</value>
         /// <exception cref="ArgumentNullException">Thrown when the block set is null.</exception>
@@ -389,13 +392,182 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// Gets the entities of the block placed where the INSERT puts them, as AutoCAD's <c>Explode</c> gives them: new
-        /// entities in no file, one level down, so that an INSERT in the block comes out an INSERT; then the INSERT's ATTRIBs,
-        /// each a <see cref="DxfDBText"/> of its value where it stands, as ezdxf and AutoCAD's BURST give them; the block's
-        /// attribute definitions left out. A MINSERT gives those of its first cell.
+        /// Gets how a length of the block is scaled to the drawing by their units, as AutoCAD's <c>UnitFactor</c>: the
+        /// block's <see cref="BlockUnit"/> against the drawing's <c>$INSUNITS</c>; 1 where either is
+        /// <see cref="DxfUnits.Undefined"/>. A block drawn in inches inserted in a drawing of millimetres has 25.4; in one of
+        /// metres, 0.0254. It is read from the file alone: the INSERT's <see cref="ScaleFactors"/> and
+        /// <see cref="BlockTransform"/> do not take it in.
         /// </summary>
-        /// <returns>The entities, in the order of the block and then of the ATTRIBs, each of its own look; to be added to a
-        /// drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        public double UnitFactor
+        {
+            get
+            {
+                DxfBlockTableRecord record = BlockTableRecord;
+                IReadOnlyList<DxfTypedValue> insunits = record?.File?.HeaderOf("$INSUNITS");
+                double block = Millimetres((int)BlockUnit);
+                double drawing = insunits != null && insunits.Count > 0 && int.TryParse(insunits[0].Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int units) ? Millimetres(units) : 0.0;
+                return block > 0.0 && drawing > 0.0 ? block / drawing : 1.0;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the INSERT is exploded as a block reference, as AutoCAD's <c>TreatAsBlockRefForExplode</c>: true for
+        /// every INSERT and MINSERT, which <see cref="Explode"/> breaks into its block's entities.
+        /// </summary>
+        public bool TreatAsBlockRefForExplode => true;
+
+        /// <summary>
+        /// Gets whether the INSERT places a dynamic block, as AutoCAD's <c>IsDynamicBlock</c>: its block is one (its
+        /// BLOCK_RECORD has the extended data <c>AcDbDynamicBlockGUID</c>), or is the anonymous block that stands for one, whose
+        /// extended data <c>AcDbBlockRepBTag</c> names the dynamic block's BLOCK_RECORD by its handle (1005), as AutoCAD writes
+        /// them and ezdxf reads them. An anonymous block whose tag names no block of the drawing is not.
+        /// </summary>
+        /// <remarks>
+        /// The dynamic properties themselves, AutoCAD's <c>DynamicBlockReferencePropertyCollection</c>, <c>ResetBlock</c> and
+        /// <c>ConvertToStaticBlock</c>, are not given: they are worked out by AutoCAD's engine of dynamic blocks from the
+        /// evaluation graph of the block's extension dictionary, which a file holds but does not evaluate.
+        /// </remarks>
+        public bool IsDynamicBlock => Dynamic(out _) != null;
+
+        /// <summary>
+        /// Gets the dynamic block the INSERT places, as AutoCAD's <c>DynamicBlockTableRecord</c>: the block whose anonymous
+        /// copy it places, or its own block where that is the dynamic one; the INSERT's <see cref="BlockTableRecord"/> where it
+        /// places no dynamic block, as AutoCAD gives it.
+        /// </summary>
+        public DxfBlockTableRecord DynamicBlockTableRecord => Dynamic(out _) ?? BlockTableRecord;
+
+        /// <summary>
+        /// Gets the anonymous block that stands for the dynamic block the INSERT places, as AutoCAD's
+        /// <c>AnonymousBlockTableRecord</c>: its own block where that is such a copy, <c>*U7</c> of the dynamic block BOLT;
+        /// null where it places the dynamic block itself, or no dynamic block.
+        /// </summary>
+        public DxfBlockTableRecord AnonymousBlockTableRecord
+        {
+            get
+            {
+                Dynamic(out DxfBlockTableRecord anonymous);
+                return anonymous;
+            }
+        }
+
+        /// <summary>
+        /// Gets the box the shapes of the block take where the INSERT places them, as AutoCAD's <c>GeometryExtentsBestFit</c>:
+        /// the least and greatest x, y and z of each shape placed, not of the block's box placed, so that a block turned by 45
+        /// degrees has the box of its shapes, not the larger one of its turned box; as <see cref="DxfEntity.GeometricExtents"/>
+        /// gives them.
+        /// </summary>
+        /// <returns>The box, in the coordinates of the file.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the INSERT places no shape the library reads, or would place
+        /// more than the 2 000 000 entities of <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
+        public GeoAabb3 GeometryExtentsBestFit() => GeometryExtentsBestFit(GeoTransform3.Identity);
+
+        /// <summary>
+        /// Gets the box the shapes of the block take where the INSERT places them, then moved by a transformation, as AutoCAD's
+        /// <c>GeometryExtentsBestFit(parentTransform)</c>: the transformation that places the block the INSERT is in, an
+        /// outer INSERT's <see cref="BlockTransform"/>, so that an INSERT of BOLT inside FRAME has the box of its bolt where the
+        /// INSERT of FRAME puts it. The INSERT of a block of the line from (0, 0, 0) to (0, 1, 0), turned by 90 degrees at
+        /// (5, 0, 0), has the box (4, 0, 0) to (5, 0, 0); moved by (0, 10, 0), the box (4, 10, 0) to (5, 10, 0).
+        /// </summary>
+        /// <param name="parentTransform">The transformation, applied after the INSERT's own placing.</param>
+        /// <returns>The box, in the coordinates the transformation takes the file's to.</returns>
+        /// <remarks>
+        /// The identity gives <see cref="DxfEntity.GeometricExtents"/> of an INSERT of a drawing; any other transformation, or
+        /// an INSERT in no drawing, the box of the entities of <see cref="Explode"/> each moved by it, an INSERT among them
+        /// exploded in its turn, so that what the block now holds is what is measured.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation flattens or shears an entity of the block that
+        /// cannot hold it, or the block inserts itself.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the INSERT places no shape the library reads, its drawing has
+        /// no block of its name, or it would place more than the 2 000 000 entities of
+        /// <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
+        public GeoAabb3 GeometryExtentsBestFit(GeoTransform3 parentTransform)
+        {
+            if (parentTransform == null)
+            {
+                throw new ArgumentNullException(nameof(parentTransform));
+            }
+
+            if (IsResident && DxfOcsTransform.IsIdentity(parentTransform))
+            {
+                return GeometricExtents;
+            }
+
+            double[] box = null;
+            var walk = new Walk(Name, BlockToExplode(Item.File).Name);
+            Measure(this, parentTransform, walk, ref box);
+
+            if (box == null)
+            {
+                throw new InvalidOperationException("The INSERT of " + Name + " places no shape the library reads to give it extents.");
+            }
+
+            return new GeoAabb3(new GeoPoint3(box[0], box[1], box[2]), new GeoPoint3(box[3], box[4], box[5]));
+        }
+
+        /// <summary>
+        /// Explodes the INSERT into the block it is in, as AutoCAD's <c>ExplodeToOwnerSpace</c>: the entities
+        /// <see cref="Explode"/> gives, an ATTDEF of the block among them, appended to the INSERT's owner, model space for
+        /// one of model space, in the order of the block, with handles of their own. The INSERT itself is kept, with its
+        /// ATTRIBs, as AutoCAD keeps it: <c>insert.ExplodeToOwnerSpace(); insert.Erase();</c> explodes it as AutoCAD's EXPLODE
+        /// does, the attributes turned back into their definitions.
+        /// </summary>
+        /// <remarks>
+        /// An entity the drawing cannot hold, as the ELLIPSE a circle comes out as under a scale unlike along its axes in a
+        /// drawing of R12, is refused: those appended before it are erased again, the drawing as it was but for the handles
+        /// given on the way.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Thrown when the INSERT is in no drawing, is erased, its drawing has no
+        /// block of its name, or exploding would make more than the 2 000 000 entities of
+        /// <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a MINSERT of more than one cell: <see cref="Explode"/> gives the
+        /// entities of its first cell alone, so the others would be lost from the owner.</exception>
+        /// <exception cref="ArgumentException">Thrown when the drawing cannot hold an entity exploding makes, or the block
+        /// inserts itself.</exception>
+        public void ExplodeToOwnerSpace()
+        {
+            if (!(IsResident && Owner is DxfBlockTableRecord owner))
+            {
+                throw new InvalidOperationException("The INSERT of " + Name + " is in no block of a drawing to be exploded into: append it to one first.");
+            }
+
+            if (CellCount > 1)
+            {
+                throw new NotSupportedException("A MINSERT of more than one cell is not exploded into its owner: Explode gives its first cell alone, and the others would be lost.");
+            }
+
+            IReadOnlyList<DxfEntity> parts = Explode();
+            var appended = new List<DxfEntity>(parts.Count);
+
+            try
+            {
+                foreach (DxfEntity part in parts)
+                {
+                    owner.AppendEntity(part);
+                    appended.Add(part);
+                }
+            }
+            catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
+            {
+                for (int i = appended.Count - 1; i >= 0; i--)
+                {
+                    appended[i].Erase();
+                }
+
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Gets the entities of the block placed where the INSERT puts them, as AutoCAD's <c>Explode</c> gives them: new
+        /// entities in no file, one level down, so that an INSERT in the block comes out an INSERT, and an ATTDEF of the block a
+        /// <see cref="DxfAttributeDefinition"/> placed as the rest are. The INSERT's ATTRIBs are not among them: their values
+        /// stay where they are, in <see cref="AttributeCollection"/>. A MINSERT gives those of its first cell.
+        /// </summary>
+        /// <returns>The entities, in the order of the block, each of its own look; to be added to a drawing by
+        /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>. The INSERT of BOLT whose block holds a CIRCLE, a LINE and
+        /// the ATTDEF MARK, and which gives MARK the value B-12, explodes into a <see cref="DxfCircle"/>, a <see cref="DxfLine"/>
+        /// and the <see cref="DxfAttributeDefinition"/> MARK; B-12 is not among them.</returns>
         /// <remarks>
         /// <para>
         /// An entity whose class can be moved by the block's placing is a copy of it moved so, as
@@ -516,6 +688,150 @@ namespace GeometryHelper.Export
 
         /// <summary>The groups a transformation gives the array of a MINSERT, by how far it stretches the turned x and y axes (the y below nought where mirrored): none for an INSERT.</summary>
         private protected virtual KeyValuePair<int, string>[] ArrayGroups(double xStretch, double yStretch) => new KeyValuePair<int, string>[0];
+
+        /// <summary>How many cells the INSERT places its block in: 1, a MINSERT's columns by its rows.</summary>
+        private protected virtual int CellCount => 1;
+
+        /// <summary>The millimetres in a unit of <c>$INSUNITS</c>, as the reader takes them; nought for none, or a number the DXF reference does not list.</summary>
+        private static double Millimetres(int units)
+        {
+            const double SurveyFoot = 1200.0 / 3937.0 * 1000.0;
+
+            switch (units)
+            {
+                case 1: return 25.4;
+                case 2: return 304.8;
+                case 3: return 1609344.0;
+                case 4: return 1.0;
+                case 5: return 10.0;
+                case 6: return 1000.0;
+                case 7: return 1E6;
+                case 8: return 2.54E-5;
+                case 9: return 0.0254;
+                case 10: return 914.4;
+                case 11: return 1E-7;
+                case 12: return 1E-6;
+                case 13: return 1E-3;
+                case 14: return 100.0;
+                case 15: return 1E4;
+                case 16: return 1E5;
+                case 17: return 1E12;
+                case 18: return 1.495978707E14;
+                case 19: return 9.4607304725808E18;
+                case 20: return 3.0856775814913673E19;
+                case 21: return SurveyFoot;
+                case 22: return SurveyFoot / 12.0;
+                case 23: return SurveyFoot * 3.0;
+                case 24: return SurveyFoot * 5280.0;
+                default: return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Grows a box by what an INSERT explodes into, each entity moved by a transformation, an INSERT among them measured in
+        /// its turn; one of a block already being measured further out refused, as the block would insert itself.
+        /// </summary>
+        private static void Measure(DxfBlockReference insert, GeoTransform3 transform, Walk walk, ref double[] box)
+        {
+            IReadOnlyList<DxfEntity> parts = insert.Explode();
+            walk.Spend(parts.Count);
+
+            foreach (DxfEntity part in parts)
+            {
+                if (part is DxfBlockReference nested)
+                {
+                    string name = nested.BlockToExplode(nested.Item.File).Name;
+
+                    if (!walk.Path.Add(name))
+                    {
+                        throw new ArgumentException("The INSERT of " + name + " would make the block " + name + " insert itself.");
+                    }
+
+                    Measure(nested, transform, walk, ref box);
+                    walk.Path.Remove(name);
+                    continue;
+                }
+
+                if (!DxfOcsTransform.IsIdentity(transform))
+                {
+                    part.TransformBy(transform);
+                }
+
+                GeoAabb3 extents;
+
+                try
+                {
+                    extents = part.GeometricExtents;
+                }
+                catch (InvalidOperationException)
+                {
+                    // An entity with no shape the library reads, as an ATTDEF, has no extents.
+                    continue;
+                }
+
+                if (box == null)
+                {
+                    box = new[] { extents.Min.X, extents.Min.Y, extents.Min.Z, extents.Max.X, extents.Max.Y, extents.Max.Z };
+                    continue;
+                }
+
+                box[0] = Math.Min(box[0], extents.Min.X);
+                box[1] = Math.Min(box[1], extents.Min.Y);
+                box[2] = Math.Min(box[2], extents.Min.Z);
+                box[3] = Math.Max(box[3], extents.Max.X);
+                box[4] = Math.Max(box[4], extents.Max.Y);
+                box[5] = Math.Max(box[5], extents.Max.Z);
+            }
+        }
+
+        /// <summary>
+        /// The dynamic block the INSERT places, as ezdxf's <c>get_dynamic_block_definition</c> finds it: its own block where its
+        /// BLOCK_RECORD has the extended data AcDbDynamicBlockGUID, else the block whose BLOCK_RECORD the extended data
+        /// AcDbBlockRepBTag of its block names by handle (1005), that block then the anonymous one; null for neither.
+        /// </summary>
+        private DxfBlockTableRecord Dynamic(out DxfBlockTableRecord anonymous)
+        {
+            anonymous = null;
+            DxfBlockTableRecord block = BlockTableRecord;
+
+            if (block?.File == null || block.Item == null)
+            {
+                return null;
+            }
+
+            if (block.GetXDataForApplication("AcDbDynamicBlockGUID") != null)
+            {
+                return block;
+            }
+
+            string handle = null;
+
+            foreach (DxfTypedValue group in block.GetXDataForApplication("AcDbBlockRepBTag") ?? new DxfTypedValue[0])
+            {
+                if (group.TypeCode == 1005)
+                {
+                    handle = group.Value?.Trim();
+                    break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(handle))
+            {
+                return null;
+            }
+
+            foreach (DxfItem item in block.File.TableItems("BLOCK_RECORD"))
+            {
+                if (string.Equals(item.Handle, handle, StringComparison.OrdinalIgnoreCase))
+                {
+                    DxfBlockTableRecord dynamic = Resolve(block.File, DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty));
+                    anonymous = dynamic == null ? null : block;
+                    return dynamic;
+                }
+            }
+
+            return null;
+        }
 
         /// <summary>The group that sets a scale factor, none where it is the one read, to the bit.</summary>
         private protected static KeyValuePair<int, string>[] Factor(int code, double value, double now)
@@ -779,20 +1095,14 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// The entities of the INSERT's block placed where it puts them, then its ATTRIBs as TEXTs, as <see cref="Explode"/>
-        /// gives them: its block found in a file where the INSERT is a copy in none.
+        /// The entities of the INSERT's block placed where it puts them, its ATTDEFs among them, as <see cref="Explode"/> gives
+        /// them: its block found in a file where the INSERT is a copy in none.
         /// </summary>
         private List<DxfEntity> Parts(DxfFile file, int depth)
         {
             DxfBlockTableRecord block = BlockToExplode(file);
             var parts = new List<DxfEntity>();
             PlaceParts(block.ToList(), block.Origin, file ?? block.File, depth, parts, depth == 0 ? new Walk(Name, block.Name) : null);
-
-            foreach (DxfAttributeReference attribute in Attributes())
-            {
-                parts.Add(DxfDBText.TextOf(attribute));
-            }
-
             return parts;
         }
 
@@ -812,16 +1122,13 @@ namespace GeometryHelper.Export
 
             foreach (DxfEntity entity in entities)
             {
-                if (entity is DxfAttributeDefinition)
-                {
-                    continue;
-                }
-
                 if (!(entity is DxfUnknownEntity))
                 {
                     try
                     {
-                        slots.Add(entity.GetTransformedCopy(placing));
+                        DxfEntity copy = entity.GetTransformedCopy(placing);
+                        (copy as DxfMText)?.Unlink();
+                        slots.Add(copy);
                         continue;
                     }
                     catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
@@ -849,7 +1156,7 @@ namespace GeometryHelper.Export
 
             if (walk != null)
             {
-                walk.Spend(slots.Count - exploded.Count + Attributes().Count);
+                walk.Spend(slots.Count - exploded.Count);
 
                 foreach (DxfBlockReference nested in exploded)
                 {
@@ -890,7 +1197,8 @@ namespace GeometryHelper.Export
         /// <summary>The block the INSERT explodes: its block found in a file where the INSERT is a copy in none.</summary>
         private DxfBlockTableRecord BlockToExplode(DxfFile file)
         {
-            DxfBlockTableRecord block = BlockTableRecord ?? (file == null || file.IsDetached ? null : Resolve(file, Name));
+            DxfFile drawing = file != null && file.IsDetached ? file.Origin : file;
+            DxfBlockTableRecord block = BlockTableRecord ?? (drawing == null || drawing.IsDetached ? null : Resolve(drawing, Name));
 
             if (block == null)
             {
@@ -908,7 +1216,6 @@ namespace GeometryHelper.Export
         {
             var inserts = new List<DxfBlockReference>();
             CountPlaced(block.ToList(), block.Origin, file, walk, inserts);
-            walk.Spend(Attributes().Count);
             return inserts;
         }
 
@@ -923,11 +1230,6 @@ namespace GeometryHelper.Export
 
             foreach (DxfEntity entity in entities)
             {
-                if (entity is DxfAttributeDefinition)
-                {
-                    continue;
-                }
-
                 if (!(entity is DxfBlockReference nested))
                 {
                     walk.Spend(1);
