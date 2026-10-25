@@ -36,7 +36,7 @@ namespace GeometryHelper.Core
         /// <param name="result">The common part.</param>
         /// <param name="options">How the intersection is worked out.</param>
         /// <param name="outcome">How it came out, as <see cref="TryIntersect(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/> says.</param>
-        /// <returns>false when the two share nothing, or when it cannot be worked out.</returns>
+        /// <returns>false when the two share nothing, or no more than a slab the tolerance thick, or when it cannot be worked out.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either body or the options are null.</exception>
         public static bool TryIntersect(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, SolidBooleanOptions options, out BooleanOutcome outcome)
             => WithOptions(Intersect, first, second, options, false, out result, out outcome, out _, out _, out _, out _, out _);
@@ -49,7 +49,7 @@ namespace GeometryHelper.Core
         /// <param name="result">What is left of the subject.</param>
         /// <param name="options">How the difference is worked out.</param>
         /// <param name="outcome">How it came out, as <see cref="TrySubtract(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/> says.</param>
-        /// <returns>false when nothing is left, or when it cannot be worked out.</returns>
+        /// <returns>false when nothing is left, or no more than a slab the tolerance thick, or when it cannot be worked out.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either body or the options are null.</exception>
         public static bool TrySubtract(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, SolidBooleanOptions options, out BooleanOutcome outcome)
             => WithOptions(Subtract, subject, tool, options, false, out result, out outcome, out _, out _, out _, out _, out _);
@@ -71,7 +71,9 @@ namespace GeometryHelper.Core
         /// works out, and its result is checked by <see cref="GeoSolid3.Validate(Tolerance)"/> within the options' tolerance
         /// whether or not there is a fallback. A cut whose result is not valid, within the tolerance or the fallback, or
         /// which could not be worked out, is skipped: the body is kept as it was before it, and what the tool would have
-        /// taken stays in the result, which is better than a body with the wrong volume. The report says which.
+        /// taken stays in the result, which is better than a body with the wrong volume. The report says which. A cut that
+        /// leaves no more than a slab the tolerance thick, as <c>Validate</c> reads it, leaves nothing, as
+        /// <see cref="BooleanOutcome.Empty"/> says, and ends the run as a tool that takes all does.
         /// </para>
         /// <para>
         /// This is the net body of a part of a model, cut by every part it meets: of the 79 864 parts of a Tekla model so

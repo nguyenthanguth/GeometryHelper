@@ -538,7 +538,7 @@ namespace GeometryHelper.Core
 
             PutCornersOnEdges(rings, points, rounding);
 
-            if (!TryCloseSteps(rings, points, wide, out List<List<int>> steps))
+            if (!TryCloseSteps(rings, points, wide, out List<List<int>> steps) && !TryCloseGaps(faces, normals, rings, points, wide, out steps))
             {
                 return null;
             }
@@ -717,46 +717,13 @@ namespace GeometryHelper.Core
         private static bool TryCloseSteps(List<List<int>>[] rings, List<GeoPoint3> points, double wide, out List<List<int>> steps)
         {
             steps = new List<List<int>>();
-            var runs = new Dictionary<long, int>(PackedKeys.Instance);
-
-            foreach (List<List<int>> faceRings in rings)
-            {
-                foreach (List<int> ring in faceRings)
-                {
-                    for (int i = 0; i < ring.Count; i++)
-                    {
-                        int from = ring[i];
-                        int next = ring[(i + 1) % ring.Count];
-
-                        if (from != next)
-                        {
-                            long run = ((long)from << 32) | (uint)next;
-                            runs[run] = (runs.TryGetValue(run, out int seen) ? seen : 0) + 1;
-                        }
-                    }
-                }
-            }
-
-            var open = new List<(int From, int To)>();
-
-            foreach (KeyValuePair<long, int> run in runs)
-            {
-                int from = (int)(run.Key >> 32);
-                int next = (int)(run.Key & 0xFFFFFFFFL);
-                int back = runs.TryGetValue(((long)next << 32) | (uint)from, out int seen) ? seen : 0;
-
-                for (int extra = run.Value - back; extra > 0; extra--)
-                {
-                    open.Add((next, from));
-                }
-            }
+            List<(int From, int To)> open = Unpaired(rings);
 
             if (open.Count == 0)
             {
                 return true;
             }
 
-            open.Sort();
             var leaving = new Dictionary<int, List<int>>(open.Count);
 
             for (int e = 0; e < open.Count; e++)
@@ -859,6 +826,238 @@ namespace GeometryHelper.Core
                 if (loop.Count > 0)
                 {
                     steps.Add(loop);
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Gets the edges the rings run more often one way than the other, each the way a face closing it runs it, as many
+        /// times as it is left unpaired, in order.
+        /// </summary>
+        private static List<(int From, int To)> Unpaired(List<List<int>>[] rings)
+        {
+            var runs = new Dictionary<long, int>(PackedKeys.Instance);
+
+            foreach (List<List<int>> faceRings in rings)
+            {
+                foreach (List<int> ring in faceRings)
+                {
+                    for (int i = 0; i < ring.Count; i++)
+                    {
+                        int from = ring[i];
+                        int next = ring[(i + 1) % ring.Count];
+
+                        if (from != next)
+                        {
+                            long run = ((long)from << 32) | (uint)next;
+                            runs[run] = (runs.TryGetValue(run, out int seen) ? seen : 0) + 1;
+                        }
+                    }
+                }
+            }
+
+            var open = new List<(int From, int To)>();
+
+            foreach (KeyValuePair<long, int> run in runs)
+            {
+                int from = (int)(run.Key >> 32);
+                int next = (int)(run.Key & 0xFFFFFFFFL);
+                int back = runs.TryGetValue(((long)next << 32) | (uint)from, out int seen) ? seen : 0;
+
+                for (int extra = run.Value - back; extra > 0; extra--)
+                {
+                    open.Add((next, from));
+                }
+            }
+
+            open.Sort();
+            return open;
+        }
+
+        /// <summary>
+        /// Gets the faces closing the gap between loops of unpaired edges that face each other a few thousandths apart,
+        /// corner over corner: one strip along each edge of a loop, from it to the edge over it; false where the edges left
+        /// open are not such loops.
+        /// </summary>
+        /// <remarks>
+        /// A face kept on its plane where it lies against a face of the other body a gap within the tolerance away leaves
+        /// both rims of the gap open, each a loop, and no step: a strip runs along an edge from one loop to the other, and is
+        /// no loop of edges left open. A column 300 by 300 joined, within a hundredth, to a beam 387 wide and 118 high whose
+        /// end stood 0.008 clear of the column's face was welded with the beam's end on the column's face: the parts of the
+        /// end beyond the column, two strips 43.5 wide, were tilted into wedges, and the union held 41.06 cubic millimetres
+        /// more than the two and the gap filled. Closed by four strips round the gap, it holds the two and the gap filled.
+        /// <para>
+        /// Only a gap is closed so: the faces running the two rims face each other across it, each toward the other rim, and
+        /// what lies between them is no material of either. Rims a few thousandths apart whose faces face away from each
+        /// other bound a slab both bodies hold: a beam 252 wide whose end ran exactly a hundredth into a column 300 by 300,
+        /// joined to it within a hundredth, came out with such rims, the column's face and the beam's end within it, and
+        /// closed by strips round them held the slab twice, 375.06 cubic millimetres over the union.
+        /// </para>
+        /// </remarks>
+        private static bool TryCloseGaps(IReadOnlyList<GeoFace3> faces, GeoVector3[] normals, List<List<int>>[] rings, List<GeoPoint3> points, double wide, out List<List<int>> steps)
+        {
+            steps = new List<List<int>>();
+            List<(int From, int To)> open = Unpaired(rings);
+
+            // The faces running each edge, by the way they run it: an edge left open the way a face closing it runs it is run
+            // the other way by the face whose rim it is, and by the faces meeting that face along it.
+            var runBy = new Dictionary<long, List<int>>(PackedKeys.Instance);
+
+            for (int f = 0; f < rings.Length; f++)
+            {
+                foreach (List<int> ring in rings[f])
+                {
+                    for (int i = 0; i < ring.Count; i++)
+                    {
+                        long run = ((long)ring[i] << 32) | (uint)ring[(i + 1) % ring.Count];
+
+                        if (!runBy.TryGetValue(run, out List<int> by))
+                        {
+                            by = new List<int>(2);
+                            runBy.Add(run, by);
+                        }
+
+                        by.Add(f);
+                    }
+                }
+            }
+
+            // Whether no material of the body lies beside an edge left open, between it and the rim over it the way given:
+            // no face running the edge faces away from that rim, its body behind it on the gap's side, and none standing across
+            // the gap runs on from the edge toward that rim.
+            bool Clear(int from, int to, GeoVector3 toward)
+            {
+                if (!runBy.TryGetValue(((long)to << 32) | (uint)from, out List<int> by))
+                {
+                    return false;
+                }
+
+                GeoPoint3 middle = points[from].Add(points[from].GetVectorTo(points[to]).Multiply(0.5));
+                double length = toward.Length;
+
+                foreach (int f in by)
+                {
+                    double facing = normals[f].DotProduct(toward);
+
+                    if (facing < -0.5 * length || Math.Abs(facing) <= 0.5 * length && middle.GetVectorTo(faces[f].Centroid).DotProduct(toward) > 0.0)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            var leaving = new Dictionary<int, int>(open.Count);
+
+            for (int e = 0; e < open.Count; e++)
+            {
+                if (leaving.ContainsKey(open[e].From))
+                {
+                    return false;
+                }
+
+                leaving.Add(open[e].From, e);
+            }
+
+            // Every corner left open once, so the edges make loops, each walked from the first of its edges in order.
+            var used = new bool[open.Count];
+            var loops = new List<List<int>>();
+
+            for (int e = 0; e < open.Count; e++)
+            {
+                if (used[e])
+                {
+                    continue;
+                }
+
+                var loop = new List<int>();
+                int at = e;
+
+                while (!used[at])
+                {
+                    used[at] = true;
+                    loop.Add(open[at].From);
+
+                    if (!leaving.TryGetValue(open[at].To, out at))
+                    {
+                        return false;
+                    }
+                }
+
+                if (at != e)
+                {
+                    return false;
+                }
+
+                loops.Add(loop);
+            }
+
+            // Each loop with the first after it whose corners stand over its own within a bridge of the reach, in turn the
+            // other way round, as the faces on the two sides of a gap run its rims.
+            double across = LoopAssembly.Bridge * wide;
+            var paired = new bool[loops.Count];
+
+            for (int i = 0; i < loops.Count; i++)
+            {
+                if (paired[i])
+                {
+                    continue;
+                }
+
+                List<int> one = loops[i];
+                int n = one.Count;
+                bool found = false;
+
+                for (int j = i + 1; j < loops.Count && !found; j++)
+                {
+                    List<int> other = loops[j];
+
+                    if (paired[j] || other.Count != n || n < 3)
+                    {
+                        continue;
+                    }
+
+                    for (int shift = 0; shift < n && !found; shift++)
+                    {
+                        bool over = true;
+
+                        for (int t = 0; t < n && over; t++)
+                        {
+                            over = points[one[t]].DistanceTo(points[other[((shift - t) % n + n) % n]]) <= across;
+                        }
+
+                        if (!over)
+                        {
+                            continue;
+                        }
+
+                        // The strip along each edge of the one loop runs that edge and the edge over it the ways they are
+                        // left open, and its two ends each way, so the strips side by side pair their ends.
+                        for (int t = 0; t < n; t++)
+                        {
+                            int a = one[t], b = one[(t + 1) % n], c = other[((shift - t - 1) % n + n) % n], d = other[((shift - t) % n + n) % n];
+                            var strip = new List<int> { a, b, c, d };
+                            GeoVector3 gap = points[a].GetVectorTo(points[d]).Add(points[b].GetVectorTo(points[c]));
+
+                            if (Step(strip, points, wide) < 0 || !Clear(a, b, gap) || !Clear(c, d, gap.Multiply(-1.0)))
+                            {
+                                return false;
+                            }
+
+                            steps.Add(strip);
+                        }
+
+                        paired[i] = paired[j] = true;
+                        found = true;
+                    }
+                }
+
+                if (!found)
+                {
+                    return false;
                 }
             }
 

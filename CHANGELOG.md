@@ -371,6 +371,51 @@ still walks every edge. Of
 2 400 runs of every operation and fill rule over random, degenerate and zigzag sets none moves, and in a build that sorted anyway
 the sort found nothing to swap wherever it was left out.
 
+**FIXED.** A union of two bodies wound alike that comes out wound against itself is worked out again with each cell no
+thicker than the tolerance lying within the other body against its face left out, the side of the cell nearest a face
+of the other lying on it to the rounding and facing its way, and taken so where that closes wound alike and holds a
+volume a union can: no less than the larger, no more than the two, and the two less their common part within the
+tolerance times the area of that part's skin. Cut by the other's planes, such a cell, a slab exactly the tolerance
+thick, was read on the other's skin and kept beside the other whole: a turned cube of 100 joined to a slab 40 by 30 and
+0.001 thick inside its top came out wound against itself round the slab's sides, 1 000 000.4, and is the cube now; a
+column 300 by 300 joined to a beam whose end ran exactly a thousandth into it held 100.96 cubic millimetres over their
+exact union, 66.35 over the two, and holds 1.50 under the exact union, the beam beyond the column's face. A union that
+comes out wound against itself and does not hold such a volume, worked out again or not, is reported as not worked
+out, `false`, logged: a turned cube of 100 and a block 40 by 40 by 50 running exactly 0.001 into its top at the corner
+held 1 080 003.21, more than the two, 1 080 001.6; and at a hundredth, a column joined to a beam 377 wide running
+exactly the tolerance into it held 214.9 over their exact union, wound against itself. One wound against itself that
+holds such a volume is kept as it was. Of 6 400 column and beam joins and differences at a thousandth with the beam's
+end 0.8 to 2 tolerances into or off the column, 16 that were wound against themselves are 2, 8 of them valid now and 6
+not worked out; at a hundredth, 4 are 0, 2 not worked out. Of 5 400 booleans of a cube and boxes exactly the tolerance
+into, onto or beside it, 116 unions so wound are none, 102 valid and 14 not worked out; of 400 bodies turned by
+rotations of whole-number quaternions, column and beam exactly the tolerance into each other, 28 so wound are 26 valid
+and 2 not worked out; of the 12 000 column and I-beam joins and cuts, one union wound against itself, 88 447 862.2, is
+not worked out. A union that came out wound alike is the same to the bit, in all of these. Sharing nothing at the
+tolerance, as two bodies overlapping by a slab exactly the tolerance thick do, a union worked out again is taken holding
+anything from the two less the tolerance times the area where they lie face to face, to the two; one as it came, wound
+against itself, only holding the two.
+
+**FIXED.** A union of two bodies whose faces lie against each other a gap within the tolerance apart, the gap's two rims
+left open by a weld that keeps every face on its plane, closes the gap by a strip along each edge of a rim, where the
+rims are loops a few thousandths apart corner for corner with nothing of the body between them: no face along a rim
+faces away from the other rim, and none standing across the gap runs on toward it. The weld put the one rim on the
+other before, tilting the faces beside it. A column 300 by 300 joined, within a hundredth, to a beam 387 wide and 118
+high whose end stands 0.008 clear of its face held 41.06 cubic millimetres more than the two and the gap filled, the
+parts of the beam's end beyond the column tilted into wedges, and holds the two and the gap filled now. Of 6 400 such
+joins at a hundredth, 22 held more than that, by up to 144, and none does. Rims that bound a slab both bodies hold, a
+beam's end exactly the tolerance within a column, are no gap, and are welded as before.
+
+**FIXED.** A difference or a common part of two closed bodies that meet, that makes a closed body enclosing no more than
+a slab the tolerance thick as `Validate` reads it (`SolidIssueKind.NoVolume`), with nothing else wrong with it than such a
+slab has (thin faces, short edges, edges three faces share), reports nothing left, `false` with `BooleanOutcome.Empty`,
+where it handed the slab back: the common part of a turned cube of 100 and a box 40 by 30 and 0.001 thick inside it was
+the box, 1.2 cubic millimetres enclosing nothing, and a plate 10 by 10 and 0.0018 thick less a box over all but 0.0018 of
+its width left a rod 0.0018 square, 0.000 032 4 cubic millimetres. Not asked: two bodies apart, the first handed back as
+it came, a body that does not close, and what is left of a body that itself encloses no more than such a slab, which is
+as it was. Of 5 400 booleans of a cube and boxes exactly the tolerance into, onto or beside it, 58 such common parts are
+nothing now; of 12 000 joins, differences and common parts of a column and an I-beam within the tolerance, 11 common
+parts, and of 6 000 others 2.
+
 **FIXED.** `TryCutOpenings` gives the material of a closed body with closed openings closed as `Validate` reads it, as a
 boolean gives its result, or returns `false`, logged. Cut in at once, it was handed back open: a plate 300 by 200 by 12
 with two blind holes ending 0.015 under its top, turned and far from the origin, came out open at a hundredth by four

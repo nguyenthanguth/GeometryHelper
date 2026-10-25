@@ -136,6 +136,22 @@ namespace GeometryHelper
             return new SolidValidation3(sorted, volume);
         }
 
+        /// <summary>
+        /// Whether the faces of a body enclose no more than a slab the tolerance thick, as <see cref="Of"/> reads it: a
+        /// <see cref="SolidIssueKind.NoVolume"/>.
+        /// </summary>
+        internal static bool HasNoVolume(GeoSolid3 solid, Tolerance tolerance)
+        {
+            double area = 0.0;
+
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                area += face.Area;
+            }
+
+            return Math.Abs(solid.GetSignedVolume()) <= 0.5 * tolerance.EqualPoint * area;
+        }
+
         private static void AddShortEdges(GeoPolygon3 ring, int face, Tolerance tolerance, List<SolidIssue3> issues, ref double perimeter)
         {
             for (int i = 0; i < ring.VertexCount; i++)

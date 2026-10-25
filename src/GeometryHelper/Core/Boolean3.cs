@@ -126,6 +126,31 @@ namespace GeometryHelper.Core
             {
                 if (Unite(first, second, out result, tolerance, out string unworkable, out open))
                 {
+                    // Wound against itself where the two are wound alike, the union is worked out again with every cell no
+                    // thicker than the tolerance lying within the other body against its face left out, and taken so where that
+                    // closes wound alike and holds a volume a union of the two can; see FacesOfCells and HoldsTheTwo. A beam whose
+                    // end ran exactly a thousandth into a column held the slab of its end within the column, the column whole
+                    // beside it, 100.96 cubic millimetres over their exact union and 66.35 over the two. Where it does not,
+                    // the union as it came is kept only where it holds such a volume itself, as before such a result was
+                    // turned down; see CombineCuttingOne. Otherwise it is not worked out: a turned cube of 100 and a block
+                    // 40 by 40 by 50 running exactly 0.001 into its top at the corner came out so, 1 080 003.21, more than the
+                    // two, 1 080 001.6.
+                    if (!Shells3.ClosesAlike(result.Faces, tolerance) && Shells3.ClosesAlike(first.Faces, tolerance) && Shells3.ClosesAlike(second.Faces, tolerance))
+                    {
+                        if (Unite(first, second, out GeoSolid3 flush, tolerance, out _, out _, null, true)
+                            && Shells3.Closes(flush, tolerance) && Shells3.ClosesAlike(flush.Faces, tolerance) && HoldsTheTwo(flush, first, second, tolerance, true))
+                        {
+                            result = flush;
+                        }
+                        else if (!HoldsTheTwo(result, first, second, tolerance, false))
+                        {
+                            GeometryHelperLog.Warn("A solid union could not be worked out: it came out wound against itself, holding a volume no union of the two can; it is reported as not made.");
+                            result = null;
+                            outcome = BooleanOutcome.NotWorkedOut;
+                            return false;
+                        }
+                    }
+
                     outcome = BooleanOutcome.Made;
                     return true;
                 }
@@ -142,10 +167,71 @@ namespace GeometryHelper.Core
             }
         }
 
+        /// <summary>
+        /// Whether a union, worked out again or wound against itself, holds a volume a union of the two can: no less than the
+        /// larger, no more than both, and the two less their common part within the tolerance times the area of that part's skin, as
+        /// <see cref="AddsUp"/> reads it, or, sharing nothing at the tolerance, the two less no more than the tolerance times
+        /// the area where they lie face to face, where it was worked out again; and a hair for the rounding.
+        /// </summary>
+        /// <param name="union">The union.</param>
+        /// <param name="first">The first body.</param>
+        /// <param name="second">The second body.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="again">
+        /// Whether the union was worked out again with the cells no thicker than the tolerance left out, where sharing nothing
+        /// it can hold the two less such a slab; one as it came, wound against itself, holds the two then.
+        /// </param>
+        /// <remarks>
+        /// Taken unchecked, the union of a turned cube of 100 and a block 40 by 40 by 50 running 0.001 into its top at the
+        /// corner held 1 080 002.0, more than the two, 1 080 001.6, where their union holds 1 080 001.2: a cell standing beside
+        /// the block's slab along the cube's edge, not on its face, was left out with it.
+        /// </remarks>
+        private static bool HoldsTheTwo(GeoSolid3 union, GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, bool again)
+        {
+            double v = VolumeOf(union, tolerance);
+            double v1 = VolumeOf(first, tolerance);
+            double v2 = VolumeOf(second, tolerance);
+            double rounding = 1E-9 * (Math.Abs(v1) + Math.Abs(v2));
+
+            if (v < Math.Max(v1, v2) - rounding || v > v1 + v2 + rounding)
+            {
+                return false;
+            }
+
+            var checking = new OpenPath { Checking = true };
+
+            if (!Share(first, second, out GeoSolid3 common, tolerance, out string why, out _, checking, true))
+            {
+                // Nothing in common at the tolerance: an overlap exactly the tolerance deep reads so, and the union holds anything
+                // from the two less that slab to the two, the slab no more than the tolerance times where the two lie face to
+                // face. Two cubes of 100 overlapping by a hundredth, turned, joined within a hundredth into 1 999 950.
+                if (why != null || !again)
+                {
+                    return why == null && Math.Abs(v - (v1 + v2)) <= rounding;
+                }
+
+                // A slab exactly the tolerance thick is that thick to a few bits either way; see Bridged.
+                double contact = 0.0;
+                Tolerance flush = Splition3.OnPlaneWithinRounding(first, Splition3.OnPlaneWithinRounding(second, tolerance));
+
+                if (TryGetContact(first, second, out GeoFace3[] patches, flush))
+                {
+                    foreach (GeoFace3 patch in patches)
+                    {
+                        contact += patch.Area;
+                    }
+                }
+
+                return v >= v1 + v2 - tolerance.EqualPoint * contact - rounding;
+            }
+
+            return Math.Abs(v - (v1 + v2 - VolumeOf(common, tolerance))) <= tolerance.EqualPoint * common.GrossSurfaceArea + rounding;
+        }
+
         private static bool Unite(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable)
             => Unite(first, second, out result, tolerance, out unworkable, out _);
 
-        private static bool Unite(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable, out GeoSolid3 open, OpenPath path = null)
+        private static bool Unite(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable, out GeoSolid3 open, OpenPath path = null, bool flush = false)
         {
             result = null;
             unworkable = null;
@@ -181,7 +267,7 @@ namespace GeometryHelper.Core
 
             if (TryCutOpeningsAtOnce(first, out GeoSolid3 a, tolerance) && TryCutOpeningsAtOnce(second, out GeoSolid3 b, tolerance))
             {
-                bool? found = CombineCuttingOne(a, b, true, tolerance, out result, out _, out fewest);
+                bool? found = CombineCuttingOne(a, b, true, tolerance, out result, out _, out fewest, flush);
 
                 // A union one body cut gave of a volume no union can have is worked out by cutting both instead.
                 if (result != null && Implausible("union", result, a, b, tolerance) is string why)
@@ -227,7 +313,7 @@ namespace GeometryHelper.Core
             var stuck = new List<GeoPlane3>();
             List<GeoSolid3> cells = SplitIntoCells(second, planes, tolerance, out bool clean, stuck);
             bool misjudged = !clean && Misjudged(cells, stuck, second, first, false, tolerance);
-            kept.AddRange(FacesOfCells(cells, second, first, false, tolerance, owners, firstCells.Count));
+            kept.AddRange(FacesOfCells(cells, second, first, false, tolerance, owners, firstCells.Count, flush));
 
             if (!GlueOrKeep(kept, owners, openCut, misjudged, tolerance, out result))
             {
@@ -296,9 +382,13 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="outcome">
         /// <see cref="BooleanOutcome.Made"/> with the result, <see cref="BooleanOutcome.Empty"/> where the two share no
-        /// volume, or <see cref="BooleanOutcome.NotWorkedOut"/> where it could not be worked out, which is logged.
+        /// volume, or no more than a slab the tolerance thick, or <see cref="BooleanOutcome.NotWorkedOut"/> where it could not
+        /// be worked out, which is logged.
         /// </param>
-        /// <returns>false when the two bodies share no volume, or when it cannot be worked out.</returns>
+        /// <returns>
+        /// false when the two bodies share no volume, or share no more than a slab the tolerance thick as
+        /// <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, or when it cannot be worked out.
+        /// </returns>
         public static bool TryIntersect(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
             => Intersect(first, second, out result, tolerance, out outcome, out _);
 
@@ -315,6 +405,12 @@ namespace GeometryHelper.Core
             {
                 if (Share(first, second, out result, tolerance, out string unworkable, out open))
                 {
+                    if (IsNothing("intersection", ref result, first, second, tolerance))
+                    {
+                        outcome = BooleanOutcome.Empty;
+                        return false;
+                    }
+
                     outcome = BooleanOutcome.Made;
                     return true;
                 }
@@ -339,7 +435,7 @@ namespace GeometryHelper.Core
         private static bool Share(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable)
             => Share(first, second, out result, tolerance, out unworkable, out _);
 
-        private static bool Share(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable, out GeoSolid3 open, OpenPath path = null)
+        private static bool Share(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable, out GeoSolid3 open, OpenPath path = null, bool flush = false)
         {
             result = null;
             unworkable = null;
@@ -364,7 +460,7 @@ namespace GeometryHelper.Core
             List<GeoPlane3> knives = firstIsCut ? cuttingFirst : cuttingSecond;
             List<GeoPlane3> otherKnives = firstIsCut ? cuttingSecond : cuttingFirst;
 
-            List<GeoFace3> kept = CellsInside(cut, other, knives, tolerance, out bool clean, out bool misjudged, out List<int> owners);
+            List<GeoFace3> kept = CellsInside(cut, other, knives, tolerance, out bool clean, out bool misjudged, out List<int> owners, flush);
             bool otherWayAffordable = otherKnives.Count <= 2 * knives.Count + 16;
 
             // A plane can still cross a cell and leave it whole where the cut does not close — a body running
@@ -380,7 +476,7 @@ namespace GeometryHelper.Core
             // each judged alike, and the common part came out as it is.
             if (!clean && (otherWayAffordable || misjudged))
             {
-                List<GeoFace3> otherWay = CellsInside(other, cut, otherKnives, tolerance, out bool otherClean, out bool otherMisjudged, out List<int> otherOwners);
+                List<GeoFace3> otherWay = CellsInside(other, cut, otherKnives, tolerance, out bool otherClean, out bool otherMisjudged, out List<int> otherOwners, flush);
 
                 if (otherClean || (misjudged && !otherMisjudged))
                 {
@@ -397,7 +493,7 @@ namespace GeometryHelper.Core
             // Cut cleanly and still open, two closed bodies can close cut the other way round, as a difference can;
             // see CombineCuttingOne.
             if (clean && otherWayAffordable && !result.IsClosed(tolerance) && first.IsClosed(tolerance) && second.IsClosed(tolerance)
-                && TryGlue(CellsInside(other, cut, otherKnives, tolerance, out bool closedClean, out _, out List<int> closedOwners), closedOwners, tolerance, out GeoSolid3 otherResult)
+                && TryGlue(CellsInside(other, cut, otherKnives, tolerance, out bool closedClean, out _, out List<int> closedOwners, flush), closedOwners, tolerance, out GeoSolid3 otherResult)
                 && closedClean && otherResult.IsClosed(tolerance))
             {
                 result = otherResult;
@@ -408,7 +504,7 @@ namespace GeometryHelper.Core
             {
                 GeometryHelperLog.Debug($"Boolean3: cutting one body {why}; the other is cut instead.");
 
-                if (TryGlue(CellsInside(other, cut, otherKnives, tolerance, out _, out _, out List<int> otherWayOwners), otherWayOwners, tolerance, out GeoSolid3 otherWay)
+                if (TryGlue(CellsInside(other, cut, otherKnives, tolerance, out _, out _, out List<int> otherWayOwners, flush), otherWayOwners, tolerance, out GeoSolid3 otherWay)
                     && Implausible("intersection", otherWay, first, second, tolerance) == null)
                 {
                     result = Weld3.Sealed(otherWay, tolerance);
@@ -438,7 +534,7 @@ namespace GeometryHelper.Core
             GeometryHelperLog.Debug("Boolean3: the common part came out open to Validate; the other body is cut instead.");
             open = result;
 
-            if (TryGlue(CellsInside(other, cut, otherKnives, tolerance, out _, out _, out List<int> openOwners), openOwners, tolerance, out GeoSolid3 cutOtherWay)
+            if (TryGlue(CellsInside(other, cut, otherKnives, tolerance, out _, out _, out List<int> openOwners, flush), openOwners, tolerance, out GeoSolid3 cutOtherWay)
                 && Implausible("intersection", cutOtherWay, first, second, tolerance) == null)
             {
                 result = Weld3.Sealed(cutOtherWay, tolerance);
@@ -464,13 +560,17 @@ namespace GeometryHelper.Core
         /// <param name="clean">false when a plane crossed a cell and still left it whole.</param>
         /// <param name="misjudged">Whether such a cell holds material on the two sides of the plane judged apart; see <see cref="Misjudged"/>.</param>
         /// <param name="owners">The place of the cell of each face.</param>
-        private static List<GeoFace3> CellsInside(GeoSolid3 body, GeoSolid3 other, List<GeoPlane3> knives, Tolerance tolerance, out bool clean, out bool misjudged, out List<int> owners)
+        /// <param name="flush">
+        /// Whether a cell no thicker than the tolerance lying within the other body against its face is taken as within it, as a
+        /// union worked out again reads it; see <see cref="HoldsTheTwo"/>.
+        /// </param>
+        private static List<GeoFace3> CellsInside(GeoSolid3 body, GeoSolid3 other, List<GeoPlane3> knives, Tolerance tolerance, out bool clean, out bool misjudged, out List<int> owners, bool flush = false)
         {
             var stuck = new List<GeoPlane3>();
             List<GeoSolid3> cells = SplitIntoCells(body, knives, tolerance, out clean, stuck);
             misjudged = !clean && Misjudged(cells, stuck, body, other, true, tolerance);
             owners = new List<int>();
-            return FacesOfCells(cells, body, other, true, tolerance, owners);
+            return FacesOfCells(cells, body, other, true, tolerance, owners, 0, flush);
         }
 
         /// <summary>
@@ -517,10 +617,13 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="outcome">
         /// <see cref="BooleanOutcome.Made"/> with what is left, <see cref="BooleanOutcome.Empty"/> where the tool took the
-        /// whole subject, or <see cref="BooleanOutcome.NotWorkedOut"/> where it could not be worked out, which is logged:
-        /// nothing left takes a net volume to nought, where no answer is a step to work out some other way.
+        /// whole subject, or left no more than a slab the tolerance thick, or <see cref="BooleanOutcome.NotWorkedOut"/> where
+        /// it could not be worked out, which is logged: nothing left takes a net volume to nought, where no answer is a step
+        /// to work out some other way. A plate 10 by 10 and 0.0018 thick less a box over all but 0.0018 of its width leaves a
+        /// rod 0.0018 square, which encloses nothing at a tolerance of a thousandth as
+        /// <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, and is empty.
         /// </param>
-        /// <returns>false when nothing is left, or when it cannot be worked out.</returns>
+        /// <returns>false when nothing is left, no more than a slab the tolerance thick among it, or when it cannot be worked out.</returns>
         public static bool TrySubtract(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
             => Subtract(subject, tool, out result, tolerance, out outcome, out _);
 
@@ -537,6 +640,12 @@ namespace GeometryHelper.Core
             {
                 if (TakeAway(subject, tool, out result, tolerance, out string unworkable, out open))
                 {
+                    if (IsNothing("difference", ref result, subject, tool, tolerance))
+                    {
+                        outcome = BooleanOutcome.Empty;
+                        return false;
+                    }
+
                     outcome = BooleanOutcome.Made;
                     return true;
                 }
@@ -659,6 +768,49 @@ namespace GeometryHelper.Core
             }
 
             return AddsUp("difference", ref result, subject, tool, tolerance, path, out unworkable, ref open);
+        }
+
+        /// <summary>
+        /// Determines whether what a difference or a common part of two closed bodies that meet made, closed, encloses no more
+        /// than a slab the tolerance thick, as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, and nothing else is wrong
+        /// with it: nothing at the tolerance, which the boolean reports as nothing left, the result taken away.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A slab no thicker than the tolerance is within it of nothing, and was handed back all the same: a cube of 100 and a
+        /// box 40 by 30 and a thousandth thick inside it, both turned, had the box as their common part, 1.2 cubic millimetres
+        /// that <c>Validate</c> reads as enclosing nothing. The issues <c>Validate</c> may find of such a slab besides are its
+        /// own: faces as thin as it (<see cref="SolidIssueKind.SliverFace"/>), edges as short, and edges three faces or more
+        /// share. Any other, a face wound against the rest or one off flat, leaves the result as it was made.
+        /// </para>
+        /// <para>
+        /// Not asked: two bodies apart, the first handed back as it came, an open result, a result of a body that does not
+        /// close, whose faces enclose nothing to speak of, and what is left of a body that itself encloses no more than such a
+        /// slab, which is as it was: a sheet of four faces less a box crossing it was a sheet before and stays one, and a plate
+        /// 0.0005 thick less a box is what is left of the plate, whether or not the box reaches it.
+        /// </para>
+        /// </remarks>
+        internal static bool IsNothing(string operation, ref GeoSolid3 result, GeoSolid3 first, GeoSolid3 second, Tolerance tolerance)
+        {
+            if (result == null || ReferenceEquals(result, first) || !first.GetAabb().CollidesWith(second.GetAabb(), tolerance)
+                || !SolidValidation3.HasNoVolume(result, tolerance) || operation == "difference" && SolidValidation3.HasNoVolume(first, tolerance)
+                || !Shells3.Closes(result, tolerance) || !Shells3.Closes(first, tolerance) || !Shells3.Closes(second, tolerance))
+            {
+                return false;
+            }
+
+            foreach (SolidIssue3 issue in result.Validate(tolerance).Issues)
+            {
+                if (issue.Kind != SolidIssueKind.NoVolume && issue.Kind != SolidIssueKind.SliverFace
+                    && issue.Kind != SolidIssueKind.ShortEdge && issue.Kind != SolidIssueKind.NonManifoldEdge)
+                {
+                    return false;
+                }
+            }
+
+            GeometryHelperLog.Debug($"Boolean3: the {operation} left encloses no more than a slab the tolerance thick, {result.GrossVolume:R}; it is reported as nothing left.");
+            result = null;
+            return true;
         }
 
         /// <summary>
@@ -1053,6 +1205,10 @@ namespace GeometryHelper.Core
         /// it came.
         /// </param>
         /// <param name="fewest">How many planes of the other come near the body fewer come near, of the two.</param>
+        /// <param name="flush">
+        /// For a union worked out again, whether a cell no thicker than the tolerance lying within the other body against its
+        /// face is left out; see <see cref="FacesOfCells(List{GeoSolid3}, GeoSolid3, GeoSolid3, bool, Tolerance, out bool, List{int}, int, bool)"/>.
+        /// </param>
         /// <returns>
         /// Whether anything is left, as the public methods report it; null when neither body could be cut cleanly, or
         /// two closed bodies came out open whichever was cut, for the caller to cut both by every plane of both
@@ -1073,7 +1229,7 @@ namespace GeometryHelper.Core
         /// smaller a few thousandths off its own faces, came back twenty thousand cubic millimetres larger than it was.
         /// </para>
         /// </remarks>
-        private static bool? CombineCuttingOne(GeoSolid3 a, GeoSolid3 b, bool union, Tolerance tolerance, out GeoSolid3 result, out bool untouched, out int fewest)
+        private static bool? CombineCuttingOne(GeoSolid3 a, GeoSolid3 b, bool union, Tolerance tolerance, out GeoSolid3 result, out bool untouched, out int fewest, bool flush = false)
         {
             result = null;
             untouched = false;
@@ -1141,7 +1297,7 @@ namespace GeometryHelper.Core
                 }
 
                 anyClean = true;
-                bool? settled = Settle(cells, cutA, a, b, union, tolerance, ref open, ref crossed, out result, out untouched);
+                bool? settled = Settle(cells, cutA, a, b, union, flush, tolerance, ref open, ref crossed, out result, out untouched);
 
                 if (settled.HasValue)
                 {
@@ -1156,7 +1312,7 @@ namespace GeometryHelper.Core
                 foreach ((List<GeoSolid3> cells, bool cutA) in consistent)
                 {
                     bool found = open != null || crossed != null;
-                    bool? settled = Settle(cells, cutA, a, b, union, tolerance, ref open, ref crossed, out result, out untouched);
+                    bool? settled = Settle(cells, cutA, a, b, union, flush, tolerance, ref open, ref crossed, out result, out untouched);
 
                     if (settled.HasValue && (!found || settled.Value && !untouched))
                     {
@@ -1190,6 +1346,10 @@ namespace GeometryHelper.Core
         /// <param name="a">The first body; for a difference, the one material is taken from.</param>
         /// <param name="b">The second body; for a difference, the one taken away.</param>
         /// <param name="union">true for the union, false for <paramref name="a"/> less <paramref name="b"/>.</param>
+        /// <param name="flush">
+        /// For a union worked out again, whether a cell no thicker than the tolerance lying within the other body against its
+        /// face is left out.
+        /// </param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="open">An open result found before, or this one where it comes out open and none was.</param>
         /// <param name="crossed">
@@ -1201,7 +1361,7 @@ namespace GeometryHelper.Core
         /// Whether anything is left; null when two closed bodies came out open this way, or closed with faces wound against
         /// each other.
         /// </returns>
-        private static bool? Settle(List<GeoSolid3> cells, bool cutA, GeoSolid3 a, GeoSolid3 b, bool union, Tolerance tolerance, ref GeoSolid3 open, ref GeoSolid3 crossed, out GeoSolid3 result, out bool untouched)
+        private static bool? Settle(List<GeoSolid3> cells, bool cutA, GeoSolid3 a, GeoSolid3 b, bool union, bool flush, Tolerance tolerance, ref GeoSolid3 open, ref GeoSolid3 crossed, out GeoSolid3 result, out bool untouched)
         {
             result = null;
             untouched = false;
@@ -1211,7 +1371,7 @@ namespace GeometryHelper.Core
             bool within = !union && !cutA;
 
             var owners = new List<int>();
-            List<GeoFace3> kept = FacesOfCells(cells, cut, whole, within, tolerance, out bool anyInside, owners);
+            List<GeoFace3> kept = FacesOfCells(cells, cut, whole, within, tolerance, out bool anyInside, owners, 0, union && flush);
 
             if (!union && !anyInside)
             {
@@ -1850,8 +2010,9 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="owners">Where given, receives for each face collected the place of its cell, plus <paramref name="offset"/>.</param>
         /// <param name="offset">What the places of the cells start from.</param>
-        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance, List<int> owners = null, int offset = 0)
-            => FacesOfCells(cells, owner, against, wantInside, tolerance, out _, owners, offset);
+        /// <param name="union">Whether the cells kept are joined to the other body whole; see the overload saying whether any lies within it.</param>
+        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance, List<int> owners = null, int offset = 0, bool union = false)
+            => FacesOfCells(cells, owner, against, wantInside, tolerance, out _, owners, offset, union);
 
         /// <summary>
         /// Collects the faces of the cells that are material of their own body and lie on the wanted side of another
@@ -1865,7 +2026,16 @@ namespace GeometryHelper.Core
         /// <param name="anyInside">Whether a cell of material lies within <paramref name="against"/>.</param>
         /// <param name="owners">Where given, receives for each face collected the place of its cell, plus <paramref name="offset"/>.</param>
         /// <param name="offset">What the places of the cells start from.</param>
-        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance, out bool anyInside, List<int> owners = null, int offset = 0)
+        /// <param name="union">
+        /// Whether the cells kept are joined to the other body whole, as a union that came out wound against itself is worked
+        /// out again: a cell no thicker than the tolerance, read on the other's skin, is then taken as within it where its
+        /// side lying nearest flush on a face of the other faces the same way, so that it is not held twice. A beam whose end
+        /// ran exactly a thousandth into a column, joined to it within a thousandth, kept the slab of its end within the
+        /// column, the column whole beside it, and came out wound against itself, 101 cubic millimetres more than the two
+        /// less their common part. Only then: read so by every union, a chip exactly the tolerance deep is cut by the union
+        /// where the common part and the differences read it as nothing; see <see cref="IsMaterial"/>.
+        /// </param>
+        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance, out bool anyInside, List<int> owners = null, int offset = 0, bool union = false)
         {
             List<GeoFace3> faces = new List<GeoFace3>();
             anyInside = false;
@@ -1880,7 +2050,9 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                bool within = LocateSample(against, sample, tolerance, fine) == PointLocation.Inside;
+                PointLocation location = LocateSample(against, sample, tolerance, fine);
+                bool within = location == PointLocation.Inside
+                    || (union && location == PointLocation.OnSide && !fine.HasValue && LiesFlushAlike(cells[c], against, tolerance));
                 anyInside |= within;
 
                 if (within == wantInside)
@@ -1891,6 +2063,95 @@ namespace GeometryHelper.Core
             }
 
             return faces;
+        }
+
+        /// <summary>
+        /// Whether the face of a cell lying nearest flush on a face of another body, over some area, faces the same way as
+        /// that face: the cell's material there is on the side of the other's.
+        /// </summary>
+        /// <remarks>
+        /// A cell no thicker than the tolerance lies within it of a face of the other with both its sides: a slab inside the
+        /// top of a box has its top on the box's, facing the same way, and its floor the slab's thickness beneath, facing the
+        /// other way; one on top of the box has its floor on the box's top, facing the other way, and its top above. The side
+        /// lying nearer says which.
+        /// </remarks>
+        private static bool LiesFlushAlike(GeoSolid3 cell, GeoSolid3 other, Tolerance tolerance)
+        {
+            GeoAabb3 otherBox = other.GetAabb();
+            double alike = double.MaxValue, against = double.MaxValue;
+
+            foreach (GeoFace3 face in cell.Faces)
+            {
+                GeoAabb3 faceBox = face.GetAabb();
+
+                if (!faceBox.CollidesWith(otherBox, tolerance))
+                {
+                    continue;
+                }
+
+                GeoVector3 normal = face.Boundary.Normal;
+
+                foreach (GeoFace3 flush in other.Faces)
+                {
+                    double facing = normal.DotProduct(flush.Boundary.Normal);
+                    GeoPlane3 plane = flush.GetPlane();
+
+                    if (facing == 0.0 || !faceBox.CollidesWith(flush.GetAabb(), tolerance) || !LiesIn(plane, face, tolerance))
+                    {
+                        continue;
+                    }
+
+                    double off = 0.0;
+
+                    foreach (GeoPoint3 corner in face.Boundary.Vertices)
+                    {
+                        off = Math.Max(off, Math.Abs(plane.SignedDistanceTo(corner)));
+                    }
+
+                    if (off >= (facing > 0.0 ? alike : against))
+                    {
+                        continue;
+                    }
+
+                    foreach (GeoFace3 patch in Intersect(flush, face, tolerance))
+                    {
+                        if (IsWide(patch, tolerance))
+                        {
+                            if (facing > 0.0)
+                            {
+                                alike = off;
+                            }
+                            else
+                            {
+                                against = off;
+                            }
+
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // A side found on the far side only, the near one lying within the tolerance of the other's face and no closer, is
+            // no more than the cell standing the tolerance off it: a sliver along an edge the two share reads so.
+            return alike < against && (alike <= Math.Max(Splition3.Rounding(cell), Splition3.Rounding(other)) || against < double.MaxValue);
+        }
+
+        /// <summary>
+        /// Whether a patch of two faces is wider on average than the point tolerance: twice its area over its perimeter. A
+        /// sliver along an edge the two share, the tolerance wide or less, is no face lying on another.
+        /// </summary>
+        private static bool IsWide(GeoFace3 patch, Tolerance tolerance)
+        {
+            double perimeter = 0.0;
+            IReadOnlyList<GeoPoint3> corners = patch.Boundary.Vertices;
+
+            for (int i = 0; i < corners.Count; i++)
+            {
+                perimeter += corners[i].DistanceTo(corners[(i + 1) % corners.Count]);
+            }
+
+            return perimeter > 0.0 && 2.0 * patch.Area / perimeter > tolerance.EqualPoint;
         }
 
         /// <summary>

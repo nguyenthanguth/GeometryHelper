@@ -22,7 +22,10 @@ namespace GeometryHelper.Enums
 
         /// <summary>
         /// Nothing is left: of a difference, the tool took the whole subject; of an intersection, the two share no volume.
-        /// A union is never empty.
+        /// Either is nothing too where what it made, closed, encloses no more than a slab the tolerance thick, as
+        /// <see cref="Geometry.GeoSolid3.Validate(Tolerance)"/> reads it: a plate 10 by 10 and 0.0018 thick less a box over all
+        /// but 0.0018 of its width leaves a rod 0.0018 square, 0.000 032 4 cubic millimetres enclosing nothing at a tolerance
+        /// of a thousandth, and is empty. A union is never empty.
         /// </summary>
         Empty,
 

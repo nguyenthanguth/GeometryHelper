@@ -1219,7 +1219,12 @@ a hundredth, to a beam 383 wide and 366 high whose end stands 0.008 clear of the
 end beyond the column tilted into wedges, 999.8 cubic millimetres over the two where filling the gap holds 878; it
 holds the two and the gap filled now. A box less a cube in its corner had its side, 4 000 square millimetres, taken
 off flat by a corner of the top 0.0099 from its edge, and fanned it held 6.5 too little; the sliver between them is a
-face of its own now. The weld is made as before where the steps do not close as strips a few tolerances wide, where a
+face of its own now. Where the faces kept on their planes leave the two rims of a gap open, each a loop, the one a few
+thousandths over the other corner for corner, with nothing of the body between them, the gap is closed by a strip along
+each edge of a rim: a column 300 by 300 and a beam 387 wide and 118 high whose end stands 0.008 clear of its face,
+joined within a hundredth, held 41.06 cubic millimetres more than the two and the gap filled, the parts of the end
+beyond the column tilted into wedges, and holds the two and the gap filled now. Rims bounding a slab both bodies hold,
+a beam's end exactly the tolerance within a column, are no gap. The weld is made as before where the steps do not close as strips a few tolerances wide, where a
 face it builds runs back over itself or two of its faces lie over each other in one plane, where keeping the faces on
 their planes would move the volume further than tilting them, and where the tilt is not worth it: no face tilted by more
 than a hundredth of the tolerance, or the tilt moving the volume by no more than a tenth of the tolerance times the
@@ -1268,7 +1273,19 @@ bodies' coordinates, whichever is cut, so the common part and both differences r
 difference and the common part add up to the body it was taken from: a chip 0.0010000001 deep at the corner of a turned
 cube of 100 and one as deep along its edge are both read as no thicker than a tolerance of 0.001, where the corner was
 cut. A union of the two holds anything from the two less such a chip to the two, the seam where they meet read part
-way. An opening whose face stands the
+way. A union that comes out wound against itself, two bodies wound alike, is worked out again with each cell no thicker
+than the tolerance lying within the other body against its face left out, and taken so where that closes wound alike and
+holds a volume a union can: no less than the larger, no more than the two, and the two less their common part within
+the tolerance times the area of that part's skin. A turned cube of 100 joined to a slab 40 by 30 and 0.001 thick inside
+its top came out wound against itself round the slab's sides, 1 000 000.4, and is the cube now. One wound against itself
+that holds no such volume either way is not worked out: the same cube and a block 40 by 40 by 50 running exactly 0.001
+into its top at the corner held 1 080 003.21, more than the two. A difference or a common part of two closed bodies that
+makes a closed body enclosing no more than a slab the tolerance thick, as `Validate` reads it (`SolidIssueKind.NoVolume`),
+and nothing else wrong with it than such a slab has, leaves nothing, and says so, `false` with `BooleanOutcome.Empty`: the
+common part of that cube and such a slab inside it was the slab, 1.2 cubic millimetres enclosing nothing, and a plate 10
+by 10 and 0.0018 thick less a box over all but 0.0018 of its width left a rod 0.0018 square. Two bodies apart, a body
+that does not close, and what is left of a body itself enclosing no more than such a slab are not asked: the slab at the
+cube's top less the cube is the slab as it came. An opening whose face stands the
 tolerance off the body's, to the last bit, is read as touching it, as one a hair nearer is: a box 100 by 60 by 40
 with an opening 0.1 across 0.001 off three of its faces comes out closed, the opening taken with the outside,
 239 999.998 97, where it came out open 7.66 short.
