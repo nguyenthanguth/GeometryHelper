@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
 using GeometryHelper;
+using GeometryHelper.Dxf;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 using Xunit;

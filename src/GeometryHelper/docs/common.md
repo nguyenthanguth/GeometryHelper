@@ -273,10 +273,11 @@ MIT.
 
 ## Looking at the geometry
 
-When an answer surprises, look at the shapes. `GeometryHelper.Export` writes them in four formats, numbers
-always with a point for the decimal whatever the culture:
+When an answer surprises, look at the shapes. `GeometryHelper.Export` and `GeometryHelper.Dxf` write them in four
+formats, numbers always with a point for the decimal whatever the culture:
 
 ```csharp
+using GeometryHelper.Dxf;
 using GeometryHelper.Export;
 
 new ObjWriter()                      // space: any 3D viewer opens OBJ
@@ -415,7 +416,7 @@ back byte for byte; a change writes the records it is about anew in the file's o
 bytes.
 
 ```csharp
-using GeometryHelper.Export;
+using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
 DxfDatabase db = DxfDatabase.Open("plan.dxf");                       // or Open(stream), Parse(text)
@@ -1096,7 +1097,7 @@ block, placed where it puts them, and the blocks themselves are there too (see B
 are read as a `DxfText` (see Texts), and the layer table into `LayerTable` (see The layer table).
 
 ```csharp
-using GeometryHelper.Export;
+using GeometryHelper.Dxf;
 
 DxfDocument drawing = DxfReader.Read("plan.dxf", new DxfReadOptions { PlanAs2D = true });
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using GeometryHelper;
+using GeometryHelper.Dxf;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 using Xunit;

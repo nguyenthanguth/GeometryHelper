@@ -63,6 +63,8 @@ beam.TryTrimTo(wall, LineEnd.End, out GeoLine3 cut);      // (0,0,0) -> (2500,0,
 | `GeometryHelper.Arranging` | label placement: `Arranger`, `ArrangeItem`, `ArrangeResult`, `ArrangeOptions`, one greedy placement |
 | `GeometryHelper.Meshing` | closed shapes of the plane and flat shapes of space broken into triangles, grids, strips or convex pieces, and bodies cut into the cells of a grid: `GeoMesh2`, `Mesh2`, `GeoMesh3`, `Mesh3`, `MeshKind`, `MeshOptions`, `MeshPlacement3`, `GeoCellGrid3`, `GeoCell3`, `CellOptions3`, `CellAxis`, `GridAlignment` |
 | `GeometryHelper.Packing` | boxes onto sheets of paper: `SheetPacker`, `Sheet`, `PackOptions`, `PackResult` |
+| `GeometryHelper.Export` | shapes written as OBJ, SVG and WKT: `ObjWriter`, `SvgWriter`, `Wkt` |
+| `GeometryHelper.Dxf` | DXF files read into shapes (`DxfReader`, `DxfDocument`, `DxfShape`), shapes written (`DxfWriter`), and a drawing edited with AutoCAD's classes and members, Dxf in front: `DxfDatabase`, its tables and records, `DxfBlockTableRecord`, `DxfEntity` and every entity class |
 
 Every operation is reachable both ways: the static form names the larger shape first, and the instance
 form sits on whichever of the two reads better where you are calling from.

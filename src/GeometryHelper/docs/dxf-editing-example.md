@@ -17,7 +17,7 @@ sheet.dxf, is of R2018 too, with nothing in it. Both were made by ezdxf 1.4.5.
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using GeometryHelper.Export;
+using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
 DxfDatabase plan = DxfDatabase.Open("plan.dxf");

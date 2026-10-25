@@ -6,6 +6,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**BREAKING.** The DXF types move from the namespace `GeometryHelper.Export` to `GeometryHelper.Dxf`: a
+`using GeometryHelper.Dxf;` replaces `using GeometryHelper.Export;` for `DxfReader`, `DxfWriter`, `DxfDatabase` and every
+other `Dxf` type, or joins it where the code writes OBJ, SVG or WKT as well, and a name written in full changes alike:
+`GeometryHelper.Export.DxfWriter` is `GeometryHelper.Dxf.DxfWriter`. Each type keeps its name and members as they were.
+`ObjWriter`, `SvgWriter` and `Wkt` stay in `GeometryHelper.Export`.
+
 **BREAKING.** The read type of `DxfReader`, `DxfEntity`, is renamed `DxfShape`, so that `DxfEntity` is the entity of the
 new editing model, as AutoCAD names its own: `DxfDocument.Entities` is `DxfDocument.Shapes`, `DxfBlock.Entities` is
 `DxfBlock.Shapes`, `DxfWriter.Add(DxfEntity)` is `DxfWriter.Add(DxfShape)`, and `new DxfEntity(shape, ...)` is

@@ -4,13 +4,13 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using GeometryHelper.Export;
+using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Viewer
 {
     /// <summary>
-    /// Reads a DXF with the library's <see cref="Export.DxfReader"/>, which gives every entity it reads as the library's shape, and makes the scene of
+    /// Reads a DXF with the library's <see cref="Dxf.DxfReader"/>, which gives every entity it reads as the library's shape, and makes the scene of
     /// them: a shape lying on the floor as the shape of the plane it is (<see cref="DxfReadOptions.PlanAs2D"/>), each INSERT as the entities of its
     /// block placed where it puts them, on their layers, in their colours, an entity placed through blocks named by them, and a TEXT or an MTEXT as a
     /// label at the point it stands on. The layers take their colours, and are hidden where they are off or frozen, from the library's layer table. The
@@ -48,7 +48,7 @@ namespace GeometryHelper.Viewer
         {
             cancel.ThrowIfCancellationRequested();
             var b = new ImportBuilder(title);
-            return Take(b, Export.DxfReader.Parse(text, Options(b)), cancel);
+            return Take(b, Dxf.DxfReader.Parse(text, Options(b)), cancel);
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace GeometryHelper.Viewer
         {
             cancel.ThrowIfCancellationRequested();
             var b = new ImportBuilder(title);
-            return Take(b, Export.DxfReader.Read(stream, Options(b)), cancel);
+            return Take(b, Dxf.DxfReader.Read(stream, Options(b)), cancel);
         }
 
         private static DxfReadOptions Options(ImportBuilder b)

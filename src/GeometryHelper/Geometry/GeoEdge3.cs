@@ -182,7 +182,7 @@ namespace GeometryHelper.Geometry
         /// <see cref="GeoEdge2.IsArc"/> reads one in the plane. The edge from (0, 0, 0) to (100, 0, 0) with a bulge of 1E-12
         /// bows 5E-11 on a radius of 2.5E13; it is the segment, and measures, cuts and flattens as one. Read so, its middle and
         /// its length are the chord's, off the true arc's by no more than its sag, which is less than the rounding of the arc's
-        /// centre; split, its pieces are straight, their bulge nought, and <see cref="Export.DxfWriter"/> writes it as its
+        /// centre; split, its pieces are straight, their bulge nought, and <see cref="Dxf.DxfWriter"/> writes it as its
         /// chord, with no bulge. The reading follows the reach of the edge from the origin, so moving or turning an edge near
         /// the threshold can change it.
         /// </remarks>
