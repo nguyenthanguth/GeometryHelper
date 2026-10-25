@@ -358,50 +358,15 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                Snapshot snapshot = Snap();
+                Snapshot snapshot = Measured(Snap());
                 List<List<KeyValuePair<int, string>>> loops = snapshot.Loops;
-
-                if (snapshot.Areas == null)
-                {
-                    var areas = new double[loops.Count];
-                    var outlines = new Outline[loops.Count];
-
-                    for (int i = 0; i < loops.Count; i++)
-                    {
-                        LoopData loop = LoopData.Read(loops[i]);
-
-                        try
-                        {
-                            areas[i] = Math.Abs(loop.SignedArea());
-                            outlines[i] = new Outline(loop.Outline());
-                        }
-                        catch (ArgumentException e)
-                        {
-                            throw new InvalidOperationException("The loop " + i.ToString(CultureInfo.InvariantCulture) + " of the HATCH has an edge that is no shape: " + e.Message, e);
-                        }
-                    }
-
-                    snapshot.Outlines = outlines;
-                    snapshot.Areas = areas;
-                }
-
                 DxfHatchStyle style = HatchStyle;
                 double tolerance = Tolerance.Default.EqualPoint;
                 double area = 0.0;
 
                 for (int i = 0; i < loops.Count; i++)
                 {
-                    int depth = 0;
-
-                    for (int j = 0; j < loops.Count; j++)
-                    {
-                        // Two loops each within the other, as one loop given twice, count once: the later within the earlier.
-                        if (j != i && Within(snapshot.Outlines[i], snapshot.Outlines[j], tolerance)
-                            && (j < i || !Within(snapshot.Outlines[j], snapshot.Outlines[i], tolerance)))
-                        {
-                            depth++;
-                        }
-                    }
+                    int depth = Depth(snapshot, i, tolerance);
 
                     if (style == DxfHatchStyle.Normal)
                     {
@@ -419,6 +384,57 @@ namespace GeometryHelper.Dxf
 
                 return area;
             }
+        }
+
+        /// <summary>The snapshot with the area and the outline of each loop worked out, once for the record.</summary>
+        /// <exception cref="InvalidOperationException">Thrown when a loop has an edge that is no shape.</exception>
+        private static Snapshot Measured(Snapshot snapshot)
+        {
+            List<List<KeyValuePair<int, string>>> loops = snapshot.Loops;
+
+            if (snapshot.Areas == null)
+            {
+                var areas = new double[loops.Count];
+                var outlines = new Outline[loops.Count];
+
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    LoopData loop = LoopData.Read(loops[i]);
+
+                    try
+                    {
+                        areas[i] = Math.Abs(loop.SignedArea());
+                        outlines[i] = new Outline(loop.Outline());
+                    }
+                    catch (ArgumentException e)
+                    {
+                        throw new InvalidOperationException("The loop " + i.ToString(CultureInfo.InvariantCulture) + " of the HATCH has an edge that is no shape: " + e.Message, e);
+                    }
+                }
+
+                snapshot.Outlines = outlines;
+                snapshot.Areas = areas;
+            }
+
+            return snapshot;
+        }
+
+        /// <summary>How deep a loop lies among the others, as <see cref="Area"/> counts it: how many of them it lies within.</summary>
+        private static int Depth(Snapshot snapshot, int i, double tolerance)
+        {
+            int depth = 0;
+
+            for (int j = 0; j < snapshot.Loops.Count; j++)
+            {
+                // Two loops each within the other, as one loop given twice, count once: the later within the earlier.
+                if (j != i && Within(snapshot.Outlines[i], snapshot.Outlines[j], tolerance)
+                    && (j < i || !Within(snapshot.Outlines[j], snapshot.Outlines[i], tolerance)))
+                {
+                    depth++;
+                }
+            }
+
+            return depth;
         }
 
         /// <summary>The loops of the HATCH as last read, with what is worked out of them, kept while its record is the one read.</summary>

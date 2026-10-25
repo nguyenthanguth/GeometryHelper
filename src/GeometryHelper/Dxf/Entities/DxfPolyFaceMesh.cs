@@ -146,6 +146,116 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gets the faces the mesh breaks into, as AutoCAD's <c>Explode</c>, as ezdxf's <c>virtual_entities</c> gives them: a
+        /// 3DFACE for each face, in the order of the file, its corners the points its numbers name, the edge from a corner whose
+        /// number is below nought hidden. A face of three corners ends on its third, as AutoCAD writes one, and the edge from its
+        /// third back to its first, the 3DFACE's fourth, is hidden with its third. Each has the mesh's look, and the layer and
+        /// colour its face writes of its own, as AutoCAD's PFACE gives a face one. The pyramid of a square base and four sides
+        /// gives five faces, the base of four corners and four triangles. Its corners are its numbers up to the first of nought,
+        /// as the reader takes them: a face of fewer than three corners so, (1, 2, 0, 4) among them, or one naming a point the
+        /// mesh has not, is left out, as the reader leaves it out of the mesh's body.
+        /// </summary>
+        /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        public override IReadOnlyList<DxfEntity> Explode()
+        {
+            var look = new Look(this);
+            var origin = new GeoPoint3(0.0, 0.0, 0.0);
+            var points = new List<GeoPoint3>();
+            var faces = new List<DxfEntity>();
+            List<KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>> records = DxfFollowers.WholeVertices(Item);
+
+            // The points come before the faces, as AutoCAD writes them; a face names them by their number among the points.
+            foreach (KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>> record in records)
+            {
+                if ((DxfFollowers.Whole(record.Key, 70, 0) & 64) != 0)
+                {
+                    points.Add(DxfFollowers.Point(record.Key, 10, origin));
+                }
+            }
+
+            foreach (KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>> record in records)
+            {
+                int flags = DxfFollowers.Whole(record.Key, 70, 0);
+
+                if ((flags & 128) == 0 || (flags & 64) != 0)
+                {
+                    continue;
+                }
+
+                var corners = new List<GeoPoint3>(4);
+                int hidden = 0;
+
+                for (int code = 71; code <= 74; code++)
+                {
+                    int number = DxfFollowers.Whole(record.Key, code, 0);
+
+                    if (number == 0)
+                    {
+                        break;
+                    }
+
+                    int index = number == int.MinValue ? int.MaxValue : Math.Abs(number);
+
+                    if (index > points.Count)
+                    {
+                        corners.Clear();
+                        break;
+                    }
+
+                    corners.Add(points[index - 1]);
+                    hidden |= number < 0 ? 1 << (code - 71) : 0;
+                }
+
+                if (corners.Count < 3)
+                {
+                    continue;
+                }
+
+                if (corners.Count == 3)
+                {
+                    corners.Add(corners[2]);
+                    hidden |= (hidden & 4) << 1;
+                }
+
+                var face = new DxfFace(corners[0], corners[1], corners[2], corners[3], (hidden & 1) == 0, (hidden & 2) == 0, (hidden & 4) == 0, (hidden & 8) == 0);
+                look.GiveTo(face);
+                OwnLook(face, record.Value);
+                faces.Add(face);
+            }
+
+            return faces.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Gives a face exploded the layer and the colour its face record writes of its own (8, 62 and 420), as AutoCAD's PFACE
+        /// gives a face them: a colour index written takes the mesh's true colour off, a true colour written is the face's.
+        /// </summary>
+        private static void OwnLook(DxfFace face, IReadOnlyList<DxfTypedValue> record)
+        {
+            string layer = DxfFollowers.Text(record, 8);
+            string name = layer == null ? string.Empty : DxfReader.NameOf(layer);
+
+            if (name.Length > 0)
+            {
+                face.Layer = name;
+            }
+
+            int index = DxfFollowers.Whole(record, 62, -1);
+            int rgb = DxfFollowers.Whole(record, 420, -1);
+
+            if (index >= 0 && index <= 256)
+            {
+                face.TrueColor = null;
+                face.ColorIndex = index;
+            }
+
+            if (rgb >= 0)
+            {
+                face.TrueColor = rgb & 0xFFFFFF;
+            }
+        }
+
+        /// <summary>
         /// Takes a point or a face of the mesh out, as AutoCAD's <c>Erase</c> of one, the mesh kept true: a face with the count of
         /// the faces (group 72) one less; a point that no face names with the count of the points (71) one less and every
         /// face's number of a later point one less, the edge it starts hidden or not as it was. A point a face names is kept.

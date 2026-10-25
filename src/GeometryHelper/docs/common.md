@@ -490,7 +490,7 @@ Dxf in front and their members' names.
 | `DBDictionary`, `Xrecord`, `Group`, `db.NamedObjectsDictionaryId`, `db.GroupDictionaryId` | `DxfDBDictionary`, `DxfXrecord`, `DxfGroup`, `db.NamedObjectsDictionary`, `db.GroupDictionary` | The dictionaries are objects; `SetAt` takes the object made in code. |
 | `ResultBuffer`, `TypedValue` | `IReadOnlyList<DxfTypedValue>`, `DxfTypedValue` | A value is the text the file prints: `new DxfTypedValue(1040, "2.5")`. Setting `XData` registers its application. |
 | `Entity.TransformBy(Matrix3d)`, `GetTransformedCopy` | `TransformBy(GeoTransform3)`, `GetTransformedCopy` | Each class refuses what it cannot hold, as AutoCAD's does (see [Editing rules](#editing-rules)). |
-| `Entity.Explode(DBObjectCollection)` | `Explode()` giving a list | The library explodes exactly an INSERT, a MINSERT, the three polylines, an MTEXT, a dimension, a table and a straight leader, as AutoCAD's do; every other entity refuses with `NotSupportedException`, a mesh, a HATCH, a splined leader, a multileader and the types it keeps as the file has them among them, which AutoCAD explodes (see [What the model does not do](#what-the-model-does-not-do)). |
+| `Entity.Explode(DBObjectCollection)` | `Explode()` giving a list | The library explodes an INSERT, a MINSERT, the three polylines, a polyface and a polygon mesh, an MTEXT, a dimension, a table, a leader, a multileader, an MLINE and a HATCH of a pattern, as AutoCAD's do; every other entity refuses with `NotSupportedException`, a HATCH filled solid or with a gradient, a MESH, a REGION, a 3DSOLID and a BODY among them, which AutoCAD explodes (see [What the model does not do](#what-the-model-does-not-do)). |
 | `BlockReference.ExplodeToOwnerSpace()` | `ExplodeToOwnerSpace()` | The same: the parts appended, the INSERT kept; a MINSERT of more than one cell refused, as AutoCAD's EXPLODE refuses one. |
 | `entity.IntersectWith(other, Intersect.ExtendThis, points, IntPtr.Zero, IntPtr.Zero)` | `entity.IntersectWith(other, DxfIntersect.ExtendThis)` giving `IReadOnlyList<GeoPoint3>` | Worked out on the library's shapes; a pair it cannot cross, a text among them, throws `NotSupportedException`. |
 | `GeometricExtents` giving `Extents3d` | `GeometricExtents` giving `GeoAabb3` | Of the shapes `GetGeometry()` gives; a text has no fonts to give it a box. |
@@ -959,14 +959,19 @@ breaks as AutoCAD breaks it:
 | `DxfMText` | a TEXT for each paragraph, as it is written into a drawing of R12 (see Appending): B-12 and M16 on two lines, 2.5 high, held at the top left at (10, 20), give two TEXTs on the baselines 17.5 and 13.33 high; a paragraph is not wrapped at its width, and a part of it in another font or height is not given a TEXT of its own, as AutoCAD gives it |
 | the dimensions | the entities of the block they are drawn with (`*D7`), placed where the dimension draws them, as ezdxf's `virtual_entities()` places them: the picture AutoCAD drew last, so a point set since is not in it |
 | `DxfTable` | the entities of its block (`*T12`), the lines of its cells and their words, placed where the table draws them: the picture AutoCAD drew last, so a cell's text set since is not in it |
-| `DxfLeader`, straight | a LINE between each two vertices, then, where it has an arrow, its arrowhead at the first vertex pointing away from the second, `Dimasz` times `Dimscale` long: an INSERT of its `Dimldrblk` block, or AutoCAD's closed filled arrow as a SOLID a third as wide as long. The leader from (0, 0, 0) through (10, 10, 0) to (20, 10, 0) with an arrow 2.5 long gives two lines and a SOLID; the hook line to the annotation is AutoCAD's to work out and is not among them |
+| `DxfPolyFaceMesh` | a 3DFACE for each face, in the order of the file, its corners the points its numbers name and the edge from a corner whose number is below nought hidden; a face of three corners ends on its third, and the edge from its third corner back to its first, the 3DFACE's fourth, is hidden with the third. A face record's own layer and colour are the face's, as AutoCAD's PFACE gives them. Its corners are its numbers up to the first of nought, as the reader takes them: a face of fewer than three corners so, (1, 2, 0, 4) among them, or one naming a point the mesh has not, is left out. A pyramid of a square base gives five faces |
+| `DxfPolygonMesh` | a 3DFACE for each cell of its grid, row after row, from its corner (m, n) to (m + 1, n), (m + 1, n + 1) and (m, n + 1), closed where the mesh is closed: a grid of 3 by 4 gives 6 faces, closed both ways 12. A smoothed mesh breaks into the cells of the surface it shows, its points of flag 8, a grid of `MSurfaceDensity` by `NSurfaceDensity` |
+| `DxfLeader` | straight, a LINE between each two vertices; splined, one SPLINE through its vertices, of degree 3, leaving along its first segment and reaching along its last, as ezdxf fits it; then, where it has an arrow, its arrowhead at the first vertex pointing away from the second, `Dimasz` times `Dimscale` long: an INSERT of its `Dimldrblk` block, or AutoCAD's closed filled arrow as a SOLID a third as wide as long. The leader from (0, 0, 0) through (10, 10, 0) to (20, 10, 0) with an arrow 2.5 long gives two lines and a SOLID; the hook line to the annotation is AutoCAD's to work out and is not among them |
+| `DxfMLeader` | its words as an MTEXT or its block as an INSERT with its attributes, then, leader by leader and line by line, the arrowhead at the first vertex, where the first segment is more than twice as long as the arrow, and the LINEs to the last point of the leader and the end of its dogleg, or one SPLINE for a splined leader; each line starts at the back of its arrow, and the closed filled arrow is a SOLID a third as wide as long. The words on the left of two leaders with a dogleg of 8 give an MTEXT, two arrows and five lines. The lines AutoCAD draws under or over the words, as long as the words are wide, are AutoCAD's to work out and are not among them |
+| an MLINE (`DxfUnknownEntity`) | from its record and its MLINESTYLE, for an open one its start caps, a LINE for each element along each segment, the miter lines at each joint where the style draws them, then its end caps: a line across the ends as two LINEs from the outer elements to the point halfway between them, an outer arc as one half circle, or two quarter ARCs where the outer elements' colours differ, and inner arcs joining each pair of inner elements. Each LINE has its element's colour and linetype. An element broken by MLEDIT gives a LINE for each piece left, caps the MLINE leaves off are not drawn, and the fill is left out. Standard through four vertices gives six lines |
+| `DxfHatch` of a pattern | the dashes of each line of its pattern, as the HATCH holds them, cut by the loops its style fills by the even-odd rule, each a LINE, a dot a LINE of no length, laid from the base point of its line, as ezdxf's `hatch_entity` draws them; an arc, an ellipse and a polyline's bulge cut exactly, a spline within each sixteenth of a span of its knots. A dot that falls on a loop is kept. A square 30 by 20 of ANSI31 gives 11 lines; round a circle of radius 5 about its middle in the normal style, 14, the three lines that cross the circle broken in two. A pattern that would give more than 2 000 000 parts, or cross its loops more than 32 000 000 times (half a gigabyte of crossings), is refused before anything is made, and so is one whose loops lie more than 2^52 of its spacings or dash lengths from its base point |
 
 The library explodes exactly these classes. Every other entity refuses with `NotSupportedException`: those AutoCAD does not
 break, a LINE or a CIRCLE, as AutoCAD answers eNotApplicable for them, and some AutoCAD does break, listed under [What the
-model does not do](#what-the-model-does-not-do), among them a splined LEADER, drawn as the spline AutoCAD works out through its
-vertices, and a MULTILEADER, whose words or block, leader lines, doglegs and arrows AutoCAD works out where they meet when it
-draws it. A dimension or a table whose
-drawing has no block of the name it is drawn by throws `InvalidOperationException`.
+model does not do](#what-the-model-does-not-do), among them a HATCH filled solid or with a gradient, a MESH, and a REGION, a
+3DSOLID and a BODY, which AutoCAD breaks with its solid modeler, each refused with its reason. A dimension or a table whose
+drawing has no block of the name it is drawn by, and an MLINE whose drawing has no MLINESTYLE of its handle or name, throw
+`InvalidOperationException`.
 
 An INSERT inside the block that cannot hold the placing is exploded in its turn; one of a block already being exploded further
 out is refused with an `ArgumentException`; and what exploding an INSERT or a MINSERT makes is counted first and held to the
@@ -1073,14 +1078,17 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   AutoCAD's to work out, and so is where it wraps an MTEXT exploded or written into R12 as TEXTs.
 - It knows no pattern file. A pattern of AutoCAD's acad.pat the HATCH does not hold the lines of, ANSI31 given by
   `SetHatchPattern` among them, holds no lines (`NumberOfPatternDefinitions` 0), its name written for AutoCAD to take the
-  lines from its own file. The lines a pattern draws (`EvaluateHatch`), a leader drawn anew (`EvaluateLeader`), where a
-  multileader's leaders meet its words, and the size of those words in its `GeometricExtents` are not worked out.
+  lines from its own file, and `Explode()` refuses it. The lines a pattern draws are given by `Explode()` alone, not by
+  `EvaluateHatch`; a leader drawn anew (`EvaluateLeader`), where a multileader's leaders meet its words, and the size of
+  those words in its `GeometricExtents` are not worked out.
 - It gives no dynamic properties of a dynamic block: they are AutoCAD's engine's to work out.
-- It does not explode every entity AutoCAD explodes. `Explode()` refuses with `NotSupportedException` a polyface mesh and a
-  polygon mesh (`DxfPolyFaceMesh`, `DxfPolygonMesh`), which AutoCAD breaks into 3DFACEs; a HATCH, which AutoCAD's EXPLODE
-  takes; a splined LEADER and a MULTILEADER, whose parts AutoCAD works out when it draws them; and a MESH, an MLINE, a REGION,
-  a 3DSOLID and every other type the library keeps as a `DxfUnknownEntity`. It gives a dimension's and a table's parts as their
-  last picture, not as their data now.
+- It does not explode every entity AutoCAD explodes. `Explode()` refuses with `NotSupportedException` a HATCH filled solid
+  or with a gradient, whose parts AutoCAD's EXPLODE makes and the library does not work out; a MESH, which AutoCAD breaks into
+  the 3DFACEs of its faces, smoothed as it is; a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid
+  modeler (ACIS); and every other type the library keeps as a `DxfUnknownEntity` but the MLINE. It gives a dimension's and a
+  table's parts as their last picture, not as their data now, the spline of a splined leader or multileader as ezdxf fits it,
+  and leaves out the hook line of a leader and the lines under or over a multileader's words, whose length the width of the
+  words decides.
 - It makes no drawing from nothing but `DxfWriter`'s, reads no DWG and no binary DXF, and saves a drawing in its own version
   only.
 - It has none of AutoCAD's members that need AutoCAD running: `ObjectId`, transactions, documents, drawing to the screen

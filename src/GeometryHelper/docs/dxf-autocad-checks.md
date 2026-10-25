@@ -335,8 +335,11 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
     - Try: EXPLODE in AutoCAD a straight leader with the closed filled arrow, one with an arrow block (DIMLDRBLK) and one with a
       hook line, and compare with `Explode()`.
     - Now: a LINE between each two vertices, then the arrowhead at the first vertex, `Dimasz` times `Dimscale` long: an INSERT
-      of the arrow block turned and scaled so, or a SOLID a third as wide as long; no hook line. A splined leader refuses.
-    - A change if: AutoCAD's arrow is of another size or shape, or a hook line comes out of it.
+      of the arrow block turned and scaled so, or a SOLID a third as wide as long; no hook line. A splined leader gives one
+      SPLINE through its vertices, fitted as ezdxf fits it: of degree 3 by the chord, its inner knots the parameters of the inner
+      vertices, leaving along the first segment and reaching along the last at the speed of the length of the chain.
+    - A change if: AutoCAD's arrow is of another size or shape, a hook line comes out of it, or its spline has other control
+      points or keeps its fit points.
 
 53. **A named block brought by a copy.**
     - Try: copy an INSERT of a block that inserts another block into a drawing that has neither, with WBLOCK or COPYCLIP and
@@ -368,3 +371,34 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
     - Try: copy a TEXT in a style of its own from a drawing of R2018 into one of R12 with AutoCAD, and the other way.
     - Now: the style is copied by name, as a layer is.
     - A change if: AutoCAD puts the text in Standard, or copies the style otherwise.
+
+58. **A polyface and a polygon mesh exploded.**
+    - Try: EXPLODE in AutoCAD a polyface mesh with a triangle whose third number is below nought and a face of its own colour,
+      and a polygon mesh smoothed by PEDIT into a cubic surface; compare with `Explode()`.
+    - Now: a 3DFACE for each face, the triangle ending on its third corner with its edges 3 and 4 hidden (70 of 12), the face
+      in its own colour; the smoothed mesh breaks into the cells of its surface, a grid of its densities, not of its frame.
+    - A change if: AutoCAD hides edge 3 alone, gives the face the mesh's colour, or explodes the frame of a smoothed mesh.
+
+59. **An MLINE exploded.**
+    - Try: EXPLODE in AutoCAD an MLINE of a style of six elements with inner arcs at both ends, one with its caps suppressed,
+      and one cut by MLEDIT (Cut Single); compare with `Explode()`.
+    - Now: inner arcs join every inner pair, the second and the fifth, the third and the fourth, where ezdxf joins the first
+      pair alone; the suppressed caps are left out; the cut element gives a LINE for each piece, its parameters after the first
+      read as a start and a stop by turns from the point the element stands at; the fill is left out.
+    - A change if: AutoCAD joins one pair, draws suppressed caps, measures a cut from elsewhere, or gives the fill a part.
+
+60. **A HATCH exploded.**
+    - Try: EXPLODE in AutoCAD a HATCH of DOTS, one of ANSI31 round a circle with an island in it in the outer style, a solid
+      fill and a gradient; compare with `Explode()`.
+    - Now: the pattern's dashes as LINEs cut by the loops its style fills, a dot a LINE of no length; the solid fill and the
+      gradient refused.
+    - A change if: AutoCAD makes a dot a POINT, cuts by other loops in the outer style, or breaks a solid fill or a gradient
+      into parts the library can make.
+
+61. **A multileader exploded.**
+    - Try: EXPLODE in AutoCAD a multileader of words with two leaders on the left, one splined, one of a block with an
+      attribute, and one whose words are underlined (attachment 5 or 6); compare with `Explode()`.
+    - Now: the MTEXT or the INSERT with its attribute, then for each leader line its arrow, a SOLID for the closed filled arrow
+      or an INSERT of the arrow block, where the first segment is more than twice the arrow, and the LINEs from the back of the
+      arrow to the end of the dogleg, or one SPLINE; no underline.
+    - A change if: AutoCAD makes the closed filled arrow a block, starts the line at the tip, or draws an underline.

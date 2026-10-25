@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using GeometryHelper.Geometry;
+using GeometryHelper.Internal.Nurbs;
 using static GeometryHelper.Dxf.DxfLeaderGroups;
 
 namespace GeometryHelper.Dxf
@@ -138,33 +139,47 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets the lines and the arrowhead a straight leader breaks into, as AutoCAD's <c>Explode</c>: a LINE between each two
-        /// vertices, a segment of no length left out, then, where it has an arrow (<see cref="HasArrowHead"/>), its arrowhead at
+        /// Gets the lines, or the spline, and the arrowhead the leader breaks into, as AutoCAD's <c>Explode</c>: a LINE between
+        /// each two vertices of a straight leader, a segment of no length left out; for a splined one (<see cref="IsSplined"/>)
+        /// one SPLINE fitted through its vertices, of degree 3, starting along its first segment and ending along its last, as
+        /// ezdxf's <c>virtual_entities</c> draws it; then, where it has an arrow (<see cref="HasArrowHead"/>), its arrowhead at
         /// the first vertex pointing away from the second, <see cref="Dimasz"/> times <see cref="Dimscale"/> long (a scale of
         /// nought taken as 1): an INSERT of the block of <see cref="Dimldrblk"/> turned and scaled so, or, where it names none,
         /// AutoCAD's closed filled arrow as a SOLID a third as wide as long. Each with the leader's look. The leader from (0, 0, 0)
         /// through (10, 10, 0) to (20, 10, 0) with an arrow 2.5 long gives two lines and a SOLID from the origin back along the
-        /// first segment. The hook line AutoCAD draws to the annotation is AutoCAD's to work out, and is not among them.
+        /// first segment, splined a SPLINE through the three vertices and the SOLID. The hook line AutoCAD draws to the
+        /// annotation is AutoCAD's to work out, and is not among them.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
-        /// <exception cref="NotSupportedException">Thrown for a splined leader, drawn as the spline AutoCAD works out through its
-        /// vertices, which the library does not work out.</exception>
         public override IReadOnlyList<DxfEntity> Explode()
         {
-            if (IsSplined)
-            {
-                throw new NotSupportedException("A splined leader is drawn as the spline AutoCAD works out through its vertices, which the library does not work out: explode it in AutoCAD.");
-            }
-
             List<GeoPoint3> vertices = Vertices();
             double tolerance = Tolerance.Default.EqualPoint;
             var parts = new List<DxfEntity>();
 
-            for (int i = 0; i + 1 < vertices.Count; i++)
+            // The look read once: each read of it reads the record, every vertex of it.
+            var look = new Look(this);
+
+            if (IsSplined)
             {
-                if (vertices[i].DistanceTo(vertices[i + 1]) > tolerance)
+                DxfSpline spline = FittedSpline(vertices, tolerance);
+
+                if (spline != null)
                 {
-                    parts.Add(PartOf(new GeoLine3(vertices[i], vertices[i + 1])));
+                    look.GiveTo(spline);
+                    parts.Add(spline);
+                }
+            }
+            else
+            {
+                double thickness = GetThickness();
+
+                for (int i = 0; i + 1 < vertices.Count; i++)
+                {
+                    if (vertices[i].DistanceTo(vertices[i + 1]) > tolerance)
+                    {
+                        parts.Add(PartOf(new GeoLine3(vertices[i], vertices[i + 1]), look, thickness));
+                    }
                 }
             }
 
@@ -194,9 +209,55 @@ namespace GeometryHelper.Dxf
                 head = new DxfBlockReference(vertices[0], arrow) { Normal = normal, ScaleFactors = new GeoVector3(size, size, size), Rotation = Math.Atan2(away.DotProduct(y), away.DotProduct(x)) };
             }
 
-            GiveLook(head);
+            look.GiveTo(head);
             parts.Add(head);
             return parts.AsReadOnly();
+        }
+
+        /// <summary>
+        /// The SPLINE a splined leader is drawn as, as ezdxf's <c>virtual_entities</c> fits it (<c>fit_points_to_cad_cv</c>): of
+        /// degree 3 through its vertices, a vertex on the one before it left out, by the chord, its inner knots the parameters of
+        /// the inner vertices, leaving the first along the first segment and reaching the last along the last at the speed of
+        /// the length of the chain, or along the directions given; its knots from 0 to 1. Null where its vertices are all one
+        /// point. A multileader's splined leader lines are fitted so too.
+        /// </summary>
+        internal static DxfSpline FittedSpline(List<GeoPoint3> vertices, double tolerance, GeoVector3? leaving = null, GeoVector3? reaching = null)
+        {
+            var through = new List<GeoPoint3>(vertices.Count);
+
+            foreach (GeoPoint3 vertex in vertices)
+            {
+                if (through.Count == 0 || through[through.Count - 1].DistanceTo(vertex) > tolerance)
+                {
+                    through.Add(vertex);
+                }
+            }
+
+            if (through.Count < 2)
+            {
+                return null;
+            }
+
+            var fit = new double[through.Count * 3];
+
+            for (int i = 0; i < through.Count; i++)
+            {
+                fit[3 * i] = through[i].X;
+                fit[3 * i + 1] = through[i].Y;
+                fit[3 * i + 2] = through[i].Z;
+            }
+
+            GeoVector3 start = DxfOcsTransform.Normalized(leaving ?? through[0].GetVectorTo(through[1]));
+            GeoVector3 end = DxfOcsTransform.Normalized(reaching ?? through[through.Count - 2].GetVectorTo(through[through.Count - 1]));
+            NurbsCurve curve = NurbsCurve.Interpolate(3, fit, 3, new[] { start.X, start.Y, start.Z }, new[] { end.X, end.Y, end.Z }, true);
+            var control = new List<GeoPoint3>(curve.Count);
+
+            for (int i = 0; i < curve.Count; i++)
+            {
+                control.Add(new GeoPoint3(curve.Points[3 * i], curve.Points[3 * i + 1], curve.Points[3 * i + 2]));
+            }
+
+            return new DxfSpline(3, false, false, false, control, curve.Knots, null, 1E-10, 1E-10);
         }
 
         #region The vertices

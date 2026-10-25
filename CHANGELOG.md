@@ -413,8 +413,7 @@ names it in the log once, not again at each saving after.
 
 **NEW.** `Explode()` breaks more entities, as AutoCAD explodes them: `DxfPolyline`, `DxfPolyline2d`, `DxfPolyline3d`,
 `DxfMText`, `DxfDimension`, `DxfTable`, `DxfMInsertBlock` and a straight `DxfLeader`, besides the `DxfBlockReference` it broke
-before. The other entities refuse, a HATCH, a MESH, a polyface or polygon mesh and an MLINE among them, though AutoCAD explodes
-those. A polyline (`DxfPolyline`, `DxfPolyline2d`) gives a LINE for each straight segment and an ARC for each bulged one, with
+before; the entry after this one adds more. A polyline (`DxfPolyline`, `DxfPolyline2d`) gives a LINE for each straight segment and an ARC for each bulged one, with
 its look and thickness and on its normal, so that their walls stand up as the polyline's do (an ARC of a polyline on the
 normal (0, 0, -1) is on (0, 0, -1), its angles in that normal's system, as AutoCAD and ezdxf give it), its widths left out as
 AutoCAD leaves them out, and a `DxfPolyline3d` its lines; an MTEXT a TEXT for each paragraph, as it is written into R12 (not wrapped at its
@@ -422,11 +421,29 @@ width, and a part in another font or height not a TEXT of its own, as AutoCAD ma
 the entities of the block they are drawn with (`*D`, `*T`), placed where they draw them, as ezdxf's `virtual_entities()`
 places a dimension's; a MINSERT the block in every cell, where it gave the first cell alone (six circles for 2 rows by 3
 columns of a block of one); a straight LEADER its lines and its arrowhead, an INSERT of its `Dimldrblk` or AutoCAD's closed
-filled arrow as a SOLID. A splined LEADER and a MULTILEADER, whose parts AutoCAD works out when it draws them, refuse with
-the reason, and so does `ExplodeToOwnerSpace` a MINSERT, as AutoCAD's EXPLODE refuses one. A closed polyline of two
+filled arrow as a SOLID. `ExplodeToOwnerSpace` refuses a MINSERT, as AutoCAD's EXPLODE refuses one. A closed polyline of two
 vertices, each with a bulge of 1 (a donut), gives one ARC for each segment, two half circles, as AutoCAD and ezdxf give it.
 A polyline is exploded in time growing with its vertices: 20 000 vertices with bulges in 0.3 s and 10 000 straight in
 0.09 s on .NET 8.
+
+**NEW.** `Explode()` breaks the rest of the entities AutoCAD explodes that need no solid modeler, as ezdxf's
+`virtual_entities` gives their parts. A polyface mesh (`DxfPolyFaceMesh`) gives a 3DFACE for each face, the edge from a
+corner whose number is below nought hidden, a triangle ending on its third corner with the edge back to its first hidden
+with the third, and a face of its own layer or colour in it; a pyramid of a square base gives five faces. A polygon mesh
+(`DxfPolygonMesh`) gives a 3DFACE for each cell, row after row, closed where it is closed (a grid of 3 by 4 gives 6, closed
+both ways 12), a smoothed one the cells of the surface it shows. An MLINE, still a `DxfUnknownEntity`, gives from its record
+and its MLINESTYLE its caps, a LINE for each element along each segment in the element's colour and linetype, and the miter
+lines at its joints: Standard through four vertices gives six lines, an element cut by MLEDIT a line for each piece, and the
+caps an MLINE suppresses are left out. A splined LEADER gives one SPLINE fitted through its vertices as ezdxf fits it, then
+its arrowhead. A HATCH of a pattern gives the dashes of its pattern as LINEs cut by the loops its style fills, a dot a line
+of no length: a square 30 by 20 of ANSI31 gives 11 lines, cut exactly where they cross an arc, an ellipse or a bulge, and a
+pattern that would give more than 2 000 000 parts is refused before anything is made. A MULTILEADER gives its words as an
+MTEXT or its block as an INSERT with its attributes, then each leader line's arrowhead and its LINEs to the end of the
+dogleg, or one SPLINE: the words on the left of two leaders give an MTEXT, two arrows and five lines. A HATCH filled solid
+or with a gradient, a MESH, and a REGION, a 3DSOLID and a BODY, which AutoCAD breaks with its solid modeler, still refuse,
+each saying why. The time grows with the size of the entity: an MLINE of 40 000 vertices explodes into 160 000 parts in
+1.0 s, a polyface strip of 16 000 faces on 32 002 points in 0.28 s, and a straight leader of 10 000 vertices now in 0.05 s,
+where it took 10.5 s, its look read once for all its parts (.NET 8).
 
 **NEW.** A text's and an MTEXT's text style is set by its name, `TextStyleName` (written as the drawing's table names it,
 letters of either case the same), or as its record, the new `TextStyle` (AutoCAD's `TextStyleId`): a style the drawing has not,

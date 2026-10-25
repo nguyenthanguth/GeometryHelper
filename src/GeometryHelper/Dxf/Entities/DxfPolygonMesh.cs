@@ -399,6 +399,76 @@ namespace GeometryHelper.Dxf
             return new DxfNurbs(all.Count - 1, knots, all, null);
         }
 
+        /// <summary>
+        /// Gets the faces the mesh breaks into, as AutoCAD's <c>Explode</c>, as ezdxf's <c>virtual_entities</c> gives them: a
+        /// 3DFACE for each cell of its grid, row after row, from its corner (m, n) to (m + 1, n), (m + 1, n + 1) and (m, n + 1),
+        /// the last row joined to the first where it is closed in M and the last point of each row to its first where it is
+        /// closed in N; each with the mesh's look, every edge drawn. A grid of 3 rows of 4 points gives 6 faces, closed both ways
+        /// 12. A smoothed mesh breaks into the cells of the surface it shows, its points the smoothing made (flag 8), a grid of
+        /// <see cref="MSurfaceDensity"/> by <see cref="NSurfaceDensity"/>; where those points do not fill that grid, into the
+        /// cells of its frame.
+        /// </summary>
+        /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the mesh has sizes below 2, or fewer points than its sizes ask
+        /// for, and no grid to break.</exception>
+        public override IReadOnlyList<DxfEntity> Explode()
+        {
+            var look = new Look(this);
+            int flags = GetInt(70, 0);
+            int m = GetInt(71, 0);
+            int n = GetInt(72, 0);
+            var frame = new List<GeoPoint3>();
+            var surface = new List<GeoPoint3>();
+
+            foreach (KeyValuePair<int, IReadOnlyList<DxfTypedValue>> vertex in DxfFollowers.Vertices(Item))
+            {
+                GeoPoint3 point = DxfFollowers.Point(vertex.Value, 10, Origin);
+
+                if ((DxfFollowers.Whole(vertex.Value, 70, 0) & 8) != 0)
+                {
+                    surface.Add(point);
+                }
+                else
+                {
+                    frame.Add(point);
+                }
+            }
+
+            List<GeoPoint3> grid = frame;
+            int u = GetInt(73, 0);
+            int v = GetInt(74, 0);
+
+            if ((flags & 4) != 0 && u >= 2 && v >= 2 && surface.Count == u * v)
+            {
+                grid = surface;
+                m = u;
+                n = v;
+            }
+
+            if (m < 2 || n < 2 || grid.Count < (long)m * n)
+            {
+                throw new InvalidOperationException("The mesh of " + m.ToString(CultureInfo.InvariantCulture) + " by " + n.ToString(CultureInfo.InvariantCulture) + " has " + grid.Count.ToString(CultureInfo.InvariantCulture) + " points, and no grid to break into faces.");
+            }
+
+            bool closedM = (flags & 1) != 0;
+            bool closedN = (flags & 32) != 0;
+            var faces = new List<DxfEntity>();
+
+            for (int i = 0; i < (closedM ? m : m - 1); i++)
+            {
+                for (int j = 0; j < (closedN ? n : n - 1); j++)
+                {
+                    int i1 = (i + 1) % m;
+                    int j1 = (j + 1) % n;
+                    var face = new DxfFace(grid[i * n + j], grid[i1 * n + j], grid[i1 * n + j1], grid[i * n + j1], true, true, true, true);
+                    look.GiveTo(face);
+                    faces.Add(face);
+                }
+            }
+
+            return faces.AsReadOnly();
+        }
+
         /// <summary>Joins the last row to the first, as AutoCAD's <c>MakeMClosed</c>: flag 1 of group 70.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the mesh is erased.</exception>
         public void MakeMClosed() => SetFlag(1, true);

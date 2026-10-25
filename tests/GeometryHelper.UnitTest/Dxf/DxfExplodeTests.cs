@@ -9,8 +9,8 @@ namespace GeometryHelper.UnitTest.Dxf
 {
     /// <summary>
     /// <see cref="DxfEntity.Explode"/> of the entities AutoCAD explodes: polylines into lines and arcs, an MTEXT into texts, a
-    /// dimension and a table into their pictures, a MINSERT into every cell, a straight leader into its lines and arrowhead; a
-    /// multileader and the entities that do not break refuse.
+    /// dimension and a table into their pictures, a MINSERT into every cell, a leader into its lines or spline and arrowhead, a
+    /// multileader into its words and leaders; the entities that do not break refuse.
     /// </summary>
     public class DxfExplodeTests
     {
@@ -106,7 +106,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AStraightLeaderExploded_GivesItsLinesAndItsArrowhead_AndASplinedOneRefuses()
+        public void AStraightLeaderExploded_GivesItsLinesAndItsArrowhead_AndASplinedOneASpline()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             var leader = ByHandle<DxfLeader>(db, "89");
@@ -125,8 +125,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(size / 3.0, a.DistanceTo(b), 9);
 
             Assert.Equal(2, ByHandle<DxfLeader>(db, "B3").Explode().Count);
-            Assert.Throws<NotSupportedException>(() => ByHandle<DxfLeader>(db, "B2").Explode());
-            Assert.Throws<NotSupportedException>(() => ByHandle<DxfMLeader>(db, "8A").Explode());
+            Assert.IsType<DxfSpline>(ByHandle<DxfLeader>(db, "B2").Explode()[0]);
+            Assert.IsType<DxfMText>(ByHandle<DxfMLeader>(db, "8A").Explode()[0]);
             Assert.Throws<NotSupportedException>(() => db.ModelSpace.OfType<DxfCircle>().First().Explode());
         }
 

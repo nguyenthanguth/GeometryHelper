@@ -719,10 +719,12 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets the entities the entity breaks into, as AutoCAD's <c>Explode</c>: new entities in no file. A
         /// <see cref="DxfBlockReference"/> gives the entities of its block placed where it puts them, a MINSERT those of every cell;
-        /// a polyline its lines and arcs; an MTEXT a TEXT for each line; a dimension and a table the entities of the block they are
-        /// drawn with, placed; a straight LEADER its lines and arrowhead. Any other entity refuses, as AutoCAD answers
-        /// <c>eNotApplicable</c> for one that does not break: a HATCH, a MESH, a polyface or polygon mesh and an MLINE among them,
-        /// which AutoCAD explodes, and a MULTILEADER, whose parts AutoCAD works out.
+        /// a polyline its lines and arcs; a polyface and a polygon mesh a 3DFACE for each face; an MTEXT a TEXT for each line; a
+        /// dimension and a table the entities of the block they are drawn with, placed; a LEADER its lines, or its spline, and its
+        /// arrowhead; a MULTILEADER its words or block, its leader lines and arrows; an MLINE its lines and caps; a HATCH of a
+        /// pattern the dashes of its pattern cut by its loops. Any other entity refuses, as AutoCAD answers <c>eNotApplicable</c>
+        /// for one that does not break, a LINE or a CIRCLE; and so do a HATCH filled solid or with a gradient, a MESH, and a
+        /// REGION, a 3DSOLID and a BODY, which AutoCAD breaks with its solid modeler, each saying why.
         /// </summary>
         /// <returns>The entities, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         /// <exception cref="NotSupportedException">Thrown for a class that does not break into others.</exception>
@@ -1562,7 +1564,7 @@ namespace GeometryHelper.Dxf
         private protected DxfEntity PartOf(object shape) => PartOf(shape, new Look(this), GetThickness());
 
         /// <summary>A part as <see cref="PartOf(object)"/> makes it, of a look and a thickness read once for all the parts.</summary>
-        private static DxfEntity PartOf(object shape, Look look, double thickness)
+        private protected static DxfEntity PartOf(object shape, Look look, double thickness)
         {
             DxfEntity made = Of(DxfFile.Detached(shape));
             look.GiveTo(made);
@@ -1582,7 +1584,7 @@ namespace GeometryHelper.Dxf
         /// The look of an entity, read once (each read of a polyline's reads its record, every vertex of it): its layer, colour,
         /// true colour, linetype and its scale, lineweight and visibility, given to the parts it is exploded into.
         /// </summary>
-        private sealed class Look
+        private protected sealed class Look
         {
             private readonly string _layer;
             private readonly int _colorIndex;

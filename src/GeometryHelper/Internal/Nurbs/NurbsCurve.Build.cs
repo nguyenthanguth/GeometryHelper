@@ -168,6 +168,14 @@ namespace GeometryHelper.Internal.Nurbs
         /// each end, comes out as that line, run at an even speed.
         /// </remarks>
         internal static NurbsCurve Interpolate(int dim, double[] fit, int degree, double[] startTangent, double[] endTangent)
+            => Interpolate(dim, fit, degree, startTangent, endTangent, false);
+
+        /// <summary>
+        /// Makes the curve as <see cref="Interpolate(int, double[], int, double[], double[])"/> does; with tangents and
+        /// <paramref name="natural"/>, its inner knots are the parameters of the inner fit points themselves rather than their
+        /// averages, as ezdxf's <c>fit_points_to_cad_cv</c> places them for a spline of an odd degree ("natural").
+        /// </summary>
+        internal static NurbsCurve Interpolate(int dim, double[] fit, int degree, double[] startTangent, double[] endTangent, bool natural)
         {
             int count = fit.Length / dim;
             int n = count - 1;
@@ -186,7 +194,7 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 for (int j = 0; j <= n - p + 1; j++)
                 {
-                    knots[p + 1 + j] = Average(u, j, p);
+                    knots[p + 1 + j] = natural ? u[j + 1] : Average(u, j, p);
                 }
             }
             else

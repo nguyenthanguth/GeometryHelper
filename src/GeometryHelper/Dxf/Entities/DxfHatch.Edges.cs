@@ -287,6 +287,68 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            /// <summary>
+            /// The edge as the lines of a pattern cut it, in the plane of the HATCH, from its start to its end as it runs: a line;
+            /// an arc or an ellipse as its centre and the two axes it turns between, over the parameters it runs over; a spline as
+            /// itself.
+            /// </summary>
+            /// <exception cref="ArgumentException">Thrown when a spline edge has no control points, or knots that do not agree with them.</exception>
+            internal PatternCurve Curve()
+            {
+                Ends(out GeoPoint2 start, out GeoPoint2 end);
+
+                switch (Type)
+                {
+                    case 2:
+                    {
+                        // The angle it starts at as it runs brought within a turn where it lies past one, in degrees, where a
+                        // turn is a whole number of them, so that an angle of 7E18 is cut as the arc it is: in radians that far out
+                        // a turn is lost. One within a turn is taken as it is, as Ends takes it.
+                        double r = this[40];
+                        Run(out _, out double sweep);
+                        Angles(out double first, out double last);
+                        double from = Within(Ccw ? first : last) * (Math.PI / 180.0);
+                        start = new GeoPoint2(this[10] + r * Math.Cos(from), this[20] + r * Math.Sin(from));
+                        end = new GeoPoint2(this[10] + r * Math.Cos(from + sweep), this[20] + r * Math.Sin(from + sweep));
+                        return PatternCurve.Conic(start, end, this[10], this[20], r, 0.0, 0.0, r, from, from + sweep);
+                    }
+
+                    case 3:
+                    {
+                        // Its angles brought within a turn where they lie past one, as an arc's are.
+                        Ellipse(out double cx, out double cy, out double mx, out double my, out double ratio);
+                        Angles(out double first, out double last);
+                        first = Within(first);
+                        last = Within(last);
+                        double from = 0.0;
+                        double to = 2.0 * Math.PI;
+                        bool whole = WholeTurn(Span(first, last));
+
+                        if (!whole)
+                        {
+                            Parameters(first, last, ratio, out from, out to);
+                        }
+
+                        // Its ends as Ends gives them, a whole ellipse's both where it starts.
+                        GeoPoint2 At(double t) => new GeoPoint2(cx + Math.Cos(t) * mx - Math.Sin(t) * ratio * my, cy + Math.Cos(t) * my + Math.Sin(t) * ratio * mx);
+                        start = At(whole ? 0.0 : Ccw ? from : to);
+                        end = At(whole ? 0.0 : Ccw ? to : from);
+                        return Ccw
+                            ? PatternCurve.Conic(start, end, cx, cy, mx, my, -ratio * my, ratio * mx, from, to)
+                            : PatternCurve.Conic(start, end, cx, cy, mx, my, -ratio * my, ratio * mx, to, from);
+                    }
+
+                    case 4:
+                        return PatternCurve.Of(start, end, Spline2());
+
+                    default:
+                        return PatternCurve.Line(start, end);
+                }
+            }
+
+            /// <summary>An angle in degrees past a turn either way brought within one, the turns taken off; one within a turn as it is.</summary>
+            private static double Within(double degrees) => Math.Abs(degrees) > 360.0 ? degrees % 360.0 : degrees;
+
             /// <summary>Adds points the edge is drawn through, its start first and its end left to the next edge.</summary>
             internal void Sample(List<GeoPoint2> points)
             {

@@ -51,16 +51,6 @@ namespace GeometryHelper.Dxf
         [DxfType("MULTILEADER")]
         internal static DxfEntity Create(DxfItem item) => new DxfMLeader(item);
 
-        /// <summary>
-        /// Refuses to break the multileader into other entities: AutoCAD's <c>Explode</c> gives its words or block and the lines
-        /// of its leaders where they meet them, with its doglegs and arrows, all of which AutoCAD works out when it draws it and the
-        /// library does not work out. Its <see cref="MText"/> and its leaders' vertices are read as they are.
-        /// </summary>
-        /// <returns>Nothing: it throws.</returns>
-        /// <exception cref="NotSupportedException">Thrown always.</exception>
-        public override IReadOnlyList<DxfEntity> Explode()
-            => throw new NotSupportedException("A multileader's parts, where its leaders meet its words, its doglegs and its arrows, are worked out by AutoCAD when it draws it, which the library does not do: explode it in AutoCAD, or read its MText and leaders.");
-
         #region The content
 
         /// <summary>

@@ -51,6 +51,40 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The VERTEX records of an entity as <see cref="Vertices"/> gives them, in one pass, each its own groups (the key) and
+        /// the whole of its record (the value), the part every entity has among them: where a face of a polyface mesh writes a
+        /// layer or a colour of its own.
+        /// </summary>
+        internal static List<KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>> WholeVertices(DxfItem item)
+        {
+            var vertices = new List<KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>>();
+            List<DxfTypedValue> current = null;
+
+            foreach (DxfTypedValue group in item.Groups)
+            {
+                if (group.TypeCode == 0)
+                {
+                    if (current != null)
+                    {
+                        vertices.Add(new KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>(OwnPart(current), current.AsReadOnly()));
+                    }
+
+                    current = group.Value.Trim() == "VERTEX" ? new List<DxfTypedValue>() : null;
+                    continue;
+                }
+
+                current?.Add(group);
+            }
+
+            if (current != null)
+            {
+                vertices.Add(new KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>(OwnPart(current), current.AsReadOnly()));
+            }
+
+            return vertices;
+        }
+
+        /// <summary>
         /// The groups that move the point (10, 20, 30) of each VERTEX record a filter takes by a transformation in the world, for
         /// one writing of the entity: a 3D polyline's vertices, a mesh's points.
         /// </summary>
