@@ -89,7 +89,7 @@ namespace GeometryHelper.Export
         /// <summary>Does nothing, as ezdxf does: a face has numbers of points, no geometry of its own; the mesh's points are moved.</summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
-        public override void TransformBy(GeoTransform3 transform)
+        private protected override void TransformEntity(GeoTransform3 transform)
         {
             if (transform == null)
             {

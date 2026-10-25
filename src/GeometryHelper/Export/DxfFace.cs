@@ -134,7 +134,7 @@ namespace GeometryHelper.Export
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the face is erased.</exception>
-        public override void TransformBy(GeoTransform3 transform)
+        private protected override void TransformEntity(GeoTransform3 transform)
         {
             if (transform == null)
             {

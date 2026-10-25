@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 
 namespace GeometryHelper.Export
 {
@@ -14,11 +15,13 @@ namespace GeometryHelper.Export
 
         private readonly bool _detached;
         private readonly DxfFile _origin;
+        private DxfFile _holder;
 
         /// <summary>
         /// A file that holds entities not yet in a file of their own: made in code, or copied from another. It shares the bytes
         /// and style of the file it is made from, writes no handles and no owners, adds no layer, takes any linetype and grows
-        /// no extents; what is put in it is never saved.
+        /// no extents; what is put in it is never saved. One such file holds every entity made from the same file while its
+        /// text is read the same way (<see cref="Holder"/>), and keeps none of them: each entity holds its own records alone.
         /// </summary>
         private DxfFile(DxfFile from)
         {
@@ -50,10 +53,32 @@ namespace GeometryHelper.Export
 
         #region Entities not yet in a file
 
+        /// <summary>
+        /// The file that holds the entities made from this one and not yet in a file: those copied from it, and from what it
+        /// holds itself where it holds such entities. One for the file and every copy made from it, made anew only where this
+        /// file reads its text otherwise than that one does, as after a letter beyond ASCII was first written into it, so that
+        /// each copy is read as it was before it was copied. A few hundred bytes for each copy, its records, where a file of its
+        /// own was some thousands.
+        /// </summary>
+        private DxfFile Holder()
+        {
+            DxfFile origin = _origin ?? this;
+            DxfFile holder = Volatile.Read(ref origin._holder);
+
+            if (holder != null && ReferenceEquals(holder._decoding, _decoding))
+            {
+                return holder;
+            }
+
+            holder = new DxfFile(this);
+            Volatile.Write(ref origin._holder, holder);
+            return holder;
+        }
+
         /// <summary>A shape written as an entity of its own, on layer 0 with no look, as the writer writes it in a file of R2018.</summary>
         internal static DxfItem Detached(object shape)
         {
-            var file = new DxfFile(Template);
+            DxfFile file = Template.Holder();
             return file.Add(file.ModelSpace, shape, null, null, null, null, null, 0.0, 0);
         }
 
@@ -63,7 +88,7 @@ namespace GeometryHelper.Export
         /// </summary>
         internal static DxfItem Detached(string type, IEnumerable<DxfTypedValue> groups)
         {
-            var file = new DxfFile(Template);
+            DxfFile file = Template.Holder();
             var b = new Builder(file);
             b.Group(0, type);
             b.Group(100, "AcDbEntity");
@@ -83,7 +108,7 @@ namespace GeometryHelper.Export
         /// </summary>
         internal DxfItem CopyOf(DxfItem item)
         {
-            var file = new DxfFile(this);
+            DxfFile file = Holder();
             var records = new List<Rec>();
 
             foreach (Rec record in RecordsOf(item))
@@ -116,15 +141,23 @@ namespace GeometryHelper.Export
                 records.Add(file.Recounted(b.Done(record.Type)));
             }
 
-            return file.Hold(records, records[0].Type);
+            DxfItem copy = file.Hold(records, records[0].Type);
+
+            // A copy of an INSERT keeps to the block it places, as AutoCAD's keeps its id: renamed in this drawing, it is still it.
+            if (copy.Type == "INSERT")
+            {
+                copy.OriginBlock = item.OriginBlock ?? (_detached ? null : BlockNamed(ValueOf(item, 2, true)));
+            }
+
+            return copy;
         }
 
-        /// <summary>Records of an entity held at the end of the ENTITIES section of a file that is not saved.</summary>
-        private DxfItem Hold(List<Rec> records, string type)
-        {
-            var piece = new Piece(records);
-            return new DxfItem(this, piece, type) { Home = PutBefore(EntitiesEnd(), piece) };
-        }
+        /// <summary>The block of a name as an INSERT writes it, letters of either case the same; null where the file has none.</summary>
+        private DxfFileBlock BlockNamed(string written)
+            => written != null && Blocks.TryGetValue(DxfReader.NameOf(written), out DxfFileBlock block) ? block : null;
+
+        /// <summary>Records of an entity held by a file that is not saved: the entity's own, which the file does not keep.</summary>
+        private DxfItem Hold(List<Rec> records, string type) => new DxfItem(this, new Piece(records), type);
 
         /// <summary>
         /// Adds an entity not yet in a file to a space of this one, as AutoCAD appends one: its records written in the file's
@@ -136,6 +169,16 @@ namespace GeometryHelper.Export
         {
             DxfFile source = from.File;
             List<Rec> records = source.RecordsOf(from);
+
+            // A copy of an INSERT is written naming its block by the name the block has now.
+            DxfFileBlock originBlock = from.OriginBlock;
+
+            if (originBlock != null && !originBlock.Head.IsRemoved && source.WithGroup(records[0], 2, originBlock.Name, false, out Rec named)
+                && !string.Equals(DxfReader.NameOf(source.ValueOf(from, 2, true) ?? string.Empty), originBlock.Name, StringComparison.Ordinal))
+            {
+                records[0] = named;
+            }
+
             Rec head = records[0];
             string type = head.Type;
             Writing style = Style;
@@ -621,6 +664,14 @@ namespace GeometryHelper.Export
         internal DxfFile Origin => _origin;
 
         /// <summary>
+        /// The file whose block table holds the block an INSERT places: this one for an INSERT in it; for a copy in no file, the
+        /// drawing it was copied from while the block it was copied with is still there (renamed or not); null where that block
+        /// was erased, or the copy was made from none.
+        /// </summary>
+        internal DxfFile BlockSource(DxfItem insert)
+            => !_detached ? this : insert.OriginBlock != null && !insert.OriginBlock.Head.IsRemoved ? _origin : null;
+
+        /// <summary>
         /// A record of a copy with its pointers into the drawing it was copied from taken to this one (<paramref name="target"/>):
         /// each soft or hard pointer (320 to 369, 390 to 399, 480 and 481) to the object of the same name there, a table's record
         /// by its name, an object of the named object dictionary (a material, a plot style, a visual style) by the names of its
@@ -811,7 +862,7 @@ namespace GeometryHelper.Export
                     continue;
                 }
 
-                foreach (Rec record in Current(section.First + 1, section.Last))
+                foreach (Rec record in Inside(section))
                 {
                     if (record.Type != "TABLE" && record.Type != "ENDTAB" && HandleOf(record, out ulong handle) && !objects.ContainsKey(handle))
                     {
@@ -833,7 +884,7 @@ namespace GeometryHelper.Export
                     continue;
                 }
 
-                foreach (Rec record in Current(section.First + 1, section.Last))
+                foreach (Rec record in Inside(section))
                 {
                     if (record.Type == "DICTIONARY")
                     {
@@ -1007,6 +1058,53 @@ namespace GeometryHelper.Export
             }
         }
 
+        /// <summary>
+        /// Leaves the growing of the extents by an entity to the next reading of the header, for a write to one record that
+        /// follows it (a VERTEX put in or set): the entity is grown by once then, as it stands, however many such writes came
+        /// before, where growing by it at each would read the whole entity each time, 20 000 vertices appended one by one
+        /// costing 20 000 readings of up to 20 000 vertices.
+        /// </summary>
+        private void GrowLater(DxfItem item)
+        {
+            if (_detached || item.Block != null)
+            {
+                return;
+            }
+
+            if (_growingLater == null)
+            {
+                _growingLater = new HashSet<DxfItem>();
+                _growLater = new List<DxfItem>();
+            }
+
+            if (_growingLater.Add(item))
+            {
+                _growLater.Add(item);
+                _headerStale = true;
+            }
+        }
+
+        /// <summary>Grows the extents by each entity left to <see cref="GrowLater"/>, in the order they were left, those erased since left out.</summary>
+        private void GrowPending()
+        {
+            if (_growLater == null)
+            {
+                return;
+            }
+
+            List<DxfItem> items = _growLater;
+            _growLater = null;
+            _growingLater = null;
+
+            foreach (DxfItem item in items)
+            {
+                if (!item.IsRemoved)
+                {
+                    GrowBy(item);
+                }
+            }
+        }
+
         /// <summary>The type a shape is written as in this file, checked as <see cref="DxfItem.Shape"/> checks it.</summary>
         internal string TypeWritten(object shape) => Written(shape, 0, 0.0, "shape", out _)[0].Key;
 
@@ -1120,7 +1218,10 @@ namespace GeometryHelper.Export
         internal DxfItem InsertFollower(DxfItem parent, int index, DxfItem made)
         {
             Editable(parent);
-            List<Rec> records = RecordsOf(parent);
+
+            // The records of an entity written anew already are put in in place, not copied: a copy for each of 20 000
+            // vertices appended one by one would be a copy of up to 20 000 records each time.
+            List<Rec> records = parent.Piece != null ? parent.Piece.Records : RecordsOf(parent);
             int last = records.Count > 1 && records[records.Count - 1].Type == "SEQEND" ? records.Count - 1 : records.Count;
 
             if (index < 1 || index > last)
@@ -1226,7 +1327,7 @@ namespace GeometryHelper.Export
                 }
             }
 
-            GrowBy(parent);
+            GrowLater(parent);
             Edited();
             return item;
         }
@@ -1310,8 +1411,20 @@ namespace GeometryHelper.Export
         /// marker other than AcDbEntity, or from its start in a file of R12, outside the groups of the applications and before
         /// its extended data, as the file writes it; null where it has none.
         /// </summary>
-        internal string ValueOf(DxfItem item, int code)
+        internal string ValueOf(DxfItem item, int code) => ValueOf(item, code, false);
+
+        /// <summary>
+        /// The value of the first group of a code of the own part of a record, as <see cref="ValueOf(DxfItem, int)"/> reads it; for
+        /// the name (2) of a copy of an INSERT in no file, the name its block has now in the drawing it was copied from, unless
+        /// the record as written is asked for.
+        /// </summary>
+        internal string ValueOf(DxfItem item, int code, bool written)
         {
+            if (!written && code == 2 && item.OriginBlock != null && !item.OriginBlock.Head.IsRemoved)
+            {
+                return item.OriginBlock.Name;
+            }
+
             Rec head = HeadOf(item);
             List<Pair> pairs = PairsOf(head);
             int at = OwnIndexOf(head, pairs, code);
@@ -1346,7 +1459,7 @@ namespace GeometryHelper.Export
             return null;
         }
 
-        /// <summary>The index of the first group of a code in the type's own part of a record, as <see cref="ValueOf"/> reads it; -1 where it has none.</summary>
+        /// <summary>The index of the first group of a code in the type's own part of a record, as <see cref="ValueOf(DxfItem, int)"/> reads it; -1 where it has none.</summary>
         private int OwnIndexOf(Rec record, List<Pair> pairs, int code)
         {
             int data = DataAt(record, pairs);
@@ -1385,6 +1498,18 @@ namespace GeometryHelper.Export
         internal void SetValuesAt(DxfItem item, int index, IList<KeyValuePair<int, string>> values, IReadOnlyList<int> order, bool geometry)
         {
             Editable(item);
+
+            // A copy of an INSERT given a block's name places that block, by its name, from then on.
+            if (index == 0 && item.OriginBlock != null)
+            {
+                foreach (KeyValuePair<int, string> value in values)
+                {
+                    if (value.Key == 2)
+                    {
+                        item.OriginBlock = null;
+                    }
+                }
+            }
             List<Rec> records = RecordsOf(item);
             Rec record = records[index];
             bool changed = false;
@@ -1411,7 +1536,11 @@ namespace GeometryHelper.Export
             SetRecords(item, records);
             item.Changed(records[0].Type);
 
-            if (geometry)
+            if (geometry && item.Parent != null)
+            {
+                GrowLater(item.Parent);
+            }
+            else if (geometry)
             {
                 GrowBy(item);
             }
@@ -1795,9 +1924,12 @@ namespace GeometryHelper.Export
         /// application's name (1001), a string (1000) and a layer's name (1003) with their escapes (<c>\U+00E9</c>) read as
         /// letters, as a layer's name is read.
         /// </summary>
-        internal IReadOnlyList<DxfTypedValue> XDataOf(DxfItem item)
+        internal IReadOnlyList<DxfTypedValue> XDataOf(DxfItem item) => XDataOf(item, 0);
+
+        /// <summary>The extended data of a record of an entity, 0 its own, as <see cref="XDataOf(DxfItem)"/> reads it.</summary>
+        internal IReadOnlyList<DxfTypedValue> XDataOf(DxfItem item, int index)
         {
-            Rec head = HeadOf(item);
+            Rec head = RecordAt(item, index);
             List<Pair> pairs = PairsOf(head);
             var groups = new List<DxfTypedValue>();
 
@@ -1829,6 +1961,33 @@ namespace GeometryHelper.Export
             Editable(item);
             List<Rec> records = RecordsOf(item);
             Rec head = records[0];
+
+            if (!WithData(head, groups, out Rec changed))
+            {
+                return;
+            }
+
+            foreach (DxfTypedValue group in groups)
+            {
+                if (group.TypeCode == 1001)
+                {
+                    EnsureApplication(group.Value.Trim());
+                }
+            }
+
+            records[0] = changed;
+            SetRecords(item, records);
+            item.Changed(head.Type);
+            Edited();
+        }
+
+        /// <summary>
+        /// A record with the extended data given in the place of its own, each group read as it is given keeping its bytes;
+        /// false where the data is as it was read.
+        /// </summary>
+        private bool WithData(Rec head, IReadOnlyList<DxfTypedValue> groups, out Rec changed)
+        {
+            changed = head;
             List<Pair> pairs = PairsOf(head);
             int data = DataAt(head, pairs);
             var existing = new List<Pair>();
@@ -1850,15 +2009,7 @@ namespace GeometryHelper.Export
 
             if (same)
             {
-                return;
-            }
-
-            foreach (DxfTypedValue group in groups)
-            {
-                if (group.TypeCode == 1001)
-                {
-                    EnsureApplication(group.Value.Trim());
-                }
+                return false;
             }
 
             var b = new Builder(this);
@@ -1882,10 +2033,66 @@ namespace GeometryHelper.Export
                 }
             }
 
-            records[0] = b.Done(head.Type);
-            SetRecords(item, records);
-            item.Changed(head.Type);
-            Edited();
+            changed = b.Done(head.Type);
+            return true;
+        }
+
+        /// <summary>
+        /// Gives the records of an entity the extended data left for them (<see cref="DxfItem.PendingRecords"/>), in the writing of
+        /// its records under way: an entity moved has its records written once, their world points of extended data moved with it.
+        /// </summary>
+        private void TakePendingData(DxfItem item, List<Rec> records)
+        {
+            List<DxfItem.PendingData> pending = item.PendingRecords;
+
+            if (pending == null)
+            {
+                return;
+            }
+
+            item.PendingRecords = null;
+
+            foreach (DxfItem.PendingData data in pending)
+            {
+                // A record of the type it was, where it was: records written anew in other places are given none of it.
+                if (data.Index < records.Count && records[data.Index].Type == data.Type && WithData(records[data.Index], data.Groups, out Rec changed))
+                {
+                    records[data.Index] = changed;
+                }
+            }
+        }
+
+        /// <summary>The indices of the records of an entity (0 its own) that have extended data an entity moved moves, its records read once.</summary>
+        internal List<int> WorldDataRecords(DxfItem item)
+        {
+            var found = new List<int>();
+            List<Rec> records = RecordsOf(item);
+
+            for (int r = 0; r < records.Count; r++)
+            {
+                if (HasWorldData(records[r]))
+                {
+                    found.Add(r);
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>Whether a record has extended data an entity moved moves: a world point, displacement or direction (1011 to 1013), a distance (1041) or a scale factor (1042).</summary>
+        private static bool HasWorldData(Rec record)
+        {
+            var walk = new GroupWalk(record);
+
+            while (walk.Next(out int code, out _, out _))
+            {
+                if ((code >= 1011 && code <= 1013) || code == 1041 || code == 1042)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         #endregion
@@ -2232,31 +2439,45 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Adds an LTYPE record of a linetype made in code: its name, description, the alignment A, its count of dashes, the
-        /// length of its pattern, then each dash (49), a simple one (74 of 0) from R13 on; null where the file has no linetype
-        /// table.
+        /// length of its pattern, then the groups of its dashes as given, each its 49, its 74 from R13 on and those of its shape
+        /// or text; null where the file has no linetype table.
         /// </summary>
-        internal DxfItem AddLinetype(string name, string description, double length, double[] dashes)
+        internal DxfItem AddLinetype(string name, string description, double length, int count, IList<KeyValuePair<int, string>> dashes)
         {
-            Writing style = Style;
-
             return AddTableRecord("LTYPE", "AcDbLinetypeTableRecord", b =>
             {
                 b.Group(2, name);
                 b.Group(70, "0");
                 b.Group(3, description);
                 b.Group(72, "65");
-                b.Group(73, dashes.Length.ToString(CultureInfo.InvariantCulture));
+                b.Group(73, count.ToString(CultureInfo.InvariantCulture));
                 b.Group(40, Numbers.Exact(length + 0.0));
 
-                foreach (double dash in dashes)
+                foreach (KeyValuePair<int, string> group in dashes)
                 {
-                    b.Group(49, Numbers.Exact(dash + 0.0));
-
-                    if (style.Markers)
-                    {
-                        b.Group(74, "0");
-                    }
+                    b.Group(group.Key, group.Value);
                 }
+            });
+        }
+
+        /// <summary>
+        /// Adds a STYLE record of a text style made in code, as AutoCAD writes one: its name, flags, fixed height, width, slant
+        /// in degrees, generation flags 0, the last height 2.5, its font's file and its big font's; null where the file has no
+        /// text style table.
+        /// </summary>
+        internal DxfItem AddTextStyle(string name, int flags, double height, double width, double obliqueDegrees, string font, string bigFont)
+        {
+            return AddTableRecord("STYLE", "AcDbTextStyleTableRecord", b =>
+            {
+                b.Group(2, name);
+                b.Group(70, flags.ToString(CultureInfo.InvariantCulture));
+                b.Group(40, Numbers.Exact(height + 0.0));
+                b.Group(41, Numbers.Exact(width + 0.0));
+                b.Group(50, Numbers.Exact(obliqueDegrees + 0.0));
+                b.Group(71, "0");
+                b.Group(42, "2.5");
+                b.Group(3, font);
+                b.Group(4, bigFont);
             });
         }
 
@@ -2264,7 +2485,7 @@ namespace GeometryHelper.Export
         /// Adds a block made in code, as AutoCAD writes one: from R13 on its BLOCK_RECORD in the block table, then its BLOCK and
         /// ENDBLK at the end of the BLOCKS section, owned by that record, on layer 0, with handles where the file uses them.
         /// </summary>
-        internal DxfFileBlock AddBlock(string name, Geometry.GeoPoint3 origin, out DxfItem record)
+        internal DxfFileBlock AddBlock(string name, Geometry.GeoPoint3 origin, int units, bool explodable, bool uniform, string comments, out DxfItem record)
         {
             int end = -1;
 
@@ -2293,9 +2514,9 @@ namespace GeometryHelper.Export
 
                     if (style.Version >= 1021)
                     {
-                        b.Group(70, "0");
-                        b.Group(280, "1");
-                        b.Group(281, "0");
+                        b.Group(70, units.ToString(CultureInfo.InvariantCulture));
+                        b.Group(280, explodable ? "1" : "0");
+                        b.Group(281, uniform ? "1" : "0");
                     }
                 });
             }
@@ -2338,6 +2559,11 @@ namespace GeometryHelper.Export
                 head.Group(1, string.Empty);
             }
 
+            if (comments.Length > 0)
+            {
+                head.Group(4, comments);
+            }
+
             var tail = new Builder(this);
             tail.Group(0, "ENDBLK");
 
@@ -2369,6 +2595,13 @@ namespace GeometryHelper.Export
             PutBefore(end, endPiece);
             var headItem = new DxfItem(this, headPiece, "BLOCK") { Home = home };
             var block = new DxfFileBlock(this, name, origin, 0, new List<DxfItem>(), headItem, -1) { EndPiece = endPiece, Home = home };
+
+            // Found by its name from then on, as a block of the file is, by the INSERTs of it among the rest.
+            if (!Blocks.ContainsKey(name))
+            {
+                _blockIndex.Add(name, block);
+            }
+
             Edited();
             GeometryHelperLog.Info("DxfFile: the block " + name + " was added.");
             return block;

@@ -17,7 +17,7 @@ namespace GeometryHelper.Export
     /// <see cref="DxfBlockReference"/> reads and sets it as it does an INSERT.
     /// </para>
     /// <para>
-    /// <see cref="DxfBlockReference.TransformBy(GeoTransform3)"/> scales the spacing as it scales the axes of the array, so that
+    /// <see cref="DxfEntity.TransformBy(GeoTransform3)"/> scales the spacing as it scales the axes of the array, so that
     /// the cells stay where the transformation takes them.
     /// </para>
     /// </remarks>

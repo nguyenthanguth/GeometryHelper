@@ -11,7 +11,7 @@ namespace GeometryHelper.Export
     /// </summary>
     /// <remarks>
     /// Each table is a class of its own, whose indexer and enumerator give its own records: <see cref="DxfLayerTable"/>,
-    /// <see cref="DxfLinetypeTable"/> and <see cref="DxfBlockTable"/>. A record is added by <see cref="Add"/>, as AutoCAD
+    /// <see cref="DxfLinetypeTable"/>, <see cref="DxfTextStyleTable"/> and <see cref="DxfBlockTable"/>. A record is added by <see cref="Add"/>, as AutoCAD
     /// adds one: <c>db.LayerTable.Add(new DxfLayerTableRecord { Name = "steel", ColorIndex = 1 })</c>.
     /// </remarks>
     public abstract class DxfSymbolTable : DxfDBObject, IEnumerable
@@ -52,8 +52,6 @@ namespace GeometryHelper.Export
         /// <exception cref="ArgumentException">Thrown when the record is of another kind of table, has no name or one AutoCAD
         /// does not take, or its name is the table's already.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the record is in a file already, or the file has no such table.</exception>
-        /// <exception cref="NotSupportedException">Thrown by the <see cref="DxfTextStyleTable"/>, whose text styles are read and
-        /// not added yet.</exception>
         public void Add(DxfSymbolTableRecord value)
         {
             if (value == null)
@@ -154,10 +152,16 @@ namespace GeometryHelper.Export
         /// Gets or sets the name of the record (group 2), as AutoCAD's <c>Name</c>: as the file spells it, the spaces around it
         /// taken off and its escapes (<c>\U+00E9</c>) read as letters.
         /// </summary>
-        /// <value>Set on a record made in code, before it is added to its table.</value>
+        /// <value>
+        /// Set on a record made in code, before it is added to its table; on a layer or a block of a file, it is renamed with
+        /// every reference to it, as <see cref="DxfLayerTableRecord"/> and <see cref="DxfBlockTableRecord"/> say. The name it
+        /// has changes nothing.
+        /// </value>
         /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when set on a record of a file: renaming one, with every reference
-        /// to it, comes in a later release.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name set on a record of a file is one AutoCAD does not take, or
+        /// that of another record of its table.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set on a record of a file of a kind not renamed yet, a
+        /// linetype or a text style, or on one AutoCAD does not rename, as layer 0.</exception>
         public virtual string Name
         {
             get => Item == null ? _name : DxfReader.NameOf(Item.File.ValueOf(Item, 2) ?? string.Empty);
@@ -176,12 +180,18 @@ namespace GeometryHelper.Export
                         return;
                     }
 
-                    throw new InvalidOperationException("The record " + Name + " is of a file, and is not renamed yet: a later release renames one with every reference to it.");
+                    Rename(value);
+                    return;
                 }
 
                 _name = value;
             }
         }
+
+        /// <summary>Renames a record of a file with every reference to it, the name checked; refused by a kind of record not renamed yet.</summary>
+        /// <exception cref="InvalidOperationException">Thrown by a kind of record not renamed yet.</exception>
+        private protected virtual void Rename(string name)
+            => throw new InvalidOperationException("The record " + Name + " is of a file, and is not renamed yet: a later release renames one with every reference to it.");
 
         /// <summary>
         /// Gets whether the record comes from an external reference (flag 16 of group 70, or a name with a | in it), as

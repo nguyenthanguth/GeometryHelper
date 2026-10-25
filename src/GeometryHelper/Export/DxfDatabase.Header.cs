@@ -182,6 +182,74 @@ namespace GeometryHelper.Export
             set => SetWhole("$PDMODE", 70, value, Pdmode);
         }
 
+        /// <summary>
+        /// Gets or sets how many segments each piece of a polyline fitted with a spline is drawn with (<c>$SPLINESEGS</c>), as
+        /// AutoCAD's <c>Splinesegs</c>: 8 where the header gives none; below nought, arcs rather than lines.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is nought or outside -32768 to 32767.</exception>
+        public int Splinesegs
+        {
+            get => Whole("$SPLINESEGS", 70, 8);
+
+            set
+            {
+                // The number it has changes nothing, whatever the header holds.
+                if (value != Splinesegs && (value == 0 || value < short.MinValue || value > short.MaxValue))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "SPLINESEGS is from -32768 to 32767, not nought.");
+                }
+
+                SetWhole("$SPLINESEGS", 70, value, Splinesegs);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the spline a polyline is fitted with (<c>$SPLINETYPE</c>), as AutoCAD's <c>Splinetype</c>: 5 quadratic,
+        /// 6 cubic; 6 where the header gives none.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not 5 or 6.</exception>
+        public int Splinetype
+        {
+            get => Whole("$SPLINETYPE", 70, 6);
+            set => SetWhole("$SPLINETYPE", 70, value == Splinetype ? value : InRange(value, 5, 6, nameof(value)), Splinetype);
+        }
+
+        /// <summary>
+        /// Gets or sets the surface a polygon mesh is fitted with (<c>$SURFTYPE</c>), as AutoCAD's <c>Surftype</c>: 5 quadratic,
+        /// 6 cubic, 8 Bezier; 6 where the header gives none.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not 5, 6 or 8.</exception>
+        public int Surftype
+        {
+            get => Whole("$SURFTYPE", 70, 6);
+
+            set
+            {
+                if (value != Surftype && value != 5 && value != 6 && value != 8)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "SURFTYPE is 5, 6 or 8.");
+                }
+
+                SetWhole("$SURFTYPE", 70, value, Surftype);
+            }
+        }
+
+        /// <summary>Gets or sets how many lines a fitted polygon mesh is drawn with along M (<c>$SURFU</c>), as AutoCAD's <c>Surfu</c>: 0 to 200; 6 where the header gives none.</summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not from 0 to 200.</exception>
+        public int Surfu
+        {
+            get => Whole("$SURFU", 70, 6);
+            set => SetWhole("$SURFU", 70, value == Surfu ? value : InRange(value, 0, 200, nameof(value)), Surfu);
+        }
+
+        /// <summary>Gets or sets how many lines a fitted polygon mesh is drawn with along N (<c>$SURFV</c>), as AutoCAD's <c>Surfv</c>: 0 to 200; 6 where the header gives none.</summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not from 0 to 200.</exception>
+        public int Surfv
+        {
+            get => Whole("$SURFV", 70, 6);
+            set => SetWhole("$SURFV", 70, value == Surfv ? value : InRange(value, 0, 200, nameof(value)), Surfv);
+        }
+
         /// <summary>Gets or sets how large points are drawn (<c>$PDSIZE</c>): nought where the header gives none.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the size set is not a finite number.</exception>
         public double Pdsize

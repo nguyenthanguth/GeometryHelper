@@ -61,6 +61,13 @@ namespace GeometryHelper.Export
 
             layer.AddTo(_file);
         }
+
+        /// <summary>
+        /// Works out which layers are in use, as AutoCAD's <c>GenerateUsageData</c> does before <c>IsUsed</c> is read: the layers
+        /// every entity is on, in one walk of the drawing, kept until the drawing next changes;
+        /// <see cref="DxfLayerTableRecord.IsUsed"/> works them out itself where they are not kept.
+        /// </summary>
+        public void GenerateUsageData() => _file.LayersDrawnOn();
     }
 
     /// <summary>
@@ -77,11 +84,23 @@ namespace GeometryHelper.Export
     /// A layer made in code is in the colour 7, with the linetype Continuous, its lineweight the default, on, thawed,
     /// unlocked and plotted until it is given others, and is written when it is added to a <see cref="DxfLayerTable"/>.
     /// </para>
+    /// <para>
+    /// A layer of a file is renamed by its <see cref="DxfSymbolTableRecord.Name"/>, every reference to it with it, and erased
+    /// by <see cref="Erase"/> where nothing is drawn on it: the layer steel renamed Steel_S355 has every entity of it, in model
+    /// space, paper space and the blocks, its vertices and attributes among them, on Steel_S355, and <c>$CLAYER</c> too where
+    /// it was the current layer.
+    /// </para>
     /// </remarks>
     public sealed class DxfLayerTableRecord : DxfSymbolTableRecord
     {
         // The groups of AcDbLayerTableRecord in the order AutoCAD writes them, after AcDbSymbolTableRecord.
         private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 100, 2, 70, 62, 420, 6, 290, 370, 390, 347 });
+
+        // The sections whose records name a layer by name.
+        private static readonly string[] Naming = { "TABLES", "ENTITIES", "BLOCKS", "OBJECTS" };
+
+        private const string DescriptionApplication = "AcAecLayerStandard";
+        private const string TransparencyApplication = "AcCmTransparency";
 
         private int _colour = 7;
         private int? _trueColour;
@@ -91,6 +110,7 @@ namespace GeometryHelper.Export
         private bool _frozen;
         private bool _locked;
         private bool _plotted = true;
+        private bool _frozenInNewViewports;
 
         /// <summary>
         /// Initializes a layer made in code, to be added to a <see cref="DxfLayerTable"/> with its <see cref="DxfSymbolTableRecord.Name"/> given.
@@ -390,6 +410,230 @@ namespace GeometryHelper.Export
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether the layer is frozen in each viewport made from now on (flag 2 of group 70), as AutoCAD's
+        /// <c>ViewportVisibilityDefault</c>, its VPDFLT: true where new viewports freeze it.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the layer is erased.</exception>
+        public bool ViewportVisibilityDefault
+        {
+            get => Item == null ? _frozenInNewViewports : (Flags & 2) != 0;
+
+            set
+            {
+                if (Item == null)
+                {
+                    _frozenInNewViewports = value;
+                }
+                else if (value != ViewportVisibilityDefault)
+                {
+                    SetFlag(2, value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the description of the layer, as AutoCAD's <c>Description</c>, kept as AutoCAD keeps it: the second 1000
+        /// of the layer's extended data of the application <c>AcAecLayerStandard</c>, after an empty one; empty where it has none.
+        /// </summary>
+        /// <value>
+        /// Set, written as <c>1001 AcAecLayerStandard, 1000, 1000 Columns of grid A</c>, the application added to the table of
+        /// applications where it lacks it; an empty description takes the application's data out. The description the layer
+        /// has changes nothing.
+        /// </value>
+        /// <exception cref="ArgumentNullException">Thrown when the description set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the description set has a line break in it.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the layer is erased.</exception>
+        public string Description
+        {
+            get
+            {
+                IReadOnlyList<DxfTypedValue> data = GetXDataForApplication(DescriptionApplication);
+                int texts = 0;
+
+                for (int i = 1; data != null && i < data.Count; i++)
+                {
+                    if (data[i].TypeCode == 1000 && ++texts == 2)
+                    {
+                        return data[i].Value;
+                    }
+                }
+
+                return string.Empty;
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                if (string.Equals(value, Description, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                XData = value.Length == 0
+                    ? new[] { new DxfTypedValue(1001, DescriptionApplication) }
+                    : new[] { new DxfTypedValue(1001, DescriptionApplication), new DxfTypedValue(1000, string.Empty), new DxfTypedValue(1000, value) };
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets how much the layer's entities by layer let show through them, as AutoCAD's <c>Transparency</c>, kept as
+        /// AutoCAD keeps it: the 1071 of the layer's extended data of the application <c>AcCmTransparency</c>, 0x020000TT; solid,
+        /// the alpha 255, where it has none.
+        /// </summary>
+        /// <value>
+        /// Set, an alpha: the 50 per cent of AutoCAD's dialog, <c>new DxfTransparency(127)</c>, is written as
+        /// <c>1001 AcCmTransparency, 1071 33554559</c>; solid takes the application's data out. The transparency the layer has
+        /// changes nothing.
+        /// </value>
+        /// <exception cref="ArgumentException">Thrown when the transparency set is by layer, by block or an error value, which
+        /// a layer does not take.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the layer is erased, or a transparency other than solid is set
+        /// on a layer of a file older than R2004 (AC1018), which has none.</exception>
+        public DxfTransparency Transparency
+        {
+            get
+            {
+                IReadOnlyList<DxfTypedValue> data = GetXDataForApplication(TransparencyApplication);
+
+                for (int i = 1; data != null && i < data.Count; i++)
+                {
+                    if (data[i].TypeCode == 1071 && int.TryParse(data[i].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
+                    {
+                        return DxfTransparency.OfValue(value);
+                    }
+                }
+
+                return new DxfTransparency(255);
+            }
+
+            set
+            {
+                if (value == Transparency)
+                {
+                    return;
+                }
+
+                if (!value.IsByAlpha)
+                {
+                    throw new ArgumentException("A layer's transparency is by alpha, from 0 clear to 255 solid: " + value + " is not.", nameof(value));
+                }
+
+                if (Item != null && !value.IsSolid)
+                {
+                    Since(1018, "transparency", "R2004 (AC1018)", true);
+                }
+
+                XData = value.IsSolid
+                    ? new[] { new DxfTypedValue(1001, TransparencyApplication) }
+                    : new[] { new DxfTypedValue(1001, TransparencyApplication), new DxfTypedValue(1071, value.Value.ToString(CultureInfo.InvariantCulture)) };
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the layer is in use, as AutoCAD's <c>IsUsed</c> after <see cref="DxfLayerTable.GenerateUsageData"/>:
+        /// layer 0, Defpoints and the current layer (<c>$CLAYER</c>) always; any other where an entity is on it, in model space,
+        /// paper space or a block, a vertex or an attribute among them, those added since the drawing was opened too. The layers
+        /// in use are worked out in one walk of the drawing and kept until it next changes, so that reading it for 400 layers
+        /// walks it once; false for a layer made in code.
+        /// </summary>
+        public bool IsUsed => Item != null && (IsKept(Name) || Item.File.LayersDrawnOn().Contains(Name));
+
+        /// <summary>
+        /// Erases the layer from its table, as AutoCAD's <c>Erase</c> of a layer no entity is on: its LAYER record taken out, the
+        /// table's count lowered by one, its handle not given again and what it owned, as its extension dictionary, removed with
+        /// it when the file is saved.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the layer is in no file or is erased already; when it is layer
+        /// 0, Defpoints or the current layer, which AutoCAD keeps; when an entity is on it (<see cref="IsUsed"/>); or when an
+        /// object of the file points at it, as a viewport that freezes it.</exception>
+        public override void Erase()
+        {
+            if (Item == null)
+            {
+                throw new InvalidOperationException("The layer " + Name + " is in no file to be erased from.");
+            }
+
+            if (IsErased)
+            {
+                throw new InvalidOperationException("The layer " + Name + " is erased already.");
+            }
+
+            string name = Name;
+
+            if (IsKept(name))
+            {
+                throw new InvalidOperationException("The layer " + name + " is layer 0, Defpoints or the current layer, which AutoCAD keeps.");
+            }
+
+            if (IsUsed)
+            {
+                throw new InvalidOperationException("The layer " + name + " has entities on it, and is not erased, as AutoCAD erases a layer only when nothing is on it.");
+            }
+
+            if (Item.File.PointedAt(Handle))
+            {
+                throw new InvalidOperationException("The layer " + name + " is pointed at by an object of the file, as a viewport that freezes it, and is not erased.");
+            }
+
+            Item.File.RemoveTableRecord(Item, "LAYER");
+        }
+
+        /// <summary>
+        /// Renames the layer with every reference to it: its LAYER record's 2; each group 8 of the entities of model space, paper
+        /// space and the blocks, their BLOCK, ENDBLK, vertices and attributes among them, and of the objects that name a layer,
+        /// as a layer filter, an XRECORD's own data aside; each 1003 of extended data; and <c>$CLAYER</c>.
+        /// </summary>
+        private protected override void Rename(string name)
+        {
+            DxfSymbolTable.CheckName(name, "value");
+            string old = Name;
+
+            if (old == "0" || string.Equals(old, "Defpoints", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("The layer " + old + " is not renamed, as AutoCAD keeps its name.");
+            }
+
+            if (IsDependent)
+            {
+                throw new InvalidOperationException("The layer " + old + " comes from an external reference, and is renamed in its own drawing.");
+            }
+
+            if (IsErased)
+            {
+                throw new InvalidOperationException("The layer " + old + " is erased, and is not changed.");
+            }
+
+            DxfFile file = Item.File;
+
+            foreach (DxfItem other in file.TableItems("LAYER"))
+            {
+                if (other != Item && string.Equals(DxfReader.NameOf(file.ValueOf(other, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentException("The layer table has a layer named " + name + " already, letters of either case the same.", "value");
+                }
+            }
+
+            bool current = file.Database != null && string.Equals(file.Database.Clayer, old, StringComparison.OrdinalIgnoreCase);
+            Set(2, name);
+            file.Rename(Naming, (type, code) => code == 8 && type != "XRECORD", 1003, old, name);
+
+            if (current)
+            {
+                file.SetHeader("$CLAYER", new[] { new DxfTypedValue(8, name) });
+            }
+
+            GeometryHelperLog.Info("DxfDatabase: the layer " + old + " was renamed " + name + ", with every entity on it.");
+        }
+
+        /// <summary>Whether a layer is one AutoCAD keeps whatever is on it: layer 0, Defpoints and the current layer.</summary>
+        private bool IsKept(string name)
+            => name == "0" || string.Equals(name, "Defpoints", StringComparison.OrdinalIgnoreCase) || (Item.File.Database != null && string.Equals(Item.File.Database.Clayer, name, StringComparison.OrdinalIgnoreCase));
+
         /// <summary>The object of a LAYER record, made once.</summary>
         internal static DxfLayerTableRecord Of(DxfItem item) => item.Wrapper as DxfLayerTableRecord ?? (DxfLayerTableRecord)item.KeepWrapper(new DxfLayerTableRecord(item));
 
@@ -411,7 +655,12 @@ namespace GeometryHelper.Export
                 throw new ArgumentException("The linetype " + _linetype + " is not in the file's linetype table.", "value");
             }
 
-            DxfItem item = file.AddLayer(Name, (_off ? -_colour : _colour), _trueColour, _linetype, (int)_lineWeight, (_frozen ? 1 : 0) | (_locked ? 4 : 0), _plotted);
+            if (!Transparency.IsSolid && !file.Supports(1018))
+            {
+                throw new ArgumentException("A DXF of version " + (file.Version ?? "R12") + " has no transparency, which came with R2004 (AC1018).", "value");
+            }
+
+            DxfItem item = file.AddLayer(Name, (_off ? -_colour : _colour), _trueColour, _linetype, (int)_lineWeight, (_frozen ? 1 : 0) | (_frozenInNewViewports ? 2 : 0) | (_locked ? 4 : 0), _plotted);
 
             if (item == null)
             {

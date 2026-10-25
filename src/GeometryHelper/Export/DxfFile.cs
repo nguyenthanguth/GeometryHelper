@@ -586,17 +586,44 @@ namespace GeometryHelper.Export
         {
             if (item.Type == "INSERT")
             {
-                DxfInsert insert = DxfReader.InsertOf(Record(HeadOf(item)), () => Placed(item));
+                Rec? head = InsertRecord(item);
+                DxfInsert insert = head == null ? null : DxfReader.InsertOf(Record(head.Value), () => Placed(item));
                 return insert == null ? new List<object>() : new List<object> { insert };
             }
 
             return DxfReader.ShapesOf(Records(item), Tolerance.Default);
         }
 
+        /// <summary>
+        /// The record of an INSERT as it is placed: a copy in no file names the block it was copied with by that block's name
+        /// now, so that a block renamed in the drawing the copy came from is still the one it places; null for a copy whose
+        /// block was erased there since, which places nothing.
+        /// </summary>
+        private Rec? InsertRecord(DxfItem item)
+        {
+            Rec head = HeadOf(item);
+            DxfFileBlock block = item.OriginBlock;
+
+            if (block == null)
+            {
+                return head;
+            }
+
+            if (block.Head.IsRemoved)
+            {
+                return null;
+            }
+
+            return WithGroup(head, 2, block.Name, false, out Rec named) && !string.Equals(DxfReader.NameOf(ValueOf(item, 2, true) ?? string.Empty), block.Name, StringComparison.Ordinal) ? named : head;
+        }
+
         /// <summary>What the reader places of an INSERT, with the layer table and the blocks of the file.</summary>
         private DxfReader.Placing Placed(DxfItem insert)
         {
-            DxfReader.Placing placing = _placer.Value.Place(Record(HeadOf(insert)), insert.Block);
+            // A copy in no file places its block as the drawing it was copied from has it now, edits and all: by that
+            // drawing's placing, not by one of the bytes it was read from.
+            DxfFile placer = _detached && _origin != null && _origin != Template ? _origin : this;
+            DxfReader.Placing placing = placer._placer.Value.Place(Record(InsertRecord(insert) ?? HeadOf(insert)), insert.Block);
 
             // One line for the placing, outside the lock: Warn where an entity threw, Debug for what was left out as expected.
             if (placing.Warnings.Count > 0)
@@ -639,7 +666,7 @@ namespace GeometryHelper.Export
             {
                 if (section.Name == "BLOCKS")
                 {
-                    blocks.Add(Current(section.First + 1, section.Last).ConvertAll(r => Record(r)));
+                    blocks.Add(Inside(section).ConvertAll(r => Record(r)));
                 }
             }
 
@@ -666,7 +693,7 @@ namespace GeometryHelper.Export
             {
                 if (section.Name == "TABLES")
                 {
-                    foreach (Rec record in Current(section.First + 1, section.Last))
+                    foreach (Rec record in Inside(section))
                     {
                         if (record.Type == "LAYER")
                         {
@@ -843,6 +870,7 @@ namespace GeometryHelper.Export
                 }
             }
 
+            _blockIndex = blocks;
             return new ReadOnlyDictionary<string, DxfFileBlock>(blocks);
         }
 

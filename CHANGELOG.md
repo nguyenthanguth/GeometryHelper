@@ -135,6 +135,48 @@ further out is refused with an `ArgumentException`, and what exploding makes is 
 a block of 100 INSERTs turned by 20 degrees, of a block of 100 INSERTs turned by 10 degrees, of a block of 100 lines,
 inserted at twice its width, explodes into 1 000 000 lines; with 200 lines it is refused in a quarter of a second. MTEXT columns are read from R2018's embedded object or the ACAD extended data.
 
+**NEW.** The details of the editing model's objects and tables, with AutoCAD's names. Every entity has its `Transparency`
+(group 440) as the new `DxfTransparency`, AutoCAD's `Transparency` (BYLAYER, BYBLOCK or an alpha, 127 the 50 per cent of
+AutoCAD's dialog, written 0x0200007F) from R2004 on; its `Hyperlinks` (extended data of PE_URL, as AutoCAD writes it);
+`GetPlane()` and `IsPlanar`, the plane of its extrusion or the one its shapes span to `Tolerance.Default`; and
+`IntersectWith(other, DxfIntersect)` and `BoundingBoxIntersectWith`, worked out by the library's shapes, a line run on as
+its infinite line and an arc as its circle where the new `DxfIntersect` says, a closed polyline, a SOLID and a 3DFACE by
+their edges, a polyline segment by segment, a point where it lies on the other, and a pair the library cannot cross, a text
+among them, refused with `NotSupportedException`. Every object has `CreateExtensionDictionary`
+and `ReleaseExtensionDictionary`, its `ExtensionDictionary` being the new `DxfDBDictionary` (entries named, added by
+`SetAt`, renamed and taken out), `SetBinaryDataForKey` and `GetBinaryDataForKey` (an XRECORD of 127-byte groups 310 in it),
+and `XDataTransformBy`, which moves the world points (1011), displacements (1012), directions (1013), distances (1041) and
+scale factors (1042) of its extended data as AutoCAD moves them; an entity's `TransformBy` and `GetTransformedCopy` move them with it, in the same writing of its record, a POLYLINE's
+vertices' and an INSERT's attributes' too. An entry taken out, or an object erased, takes the dictionaries and records it
+owns with it at every depth. A layer has its `Description` and `Transparency` (the
+extended data AutoCAD keeps them in), `ViewportVisibilityDefault` and `IsUsed` (the drawing read once for every layer until it is edited: 400 layers of 300 000
+lines in 0.08 seconds), and is renamed by its `Name`, every
+entity, vertex, attribute, block and extended data on it and `$CLAYER` taken along, and erased by `Erase()` where nothing is
+on it, the LAYER_INDEX and LAYER_FILTER objects a drawing may keep left as they are. A linetype has its complex dashes (`ShapeStyleAt`, `ShapeNumberAt`, `ShapeOffsetAt`, `ShapeRotationAt`,
+`ShapeScaleAt`, `TextAt`, `ShapeIsUcsOrientedAt` and their setters, AutoCAD's gas line written as AutoCAD writes it), its
+dashes' lengths set in a file, and `Erase()`. The text style table takes new styles, and a style's `FileName`,
+`BigFontFileName`, `TextSize`, `XScale`, `ObliquingAngle`, `IsVertical` and TrueType `Font` (the new `DxfFontDescriptor`)
+are set. A block has its `Comments`, `Units`, `Explodable`, `BlockScaling`, `PreviewIcon` (the bytes of its 310),
+`IsDynamicBlock` and `Hyperlinks`; `GetBlockReferences` and `GetAnonymousBlocks` give its INSERTs and the blocks AutoCAD made
+of it as objects (all of 2 000 nested blocks in 0.02 seconds), `AssumeOwnershipOf` moves entities into it keeping their
+handles, out of the draw order (SORTENTSTABLE) of the block they leave and onto the end of that of the block they enter, its `Name` renames it with every INSERT
+of it, and `Erase()` takes it out where nothing inserts it; it walks and counts an MTEXT of a file before R2018 with its
+linked columns (`ACAD_MTEXT_COLUMNS`) as one, as AutoCAD's database holds them. The drawing reads and sets 20 more of AutoCAD's variables,
+those AutoCAD keeps as DICTIONARYVAR objects rather than in the header (`Cannoscale`, `Cetransparency`, `Tablestyle`,
+`MLeaderstyle`, `AnnoAllVisible`, `TstackSize` and the rest), adding the dictionary of variables where a drawing has none,
+reads its `ThumbnailBitmap`, and has five more variables of the header as properties, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. Every value set was read back by ezdxf 1.4.5, whose recover and audit found nothing to fix.
+
+**FIXED.** A copy of an INSERT in no file, `Clone()` or `GetTransformedCopy` of it, placed its block as the file was read,
+not as it was edited since: a block given a line and a circle of a new radius showed neither in the copy's `GetGeometry`.
+It now keeps to its block when the block is renamed in the drawing it came from, as AutoCAD's keeps its id, is appended
+to another drawing by the block's name now and refused where that drawing has none, and places nothing once the block is
+erased; it explodes, where it threw that the drawing had no block of its name.
+
+**CHANGED.** A copy in no file, and an entity made in code, no longer holds a file of its own: one file holds every copy of a
+drawing, and keeps none of them. The explode of an INSERT of 1 000 000 lines (100 INSERTs of 100 INSERTs of 100 lines)
+holds 440 MB where it ran out of a heap of 4 GB, about 460 bytes a part where it was some 3 100, and 27 000 parts take 0.49
+seconds where they took 0.65.
+
 **FIXED.** Setting the normal of an entity whose file gives its extrusion not of unit length, as (1, 2, 3), wrote a wrong
 normal.
 

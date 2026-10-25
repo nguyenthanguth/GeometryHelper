@@ -27,6 +27,9 @@ namespace GeometryHelper.Export
         private static readonly int[] LookOrder = { 67, 410, 8, 6, 62, 370, 48, 60, 420 };
 
         private List<Piece>[] _slots;
+
+        // How many changes the records have had, so that what is worked out of them all, as the layers in use, is kept until the next.
+        private int _editCount;
         private Writing _writing;
         private bool _handlesKnown;
         private ulong _nextHandle;
@@ -36,6 +39,8 @@ namespace GeometryHelper.Export
         private int _cleaned;
         private double[] _modelGrown;
         private double[] _paperGrown;
+        private List<DxfItem> _growLater;
+        private HashSet<DxfItem> _growingLater;
         private bool _headerStale;
         private bool _ownerKnown;
         private string _modelOwner;
@@ -335,6 +340,7 @@ namespace GeometryHelper.Export
             }
 
             _slots[record] = pieces;
+            _editCount++;
         }
 
         /// <summary>Puts a piece before a record of the file, after what was put before it already; the list of pieces it is in.</summary>
@@ -349,16 +355,22 @@ namespace GeometryHelper.Export
             }
 
             slot.Insert(slot.Count - 1, piece);
+            _editCount++;
             return slot;
         }
 
         /// <summary>The records of an entity written anew: in the place of its first record, its others put out.</summary>
         private void SetRecords(DxfItem item, List<Rec> records)
         {
+            TakePendingData(item, records);
+            _editCount++;
+
             // A record that follows an entity is written in its place among the entity's records.
             if (item.Parent != null)
             {
-                List<Rec> all = RecordsOf(item.Parent);
+                // In place where the entity's records are written anew already, as a VERTEX set one at a time would copy
+                // all of them each time.
+                List<Rec> all = item.Parent.Piece != null ? item.Parent.Piece.Records : RecordsOf(item.Parent);
                 all[item.Index] = records[0];
                 SetRecords(item.Parent, all);
                 item.Parent.Changed(all[0].Type);
@@ -451,6 +463,8 @@ namespace GeometryHelper.Export
         /// </summary>
         private void FlushHeader()
         {
+            GrowPending();
+
             if (_headerStale)
             {
                 _headerStale = false;
@@ -472,7 +486,11 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>What an entity's change leaves to be read again: the placing of the INSERTs, which reads the layers of the drawing.</summary>
-        private void Edited() => _placer = new Lazy<DxfReader.Placer>(NewPlacer);
+        private void Edited()
+        {
+            _placer = new Lazy<DxfReader.Placer>(NewPlacer);
+            _editCount++;
+        }
 
         internal void SetLayer(DxfItem item, string value)
         {
@@ -728,7 +746,8 @@ namespace GeometryHelper.Export
                 return body + 1;
             }
 
-            int rank = code == 39 ? LookOrder.Length : Array.IndexOf(LookOrder, code);
+            // A transparency (440) goes after all of the look, the name of a colour book (430) among it.
+            int rank = code == 39 || code == 440 ? LookOrder.Length : Array.IndexOf(LookOrder, code);
             int end = body >= 0 ? body : data;
             int after = -1;
             int lead = 1;
@@ -751,7 +770,7 @@ namespace GeometryHelper.Export
                     continue;
                 }
 
-                int order = Array.IndexOf(LookOrder, pair.Code);
+                int order = code == 440 && pair.Code == 430 ? LookOrder.Length - 1 : Array.IndexOf(LookOrder, pair.Code);
 
                 if (order >= 0 && order < rank)
                 {
@@ -833,11 +852,14 @@ namespace GeometryHelper.Export
         /// <summary>
         /// Writes an entity anew from a shape: the groups of its geometry from the shape, by the writer's overload of Add for
         /// it, and every other group kept as it was, in its order; its type changed where the shape is written as another,
-        /// what the old type alone had then left out. A POLYLINE's vertices are written anew, its end kept.
+        /// what the old type alone had then left out. A POLYLINE's vertices are written anew, its end kept. Where
+        /// <paramref name="given"/> are given, they are written in the place of the shape's, the type and own groups of the
+        /// entity followed by those of the records that follow it, as a polyline converted to the other kind takes the place of
+        /// the old one, its handle and look kept.
         /// </summary>
-        internal void SetShape(DxfItem item, object shape)
+        internal void SetShape(DxfItem item, object shape, List<KeyValuePair<string, List<DxfTypedValue>>> given = null)
         {
-            if (shape == null)
+            if (shape == null && given == null)
             {
                 // No shape where the entity has none is the value its getter gives, and changes nothing.
                 if (item.Shape == null)
@@ -850,14 +872,14 @@ namespace GeometryHelper.Export
 
             IReadOnlyList<object> now = item.Shapes;
 
-            if (now.Count == 1 && ReferenceEquals(now[0], shape))
+            if (given == null && now.Count == 1 && ReferenceEquals(now[0], shape))
             {
                 return;
             }
 
             Editable(item);
 
-            if (!Shaped.Contains(item.Type))
+            if (given == null && !Shaped.Contains(item.Type))
             {
                 throw new InvalidOperationException("A " + item.Type + " has no shape of the library's to set: those the reader reads do, " + string.Join(", ", new SortedSet<string>(Shaped, StringComparer.Ordinal)) + "; an INSERT is placed as it stands.");
             }
@@ -867,10 +889,11 @@ namespace GeometryHelper.Export
             List<Pair> pairs = PairsOf(head);
             int hidden = item.Type == "3DFACE" ? FirstWhole(head, pairs, 70) : 0;
             double thickness = item.Thickness;
-            List<KeyValuePair<string, List<DxfTypedValue>>> written = Written(shape, hidden, thickness, "value", out double[] extents);
+            double[] extents = null;
+            List<KeyValuePair<string, List<DxfTypedValue>>> written = given ?? Written(shape, hidden, thickness, "value", out extents);
 
             // A shape written as the entity is written now, group for group, is the shape it has: nothing to change.
-            if (now.Count == 1 && SameWriting(written, now[0], hidden, thickness))
+            if (given == null && now.Count == 1 && SameWriting(written, now[0], hidden, thickness))
             {
                 return;
             }
@@ -1092,7 +1115,11 @@ namespace GeometryHelper.Export
             SetRecords(item, result);
             item.Changed(type);
 
-            if (item.Block == null)
+            if (given != null)
+            {
+                GrowBy(item);
+            }
+            else if (item.Block == null)
             {
                 Grow(extents, item.IsPaper);
             }
@@ -1462,6 +1489,14 @@ namespace GeometryHelper.Export
             }
 
             var piece = new Piece(records);
+
+            // A file that holds entities not yet in a file keeps none of them: each holds its own records.
+            if (_detached)
+            {
+                Edited();
+                return new DxfItem(this, piece, type);
+            }
+
             var item = new DxfItem(this, piece, type) { Home = PutBefore(EntitiesEnd(), piece) };
             space.Append(item);
             Grow(extents, false);
@@ -1690,7 +1725,7 @@ namespace GeometryHelper.Export
             {
                 if (section.Name == "TABLES")
                 {
-                    foreach (Rec record in Current(section.First + 1, section.Last))
+                    foreach (Rec record in Inside(section))
                     {
                         if (record.Type == type)
                         {
@@ -1912,7 +1947,7 @@ namespace GeometryHelper.Export
                             continue;
                         }
 
-                        Visit(section.First + 1, section.Last, (Rec record, out Rec? now) =>
+                        VisitInside(section, (Rec record, out Rec? now) =>
                         {
                             now = null;
 
@@ -1921,6 +1956,7 @@ namespace GeometryHelper.Export
                                 return false;
                             }
 
+                            ObjectGone(handle, record);
                             gone.Add(handle);
                             owned++;
                             more = true;
@@ -2112,6 +2148,7 @@ namespace GeometryHelper.Export
 
                 if (!member && HandleOf(record, out ulong group))
                 {
+                    ObjectGone(group, record);
                     gone.Add(group);
                     return true;
                 }

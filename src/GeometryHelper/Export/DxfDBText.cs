@@ -433,7 +433,7 @@ namespace GeometryHelper.Export
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the transformation flattens the plane of the text.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
-        public override void TransformBy(GeoTransform3 transform)
+        private protected override void TransformEntity(GeoTransform3 transform)
         {
             if (transform == null)
             {
@@ -464,7 +464,7 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// The groups a transformation gives the text, for its INSERT to write with those of its other attributes at once; none
-        /// for the identity; null where one of them would land in the wrong part of the record, which <see cref="TransformBy"/>
+        /// for the identity; null where one of them would land in the wrong part of the record, which <see cref="DxfEntity.TransformBy(GeoTransform3)"/>
         /// then writes alone.
         /// </summary>
         internal KeyValuePair<int, string>[] CarriedGroups(GeoTransform3 transform)

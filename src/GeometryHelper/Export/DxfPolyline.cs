@@ -746,7 +746,7 @@ namespace GeometryHelper.Export
         /// <exception cref="ArgumentException">Thrown when it takes the plane of the polyline to no plane, or scales it more one
         /// way than another while the polyline has arcs, which would no longer be arcs.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the polyline is erased.</exception>
-        public override void TransformBy(GeoTransform3 transform)
+        private protected override void TransformEntity(GeoTransform3 transform)
         {
             if (transform == null)
             {

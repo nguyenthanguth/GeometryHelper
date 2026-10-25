@@ -182,7 +182,7 @@ namespace GeometryHelper.Export
         public bool IsRational => (GetInt(70, 0) & 4) != 0;
 
         /// <summary>Gets whether the record says the spline lies in a plane (flag 8 of group 70), as AutoCAD's <c>IsPlanar</c>.</summary>
-        public bool IsPlanar => (GetInt(70, 0) & 8) != 0;
+        public override bool IsPlanar => (GetInt(70, 0) & 8) != 0;
 
         /// <summary>Gets whether the spline is closed (flag 1 of group 70), as AutoCAD's <c>Closed</c>.</summary>
         public override bool Closed => (GetInt(70, 0) & 1) != 0;
@@ -874,7 +874,7 @@ namespace GeometryHelper.Export
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the spline is erased.</exception>
-        public override void TransformBy(GeoTransform3 transform)
+        private protected override void TransformEntity(GeoTransform3 transform)
         {
             if (transform == null)
             {

@@ -10,7 +10,7 @@ namespace GeometryHelper.Export
     /// </summary>
     /// <remarks>
     /// Its <see cref="DxfEntity.Layer"/>, colour, linetype, lineweight and visibility are set as any entity's are, every other
-    /// group of its record kept as it was; its geometry is not changed, so <see cref="TransformBy(GeoTransform3)"/> is refused.
+    /// group of its record kept as it was; its geometry is not changed, so <see cref="DxfEntity.TransformBy(GeoTransform3)"/> is refused.
     /// It is copied as it is by <see cref="DxfEntity.Clone"/>, and by <see cref="DxfEntity.GetTransformedCopy"/> with the
     /// identity. <see cref="DxfEntity.GetGeometry"/> gives what <see cref="DxfReader"/> reads of it, nothing for a HATCH.
     /// </remarks>
@@ -37,7 +37,7 @@ namespace GeometryHelper.Export
         /// <summary>Refuses: the geometry of a type the library keeps as it is is not changed.</summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="NotSupportedException">Thrown always.</exception>
-        public override void TransformBy(GeoTransform3 transform)
+        private protected override void TransformEntity(GeoTransform3 transform)
             => throw new NotSupportedException("A " + DxfName + " is kept as the file has it, and is not moved: the library has no class for it yet.");
     }
 }

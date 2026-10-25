@@ -455,7 +455,7 @@ namespace GeometryHelper.Export
         /// <exception cref="ArgumentException">Thrown when the transformation scales the plane of the circle more one way than
         /// the other, which would make it an ellipse, as AutoCAD refuses one, or flattens it.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the circle is erased.</exception>
-        public override void TransformBy(GeoTransform3 transform)
+        private protected override void TransformEntity(GeoTransform3 transform)
         {
             if (transform == null)
             {

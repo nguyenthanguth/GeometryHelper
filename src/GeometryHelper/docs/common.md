@@ -839,7 +839,7 @@ The header is read and set raw by `GetHeader("$INSUNITS")` and `SetHeader("$LTSC
 AutoCAD's properties: `Clayer`, `Insunits`, `Extmin`, `Extmax`, `Handseed`, `Celtype`, `Cecolor`, `Celweight`, `Ltscale`,
 `Limmin`, `Limmax`, `Insbase`, `Pdmode`, `Pdsize`, `Textsize`, `Textstyle`, `Dimstyle`, `Lunits`, `Luprec`, `Aunits`,
 `Auprec`, `Angbase` (in radians; the file writes degrees), `Angdir`, `Orthomode`, `Fillmode`, `Mirrtext`,
-`LineWeightDisplay` and `Saveproxygraphics`. A variable R2000 brought, `$INSUNITS`, `$CELWEIGHT`, `$LWDISPLAY` and
+`LineWeightDisplay`, `Saveproxygraphics`, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. A variable R2000 brought, `$INSUNITS`, `$CELWEIGHT`, `$LWDISPLAY` and
 `$PROXYGRAPHICS` among them, is refused in a file of R12, as AutoCAD writes none there. `$EXTMIN` and
 `$EXTMAX` grow to hold what is written and are never shrunk. What is written is in the file's own style: its line end, its
 padding, the numbers as `DxfWriter` prints them, and the text in its encoding, a letter the page cannot hold, or whose
@@ -876,3 +876,69 @@ A TEXT is a `DxfDBText` (`TextString`, `HorizontalMode`, `IsMirroredInX` and the
 `Degree`, `ControlPoints`, knots and weights; a 3DFACE a `DxfFace` (`GetVertexAt`, `IsEdgeVisibleAt`), a SOLID a
 `DxfSolid` (`GetPointAt`), and the meshes a `DxfPolyFaceMesh` and a `DxfPolygonMesh`, whose vertices and face records are
 walked as their polyline's are.
+
+Every entity has AutoCAD's `Transparency`, group 440, as a `DxfTransparency`: BYLAYER where the record gives none, BYBLOCK,
+or an alpha from 0, clear, to 255, solid, `new DxfTransparency(127)` the 50 per cent of AutoCAD's dialog, written
+33 554 559 (0x0200007F); a file older than R2004 has none and refuses one. Its `Hyperlinks` are those of its extended data
+of PE_URL, `line.Hyperlinks.Add(new DxfHyperLink { Name = "https://example.com/B-12.pdf", Description = "Plate B-12" })`
+written as AutoCAD writes them. `GetPlane()` gives the plane it lies in, that of its extrusion through its first point
+where all of it lies there, else the one its shapes span, to `Tolerance.Default`, and `IsPlanar` whether there is one: a 3D
+polyline with a corner 0.002 off the plane of the others has none. `IntersectWith(other, DxfIntersect.ExtendThis)` gives
+the points where two entities meet, by the library's shapes for them: the line from (0, 0, 0) to (10, 0, 0) meets the
+circle of radius 3 about (10, 0, 0) at (7, 0, 0), and, run on as its infinite line, at (13, 0, 0) too; an arc runs on as
+its circle. A closed polyline, a SOLID and a 3DFACE meet along their edges, not across their inside: the square 4 by 4
+about the origin meets the line along the x axis at (-2, 0, 0) and (2, 0, 0), and a line standing through its middle not at
+all. A polyline meets segment by segment, a point meets what it lies on, and a pair the library cannot cross, a text among
+them, throws `NotSupportedException`. `BoundingBoxIntersectWith` gives where the boxes of two entities meet.
+
+Every object can be given an extension dictionary, `CreateExtensionDictionary()`, an empty DICTIONARY owned by it and
+written as AutoCAD writes one, reached as its `ExtensionDictionary`, a `DxfDBDictionary`: `SetAt("GH_DATA", new
+DxfDBDictionary())` adds an entry, `SetName` renames one, `Remove` takes one out with its object, and
+`ReleaseExtensionDictionary()` takes the dictionary out once it is empty. `SetBinaryDataForKey("GH_BIN", bytes)` keeps bytes
+there, in an XRECORD of groups 310 of 127 bytes each, and `GetBinaryDataForKey` reads them back. `XDataTransformBy`
+moves the extended data as AutoCAD moves it: a position of the world (1011) moved, a displacement (1012) turned and
+scaled, a direction (1013) turned, a distance (1041) and a scale factor (1042) scaled, a plain point (1010) kept. An entity's `TransformBy` and `GetTransformedCopy` move its extended data so, in the same writing of its record, a POLYLINE that of its vertices and an INSERT that of its attributes; one with none of those groups keeps the bytes of its extended data. `Remove` of an entry erases the dictionaries and records it owns at every depth, and an object erased takes its extension dictionary with everything in it.
+
+A layer has its `Description` and `Transparency`, kept in the extended data of AcAecLayerStandard and AcCmTransparency as
+AutoCAD keeps them, `ViewportVisibilityDefault` (frozen in new viewports, flag 2) and `IsUsed`: layer 0, Defpoints, the
+current layer and any layer an entity is on, those appended in code among them. The first `IsUsed` reads the drawing once
+for every layer, and the answers hold until the drawing is edited: 400 layers of a drawing of 300 000 lines take 0.08
+seconds. Setting the `Name` of a layer renames it with every reference to it: the
+layer steel renamed Steel_S355 has every entity of it, in model space, paper space and the blocks, its vertices and
+attributes among them, on Steel_S355, a layer named in extended data (1003) too, and `$CLAYER` where it was the current
+one; layer 0 and Defpoints keep their names. `Erase()` takes a layer out where nothing is on it, nothing points at it and
+it is not 0, Defpoints or the current layer, the table's count lowered by one. The LAYER_INDEX and LAYER_FILTER objects a
+drawing may keep are left as they are.
+
+A linetype's dashes carry their shapes and texts: AutoCAD's gas line is `SetTextAt(1, "GAS")`, `SetShapeStyleAt(1,
+db.TextStyleTable["Standard"])`, `SetShapeScaleAt(1, 0.1)` and `SetShapeOffsetAt(1, new GeoVector2(-0.1, -0.05))` on its
+gap of 0.2, written `49 -0.2, 74 2, 75 0, 340` the style's handle `, 46 0.1, 50 0, 44 -0.1, 45 -0.05, 9 GAS`; a dash of a
+file has its length set too, and a linetype nothing draws with is erased. A text style is added to the `TextStyleTable`,
+`new DxfTextStyleTableRecord { Name = "ROMANS", FileName = "romans.shx", TextSize = 2.5 }`, and its font, height, width,
+slant and TrueType `Font` (a `DxfFontDescriptor`, `1001 ACAD, 1000 Arial, 1071 34` as AutoCAD keeps it) are set.
+
+A block has its `Comments` (the BLOCK's 4), `Units`, `Explodable` and `BlockScaling` (its BLOCK_RECORD's 70, 280 and 281,
+from R2007 on), `PreviewIcon` (the bytes of its 310), `IsDynamicBlock` and `Hyperlinks`. `GetBlockReferences(true)` gives
+its INSERTs, as AutoCAD's `GetBlockReferenceIds` gives their ids, and `GetBlockReferences(false)` those of the blocks that
+hold one of it too; `GetAnonymousBlocks()` gives the blocks AutoCAD made of a dynamic block. Setting its `Name` renames it
+with every INSERT of it; `Erase()` takes it out, BLOCK, entities, ENDBLK and BLOCK_RECORD, where nothing inserts it; and
+`AssumeOwnershipOf(entities)` moves entities of the drawing into it, each keeping its handle, out of the draw order
+(SORTENTSTABLE) of the block it leaves and onto the end of that of the block it enters. The linked columns of an MTEXT
+of a file before R2018, the MTEXT records its extended data of ACAD lists in `ACAD_MTEXT_COLUMNS`, are part of that MTEXT,
+as AutoCAD's database has them: a block walks and counts the main MTEXT alone, which carries its columns (`DxfMText`), so
+that moving every MTEXT of model space moves each column once; an MTEXT that lists its own handle among its columns is
+walked still.
+
+The drawing reads and sets the variables AutoCAD keeps out of the header, as DICTIONARYVAR objects of the dictionary
+AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), `Cetransparency` (a whole per cent, so the
+alpha 127 is 50), `Tablestyle`, `MLeaderstyle`, `DetailViewStyle` and `SectionViewStyle` (by name, one of the drawing's),
+`MLeaderscale`, `AnnoAllVisible`, `MsLtScale`, `MsOleScale`, `LayerEval`, `LightingUnits`, `LightsInBlocks`,
+`TStackAlign`, `TstackSize`, `HpInherit`, `Isolines`, `Facetres`, `PdfFrame` and `PlineEllipse`; AutoCAD's default where the
+drawing gives none, as a drawing of ezdxf, to which a variable set adds the dictionary of variables. `ThumbnailBitmap` reads
+the bytes of the THUMBNAILIMAGE section.
+
+A copy in no file, and an entity made in code, holds its own records alone: one file holds every copy of a drawing and
+keeps none of them, about 460 bytes a copy, so that the explode of an INSERT of 1 000 000 lines holds 440 MB. A copy of an
+INSERT places its block as the drawing it was copied from has it now, edits and all, and keeps to it when it is renamed
+there: appended to another drawing it names the block by its name now, and is refused where that drawing has no block of
+that name; a copy whose block was erased since places nothing.

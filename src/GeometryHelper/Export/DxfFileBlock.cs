@@ -44,7 +44,7 @@ namespace GeometryHelper.Export
         /// Gets the name of the block (group 2, or 3 where it has no 2), its escapes (<c>\U+00E9</c>) read as letters, such as
         /// <c>BOLT_M20</c>, <c>*U12</c> for a block AutoCAD names itself or <c>*Paper_Space0</c> for the block of a layout.
         /// </summary>
-        public string Name { get; }
+        public string Name { get; internal set; }
 
         /// <summary>
         /// Gets the base point of the block (groups 10, 20 and 30): the point of the block an INSERT puts at its insertion

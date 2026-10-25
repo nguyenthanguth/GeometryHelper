@@ -239,7 +239,7 @@ namespace GeometryHelper.UnitTest.Export
             DxfLayer read = DxfReader.Parse(saved, new DxfReadOptions { Tolerance = Tol }).GetLayer("steel");
             Assert.True(read.IsOff && read.IsFrozen && read.IsLocked && !read.IsPlotted);
 
-            Assert.Throws<InvalidOperationException>(() => steel.Name = "iron");
+            Assert.Throws<InvalidOperationException>(() => db.LayerTable["0"].Name = "iron");
             Assert.Throws<ArgumentException>(() => steel.LinetypeName = "NOPE");
             Assert.Throws<ArgumentOutOfRangeException>(() => steel.ColorIndex = 256);
             Assert.Throws<ArgumentOutOfRangeException>(() => steel.LineWeight = DxfLineWeight.ByLayer);
@@ -288,7 +288,7 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal("txt", standard.FileName);
             Assert.Equal(0.0, standard.TextSize);
             Assert.Equal(1.0, standard.XScale);
-            Assert.Throws<NotSupportedException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).TextStyleTable.Add(new DxfLayerTableRecord { Name = "x" }));
+            Assert.Throws<ArgumentException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).TextStyleTable.Add(new DxfLayerTableRecord { Name = "x" }));
         }
 
         #endregion

@@ -322,7 +322,7 @@ namespace GeometryHelper.Export
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the transformation takes the direction to no length.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the xline is erased.</exception>
-        public override void TransformBy(GeoTransform3 transform)
+        private protected override void TransformEntity(GeoTransform3 transform)
         {
             DxfRay.Moved(transform, BasePoint, UnitDir, out GeoPoint3 origin, out GeoPoint3 direction);
             SetGroups(Join(PointGroups(10, origin, Origin), PointGroups(11, direction, Up)));

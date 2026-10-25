@@ -112,7 +112,7 @@ namespace GeometryHelper.Export
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the transformation takes the normal to no length.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the point is erased.</exception>
-        public override void TransformBy(GeoTransform3 transform)
+        private protected override void TransformEntity(GeoTransform3 transform)
         {
             if (transform == null)
             {

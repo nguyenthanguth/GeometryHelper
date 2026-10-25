@@ -314,6 +314,25 @@ namespace GeometryHelper.Export
         /// <summary>Keeps the object that stands for the record, where none is kept yet; the one kept either way.</summary>
         internal object KeepWrapper(object wrapper) => Interlocked.CompareExchange(ref _wrapper, wrapper, null) ?? wrapper;
 
+        /// <summary>Makes another object stand for the record, as a converted polyline takes the place of the one it was made from.</summary>
+        internal void ReplaceWrapper(object wrapper) => Volatile.Write(ref _wrapper, wrapper);
+
+        /// <summary>
+        /// The extended data records of the entity are to be given at their next writing, each by the index of its record (0
+        /// the entity's own) and that record's type, as an entity moved has the world points of its extended data, and of its
+        /// vertices' and attributes', moved in the same writing of its records; null where there is none to give.
+        /// </summary>
+        internal List<PendingData> PendingRecords { get; set; }
+
+        /// <summary>Whether the entity is being moved with the records that follow it, whose extended data it moves itself: a record that follows it, moved by it, moves none of its own.</summary>
+        internal bool CarryingFollowers { get; set; }
+
+        /// <summary>
+        /// The block of the drawing a copy of an INSERT in no file was copied from, which it places whatever it is renamed: its
+        /// name is read as the block's; null for any other item, and once the copy's name is set.
+        /// </summary>
+        internal DxfFileBlock OriginBlock { get; set; }
+
         /// <summary>The records the entity's own, once it is changed or added; null for an entity as the file was read.</summary>
         internal DxfFile.Piece Piece { get; set; }
 
@@ -364,5 +383,22 @@ namespace GeometryHelper.Export
         /// </summary>
         /// <returns>The entity as a line, such as <c>LINE 2F on steel</c>.</returns>
         public override string ToString() => Type + (Handle != null ? " " + Handle : string.Empty) + " on " + (Layer ?? "0");
+
+        /// <summary>Extended data a record of an entity is to be given: the index of the record, its type, and the groups.</summary>
+        internal sealed class PendingData
+        {
+            internal PendingData(int index, string type, IReadOnlyList<DxfTypedValue> groups)
+            {
+                Index = index;
+                Type = type;
+                Groups = groups;
+            }
+
+            internal int Index { get; }
+
+            internal string Type { get; }
+
+            internal IReadOnlyList<DxfTypedValue> Groups { get; }
+        }
     }
 }

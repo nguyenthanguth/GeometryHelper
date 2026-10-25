@@ -22,7 +22,7 @@ namespace GeometryHelper.Export
     /// <para>
     /// Its points are in world coordinates, as AutoCAD gives them, though the file writes the insertion point in the system of
     /// the normal's plane. Moved, turned, scaled or given a new normal, by a setter or by
-    /// <see cref="TransformBy(GeoTransform3)"/>, an INSERT carries its ATTRIBs with it, each by the same change of placement,
+    /// <see cref="DxfEntity.TransformBy(GeoTransform3)"/>, an INSERT carries its ATTRIBs with it, each by the same change of placement,
     /// their values untouched. <see cref="DxfEntity.GetGeometry"/> gives the shapes of its block placed as
     /// <see cref="DxfReader"/> places them; <see cref="Explode"/> gives its block's entities placed, in no file.
     /// </para>
@@ -103,7 +103,7 @@ namespace GeometryHelper.Export
                     return _record;
                 }
 
-                return Item.File.IsDetached ? null : Resolve(Item.File, name);
+                return Item.File.BlockSource(Item) is DxfFile source ? Resolve(source, name) : null;
             }
 
             set
@@ -438,7 +438,7 @@ namespace GeometryHelper.Export
         /// <exception cref="ArgumentException">Thrown when the transformation would shear the block, its axes no longer square,
         /// which an INSERT does not hold, or flattens it.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is erased.</exception>
-        public override void TransformBy(GeoTransform3 transform)
+        private protected override void TransformEntity(GeoTransform3 transform)
         {
             if (transform == null)
             {

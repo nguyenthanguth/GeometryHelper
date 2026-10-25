@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using GeometryHelper.Geometry;
 
@@ -305,6 +306,44 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
+        /// Gets or sets how much the entity lets show through it (group 440), as AutoCAD's <c>Transparency</c>: BYLAYER where the
+        /// record gives none, BYBLOCK, or an alpha from 0, clear, to 255, solid, as <see cref="DxfTransparency"/> says.
+        /// </summary>
+        /// <value>
+        /// Set, BYLAYER takes the group out; BYBLOCK or an alpha writes it, 0x01000000 or 0x020000TT, after the colour where
+        /// AutoCAD writes it. The transparency the entity has changes nothing.
+        /// </value>
+        /// <exception cref="ArgumentException">Thrown when the transparency set is an error value.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the entity is erased, or a transparency is set on one of a
+        /// file older than R2004 (AC1018), which has none.</exception>
+        public DxfTransparency Transparency
+        {
+            get => int.TryParse(Item.File.CommonValueOf(Item, 440)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? DxfTransparency.OfValue(value) : DxfTransparency.ByLayer;
+
+            set
+            {
+                if (value == Transparency)
+                {
+                    return;
+                }
+
+                if (value.IsInvalid)
+                {
+                    throw new ArgumentException("A transparency is by layer, by block or by alpha: an error value is not written.", nameof(value));
+                }
+
+                Item.File.Requires(1018, "transparency", "R2004 (AC1018)");
+                Item.File.SetCommon(Item, 440, value.IsByLayer ? null : value.Value.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        /// <summary>
+        /// Gets the hyperlinks of the entity, as AutoCAD's <c>Hyperlinks</c>: those of its extended data of the application
+        /// PE_URL, read and written as <see cref="DxfHyperLinkCollection"/> says.
+        /// </summary>
+        public DxfHyperLinkCollection Hyperlinks => new DxfHyperLinkCollection(this);
+
+        /// <summary>
         /// Gets what owns the entity, as AutoCAD's <c>OwnerId</c> names it: the block it is in,
         /// <see cref="DxfDatabase.ModelSpace"/> for an entity of model space; for a record that follows an entity, as a VERTEX
         /// of a POLYLINE or an ATTRIB of an INSERT, that entity. Null for one made in code and not yet added, or erased.
@@ -561,14 +600,80 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Moves, turns, scales or mirrors the entity by a transformation, as AutoCAD's <c>TransformBy</c> does: its record is
-        /// written anew with the new geometry, its look kept.
+        /// written anew with the new geometry, its look kept, and its extended data moved with it in the same writing, as
+        /// <see cref="DxfDBObject.XDataTransformBy"/> moves it: a world position (1011) moved, a displacement (1012) and a
+        /// direction (1013) turned, a distance (1041) and a scale factor (1042) scaled. An entity with none of those keeps its
+        /// extended data's bytes. Each class moves its own geometry as its page says.
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <exception cref="ArgumentException">Thrown where the class refuses the transformation, as an INSERT one that would
+        /// shear it; nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased.</exception>
         /// <exception cref="NotSupportedException">Thrown for an entity whose type the library keeps as it is, a
         /// <see cref="DxfUnknownEntity"/>.</exception>
-        public abstract void TransformBy(GeoTransform3 transform);
+        public void TransformBy(GeoTransform3 transform)
+        {
+            if (transform == null)
+            {
+                throw new ArgumentNullException(nameof(transform));
+            }
+
+            DxfItem item = Item;
+            DxfFile file = item.File;
+            List<DxfItem.PendingData> pending = null;
+            int count = item.Parent == null ? file.RecordCount(item) : 1;
+
+            // A record that follows an entity moved with it has its data moved by that entity, once.
+            if (item.Parent == null || !item.Parent.CarryingFollowers)
+            {
+                foreach (int r in file.WorldDataRecords(item))
+                {
+                    List<DxfTypedValue> data = TransformedData(file.XDataOf(item, r), transform);
+
+                    if (data != null)
+                    {
+                        pending = pending ?? new List<DxfItem.PendingData>();
+                        pending.Add(new DxfItem.PendingData(r, file.RecordType(item, r), data));
+                    }
+                }
+            }
+
+            item.PendingRecords = pending;
+            item.CarryingFollowers = item.Parent == null && count > 1;
+            List<DxfItem.PendingData> left;
+
+            try
+            {
+                TransformEntity(transform);
+            }
+            finally
+            {
+                left = item.PendingRecords;
+                item.PendingRecords = null;
+                item.CarryingFollowers = false;
+            }
+
+            // Where the class wrote nothing of a record, its extended data is written alone.
+            foreach (DxfItem.PendingData data in left ?? new List<DxfItem.PendingData>())
+            {
+                if (data.Index == 0)
+                {
+                    XData = data.Groups;
+                }
+                else
+                {
+                    FollowerAt(data.Index).XData = data.Groups;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Moves the entity's geometry by a transformation, as the class's page says, in one writing of its records where it
+        /// can: <see cref="TransformBy"/> gives the extended data moved to that writing.
+        /// </summary>
+        /// <param name="transform">The transformation, not null.</param>
+        private protected abstract void TransformEntity(GeoTransform3 transform);
 
         /// <summary>
         /// Gets a copy of the entity moved by a transformation, as AutoCAD's <c>GetTransformedCopy</c> does: an entity of the
@@ -637,6 +742,465 @@ namespace GeometryHelper.Export
                     { u.Z, v.Z, normal.Z, 0.0 },
                     { 0.0, 0.0, 0.0, 1.0 },
                 });
+            }
+        }
+
+        #endregion
+
+        #region Planes and crossings
+
+        private static readonly Dictionary<Tuple<Type, Type>, MethodInfo> Crossings = new Dictionary<Tuple<Type, Type>, MethodInfo>();
+
+        /// <summary>
+        /// Gets whether the entity lies in one plane, as AutoCAD's <c>IsPlanar</c>: whether <see cref="GetPlane"/> finds one, to
+        /// <see cref="Tolerance.Default"/>. A line, and a polyline whose vertices run along one line, lie in one; a 3D polyline
+        /// with a corner 0.002 off the plane of the others does not. A <see cref="DxfSpline"/> gives what its record says, the
+        /// flag 8 of its group 70.
+        /// </summary>
+        public virtual bool IsPlanar => TryGetPlane(out _);
+
+        /// <summary>
+        /// Gets the plane the entity lies in, as AutoCAD's <c>GetPlane</c>: that of its extrusion through its first point where
+        /// all of it lies in that, as a circle, an arc, a polyline or a text does; else the plane its shapes span, as a 3DFACE's
+        /// or a SPLINE's. An entity along one line, as a LINE, lies in the plane through it whose normal is nearest its
+        /// extrusion, the extrusion itself where the line runs across it; a point, in the plane of its extrusion. Points and planes are compared to
+        /// <see cref="Tolerance.Default"/>.
+        /// </summary>
+        /// <returns>The plane, its origin the entity's first point.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the entity does not lie in one plane, as AutoCAD answers
+        /// eNotPlanar, or has no shape the library reads.</exception>
+        public GeoPlane3 GetPlane()
+        {
+            if (!TryGetPlane(out GeoPlane3 plane))
+            {
+                throw new InvalidOperationException("The " + Item.Type + " " + (Handle ?? string.Empty) + " does not lie in one plane, or has no shape the library reads, as AutoCAD answers eNotPlanar.");
+            }
+
+            return plane;
+        }
+
+        /// <summary>
+        /// Gets the points where the entity and another meet, as AutoCAD's <c>IntersectWith</c>: worked out by the library's
+        /// shapes for both (<see cref="GetGeometry"/>), each pair of a shape of this entity and one of the other, to
+        /// <see cref="Tolerance.Default"/>. As AutoCAD's, it meets curves and edges, not areas: a closed polyline, a SOLID, a
+        /// 3DFACE and a mesh by the segments and arcs of their edges, so that the square of side 4 about the origin meets the line
+        /// from (-10, 0, 0) to (10, 0, 0) at (-2, 0, 0) and (2, 0, 0), and the line through its middle up the z axis nowhere. A
+        /// chain the library has no intersection of with a shape is taken segment by segment and arc by arc, and a POINT meets
+        /// a shape where it lies on it. An entity that is to run on past its ends, as the type of intersection says, is taken as
+        /// its line or circle where it is a LINE or an ARC; any other is taken as it is.
+        /// </summary>
+        /// <param name="entityPointer">The other entity.</param>
+        /// <param name="intersectType">Which entity runs on past its ends.</param>
+        /// <returns>
+        /// The points, each once, in the order they are found: the line from (0, 0, 0) to (10, 0, 0) meets the circle of radius 3
+        /// about (10, 0, 0) at (7, 0, 0), and extended (<see cref="DxfIntersect.ExtendThis"/>) at (13, 0, 0) too.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when the entity is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the type is not one of <see cref="DxfIntersect"/>.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a pair of shapes the library has no intersection of, as a text and
+        /// a line, rather than giving none.</exception>
+        public IReadOnlyList<GeoPoint3> IntersectWith(DxfEntity entityPointer, DxfIntersect intersectType)
+        {
+            if (entityPointer == null)
+            {
+                throw new ArgumentNullException(nameof(entityPointer));
+            }
+
+            if (intersectType < DxfIntersect.OnBothOperands || intersectType > DxfIntersect.ExtendBoth)
+            {
+                throw new ArgumentOutOfRangeException(nameof(intersectType), intersectType, "The type of intersection is one of DxfIntersect.");
+            }
+
+            bool extendThis = intersectType == DxfIntersect.ExtendThis || intersectType == DxfIntersect.ExtendBoth;
+            bool extendOther = intersectType == DxfIntersect.ExtendArgument || intersectType == DxfIntersect.ExtendBoth;
+            Tolerance tolerance = Tolerance.Default;
+            var points = new List<GeoPoint3>();
+
+            List<object> ours = GetGeometry().Select(s => extendThis ? Extended(s) : s).SelectMany(Outline).ToList();
+            List<object> others = entityPointer.GetGeometry().Select(s => extendOther ? Extended(s) : s).SelectMany(Outline).ToList();
+
+            foreach (object mine in ours)
+            {
+                foreach (object theirs in others)
+                {
+                    foreach (GeoPoint3 point in Meeting(mine, theirs, tolerance))
+                    {
+                        AddOnce(points, point, tolerance);
+                    }
+                }
+            }
+
+            return points.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Gets the points where the boxes of the entity and another meet, as AutoCAD's <c>BoundingBoxIntersectWith</c>: where
+        /// an edge of the one box of <see cref="GeometricExtents"/> enters or leaves the other box, each way, to
+        /// <see cref="Tolerance.Default"/>. Two flat boxes in one plane meet where their outlines cross: the box of the line from
+        /// (0, 0, 0) to (10, 10, 0) and that of the line from (5, 5, 0) to (15, 15, 0) meet at (10, 5, 0) and (5, 10, 0). A box
+        /// is never extended, whatever the type of intersection.
+        /// </summary>
+        /// <param name="entityPointer">The other entity.</param>
+        /// <param name="intersectType">The type of intersection, as AutoCAD takes it; a box does not run on.</param>
+        /// <returns>The points, each once, in the order they are found.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the entity is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the type is not one of <see cref="DxfIntersect"/>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when either entity has no extents, as <see cref="GeometricExtents"/> says.</exception>
+        public IReadOnlyList<GeoPoint3> BoundingBoxIntersectWith(DxfEntity entityPointer, DxfIntersect intersectType)
+        {
+            if (entityPointer == null)
+            {
+                throw new ArgumentNullException(nameof(entityPointer));
+            }
+
+            if (intersectType < DxfIntersect.OnBothOperands || intersectType > DxfIntersect.ExtendBoth)
+            {
+                throw new ArgumentOutOfRangeException(nameof(intersectType), intersectType, "The type of intersection is one of DxfIntersect.");
+            }
+
+            GeoAabb3 mine = GeometricExtents;
+            GeoAabb3 theirs = entityPointer.GeometricExtents;
+            Tolerance tolerance = Tolerance.Default;
+            var points = new List<GeoPoint3>();
+
+            foreach (KeyValuePair<GeoAabb3, GeoAabb3> pair in new[] { new KeyValuePair<GeoAabb3, GeoAabb3>(mine, theirs), new KeyValuePair<GeoAabb3, GeoAabb3>(theirs, mine) })
+            {
+                foreach (GeoLine3 edge in Edges(pair.Key, tolerance))
+                {
+                    foreach (GeoPoint3 point in pair.Value.GetIntersections(edge, tolerance))
+                    {
+                        AddOnce(points, point, tolerance);
+                    }
+                }
+            }
+
+            return points.AsReadOnly();
+        }
+
+        /// <summary>The plane of the entity, as <see cref="GetPlane"/> finds it; false where it lies in none.</summary>
+        private bool TryGetPlane(out GeoPlane3 plane)
+        {
+            plane = default;
+            Tolerance tolerance = Tolerance.Default;
+            var points = new List<GeoPoint3>();
+            var normals = new List<GeoVector3>();
+
+            foreach (object shape in GetGeometry())
+            {
+                if (!Collect(shape, points, normals, tolerance))
+                {
+                    return false;
+                }
+            }
+
+            if (points.Count == 0)
+            {
+                return false;
+            }
+
+            GeoPoint3 first = points[0];
+            GeoVector3 own = GetNormal();
+
+            // The extrusion first, as AutoCAD gives a circle's or a polyline's plane, then the plane a shape has of its own.
+            var tried = new List<GeoVector3> { own };
+            tried.AddRange(normals);
+
+            foreach (GeoVector3 normal in tried)
+            {
+                if (Holds(new GeoPlane3(first, normal), points, normals, tolerance))
+                {
+                    plane = new GeoPlane3(first, normal);
+                    return true;
+                }
+            }
+
+            GeoPoint3 far = first;
+            double farthest = 0.0;
+
+            foreach (GeoPoint3 point in points)
+            {
+                double distance = first.DistanceTo(point);
+
+                if (distance > farthest)
+                {
+                    farthest = distance;
+                    far = point;
+                }
+            }
+
+            if (farthest <= tolerance.EqualPoint)
+            {
+                plane = new GeoPlane3(first, own);
+                return true;
+            }
+
+            GeoVector3 along = first.GetVectorTo(far).Divide(farthest);
+            GeoPoint3 wide = first;
+            double widest = 0.0;
+
+            foreach (GeoPoint3 point in points)
+            {
+                double distance = first.GetVectorTo(point).CrossProduct(along).Length;
+
+                if (distance > widest)
+                {
+                    widest = distance;
+                    wide = point;
+                }
+            }
+
+            if (widest <= tolerance.EqualPoint)
+            {
+                // Along one line: the plane through it whose normal is nearest the extrusion.
+                GeoVector3 across = own.Subtract(along.Multiply(own.DotProduct(along)));
+
+                if (!across.TryGetNormal(out GeoVector3 normal, tolerance))
+                {
+                    OcsAxes(along, out GeoVector3 u, out _);
+                    normal = u;
+                }
+
+                plane = new GeoPlane3(first, normal);
+                return true;
+            }
+
+            GeoVector3 spanned = first.GetVectorTo(far).CrossProduct(first.GetVectorTo(wide));
+
+            if (!spanned.TryGetNormal(out GeoVector3 unit, tolerance) || !Holds(new GeoPlane3(first, unit), points, normals, tolerance))
+            {
+                return false;
+            }
+
+            plane = new GeoPlane3(first, unit);
+            return true;
+        }
+
+        /// <summary>Whether a plane holds every point and is the plane of every shape that has one of its own.</summary>
+        private static bool Holds(GeoPlane3 plane, List<GeoPoint3> points, List<GeoVector3> normals, Tolerance tolerance)
+            => plane.ContainsAll(points, tolerance) && normals.TrueForAll(n => n.IsParallelTo(plane.Normal, tolerance));
+
+        /// <summary>
+        /// The points of a shape that fix where it lies, and the normal of its own plane where it has one: a circle's centre and
+        /// normal, a polyline's vertices; false for a shape of which the library knows no plane, as a body.
+        /// </summary>
+        private static bool Collect(object shape, List<GeoPoint3> points, List<GeoVector3> normals, Tolerance tolerance)
+        {
+            switch (shape)
+            {
+                case GeoPoint3 s: points.Add(s); return true;
+                case GeoLine3 s: points.Add(s.StartPoint); points.Add(s.EndPoint); return true;
+                case GeoRay3 s: points.Add(s.Origin); points.Add(s.Origin.Add(s.Direction)); return true;
+                case GeoXLine3 s: points.Add(s.Origin); points.Add(s.Origin.Add(s.Direction)); return true;
+                case GeoCircle3 s: points.Add(s.Center); normals.Add(s.Normal); return true;
+                case GeoArc3 s: points.Add(s.Center); points.Add(s.StartPoint); normals.Add(s.Normal); return true;
+                case GeoEllipse3 s: points.Add(s.Center); normals.Add(s.Normal); return true;
+                case GeoTriangle3 s: points.Add(s.A); points.Add(s.B); points.Add(s.C); return true;
+                case GeoPolygon3 s: points.AddRange(s.Vertices); normals.Add(s.Normal); return true;
+                case GeoPolygonArc3 s: points.AddRange(s.Vertices); normals.Add(s.Normal); return true;
+                case GeoPolyline3 s: points.AddRange(s.Vertices); return true;
+                case GeoPolylineArc3 s:
+                    points.AddRange(s.Vertices);
+
+                    if (s.TryGetPlane(out GeoPlane3 chain, tolerance))
+                    {
+                        normals.Add(chain.Normal);
+                        return true;
+                    }
+
+                    // A chain the library gives no plane is straight along one line, or does not lie in one.
+                    return AlongOneLine(s.Vertices, tolerance);
+                case GeoSpline3 s: points.AddRange(s.ControlPoints); return true;
+                case DxfText s: points.Add(s.Position); normals.Add(s.Normal); return true;
+                default: return false;
+            }
+        }
+
+        /// <summary>Whether points all lie along one line, or at one point.</summary>
+        private static bool AlongOneLine(IReadOnlyList<GeoPoint3> points, Tolerance tolerance)
+        {
+            GeoPoint3 first = points[0];
+            GeoVector3 along = default;
+            bool found = false;
+
+            foreach (GeoPoint3 point in points)
+            {
+                GeoVector3 to = first.GetVectorTo(point);
+
+                if (!found)
+                {
+                    found = to.TryGetNormal(out along, tolerance) && to.Length > tolerance.EqualPoint;
+                    continue;
+                }
+
+                if (to.CrossProduct(along).Length > tolerance.EqualPoint)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>A shape as it runs on past its ends: a segment as its infinite line, an arc as its circle; any other as it is.</summary>
+        private static object Extended(object shape)
+        {
+            switch (shape)
+            {
+                case GeoLine3 s when s.StartPoint.DistanceTo(s.EndPoint) > 0.0: return new GeoXLine3(s.StartPoint, s.Direction);
+                case GeoArc3 s: return new GeoCircle3(s.Center, s.Normal, s.Radius);
+                default: return shape;
+            }
+        }
+
+        /// <summary>
+        /// The curves a shape is drawn with, as AutoCAD intersects an entity by its curves and edges: a closed polygon, a
+        /// face, a triangle or a body by the segments and arcs of its edges, any other shape as it is.
+        /// </summary>
+        private static IEnumerable<object> Outline(object shape)
+        {
+            switch (shape)
+            {
+                case GeoPolygon3 s: return Segments(s.GetEdges());
+                case GeoPolygonArc3 s: return EdgePieces(s.GetEdges());
+                case GeoTriangle3 s: return Segments(new[] { new GeoLine3(s.A, s.B), new GeoLine3(s.B, s.C), new GeoLine3(s.C, s.A) });
+                case GeoFace3 s: return FaceEdges(s);
+                case GeoSolid3 s: return s.Faces.SelectMany(FaceEdges);
+                default: return new[] { shape };
+            }
+        }
+
+        /// <summary>The pieces of a chain the library has no intersection of with a shape, to be intersected one by one; null for a shape that is no chain.</summary>
+        private static IEnumerable<object> Pieces(object shape)
+        {
+            switch (shape)
+            {
+                case GeoPolyline3 s: return Segments(s.GetEdges());
+                case GeoPolylineArc3 s: return EdgePieces(s.GetEdges());
+                default: return null;
+            }
+        }
+
+        private static IEnumerable<object> FaceEdges(GeoFace3 face)
+            => Segments(face.Boundary.GetEdges()).Concat(face.Holes.SelectMany(h => Segments(h.GetEdges())));
+
+        private static IEnumerable<object> Segments(IEnumerable<GeoLine3> lines)
+            => lines.Where(l => l.StartPoint.DistanceTo(l.EndPoint) > 0.0).Cast<object>();
+
+        private static IEnumerable<object> EdgePieces(IEnumerable<GeoEdge3> edges)
+            => edges.Select(e => e.IsArc ? (object)e.ToArc() : e.ToLine()).Where(p => !(p is GeoLine3 l) || l.StartPoint.DistanceTo(l.EndPoint) > 0.0);
+
+        /// <summary>
+        /// Where two shapes meet: by the library's <c>GetIntersections(other, tolerance)</c> of the one or of the other, whichever
+        /// class has it; else piece by piece where one is a chain; else, for a point, the point where it lies on the other.
+        /// </summary>
+        /// <exception cref="NotSupportedException">Thrown for a pair the library has no intersection of, as a text and a line.</exception>
+        private static IEnumerable<GeoPoint3> Meeting(object a, object b, Tolerance tolerance)
+        {
+            MethodInfo method = CrossingOf(a.GetType(), b.GetType());
+
+            if (method != null)
+            {
+                return (GeoPoint3[])method.Invoke(a, new[] { b, tolerance });
+            }
+
+            method = CrossingOf(b.GetType(), a.GetType());
+
+            if (method != null)
+            {
+                return (GeoPoint3[])method.Invoke(b, new[] { a, tolerance });
+            }
+
+            IEnumerable<object> pieces = Pieces(a);
+
+            if (pieces != null)
+            {
+                return pieces.SelectMany(p => Meeting(p, b, tolerance)).ToList();
+            }
+
+            pieces = Pieces(b);
+
+            if (pieces != null)
+            {
+                return pieces.SelectMany(p => Meeting(a, p, tolerance)).ToList();
+            }
+
+            if (a is GeoPoint3 point)
+            {
+                return OnShape(point, b, tolerance);
+            }
+
+            if (b is GeoPoint3 other)
+            {
+                return OnShape(other, a, tolerance);
+            }
+
+            throw new NotSupportedException("The library has no intersection of a " + a.GetType().Name + " and a " + b.GetType().Name + ".");
+        }
+
+        /// <summary>A point where it lies on a shape, within the tolerance: by the shape's <c>DistanceTo(GeoPoint3)</c>; none where it lies off it.</summary>
+        /// <exception cref="NotSupportedException">Thrown for a shape the library measures no distance to, as a text.</exception>
+        private static IEnumerable<GeoPoint3> OnShape(GeoPoint3 point, object shape, Tolerance tolerance)
+        {
+            MethodInfo distance = shape.GetType().GetMethod("DistanceTo", BindingFlags.Instance | BindingFlags.Public, null, new[] { typeof(GeoPoint3) }, null);
+
+            if (distance == null || distance.ReturnType != typeof(double))
+            {
+                throw new NotSupportedException("The library measures no distance from a point to a " + shape.GetType().Name + ".");
+            }
+
+            return (double)distance.Invoke(shape, new object[] { point }) <= tolerance.EqualPoint ? new[] { point } : new GeoPoint3[0];
+        }
+
+        /// <summary>The method <c>GeoPoint3[] GetIntersections(other, Tolerance)</c> of a class of shape for another, found once; null where it has none.</summary>
+        private static MethodInfo CrossingOf(Type type, Type other)
+        {
+            var key = Tuple.Create(type, other);
+
+            lock (Crossings)
+            {
+                if (!Crossings.TryGetValue(key, out MethodInfo method))
+                {
+                    method = type.GetMethod("GetIntersections", BindingFlags.Instance | BindingFlags.Public, null, new[] { other, typeof(Tolerance) }, null);
+                    method = method != null && method.ReturnType == typeof(GeoPoint3[]) ? method : null;
+                    Crossings.Add(key, method);
+                }
+
+                return method;
+            }
+        }
+
+        /// <summary>A point added where none of those found is within the tolerance of it.</summary>
+        private static void AddOnce(List<GeoPoint3> points, GeoPoint3 point, Tolerance tolerance)
+        {
+            if (!points.Exists(p => p.IsEqualTo(point, tolerance)))
+            {
+                points.Add(point);
+            }
+        }
+
+        /// <summary>The edges of a box longer than the tolerance: twelve, fewer for a box flat along an axis.</summary>
+        private static IEnumerable<GeoLine3> Edges(GeoAabb3 box, Tolerance tolerance)
+        {
+            GeoPoint3 a = box.Min;
+            GeoPoint3 b = box.Max;
+            var corners = new GeoPoint3[8];
+
+            for (int i = 0; i < 8; i++)
+            {
+                corners[i] = new GeoPoint3((i & 1) == 0 ? a.X : b.X, (i & 2) == 0 ? a.Y : b.Y, (i & 4) == 0 ? a.Z : b.Z);
+            }
+
+            for (int i = 0; i < 8; i++)
+            {
+                for (int bit = 1; bit < 8; bit <<= 1)
+                {
+                    int j = i | bit;
+
+                    if (j != i && corners[i].DistanceTo(corners[j]) > tolerance.EqualPoint)
+                    {
+                        yield return new GeoLine3(corners[i], corners[j]);
+                    }
+                }
             }
         }
 
