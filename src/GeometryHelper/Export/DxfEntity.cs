@@ -1558,11 +1558,13 @@ namespace GeometryHelper.Export
         /// A part of the entity exploded, a shape made an entity in no file as <see cref="DxfWriter"/> writes it, with the entity's
         /// look (layer, colour, true colour, linetype and its scale, lineweight, visibility) and, a LINE or an ARC, its thickness.
         /// </summary>
-        private protected DxfEntity PartOf(object shape)
+        private protected DxfEntity PartOf(object shape) => PartOf(shape, new Look(this), GetThickness());
+
+        /// <summary>A part as <see cref="PartOf(object)"/> makes it, of a look and a thickness read once for all the parts.</summary>
+        private static DxfEntity PartOf(object shape, Look look, double thickness)
         {
             DxfEntity made = Of(DxfFile.Detached(shape));
-            GiveLook(made);
-            double thickness = GetThickness();
+            look.GiveTo(made);
 
             if (!Same(thickness, 0.0) && (made.Item.Type == "LINE" || made.Item.Type == "ARC"))
             {
@@ -1573,15 +1575,44 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>Gives a part made in no file the entity's look: its layer, colour, true colour, linetype and its scale, lineweight and visibility.</summary>
-        private protected void GiveLook(DxfEntity made)
+        private protected void GiveLook(DxfEntity made) => new Look(this).GiveTo(made);
+
+        /// <summary>
+        /// The look of an entity, read once (each read of a polyline's reads its record, every vertex of it): its layer, colour,
+        /// true colour, linetype and its scale, lineweight and visibility, given to the parts it is exploded into.
+        /// </summary>
+        private sealed class Look
         {
-            made.Layer = Layer;
-            made.ColorIndex = ColorIndex;
-            made.TrueColor = TrueColor;
-            made.Linetype = Linetype;
-            made.LinetypeScale = LinetypeScale;
-            made.LineWeight = LineWeight;
-            made.Visible = Visible;
+            private readonly string _layer;
+            private readonly int _colorIndex;
+            private readonly int? _trueColor;
+            private readonly string _linetype;
+            private readonly double _linetypeScale;
+            private readonly DxfLineWeight _lineWeight;
+            private readonly bool _visible;
+
+            internal Look(DxfEntity of)
+            {
+                _layer = of.Layer;
+                _colorIndex = of.ColorIndex;
+                _trueColor = of.TrueColor;
+                _linetype = of.Linetype;
+                _linetypeScale = of.LinetypeScale;
+                _lineWeight = of.LineWeight;
+                _visible = of.Visible;
+            }
+
+            /// <summary>Gives a part made in no file the look, in the order <see cref="GiveLook"/> always gave it.</summary>
+            internal void GiveTo(DxfEntity made)
+            {
+                made.Layer = _layer;
+                made.ColorIndex = _colorIndex;
+                made.TrueColor = _trueColor;
+                made.Linetype = _linetype;
+                made.LinetypeScale = _linetypeScale;
+                made.LineWeight = _lineWeight;
+                made.Visible = _visible;
+            }
         }
 
         /// <summary>
@@ -1598,14 +1629,54 @@ namespace GeometryHelper.Export
         {
             var parts = new List<DxfEntity>();
             double tolerance = Tolerance.Default.EqualPoint;
+            var look = new Look(this);
+            double thickness = GetThickness();
+
+            // The vertices in cells as wide as the tolerance, made at the first question: a point is within the tolerance of a
+            // vertex only of its own cell or of one next to it, so each question looks at those 27 cells alone.
+            Dictionary<(long, long, long), List<GeoPoint3>> cells = null;
+
+            (long, long, long) Cell(GeoPoint3 point)
+                => ((long)Math.Floor(point.X / tolerance), (long)Math.Floor(point.Y / tolerance), (long)Math.Floor(point.Z / tolerance));
 
             bool OnVertex(GeoPoint3 point)
             {
-                foreach (GeoPoint3 vertex in vertices)
+                if (cells == null)
                 {
-                    if (vertex.DistanceTo(point) <= tolerance)
+                    cells = new Dictionary<(long, long, long), List<GeoPoint3>>();
+
+                    foreach (GeoPoint3 vertex in vertices)
                     {
-                        return true;
+                        (long, long, long) key = Cell(vertex);
+
+                        if (!cells.TryGetValue(key, out List<GeoPoint3> cell))
+                        {
+                            cells.Add(key, cell = new List<GeoPoint3>());
+                        }
+
+                        cell.Add(vertex);
+                    }
+                }
+
+                (long x, long y, long z) = Cell(point);
+
+                for (long i = x - 1; i <= x + 1; i++)
+                {
+                    for (long j = y - 1; j <= y + 1; j++)
+                    {
+                        for (long k = z - 1; k <= z + 1; k++)
+                        {
+                            if (cells.TryGetValue((i, j, k), out List<GeoPoint3> cell))
+                            {
+                                foreach (GeoPoint3 vertex in cell)
+                                {
+                                    if (vertex.DistanceTo(point) <= tolerance)
+                                    {
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1624,12 +1695,12 @@ namespace GeometryHelper.Export
                     {
                         // The two halves of one arc, cut where no vertex is: one ARC from the start of the first to the end of the second.
                         GeoArc3 first = edge.ToArc();
-                        parts.Add(ArcOn(first.Center, first.Normal, first.Radius, edge.StartPoint, edges[i + 1].EndPoint, normal ?? first.Normal));
+                        parts.Add(ArcOn(first.Center, first.Normal, first.Radius, edge.StartPoint, edges[i + 1].EndPoint, normal ?? first.Normal, look, thickness));
                         i++;
                     }
                     else if (edge.StartPoint.DistanceTo(edge.EndPoint) > tolerance)
                     {
-                        parts.Add(PartOn(edge.IsArc ? (object)edge.ToArc() : edge.ToLine(), normal));
+                        parts.Add(PartOn(edge.IsArc ? (object)edge.ToArc() : edge.ToLine(), normal, look, thickness));
                     }
                 }
             }
@@ -1638,7 +1709,7 @@ namespace GeometryHelper.Export
             {
                 if (line.Length > tolerance)
                 {
-                    parts.Add(PartOn(line, normal));
+                    parts.Add(PartOn(line, normal, look, thickness));
                 }
             }
 
@@ -1671,7 +1742,7 @@ namespace GeometryHelper.Export
                         break;
                     case GeoArc3 _:
                     case GeoCircle3 _:
-                        parts.Add(PartOn(shape, normal));
+                        parts.Add(PartOn(shape, normal, look, thickness));
                         break;
                 }
             }
@@ -1680,15 +1751,15 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>
-        /// A part of <see cref="ChainParts"/> (<see cref="PartOf"/>) on the normal of the polyline's plane: a LINE given it, an
-        /// ARC made about it, its ends kept, from its end where it runs the other way about; any other part, or one of no normal
-        /// given, as <see cref="PartOf"/> makes it.
+        /// A part of <see cref="ChainParts"/> (<see cref="PartOf(object)"/>) on the normal of the polyline's plane: a LINE given
+        /// it, an ARC made about it, its ends kept, from its end where it runs the other way about; any other part, or one of no
+        /// normal given, as <see cref="PartOf(object)"/> makes it, of the look and thickness read once for all the parts.
         /// </summary>
-        private DxfEntity PartOn(object shape, GeoVector3? normal)
+        private static DxfEntity PartOn(object shape, GeoVector3? normal, Look look, double thickness)
         {
             if (normal == null)
             {
-                return PartOf(shape);
+                return PartOf(shape, look, thickness);
             }
 
             GeoVector3 up = normal.Value;
@@ -1696,10 +1767,10 @@ namespace GeometryHelper.Export
             // An arc off the world's plane is made on the normal at once, rather than made and made again.
             if (shape is GeoArc3 bulge && !(up.X == 0.0 && up.Y == 0.0 && up.Z == 1.0))
             {
-                return ArcOn(bulge.Center, bulge.Normal, bulge.Radius, bulge.StartPoint, bulge.EndPoint, up);
+                return ArcOn(bulge.Center, bulge.Normal, bulge.Radius, bulge.StartPoint, bulge.EndPoint, up, look, thickness);
             }
 
-            DxfEntity part = PartOf(shape);
+            DxfEntity part = PartOf(shape, look, thickness);
 
             switch (part)
             {
@@ -1707,7 +1778,7 @@ namespace GeometryHelper.Export
                     line.Normal = up;
                     return part;
                 case DxfArc arc when !(Same(arc.Normal.X, up.X) && Same(arc.Normal.Y, up.Y) && Same(arc.Normal.Z, up.Z)):
-                    return ArcOn(arc.Center, arc.Normal, arc.Radius, arc.StartPoint, arc.EndPoint, up);
+                    return ArcOn(arc.Center, arc.Normal, arc.Radius, arc.StartPoint, arc.EndPoint, up, look, thickness);
                 default:
                     return part;
             }
@@ -1718,15 +1789,15 @@ namespace GeometryHelper.Export
         /// end to the other counter-clockwise about it: from its start where it ran that way about its own normal, else from its
         /// end; its angles in the system of the normal.
         /// </summary>
-        private DxfEntity ArcOn(GeoPoint3 center, GeoVector3 own, double radius, GeoPoint3 start, GeoPoint3 end, GeoVector3 up)
+        private static DxfEntity ArcOn(GeoPoint3 center, GeoVector3 own, double radius, GeoPoint3 start, GeoPoint3 end, GeoVector3 up, Look look, double thickness)
         {
             bool back = own.DotProduct(up) < 0.0;
             GeoPoint3 middle = WorldToOcs(up, center);
             GeoPoint3 from = WorldToOcs(up, back ? end : start);
             GeoPoint3 to = WorldToOcs(up, back ? start : end);
             var arc = new DxfArc(center, up, radius, Math.Atan2(from.Y - middle.Y, from.X - middle.X), Math.Atan2(to.Y - middle.Y, to.X - middle.X));
-            GiveLook(arc);
-            arc.Thickness = GetThickness();
+            look.GiveTo(arc);
+            arc.Thickness = thickness;
             return arc;
         }
 
